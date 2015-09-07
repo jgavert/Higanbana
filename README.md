@@ -1,6 +1,6 @@
-# Haze
+# Faze
 ```
-Name depicts that the projects goal isn't clear, hence its referencing mist.
+Name depicts that the projects goal isn't clear, hence its referencing mist. (There apparently already is a Haze engine so I'll just use 'F' then :) )
 It's a collection of libraries to fasten researching or prototyping of multithreaded and/or advanced graphics applications using atleast D3D12(Main target is vulkan, but yet to appear).
 ```
 
