@@ -1,0 +1,13 @@
+#version 140
+
+uniform sampler2D mask;
+uniform sampler2D maskTarget;
+
+out vec4 out_Color;
+
+void main( void ) {
+	vec2 tsize = textureSize(mask, 0);
+	vec2 uv = ( gl_FragCoord.xy / tsize );
+	vec4 ta = texture(maskTarget, uv);
+	out_Color = vec4(ta.rgb, ta.a * texture(mask, uv).r);
+}

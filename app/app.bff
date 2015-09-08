@@ -1,0 +1,133 @@
+// FBuildApp
+//------------------------------------------------------------------------------
+{
+	.ProjectName		= 'App'
+	.ProjectPath		= 'app'
+
+	// Visual Studio Project Generation
+	//--------------------------------------------------------------------------
+	VCXProject( '$ProjectName$-proj' )
+	{
+		.ProjectOutput				= '$ProjectPath$\$ProjectName$.vcxproj'
+		.ProjectInputPaths			= '$ProjectPath$\'
+		.ProjectBasePath			= '$ProjectPath$\'
+    	.OutputDirectory      = '^$(SolutionDir)\bin\^$(Configuration)\App'
+		.LocalDebuggerCommand		= '^$(SolutionDir)\bin\^$(Configuration)\App\App.exe'
+		.LocalDebuggerWorkingDirectory = '^$(SolutionDir)\appspace\'
+	}
+
+    // Unity
+    //--------------------------------------------------------------------------
+    {
+        // Common options
+        .UnityInputPath             = '$ProjectPath$\'
+        .UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$\'
+
+        // Windows
+        Unity( '$ProjectName$-Unity-Windows' )
+        {
+        }
+    }
+
+    .CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
+						+ ' libcmt.lib'
+                        + ' kernel32.lib'
+                        + ' user32.lib'
+                        + ' gdi32.lib'
+                        + ' winspool.lib'
+                        + ' comdlg32.lib'
+                        + ' advapi32.lib'
+                        + ' shell32.lib'
+                        + ' ole32.lib'
+                        + ' oleaut32.lib'
+                        + ' uuid.lib'
+                        + ' odbc32.lib'
+                        + ' odbccp32.lib'
+                        + ' libconcrt1.lib'
+						+ ' OLDNAMES.lib'
+						+ ' D3d12.lib'
+						+ ' Dxgi.lib'
+						+ ' atls.lib'
+						+ ' D3DCompiler.lib'
+	.Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
+						+ ' libucrtd.lib'
+                        + ' libvcruntimed.lib'
+	.Releaselinkerlibs  = ' libcpmt.lib'
+						+ ' libucrt.lib'
+                        + ' libvcruntime.lib' 
+	.Profilelinkerlibs  = .Releaselinkerlibs
+
+	.X64DebugConfiguration =
+	[
+		Using (.X64DebugConfig)
+		.LinkerOptions	+ .CommonLinkerLibs
+						+ .Debuglinkerlibs
+
+	]
+
+	.X64ProfileConfiguration =
+	[
+		Using (.X64ProfileConfig)
+		.LinkerOptions	+ .CommonLinkerLibs
+						+ .Profilelinkerlibs
+	]
+
+	.X64ReleaseConfiguration =
+	[
+		Using (.X64ReleaseConfig)
+		.LinkerOptions	+ .CommonLinkerLibs
+						+ .Releaselinkerlibs
+	]
+
+
+	.Configs_Windows_MSVC2 = { .X64DebugConfiguration, .X64ProfileConfiguration, .X64ReleaseConfiguration }
+
+	// Windows (MSVC)
+	//--------------------------------------------------------------------------
+	ForEach( .Config in .Configs_Windows_MSVC2 )
+	{
+		Using( .Config )
+		.OutputBase + '\$Platform$-$Config$'
+		//Print('$LinkerOptions$')
+		//Print('$BaseIncludePaths$')
+		// Static Library
+		Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+		{
+			// Input (Unity)
+			.CompilerInputUnity			= '$ProjectName$-Unity-Windows'
+
+			// Output
+			.CompilerOutputPath			= '$OutputBase$\$ProjectName$\'
+ 			.LibrarianOutput 			= '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+		}
+
+		// Executable
+		Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
+		{
+			.Libraries					= {
+                                            'App-Lib-$Platform$-$Config$',
+                                            'core-Lib-$Platform$-$Config$'
+                                           }
+			.LinkerOutput				= '$OutputBase$\App\App.exe'
+		}
+		Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$Config$' }
+	}
+
+	// Aliases
+	//--------------------------------------------------------------------------
+	// Per-Config
+
+	Alias( '$ProjectName$-Debug' )		{ .Targets = { '$ProjectName$-X64-Debug'} }
+	Alias( '$ProjectName$-Profile' )	{ .Targets = { '$ProjectName$-X64-Profile'} }
+	Alias( '$ProjectName$-Release' )	{ .Targets = { '$ProjectName$-X64-Release'} }
+
+	// Per-Platform
+	Alias( '$ProjectName$-X64' )		{ .Targets = { '$ProjectName$-X64-Debug', '$ProjectName$-X64-Release', '$ProjectName$-X64-Profile' } }
+
+
+	// All
+	Alias( '$ProjectName$' )
+	{
+		.Targets = { '$ProjectName$-Debug', '$ProjectName$-Profile', '$ProjectName$-Release' }
+	}
+}

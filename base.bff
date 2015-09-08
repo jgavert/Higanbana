@@ -1,0 +1,228 @@
+.VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
+.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
+.WindowsSDKSubVersion = '10.0.10240.0'
+.FazEPath = 'C:/code/toki/FazE'
+#include "externals/externals.bff"
+
+.nvtxPath = ''
+.nvtxProjInclude = ''
+.nvtxInclude = ''
+.nvtxLibPath = ''
+.nvtxLibname = ''
+;-------------------------------------------------------------------------------
+; Settings
+;-------------------------------------------------------------------------------
+Settings
+{
+    #if __WINDOWS__
+        .Environment  = { "PATH=$VSBasePath$\Common7\IDE\;$VSBasePath$\VC\bin\",
+                            "TMP=C:\Windows\Temp",
+                            "SystemRoot=C:\Windows" }
+        .CachePath    = "Z:\fastbuild\cache"
+    #endif
+}
+// definitions
+Compiler( 'Compiler-x64' )
+{
+  .Root   = '$VSBasePath$\VC\bin'
+  .Executable = '$Root$\amd64\cl.exe'
+  .ExtraFiles = { '$Root$\amd64\c1.dll'
+                  '$Root$\amd64\atlprov.dll',
+                  '$Root$\amd64\c1xx.dll',
+                  '$Root$\amd64\dpcmi.dll',
+                  '$Root$\amd64\c2.dll',
+                  '$Root$\amd64\1033\clui.dll',
+                  '$Root$\amd64\msobj140.dll',
+                  '$Root$\amd64\mspdb140.dll',
+                  '$Root$\amd64\mspdbsrv.exe',
+                  '$Root$\amd64\mspdbst.dll',
+                  '$Root$\amd64\mspdbcore.dll',
+                  '$Root$\amd64\mspft140.dll',
+                  '$Root$\amd64\msvcdis140.dll',
+                  '$Root$\amd64\pgodb140.dll',
+                  '$Root$\amd64\pgort140.dll',
+                  '$Root$\amd64\vcmeta.dll',
+                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\msvcp140.dll',
+                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\vcruntime140.dll',
+                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\vccorlib140.dll',
+                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\concrt140.dll'
+                  }
+}
+
+// Resource Compiler
+//------------------------------------------------------------------------------
+.ResourceCompiler =
+[
+	.Compiler					= '$WindowsSDKBasePath10$\Bin\x64\RC.exe'
+	.CompilerOutputExtension	= '.res'
+	.CompilerOptions			= '/nologo /fo"%2" %1'
+]
+//------------------------------------------------------------------------------
+// Configurations
+//------------------------------------------------------------------------------
+.MSVCBaseConfig =
+[
+  .AdditionalWarnings   = ' /we4062' // enumerator 'identifier' in a switch of enum 'enumeration' is not handled
+                        + ' /we4263' // 'function' : member function does not override any base class virtual member function
+                        + ' /we4296' // 'operator': expression is always false
+                        + ' /we4555' // expression has no effect; expected expression with side-effect
+                        + ' /we4619' // #pragma warning : there is no warning number 'number'
+                        + ' /we4640' // 'instance' : construction of local static object is not thread-safe
+                        + ' /we4826' // Conversion from 'type1 ' to 'type_2' is sign-extended. This may cause unexpected runtime behavior.
+                        + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
+                        + ' /we4905' // wide string literal cast to 'LPSTR'
+                        + ' /we4906' // string literal cast to 'LPWSTR'
+
+  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
+                      + ' /TP' // compile as c++
+                      + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
+                      + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
+                      + .AdditionalWarnings
+                      + ' /fp:fast'
+                      + ' /D"WIN32_LEAN_AND_MEAN" /D_WIN32 /D__WINDOWS__'
+                      + ' /D"_CRT_SECURE_NO_WARNINGS"' // don't warn about unsafe functions
+                      + ' /D"_WINSOCK_DEPRECATED_NO_WARNINGS"' // don't warn about deprecated winsock functions - TODO:C Update API use
+					  + ' /showIncludes'
+					  + ' /Gd'
+  .PCHOptions         = .CompilerOptions
+                      + ' /Fp"%2" /Fo"%3"'
+  .CompilerOptions    + ' /Fo"%2"'
+  .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
+  .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
+                      + ' /IGNORE:4001'  // don't complain about linking libs only
+					  + ' /IGNORE:4217' // don't complain about locally defined symbols
+					  + ' /IGNORE:4049' // urgh
+
+  // Optimizations
+  .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
+  .CompilerReleaseOptimizations   = ' /MT /Ox /Oy /Oi /GS- /GF /GL /Gy /Gw /GR- /EHsc'
+  .LibrarianDebugOptimizations    = ''
+  .LibrarianReleaseOptimizations  = ' /LTCG'
+  .LinkerDebugOptimizations       = ''
+  .LinkerReleaseOptimizations     = ' /LTCG /OPT:REF,ICF'
+
+  .BaseIncludePaths   = ' /I"./"'
+                      + ' /I"$VSBasePath$/VC/include/"'
+                      + ' /I"$VSBasePath$/VC/atlmfc/include/"'
+                      + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared"'
+                      + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
+                      + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
+                      + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt"'
+					            + .externalIncludes
+                      + .nvtxInclude
+  .CompilerOptions    + .BaseIncludePaths
+  .PCHOptions         + .BaseIncludePaths
+
+  //.WindowsLibPaths    = '$WindowsSDKBasePath$/lib/winv6.3/um'
+  .WindowsLibPaths10  = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/ucrt'
+  .WindowsLibPaths10d = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/um/'
+
+  .UseExceptions      = ' /EHsc'
+]
+// X64
+//------------------------------------------------------------------------------
+.X64BaseConfig = 
+[
+  Using( .MSVCBaseConfig )
+  .ToolsBasePath      = '$VSBasePath$\VC\bin\amd64'
+  .Compiler           = 'Compiler-x64'
+  .Librarian          = '$ToolsBasePath$\lib.exe'
+  .Linker             = '$ToolsBasePath$\link.exe'
+  .CompilerOptions    + ' /DWIN64'
+  .PCHOptions         + ' /DWIN64'
+  .LinkerOptions      + ' /MACHINE:X64'
+  .Platform           = 'x64'
+  .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
+                      + ' /LIBPATH:"$WindowsLibPaths10d$/x64"'
+                      //+ ' /LIBPATH:"$WindowsLibPaths$/x64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/lib/amd64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/atlmfc/lib/amd64"'
+
+  //Print('$LinkerOptions$')
+]
+
+.X64DebugConfig =
+[
+  Using( .X64BaseConfig )
+  .Config             = 'Debug'
+  .CompilerOptions    + ' /DDEBUG /DPROFILING_ENABLED'
+                      + .CompilerDebugOptimizations             
+  .PCHOptions         + ' /DDEBUG /DPROFILING_ENABLED'
+                      + .CompilerDebugOptimizations             
+  .LibrarianOptions   + .LibrarianDebugOptimizations
+  .LinkerOptions      + .LinkerDebugOptimizations
+]
+
+.X64ReleaseConfig =
+[
+  Using( .X64BaseConfig )
+  .Config             = 'Release'
+  .CompilerOptions    + ' /DRELEASE'
+  .PCHOptions         + ' /DRELEASE'
+
+  // Setup de-optimization options (FASTBUILD_DEOPTIMIZE_OBJECT)
+  .DeoptimizeWritableFilesWithToken   = true
+  .CompilerOptionsDeoptimized         = '$CompilerOptions$ /Od'
+  .PCHOptionsDeoptimized              = '$PCHOptions$ /Od'
+
+  .CompilerOptions    + .CompilerReleaseOptimizations             
+  .PCHOptions         + .CompilerReleaseOptimizations             
+  .LibrarianOptions   + .LibrarianReleaseOptimizations
+  .LinkerOptions      + .LinkerReleaseOptimizations
+]
+
+.X64ProfileConfig =
+[
+  Using( .X64ReleaseConfig ) // Note: based on Release config
+  .Config             = 'Profile'
+  .CompilerOptions    + ' /DPROFILING_ENABLED'
+  .PCHOptions         + ' /DPROFILING_ENABLED'
+
+  .DeoptimizeWritableFilesWithToken = false
+]
+
+
+.OutputBase = 'bin'
+
+//------------------------------------------------------------------------------
+// Unity/Blob files (shared across configs)
+//------------------------------------------------------------------------------
+.UnityInputIsolateWritableFiles = true
+
+//------------------------------------------------------------------------------
+// VisualStudio Project Generation
+//------------------------------------------------------------------------------
+.ProjectCommon = 
+[
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache ^$(ProjectName)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean ^$(ProjectName)-^$(Configuration)'
+  .OutputDirectory          = '^$(SolutionDir)\tmp'
+  .IntermediateDirectory    = '^$(SolutionDir)\tmp'
+  .Platform                 = 'x64' // unused
+  .PlatformToolset          = 'v140'
+  .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared'
+  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
+							+ .extDefines
+  .DebugDefines             = 'DEBUG;PROFILING_ENABLED'
+  .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
+  .ReleaseDefines           = 'RELEASE'
+]
+
+.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'x64-Debug' .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
+.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'x64-Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
+.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'x64-Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
+
+.ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
+
+VCXProject( 'All-proj' )
+{
+  .ProjectOutput    = '.\All.vcxproj'
+  .ProjectFiles     = { '.\fbuild.bff', '.\base.bff', '.\externals\externals.bff' }
+  .ProjectBasePath  = '.\'
+}
+
+// helper definitions
+.Configs = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
+.Configs_Windows_MSVC = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
+
