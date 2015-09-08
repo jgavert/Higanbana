@@ -1,0 +1,70 @@
+#include "base.bff"
+
+// Core
+#include "core\core.bff"
+
+// App
+#include "app\app.bff"
+
+// Aliases : All-$Platform$-$Config$
+//------------------------------------------------------------------------------
+ForEach( .Config in .Configs )
+{
+  Using( .Config )
+
+  Alias( 'All-$Platform$-$Config$' )
+  {
+    .Targets    = { // tests
+              // executables
+              'App-Exe-$Platform$-$Config$'
+
+              // Clang doesn't link at the moment, so we need list all the libs manually
+              //'Core-$Platform$-$Config$'
+              }
+  }
+}
+
+.Platforms = { 'x64' }
+ForEach( .Platform in .Platforms )
+{
+  Alias( 'All-$Platform$' )
+  {
+    .Targets    = { 'All-$Platform$-Debug',
+              'All-$Platform$-Profile',
+              'All-$Platform$-Release'
+              }
+  }
+}
+
+// Aliases : All
+//------------------------------------------------------------------------------
+#if __WINDOWS__
+    Alias( 'All' )
+    {
+        .Targets    = { 'All-x64' }
+    }
+#endif
+
+//#if __WINDOWS__
+//    Alias( 'Tests' )
+//    {
+//        .Targets    = { }
+//    }
+//#endif
+
+// Aliases : All+Tests
+//------------------------------------------------------------------------------
+Alias( 'All+Tests' )
+{
+  .Targets    = { 'All' }
+}
+
+// Aliases : proj (all projects)
+//------------------------------------------------------------------------------
+Alias( 'proj' )
+{
+  .Targets    = { 'All-proj',
+            'Core-proj',
+            'App-proj' 
+            }
+}
