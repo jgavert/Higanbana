@@ -12,6 +12,14 @@ Fastbuild binary copied to root folder.
 Reasonable graphics card if using d3d12.
 ```
 
+## Origins for some of the algorithms and motivation:
+```
+Lazy binary-splitting: a run-time adaptive work-stealing scheduler http://www.umiacs.umd.edu/publications/lazy-binary-splitting-run-time-adaptive-work-stealing-scheduler
+Data Oriented Design and Entity systems
+Gpu Driven Rendering. Ps4 Dreams(pointclouds). Various Demoscene productions, mostly those with lots of particles.
+Distancefields and triangilize them on fly with gpu -> Histopyramid
+```
+
 ### "Nice to have" features, haven't had time or interest.
 ```
 Audio
