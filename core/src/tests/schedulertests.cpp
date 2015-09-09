@@ -1,6 +1,6 @@
 #include "schedulertests.hpp"
 #include "TestWorks.hpp"
-
+using namespace faze;
 bool SchedulerTests::Run()
 {
 	TestWorks t("SchedulerTests");

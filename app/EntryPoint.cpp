@@ -6,6 +6,7 @@
 #include "Graphics/gfxApi.hpp"
 #include "core/src/entity/database.hpp"
 #include "core/src/system/time.hpp"
+#include "core/src/tests/schedulertests.hpp"
 #include "graphics/apitests.hpp"
 #include "graphics/apitests2.hpp"
 #include "Graphics/SuperTest.hpp"
@@ -21,7 +22,7 @@ int EntryPoint::main()
   tests.run();
   ApiTests2 tests2;
   tests2.run();
-  
+  SchedulerTests::Run();
   //return 1;
   
   auto main = [=](std::string name, std::string classn)

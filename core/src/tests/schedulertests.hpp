@@ -1,5 +1,5 @@
 #pragma once
-#include "src/system/lbs.hpp"
+#include "core/src/system/lbs.hpp"
 
 class SchedulerTests
 {
