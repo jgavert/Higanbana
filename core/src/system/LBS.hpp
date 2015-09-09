@@ -247,7 +247,9 @@ namespace faze
       {
         m_threads.push_back(std::thread(&LBS::loop, this, it.m_ID));
       }
+#ifdef DEBUGTEXT
       F_LOG("LBS: Initializing with %d threads\n", procs);
+#endif
     }
     LBS(int threadCount) : StopCondition(false), idle_threads(0), m_nextTaskID(1), m_mainthreadsleeping(false)
     {
@@ -271,7 +273,9 @@ namespace faze
       {
         m_threads.push_back(std::thread(&LBS::loop, this, it.m_ID));
       }
+#ifdef DEBUGTEXT
       F_LOG("LBS: Initializing with %d threads\n", procs);
+#endif
     }
 
     ~LBS() // you do not simply delete this
