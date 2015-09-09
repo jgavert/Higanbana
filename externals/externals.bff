@@ -1,0 +1,8 @@
+// external base
+.extBasePath	= ' /LIBPATH:^"$FazEPath$/externals/'
+.extIncludeDir	= '$FazEPath$/externals/'
+.extDefines		= ''
+
+
+.externalIncludes = ''
+
