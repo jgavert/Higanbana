@@ -11,6 +11,7 @@ It's a collection of libraries to fasten researching or prototyping of multithre
 
 ## Origins for some of the algorithms and motivation:
 - Lazy binary-splitting: a run-time adaptive work-stealing scheduler http://www.umiacs.umd.edu/publications/lazy-binary-splitting-run-time-adaptive-work-stealing-scheduler
+- The Scheduler is currently deadlock free, only deadlocks have been seen when being attached in visual studio debugger... and the deadlock solves by pausing and continuing...
 - Data Oriented Design and Entity systems
 - Gpu Driven Rendering. Ps4 Dreams(pointclouds). Various Demoscene productions, mostly those with lots of particles.
 - Distancefields and triangilize them on fly with gpu -> Histopyramid
