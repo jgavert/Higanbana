@@ -1,15 +1,14 @@
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | " \
                          "DENY_VERTEX_SHADER_ROOT_ACCESS), " \
               "RootConstants(num32BitConstants=4, b0), " \
+              "CBV(b1), " \
               "SRV(t0), " \
-              "DescriptorTable( SRV(t1, numDescriptors = 4)), " \
-              "DescriptorTable( UAV(u0, numDescriptors = 4)), " \
-              "DescriptorTable( CBV(b1, numDescriptors = 4)), " \
+              "SRV(t1), " \
+              "UAV(u0), " \
               "StaticSampler(s0)," \
               "StaticSampler(s1, " \
                              "addressU = TEXTURE_ADDRESS_CLAMP, " \
-                             "filter = FILTER_MIN_MAG_MIP_LINEAR )," \
-              "DescriptorTable(Sampler(s2, numDescriptors = 4)) "
+                             "filter = FILTER_MIN_MAG_MIP_LINEAR )"
 
 
 struct buffer

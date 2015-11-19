@@ -5,6 +5,7 @@
 #include <iostream>
 #include "core/src/system/logger.hpp"
 #include "core/src/global_debug.hpp"
+#include "core/src/tools/bentsumaakaa.hpp"
 
 namespace faze
 {
@@ -14,6 +15,7 @@ namespace faze
     std::vector<std::pair<std::string, std::function<bool()> > >  m_tests;
     std::string m_name;
     Logger logs;
+    Bentsumaakaa b;
   public:
     TestWorks(std::string name) :m_name(name) {}
 
@@ -27,12 +29,26 @@ namespace faze
       for (auto& it : m_tests)
       {
         std::string ok = "[FAILED] ";
-        if (it.second())
+        b.start(false);
+        bool a = it.second();
+        auto time = b.stop(false);
+        std::string padding = "";
+        if (a)
         {
           ok = "[OK] ";
           ++testCount;
+          padding = "    ";
         }
-        F_LOG("%s Test %s\n", ok.c_str(), it.first.c_str());
+        auto timef = time / 1000000.f;
+        if (timef < 10.f)
+        {
+          padding += " ";
+        }
+        if (timef < 100.f)
+        {
+          padding += " ";
+        }
+        F_LOG("%s %s%f ms Test %s\n", ok.c_str(),padding.c_str(), timef, it.first.c_str());
       };
       F_LOG("----------------------------------------------------------------\n");
       F_LOG("Tests %zu / %zu completed\n", testCount, m_tests.size());

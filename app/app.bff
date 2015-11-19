@@ -30,7 +30,7 @@
     }
 
     .CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
-						+ ' libcmt.lib'
+						            + ' libcmt.lib'
                         + ' kernel32.lib'
                         + ' user32.lib'
                         + ' gdi32.lib'
@@ -44,24 +44,24 @@
                         + ' odbc32.lib'
                         + ' odbccp32.lib'
                         + ' libconcrt1.lib'
-						+ ' OLDNAMES.lib'
-						+ ' D3d12.lib'
-						+ ' Dxgi.lib'
-						+ ' atls.lib'
-						+ ' D3DCompiler.lib'
-	.Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
-						+ ' libucrtd.lib'
+						            + ' OLDNAMES.lib'
+						            + ' D3d12.lib'
+						            + ' Dxgi.lib'
+						            + ' atls.lib'
+						            + ' D3DCompiler.lib'
+	.Debuglinkerlibs      = ' libcpmtd.lib' // brings thread support
+						            + ' libucrtd.lib'
                         + ' libvcruntimed.lib'
-	.Releaselinkerlibs  = ' libcpmt.lib'
-						+ ' libucrt.lib'
+	.Releaselinkerlibs    = ' libcpmt.lib'
+						            + ' libucrt.lib'
                         + ' libvcruntime.lib' 
-	.Profilelinkerlibs  = .Releaselinkerlibs
+	.Profilelinkerlibs    = .Releaselinkerlibs
 
 	.X64DebugConfiguration =
 	[
 		Using (.X64DebugConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						+ .Debuglinkerlibs
+						        + .Debuglinkerlibs
 
 	]
 
@@ -69,14 +69,14 @@
 	[
 		Using (.X64ProfileConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						+ .Profilelinkerlibs
+						        + .Profilelinkerlibs
 	]
 
 	.X64ReleaseConfiguration =
 	[
 		Using (.X64ReleaseConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						+ .Releaselinkerlibs
+						        + .Releaselinkerlibs
 	]
 
 
@@ -98,16 +98,16 @@
 
 			// Output
 			.CompilerOutputPath			= '$OutputBase$\$ProjectName$\'
- 			.LibrarianOutput 			= '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+ 			.LibrarianOutput 			  = '$OutputBase$\$ProjectName$\$ProjectName$.lib'
 		}
 
 		// Executable
 		Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
 		{
 			.Libraries					= {
-                                            'App-Lib-$Platform$-$Config$',
-                                            'core-Lib-$Platform$-$Config$'
-                                           }
+                              'App-Lib-$Platform$-$Config$',
+                              'core-Lib-$Platform$-$Config$'
+                            }
 			.LinkerOutput				= '$OutputBase$\App\App.exe'
 		}
 		Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$Config$' }

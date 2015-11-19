@@ -8,13 +8,7 @@ struct Format
   size_t stride;
   FormatType format;
   Format() :format(FormatType::Unknown), stride(sizeof(T)) {}
+  Format(FormatType type) : format(type), stride(0) {}
 };
 
-template <>
-struct Format<FormatType>
-{
-  size_t stride;
-  FormatType format;
-  template<FormatType type>
-  Format() :format(type), stride(0) {}
-};
+

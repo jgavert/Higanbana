@@ -10,6 +10,45 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
   {
     //
   }
+  ComPtr<ID3D12DescriptorHeap> heap;
+  D3D12_DESCRIPTOR_HEAP_DESC Desc;
+  Desc.NodeMask = 0;
+  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  Desc.NumDescriptors = 100;
+  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
+  if (FAILED(hr))
+  {
+    // 
+  }
+  m_descHeap = ResourceViewManager(heap, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+
+
+  ComPtr<ID3D12DescriptorHeap> heap2;
+  D3D12_DESCRIPTOR_HEAP_DESC Desc2;
+  Desc2.NodeMask = 0;
+  Desc2.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  Desc2.NumDescriptors = 10;
+  Desc2.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  hr = mDevice->CreateDescriptorHeap(&Desc2, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap2.addr()));
+  if (FAILED(hr))
+  {
+    // 
+  }
+  m_descRTVHeap = ResourceViewManager(heap2, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+
+  ComPtr<ID3D12DescriptorHeap> heap3;
+  Desc.NodeMask = 0;
+  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+  Desc.NumDescriptors = 10;
+  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap3.addr()));
+  if (FAILED(hr))
+  {
+    // 
+  }
+  m_descDSVHeap = ResourceViewManager(heap3, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+
 }
 
 // Needs to be created from descriptor, if you say you have 2 buffers, it is expected that this will then handle it.
@@ -37,8 +76,8 @@ SwapChain GpuDevice::createSwapChain(Window& wnd, GpuCommandQueue& queue)
   {
     //
   }
-  IDXGISwapChain3* mSwapChain = nullptr;
-  hr = dxgiFactory->CreateSwapChain(queue.m_CommandQueue.get(), &swapChainDesc, (IDXGISwapChain**)&mSwapChain);
+  ComPtr<IDXGISwapChain3> mSwapChain;
+  hr = dxgiFactory->CreateSwapChain(queue.m_CommandQueue.get(), &swapChainDesc, (IDXGISwapChain**)mSwapChain.addr());
   dxgiFactory->Release();
   if (FAILED(hr))
   {

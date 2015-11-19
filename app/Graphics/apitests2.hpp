@@ -15,7 +15,7 @@
 class ApiTests2
 {
 private:
-  void runTestsForDevice(std::string name, int id)
+  void runTestsForDevice(std::string name, int id, ProgramParams params)
   {
     faze::TestWorks t(name);
     t.addTest("Device creation", [&]()
@@ -41,7 +41,7 @@ private:
       return list.isValid();
     });
 
-    t.addTest("Create Upload buffer", [id]()
+    t.addTest("Create Upload buffer", [&]()
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
@@ -59,11 +59,12 @@ private:
       auto buf = dev.createBufferUAV(
         Dimension(4096), Format<float>(), ResType::Upload);
 
-      buf.buffer().Map<float>();
-      return true;
+      auto a = buf.buffer().Map<float>();
+      a[0] = 1.f;
+      return a[0] != 0.f;
     });
 
-    t.addTest("Create Gpu resident buffer", [id]()
+    t.addTest("Create Gpu resident buffer", [&]()
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
@@ -100,7 +101,7 @@ private:
 
       return true;
     });
-    t.addTest("Upload and readback the same data", [id]()
+    t.addTest("Upload and readback the same data", [&]()
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
@@ -116,7 +117,7 @@ private:
         auto tmp = srcdata.buffer().Map<float>();
         for (int i = 0;i < srcdata.buffer().size; ++i)
         {
-          tmp.get()[i] = static_cast<float>(i);
+          tmp[i] = static_cast<float>(i);
         }
       }
 
@@ -129,7 +130,7 @@ private:
         auto woot = rbdata.buffer().Map<float>();
         for (int i = 0;i < rbdata.buffer().size; ++i)
         {
-          if (woot.get()[i] != static_cast<float>(i))
+          if (woot[i] != static_cast<float>(i))
           {
             return false;
           }
@@ -144,7 +145,7 @@ private:
     // doing dynamic reflection might give the best results. Atleast easiest.
     // Maybe compare root signature between shaders or just define some "extract_rootsignature.hlsl" thats included to every file.
     // Honestly sounds fine, just the problem of creating "root signature" object that knows what to put and where needed to be done.
-    t.addTest("shader root signature", [id]()
+    t.addTest("shader root signature", [&]()
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
@@ -179,12 +180,12 @@ private:
       }
 
       hr = dev.mDevice->CreateRootSignature(
-        1, blobSig->GetBufferPointer(), blobSig->GetBufferSize(),
+        1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(g_RootSig.addr()));
       return !FAILED(hr);
     });
 
-	t.addTest("shader root signature mirror structure", [id]()
+	t.addTest("shader root signature mirror structure", [&]()
 	{
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
@@ -207,11 +208,8 @@ private:
 		{
 			return false;
 		}
-		ComPtr<ID3D12RootSignature> g_RootSig;
-		ComPtr<ID3DBlob> blobSig;
-		ComPtr<ID3DBlob> errorSig;
 		const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
-		F_LOG("\n");
+		//F_LOG("\n");
 		for (int i = 0;i < woot->NumParameters;++i)
 		{
 			auto it = woot->pParameters[i];
@@ -219,50 +217,50 @@ private:
 			{
 				
 			case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-				F_LOG("DescTable:\n", it.DescriptorTable);
+				//F_LOG("DescTable:\n", it.DescriptorTable);
 				for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
 				{
 					auto it2 = it.DescriptorTable.pDescriptorRanges[k];
-					F_LOG("\tRangeType: ");
+					//F_LOG("\tRangeType: ");
 					switch (it2.RangeType)
 					{
 					case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
-						F_LOG("SRV ");
+						//F_LOG("SRV ");
 						break; 
 					case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
-						F_LOG("UAV ");
+						//F_LOG("UAV ");
 						break;
 					case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-						F_LOG("CBV ");
+						//F_LOG("CBV ");
 						break;
 					case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
-						F_LOG("Sampler ");
+						//F_LOG("Sampler ");
 						break;
 					default:
 						break;
 					}
-					F_LOG("NumDescriptors: %u, RegisterSpace: %u, BaseShaderRegister:%u", it2.NumDescriptors, it2.RegisterSpace, it2.BaseShaderRegister);
-					F_LOG("\n");
+					//F_LOG("NumDescriptors: %u, RegisterSpace: %u, BaseShaderRegister:%u", it2.NumDescriptors, it2.RegisterSpace, it2.BaseShaderRegister);
+					//F_LOG("\n");
 				}
 				break;
 			case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
-				F_LOG("32Bit constant Num32BitValues:%u RegisterSpace:%u ShaderRegister:%u\n", it.Constants.Num32BitValues, it.Constants.RegisterSpace, it.Constants.ShaderRegister);
+				//F_LOG("32Bit constant Num32BitValues:%u RegisterSpace:%u ShaderRegister:%u\n", it.Constants.Num32BitValues, it.Constants.RegisterSpace, it.Constants.ShaderRegister);
 				break;
 			case D3D12_ROOT_PARAMETER_TYPE_CBV:
-				F_LOG("CBV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
+				//F_LOG("CBV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
 				break;
 			case D3D12_ROOT_PARAMETER_TYPE_SRV:
-				F_LOG("SRV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
+				//F_LOG("SRV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
 				break;
 			case D3D12_ROOT_PARAMETER_TYPE_UAV:
-				F_LOG("UAV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
+				//F_LOG("UAV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
 				break;
 			default:
 				break;
 			}
 		}
-		F_LOG("\n");
-    return false;
+		//F_LOG("\n");
+    return true;
 	});
 
 	t.addTest("Create compute Pipeline", [id]()
@@ -275,7 +273,7 @@ private:
 
 
 
-	t.addTest("Pipeline binding prototype test", [id]()
+	t.addTest("Pipeline binding and modify data in compute (sub 50 lines!)", [id]()
 	{
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
@@ -289,6 +287,8 @@ private:
     {
       int i;
       int k;
+      int x;
+      int y;
     };
 		auto srcdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Upload);
 		auto dstdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
@@ -299,37 +299,91 @@ private:
 			auto tmp = srcdata.buffer().Map<buf>();
 			for (int i = 0;i < srcdata.buffer().size; ++i)
 			{
-        tmp.get()[i].i = i;
-        tmp.get()[i].k = i;
+        tmp[i].i = i;
+        tmp[i].k = i;
 			}
 		}
 
 		list.CopyResource(dstdata.buffer(), srcdata.buffer());
-		// use compute to operate on dstdata and output to completedata
-    // This next part is incomplete from the implementation details.
-		Binding bind = list.bind(pipeline);
+		auto bind = list.bind(pipeline);
 		bind.SRV(0, dstdata);
 		bind.UAV(0, completedata);
-		list.Dispatch(bind, 1000*1000 / 50, 1, 1);
-		// finish
+    size_t shaderGroup = 50;
+    size_t inputSize = 1000 * 1000;
+		list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+
 		list.CopyResource(rbdata.buffer(), completedata.buffer());
-		queue.submit(list);
+    queue.submit(list);
 		queue.insertFence(fence);
 		fence.wait();
-    auto woot = rbdata.buffer().Map<buf>();
+
+    auto mapd = rbdata.buffer().Map<buf>();
     for (int i = 0;i < rbdata.buffer().size;++i)
     {
-      if (woot.get()[i].i != static_cast<float>(i) + static_cast<float>(i))
+      auto& obj = mapd[i];
+      if (obj.i != i + i)
       {
         return false;
       }
-      if (woot.get()[i].k != 0)
+      if (obj.k != i)
       {
         return false;
       }
     }
     return true;
 	});
+
+  t.addTest("Create TextureSRV", [id]()
+  {
+    SystemDevices sys;
+    GpuDevice dev = sys.CreateGpuDevice(id);
+    auto buf = dev.createTextureSRV(
+      Dimension(800,600)
+      , Format<int>(FormatType::R8G8B8A8_UNORM)
+      , ResType::Gpu
+      , MipLevel()
+      , Multisampling());
+    return buf.isValid();
+  });
+
+  t.addTest("Create TextureUAV", [id]()
+  {
+    SystemDevices sys;
+    GpuDevice dev = sys.CreateGpuDevice(id);
+    auto buf = dev.createTextureUAV(
+      Dimension(800, 600)
+      , Format<int>(FormatType::R8G8B8A8_UNORM)
+      , ResType::Gpu
+      , MipLevel()
+      , Multisampling());;
+    return buf.isValid();
+  });
+
+  t.addTest("Create TextureRTV", [id]()
+  {
+    SystemDevices sys;
+    GpuDevice dev = sys.CreateGpuDevice(id);
+    auto buf = dev.createTextureRTV(
+      Dimension(800, 600)
+      , Format<int>(FormatType::R8G8B8A8_UNORM)
+      , ResType::Gpu
+      , MipLevel()
+      , Multisampling());
+    return buf.isValid();
+  });
+
+  t.addTest("Create TextureDSV", [id]()
+  {
+    SystemDevices sys;
+    GpuDevice dev = sys.CreateGpuDevice(id);
+    auto buf = dev.createTextureDSV(
+      Dimension(800, 600)
+      , Format<int>(FormatType::D32_FLOAT)
+      , ResType::Gpu
+      , MipLevel()
+      , Multisampling());
+    return buf.isValid();
+  });
 
 	t.addTest("Create Universal Pipeline", [id]()
 	{
@@ -339,7 +393,27 @@ private:
 		return false;
 	});
 
-	t.addTest("Create SwapChain", [id]()
+	t.addTest("Create SwapChain", [&]()
+	{
+		SystemDevices sys;
+		GpuDevice dev = sys.CreateGpuDevice(id);
+    GpuCommandQueue queue = dev.createQueue();
+
+    Window window(params, "kek", 800, 600);
+    window.open();
+    SwapChain sc = std::move(dev.createSwapChain(queue, window));
+    MSG msg;
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    {
+      if (msg.message == WM_QUIT)
+        continue;
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+		return sc.valid();
+	});
+
+	t.addTest("Seemingly manage to create g-buffer(?)", [id]()
 	{
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
@@ -347,28 +421,45 @@ private:
 		return false;
 	});
 
-	t.addTest("Create Different textures", [id]()
+	t.addTest("Create window and render(?) for full 1 second in loop", [&]()
 	{
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
+    GpuCommandQueue queue = dev.createQueue();
+    GfxCommandList list = dev.createUniversalCommandList();
 
-		return false;
-	});
+    Window window(params, "ebin", 800, 600);
+    window.open();
+    SwapChain sc = dev.createSwapChain(queue, window);
 
-	t.addTest("Seemingly manage to create g-buffer", [id]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
+    ViewPort port(800, 600);
+    auto timepoint2 = std::chrono::high_resolution_clock::now();
+    float i = 0;
+    auto vec = faze::vec4({ i, 0.2f, 0.2f, 1.0f });
+    auto limit = std::chrono::seconds(1).count();
 
-		return false;
-	});
+    auto timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+    while (timeSince < limit)
+    {
+      timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+      window.simpleReadMessages();
+      GpuFence fence = dev.createFence();
+      list.setViewPort(port);
+      UINT backBufferIndex = sc->GetCurrentBackBufferIndex();
+      vec[0] += 0.02f;
+      if (vec[0] > 1.0f)
+        vec[0] = 0.f;
+      list.ClearRenderTargetView(sc[backBufferIndex], vec);
+      queue.submit(list);
 
-	t.addTest("Create window and render for full 1 second in loop", [id]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
+      sc->Present(1, 0);
+      queue.insertFence(fence);
+      fence.wait();
+      dev.resetCmdList(list);
+    }
+    window.close();
 
-		return false;
+		return true;
 	});
 
 	t.addTest("Create window and render a triangle for full 1 second in loop", [id]()
@@ -391,12 +482,12 @@ private:
   }
 
 public:
-  void run()
+  void run(ProgramParams params)
   {
     SystemDevices sys;
-    for (int i = 0; i < sys.DeviceCount(); ++i)
+    for (int i = 0; i < 1; ++i)
     {
-      runTestsForDevice(sys.getInfo(i).description, i);
+      runTestsForDevice(sys.getInfo(i).description, i, params);
     }
   }
 };
