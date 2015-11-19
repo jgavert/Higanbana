@@ -1,7 +1,7 @@
 .VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 .WindowsSDKSubVersion = '10.0.10240.0'
-.FazEPath = 'C:/code/toki/FazE'
+.FazEPath = 'C:/code/faze'
 #include "externals/externals.bff"
 
 .nvtxPath = ''
@@ -82,16 +82,16 @@ Compiler( 'Compiler-x64' )
                       + ' /D"WIN32_LEAN_AND_MEAN" /D_WIN32 /D__WINDOWS__'
                       + ' /D"_CRT_SECURE_NO_WARNINGS"' // don't warn about unsafe functions
                       + ' /D"_WINSOCK_DEPRECATED_NO_WARNINGS"' // don't warn about deprecated winsock functions - TODO:C Update API use
-					  + ' /showIncludes'
-					  + ' /Gd'
+					            + ' /showIncludes'
+					            + ' /Gd'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
   .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
-					  + ' /IGNORE:4217' // don't complain about locally defined symbols
-					  + ' /IGNORE:4049' // urgh
+					            + ' /IGNORE:4217' // don't complain about locally defined symbols
+					            + ' /IGNORE:4049' // urgh
 
   // Optimizations
   .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
@@ -113,7 +113,7 @@ Compiler( 'Compiler-x64' )
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
 
-  //.WindowsLibPaths    = '$WindowsSDKBasePath$/lib/winv6.3/um'
+  //.WindowsLibPaths  = '$WindowsSDKBasePath$/lib/winv6.3/um'
   .WindowsLibPaths10  = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/ucrt'
   .WindowsLibPaths10d = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/um/'
 
@@ -196,14 +196,14 @@ Compiler( 'Compiler-x64' )
 [
   .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache ^$(ProjectName)-^$(Configuration)'
   .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean ^$(ProjectName)-^$(Configuration)'
-  .OutputDirectory          = '^$(SolutionDir)\tmp'
-  .IntermediateDirectory    = '^$(SolutionDir)\tmp'
+  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Configuration)\App'
+  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Configuration)\App'
   .Platform                 = 'x64' // unused
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared'
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
-							+ .extDefines
+							              + .extDefines
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'

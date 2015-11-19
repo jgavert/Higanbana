@@ -21,8 +21,8 @@ struct GpuInfo
 class SystemDevices
 {
 private:
-  ComPtr<IDXGIFactory1> pFactory;
-  std::vector<IDXGIAdapter*> vAdapters;
+  ComPtr<IDXGIFactory4> pFactory;
+  std::vector<IDXGIAdapter1*> vAdapters;
   std::vector<GpuInfo> infos;
   // 2 device support only
   int betterDevice;
@@ -32,9 +32,9 @@ public:
   SystemDevices() : betterDevice(-1), lesserDevice(-1)
   {
     UINT i = 0;
-    CreateDXGIFactory1(__uuidof(IDXGIFactory1), reinterpret_cast<void**>(&pFactory));
-    IDXGIAdapter* pAdapter;
-    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
+    CreateDXGIFactory1(__uuidof(IDXGIFactory4), reinterpret_cast<void**>(&pFactory));
+    IDXGIAdapter1* pAdapter;
+    while (pFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
     {
       vAdapters.push_back(pAdapter);
       ++i;
@@ -89,7 +89,7 @@ public:
   GpuDevice CreateGpuDevice(bool better)
   {
     ComPtr<ID3D12Device> mDevice;
-    HRESULT hr = D3D12CreateDevice(vAdapters[better ? betterDevice : lesserDevice], D3D_FEATURE_LEVEL_11_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
+    HRESULT hr = D3D12CreateDevice(vAdapters[better ? betterDevice : lesserDevice], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
     if (FAILED(hr))
     {
       F_LOG("Device creation failed\n", 2);
@@ -100,7 +100,7 @@ public:
   GpuDevice CreateGpuDevice(int num)
   {
     ComPtr<ID3D12Device> mDevice;
-    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
+    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
     if (FAILED(hr))
     {
       F_LOG("Device creation failed\n", 2);

@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <iostream>
 #include "core/src/tests/TestWorks.hpp"
+#include "app/Platform/Window.hpp"
 
 #include <d3d12shader.h>
 #include <D3Dcompiler.h>
@@ -15,7 +16,7 @@
 class ApiTests
 {
 private:
-  void runTestsForDevice(std::string name, int id)
+  void runTestsForDevice(std::string name, int id, ProgramParams params)
   {
     faze::TestWorks t(name);
     t.addTest("Device creation", [&]()
@@ -121,7 +122,7 @@ private:
     });
 
 
-    t.addTest("Move data to upload heap and move to gpu memory[UNVERIFIED]", [&]()
+    t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
@@ -264,7 +265,7 @@ private:
       return !FAILED(hr);
     });
 
-    t.addTest("Allocate real memory from heap for virtual resource [UNVERIFIED]", [id]()
+    t.addTest("Allocate real memory from heap for virtual resource", [id]()
     {
       HRESULT hr;
       SystemDevices sys;
@@ -399,6 +400,7 @@ private:
       range.Begin = 0;
       range.End = 1000 * 1000 * sizeof(float);
       hr = readBackRes->Map(0, &range, reinterpret_cast<void**>(&mappedArea));
+      range.End = 0;
       for (int i = 0;i < 1000 * 1000;++i)
       {
         if (mappedArea[i] != static_cast<float>(i))
@@ -642,6 +644,8 @@ private:
       {
         int i;
         int k;
+        int x;
+        int y;
       };
       buf* mappedArea;
       D3D12_RANGE range;
@@ -896,17 +900,18 @@ private:
       // Verify
       // -------------------------------------------------------------------------
       hr = readBackRes->Map(0, &range, reinterpret_cast<void**>(&mappedArea));
+      range.End = 0;
       if (FAILED(hr))
       {
         return false;
       }
       for (int i = 0;i < 1000 * 1000;++i)
       {
-        if (mappedArea[i].i != static_cast<float>(i) + static_cast<float>(i))
+        if (mappedArea[i].i != i + i)
         {
           return false;
         }
-        if (mappedArea[i].k != 0)
+        if (mappedArea[i].k != i)
         {
           return false;
         }
@@ -914,22 +919,287 @@ private:
       readBackRes->Unmap(0, &range);
       return true;
     });
-    
-    // this is actually already a miracle...
-    t.addTest("Modify data with compute shader(less than 150lines)", [id]()
-    {
-      return false;
-    });
 
-    t.addTest("Modify data with compute shader(less than 100lines)", [id]()
+    t.addTest("Modify data with compute shader (part2)", [id]()
     {
-      return false;
-    });
+      // holy fuck... err Initialize phase
+      SystemDevices sys;
+      GpuDevice dev = sys.CreateGpuDevice(id);
+      GpuCommandQueue queue = dev.createQueue();
+      GfxCommandList list = dev.createUniversalCommandList();
+      // lots of shit
+      ID3D12Resource *UploadData;
+      ID3D12Resource *GpuData;
+      ID3D12Resource *GpuOutData;
+      D3D12_RESOURCE_DESC datadesc = {};
+      D3D12_HEAP_PROPERTIES heapprop = {};
+      ID3D12Resource *readBackRes;
+      D3D12_RESOURCE_DESC readdesc = {};
+      D3D12_RESOURCE_BARRIER barrierDesc = {};
 
-    // this should be darn good as there is initializations also involved
-    t.addTest("Modify data with compute shader(less than 50lines)", [id]()
-    {
-      return false;
+      // DATA RANGE
+      struct buf
+      {
+        int i;
+        int k;
+        int x;
+        int y;
+      };
+      buf* mappedArea;
+      D3D12_RANGE range;
+      range.Begin = 0;
+      range.End = 1000 * 1000 * sizeof(buf);
+      // -------------------------------------------------------------------------
+      // ----------------UPLOAD HEAP CREATION AND FILL----------------------------
+      // -------------------------------------------------------------------------
+      datadesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      datadesc.Format = DXGI_FORMAT_UNKNOWN;
+      datadesc.Width = 1000 * 1000 * sizeof(buf);
+      datadesc.Height = 1;
+      datadesc.DepthOrArraySize = 1;
+      datadesc.MipLevels = 1;
+      datadesc.SampleDesc.Count = 1;
+      datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+      heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&UploadData));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+
+      // -------------------------------------------------------------------------
+      // -----------------------------FILL UPLOAD HEAP----------------------------
+      // -------------------------------------------------------------------------
+      hr = UploadData->Map(0, &range, reinterpret_cast<void**>(&mappedArea));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+      for (int i = 0;i < 1000 * 1000;++i)
+      {
+        mappedArea[i].i = i;
+        mappedArea[i].k = i;
+      }
+      UploadData->Unmap(0, &range);
+      // -------------------------------------------------------------------------
+      // -----------------------------GPU RESIDING BUFFERS------------------------
+      // -------------------------------------------------------------------------
+      heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
+      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuData));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+
+      datadesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuOutData));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+
+      // -------------------------------------------------------------------------
+      // -------------------------READBACK RESOURCE CREATION----------------------
+      // -------------------------------------------------------------------------
+      // Now DestData should hold the data
+      // craft a readback buffer and check the data
+      readdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      readdesc.Format = DXGI_FORMAT_UNKNOWN;
+      readdesc.Width = 1000 * 1000 * sizeof(buf);
+      readdesc.Height = 1;
+      readdesc.DepthOrArraySize = 1;
+      readdesc.MipLevels = 1;
+      readdesc.SampleDesc.Count = 1;
+      readdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      heapprop.Type = D3D12_HEAP_TYPE_READBACK;
+      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+
+      // -------------------------------------------------------------------------
+      // --------------COMMAND PIPELINE CREATION START----------------------------
+      // -------------------------------------------------------------------------
+      ID3DBlob* blobCompute;
+      ID3DBlob* errorMsg;
+      hr = D3DCompileFromFile(L"compute_1.hlsl", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, &blobCompute, &errorMsg);
+      // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
+      if (FAILED(hr))
+      {
+        if (errorMsg)
+        {
+          OutputDebugStringA((char*)errorMsg->GetBufferPointer());
+          errorMsg->Release();
+        }
+        return false;
+      }
+      D3D12_SHADER_BYTECODE byte;
+      byte.pShaderBytecode = blobCompute->GetBufferPointer();
+      byte.BytecodeLength = blobCompute->GetBufferSize();
+
+      // -------------------------------------------------------------------------
+      // ------------------------ROOT SIGNATURE BEGINS----------------------------
+      // -------------------------------------------------------------------------
+      ID3D12RootSignature* g_RootSig;
+      ID3DBlob* blobSig;
+      ID3DBlob* errorSig;
+      ComPtr<ID3D12RootSignatureDeserializer> asd;
+      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      if (FAILED(hr))
+      {
+        abort();
+      }
+      const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
+
+      hr = D3D12SerializeRootSignature(woot, D3D_ROOT_SIGNATURE_VERSION_1, &blobSig, &errorSig);
+      if (FAILED(hr))
+      {
+        abort();
+      }
+
+      hr = dev.mDevice->CreateRootSignature(
+        1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
+        __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&g_RootSig));
+      if (FAILED(hr))
+      {
+        abort();
+      }
+
+      // -------------------------------------------------------------------------
+      // --------------------COMPUTE PIPELINE FINISH------------------------------
+      // -------------------------------------------------------------------------
+      D3D12_COMPUTE_PIPELINE_STATE_DESC comPi;
+      ZeroMemory(&comPi, sizeof(comPi));
+      comPi.CS = byte;
+      comPi.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+      comPi.NodeMask = 0;
+      comPi.pRootSignature = g_RootSig;
+
+      ID3D12PipelineState* pipeline;
+      hr = dev.mDevice->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+      // -------------------------------------------------------------------------
+      // ------------------CREATE RESOURCE DESCRIPTORS-----------------------------
+      // -------------------------------------------------------------------------
+      // descriptor heap for shader view
+      ID3D12DescriptorHeap* descHeap;
+      D3D12_DESCRIPTOR_HEAP_DESC Desc;
+      Desc.NodeMask = 0;
+      Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+      Desc.NumDescriptors = 2;
+      Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+      hr = dev.mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
+      if (FAILED(hr))
+      {
+        return false;
+      }
+      // Actual descriptors
+      D3D12_BUFFER_SRV bufferSRV;
+      bufferSRV.FirstElement = 0;
+      bufferSRV.NumElements = 1000 * 1000;
+      bufferSRV.StructureByteStride = sizeof(buf);
+      bufferSRV.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+      D3D12_SHADER_RESOURCE_VIEW_DESC shaderSRV;
+      shaderSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      shaderSRV.Buffer = bufferSRV;
+      shaderSRV.Format = DXGI_FORMAT_UNKNOWN;
+      shaderSRV.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+
+      D3D12_CPU_DESCRIPTOR_HANDLE GpuDataSRV = descHeap->GetCPUDescriptorHandleForHeapStart();
+      size_t HandleIncrementSize = dev.mDevice->GetDescriptorHandleIncrementSize(Desc.Type);
+      dev.mDevice->CreateShaderResourceView(GpuData, &shaderSRV, GpuDataSRV);
+
+      D3D12_BUFFER_UAV bufferUAV;
+      bufferUAV.FirstElement = 0;
+      bufferUAV.NumElements = 1000 * 1000;
+      bufferUAV.StructureByteStride = sizeof(buf);
+      bufferUAV.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+      bufferUAV.CounterOffsetInBytes = 0;
+
+      D3D12_UNORDERED_ACCESS_VIEW_DESC shaderUAV;
+      shaderUAV.Buffer = bufferUAV;
+      shaderUAV.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+      shaderUAV.Format = DXGI_FORMAT_UNKNOWN;
+
+
+      D3D12_CPU_DESCRIPTOR_HANDLE GpuOutDataUAV;
+      GpuOutDataUAV.ptr = GpuDataSRV.ptr + 1 * HandleIncrementSize;
+
+      dev.mDevice->CreateUnorderedAccessView(GpuOutData, nullptr, &shaderUAV, GpuOutDataUAV);
+
+
+      // -------------------------------------------------------------------------
+      // -------------------------Begin Commandlist-------------------------------
+      // -------------------------------------------------------------------------
+      // First begin with uploading initialdata to the gpu residing memory.
+      list.m_CommandList->CopyResource(GpuData, UploadData);
+
+      // Also change the DestData should be changed to COPY_SRC
+      barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrierDesc.Transition.pResource = GpuData;
+      barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+      barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+      list.m_CommandList->ResourceBarrier(1, &barrierDesc);
+      // bind compute pipeline
+      list.m_CommandList->SetComputeRootSignature(g_RootSig);
+      list.m_CommandList->SetPipelineState(pipeline);
+      // bind descriptors
+      list.m_CommandList->SetDescriptorHeaps(1, &descHeap);
+      //list.m_CommandList->SetComputeRootDescriptorTable(0, GpuView);
+      //list.m_CommandList->SetComputeRootShaderResourceView(0, GpuView.ptr);
+      list.m_CommandList->SetComputeRootShaderResourceView(0, GpuData->GetGPUVirtualAddress());
+      //list.m_CommandList->SetComputeRootUnorderedAccessView(1, GpuView2.ptr);
+      list.m_CommandList->SetComputeRootUnorderedAccessView(1, GpuOutData->GetGPUVirtualAddress());
+      // launch compute
+      list.m_CommandList->Dispatch(1000 * 1000 / 50, 1, 1);
+      // resource barrier
+      barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrierDesc.Transition.pResource = GpuOutData;
+      barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+      barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+      list.m_CommandList->ResourceBarrier(1, &barrierDesc);
+      // copy back the resource
+      list.m_CommandList->CopyResource(readBackRes, GpuOutData);
+
+      // -------------------------------------------------------------------------
+      // ---------------------------end commandlist-------------------------------
+      // -------------------------------------------------------------------------
+      queue.submit(list);
+
+      GpuFence fence = dev.createFence();
+      queue.insertFence(fence);
+      fence.wait();
+
+      // -------------------------------------------------------------------------
+      // Verify
+      // -------------------------------------------------------------------------
+      hr = readBackRes->Map(0, &range, reinterpret_cast<void**>(&mappedArea));
+      range.End = 0;
+      if (FAILED(hr))
+      {
+        return false;
+      }
+      for (int i = 0; i < 1000 * 1000; ++i)
+      {
+        if (mappedArea[i].i != i + i)
+        {
+          return false;
+        }
+        if (mappedArea[i].k != i)
+        {
+          return false;
+        }
+      }
+      readBackRes->Unmap(0, &range);
+      return true;
     });
     
     t.addTest("UploadHeap creation", [id]()
@@ -953,18 +1223,61 @@ private:
       return !FAILED(hr);
     });
 
+    t.addTest("swapchain creation", [&]()
+    {
+      IDXGISwapChain* mSwapChain = nullptr;
+      {
+        SystemDevices sys;
+        GpuDevice dev = sys.CreateGpuDevice(id);
+        GpuCommandQueue queue = dev.createQueue();
+
+        Window window(params, "testw", 800, 600);
+        window.open();
+
+        DXGI_SWAP_CHAIN_DESC swapChainDesc;
+        ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+        swapChainDesc.BufferCount = 2;
+        swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.OutputWindow = window.getNative();
+        swapChainDesc.SampleDesc.Count = 1;
+        swapChainDesc.Windowed = TRUE;
+        swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+        IDXGIFactory4 *dxgiFactory = nullptr;
+        HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory4), (void**)&dxgiFactory);
+        if (FAILED(hr))
+        {
+          printf("CreateDXGIFactory2 failed\n");
+          return false;
+        }
+        hr = dxgiFactory->CreateSwapChain(queue.get().get(), &swapChainDesc, (IDXGISwapChain**)&mSwapChain);
+        dxgiFactory->Release();
+        if (FAILED(hr))
+        {
+          printf("CreateSwapChain failed\n");
+          return false;
+        }
+        printf("We got swapchain\n");
+      }
+      if (mSwapChain != nullptr)
+        mSwapChain->Release();
+
+      return true;
+    });
 
 
     t.runTests();
   }
 
 public:
-  void run()
+  void run(ProgramParams params)
   {
     SystemDevices sys;
-    for (int i = 0; i < sys.DeviceCount(); ++i)
+    for (int i = 0; i < 1; ++i)
     {
-      runTestsForDevice(sys.getInfo(i).description, i);
+      runTestsForDevice(sys.getInfo(i).description, i, params);
     }
   }
 };

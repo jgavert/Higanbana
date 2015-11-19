@@ -3,6 +3,8 @@ struct buffer
 {
   int i;
   int k;
+  int x; 
+  int y;
 };
 
 StructuredBuffer<buffer> Ind : register(t0);
@@ -13,5 +15,5 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
   int tid = DTid.x;
   Outd[tid].i = Ind[tid].i + Ind[tid].k; // Some data actions
-  Outd[tid].k = Ind[tid].i - Ind[tid].k;
+  Outd[tid].k = tid;
 }

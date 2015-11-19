@@ -17,47 +17,94 @@ using namespace faze;
 
 int EntryPoint::main()
 {
-  
+  // these tests will screw with directx frame capture
   ApiTests tests;
-  tests.run();
+  tests.run(m_params);
   ApiTests2 tests2;
-  tests2.run();
+  tests2.run(m_params);
   SchedulerTests::Run();
   //return 1;
   
+
   auto main = [=](std::string name, std::string classn)
   {
     Logger log;
     WTime t;
-    Window window(m_params, classn);
-    window.open(name, 800, 600);
+    Window window(m_params, name, 800, 600);
+    window.open();
     SystemDevices devices;
     GpuDevice gpu = devices.CreateGpuDevice(true);
-    test tests(gpu);
     GpuCommandQueue queue = gpu.createQueue();
     GfxCommandList gfx = gpu.createUniversalCommandList();
-    //GpuFence fence = gpu.createFence();
-    //queue.submit(gfx);
-    //queue.insertFence(fence);
-    //fence.wait();
-    //gpu.doExperiment();
-    //auto res = gpu.CommittedResTest();
-    //auto stuff = gpu.heapCreationTest();
+    SwapChain sc = gpu.createSwapChain(queue, window);
+    ViewPort port(800, 600);
+    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     MSG msg;
+
+
+    // compute from examples
+    ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+
+    struct buf
+    {
+      int i;
+      int k;
+      int x;
+      int y;
+    };
+    auto srcdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Upload);
+    auto dstdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
+    auto completedata = gpu.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
+    auto rbdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Readback);
+
+    {
+      auto tmp = srcdata.buffer().Map<buf>();
+      for (int i = 0;i < srcdata.buffer().size; ++i)
+      {
+        tmp[i].i = i;
+        tmp[i].k = i;
+      }
+    }
+
+    GpuFence fence = gpu.createFence();
+    gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+    queue.submit(gfx);
+    queue.insertFence(fence);
+    
+    // update loop
     t.firstTick();
     while (TRUE)
     {
-      if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-      {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
 
-        if (msg.message == WM_QUIT)
-          break;
-      }
-      tests.RunCompute(gpu, queue, gfx);
+      if (window.simpleReadMessages())
+        break;
+      fence.wait();
+      gpu.resetCmdList(gfx);
+      // compute begin
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      auto bind = gfx.bind(pipeline);
+      bind.SRV(0, dstdata);
+      bind.UAV(0, completedata);
+      size_t shaderGroup = 50;
+      size_t inputSize = 1000 * 1000;
+      gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+      gfx.CopyResource(rbdata.buffer(), completedata.buffer());
+
+      // Rendertarget
+      gfx.setViewPort(port);
+      vec[0] += 0.002f;
+      if (vec[0] > 1.0f)
+        vec[0] = 0.f;
+      auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+      gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+
+      // submit all
+      queue.submit(gfx);
+
+      // present
+      sc->Present(1, 0);
+      queue.insertFence(fence);
       t.tick();
-      //tests.run();
     }
     t.printStatistics();
     log.update();

@@ -11,6 +11,8 @@ public:
   {
     int i;
     int k;
+    int x;
+    int y;
   };
   ID3D12Resource *UploadData;
   ID3D12Resource *GpuData;
@@ -25,6 +27,7 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE GpuDataSRV;
   buf* mappedArea;
   D3D12_RANGE range;
+  D3D12_RANGE range2;
   test(GpuDevice& dev)
   {
     fence = dev.createFence();
@@ -321,6 +324,8 @@ public:
     // -------------------------------------------------------------------------
     // Verify
     // -------------------------------------------------------------------------
+    range2 = range;
+    range2.End = 0;
     HRESULT hr = readBackRes->Map(0, &range, reinterpret_cast<void**>(&mappedArea));
     if (FAILED(hr))
     {
@@ -330,13 +335,15 @@ public:
     {
       if (mappedArea[i].i != static_cast<float>(i) + static_cast<float>(i))
       {
+        readBackRes->Unmap(0, &range2);
         return;
       }
       if (mappedArea[i].k != 0)
       {
+        readBackRes->Unmap(0, &range2);
         return;
       }
     }
-    readBackRes->Unmap(0, &range);
+    readBackRes->Unmap(0, &range2);
   }
 };

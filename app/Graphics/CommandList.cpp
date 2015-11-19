@@ -8,6 +8,12 @@ void GfxCommandList::setViewPort(ViewPort view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
 }
+
+void GfxCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
+{
+  m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
+}
+
 void GfxCommandList::setResourceBarrier()
 {
 
@@ -34,7 +40,7 @@ void GfxCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
     bD[count].Transition.pResource = srcdata.m_resource.get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     bD[count].Transition.StateBefore = srcdata.state;
-    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
     ++count;
   }
   if (count > 0)
@@ -46,7 +52,24 @@ void GfxCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 
 void GfxCommandList::Dispatch(Binding asd, unsigned int x, unsigned int y, unsigned int z)
 {
-
+  if (asd.m_resbars.size() > 0)
+    m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+  for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
+  {
+    if (asd.m_cbvs[i].first.ptr != 0)
+      m_CommandList->SetComputeRootConstantBufferView(asd.m_cbvs[i].second, asd.m_cbvs[i].first.ptr);
+  }
+  for (size_t i = 0; i < asd.m_srvs.size(); ++i)
+  {
+    if (asd.m_srvs[i].first.ptr != 0)
+      m_CommandList->SetComputeRootShaderResourceView(asd.m_srvs[i].second, asd.m_srvs[i].first.ptr);
+  }
+  for (size_t i = 0; i < asd.m_uavs.size(); ++i)
+  {
+    if (asd.m_uavs[i].first.ptr != 0)
+      m_CommandList->SetComputeRootUnorderedAccessView(asd.m_uavs[i].second, asd.m_uavs[i].first.ptr);
+  }
+  m_CommandList->Dispatch(x, y, z);
 }
 
 void GfxCommandList::DispatchIndirect(Binding bind)
@@ -54,14 +77,21 @@ void GfxCommandList::DispatchIndirect(Binding bind)
 
 }
 
-Binding GfxCommandList::bind(GfxPipeline pipeline)
+Binding GfxCommandList::bind(GfxPipeline& pipeline)
 {
-  return Binding();
+  m_CommandList->SetGraphicsRootSignature(pipeline.getRootSig());
+  m_CommandList->SetPipelineState(pipeline.getState());
+  auto* heap = pipeline.getDescHeap();
+  m_CommandList->SetDescriptorHeaps(1, &heap);
+  return pipeline.getBinding();
 }
 
-Binding GfxCommandList::bind(ComputePipeline pipeline)
+Binding GfxCommandList::bind(ComputePipeline& pipeline)
 {
-  return Binding();
+  m_CommandList->SetComputeRootSignature(pipeline.getRootSig());
+  m_CommandList->SetPipelineState(pipeline.getState());
+  m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap());
+  return pipeline.getBinding();
 }
 
 bool GfxCommandList::isValid()

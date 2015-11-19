@@ -5,6 +5,8 @@
 #include "ComPtr.hpp"
 #include "binding.hpp"
 #include "Pipeline.hpp"
+#include "core/src/math/vec_templated.hpp"
+
 #include <d3d12.h>
 // universal command buffer
 
@@ -21,11 +23,12 @@ private:
 public:
   GfxCommandList() : m_CommandList(nullptr) {}
   void setViewPort(ViewPort view);
+  void ClearRenderTargetView(TextureRTV rtv, faze::vec4 color);
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void setResourceBarrier();
   void Dispatch(Binding bind, unsigned int x, unsigned int y, unsigned int z);
   void DispatchIndirect(Binding bind);
-  Binding bind(GfxPipeline pipeline);
-  Binding bind(ComputePipeline pipeline);
+  Binding bind(GfxPipeline& pipeline);
+  Binding bind(ComputePipeline& pipeline);
   bool isValid();
 };

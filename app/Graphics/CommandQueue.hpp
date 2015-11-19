@@ -16,4 +16,8 @@ public:
   void submit(GfxCommandList& list);
   void insertFence(GpuFence& fence);
   bool isValid();
+  ComPtr<ID3D12CommandQueue> get()
+  {
+    return m_CommandQueue;
+  }
 };
