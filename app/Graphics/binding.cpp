@@ -1,6 +1,6 @@
 #include "binding.hpp"
 
-void Binding::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
+void Binding_::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
 {
   if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS == 0)
   {
@@ -15,7 +15,7 @@ void Binding::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATE
   }
 }
 
-void Binding::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
+void Binding_::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
 {
   if (state & D3D12_RESOURCE_STATE_GENERIC_READ == 0)
   {
@@ -30,7 +30,7 @@ void Binding::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATE
   }
 }
 
-void Binding::UAV(unsigned int index, BufferUAV buf)
+void Binding_::UAV(unsigned int index, BufferUAV buf)
 {
   checkResourceStateUAV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_uavs.at(index).first;
@@ -38,13 +38,15 @@ void Binding::UAV(unsigned int index, BufferUAV buf)
   ptr.ptr = buf.buffer().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding::UAV(unsigned int index, TextureUAV tex)
+void Binding_::UAV(unsigned int index, TextureUAV tex)
 {
+  checkResourceStateSRV(tex.texture().m_resource.get(), tex.texture().state);
   auto& ptr = m_uavs.at(index).first;
   //ptr = buf.buffer().view.getGpuHandle();
+  ptr.ptr = tex.texture().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding::SRV(unsigned int index, BufferSRV buf)
+void Binding_::SRV(unsigned int index, BufferSRV buf)
 {
   checkResourceStateSRV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_srvs.at(index).first;
@@ -52,13 +54,15 @@ void Binding::SRV(unsigned int index, BufferSRV buf)
   ptr.ptr = buf.buffer().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding::SRV(unsigned int index, TextureSRV tex)
+void Binding_::SRV(unsigned int index, TextureSRV tex)
 {
+  checkResourceStateSRV(tex.texture().m_resource.get(), tex.texture().state);
   auto& ptr = m_srvs.at(index).first;
   //ptr = buf.buffer().view.getGpuHandle();
+  ptr.ptr = tex.texture().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding::CBV(unsigned int index, BufferCBV buf)
+void Binding_::CBV(unsigned int index, BufferCBV buf)
 {
   auto& ptr = m_cbvs.at(index).first;
   ptr = buf.buffer().view.getGpuHandle();

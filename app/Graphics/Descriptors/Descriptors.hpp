@@ -7,5 +7,5 @@
 #include "GpuShared.hpp"
 #include "MipLevel.hpp"
 #include "Multisampling.hpp"
-#include "ResType.hpp"
+#include "ResUsage.hpp"
 

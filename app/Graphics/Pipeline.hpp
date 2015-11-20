@@ -11,14 +11,14 @@ class ComputePipeline
   ComPtr<ID3D12PipelineState> pipeline;
   ComPtr<ID3D12RootSignature> rootSig;
   ComPtr<ID3D12DescriptorHeap> descHeap;
-  Binding rootBinding;
-  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, Binding sourceBinding):
+  ComputeBinding rootBinding;
+  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, ComputeBinding sourceBinding):
     pipeline(std::move(pipe)),
     rootSig(std::move(rootSig)),
     descHeap(descHeap),
     rootBinding(sourceBinding) {}
 public:
-  Binding getBinding()
+  ComputeBinding getBinding()
   {
     return rootBinding;
   }
@@ -36,21 +36,21 @@ public:
   }
 };
 
-class GfxPipeline
+class GraphicsPipeline
 {
 	friend class GpuDevice;
 
   ComPtr<ID3D12PipelineState> pipeline;
   ComPtr<ID3D12RootSignature> rootSig;
   ComPtr<ID3D12DescriptorHeap> descHeap;
-  Binding rootDescriptor;
-  GfxPipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, Binding sourceBinding):
+  GraphicsBinding rootDescriptor;
+  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, GraphicsBinding sourceBinding):
     pipeline(std::move(pipe)),
     rootSig(std::move(rootSig)),
     descHeap(std::move(descHeap)),
     rootDescriptor(sourceBinding) {}
 public:
-  Binding getBinding()
+  GraphicsBinding getBinding()
   {
     return rootDescriptor;
   }

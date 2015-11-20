@@ -1,5 +1,5 @@
 #pragma once
-#include "Descriptors/ResType.hpp"
+#include "Descriptors/ResUsage.hpp"
 #include "ComPtr.hpp"
 #include <d3d12.h>
 
@@ -68,7 +68,7 @@ struct Texture
 {
   friend class GpuDevice;
   friend class GfxCommandList;
-  friend class ComputeCommandList;
+  friend class CptCommandList;
   ComPtr<ID3D12Resource> m_resource;
 
   size_t width;
@@ -76,13 +76,13 @@ struct Texture
   size_t stride;
   D3D12_RESOURCE_STATES state;
   D3D12_RANGE range;
-  ResType type;
+  ResUsage type;
   TextureView view;
 
   template<typename T>
   MappedTexture<T> Map()
   {
-    if (type == ResType::Gpu)
+    if (type == ResUsage::Gpu)
     {
       // insert assert
       //return nullptr;
@@ -96,7 +96,7 @@ struct Texture
       // something?
       //return nullptr;
     }
-    return MappedTexture<T>(m_resource, range, (type == ResType::Readback), ptr);
+    return MappedTexture<T>(m_resource, range, (type == ResUsage::Readback), ptr);
   }
 
 };

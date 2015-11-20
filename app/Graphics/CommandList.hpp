@@ -10,25 +10,42 @@
 #include <d3d12.h>
 // universal command buffer
 
-class GfxCommandList
+class CptCommandList
 {
 private:
   friend class test;
   friend class ApiTests;
   friend class GpuCommandQueue;
   friend class GpuDevice;
+  friend class GfxCommandList;
 
   ComPtr<ID3D12GraphicsCommandList> m_CommandList;
-  GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList);
+  CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList);
 public:
-  GfxCommandList() : m_CommandList(nullptr) {}
+  CptCommandList() : m_CommandList(nullptr) {}
   void setViewPort(ViewPort view);
   void ClearRenderTargetView(TextureRTV rtv, faze::vec4 color);
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void setResourceBarrier();
-  void Dispatch(Binding bind, unsigned int x, unsigned int y, unsigned int z);
-  void DispatchIndirect(Binding bind);
-  Binding bind(GfxPipeline& pipeline);
-  Binding bind(ComputePipeline& pipeline);
+  void Dispatch(ComputeBinding bind, unsigned int x, unsigned int y, unsigned int z);
+  void DispatchIndirect(ComputeBinding bind);
+  ComputeBinding bind(ComputePipeline& pipeline);
   bool isValid();
+};
+
+class GfxCommandList : public CptCommandList
+{
+private:
+  friend class test;
+  friend class ApiTests;
+  friend class GpuCommandQueue;
+  friend class GpuDevice;
+  GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList) :CptCommandList(cmdList){}
+public:
+  GfxCommandList() : CptCommandList() {}
+  GraphicsBinding bind(GraphicsPipeline& pipeline);
+  ComputeBinding bind(ComputePipeline& pipeline)
+  {
+    return CptCommandList::bind(pipeline);
+  }
 };

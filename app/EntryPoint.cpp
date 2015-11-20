@@ -18,11 +18,17 @@ using namespace faze;
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
-  ApiTests tests;
-  tests.run(m_params);
-  ApiTests2 tests2;
-  tests2.run(m_params);
-  SchedulerTests::Run();
+  {
+    ApiTests tests;
+    tests.run(m_params);
+  }
+  {
+    ApiTests2 tests2;
+    tests2.run(m_params);
+  }
+  {
+    SchedulerTests::Run();
+  }
   //return 1;
   
 
@@ -52,10 +58,10 @@ int EntryPoint::main()
       int x;
       int y;
     };
-    auto srcdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Upload);
-    auto dstdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
-    auto completedata = gpu.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
-    auto rbdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Readback);
+    auto srcdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Upload);
+    auto dstdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
+    auto completedata = gpu.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
+    auto rbdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Readback);
 
     {
       auto tmp = srcdata.buffer().Map<buf>();
