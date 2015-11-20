@@ -21,8 +21,19 @@ public:
 
 };
 
-class GfxPipelineDescriptor
+class GraphicsPipelineDescriptor
 {
+  friend class GpuDevice;
+  std::string shaderSourcePath;
+public:
+  GraphicsPipelineDescriptor()
+  {
 
+  }
 
+  GraphicsPipelineDescriptor& shader(std::string path)
+  {
+    shaderSourcePath = path;
+    return *this;
+  }
 };

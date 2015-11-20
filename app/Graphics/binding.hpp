@@ -4,18 +4,15 @@
 
 #include <tuple>
 
-class Binding
+class Binding_
 {
   friend class GpuDevice;
 	friend class GfxCommandList;
-	friend class ComputeCommandList;
-  
-  enum class RootType
-  {
-    CBV,
-    SRV,
-    UAV
-  };
+	friend class CptCommandList;
+
+  friend class ComputeBinding;
+  friend class GraphicsBinding;
+
 
   std::vector<std::pair<D3D12_GPU_DESCRIPTOR_HANDLE, UINT>> m_cbvs;
   std::vector<std::pair<D3D12_GPU_DESCRIPTOR_HANDLE, UINT>> m_srvs;
@@ -24,7 +21,14 @@ class Binding
 
   using ShaderIndex = unsigned int;
 
-  Binding(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount)
+public:
+  enum class RootType
+  {
+    CBV,
+    SRV,
+    UAV
+  };
+  Binding_(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount)
   {
     auto fn = [](size_t count, auto& vec)
     {
@@ -59,11 +63,32 @@ class Binding
 
   void checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
-public:
 	void UAV(unsigned int index, BufferUAV buf);
 	void UAV(unsigned int index, TextureUAV tex);
 	void SRV(unsigned int index, BufferSRV buf);
 	void SRV(unsigned int index, TextureSRV tex);
   void CBV(unsigned int index, BufferCBV buf);
 
+};
+
+class ComputeBinding : public Binding_
+{
+  friend class GpuDevice;
+  friend class GfxCommandList;
+  friend class CptCommandList;
+
+  ComputeBinding(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount) :
+    Binding_(input, cbvCount, srvCount, uavCount)
+  {}
+};
+
+class GraphicsBinding : public Binding_
+{
+  friend class GpuDevice;
+  friend class GfxCommandList;
+  friend class CptCommandList;
+
+  GraphicsBinding(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount) :
+    Binding_(input, cbvCount, srvCount, uavCount)
+  {}
 };

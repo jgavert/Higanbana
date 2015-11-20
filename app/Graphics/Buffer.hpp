@@ -1,5 +1,5 @@
 #pragma once
-#include "Descriptors/ResType.hpp"
+#include "Descriptors/ResUsage.hpp"
 #include "ComPtr.hpp"
 #include <d3d12.h>
 #include <vector>
@@ -69,13 +69,13 @@ struct Buffer
   size_t stride;
   D3D12_RESOURCE_STATES state;
   D3D12_RANGE range;
-  ResType type;
+  ResUsage type;
   BufferView view;
 
   template<typename T>
   MappedBuffer<T> Map()
   {
-    if (type == ResType::Gpu)
+    if (type == ResUsage::Gpu)
     {
       // insert assert
       //return nullptr;
@@ -89,7 +89,7 @@ struct Buffer
       // something?
       //return nullptr;
     }
-    return MappedBuffer<T>(m_resource, range, (type == ResType::Readback), ptr);
+    return MappedBuffer<T>(m_resource, range, (type == ResUsage::Readback), ptr);
   }
 };
 

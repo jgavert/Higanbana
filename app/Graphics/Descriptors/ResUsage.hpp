@@ -1,6 +1,6 @@
 #pragma once
 
-enum class ResType
+enum class ResUsage
 {
   Upload,
   Readback,

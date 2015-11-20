@@ -1,25 +1,25 @@
 #include "CommandList.hpp"
 
-GfxCommandList::GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList)
+CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList)
   :m_CommandList(cmdList)
 {
 }
-void GfxCommandList::setViewPort(ViewPort view)
+void CptCommandList::setViewPort(ViewPort view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
 }
 
-void GfxCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
+void CptCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
 {
   m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
 }
 
-void GfxCommandList::setResourceBarrier()
+void CptCommandList::setResourceBarrier()
 {
 
 }
 
-void GfxCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
+void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
@@ -50,7 +50,7 @@ void GfxCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
   m_CommandList->CopyResource(dstdata.m_resource.get(), srcdata.m_resource.get());
 }
 
-void GfxCommandList::Dispatch(Binding asd, unsigned int x, unsigned int y, unsigned int z)
+void CptCommandList::Dispatch(ComputeBinding asd, unsigned int x, unsigned int y, unsigned int z)
 {
   if (asd.m_resbars.size() > 0)
     m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
@@ -72,21 +72,13 @@ void GfxCommandList::Dispatch(Binding asd, unsigned int x, unsigned int y, unsig
   m_CommandList->Dispatch(x, y, z);
 }
 
-void GfxCommandList::DispatchIndirect(Binding bind)
+void CptCommandList::DispatchIndirect(ComputeBinding bind)
 {
 
 }
 
-Binding GfxCommandList::bind(GfxPipeline& pipeline)
-{
-  m_CommandList->SetGraphicsRootSignature(pipeline.getRootSig());
-  m_CommandList->SetPipelineState(pipeline.getState());
-  auto* heap = pipeline.getDescHeap();
-  m_CommandList->SetDescriptorHeaps(1, &heap);
-  return pipeline.getBinding();
-}
 
-Binding GfxCommandList::bind(ComputePipeline& pipeline)
+ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
 {
   m_CommandList->SetComputeRootSignature(pipeline.getRootSig());
   m_CommandList->SetPipelineState(pipeline.getState());
@@ -94,9 +86,17 @@ Binding GfxCommandList::bind(ComputePipeline& pipeline)
   return pipeline.getBinding();
 }
 
-bool GfxCommandList::isValid()
+bool CptCommandList::isValid()
 {
   return m_CommandList.get() != nullptr;
 }
 
 
+GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
+{
+  m_CommandList->SetGraphicsRootSignature(pipeline.getRootSig());
+  m_CommandList->SetPipelineState(pipeline.getState());
+  auto* heap = pipeline.getDescHeap();
+  m_CommandList->SetDescriptorHeaps(1, &heap);
+  return pipeline.getBinding();
+}

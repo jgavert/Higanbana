@@ -48,7 +48,7 @@ private:
       auto buf = dev.createBufferUAV(
         Dimension(4096)
         , Format<float>()
-        , ResType::Upload);
+        , ResUsage::Upload);
       return buf.isValid();
     });
 
@@ -57,7 +57,7 @@ private:
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createBufferUAV(
-        Dimension(4096), Format<float>(), ResType::Upload);
+        Dimension(4096), Format<float>(), ResUsage::Upload);
 
       auto a = buf.buffer().Map<float>();
       a[0] = 1.f;
@@ -81,9 +81,9 @@ private:
       GfxCommandList list = dev.createUniversalCommandList();
 
       auto srcdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResType::Upload);
+        Dimension(4096), Format<float>(), ResUsage::Upload);
       auto dstdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResType::Gpu);
+        Dimension(4096), Format<float>(), ResUsage::Gpu);
 
       {
         auto tmp = srcdata.buffer().Map<float>();
@@ -109,9 +109,9 @@ private:
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
-      auto srcdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResType::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResType::Gpu);
-      auto rbdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResType::Readback);
+      auto srcdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Gpu);
+      auto rbdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Readback);
 
       {
         auto tmp = srcdata.buffer().Map<float>();
@@ -290,10 +290,10 @@ private:
       int x;
       int y;
     };
-		auto srcdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Upload);
-		auto dstdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
-		auto completedata = dev.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResType::Gpu);
-		auto rbdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResType::Readback);
+		auto srcdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Upload);
+		auto dstdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
+		auto completedata = dev.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
+		auto rbdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Readback);
 
 		{
 			auto tmp = srcdata.buffer().Map<buf>();
@@ -340,7 +340,7 @@ private:
     auto buf = dev.createTextureSRV(
       Dimension(800,600)
       , Format<int>(FormatType::R8G8B8A8_UNORM)
-      , ResType::Gpu
+      , ResUsage::Gpu
       , MipLevel()
       , Multisampling());
     return buf.isValid();
@@ -353,7 +353,7 @@ private:
     auto buf = dev.createTextureUAV(
       Dimension(800, 600)
       , Format<int>(FormatType::R8G8B8A8_UNORM)
-      , ResType::Gpu
+      , ResUsage::Gpu
       , MipLevel()
       , Multisampling());;
     return buf.isValid();
@@ -366,7 +366,7 @@ private:
     auto buf = dev.createTextureRTV(
       Dimension(800, 600)
       , Format<int>(FormatType::R8G8B8A8_UNORM)
-      , ResType::Gpu
+      , ResUsage::Gpu
       , MipLevel()
       , Multisampling());
     return buf.isValid();
@@ -379,16 +379,18 @@ private:
     auto buf = dev.createTextureDSV(
       Dimension(800, 600)
       , Format<int>(FormatType::D32_FLOAT)
-      , ResType::Gpu
+      , ResUsage::Gpu
       , MipLevel()
       , Multisampling());
     return buf.isValid();
   });
 
-	t.addTest("Create Universal Pipeline", [id]()
+	t.addTest("Create Graphics Pipeline", [id]()
 	{
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
+
+    //GraphicsPipeline pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor().shader("compute_1.hlsl"));
 
 		return false;
 	});

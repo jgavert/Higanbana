@@ -46,66 +46,15 @@ public:
   void RunApiTestCoverage(std::string gpuDescription);
 
   // Pipelines
-private:
-  std::wstring s2ws(const std::string& s)
-  {
-    int len;
-    int slength = (int)s.length() + 1;
-    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
-    wchar_t* buf = new wchar_t[len];
-    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-    std::wstring r(buf);
-    delete[] buf;
-    return r;
-  }
-public:
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
   {
-	  ID3DBlob* blobCompute;
-	  ID3DBlob* errorMsg;
+	  ComPtr<ID3DBlob> blobCompute;
 
-    auto woot = s2ws(desc.shaderSourcePath);
-	  HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, &blobCompute, &errorMsg);
-	  //HRESULT hr = D3DCompileFromFile(L"compute_1.hlsl", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, &blobCompute, &errorMsg);
-	  // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
-	  if (FAILED(hr))
-	  {
-		  if (errorMsg)
-		  {
-			  OutputDebugStringA((char*)errorMsg->GetBufferPointer());
-			  errorMsg->Release();
-		  }
-      abort();
-	  }
-	  D3D12_SHADER_BYTECODE byte;
-	  byte.pShaderBytecode = blobCompute->GetBufferPointer();
-	  byte.BytecodeLength = blobCompute->GetBufferSize();
-    if (!m_gRootSig.get())
-    {
-      ComPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
-      if (FAILED(hr))
-      {
-        abort();
-      }
-      ComPtr<ID3DBlob> blobSig;
-      ComPtr<ID3DBlob> errorSig;
-      const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
-
-      hr = D3D12SerializeRootSignature(woot, D3D_ROOT_SIGNATURE_VERSION_1, blobSig.addr(), errorSig.addr());
-      if (FAILED(hr))
-      {
-        abort();
-      }
-
-      hr = mDevice->CreateRootSignature(
-        1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
-        __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(m_gRootSig.addr()));
-      if (FAILED(hr))
-      {
-        abort();
-      }
-    }
+    auto woot = stringutils::s2ws(desc.shaderSourcePath);
+    shaderUtils::getShaderInfo(mDevice, woot, m_gRootSig, blobCompute);
+    D3D12_SHADER_BYTECODE byte;
+    byte.pShaderBytecode = blobCompute->GetBufferPointer();
+    byte.BytecodeLength = blobCompute->GetBufferSize();
     D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
     ZeroMemory(&computeDesc, sizeof(computeDesc));
     computeDesc.CS = byte;
@@ -114,14 +63,13 @@ public:
     computeDesc.pRootSignature = m_gRootSig.get();
 
     ComPtr<ID3D12PipelineState> pipeline;
-    hr = mDevice->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
+    HRESULT hr = mDevice->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
     if (FAILED(hr))
     {
       abort();
     }
 
     // reflect the root signature
-
     ComPtr<ID3D12RootSignatureDeserializer> asd;
     hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
     if (FAILED(hr))
@@ -131,59 +79,76 @@ public:
     const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
 
     size_t cbv = 0, srv = 0, uav = 0;
-
-    using ShaderIndex = unsigned int;
-    using RootType = Binding::RootType;
-    std::vector<std::tuple<UINT, RootType, ShaderIndex>> bindingInput;
-
-    for (int i = 0;i < woot2->NumParameters;++i)
-    {
-      auto it = woot2->pParameters[i];
-      switch (it.ParameterType)
-      {
-
-      case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-        //F_LOG("Descriptor tables not supported\n");
-        break;
-      case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
-        //F_LOG("Root constants not yet supported\n");
-        //F_LOG("32Bit constant Num32BitValues:%u RegisterSpace:%u ShaderRegister:%u\n", it.Constants.Num32BitValues, it.Constants.RegisterSpace, it.Constants.ShaderRegister);
-        break;
-      case D3D12_ROOT_PARAMETER_TYPE_CBV:
-        bindingInput.push_back(std::make_tuple(i, RootType::CBV, cbv++));
-        if (it.Descriptor.ShaderRegister != cbv - 1)
-        {
-          //F_LOG(" WARNING! Shader registers don't match.\n");
-        }
-        //F_LOG("CBV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
-        break;
-      case D3D12_ROOT_PARAMETER_TYPE_SRV:
-        bindingInput.push_back(std::make_tuple(i, RootType::SRV, srv++));
-        if (it.Descriptor.ShaderRegister != srv - 1)
-        {
-          //F_LOG(" WARNING! Shader registers don't match.\n");
-        }
-        //F_LOG("SRV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
-        break;
-      case D3D12_ROOT_PARAMETER_TYPE_UAV:
-        bindingInput.push_back(std::make_tuple(i, RootType::UAV, uav++));
-        if (it.Descriptor.ShaderRegister != uav - 1)
-        {
-          //F_LOG(" WARNING! Shader registers don't match.\n");
-        }
-        //F_LOG("UAV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
-        break;
-      default:
-        break;
-      }
-    }
-
-    Binding sourceBinding(bindingInput, cbv, srv, uav);
-    ComputePipeline pipe(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
-    return pipe;
+    auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
+    ComputeBinding sourceBinding(bindingInput, cbv, srv, uav);
+    return ComputePipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
-  GfxPipeline     createGfxPipeline();
+
+  /*
+  typedef struct D3D12_GRAPHICS_PIPELINE_STATE_DESC
+  {
+  ID3D12RootSignature *pRootSignature;
+  D3D12_SHADER_BYTECODE VS;
+  D3D12_SHADER_BYTECODE PS;
+  D3D12_SHADER_BYTECODE DS;
+  D3D12_SHADER_BYTECODE HS;
+  D3D12_SHADER_BYTECODE GS;
+  D3D12_STREAM_OUTPUT_DESC StreamOutput;
+  D3D12_BLEND_DESC BlendState;
+  UINT SampleMask;
+  D3D12_RASTERIZER_DESC RasterizerState;
+  D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+  D3D12_INPUT_LAYOUT_DESC InputLayout;
+  D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
+  UINT NumRenderTargets;
+  DXGI_FORMAT RTVFormats[ 8 ];
+  DXGI_FORMAT DSVFormat;
+  DXGI_SAMPLE_DESC SampleDesc;
+  UINT NodeMask;
+  D3D12_CACHED_PIPELINE_STATE CachedPSO;
+  D3D12_PIPELINE_STATE_FLAGS Flags;
+  } 	D3D12_GRAPHICS_PIPELINE_STATE_DESC;
+  */
+
+  GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
+  {
+    ComPtr<ID3DBlob> blobCompute;
+
+    auto woot = stringutils::s2ws(desc.shaderSourcePath);
+    shaderUtils::getShaderInfo(mDevice, woot, m_gRootSig, blobCompute);
+    D3D12_SHADER_BYTECODE byte;
+    byte.pShaderBytecode = blobCompute->GetBufferPointer();
+    byte.BytecodeLength = blobCompute->GetBufferSize();
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC computeDesc;
+    ZeroMemory(&computeDesc, sizeof(computeDesc));
+    computeDesc.PS = byte;
+    computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+    computeDesc.NodeMask = 0;
+    computeDesc.pRootSignature = m_gRootSig.get();
+
+    ComPtr<ID3D12PipelineState> pipeline;
+    HRESULT hr = mDevice->CreateGraphicsPipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
+    if (FAILED(hr))
+    {
+      abort();
+    }
+
+    // reflect the root signature
+    ComPtr<ID3D12RootSignatureDeserializer> asd;
+    hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+    if (FAILED(hr))
+    {
+      abort();
+    }
+    const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
+
+    size_t cbv = 0, srv = 0, uav = 0;
+    auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
+    GraphicsBinding sourceBinding(bindingInput, cbv, srv, uav);
+    return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
+  }
 
   // buffers
 private:
@@ -219,16 +184,16 @@ public:
     buf.buffer().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.buffer().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-    buf.buffer().type = ResType::Gpu;
+    buf.buffer().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.buffer().type = ResType::Upload;
+      buf.buffer().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.buffer().type = ResType::Readback;
+      buf.buffer().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -277,16 +242,16 @@ public:
     buf.buffer().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.buffer().state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    buf.buffer().type = ResType::Gpu;
+    buf.buffer().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.buffer().type = ResType::Upload;
+      buf.buffer().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.buffer().type = ResType::Readback;
+      buf.buffer().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop, 
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -334,16 +299,16 @@ public:
     buf.buffer().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.buffer().state = D3D12_RESOURCE_STATE_INDEX_BUFFER;
-    buf.buffer().type = ResType::Gpu;
+    buf.buffer().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.buffer().type = ResType::Upload;
+      buf.buffer().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.buffer().type = ResType::Readback;
+      buf.buffer().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -395,16 +360,16 @@ public:
     buf.texture().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-    buf.texture().type = ResType::Gpu;
+    buf.texture().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.texture().type = ResType::Upload;
+      buf.texture().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.texture().type = ResType::Readback;
+      buf.texture().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -434,16 +399,16 @@ public:
     buf.texture().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.texture().state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    buf.texture().type = ResType::Gpu;
+    buf.texture().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.texture().type = ResType::Upload;
+      buf.texture().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.texture().type = ResType::Readback;
+      buf.texture().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -472,17 +437,17 @@ public:
     buf.texture().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    buf.texture().type = ResType::Gpu;
+    buf.texture().type = ResUsage::Gpu;
     // !? wtf
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.texture().type = ResType::Upload;
+      buf.texture().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.texture().type = ResType::Readback;
+      buf.texture().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -512,16 +477,16 @@ public:
     buf.texture().stride = desc.DepthOrArraySize;
     desc.DepthOrArraySize = 1;
     buf.texture().state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    buf.texture().type = ResType::Gpu;
+    buf.texture().type = ResUsage::Gpu;
     if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      buf.texture().type = ResType::Upload;
+      buf.texture().type = ResUsage::Upload;
     }
     else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
     {
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-      buf.texture().type = ResType::Readback;
+      buf.texture().type = ResUsage::Readback;
     }
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
@@ -589,7 +554,7 @@ public:
     buf.texture().height = swapChainDesc.BufferDesc.Height;
     buf.texture().stride = 1;
     buf.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    buf.texture().type = ResType::Gpu;
+    buf.texture().type = ResUsage::Gpu;
 
     buf.texture().view.cpuHandle = mRenderTargetView[0];
     buf.texture().view.index = 0;
