@@ -109,7 +109,7 @@ Compiler( 'Compiler-x64' )
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt"'
 					            + .externalIncludes
-                      + .nvtxInclude
+
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
 
@@ -137,6 +137,7 @@ Compiler( 'Compiler-x64' )
                       //+ ' /LIBPATH:"$WindowsLibPaths$/x64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/lib/amd64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/atlmfc/lib/amd64"'
+                      + .extLibPaths
 
   //Print('$LinkerOptions$')
 ]
@@ -201,7 +202,8 @@ Compiler( 'Compiler-x64' )
   .Platform                 = 'x64' // unused
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
-                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
+                            + .externalIncludesVisualStudio
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
 							              + .extDefines
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED'

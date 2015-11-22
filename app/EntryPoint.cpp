@@ -13,11 +13,14 @@
 #include <cstdio>
 #include <iostream>
 
+#include <OVR.h>
+
 using namespace faze;
 
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
+  /*
   {
     ApiTests tests;
     tests.run(m_params);
@@ -29,13 +32,23 @@ int EntryPoint::main()
   {
     SchedulerTests::Run();
   }
+  */
   //return 1;
+ 
   
 
-  auto main = [=](std::string name, std::string classn)
+  auto main = [=](std::string name)
   {
     Logger log;
     WTime t;
+
+    // Will wait for native dx12 compliant SDK, cannot even render triangle with rendering api...
+    ovrResult oculusSDK = ovr_Initialize(nullptr);
+    if (!OVR_SUCCESS(oculusSDK))
+    {
+      F_LOG("failed to initialize OculusVR\n","");
+    }
+
     Window window(m_params, name, 800, 600);
     window.open();
     SystemDevices devices;
@@ -116,7 +129,7 @@ int EntryPoint::main()
     log.update();
   };
 
-  main("w1", "w1");
+  main("w1");
   
 
 	return 1;

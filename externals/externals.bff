@@ -1,8 +1,55 @@
 // external base
 .extBasePath	= ' /LIBPATH:^"$FazEPath$/externals/'
+.extEndBasePath = '"'
 .extIncludeDir	= '$FazEPath$/externals/'
 .extDefines		= ''
+.extLibPaths	= ''
 
+/////////////////////////////////
+// ADD DEPENDENCIES AFTER THIS //
+/////////////////////////////////
 
-.externalIncludes = ''
+// OCULUS DEPENDENCIES
 
+// libOVRkernel probably deprecated soon
+.oculusKernelInclude	= .extIncludeDir
+						+ 'OculusSDK/LibOVRKernel/src'
+.oculuskernellibPath    = .extBasePath
+						+ 'OculusSDK/LibOVRKernel/Lib'
+						+ .extEndBasePath
+.oculuslibDebug			= ' LibOVRKerneld.lib'
+.oculuslibRelDeb		= ' LibOVRKernel.lib'
+.oculuslibRelease		= ' LibOVRKernel.lib'
+
+// LibOVR
+.oculusInclude	= .extIncludeDir
+				+ 'OculusSDK/LibOVR/Include'
+.oculuslibPath	= .extBasePath
+				+ 'OculusSDK/LibOVR/Lib'
+				+ .extEndBasePath
+
+// these need to be seperately be added for necessary projects, 
+.oculuslibDebug		+ ' LibOVRd.lib'
+.oculuslibRelDeb	+ ' LibOVR.lib'
+.oculuslibRelease	+ ' LibOVR.lib'
+
+///////////////////////////////////
+// ADD INFO TO GLOBAL VARIABLES  //
+///////////////////////////////////
+
+// these 2 are automatically in right place
+.extLibPaths 					+ .oculuslibPath
+								+ .oculuskernellibPath
+.externalIncludes				= ' /I^"$oculusInclude$"'
+								+ ' /I^"$oculusKernelInclude$"'
+.externalIncludesVisualStudio	= '$oculusInclude$;'
+								+ '$oculusKernelInclude$;'
+
+// disable oculus by uncommenting these lines
+
+//.oculuslibDebug				= ''
+//.oculuslibRelDeb				= ''
+//.oculuslibRelease				= ''
+//.externalIncludesVisualStudio = ''
+//.externalIncludes 			= ''
+//.extLibPaths 					= ''
