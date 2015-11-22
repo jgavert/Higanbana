@@ -61,7 +61,8 @@
 	[
 		Using (.X64DebugConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						        + .Debuglinkerlibs
+						+ .Debuglinkerlibs
+						+ .oculuslibDebug
 
 	]
 
@@ -69,14 +70,16 @@
 	[
 		Using (.X64ProfileConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						        + .Profilelinkerlibs
+						+ .Profilelinkerlibs
+						+ .oculuslibRelDeb
 	]
 
 	.X64ReleaseConfiguration =
 	[
 		Using (.X64ReleaseConfig)
 		.LinkerOptions	+ .CommonLinkerLibs
-						        + .Releaselinkerlibs
+						+ .Releaselinkerlibs
+						+ .oculuslibRelease
 	]
 
 

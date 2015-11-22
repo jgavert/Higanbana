@@ -4,6 +4,10 @@
 externals/
 package/
 
+*.7z
+*.nvuser
+*.cmd
+
 # Don't need exes
 *.exe
 

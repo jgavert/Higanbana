@@ -7,7 +7,7 @@ It's a collection of libraries to fasten researching or prototyping of multithre
 - Visual Studio 2015 Community and Windows SDK 10
 - Fastbuild binary copied to root folder.
 - Reasonable graphics card if using d3d12.
-
+- Oculus SDK(does nothing yet, look into externals/externals.bff for hints what the build system expect)
 
 ## Origins for some of the algorithms and motivation:
 - Lazy binary-splitting: a run-time adaptive work-stealing scheduler http://www.umiacs.umd.edu/publications/lazy-binary-splitting-run-time-adaptive-work-stealing-scheduler
