@@ -1,14 +1,6 @@
-.VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
-.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
-.WindowsSDKSubVersion = '10.0.10240.0'
-.FazEPath = 'C:/code/faze'
+#include "config.bff"
 #include "externals/externals.bff"
 
-.nvtxPath = ''
-.nvtxProjInclude = ''
-.nvtxInclude = ''
-.nvtxLibPath = ''
-.nvtxLibname = ''
 ;-------------------------------------------------------------------------------
 ; Settings
 ;-------------------------------------------------------------------------------
