@@ -390,7 +390,7 @@ private:
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
 
-    //GraphicsPipeline pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor().shader("compute_1.hlsl"));
+    dev.createGraphicsPipeline(GraphicsPipelineDescriptor());
 
 		return false;
 	});

@@ -84,36 +84,11 @@ public:
     return ComputePipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
-
-  /*
-  typedef struct D3D12_GRAPHICS_PIPELINE_STATE_DESC
+  void createGraphicsPipeline(GraphicsPipelineDescriptor desc)
   {
-  ID3D12RootSignature *pRootSignature;
-  D3D12_SHADER_BYTECODE VS;
-  D3D12_SHADER_BYTECODE PS;
-  D3D12_SHADER_BYTECODE DS;
-  D3D12_SHADER_BYTECODE HS;
-  D3D12_SHADER_BYTECODE GS;
-  D3D12_STREAM_OUTPUT_DESC StreamOutput;
-  D3D12_BLEND_DESC BlendState;
-  UINT SampleMask;
-  D3D12_RASTERIZER_DESC RasterizerState;
-  D3D12_DEPTH_STENCIL_DESC DepthStencilState;
-  D3D12_INPUT_LAYOUT_DESC InputLayout;
-  D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
-  D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
-  UINT NumRenderTargets;
-  DXGI_FORMAT RTVFormats[ 8 ];
-  DXGI_FORMAT DSVFormat;
-  DXGI_SAMPLE_DESC SampleDesc;
-  UINT NodeMask;
-  D3D12_CACHED_PIPELINE_STATE CachedPSO;
-  D3D12_PIPELINE_STATE_FLAGS Flags;
-  } 	D3D12_GRAPHICS_PIPELINE_STATE_DESC;
-  */
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC computeDesc;
 
-  GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
-  {
+    /*
     ComPtr<ID3DBlob> blobCompute;
 
     auto woot = stringutils::s2ws(desc.shaderSourcePath);
@@ -147,7 +122,8 @@ public:
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
     GraphicsBinding sourceBinding(bindingInput, cbv, srv, uav);
-    return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
+    */
+    //return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
   // buffers
