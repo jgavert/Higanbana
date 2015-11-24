@@ -18,7 +18,7 @@ private:
   void runTestsForDevice(std::string name, int id, ProgramParams params)
   {
     faze::TestWorks t(name);
-    /*
+    
     t.addTest("Device creation", [&]()
     {
       SystemDevices sys;
@@ -469,7 +469,7 @@ private:
 
 		return true;
 	});
-  */
+  
   t.addTest("Create window and render a triangle for full 1 second in loop", [&]()
   {
     SystemDevices sys;
@@ -493,11 +493,11 @@ private:
       auto tmp = srcdata.buffer().Map<buf>();
       float size = 0.5f;
       tmp[0] = { size, size, 0.f, 1.f };
-      tmp[1] = { -size, size, 0.f, 1.f };
-      tmp[2] = { -size, -size, 0.f, 1.f };
-      tmp[3] = { size, size, 0.f, 1.f };
-      tmp[4] = { -size, -size, 0.f, 1.f };
-      tmp[5] = { -size, size, 0.f, 1.f };
+      tmp[1] = { size, -size, 0.f, 1.f };
+      tmp[2] = { -size, size, 0.f, 1.f };
+      tmp[3] = { -size, size, 0.f, 1.f };
+      tmp[4] = { size, -size, 0.f, 1.f };
+      tmp[5] = { -size, -size, 0.f, 1.f };
     }
 
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
@@ -514,9 +514,12 @@ private:
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
-    while (TRUE)
+    auto limit = std::chrono::seconds(1).count();
+    auto timepoint2 = std::chrono::high_resolution_clock::now();
+    auto timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+    while (timeSince < limit)
     {
-
+      timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
       if (window.simpleReadMessages())
         break;
       fence.wait();
@@ -543,10 +546,10 @@ private:
       sc->Present(1, 0);
       queue.insertFence(fence);
     }
+    fence.wait();
+    window.close();
 
-
-
-		return false;
+		return true;
 	});
 
 	t.addTest("Rotating triangle with shaders", [id]()
