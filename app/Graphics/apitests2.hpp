@@ -491,10 +491,10 @@ private:
 
     {
       auto tmp = srcdata.buffer().Map<buf>();
-      float size = 5.5f;
+      float size = 0.5f;
       tmp[0] = { size, size, 0.f, 1.f };
       tmp[1] = { -size, size, 0.f, 1.f };
-      tmp[2] = { size, -size, 0.f, 1.f };
+      tmp[2] = { -size, -size, 0.f, 1.f };
       tmp[3] = { size, size, 0.f, 1.f };
       tmp[4] = { -size, -size, 0.f, 1.f };
       tmp[5] = { -size, size, 0.f, 1.f };

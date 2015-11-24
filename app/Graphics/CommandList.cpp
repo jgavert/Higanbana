@@ -8,10 +8,10 @@ void CptCommandList::setViewPort(ViewPort view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
   RECT rect;
-  rect.bottom = -1.f;
-  rect.top = 1.f;
-  rect.left = -1.f;
-  rect.right = 1.f;
+  rect.bottom = 600;
+  rect.top = 0;
+  rect.left = 0;
+  rect.right = 800;
   m_CommandList->RSSetScissorRects(1, &rect);
 }
 
