@@ -18,6 +18,7 @@ private:
   void runTestsForDevice(std::string name, int id, ProgramParams params)
   {
     faze::TestWorks t(name);
+    /*
     t.addTest("Device creation", [&]()
     {
       SystemDevices sys;
@@ -468,7 +469,7 @@ private:
 
 		return true;
 	});
-
+  */
   t.addTest("Create window and render a triangle for full 1 second in loop", [&]()
   {
     SystemDevices sys;
@@ -490,12 +491,13 @@ private:
 
     {
       auto tmp = srcdata.buffer().Map<buf>();
-      tmp[0] = { 1.f, 1.f, 0.f, 1.f };
-      tmp[1] = { -1.f, 1.f, 0.f, 1.f };
-      tmp[2] = { 1.f, -1.f, 0.f, 1.f };
-      tmp[3] = { 1.f, 1.f, 0.f, 1.f };
-      tmp[4] = { -1.f, -1.f, 0.f, 1.f };
-      tmp[5] = { -1.f, 1.f, 0.f, 1.f };
+      float size = 5.5f;
+      tmp[0] = { size, size, 0.f, 1.f };
+      tmp[1] = { -size, size, 0.f, 1.f };
+      tmp[2] = { size, -size, 0.f, 1.f };
+      tmp[3] = { size, size, 0.f, 1.f };
+      tmp[4] = { -size, -size, 0.f, 1.f };
+      tmp[5] = { -size, size, 0.f, 1.f };
     }
 
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
