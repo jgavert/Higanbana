@@ -20,7 +20,7 @@ using namespace faze;
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
- 
+  /*
   {
     ApiTests tests;
     tests.run(m_params);
@@ -33,6 +33,7 @@ int EntryPoint::main()
   {
     SchedulerTests::Run();
   }
+  */
   //return 1;
  
   
@@ -58,8 +59,6 @@ int EntryPoint::main()
     SwapChain sc = gpu.createSwapChain(queue, window);
     ViewPort port(800, 600);
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
-    MSG msg;
-
 
     // compute from examples
     ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
@@ -85,6 +84,34 @@ int EntryPoint::main()
       }
     }
 
+    // graphics 
+
+    auto pipeline2 = gpu.createGraphicsPipeline(GraphicsPipelineDescriptor()
+      .PixelShader("pixel.hlsl")
+      .VertexShader("vertex.hlsl")
+      .setRenderTargetCount(1)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+      .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+
+    struct buf2
+    {
+      float pos[4];
+    };
+    auto srcdata2 = gpu.createBufferSRV(Dimension(6), Format<buf2>(), ResUsage::Upload);
+    auto dstdata2 = gpu.createBufferSRV(Dimension(6), Format<buf2>(), ResUsage::Gpu);
+
+    {
+      auto tmp = srcdata2.buffer().Map<buf2>();
+      float size = 0.5f;
+      tmp[0] = { size, size, 0.f, 1.f };
+      tmp[1] = { size, -size, 0.f, 1.f };
+      tmp[2] = { -size, size, 0.f, 1.f };
+      tmp[3] = { -size, size, 0.f, 1.f };
+      tmp[4] = { size, -size, 0.f, 1.f };
+      tmp[5] = { -size, -size, 0.f, 1.f };
+    }
+    gfx.CopyResource(dstdata2.buffer(), srcdata2.buffer());
     GpuFence fence = gpu.createFence();
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
     queue.submit(gfx);
@@ -94,28 +121,36 @@ int EntryPoint::main()
     t.firstTick();
     while (TRUE)
     {
-
       if (window.simpleReadMessages())
         break;
       fence.wait();
       gpu.resetCmdList(gfx);
-      // compute begin
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
-      auto bind = gfx.bind(pipeline);
-      bind.SRV(0, dstdata);
-      bind.UAV(0, completedata);
-      size_t shaderGroup = 50;
-      size_t inputSize = 1000 * 1000;
-      gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
-      gfx.CopyResource(rbdata.buffer(), completedata.buffer());
 
-      // Rendertarget
       gfx.setViewPort(port);
       vec[0] += 0.002f;
       if (vec[0] > 1.0f)
         vec[0] = 0.f;
       auto backBufferIndex = sc->GetCurrentBackBufferIndex();
       gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+      gfx.setRenderTarget(sc[backBufferIndex]);
+      // compute begin
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      {
+        auto bind = gfx.bind(pipeline);
+        bind.SRV(0, dstdata);
+        bind.UAV(0, completedata);
+        size_t shaderGroup = 50;
+        size_t inputSize = 1000 * 1000;
+        gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+      }
+      gfx.CopyResource(rbdata.buffer(), completedata.buffer());
+
+      // graphics begin
+      {
+        auto bind = gfx.bind(pipeline2);
+        bind.SRV(0, dstdata2);
+        gfx.Draw(bind, 6);
+      }
 
       // submit all
       queue.submit(gfx);

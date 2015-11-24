@@ -507,12 +507,13 @@ public:
     list.m_CommandList->Reset(mCommandListAllocator.get(), NULL);
   }
 
-  SwapChain createSwapChain(GpuCommandQueue queue,Window& window)
+  SwapChain createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount = 8, FormatType type = FormatType::R8G8B8A8_UNORM)
   {
+    assert(bufferCount < 9);
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-    swapChainDesc.BufferCount = 2;
-    swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDesc.BufferCount = bufferCount;
+    swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[type];
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.OutputWindow = window.getNative();
     swapChainDesc.SampleDesc.Count = 1;
@@ -522,28 +523,23 @@ public:
 
     ComPtr<IDXGIFactory4> dxgiFactory = nullptr;
     HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory4), (void**)dxgiFactory.addr());
-    if (FAILED(hr))
-    {
-      printf("CreateDXGIFactory2 failed\n");
-      return SwapChain(nullptr);
-    }
+    assert(!FAILED(hr));
+
     ComPtr<IDXGISwapChain3> mSwapChain = nullptr;
     hr = dxgiFactory->CreateSwapChain(queue.get().get(), &swapChainDesc, (IDXGISwapChain**)mSwapChain.addr());
+    assert(!FAILED(hr));
 
-    if (FAILED(hr))
-    {
-      return SwapChain(nullptr);
-    }
     // need the rtv's out
 
-    D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[2];
-
-    //create cpu descriptor handle for backbuffer 0
-    mRenderTargetView[0] = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-
-    //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
+    D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[8];
     UINT HandleIncrementSize = m_descRTVHeap.m_handleIncrementSize;
-    mRenderTargetView[1].ptr = mRenderTargetView[0].ptr + 1*HandleIncrementSize;
+    mRenderTargetView[0] = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    for (int i = 1;i < bufferCount;++i)
+    {
+      //create cpu descriptor handle for backbuffer 0
+      mRenderTargetView[i].ptr = mRenderTargetView[0].ptr + i * HandleIncrementSize;
+    }
+    //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
 
     TextureRTV buf;
     buf.texture().width = swapChainDesc.BufferDesc.Width;
@@ -559,20 +555,17 @@ public:
     ID3D12Resource* mRenderTarget;
     //A buffer is required to render to.This example shows how to create that buffer by using the swap chain and device.
     //This example shows calling ID3D12Device::CreateRenderTargetView.
-    hr = mSwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
-    //mRenderTarget->SetName(L"mRenderTarget0");  //set debug name 
-    mDevice->CreateRenderTargetView(mRenderTarget, nullptr, mRenderTargetView[0]);
-    buf.m_scRTV = mRenderTarget;
-    lol.push_back(buf);
-    //repeat for buffer #2
-    hr = mSwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
-    //mRenderTarget->SetName(L"mRenderTarget1");
-    mDevice->CreateRenderTargetView(mRenderTarget, nullptr, mRenderTargetView[1]);
 
-    buf.texture().view.cpuHandle = mRenderTargetView[1];
-    buf.texture().view.index = 1;
-    buf.m_scRTV = mRenderTarget;
-    lol.push_back(buf);
+    for (int i = 0;i < bufferCount;++i)
+    {
+      hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
+      //mRenderTarget->SetName(L"mRenderTarget0");  //set debug name 
+      mDevice->CreateRenderTargetView(mRenderTarget, nullptr, mRenderTargetView[i]);
+      buf.m_scRTV = mRenderTarget;
+      buf.texture().view.cpuHandle = mRenderTargetView[i];
+      buf.texture().view.index = i;
+      lol.push_back(buf);
+    }
 
 
     return SwapChain(mSwapChain, lol);
