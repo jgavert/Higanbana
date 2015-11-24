@@ -66,4 +66,8 @@ public:
   {
     return descHeap.get();
   }
+  bool valid()
+  {
+    return pipeline.get() != nullptr;
+  }
 };

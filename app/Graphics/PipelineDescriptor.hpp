@@ -93,6 +93,7 @@ class RenderTargetBlendDescriptor
 {
 private:
   friend class GpuDevice;
+  friend class GraphicsBlendDescriptor;
   bool blendEnable;
   bool logicOpEnable;
   Blend srcBlend;
@@ -103,8 +104,28 @@ private:
   BlendOp blendOpAlpha;
   LogicOp logicOp;
   unsigned int colorWriteEnable;
+
+  D3D12_RENDER_TARGET_BLEND_DESC getDesc()
+  {
+    D3D12_RENDER_TARGET_BLEND_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.BlendEnable = blendEnable;
+    desc.LogicOpEnable = logicOpEnable;
+    desc.SrcBlend = static_cast<D3D12_BLEND>(srcBlend);
+    desc.DestBlend = static_cast<D3D12_BLEND>(destBlend);
+    desc.BlendOp = static_cast<D3D12_BLEND_OP>(blendOp);
+    desc.SrcBlendAlpha = static_cast<D3D12_BLEND>(srcBlendAlpha);
+    desc.DestBlendAlpha = static_cast<D3D12_BLEND>(destBlendAlpha);
+    desc.BlendOpAlpha = static_cast<D3D12_BLEND_OP>(blendOpAlpha);
+    desc.LogicOp = static_cast<D3D12_LOGIC_OP>(logicOp);
+    desc.RenderTargetWriteMask = colorWriteEnable;
+    return desc;
+  }
 public:
-  RenderTargetBlendDescriptor(): blendEnable(false), logicOpEnable(false), colorWriteEnable(0) {}
+  RenderTargetBlendDescriptor(): 
+    blendEnable(false), logicOpEnable(false), colorWriteEnable(ColorWriteEnable::All),
+    srcBlend(Blend::One), destBlend(Blend::Zero), blendOp(BlendOp::Add),
+    srcBlendAlpha(Blend::One), destBlendAlpha(Blend::Zero),  blendOpAlpha(BlendOp::Add), logicOp(LogicOp::Noop){}
   RenderTargetBlendDescriptor& BlendEnable(bool value)
   {
     blendEnable = value;
@@ -180,6 +201,7 @@ class RasterizerDescriptor
 {
 private:
   friend class GpuDevice;
+  friend class GraphicsPipelineDescriptor;
   FillMode fill;
   CullMode cull;
   bool frontCounterClockwise;
@@ -191,9 +213,31 @@ private:
   bool antialiasedLineEnable;
   unsigned int forcedSampleCount;
   ConvervativeRasterization conservativeRaster;
+
+  D3D12_RASTERIZER_DESC getDesc()
+  {
+    D3D12_RASTERIZER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+
+    desc.FillMode = static_cast<D3D12_FILL_MODE>(fill);
+    desc.CullMode = static_cast<D3D12_CULL_MODE>(cull);
+    desc.FrontCounterClockwise = frontCounterClockwise;
+    desc.DepthBias = depthBias;
+    desc.DepthBiasClamp = depthBiasClamp;
+    desc.SlopeScaledDepthBias = slopeScaledDepthBias;
+    desc.DepthClipEnable = depthClipEnable;
+    desc.MultisampleEnable = multisampleEnable;
+    desc.AntialiasedLineEnable = antialiasedLineEnable;
+    desc.ForcedSampleCount = forcedSampleCount;
+    desc.ConservativeRaster = static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(conservativeRaster);
+
+    return desc;
+  }
+
 public:
-  RasterizerDescriptor(): frontCounterClockwise(false), depthBias(0),depthBiasClamp(0.f), slopeScaledDepthBias(0.f),
-    depthClipEnable(false), multisampleEnable(false), antialiasedLineEnable(false), forcedSampleCount(0), conservativeRaster(ConvervativeRasterization::Off)
+  RasterizerDescriptor(): frontCounterClockwise(false), depthBias(0), depthBiasClamp(0.f), slopeScaledDepthBias(0.f),
+    depthClipEnable(true), multisampleEnable(false), antialiasedLineEnable(false), forcedSampleCount(0), conservativeRaster(ConvervativeRasterization::Off),
+    fill(FillMode::Solid), cull(CullMode::Back)
   {}
   RasterizerDescriptor& FillMode(FillMode value)
   {
@@ -286,12 +330,27 @@ class DepthStencilOpDesc
 {
 private:
   friend class GpuDevice;
+  friend class DepthStencilDescriptor;
   StencilOp failOp;
   StencilOp depthFailOp;
   StencilOp passOp;
   ComparisonFunc stencilFunc;
+
+  D3D12_DEPTH_STENCILOP_DESC getDesc()
+  {
+    D3D12_DEPTH_STENCILOP_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+
+    desc.StencilFailOp = static_cast<D3D12_STENCIL_OP>(failOp);
+    desc.StencilDepthFailOp = static_cast<D3D12_STENCIL_OP>(depthFailOp);
+    desc.StencilPassOp = static_cast<D3D12_STENCIL_OP>(passOp);
+    desc.StencilFunc = static_cast<D3D12_COMPARISON_FUNC>(stencilFunc);
+
+    return desc;
+  }
+
 public:
-  DepthStencilOpDesc() {}
+  DepthStencilOpDesc():failOp(StencilOp::Keep), depthFailOp(StencilOp::Keep), passOp(StencilOp::Keep), stencilFunc(ComparisonFunc::Always)  {}
   DepthStencilOpDesc& FailOp(StencilOp value)
   {
     failOp = value;
@@ -318,6 +377,7 @@ class DepthStencilDescriptor
 {
 private:
   friend class GpuDevice;
+  friend class GraphicsPipelineDescriptor;
   bool depthEnable;
   DepthWriteMask depthWriteMask;
   ComparisonFunc depthFunc;
@@ -326,8 +386,25 @@ private:
   uint8_t stencilWriteMask;
   DepthStencilOpDesc frontFace;
   DepthStencilOpDesc backFace;
+
+  D3D12_DEPTH_STENCIL_DESC getDesc()
+  {
+    D3D12_DEPTH_STENCIL_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+
+    desc.DepthEnable = depthEnable;
+    desc.DepthWriteMask = static_cast<D3D12_DEPTH_WRITE_MASK>(depthWriteMask);
+    desc.DepthFunc = static_cast<D3D12_COMPARISON_FUNC>(depthFunc);
+    desc.StencilEnable = stencilEnable;
+    desc.StencilReadMask = stencilReadMask;
+    desc.StencilWriteMask = stencilWriteMask;
+    desc.FrontFace = frontFace.getDesc();
+    desc.BackFace = backFace.getDesc();
+    return desc;
+  }
 public:
-  DepthStencilDescriptor() :depthEnable(true), stencilEnable(false), stencilReadMask(0), stencilWriteMask(0)
+  DepthStencilDescriptor() :depthEnable(true), depthWriteMask(DepthWriteMask::All), depthFunc(ComparisonFunc::Less),
+    stencilEnable(false), stencilReadMask(D3D12_DEFAULT_STENCIL_READ_MASK), stencilWriteMask(D3D12_DEFAULT_STENCIL_WRITE_MASK)
   {
   }
 
@@ -386,13 +463,30 @@ class GraphicsBlendDescriptor
 {
 private:
   friend class GpuDevice;
+  friend class GraphicsPipelineDescriptor;
 
   bool alphaToCoverageEnable;
   bool independentBlendEnable;
   std::array<RenderTargetBlendDescriptor, 8> renderTarget;
-
+  D3D12_BLEND_DESC getDesc()
+  {
+    D3D12_BLEND_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.AlphaToCoverageEnable = alphaToCoverageEnable;
+    desc.IndependentBlendEnable = independentBlendEnable;
+    for (int i = 0; i < 8; ++i)
+    {
+      desc.RenderTarget[i] = renderTarget.at(i).getDesc();
+    }
+    return desc;
+  }
 public:
-  GraphicsBlendDescriptor() {}
+  GraphicsBlendDescriptor():
+    alphaToCoverageEnable(false),
+    independentBlendEnable(false)
+  {
+    renderTarget.at(0) = RenderTargetBlendDescriptor();
+  }
   GraphicsBlendDescriptor& AlphaToCoverageEnable(bool value)
   {
     alphaToCoverageEnable = value;
@@ -429,9 +523,47 @@ class GraphicsPipelineDescriptor
   FormatType dsvFormat;
   unsigned int sampleCount;
   unsigned int sampleQuality;
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc()
+  {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+
+
+    desc.BlendState = blendDesc.getDesc();
+    desc.RasterizerState = rasterDesc.getDesc();
+    desc.DepthStencilState = dsdesc.getDesc();
+    desc.NumRenderTargets = numRenderTargets;
+    desc.SampleDesc.Count = sampleCount;
+    desc.SampleDesc.Quality = sampleQuality;
+    for (int i = 0;i < 8;++i)
+    {
+      desc.RTVFormats[i] = FormatToDXGIFormat[rtvFormats.at(i)];
+    }
+    desc.DSVFormat = FormatToDXGIFormat[dsvFormat];
+    desc.PrimitiveTopologyType = static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(primitiveTopology);
+    
+    desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+    desc.SampleMask = UINT_MAX;
+    desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+    /*
+    // Not needed ... ?!
+    desc.StreamOutput
+    desc.InputLayout
+    */
+
+    return desc;
+  }
+
 public:
   GraphicsPipelineDescriptor()
-  : numRenderTargets(1), sampleCount(0), sampleQuality(0){}
+  : numRenderTargets(0), sampleCount(1), sampleQuality(0), dsvFormat(FormatType::Unknown), primitiveTopology(PrimitiveTopology::Triangle)
+  {
+    for (int i = 0;i < 8;++i)
+    {
+      rtvFormats.at(i) = FormatType::Unknown;
+    }
+  }
 
   GraphicsPipelineDescriptor& RootDesc(std::string path)
   {

@@ -29,7 +29,7 @@ private:
   ComPtr<ID3D12Device>           mDevice;
   ComPtr<ID3D12CommandAllocator> mCommandListAllocator;
   ComPtr<ID3D12Heap>             m_heap;
-  ComPtr<ID3D12RootSignature>    m_gRootSig;
+  
   ResourceViewManager            m_descHeap;
   ResourceViewManager            m_descRTVHeap;
   ResourceViewManager            m_descDSVHeap;
@@ -48,10 +48,10 @@ public:
   // Pipelines
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
   {
+    ComPtr<ID3D12RootSignature>    m_gRootSig;
 	  ComPtr<ID3DBlob> blobCompute;
-
     auto woot = stringutils::s2ws(desc.shaderSourcePath);
-    shaderUtils::getShaderInfo(mDevice, woot, m_gRootSig, blobCompute);
+    shaderUtils::getShaderInfo(mDevice, ShaderType::Compute, woot, m_gRootSig, blobCompute);
     D3D12_SHADER_BYTECODE byte;
     byte.pShaderBytecode = blobCompute->GetBufferPointer();
     byte.BytecodeLength = blobCompute->GetBufferSize();
@@ -84,27 +84,47 @@ public:
     return ComputePipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
-  void createGraphicsPipeline(GraphicsPipelineDescriptor desc)
+  GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
   {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC computeDesc;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = desc.getDesc();
+    ComPtr<ID3D12RootSignature>    m_gRootSig;
+    ComPtr<ID3DBlob> blobVertex;
+    ComPtr<ID3DBlob> blobPixel;
+    ComPtr<ID3DBlob> blobGeometry;
+    ComPtr<ID3DBlob> blobHull;
+    ComPtr<ID3DBlob> blobDomain;
 
-    /*
-    ComPtr<ID3DBlob> blobCompute;
+    auto lam = [&](ComPtr<ID3DBlob>& blob, std::string shaderPath, ShaderType type)
+    {
+      if (!shaderPath.empty())
+      {
+        auto woot = stringutils::s2ws(shaderPath);
+        shaderUtils::getShaderInfo(mDevice, type, woot, m_gRootSig, blob);
+      }
+    };
+    lam(blobVertex, desc.vertexShaderPath, ShaderType::Vertex);
+    lam(blobPixel, desc.pixelShaderPath, ShaderType::Pixel);
+    lam(blobGeometry, desc.geometryShaderPath, ShaderType::Geometry);
+    lam(blobHull, desc.hullShaderPath, ShaderType::Hull);
+    lam(blobDomain, desc.domainShaderPath, ShaderType::Domain);
+    
+    auto modi = [](D3D12_SHADER_BYTECODE& byte, ComPtr<ID3DBlob> blob)
+    {
+      if (blob.get() != nullptr)
+      {
+        byte.BytecodeLength = blob->GetBufferSize();
+        byte.pShaderBytecode = blob->GetBufferPointer();
+      }
+    };
 
-    auto woot = stringutils::s2ws(desc.shaderSourcePath);
-    shaderUtils::getShaderInfo(mDevice, woot, m_gRootSig, blobCompute);
-    D3D12_SHADER_BYTECODE byte;
-    byte.pShaderBytecode = blobCompute->GetBufferPointer();
-    byte.BytecodeLength = blobCompute->GetBufferSize();
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC computeDesc;
-    ZeroMemory(&computeDesc, sizeof(computeDesc));
-    computeDesc.PS = byte;
-    computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-    computeDesc.NodeMask = 0;
-    computeDesc.pRootSignature = m_gRootSig.get();
-
+    modi(graphicsDesc.VS, blobVertex);
+    modi(graphicsDesc.PS, blobPixel);
+    modi(graphicsDesc.GS, blobGeometry);
+    modi(graphicsDesc.HS, blobHull);
+    modi(graphicsDesc.DS, blobDomain);
+    graphicsDesc.pRootSignature = m_gRootSig.get();
     ComPtr<ID3D12PipelineState> pipeline;
-    HRESULT hr = mDevice->CreateGraphicsPipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
+    HRESULT hr = mDevice->CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
     if (FAILED(hr))
     {
       abort();
@@ -112,7 +132,7 @@ public:
 
     // reflect the root signature
     ComPtr<ID3D12RootSignatureDeserializer> asd;
-    hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+    hr = D3D12CreateRootSignatureDeserializer(blobVertex->GetBufferPointer(), blobVertex->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
     if (FAILED(hr))
     {
       abort();
@@ -122,8 +142,8 @@ public:
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
     GraphicsBinding sourceBinding(bindingInput, cbv, srv, uav);
-    */
-    //return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
+
+    return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
   // buffers
