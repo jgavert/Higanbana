@@ -7,6 +7,8 @@ ViewPort::ViewPort(int width, int height)
   mViewPort.TopLeftY = 0;
   mViewPort.Width = static_cast<float>(width);
   mViewPort.Height = static_cast<float>(height);
+  mViewPort.MinDepth = 0.f;
+  mViewPort.MaxDepth = 1.f;
 }
 D3D12_VIEWPORT& ViewPort::getDesc()
 {

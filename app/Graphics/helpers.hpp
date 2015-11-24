@@ -205,7 +205,7 @@ public:
     auto woot = path;
     CShaderInclude include("", "");
     auto p = getShaderParams(type);
-    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), 0, 0, shaderBlob.addr(), errorMsg.addr());
+    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), D3DCOMPILE_DEBUG, 0, shaderBlob.addr(), errorMsg.addr());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
     if (FAILED(hr))
     {
