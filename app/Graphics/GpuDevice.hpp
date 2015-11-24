@@ -507,7 +507,9 @@ public:
     list.m_CommandList->Reset(mCommandListAllocator.get(), NULL);
   }
 
-  SwapChain createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount = 8, FormatType type = FormatType::R8G8B8A8_UNORM)
+  // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
+  // basically create pipeline and pretend that the rtv is SRGB. It will get handled properly.
+  SwapChain createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount = 2, FormatType type = FormatType::R8G8B8A8_UNORM)
   {
     assert(bufferCount < 9);
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
