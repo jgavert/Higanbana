@@ -20,7 +20,7 @@ using namespace faze;
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
-  /*
+ 
   {
     ApiTests tests;
     tests.run(m_params);
@@ -32,7 +32,6 @@ int EntryPoint::main()
   {
     SchedulerTests::Run();
   }
-  */
   //return 1;
  
   

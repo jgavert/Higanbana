@@ -48,4 +48,32 @@ public:
   {
     return CptCommandList::bind(pipeline);
   }
+
+  void Draw(GraphicsBinding bind, unsigned int count)
+  {
+    if (bind.m_resbars.size() > 0)
+      m_CommandList->ResourceBarrier(bind.m_resbars.size(), bind.m_resbars.data());
+    for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
+    {
+      if (bind.m_cbvs[i].first.ptr != 0)
+        m_CommandList->SetGraphicsRootConstantBufferView(bind.m_cbvs[i].second, bind.m_cbvs[i].first.ptr);
+    }
+    for (size_t i = 0; i < bind.m_srvs.size(); ++i)
+    {
+      if (bind.m_srvs[i].first.ptr != 0)
+        m_CommandList->SetGraphicsRootShaderResourceView(bind.m_srvs[i].second, bind.m_srvs[i].first.ptr);
+    }
+    for (size_t i = 0; i < bind.m_uavs.size(); ++i)
+    {
+      if (bind.m_uavs[i].first.ptr != 0)
+        m_CommandList->SetGraphicsRootUnorderedAccessView(bind.m_uavs[i].second, bind.m_uavs[i].first.ptr);
+    }
+    m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_CommandList->DrawInstanced(count, 1, 0, 0);
+  }
+
+  void setRenderTarget(TextureRTV rtv)
+  {
+    m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
+  }
 };

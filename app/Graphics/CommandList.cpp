@@ -7,6 +7,12 @@ CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList)
 void CptCommandList::setViewPort(ViewPort view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
+  RECT rect;
+  rect.bottom = -1.f;
+  rect.top = 1.f;
+  rect.left = -1.f;
+  rect.right = 1.f;
+  m_CommandList->RSSetScissorRects(1, &rect);
 }
 
 void CptCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)

@@ -3,6 +3,7 @@
 #include "Descriptors/Descriptors.hpp"
 #include "binding.hpp"
 #include <string>
+#include <fstream>
 #include <d3d12.h>
 #include <D3Dcompiler.h>
 
@@ -111,15 +112,100 @@ public:
   }
 };
 
+class CShaderInclude : public ID3DInclude {
+public:
+  CShaderInclude(const char* shaderDir, const char* systemDir) : m_ShaderDir(shaderDir), m_SystemDir(systemDir) {}
+
+  HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) {
+    try {
+      std::string finalPath;
+      switch (IncludeType) {
+      case D3D_INCLUDE_LOCAL:
+        finalPath =  pFileName;
+          break;
+      case D3D_INCLUDE_SYSTEM:
+        finalPath = pFileName;
+          break;
+      default:
+        assert(0);
+      }
+      std::ifstream includeFile(finalPath.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+
+      if (includeFile.is_open()) {
+        long long fileSize = includeFile.tellg();
+        char* buf = new char[fileSize];
+        includeFile.seekg(0, std::ios::beg);
+        includeFile.read(buf, fileSize);
+        includeFile.close();
+        *ppData = buf;
+        *pBytes = fileSize;
+      }
+      else {
+        return E_FAIL;
+      }
+      return S_OK;
+    }
+    catch (std::exception& e) {
+      return E_FAIL;
+    }
+  }
+  HRESULT __stdcall Close(LPCVOID pData) {
+    char* buf = (char*)pData;
+    delete[] buf;
+    return S_OK;
+  }
+private:
+  std::string m_ShaderDir;
+  std::string m_SystemDir;
+};
+
+
+enum class ShaderType
+{
+  Vertex,
+  Pixel,
+  Geometry,
+  Hull,
+  Domain,
+  Compute
+};
+
 class shaderUtils
 {
 public:
-  static void getShaderInfo(ComPtr<ID3D12Device>& dev, std::wstring path, ComPtr<ID3D12RootSignature>& root, ComPtr<ID3DBlob>& shaderBlob)
+
+private:
+  static std::pair<std::string, std::string> getShaderParams(ShaderType type)
+  {
+    switch (type)
+    {
+    case ShaderType::Vertex:
+      return std::pair<std::string, std::string>("VSMain", "vs_5_1");
+    case ShaderType::Pixel:
+      return std::pair<std::string, std::string>("PSMain", "ps_5_1");
+    case ShaderType::Geometry:
+      return std::pair<std::string, std::string>("GSMain", "gs_5_1");
+    case ShaderType::Hull:
+      return std::pair<std::string, std::string>("HSMain", "hs_5_1");
+    case ShaderType::Domain:
+      return std::pair<std::string, std::string>("DSMain", "ds_5_1");
+    case ShaderType::Compute:
+      return std::pair<std::string, std::string>("CSMain", "cs_5_1");
+    default:
+      break;
+    }
+    return std::pair<std::string, std::string>("CSMain", "cs_5_1");
+  }
+public:
+
+  static void getShaderInfo(ComPtr<ID3D12Device>& dev, ShaderType type, std::wstring path, ComPtr<ID3D12RootSignature>& root, ComPtr<ID3DBlob>& shaderBlob)
   {
     ComPtr<ID3DBlob> errorMsg;
 
     auto woot = path;
-    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, shaderBlob.addr(), errorMsg.addr());
+    CShaderInclude include("", "");
+    auto p = getShaderParams(type);
+    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), 0, 0, shaderBlob.addr(), errorMsg.addr());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
     if (FAILED(hr))
     {

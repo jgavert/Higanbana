@@ -390,9 +390,14 @@ private:
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
 
-    dev.createGraphicsPipeline(GraphicsPipelineDescriptor());
+    auto woot = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+      .PixelShader("pixel.hlsl")
+      .VertexShader("vertex.hlsl")
+      .DSVFormat(FormatType::D32_FLOAT)
+      .setRenderTargetCount(1)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB));
 
-		return false;
+		return woot.valid();
 	});
 
 	t.addTest("Create SwapChain", [&]()
@@ -464,10 +469,80 @@ private:
 		return true;
 	});
 
-	t.addTest("Create window and render a triangle for full 1 second in loop", [id]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
+  t.addTest("Create window and render a triangle for full 1 second in loop", [&]()
+  {
+    SystemDevices sys;
+    GpuDevice dev = sys.CreateGpuDevice(id);
+    GpuCommandQueue queue = dev.createQueue();
+    GfxCommandList gfx = dev.createUniversalCommandList();
+
+    Window window(params, "ebin", 800, 600);
+    window.open();
+    SwapChain sc = dev.createSwapChain(queue, window);
+    ViewPort port(800, 600);
+
+    struct buf
+    {
+      float pos[4];
+    };
+    auto srcdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Upload);
+    auto dstdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Gpu);
+
+    {
+      auto tmp = srcdata.buffer().Map<buf>();
+      tmp[0] = { 1.f, 1.f, 0.f, 1.f };
+      tmp[1] = { -1.f, 1.f, 0.f, 1.f };
+      tmp[2] = { 1.f, -1.f, 0.f, 1.f };
+      tmp[3] = { 1.f, 1.f, 0.f, 1.f };
+      tmp[4] = { -1.f, -1.f, 0.f, 1.f };
+      tmp[5] = { -1.f, 1.f, 0.f, 1.f };
+    }
+
+    gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+    GpuFence fence = dev.createFence();
+    queue.submit(gfx);
+    queue.insertFence(fence);
+
+    auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+      .PixelShader("pixel.hlsl")
+      .VertexShader("vertex.hlsl")
+      .setRenderTargetCount(1)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
+      .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+    while (TRUE)
+    {
+
+      if (window.simpleReadMessages())
+        break;
+      fence.wait();
+      dev.resetCmdList(gfx);
+
+      // Rendertarget
+      gfx.setViewPort(port);
+      vec[2] += 0.02f;
+      if (vec[2] > 1.0f)
+        vec[2] = 0.f;
+      auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+      gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+      gfx.setRenderTarget(sc[backBufferIndex]);
+      // graphics begin
+      auto bind = gfx.bind(pipeline);
+      bind.SRV(0, dstdata);
+      gfx.Draw(bind, 6);
+
+
+      // submit all
+      queue.submit(gfx);
+
+      // present
+      sc->Present(1, 0);
+      queue.insertFence(fence);
+    }
+
+
 
 		return false;
 	});

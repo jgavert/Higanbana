@@ -15,6 +15,7 @@ struct MappedBuffer
     : m_mappedresource(res)
     , range(r)
     , mapped(ptr)
+    , readback(readback)
   {}
   ~MappedBuffer()
   {
