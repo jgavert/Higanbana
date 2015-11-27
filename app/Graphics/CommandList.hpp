@@ -20,9 +20,15 @@ private:
   friend class GfxCommandList;
 
   ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+  bool closed;
   CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList);
 public:
-  CptCommandList() : m_CommandList(nullptr) {}
+  CptCommandList() : m_CommandList(nullptr), closed(false) {}
+
+  void profilingEventStart(std::string name)
+  {
+    // cannot be implemented yet, missing d3d12 side of things.
+  }
   void setViewPort(ViewPort view);
   void ClearRenderTargetView(TextureRTV rtv, faze::vec4 color);
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
@@ -31,6 +37,20 @@ public:
   void DispatchIndirect(ComputeBinding bind);
   ComputeBinding bind(ComputePipeline& pipeline);
   bool isValid();
+  void close()
+  {
+    HRESULT hr;
+    hr = m_CommandList->Close();
+    if (FAILED(hr))
+    {
+      //
+    }
+    closed = true;
+  }
+  bool isClosed()
+  {
+    return closed;
+  }
 };
 
 class GfxCommandList : public CptCommandList
@@ -76,4 +96,6 @@ public:
   {
     m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
   }
+
+
 };

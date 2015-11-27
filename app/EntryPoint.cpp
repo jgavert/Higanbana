@@ -7,13 +7,12 @@
 #include "core/src/entity/database.hpp"
 #include "core/src/system/time.hpp"
 #include "core/src/tests/schedulertests.hpp"
-#include "graphics/apitests.hpp"
-#include "graphics/apitests2.hpp"
+#include "graphics/tests/apitests.hpp"
+#include "graphics/tests/apitests2.hpp"
+#include "graphics/tests/advtests.hpp"
 #include "Graphics/SuperTest.hpp"
 #include <cstdio>
 #include <iostream>
-
-#include <OVR.h>
 
 using namespace faze;
 
@@ -43,23 +42,20 @@ int EntryPoint::main()
     Logger log;
     WTime t;
 
-    // Will wait for native dx12 compliant SDK, cannot even render triangle with rendering api...
-    ovrResult oculusSDK = ovr_Initialize(nullptr);
-    if (!OVR_SUCCESS(oculusSDK))
-    {
-      F_LOG("failed to initialize OculusVR\n","");
-    }
-
     Window window(m_params, name, 800, 600);
     window.open();
     SystemDevices devices;
     GpuDevice gpu = devices.CreateGpuDevice(true);
     GpuCommandQueue queue = gpu.createQueue();
-    GfxCommandList gfx = gpu.createUniversalCommandList();
     SwapChain sc = gpu.createSwapChain(queue, window);
     ViewPort port(800, 600);
-    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
+    GfxCommandList gfx = gpu.createUniversalCommandList();
+    {
+      AdvTests::run(gpu, queue, window, sc, port, gfx);
+    }
+
+    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples
     ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
 
@@ -114,6 +110,7 @@ int EntryPoint::main()
     gfx.CopyResource(dstdata2.buffer(), srcdata2.buffer());
     GpuFence fence = gpu.createFence();
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+    gfx.close();
     queue.submit(gfx);
     queue.insertFence(fence);
     
@@ -153,6 +150,7 @@ int EntryPoint::main()
       }
 
       // submit all
+      gfx.close();
       queue.submit(gfx);
 
       // present
