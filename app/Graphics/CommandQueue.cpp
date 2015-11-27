@@ -4,6 +4,10 @@ GpuCommandQueue::GpuCommandQueue(ComPtr<ID3D12CommandQueue> que) :m_CommandQueue
 
 void GpuCommandQueue::submit(GfxCommandList& list)
 {
+  if (!list.isClosed())
+  {
+    abort();
+  }
   HRESULT hr;
   hr = list.m_CommandList->Close();
   if (FAILED(hr))

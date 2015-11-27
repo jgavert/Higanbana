@@ -95,7 +95,6 @@ private:
       }
 
       list.CopyResource(dstdata.buffer(), srcdata.buffer());
-      list.close();
       queue.submit(list);
       GpuFence fence = dev.createFence();
       queue.insertFence(fence);
@@ -125,7 +124,6 @@ private:
 
       list.CopyResource(dstdata.buffer(), srcdata.buffer());
       list.CopyResource(rbdata.buffer(), dstdata.buffer());
-      list.close();
       queue.submit(list);
       queue.insertFence(fence);
       fence.wait();
@@ -316,7 +314,6 @@ private:
 		list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
 
 		list.CopyResource(rbdata.buffer(), completedata.buffer());
-    list.close();
     queue.submit(list);
 		queue.insertFence(fence);
 		fence.wait();
@@ -461,7 +458,6 @@ private:
       if (vec[0] > 1.0f)
         vec[0] = 0.f;
       list.ClearRenderTargetView(sc[backBufferIndex], vec);
-      list.close();
       queue.submit(list);
 
       sc->Present(1, 0);
@@ -506,7 +502,6 @@ private:
 
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
     GpuFence fence = dev.createFence();
-    gfx.close();
     queue.submit(gfx);
     queue.insertFence(fence);
 
@@ -545,7 +540,6 @@ private:
 
 
       // submit all
-      gfx.close();
       queue.submit(gfx);
 
       // present

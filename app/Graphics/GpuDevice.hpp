@@ -505,6 +505,7 @@ public:
   {
     mCommandListAllocator->Reset();
     list.m_CommandList->Reset(mCommandListAllocator.get(), NULL);
+    list.closed = false;
   }
 
   // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx

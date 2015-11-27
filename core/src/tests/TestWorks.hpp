@@ -13,11 +13,22 @@ namespace faze
   {
   private:
     std::vector<std::pair<std::string, std::function<bool()> > >  m_tests;
+    std::function<void()> m_before;
+    std::function<void()> m_after;
     std::string m_name;
     Logger logs;
     Bentsumaakaa b;
   public:
-    TestWorks(std::string name) :m_name(name) {}
+    TestWorks(std::string name) :m_name(name), m_before([]() {}), m_after([]() {}) {}
+    void setBeforeTest(std::function<void()> func)
+    {
+      m_before = func;
+    }
+
+    void setAfterTest(std::function<void()> func)
+    {
+      m_after = func;
+    }
 
     bool runTests()
     {
@@ -29,9 +40,11 @@ namespace faze
       for (auto& it : m_tests)
       {
         std::string ok = "[FAILED] ";
+        m_before();
         b.start(false);
         bool a = it.second();
         auto time = b.stop(false);
+        m_after();
         std::string padding = "";
         if (a)
         {
