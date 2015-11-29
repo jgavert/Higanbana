@@ -23,6 +23,7 @@ namespace faze
     */
     std::array<VectorType, NUM_ELEMENTS> data;
 
+
     inline Vector normalize()
     {
       VectorType amount = 0;
@@ -136,6 +137,7 @@ namespace faze
       res.data[0] = data[1] * v2.data[2] - data[2] * v2.data[1];
       res.data[1] = data[2] * v2.data[0] - data[0] * v2.data[2];
       res.data[2] = data[0] * v2.data[1] - data[1] * v2.data[0];
+      res.data[3] = 0.f;
       return res;
     }
 

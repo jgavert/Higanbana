@@ -18,6 +18,7 @@ private:
   friend class GpuCommandQueue;
   friend class GpuDevice;
   friend class GfxCommandList;
+  friend class _GpuBracket;
 
   ComPtr<ID3D12GraphicsCommandList> m_CommandList;
   bool closed;
@@ -58,6 +59,7 @@ private:
   friend class ApiTests;
   friend class GpuCommandQueue;
   friend class GpuDevice;
+  friend class _GpuBracket;
   GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList) :CptCommandList(cmdList){}
 public:
   GfxCommandList() : CptCommandList() {}

@@ -10,6 +10,7 @@ private:
   friend class test;
   friend class ApiTests;
   friend class GpuDevice;
+  friend class _GpuBracket;
   ComPtr<ID3D12CommandQueue> m_CommandQueue;
 public:
   GpuCommandQueue(ComPtr<ID3D12CommandQueue> que);
