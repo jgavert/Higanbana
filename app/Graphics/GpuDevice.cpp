@@ -28,24 +28,26 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
   D3D12_DESCRIPTOR_HEAP_DESC Desc2;
   Desc2.NodeMask = 0;
   Desc2.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  Desc2.NumDescriptors = 10;
+  Desc2.NumDescriptors = 8;
   Desc2.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   hr = mDevice->CreateDescriptorHeap(&Desc2, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap2.addr()));
   if (FAILED(hr))
   {
     // 
+    abort();
   }
   m_descRTVHeap = ResourceViewManager(heap2, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
   ComPtr<ID3D12DescriptorHeap> heap3;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  Desc.NumDescriptors = 10;
+  Desc.NumDescriptors = 8;
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap3.addr()));
   if (FAILED(hr))
   {
     // 
+    abort();
   }
   m_descDSVHeap = ResourceViewManager(heap3, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 

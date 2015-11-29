@@ -8,12 +8,6 @@ void GpuCommandQueue::submit(GfxCommandList& list)
   {
     abort();
   }
-  HRESULT hr;
-  hr = list.m_CommandList->Close();
-  if (FAILED(hr))
-  {
-    //
-  }
   m_CommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(list.m_CommandList.addr()));
 }
 

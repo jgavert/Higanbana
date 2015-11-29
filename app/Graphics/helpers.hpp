@@ -116,7 +116,7 @@ class CShaderInclude : public ID3DInclude {
 public:
   CShaderInclude(const char* shaderDir, const char* systemDir) : m_ShaderDir(shaderDir), m_SystemDir(systemDir) {}
 
-  HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) {
+  HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID /*pParentData*/, LPCVOID *ppData, UINT *pBytes) {
     try {
       std::string finalPath;
       switch (IncludeType) {
@@ -138,14 +138,14 @@ public:
         includeFile.read(buf, fileSize);
         includeFile.close();
         *ppData = buf;
-        *pBytes = fileSize;
+        *pBytes = static_cast<UINT>(fileSize);
       }
       else {
         return E_FAIL;
       }
       return S_OK;
     }
-    catch (std::exception& e) {
+    catch (std::exception& /*e*/) {
       return E_FAIL;
     }
   }
@@ -248,7 +248,7 @@ public:
   {
     std::vector<std::tuple<UINT, Binding_::RootType, unsigned int>> bindingInput;
     cbv = 0, srv = 0, uav = 0;
-    for (int i = 0; i < desc->NumParameters;++i)
+    for (unsigned int i = 0; i < desc->NumParameters;++i)
     {
       auto it = desc->pParameters[i];
       switch (it.ParameterType)

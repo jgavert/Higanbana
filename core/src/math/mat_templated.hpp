@@ -10,10 +10,21 @@ namespace faze
   struct Matrix {
     std::array<Vector<cols, T>, rows> data;
 
+    Matrix()
+    {
+      for (int i = 0; i < rows*cols; i++)
+      {
+        int row = i / 4;
+        int column = i % 4;
+        data[row][column] = 0.f;
+      }
+    }
+
     Matrix operator*(Matrix& scnd)
     {
       Matrix mat;
-      for (int i = 0; i < row*column; i++)
+
+      for (int i = 0; i < rows*cols; i++)
       {
         int row = i / 4;
         int column = i % 4;
@@ -110,6 +121,12 @@ namespace faze
     static Matrix Identity()
     {
       Matrix mat;
+      for (int i = 0; i < rows*cols; i++)
+      {
+        int row = i / 4;
+        int column = i % 4;
+        mat.data[row][column] = 0.f;
+      }
       for (int i = 0; i < std::min(rows, cols); i++)
       {
         mat.data[i][i] = 1.f;
@@ -119,13 +136,16 @@ namespace faze
 
   };
 
+  typedef Matrix<float, 4, 4> mat4;
+  typedef Matrix<float, 3, 3> mat3;
+
   namespace MatrixMath
   {
     const float PI = 3.14159265f;
     static mat4 Translation(float x, float y, float z)
     {
       mat4 result = mat4::Identity();
-      result[0][4] = x; result[1][4] = y; result[2][4] = z;
+      result[0][3] = x; result[1][3] = y; result[2][3] = z;
       return result;
     }
 
@@ -202,7 +222,5 @@ namespace faze
     }
   };
 
-  typedef typename Matrix<float, 4, 4> mat4;
-  typedef typename Matrix<float, 3, 3> mat3;
 
 }

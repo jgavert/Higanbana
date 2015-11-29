@@ -211,7 +211,7 @@ private:
 		}
 		const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
 		//F_LOG("\n");
-		for (int i = 0;i < woot->NumParameters;++i)
+		for (unsigned int i = 0;i < woot->NumParameters;++i)
 		{
 			auto it = woot->pParameters[i];
 			switch (it.ParameterType)
@@ -219,7 +219,7 @@ private:
 				
 			case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
 				//F_LOG("DescTable:\n", it.DescriptorTable);
-				for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
+				for (unsigned int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
 				{
 					auto it2 = it.DescriptorTable.pDescriptorRanges[k];
 					//F_LOG("\tRangeType: ");
@@ -309,8 +309,8 @@ private:
 		auto bind = list.bind(pipeline);
 		bind.SRV(0, dstdata);
 		bind.UAV(0, completedata);
-    size_t shaderGroup = 50;
-    size_t inputSize = 1000 * 1000;
+    unsigned int shaderGroup = 50;
+    unsigned int inputSize = 1000 * 1000;
 		list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
 
 		list.CopyResource(rbdata.buffer(), completedata.buffer());
@@ -536,7 +536,7 @@ private:
       // graphics begin
       auto bind = gfx.bind(pipeline);
       bind.SRV(0, dstdata);
-      gfx.Draw(bind, 6);
+      gfx.drawInstanced(bind, 6, 1, 0, 0);
 
 
       // submit all

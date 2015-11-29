@@ -10,7 +10,6 @@
 #include "graphics/tests/apitests.hpp"
 #include "graphics/tests/apitests2.hpp"
 #include "graphics/tests/advtests.hpp"
-#include "Graphics/SuperTest.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -86,7 +85,7 @@ int EntryPoint::main()
       .PixelShader("pixel.hlsl")
       .VertexShader("vertex.hlsl")
       .setRenderTargetCount(1)
-      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
       .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
 
@@ -94,18 +93,15 @@ int EntryPoint::main()
     {
       float pos[4];
     };
-    auto srcdata2 = gpu.createBufferSRV(Dimension(6), Format<buf2>(), ResUsage::Upload);
-    auto dstdata2 = gpu.createBufferSRV(Dimension(6), Format<buf2>(), ResUsage::Gpu);
+    auto srcdata2 = gpu.createBufferSRV(Dimension(3), Format<buf2>(), ResUsage::Upload);
+    auto dstdata2 = gpu.createBufferSRV(Dimension(3), Format<buf2>(), ResUsage::Gpu);
 
     {
       auto tmp = srcdata2.buffer().Map<buf2>();
-      float size = 0.5f;
-      tmp[0] = { size, size, 0.f, 1.f };
-      tmp[1] = { size, -size, 0.f, 1.f };
+      float size = 0.9f;
+      tmp[0] = { size, -size, 0.f, 1.f };
+      tmp[1] = { -size, -size, 0.f, 1.f };
       tmp[2] = { -size, size, 0.f, 1.f };
-      tmp[3] = { -size, size, 0.f, 1.f };
-      tmp[4] = { size, -size, 0.f, 1.f };
-      tmp[5] = { -size, -size, 0.f, 1.f };
     }
     gfx.CopyResource(dstdata2.buffer(), srcdata2.buffer());
     GpuFence fence = gpu.createFence();
@@ -136,8 +132,8 @@ int EntryPoint::main()
         auto bind = gfx.bind(pipeline);
         bind.SRV(0, dstdata);
         bind.UAV(0, completedata);
-        size_t shaderGroup = 50;
-        size_t inputSize = 1000 * 1000;
+        unsigned int shaderGroup = 50;
+        unsigned int inputSize = 1000 * 1000;
         gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
       }
       gfx.CopyResource(rbdata.buffer(), completedata.buffer());
@@ -146,7 +142,7 @@ int EntryPoint::main()
       {
         auto bind = gfx.bind(pipeline2);
         bind.SRV(0, dstdata2);
-        gfx.Draw(bind, 6);
+        gfx.drawInstanced(bind, 3, 1, 0, 0);
       }
 
       // submit all
