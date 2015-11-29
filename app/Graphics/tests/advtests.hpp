@@ -264,9 +264,9 @@ private:
     using namespace faze;
     struct ConstantsCustom
     {
-      mat4 ProjectionMatrix;
-      mat4 ViewMatrix;
       mat4 WorldMatrix;
+      mat4 ViewMatrix;
+      mat4 ProjectionMatrix;
       float time;
       vec2 resolution;
       float filler;
@@ -334,9 +334,11 @@ private:
       // yay, update the constant buffer for the frame
       {
         auto tmp = srcConstants.buffer().Map<ConstantsCustom>();
-        tmp[0].WorldMatrix = MatrixMath::Translation(0.f, vec[2], 1.f);
-        tmp[0].ProjectionMatrix = MatrixMath::Perspective(70.f, 800.f / 600.f, 0.1f, 100.f);
-        tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.f, 0.f, 1.f }), vec4({ 0.f, 0.f, 5.f, 1.f }));
+//        auto lol = XMMatrixPerspectiveFovRH(70.f, 800.f / 600.f, 0.01f, 100.f);
+//        auto wtf = MatrixMath::Perspective(70.f, 800.f / 600.f, 0.01f, 100.f);
+        tmp[0].WorldMatrix = MatrixMath::Translation(0.f, 0.f, 0.f);
+        tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.7f, 1.5f, 1.f }), vec4({ 0.f, 0.f, -0.1f, 1.f }));
+        tmp[0].ProjectionMatrix = MatrixMath::Perspective(1.22173f, 800.f / 600.f, 0.01f, 100.f);
         tmp[0].time = 0.f;
         tmp[0].resolution = { 800.f, 600.f };
         tmp[0].filler = 0.f;
@@ -344,9 +346,11 @@ private:
       gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
       // Rendertarget
       gfx.setViewPort(port);
+      /*
       vec[2] += 0.02f;
       if (vec[2] > 1.0f)
         vec[2] = 0.f;
+        */
       auto backBufferIndex = sc->GetCurrentBackBufferIndex();
       gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
       gfx.ClearDepthView(depth);

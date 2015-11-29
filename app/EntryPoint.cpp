@@ -118,39 +118,50 @@ int EntryPoint::main()
         break;
       fence.wait();
       gpu.resetCmdList(gfx);
-
-      gfx.setViewPort(port);
-      vec[0] += 0.002f;
-      if (vec[0] > 1.0f)
-        vec[0] = 0.f;
-      auto backBufferIndex = sc->GetCurrentBackBufferIndex();
-      gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
-      gfx.setRenderTarget(sc[backBufferIndex]);
-      // compute begin
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       {
-        auto bind = gfx.bind(pipeline);
-        bind.SRV(0, dstdata);
-        bind.UAV(0, completedata);
-        unsigned int shaderGroup = 50;
-        unsigned int inputSize = 1000 * 1000;
-        gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+        auto frameBra = GPUBracket(queue, "Frame");
+        gfx.setViewPort(port);
+        vec[0] += 0.002f;
+        if (vec[0] > 1.0f)
+          vec[0] = 0.f;
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+        gfx.setRenderTarget(sc[backBufferIndex]);
+
+        {
+          auto bra = GPUBracket(gfx, "copy the compute job");
+          gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+        }
+
+        {
+          auto bra = GPUBracket(gfx, "Dispatch");
+          auto bind = gfx.bind(pipeline);
+          bind.SRV(0, dstdata);
+          bind.UAV(0, completedata);
+          unsigned int shaderGroup = 50;
+          unsigned int inputSize = 1000 * 1000;
+          gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+        }
+
+        {
+          auto bra = GPUBracket(gfx, "copy results");
+          gfx.CopyResource(rbdata.buffer(), completedata.buffer());
+        }
+
+        {
+          auto bra = GPUBracket(gfx, "DrawTriangle");
+          auto bind = gfx.bind(pipeline2);
+          bind.SRV(0, dstdata2);
+          gfx.drawInstanced(bind, 3, 1, 0, 0);
+        }
+
+        // submit all
+        gfx.close();
+        queue.submit(gfx);
+
+        // present
+        sc->Present(1, 0);
       }
-      gfx.CopyResource(rbdata.buffer(), completedata.buffer());
-
-      // graphics begin
-      {
-        auto bind = gfx.bind(pipeline2);
-        bind.SRV(0, dstdata2);
-        gfx.drawInstanced(bind, 3, 1, 0, 0);
-      }
-
-      // submit all
-      gfx.close();
-      queue.submit(gfx);
-
-      // present
-      sc->Present(1, 0);
       queue.insertFence(fence);
       t.tick();
     }

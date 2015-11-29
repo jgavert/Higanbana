@@ -149,7 +149,64 @@ namespace faze
       return result;
     }
 
-    static mat4 Perspective(float fov, float aspect, float closeZ, float farZ)
+    //  directx math pakuri
+    static mat4 Perspective(float fov, float aspect, float NearZ, float FarZ)
+    {
+      if (fov <= 0 || aspect == 0)
+      {
+        return mat4();
+      }
+      float psin, pcos;
+      fov = 0.5f * fov;
+      float quotient = 0.159154943f*fov;
+      if (fov >= 0.0f)
+      {
+        quotient = (float)((int)(quotient + 0.5f));
+      }
+      else
+      {
+        quotient = (float)((int)(quotient - 0.5f));
+      }
+      float y = fov - 6.283185307f*quotient;
+
+      // Map y to [-pi/2,pi/2] with sin(y) = sin(Value).
+      float sign;
+      if (y > 1.570796327f)
+      {
+        y = 3.141592654f - y;
+        sign = -1.0f;
+      }
+      else if (y < -1.570796327f)
+      {
+        y = -3.141592654f - y;
+        sign = -1.0f;
+      }
+      else
+      {
+        sign = +1.0f;
+      }
+
+      float y2 = y * y;
+
+      // 11-degree minimax approximation
+      psin = (((((-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f) * y2 + 0.0083333310f) * y2 - 0.16666667f) * y2 + 1.0f) * y;
+
+      // 10-degree minimax approximation
+      float p = ((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 - 0.5f) * y2 + 1.0f;
+      pcos = sign*p;
+
+      mat4 result;
+      //result[1][1] = 1.f / std::tan(fov * (PI / 180.f) / 2.f); // radians
+      result[1][1] = pcos / psin;
+      result[0][0] = result[1][1] / aspect;
+      result[2][2] = FarZ / (NearZ - FarZ);
+      result[3][2] = result[2][2] * NearZ;
+      result[2][3] = -1.f;
+      return result;
+    }
+
+    //  In OpenGL the near plane maps to -1 and the far plane to 1, whereas in DirectX the near plane maps to 0 and the far plane to 1
+    static mat4 OpenglPerspective(float fov, float aspect, float NearZ, float FarZ)
     {
       if (fov <= 0 || aspect == 0)
       {
@@ -158,8 +215,8 @@ namespace faze
       mat4 result;
       result[1][1] = 1.f / std::tan(fov * (PI / 180.f) / 2.f);
       result[0][0] = result.data[1][1] / aspect;
-      result[2][2] = (farZ + closeZ) / (closeZ - farZ);
-      result[3][2] = 2 * farZ * closeZ / (closeZ - farZ);
+      result[2][2] = (FarZ + NearZ) / (NearZ - FarZ);
+      result[3][2] = 2 * FarZ * NearZ / (NearZ - FarZ);
       result[2][3] = -1.f;
       return result;
     }
@@ -178,7 +235,8 @@ namespace faze
       M[0][1] = upVec.data[0]; M[1][1] = upVec.data[1]; M[2][1] = upVec.data[2];
       M[0][2] = -dirVec.data[0]; M[1][2] = -dirVec.data[1]; M[2][2] = -dirVec.data[2];
       mat4 temp = Translation(-cameraPos.data[0], -cameraPos.data[1], -cameraPos.data[2]);
-      return temp*M;
+      auto ret = temp*M;
+      return ret;
     }
 
     static mat4 Rotation(float x, float y, float z)

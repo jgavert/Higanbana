@@ -3,9 +3,12 @@
 #include "GpuDevice.hpp"
 #include "core/src/global_debug.hpp"
 #include "ComPtr.hpp"
+#include "gfxDebug.hpp"
 #include <utility>
 #include <string>
 #include <DXGI.h>
+
+
 struct GpuInfo
 {
   std::string description;

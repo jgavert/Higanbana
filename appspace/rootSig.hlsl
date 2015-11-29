@@ -5,9 +5,9 @@
 
 struct Constants
 {
-  float4x4 ProjectionMatrix;
-  float4x4 ViewMatrix;
   float4x4 WorldMatrix;
+  float4x4 ViewMatrix;
+  float4x4 ProjectionMatrix;
   float time;
   float2 resolution;
   float filler;
