@@ -1,4 +1,6 @@
 #pragma once
+#include "core/src/math/mat_templated.hpp"
+//#include "core/src/math/vec_templated.hpp"
 #include "Platform/EntryPoint.hpp"
 #include "Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
@@ -7,10 +9,9 @@
 #include "core/src/tests/TestWorks.hpp"
 
 #include "Graphics/gfxApi.hpp"
+
 #include <cstdio>
 #include <iostream>
-#include <d3d12shader.h>
-#include <D3Dcompiler.h>
 
 class AdvTests
 {
@@ -20,21 +21,23 @@ private:
     faze::TestWorks t("advtests");
     
 
-    t.setAfterTest([&]()
+    auto end = [&]()
     {
       auto fence = dev.createFence();
       queue.insertFence(fence);
       fence.wait(); // verify that queue has finished with current work
       if (!gfx.isClosed())
       {
-        auto fence = dev.createFence();
+        //auto fence = dev.createFence();
         
         gfx.close(); // as expected, explicit close is kind of nice.
         // Much nicer to close and enforce errors if trying to add after that.
         // Although seems like you can still "put" stuff there.
       }
       dev.resetCmdList(gfx); // clean the resource use
-    });
+    };
+    //end();
+    t.setAfterTest(end);
 
     t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
@@ -127,8 +130,8 @@ private:
 		auto bind = gfx.bind(pipeline);
 		bind.SRV(0, dstdata);
 		bind.UAV(0, completedata);
-    size_t shaderGroup = 50;
-    size_t inputSize = 1000 * 1000;
+    unsigned int shaderGroup = 50;
+    unsigned int inputSize = 1000 * 1000;
 		gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
 
 		gfx.CopyResource(rbdata.buffer(), completedata.buffer());
@@ -180,7 +183,6 @@ private:
       fence.wait();
       dev.resetCmdList(gfx);
     }
-    dev.resetCmdList(gfx);
 		return true;
 	});
   
@@ -241,7 +243,7 @@ private:
       // graphics begin
       auto bind = gfx.bind(pipeline);
       bind.SRV(0, dstdata);
-      gfx.Draw(bind, 6);
+      gfx.drawInstanced(bind, 6,1,0,0);
 
 
       // submit all
@@ -259,6 +261,112 @@ private:
 
 	t.addTest("Rotating triangle with shaders", [&]()
 	{
+    using namespace faze;
+    struct ConstantsCustom
+    {
+      mat4 ProjectionMatrix;
+      mat4 ViewMatrix;
+      mat4 WorldMatrix;
+      float time;
+      vec2 resolution;
+      float filler;
+    };
+
+    auto srcConstants = dev.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
+    auto dstConstants = dev.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
+
+    gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+
+    struct buf
+    {
+      float pos[4];
+    };
+    auto srcdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Upload);
+    auto dstdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Gpu);
+
+    {
+      auto tmp = srcdata.buffer().Map<buf>();
+      float size = 0.5f;
+      tmp[0] = { 0, size, 0.0f, 1.f };
+      tmp[1] = { size, -size, 0.0f, 1.f };
+      tmp[2] = { -size, -size, 0.0f, 1.f };
+      tmp[3] = { -size, -size, 0.0f, 1.f };
+      tmp[4] = { size, -size, 0.0f, 1.f };
+      tmp[5] = { 0, size, 0.0f, 1.f };
+    }
+
+    gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+    GpuFence fence = dev.createFence();
+    gfx.close();
+    queue.submit(gfx);
+    queue.insertFence(fence);
+
+    auto depth = dev.createTextureDSV(
+      Dimension(800, 600)
+      , Format<int>(FormatType::D32_FLOAT)
+      , ResUsage::Gpu
+      , MipLevel()
+      , Multisampling());
+
+    auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+      .PixelShader("pixel.hlsl")
+      .VertexShader("vertex2.hlsl")
+      .setRenderTargetCount(1)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
+      .DSVFormat(FormatType::D32_FLOAT)
+      .DepthStencil(DepthStencilDescriptor().DepthEnable(true).DepthWriteMask(DepthWriteMask::All).DepthFunc(ComparisonFunc::LessEqual)));
+
+    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+    auto limit = std::chrono::seconds(1).count();
+    auto timepoint2 = std::chrono::high_resolution_clock::now();
+    auto timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+    //while (timeSince < limit)
+    while (true)
+    {
+      timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+      auto timeSince2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
+      if (window.simpleReadMessages())
+        break;
+      fence.wait();
+      dev.resetCmdList(gfx);
+
+      // yay, update the constant buffer for the frame
+      {
+        auto tmp = srcConstants.buffer().Map<ConstantsCustom>();
+        tmp[0].WorldMatrix = MatrixMath::Translation(0.f, vec[2], 1.f);
+        tmp[0].ProjectionMatrix = MatrixMath::Perspective(70.f, 800.f / 600.f, 0.1f, 100.f);
+        tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.f, 0.f, 1.f }), vec4({ 0.f, 0.f, 5.f, 1.f }));
+        tmp[0].time = 0.f;
+        tmp[0].resolution = { 800.f, 600.f };
+        tmp[0].filler = 0.f;
+      }
+      gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+      // Rendertarget
+      gfx.setViewPort(port);
+      vec[2] += 0.02f;
+      if (vec[2] > 1.0f)
+        vec[2] = 0.f;
+      auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+      gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+      gfx.ClearDepthView(depth);
+      gfx.setRenderTarget(sc[backBufferIndex], depth);
+      // graphics begin
+      auto bind = gfx.bind(pipeline);
+      bind.SRV(0, dstdata);
+      bind.CBV(0, dstConstants);
+      gfx.drawInstanced(bind, 6, 1, 0, 0);
+
+
+      // submit all
+      gfx.close();
+      queue.submit(gfx);
+
+      // present
+      sc->Present(1, 0);
+      queue.insertFence(fence);
+    }
+    fence.wait();
 
 		return false;
 	});

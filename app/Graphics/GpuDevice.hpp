@@ -80,7 +80,7 @@ public:
 
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-    ComputeBinding sourceBinding(bindingInput, cbv, srv, uav);
+    ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
     return ComputePipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
 
@@ -141,7 +141,7 @@ public:
 
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-    GraphicsBinding sourceBinding(bindingInput, cbv, srv, uav);
+    GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
 
     return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
   }
@@ -320,6 +320,54 @@ public:
     return std::move(buf);
   }
 
+  template <typename ...Args>
+  BufferCBV createConstantBuffer(Args&& ... args)
+  {
+    D3D12_RESOURCE_DESC desc;
+    D3D12_HEAP_PROPERTIES heapprop;
+    createBuffer(desc, heapprop, std::forward<Args>(args)...);
+    ComPtr<ID3D12Resource> ptr;
+    BufferCBV buf;
+    buf.buffer().size = desc.Width;
+    desc.Width *= desc.DepthOrArraySize;
+    buf.buffer().stride = desc.DepthOrArraySize;
+    desc.DepthOrArraySize = 1;
+    buf.buffer().state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+    buf.buffer().type = ResUsage::Gpu;
+    if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
+    {
+      buf.buffer().state = D3D12_RESOURCE_STATE_GENERIC_READ;
+      buf.buffer().type = ResUsage::Upload;
+    }
+    else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
+    {
+      buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
+      buf.buffer().type = ResUsage::Readback;
+    }
+    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+      D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
+      buf.buffer().state, nullptr, __uuidof(ID3D12Resource),
+      reinterpret_cast<void**>(ptr.addr()));
+    if (!FAILED(hr))
+    {
+      buf.buffer().m_resource = std::move(ptr);
+    }
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC shaderCBV;
+    shaderCBV.BufferLocation = buf.buffer().m_resource.get()->GetGPUVirtualAddress();
+    shaderCBV.SizeInBytes = (buf.buffer().stride + 255) & ~255; // CB size is required to be 256-byte aligned.
+
+    BufferView& view = buf.buffer().view;
+    view.index = m_descHeap.getNextIndex();
+    view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
+
+    mDevice->CreateConstantBufferView(&shaderCBV, view.cpuHandle);
+
+    view.gpuHandle.ptr = m_descHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
+
+    return std::move(buf);
+  }
+
   private:
     template <typename ...Args>
     void createTexture(D3D12_RESOURCE_DESC& desc, D3D12_HEAP_PROPERTIES& prop, Args&& ... args)
@@ -367,15 +415,33 @@ public:
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.texture().type = ResUsage::Readback;
     }
+
+    D3D12_CLEAR_VALUE clearVal;
+    clearVal.Color[0] = 0.f;
+    clearVal.Color[1] = 0.f;
+    clearVal.Color[2] = 0.f;
+    clearVal.Color[3] = 1.f;
+    clearVal.DepthStencil.Depth = 1.f;
+    clearVal.DepthStencil.Stencil = 0xff;
+    clearVal.Format = desc.Format;
+
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
+      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
 
     if (!FAILED(hr))
     {
       buf.texture().m_resource = std::move(ptr);
     }
+
+
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descHeap.m_handleIncrementSize);
+    auto lol = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descHeap.getNextIndex();
+    buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
+
     return buf;
   }
 
@@ -406,14 +472,30 @@ public:
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.texture().type = ResUsage::Readback;
     }
+
+    D3D12_CLEAR_VALUE clearVal;
+    clearVal.Color[0] = 0.f;
+    clearVal.Color[1] = 0.f;
+    clearVal.Color[2] = 0.f;
+    clearVal.Color[3] = 1.f;
+    clearVal.DepthStencil.Depth = 1.f;
+    clearVal.DepthStencil.Stencil = 0xff;
+    clearVal.Format = desc.Format;
+
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
+      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
     if (!FAILED(hr))
     {
       buf.texture().m_resource = std::move(ptr);
     }
+
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descHeap.m_handleIncrementSize);
+    auto lol = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descHeap.getNextIndex();
+    buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -445,14 +527,29 @@ public:
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.texture().type = ResUsage::Readback;
     }
+
+    D3D12_CLEAR_VALUE clearVal;
+    clearVal.Color[0] = 0.f;
+    clearVal.Color[1] = 0.f;
+    clearVal.Color[2] = 0.f;
+    clearVal.Color[3] = 1.f;
+    clearVal.DepthStencil.Depth = 1.f;
+    clearVal.DepthStencil.Stencil = 0xff;
+    clearVal.Format = desc.Format;
+
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
+      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
     if (!FAILED(hr))
     {
       buf.texture().m_resource = std::move(ptr);
     }
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
+    auto lol = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descRTVHeap.getNextIndex();
+    buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -484,14 +581,37 @@ public:
       buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.texture().type = ResUsage::Readback;
     }
+
+    D3D12_CLEAR_VALUE clearVal;
+    clearVal.Color[0] = 0.f;
+    clearVal.Color[1] = 0.f;
+    clearVal.Color[2] = 0.f;
+    clearVal.Color[3] = 1.f;
+    clearVal.DepthStencil.Depth = 1.f;
+    clearVal.DepthStencil.Stencil = 0xff;
+    clearVal.Format = desc.Format;
+
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
+      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
     if (!FAILED(hr))
     {
       buf.texture().m_resource = std::move(ptr);
     }
+
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descDSVHeap.m_handleIncrementSize);
+    auto lol = m_descDSVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descDSVHeap.getNextIndex();
+    buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC viewdesc;
+    viewdesc.Format = desc.Format;
+    viewdesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    viewdesc.Texture2D.MipSlice = 0;
+    viewdesc.Flags = D3D12_DSV_FLAG_NONE;
+
+    mDevice->CreateDepthStencilView(buf.texture().m_resource.get(), &viewdesc, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -535,12 +655,18 @@ public:
     // need the rtv's out
 
     D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[8];
-    UINT HandleIncrementSize = m_descRTVHeap.m_handleIncrementSize;
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
     mRenderTargetView[0] = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    for (int i = 1;i < bufferCount;++i)
+    auto index = m_descRTVHeap.getNextIndex();
+    mRenderTargetView[0].ptr = mRenderTargetView[0].ptr + index*HandleIncrementSize;
+    std::vector<size_t> indexes;
+    indexes.push_back(index);
+    for (unsigned int i = 1;i < bufferCount;++i)
     {
       //create cpu descriptor handle for backbuffer 0
-      mRenderTargetView[i].ptr = mRenderTargetView[0].ptr + i * HandleIncrementSize;
+      index = m_descRTVHeap.getNextIndex();
+      indexes.push_back(index);
+      mRenderTargetView[i].ptr = mRenderTargetView[0].ptr + index * HandleIncrementSize;
     }
     //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
 
@@ -559,14 +685,14 @@ public:
     //A buffer is required to render to.This example shows how to create that buffer by using the swap chain and device.
     //This example shows calling ID3D12Device::CreateRenderTargetView.
 
-    for (int i = 0;i < bufferCount;++i)
+    for (unsigned int i = 0;i < bufferCount;++i)
     {
       hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
       //mRenderTarget->SetName(L"mRenderTarget0");  //set debug name 
       mDevice->CreateRenderTargetView(mRenderTarget, nullptr, mRenderTargetView[i]);
       buf.m_scRTV = mRenderTarget;
       buf.texture().view.cpuHandle = mRenderTargetView[i];
-      buf.texture().view.index = i;
+      buf.texture().view.index = indexes[i];
       lol.push_back(buf);
     }
 

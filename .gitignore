@@ -3,7 +3,7 @@
 
 externals/
 package/
-
+app/external/imgui/
 *.7z
 *.nvuser
 *.cmd

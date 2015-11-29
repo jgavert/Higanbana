@@ -63,6 +63,7 @@ public:
 
   void checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
+  void checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
 	void UAV(unsigned int index, BufferUAV buf);
 	void UAV(unsigned int index, TextureUAV tex);
 	void SRV(unsigned int index, BufferSRV buf);

@@ -4,21 +4,6 @@ CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList)
   :m_CommandList(cmdList)
 {
 }
-void CptCommandList::setViewPort(ViewPort view)
-{
-  m_CommandList->RSSetViewports(1, &view.getDesc());
-  RECT rect;
-  rect.bottom = 600;
-  rect.top = 0;
-  rect.left = 0;
-  rect.right = 800;
-  m_CommandList->RSSetScissorRects(1, &rect);
-}
-
-void CptCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
-{
-  m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
-}
 
 void CptCommandList::setResourceBarrier()
 {
@@ -105,4 +90,36 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
   auto* heap = pipeline.getDescHeap();
   m_CommandList->SetDescriptorHeaps(1, &heap);
   return pipeline.getBinding();
+}
+
+void GfxCommandList::setViewPort(ViewPort view)
+{
+  m_CommandList->RSSetViewports(1, &view.getDesc());
+  RECT rect;
+  rect.bottom = 600;
+  rect.top = 0;
+  rect.left = 0;
+  rect.right = 800;
+  m_CommandList->RSSetScissorRects(1, &rect);
+}
+
+void GfxCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
+{
+  m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
+}
+
+
+void GfxCommandList::ClearDepthView(TextureDSV dsv)
+{
+  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
+}
+
+void GfxCommandList::ClearStencilView(TextureDSV dsv)
+{
+  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_STENCIL, 0.f, 0xFF, 0, nullptr);
+}
+
+void GfxCommandList::ClearDepthStencilView(TextureDSV dsv)
+{
+  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0xFF, 0, nullptr);
 }

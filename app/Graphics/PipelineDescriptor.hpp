@@ -118,7 +118,7 @@ private:
     desc.DestBlendAlpha = static_cast<D3D12_BLEND>(destBlendAlpha);
     desc.BlendOpAlpha = static_cast<D3D12_BLEND_OP>(blendOpAlpha);
     desc.LogicOp = static_cast<D3D12_LOGIC_OP>(logicOp);
-    desc.RenderTargetWriteMask = colorWriteEnable;
+    desc.RenderTargetWriteMask = static_cast<UINT8>(colorWriteEnable);
     return desc;
   }
 public:
@@ -407,6 +407,7 @@ public:
     stencilEnable(false), stencilReadMask(D3D12_DEFAULT_STENCIL_READ_MASK), stencilWriteMask(D3D12_DEFAULT_STENCIL_WRITE_MASK)
   {
   }
+
 
   DepthStencilDescriptor& DepthEnable(bool value)
   {

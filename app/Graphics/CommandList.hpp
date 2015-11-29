@@ -29,8 +29,6 @@ public:
   {
     // cannot be implemented yet, missing d3d12 side of things.
   }
-  void setViewPort(ViewPort view);
-  void ClearRenderTargetView(TextureRTV rtv, faze::vec4 color);
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void setResourceBarrier();
   void Dispatch(ComputeBinding bind, unsigned int x, unsigned int y, unsigned int z);
@@ -69,10 +67,15 @@ public:
     return CptCommandList::bind(pipeline);
   }
 
-  void Draw(GraphicsBinding bind, unsigned int count)
+  void setViewPort(ViewPort view);
+  void ClearRenderTargetView(TextureRTV rtv, faze::vec4 color);
+  void ClearDepthStencilView(TextureDSV dsv);
+  void ClearStencilView(TextureDSV dsv);
+  void ClearDepthView(TextureDSV dsv);
+  void drawInstanced(GraphicsBinding bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
   {
     if (bind.m_resbars.size() > 0)
-      m_CommandList->ResourceBarrier(bind.m_resbars.size(), bind.m_resbars.data());
+      m_CommandList->ResourceBarrier(static_cast<UINT>(bind.m_resbars.size()), bind.m_resbars.data());
     for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
     {
       if (bind.m_cbvs[i].first.ptr != 0)
@@ -89,7 +92,7 @@ public:
         m_CommandList->SetGraphicsRootUnorderedAccessView(bind.m_uavs[i].second, bind.m_uavs[i].first.ptr);
     }
     m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    m_CommandList->DrawInstanced(count, 1, 0, 0);
+    m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
   }
 
   void setRenderTarget(TextureRTV rtv)
@@ -97,5 +100,8 @@ public:
     m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
   }
 
-
+  void setRenderTarget(TextureRTV rtv, TextureDSV dsv)
+  {
+    m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, &dsv.texture().view.getCpuHandle());
+  }
 };
