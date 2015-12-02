@@ -3,13 +3,14 @@
 #include "Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
-#include "Graphics/gfxApi.hpp"
 #include "core/src/entity/database.hpp"
 #include "core/src/system/time.hpp"
 #include "core/src/tests/schedulertests.hpp"
+#include "Graphics/gfxApi.hpp"
 #include "graphics/tests/apitests.hpp"
 #include "graphics/tests/apitests2.hpp"
 #include "graphics/tests/advtests.hpp"
+
 #include <cstdio>
 #include <iostream>
 
@@ -40,7 +41,6 @@ int EntryPoint::main()
   {
     Logger log;
     WTime t;
-
     Window window(m_params, name, 800, 600);
     window.open();
     SystemDevices devices;
@@ -119,7 +119,7 @@ int EntryPoint::main()
       fence.wait();
       gpu.resetCmdList(gfx);
       {
-        auto frameBra = GPUBracket(queue, "Frame");
+        GpuProfilingBracket(queue, "Frame");
         gfx.setViewPort(port);
         vec[0] += 0.002f;
         if (vec[0] > 1.0f)
@@ -129,12 +129,12 @@ int EntryPoint::main()
         gfx.setRenderTarget(sc[backBufferIndex]);
 
         {
-          auto bra = GPUBracket(gfx, "copy the compute job");
+          GpuProfilingBracket(gfx, "copy the compute job");
           gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
         }
 
         {
-          auto bra = GPUBracket(gfx, "Dispatch");
+          GpuProfilingBracket(gfx, "Dispatch");
           auto bind = gfx.bind(pipeline);
           bind.SRV(0, dstdata);
           bind.UAV(0, completedata);
@@ -144,12 +144,12 @@ int EntryPoint::main()
         }
 
         {
-          auto bra = GPUBracket(gfx, "copy results");
+          GpuProfilingBracket(gfx, "copy results");
           gfx.CopyResource(rbdata.buffer(), completedata.buffer());
         }
 
         {
-          auto bra = GPUBracket(gfx, "DrawTriangle");
+          GpuProfilingBracket(gfx, "DrawTriangle");
           auto bind = gfx.bind(pipeline2);
           bind.SRV(0, dstdata2);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
