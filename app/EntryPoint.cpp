@@ -41,22 +41,24 @@ int EntryPoint::main()
   {
     Logger log;
     WTime t;
-    Window window(m_params, name, 800, 600);
+    vec2 res = { 800.f, 600.f };
+    Window window(m_params, name, res.x(), res.y());
     window.open();
     SystemDevices devices;
     GpuDevice gpu = devices.CreateGpuDevice(true);
     GpuCommandQueue queue = gpu.createQueue();
     SwapChain sc = gpu.createSwapChain(queue, window);
-    ViewPort port(800, 600);
+    ViewPort port(res.x(), res.y());
 
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
-      AdvTests::run(gpu, queue, window, sc, port, gfx);
+      //AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples
-    ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+    ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor()
+      .shader("compute_1.hlsl"));
 
     struct buf
     {
@@ -82,28 +84,33 @@ int EntryPoint::main()
     // graphics 
 
     auto pipeline2 = gpu.createGraphicsPipeline(GraphicsPipelineDescriptor()
-      .PixelShader("pixel.hlsl")
-      .VertexShader("vertex.hlsl")
+      .PixelShader("pixel2.hlsl")
+      .VertexShader("vertex_triangle.hlsl")
       .setRenderTargetCount(1)
       .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
       .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
-
-    struct buf2
+    struct ConstantsCustom
     {
-      float pos[4];
+      mat4 WorldMatrix;
+      mat4 ViewMatrix;
+      mat4 ProjectionMatrix;
+      float time;
+      vec2 resolution;
+      float filler;
     };
-    auto srcdata2 = gpu.createBufferSRV(Dimension(3), Format<buf2>(), ResUsage::Upload);
-    auto dstdata2 = gpu.createBufferSRV(Dimension(3), Format<buf2>(), ResUsage::Gpu);
+
+    auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
+    auto dstConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
 
     {
-      auto tmp = srcdata2.buffer().Map<buf2>();
-      float size = 0.9f;
-      tmp[0] = { size, -size, 0.f, 1.f };
-      tmp[1] = { -size, -size, 0.f, 1.f };
-      tmp[2] = { -size, size, 0.f, 1.f };
+      auto m = srcConstants.buffer().Map<ConstantsCustom>();
+      m[0].resolution = res;
     }
-    gfx.CopyResource(dstdata2.buffer(), srcdata2.buffer());
+
+    gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+
+
     GpuFence fence = gpu.createFence();
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
     gfx.close();
@@ -112,24 +119,36 @@ int EntryPoint::main()
     
     // update loop
     t.firstTick();
-    while (TRUE)
+    float time = 0.f;
+    while (true)
     {
       if (window.simpleReadMessages())
         break;
+
       fence.wait();
       gpu.resetCmdList(gfx);
+
       {
         GpuProfilingBracket(queue, "Frame");
-        gfx.setViewPort(port);
-        vec[0] += 0.002f;
-        if (vec[0] > 1.0f)
-          vec[0] = 0.f;
-        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
-        gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
-        gfx.setRenderTarget(sc[backBufferIndex]);
+        {
+          GpuProfilingBracket(gfx, "Updating Constants");
+          {
+            auto m = srcConstants.buffer().Map<ConstantsCustom>();
+            m[0].resolution = res;
+            m[0].time = time;
+          }
+          gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+        }
+        {
+          GpuProfilingBracket(gfx, "Clearing&Setting RTV");
+          gfx.setViewPort(port);
+          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+          gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+          gfx.setRenderTarget(sc[backBufferIndex]);
+        }
 
         {
-          GpuProfilingBracket(gfx, "copy the compute job");
+          GpuProfilingBracket(gfx, "Copy the compute job");
           gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
         }
 
@@ -144,14 +163,14 @@ int EntryPoint::main()
         }
 
         {
-          GpuProfilingBracket(gfx, "copy results");
+          GpuProfilingBracket(gfx, "Copy dispatch results");
           gfx.CopyResource(rbdata.buffer(), completedata.buffer());
         }
 
         {
           GpuProfilingBracket(gfx, "DrawTriangle");
           auto bind = gfx.bind(pipeline2);
-          bind.SRV(0, dstdata2);
+          bind.CBV(0, dstConstants);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
 
@@ -160,10 +179,14 @@ int EntryPoint::main()
         queue.submit(gfx);
 
         // present
-        sc->Present(1, 0);
+        {
+          GpuProfilingBracket(queue, "Presenting frame");
+          sc->Present(1, 0);
+        }
       }
       queue.insertFence(fence);
       t.tick();
+      time += t.getFrameTimeDelta();
     }
     t.printStatistics();
     log.update();

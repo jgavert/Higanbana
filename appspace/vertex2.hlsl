@@ -7,8 +7,8 @@ StructuredBuffer<buffer> Ind : register(t0);
 PSInput VSMain(uint id: SV_VertexID)
 {
   PSInput output;
-  output.pos = mul(Ind[id].pos, consta.WorldMatrix);
-  output.pos = mul(output.pos, consta.ViewMatrix);
-  output.pos = mul(output.pos, consta.ProjectionMatrix);
+  output.pos = mul(Ind[id].pos, consta.worldMatrix);
+  output.pos = mul(output.pos, consta.viewMatrix);
+  output.pos = mul(output.pos, consta.projMatrix);
   return output;
 }
