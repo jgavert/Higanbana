@@ -18,6 +18,10 @@ class ComputePipeline
     descHeap(descHeap),
     rootBinding(sourceBinding) {}
 public:
+  ComputePipeline() :
+    pipeline(nullptr),
+    rootSig(nullptr),
+    descHeap(nullptr) {}
   ComputeBinding getBinding()
   {
     return rootBinding;
@@ -50,6 +54,10 @@ class GraphicsPipeline
     descHeap(std::move(descHeap)),
     rootDescriptor(sourceBinding) {}
 public:
+  GraphicsPipeline() :
+    pipeline(nullptr),
+    rootSig(nullptr),
+    descHeap(nullptr) {}
   GraphicsBinding getBinding()
   {
     return rootDescriptor;
