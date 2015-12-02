@@ -10,12 +10,14 @@ namespace rendering
       , height(graphSize.y())
       , valueMin(min)
       , valueMax(max)
+      , m_bottomright({ 0.5f, -0.5f })
+      , m_topleft({-0.5f, 0.5f})
     {
       m_cmdPipeline = device.createComputePipeline(ComputePipelineDescriptor().shader("utils/graph_compute.hlsl"));
       // shouldnt need to know that its doing srgb, device should know.
       m_drawPipeline = device.createGraphicsPipeline(GraphicsPipelineDescriptor()
         .PixelShader("utils/pixel_drawGraph.hlsl")
-        .VertexShader("vertex_drawGraph.hlsl")
+        .VertexShader("utils/vertex_drawGraph.hlsl")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -30,13 +32,13 @@ namespace rendering
         , MipLevel()
         , Multisampling());
     }
-    void Graph::updateGraphCompute(GfxCommandList& gfx, float val, faze::vec2 topleft, faze::vec2 bottomright)
+    void Graph::updateGraphCompute(GfxCommandList& gfx, float val)
     {
       GpuProfilingBracket(gfx, "Updating UtilGraph");
       {
         auto m = m_uploadConstants.buffer().Map<consts>();
-        m[0].bottomright = bottomright;
-        m[0].topleft = topleft;
+        m[0].bottomright = m_bottomright;
+        m[0].topleft = m_topleft;
         m[0].val = val;
         m[0].valueMin = valueMin;
         m[0].valueMax = valueMax;
@@ -53,6 +55,12 @@ namespace rendering
       gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
     }
 
+    void Graph::changeScreenPos(faze::vec2 topleft, faze::vec2 bottomright)
+    {
+      m_bottomright = bottomright;
+      m_topleft = topleft;
+    }
+
     void Graph::drawGraph(GfxCommandList& gfx)
     {
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
@@ -63,12 +71,12 @@ namespace rendering
 
     void Graph::changeMin(float min)
     {
-
+      valueMin = min;
     }
 
     void Graph::changeMax(float max)
     {
-
+      valueMax = max;
     }
 
     // call before drawing/compute, safeplace
