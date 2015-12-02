@@ -22,6 +22,7 @@ class Binding_
   using ShaderIndex = unsigned int;
 
 public:
+  Binding_() {}
   enum class RootType
   {
     CBV,
@@ -74,12 +75,16 @@ public:
 
 class ComputeBinding : public Binding_
 {
+private:
   friend class GpuDevice;
   friend class GfxCommandList;
   friend class CptCommandList;
 
   ComputeBinding(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount) :
     Binding_(input, cbvCount, srvCount, uavCount)
+  {}
+public:
+  ComputeBinding():Binding_()
   {}
 };
 
@@ -91,5 +96,8 @@ class GraphicsBinding : public Binding_
 
   GraphicsBinding(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount) :
     Binding_(input, cbvCount, srvCount, uavCount)
+  {}
+public:
+  GraphicsBinding() :Binding_()
   {}
 };
