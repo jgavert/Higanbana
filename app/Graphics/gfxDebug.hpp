@@ -75,4 +75,7 @@ public:
   }*/
 };
 
-#define GPUBracket(queueOrList, name) _GpuBracket::createBracket(queueOrList, name);
+#define _CONCAT(a,b) a##b
+
+#define GpuProfilingBracket(queueOrList, name) \
+  auto _CONCAT(__gpuprofilingbracket, __COUNTER__) = _GpuBracket::createBracket(queueOrList, name);
