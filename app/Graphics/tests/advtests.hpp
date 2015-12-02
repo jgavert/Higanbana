@@ -197,13 +197,13 @@ private:
 
     {
       auto tmp = srcdata.buffer().Map<buf>();
-      float size = 0.5f;
-      tmp[0] = { size, size, 0.f, 1.f };
-      tmp[1] = { size, -size, 0.f, 1.f };
-      tmp[2] = { -size, size, 0.f, 1.f };
-      tmp[3] = { -size, size, 0.f, 1.f };
-      tmp[4] = { size, -size, 0.f, 1.f };
-      tmp[5] = { -size, -size, 0.f, 1.f };
+      float size = 0.8f;
+      tmp[0] = { size, size, -0.1f, 1.f };
+      tmp[1] = { size, -size, 1.1f, 1.f };
+      tmp[2] = { -size, size, 1.1f, 1.f };
+      tmp[3] = { -size, size, 0.0f, 1.f };
+      tmp[4] = { size, -size, 0.0f, 1.f };
+      tmp[5] = { -size, -size, 0.2f, 1.f };
     }
 
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
@@ -287,12 +287,13 @@ private:
     {
       auto tmp = srcdata.buffer().Map<buf>();
       float size = 0.5f;
-      tmp[0] = { 0, size, 0.0f, 1.f };
-      tmp[1] = { size, -size, 0.0f, 1.f };
-      tmp[2] = { -size, -size, 0.0f, 1.f };
-      tmp[3] = { -size, -size, 0.0f, 1.f };
-      tmp[4] = { size, -size, 0.0f, 1.f };
-      tmp[5] = { 0, size, 0.0f, 1.f };
+      float z = 0.f;
+      tmp[0] = { 0, size, z - 0.01f, 1.f };
+      tmp[1] = { size, -size, z - 0.01f, 1.f };
+      tmp[2] = { -size, -size, z-0.01f, 1.f };
+      tmp[3] = { -size, -size, z+0.01f, 1.f };
+      tmp[4] = { size, -size, z+0.01f, 1.f };
+      tmp[5] = { 0,size, z+0.01f, 1.f };
     }
 
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
@@ -314,15 +315,19 @@ private:
       .setRenderTargetCount(1)
       .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
       .DSVFormat(FormatType::D32_FLOAT)
-      .DepthStencil(DepthStencilDescriptor().DepthEnable(true).DepthWriteMask(DepthWriteMask::All).DepthFunc(ComparisonFunc::LessEqual)));
+      .DepthStencil(DepthStencilDescriptor()
+        .DepthEnable(true)
+        .DepthWriteMask(DepthWriteMask::All)
+        .DepthFunc(ComparisonFunc::LessEqual))
+      );
 
-    auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+    auto vec = faze::vec4({ 0.1f, 0.1f, 0.3f, 1.0f });
 
     auto limit = std::chrono::seconds(1).count();
     auto timepoint2 = std::chrono::high_resolution_clock::now();
     auto timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
-    //while (timeSince < limit)
-    while (true)
+    while (timeSince < limit)
+    //while (true)
     {
       timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
       auto timeSince2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - timepoint2).count();
@@ -334,11 +339,10 @@ private:
       // yay, update the constant buffer for the frame
       {
         auto tmp = srcConstants.buffer().Map<ConstantsCustom>();
-//        auto lol = XMMatrixPerspectiveFovRH(70.f, 800.f / 600.f, 0.01f, 100.f);
-//        auto wtf = MatrixMath::Perspective(70.f, 800.f / 600.f, 0.01f, 100.f);
-        tmp[0].WorldMatrix = MatrixMath::Translation(0.f, 0.f, 0.f);
-        tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.7f, 1.5f, 1.f }), vec4({ 0.f, 0.f, -0.1f, 1.f }));
-        tmp[0].ProjectionMatrix = MatrixMath::Perspective(1.22173f, 800.f / 600.f, 0.01f, 100.f);
+        tmp[0].WorldMatrix = MatrixMath::Translation(std::sin(timeSince2*0.001f), std::cos(timeSince2*0.001f), 1.f);
+        // look at target 'z' is negative !? 
+        tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.0f, 0.0f, 1.f }), vec4({ std::sin(timeSince2*0.001f),std::cos(timeSince2*0.001f), -1.0f, 1.f }));
+        tmp[0].ProjectionMatrix = MatrixMath::Perspective(60.f, 800.f / 600.f, 0.01f, 100.f);
         tmp[0].time = 0.f;
         tmp[0].resolution = { 800.f, 600.f };
         tmp[0].filler = 0.f;
@@ -346,11 +350,6 @@ private:
       gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
       // Rendertarget
       gfx.setViewPort(port);
-      /*
-      vec[2] += 0.02f;
-      if (vec[2] > 1.0f)
-        vec[2] = 0.f;
-        */
       auto backBufferIndex = sc->GetCurrentBackBufferIndex();
       gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
       gfx.ClearDepthView(depth);
