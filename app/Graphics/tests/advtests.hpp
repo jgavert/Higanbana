@@ -216,7 +216,7 @@ private:
       .PixelShader("pixel.hlsl")
       .VertexShader("vertex.hlsl")
       .setRenderTargetCount(1)
-      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
       .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
@@ -259,7 +259,7 @@ private:
 		return true;
 	});
 
-	t.addTest("Rotating triangle with shaders", [&]()
+	t.addTest("Render triangle with perspective", [&]()
 	{
     using namespace faze;
     struct ConstantsCustom
@@ -313,7 +313,7 @@ private:
       .PixelShader("pixel.hlsl")
       .VertexShader("vertex2.hlsl")
       .setRenderTargetCount(1)
-      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
       .DSVFormat(FormatType::D32_FLOAT)
       .DepthStencil(DepthStencilDescriptor()
         .DepthEnable(true)
@@ -371,7 +371,7 @@ private:
     }
     fence.wait();
 
-		return false;
+		return true;
 	});
 
     t.runTests();
