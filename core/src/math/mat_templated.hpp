@@ -149,64 +149,27 @@ namespace faze
       return result;
     }
 
-    //  directx math pakuri
+    // x&y -> [-1, 1], z -> [0, 1], OK! Don't know which, rh or lh. but works now.
     static mat4 Perspective(float fov, float aspect, float NearZ, float FarZ)
     {
       if (fov <= 0 || aspect == 0)
       {
         return mat4();
       }
-      float psin, pcos;
-      fov = 0.5f * fov;
-      float quotient = 0.159154943f*fov;
-      if (fov >= 0.0f)
-      {
-        quotient = (float)((int)(quotient + 0.5f));
-      }
-      else
-      {
-        quotient = (float)((int)(quotient - 0.5f));
-      }
-      float y = fov - 6.283185307f*quotient;
-
-      // Map y to [-pi/2,pi/2] with sin(y) = sin(Value).
-      float sign;
-      if (y > 1.570796327f)
-      {
-        y = 3.141592654f - y;
-        sign = -1.0f;
-      }
-      else if (y < -1.570796327f)
-      {
-        y = -3.141592654f - y;
-        sign = -1.0f;
-      }
-      else
-      {
-        sign = +1.0f;
-      }
-
-      float y2 = y * y;
-
-      // 11-degree minimax approximation
-      psin = (((((-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f) * y2 + 0.0083333310f) * y2 - 0.16666667f) * y2 + 1.0f) * y;
-
-      // 10-degree minimax approximation
-      float p = ((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 - 0.5f) * y2 + 1.0f;
-      pcos = sign*p;
+      
+      float b = 1.0f / std::tanf(fov*(PI / 180.f)*0.5f);
 
       mat4 result;
-      //result[1][1] = 1.f / std::tan(fov * (PI / 180.f) / 2.f); // radians
-      result[1][1] = pcos / psin;
-      result[0][0] = result[1][1] / aspect;
-      result[2][2] = FarZ / (NearZ - FarZ);
-      result[3][2] = result[2][2] * NearZ;
-      result[2][3] = -1.f;
+      result[0][0] = aspect * b;
+      result[1][1] = b;
+      result[2][2] = FarZ / (FarZ - NearZ);
+      result[3][2] = 1.f;
+      result[2][3] = -1.f * NearZ * result[2][2];
       return result;
     }
 
-    //  In OpenGL the near plane maps to -1 and the far plane to 1, whereas in DirectX the near plane maps to 0 and the far plane to 1
-    static mat4 OpenglPerspective(float fov, float aspect, float NearZ, float FarZ)
+    // perverse old z [-1, 1] for opengl, can just use the above and set correct clip in opengl.
+    static mat4 PerspectiveOld(float fov, float aspect, float NearZ, float FarZ)
     {
       if (fov <= 0 || aspect == 0)
       {
@@ -222,7 +185,7 @@ namespace faze
     }
 
     // http://www.cs.virginia.edu/~gfx/Courses/1999/intro.fall99.html/lookat.html
-    static mat4 lookAt(vec4& cameraPos, vec4& cameraDir)
+    static mat4 lookAt(vec4 cameraPos, vec4 cameraDir)
     {
       vec4 asd1 = cameraDir - cameraPos;
       vec4 dirVec = asd1.normalize();
