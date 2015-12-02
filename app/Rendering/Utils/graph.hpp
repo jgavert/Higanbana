@@ -29,6 +29,8 @@ namespace rendering
       BufferCBV m_uploadConstants;
       TextureUAV m_graphTexture;
 
+      faze::vec2 m_topleft;
+      faze::vec2 m_bottomright;
       int currentUvX;
       int width;
       int height;
@@ -36,8 +38,9 @@ namespace rendering
       float valueMax;
     public:
       Graph(GpuDevice& device, float min, float max, faze::ivec2 graphSize);
-      void updateGraphCompute(GfxCommandList& gfx, float val, faze::vec2 topleft, faze::vec2 bottomright);
+      void updateGraphCompute(GfxCommandList& gfx, float val);
       void drawGraph(GfxCommandList& gfx);
+      void changeScreenPos(faze::vec2 topleft, faze::vec2 bottomright);
       void changeMin(float min);
       void changeMax(float max);
       void changeGraphResolution(GpuDevice& device, faze::ivec2 graphSize);
