@@ -636,7 +636,7 @@ public:
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
     swapChainDesc.BufferCount = bufferCount;
-    swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[type];
+    swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R8G8B8A8_UNORM];
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.OutputWindow = window.getNative();
     swapChainDesc.SampleDesc.Count = 1;
@@ -684,12 +684,16 @@ public:
     ID3D12Resource* mRenderTarget;
     //A buffer is required to render to.This example shows how to create that buffer by using the swap chain and device.
     //This example shows calling ID3D12Device::CreateRenderTargetView.
-
+    D3D12_RENDER_TARGET_VIEW_DESC desc;
+    desc.Format = FormatToDXGIFormat[type];
+    desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    desc.Texture2D.MipSlice = 0;
+    desc.Texture2D.PlaneSlice = 0;
     for (unsigned int i = 0;i < bufferCount;++i)
     {
       hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
       //mRenderTarget->SetName(L"mRenderTarget0");  //set debug name 
-      mDevice->CreateRenderTargetView(mRenderTarget, nullptr, mRenderTargetView[i]);
+      mDevice->CreateRenderTargetView(mRenderTarget, &desc, mRenderTargetView[i]);
       buf.m_scRTV = mRenderTarget;
       buf.texture().view.cpuHandle = mRenderTargetView[i];
       buf.texture().view.index = indexes[i];

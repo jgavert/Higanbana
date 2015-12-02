@@ -47,12 +47,12 @@ int EntryPoint::main()
     SystemDevices devices;
     GpuDevice gpu = devices.CreateGpuDevice(true);
     GpuCommandQueue queue = gpu.createQueue();
-    SwapChain sc = gpu.createSwapChain(queue, window);
+    SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
     ViewPort port(res.x(), res.y());
 
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
-      //AdvTests::run(gpu, queue, window, sc, port, gfx);
+      AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
@@ -87,7 +87,7 @@ int EntryPoint::main()
       .PixelShader("pixel2.hlsl")
       .VertexShader("vertex_triangle.hlsl")
       .setRenderTargetCount(1)
-      .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
+      .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
       .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
     struct ConstantsCustom
