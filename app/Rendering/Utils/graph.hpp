@@ -1,5 +1,5 @@
 #pragma once
-#include "Graphics/gfxApi.hpp"
+#include "app/Graphics/gfxApi.hpp"
 #include "core/src/math/vec_templated.hpp"
 
 namespace rendering

@@ -11,6 +11,9 @@
 #include "graphics/tests/apitests2.hpp"
 #include "graphics/tests/advtests.hpp"
 
+// app
+#include "Rendering/Utils/graph.hpp"
+
 #include <cstdio>
 #include <iostream>
 
@@ -52,8 +55,15 @@ int EntryPoint::main()
 
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
-      AdvTests::run(gpu, queue, window, sc, port, gfx);
+      //AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
+
+    using namespace rendering::utils;
+
+    Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
+
+    //graph.changeScreenPos(vec2}))
+    graph.updateGraphCompute(gfx, 0.5f);
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples
@@ -131,6 +141,9 @@ int EntryPoint::main()
       {
         GpuProfilingBracket(queue, "Frame");
         {
+          graph.updateGraphCompute(gfx, std::sinf(time));
+        }
+        {
           GpuProfilingBracket(gfx, "Updating Constants");
           {
             auto m = srcConstants.buffer().Map<ConstantsCustom>();
@@ -173,7 +186,9 @@ int EntryPoint::main()
           bind.CBV(0, dstConstants);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
-
+        { // post process
+          graph.drawGraph(gfx);
+        }
         // submit all
         gfx.close();
         queue.submit(gfx);
