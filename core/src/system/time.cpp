@@ -117,7 +117,7 @@ void WTime::printStatistics() {
   */
 }
 
-int64_t WTime::getCurrentMicro()
+int64_t WTime::getCurrentNano()
 {
   return frametime_current;
 }

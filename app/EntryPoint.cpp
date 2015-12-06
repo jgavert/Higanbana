@@ -10,6 +10,7 @@
 #include "graphics/tests/apitests.hpp"
 #include "graphics/tests/apitests2.hpp"
 #include "graphics/tests/advtests.hpp"
+#include "graphics/tests/stresstests.hpp"
 
 // app
 #include "Rendering/Utils/graph.hpp"
@@ -55,7 +56,7 @@ int EntryPoint::main()
 
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
-      //AdvTests::run(gpu, queue, window, sc, port, gfx);
+      StressTests::run(gpu, queue, window, sc, port, gfx, log);
     }
 
     using namespace rendering::utils;

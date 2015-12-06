@@ -35,7 +35,7 @@ namespace faze
     float getAverageFrametime();
     float getframetime_high();
     float getframetime_low();
-    int64_t getCurrentMicro();
+    int64_t getCurrentNano();
     void printStatistics();
     int64_t getFrame();
     vec3 analyzeFrames();
