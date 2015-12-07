@@ -34,7 +34,8 @@ private:
         // Much nicer to close and enforce errors if trying to add after that.
         // Although seems like you can still "put" stuff there.
       }
-      dev.resetCmdList(gfx); // clean the resource use
+      gfx.resetList();
+      // clean the resource use
     };
     //end();
     t.setAfterTest(end);
@@ -181,7 +182,8 @@ private:
       sc->Present(1, 0);
       queue.insertFence(fence);
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
     }
 		return true;
 	});
@@ -230,7 +232,8 @@ private:
       if (window.simpleReadMessages())
         break;
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
 
       // Rendertarget
       gfx.setViewPort(port);
@@ -334,7 +337,8 @@ private:
       if (window.simpleReadMessages())
         break;
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
 
       // yay, update the constant buffer for the frame
       {

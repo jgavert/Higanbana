@@ -463,7 +463,7 @@ private:
       sc->Present(1, 0);
       queue.insertFence(fence);
       fence.wait();
-      dev.resetCmdList(list);
+      list.resetList();
     }
     window.close();
 
@@ -523,7 +523,8 @@ private:
       if (window.simpleReadMessages())
         break;
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
 
       // Rendertarget
       gfx.setViewPort(port);

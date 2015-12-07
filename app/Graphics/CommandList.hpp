@@ -21,8 +21,9 @@ private:
   friend class _GpuBracket;
 
   ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+  ComPtr<ID3D12CommandAllocator> m_CommandListAllocator;
   bool closed;
-  CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList);
+  CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator);
 public:
   CptCommandList() : m_CommandList(nullptr), closed(false) {}
 
@@ -50,6 +51,13 @@ public:
   {
     return closed;
   }
+
+  void resetList()
+  {
+    m_CommandListAllocator->Reset();
+    m_CommandList->Reset(m_CommandListAllocator.get(), NULL);
+    closed = false;
+  }
 };
 
 class GfxCommandList : public CptCommandList
@@ -60,7 +68,7 @@ private:
   friend class GpuCommandQueue;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList) :CptCommandList(cmdList){}
+  GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator) :CptCommandList(cmdList, commandListAllocator){}
 public:
   GfxCommandList() : CptCommandList() {}
   GraphicsBinding bind(GraphicsPipeline& pipeline);

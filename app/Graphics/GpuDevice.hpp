@@ -27,7 +27,7 @@ private:
   friend class SystemDevices;
 
   ComPtr<ID3D12Device>           mDevice;
-  ComPtr<ID3D12CommandAllocator> mCommandListAllocator;
+
   ComPtr<ID3D12Heap>             m_heap;
   
   ResourceViewManager            m_descHeap;
@@ -619,13 +619,6 @@ public:
   bool isValid()
   {
     return mDevice.get() != nullptr;
-  }
-
-  void resetCmdList(GfxCommandList& list)
-  {
-    mCommandListAllocator->Reset();
-    list.m_CommandList->Reset(mCommandListAllocator.get(), NULL);
-    list.closed = false;
   }
 
   // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx

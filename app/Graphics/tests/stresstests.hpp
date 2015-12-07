@@ -31,18 +31,19 @@ private:
       {
         gfx.close();
       }
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
     });
 
-
-    t.addTest("Lots of drawcalls bench, (single thread)", [&]()
+    
+    t.addTest("Lots of drawcalls bench, (single thread), rough baseline", [&]()
     {
       using namespace faze;
       struct buf
       {
         float pos[4];
       };
-      auto triangleCount = 100000;
+      auto triangleCount = 1000000;
       auto currentTriangleCount = triangleCount;
       auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
       auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
@@ -79,15 +80,16 @@ private:
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
       WTime t;
       t.firstTick();
       float frameTime = 30.f;
       float cpuTime = 30.f;
       Bentsumaakaa b;
 
-      //while (frameTime > 9.f)
-      while(true)
+      while (cpuTime > 14.f)
+      //while(true)
       {
         if (window.simpleReadMessages())
           break;
@@ -106,7 +108,7 @@ private:
           
           for (int i = 1; i < currentTriangleCount; ++i)
           {
-            gfx.drawInstancedRaw(3, 1, 0, i);
+            gfx.drawInstancedRaw(3, 1, 0, i); // this is the cheat.
           }
           
         }
@@ -119,28 +121,29 @@ private:
         sc->Present(1, 0);
         queue.insertFence(fence);
         fence.wait();
-        dev.resetCmdList(gfx);
+        gfx.resetList();
+
         t.tick();
         frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
-        if (frameTime > 20.f)
+        if (cpuTime > 16.f)
         {
           currentTriangleCount -= currentTriangleCount/100;
         }
-        F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
-        log.update();
       }
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
       //fence.wait();
-      return false;
+      return true;
     });
 
-    t.addTest("Lots of drawcalls bench, (single thread)", [&]()
+    t.addTest("Lots of drawcalls bench, (single thread), myapi", [&]()
     {
       using namespace faze;
       struct buf
       {
         float pos[4];
       };
-      auto triangleCount = 100000;
+      auto triangleCount = 200000;
       auto currentTriangleCount = triangleCount;
       auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
       auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
@@ -177,7 +180,8 @@ private:
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
       WTime t;
       t.firstTick();
       float frameTime = 30.f;
@@ -185,7 +189,7 @@ private:
       Bentsumaakaa b;
       LBS lbs;
 
-      while (cpuTime > 16.f)
+      while (cpuTime > 14.f)
       //while (true)
       {
         if (window.simpleReadMessages())
@@ -199,11 +203,350 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
         {
+          auto bind = gfx.bind(pipeline);
           for (int i = 0; i < currentTriangleCount; ++i)
           {
-            auto bind = gfx.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx.drawInstanced(bind, 3, 1, 0, i);
+          }
+        }
+
+        // submit all
+        gfx.close();
+        queue.submit(gfx);
+        cpuTime = b.stop(false) / 1000000.f;
+        // present
+        sc->Present(1, 0);
+        queue.insertFence(fence);
+        fence.wait();
+        gfx.resetList();
+
+        t.tick();
+        frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
+        frameTime = t.analyzeFrames().x();
+        if (cpuTime > 16.f)
+        {
+          currentTriangleCount -= currentTriangleCount / 100;
+        }
+      }
+      //fence.wait();
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
+    });
+
+    t.addTest("Lots of drawcalls bench, (Multithread), baseline", [&]()
+    {
+      using namespace faze;
+      struct buf
+      {
+        float pos[4];
+      };
+      auto triangleCount = 4000000;
+      auto currentTriangleCount = triangleCount;
+      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-0.8f, 0.8f);
+      std::uniform_real_distribution<> dis2(0.f, 1.f);
+
+      {
+        auto tmp = srcdata.buffer().Map<buf>();
+        for (int i = 0;i < triangleCount; ++i)
+        {
+          auto& it = tmp[i].pos;
+          it[0] = dis(gen);
+          it[1] = dis(gen);
+          it[2] = dis2(gen);
+        }
+      }
+
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      GpuFence fence = dev.createFence();
+      gfx.close();
+      queue.submit(gfx);
+      queue.insertFence(fence);
+
+      auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+        .PixelShader("tests/stress/pixel.hlsl")
+        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .setRenderTargetCount(1)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+      auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+      fence.wait();
+      gfx.resetList();
+
+      WTime t;
+      t.firstTick();
+      float frameTime = 30.f;
+      float cpuTime = 30.f;
+      Bentsumaakaa b;
+      LBS lbs;
+      std::vector<GfxCommandList> m_cmds;
+      for (size_t i = 0; i < lbs.threadCount(); ++i)
+      {
+        m_cmds.push_back(dev.createUniversalCommandList());
+      }
+      //while (true)
+      while (cpuTime > 14.f)
+      {
+        if (window.simpleReadMessages())
+          break;
+
+        // Rendertarget
+        b.start(false);
+        m_cmds[0].setViewPort(port);
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        m_cmds[0].ClearRenderTargetView(sc[backBufferIndex], vec);
+        m_cmds[0].setRenderTarget(sc[backBufferIndex]);
+        for (size_t i = 1; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].setViewPort(port);
+          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+          //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
+          m_cmds[i].setRenderTarget(sc[backBufferIndex]);
+        }
+        // graphics begin
+        lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
+        {
+          auto& gfx2 = m_cmds[threadIndex];
+          size_t workAmount = currentTriangleCount / 100;
+          size_t startIndex = workAmount * id;
+          auto bind = gfx2.bind(pipeline);
+          bind.SRV(0, dstdata);
+          gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
+          for (int i = startIndex+1; i < startIndex + workAmount; ++i)
+          {
+            gfx2.drawInstancedRaw(3, 1, 0, i);
+          }
+        });
+        lbs.sleepTillKeywords({ "fillCommands" });
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].close();
+          queue.submit(m_cmds[i]);
+        }
+        cpuTime = b.stop(false) / 1000000.f;
+        // present
+        sc->Present(1, 0);
+        queue.insertFence(fence);
+        fence.wait();
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].resetList();
+        }
+
+        t.tick();
+        frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
+        frameTime = t.analyzeFrames().x();
+        if (cpuTime > 16.f)
+        {
+          currentTriangleCount -= currentTriangleCount / 100;
+        }
+      }
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
+    });
+
+    t.addTest("Lots of drawcalls bench, (Multithread), myapi", [&]()
+    {
+      using namespace faze;
+      struct buf
+      {
+        float pos[4];
+      };
+      auto triangleCount = 2000000;
+      auto currentTriangleCount = triangleCount;
+      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-0.8f, 0.8f);
+      std::uniform_real_distribution<> dis2(0.f, 1.f);
+
+      {
+        auto tmp = srcdata.buffer().Map<buf>();
+        for (int i = 0;i < triangleCount; ++i)
+        {
+          auto& it = tmp[i].pos;
+          it[0] = dis(gen);
+          it[1] = dis(gen);
+          it[2] = dis2(gen);
+        }
+      }
+
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      GpuFence fence = dev.createFence();
+      gfx.close();
+      queue.submit(gfx);
+      queue.insertFence(fence);
+
+      auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+        .PixelShader("tests/stress/pixel.hlsl")
+        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .setRenderTargetCount(1)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+      auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+      fence.wait();
+      gfx.resetList();
+
+      WTime t;
+      t.firstTick();
+      float frameTime = 30.f;
+      float cpuTime = 30.f;
+      Bentsumaakaa b;
+      LBS lbs;
+      std::vector<GfxCommandList> m_cmds;
+      for (size_t i = 0; i < lbs.threadCount(); ++i)
+      {
+        m_cmds.push_back(dev.createUniversalCommandList());
+      }
+      //while (true)
+      while (cpuTime > 14.f)
+      {
+        if (window.simpleReadMessages())
+          break;
+
+        // Rendertarget
+        b.start(false);
+        m_cmds[0].setViewPort(port);
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        m_cmds[0].ClearRenderTargetView(sc[backBufferIndex], vec);
+        m_cmds[0].setRenderTarget(sc[backBufferIndex]);
+        for (size_t i = 1; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].setViewPort(port);
+          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+          //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
+          m_cmds[i].setRenderTarget(sc[backBufferIndex]);
+        }
+        // graphics begin
+        lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
+        {
+          auto& gfx2 = m_cmds[threadIndex];
+          size_t workAmount = currentTriangleCount / 100;
+          size_t startIndex = workAmount * id;
+          auto bind = gfx2.bind(pipeline);
+          for (int i = startIndex; i < startIndex + workAmount; ++i)
+          {
+            bind.SRV(0, dstdata);
+            gfx2.drawInstanced(bind, 3, 1, 0, i);
+          }
+        });
+        lbs.sleepTillKeywords({ "fillCommands" });
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].close();
+          queue.submit(m_cmds[i]);
+        }
+        cpuTime = b.stop(false) / 1000000.f;
+        // present
+        sc->Present(1, 0);
+        queue.insertFence(fence);
+        fence.wait();
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].resetList();
+        }
+
+        t.tick();
+        frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
+        frameTime = t.analyzeFrames().x();
+        if (cpuTime > 16.f)
+        {
+          currentTriangleCount -= currentTriangleCount / 40;
+        }
+      }
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
+    });
+
+    t.addTest("Lots of drawcalls bench, (single thread), rough baseline, frametime 20ms", [&]()
+    {
+      using namespace faze;
+      struct buf
+      {
+        float pos[4];
+      };
+      auto triangleCount = 800000;
+      auto currentTriangleCount = triangleCount;
+      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-0.8f, 0.8f);
+      std::uniform_real_distribution<> dis2(0.f, 1.f);
+
+      {
+        auto tmp = srcdata.buffer().Map<buf>();
+        for (int i = 0;i < triangleCount; ++i)
+        {
+          auto& it = tmp[i].pos;
+          it[0] = dis(gen);
+          it[1] = dis(gen);
+          it[2] = dis2(gen);
+        }
+      }
+
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      GpuFence fence = dev.createFence();
+      gfx.close();
+      queue.submit(gfx);
+      queue.insertFence(fence);
+
+      auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+        .PixelShader("tests/stress/pixel.hlsl")
+        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .setRenderTargetCount(1)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+      auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+      fence.wait();
+      gfx.resetList();
+
+      WTime t;
+      t.firstTick();
+      float frameTime = 30.f;
+      float cpuTime = 30.f;
+      Bentsumaakaa b;
+
+      int beenUnderLimit = 0;
+      while (beenUnderLimit < 10)
+      {
+        if (frameTime < 20.f)
+          beenUnderLimit++;
+        if (window.simpleReadMessages())
+          break;
+
+        // Rendertarget
+        b.start(false);
+        gfx.setViewPort(port);
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+        gfx.setRenderTarget(sc[backBufferIndex]);
+        // graphics begin
+        {
+          auto bind = gfx.bind(pipeline);
+          bind.SRV(0, dstdata);
+          gfx.drawInstanced(bind, 3, 1, 0, 0);
+
+          for (int i = 1; i < currentTriangleCount; ++i)
+          {
+            gfx.drawInstancedRaw(3, 1, 0, i); // this is the cheat.
           }
 
         }
@@ -216,22 +559,22 @@ private:
         sc->Present(1, 0);
         queue.insertFence(fence);
         fence.wait();
-        dev.resetCmdList(gfx);
+        gfx.resetList();
+
         t.tick();
         frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
-        frameTime = t.analyzeFrames().x();
-        if (cpuTime > 16.f)
+        if (frameTime > 20.f)
         {
-          currentTriangleCount -= currentTriangleCount / 200;
+          currentTriangleCount -= currentTriangleCount / 100;
         }
       }
-      //fence.wait();
       F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
       log.update();
-      return false;
+      //fence.wait();
+      return true;
     });
 
-    t.addTest("Lots of drawcalls bench, (single thread)", [&]()
+    t.addTest("Lots of drawcalls bench, (single thread), myapi, frametime 20ms", [&]()
     {
       using namespace faze;
       struct buf
@@ -275,7 +618,8 @@ private:
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
       fence.wait();
-      dev.resetCmdList(gfx);
+      gfx.resetList();
+
       WTime t;
       t.firstTick();
       float frameTime = 30.f;
@@ -283,9 +627,11 @@ private:
       Bentsumaakaa b;
       LBS lbs;
 
-      //while (frameTime > 9.f)
-      while (true)
+      int beenUnderLimit = 0;
+      while (beenUnderLimit < 10)
       {
+        if (frameTime < 20.f)
+          beenUnderLimit++;
         if (window.simpleReadMessages())
           break;
 
@@ -297,13 +643,12 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
         {
+          auto bind = gfx.bind(pipeline);
           for (int i = 0; i < currentTriangleCount; ++i)
           {
-            auto bind = gfx.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx.drawInstanced(bind, 3, 1, 0, i);
           }
-
         }
 
         // submit all
@@ -314,19 +659,263 @@ private:
         sc->Present(1, 0);
         queue.insertFence(fence);
         fence.wait();
-        dev.resetCmdList(gfx);
+        gfx.resetList();
+
         t.tick();
         frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
-        frameTime = t.analyzeFrames().x();
+        //frameTime = t.analyzeFrames().x();
         if (frameTime > 20.f)
         {
           currentTriangleCount -= currentTriangleCount / 100;
         }
-        F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
-        log.update();
       }
       //fence.wait();
-      return false;
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
+    });
+
+    t.addTest("Lots of drawcalls bench, (Multithread), baseline, frametime 20ms", [&]()
+    {
+      using namespace faze;
+      struct buf
+      {
+        float pos[4];
+      };
+      auto triangleCount = 1000000;
+      auto currentTriangleCount = triangleCount;
+      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-0.8f, 0.8f);
+      std::uniform_real_distribution<> dis2(0.f, 1.f);
+
+      {
+        auto tmp = srcdata.buffer().Map<buf>();
+        for (int i = 0;i < triangleCount; ++i)
+        {
+          auto& it = tmp[i].pos;
+          it[0] = dis(gen);
+          it[1] = dis(gen);
+          it[2] = dis2(gen);
+        }
+      }
+
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      GpuFence fence = dev.createFence();
+      gfx.close();
+      queue.submit(gfx);
+      queue.insertFence(fence);
+
+      auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+        .PixelShader("tests/stress/pixel.hlsl")
+        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .setRenderTargetCount(1)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+      auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+      fence.wait();
+      gfx.resetList();
+
+      WTime t;
+      t.firstTick();
+      float frameTime = 30.f;
+      float cpuTime = 30.f;
+      Bentsumaakaa b;
+      LBS lbs;
+      std::vector<GfxCommandList> m_cmds;
+      for (size_t i = 0; i < lbs.threadCount(); ++i)
+      {
+        m_cmds.push_back(dev.createUniversalCommandList());
+      }
+      //while (true)
+      int beenUnderLimit = 0;
+      while (beenUnderLimit < 10)
+      {
+        if (frameTime < 20.f)
+          beenUnderLimit++;
+        if (window.simpleReadMessages())
+          break;
+
+        // Rendertarget
+        b.start(false);
+        m_cmds[0].setViewPort(port);
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        m_cmds[0].ClearRenderTargetView(sc[backBufferIndex], vec);
+        m_cmds[0].setRenderTarget(sc[backBufferIndex]);
+        for (size_t i = 1; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].setViewPort(port);
+          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+          //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
+          m_cmds[i].setRenderTarget(sc[backBufferIndex]);
+        }
+        // graphics begin
+        lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
+        {
+          auto& gfx2 = m_cmds[threadIndex];
+          size_t workAmount = currentTriangleCount / 100;
+          size_t startIndex = workAmount * id;
+          auto bind = gfx2.bind(pipeline);
+          bind.SRV(0, dstdata);
+          gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
+          for (int i = startIndex + 1; i < startIndex + workAmount; ++i)
+          {
+            gfx2.drawInstancedRaw(3, 1, 0, i);
+          }
+        });
+        lbs.sleepTillKeywords({ "fillCommands" });
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].close();
+          queue.submit(m_cmds[i]);
+        }
+        cpuTime = b.stop(false) / 1000000.f;
+        // present
+        sc->Present(1, 0);
+        queue.insertFence(fence);
+        fence.wait();
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].resetList();
+        }
+
+        t.tick();
+        frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
+        //frameTime = t.analyzeFrames().x();
+        if (frameTime > 20.f)
+        {
+          currentTriangleCount -= currentTriangleCount / 120;
+        }
+      }
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
+    });
+
+    t.addTest("Lots of drawcalls bench, (Multithread), myapi, frametime 20ms", [&]()
+    {
+      using namespace faze;
+      struct buf
+      {
+        float pos[4];
+      };
+      auto triangleCount = 400000;
+      auto currentTriangleCount = triangleCount;
+      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
+      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-0.8f, 0.8f);
+      std::uniform_real_distribution<> dis2(0.f, 1.f);
+
+      {
+        auto tmp = srcdata.buffer().Map<buf>();
+        for (int i = 0;i < triangleCount; ++i)
+        {
+          auto& it = tmp[i].pos;
+          it[0] = dis(gen);
+          it[1] = dis(gen);
+          it[2] = dis2(gen);
+        }
+      }
+
+      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      GpuFence fence = dev.createFence();
+      gfx.close();
+      queue.submit(gfx);
+      queue.insertFence(fence);
+
+      auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+        .PixelShader("tests/stress/pixel.hlsl")
+        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .setRenderTargetCount(1)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+
+      auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+      fence.wait();
+      gfx.resetList();
+
+      WTime t;
+      t.firstTick();
+      float frameTime = 30.f;
+      float cpuTime = 30.f;
+      Bentsumaakaa b;
+      LBS lbs;
+      std::vector<GfxCommandList> m_cmds;
+      for (size_t i = 0; i < lbs.threadCount(); ++i)
+      {
+        m_cmds.push_back(dev.createUniversalCommandList());
+      }
+      //while (true)
+      int beenUnderLimit = 0;
+      while (beenUnderLimit < 10)
+      {
+        if (frameTime < 20.f)
+          beenUnderLimit++;
+        if (window.simpleReadMessages())
+          break;
+
+        // Rendertarget
+        b.start(false);
+        m_cmds[0].setViewPort(port);
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        m_cmds[0].ClearRenderTargetView(sc[backBufferIndex], vec);
+        m_cmds[0].setRenderTarget(sc[backBufferIndex]);
+        for (size_t i = 1; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].setViewPort(port);
+          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+          //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
+          m_cmds[i].setRenderTarget(sc[backBufferIndex]);
+        }
+        // graphics begin
+        lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
+        {
+          auto& gfx2 = m_cmds[threadIndex];
+          size_t workAmount = currentTriangleCount / 100;
+          size_t startIndex = workAmount * id;
+          auto bind = gfx2.bind(pipeline);
+          for (int i = startIndex; i < startIndex + workAmount; ++i)
+          {
+            bind.SRV(0, dstdata);
+            gfx2.drawInstanced(bind, 3, 1, 0, i);
+          }
+        });
+        lbs.sleepTillKeywords({ "fillCommands" });
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].close();
+          queue.submit(m_cmds[i]);
+        }
+        cpuTime = b.stop(false) / 1000000.f;
+        // present
+        sc->Present(1, 0);
+        queue.insertFence(fence);
+        fence.wait();
+        for (size_t i = 0; i < lbs.threadCount(); ++i)
+        {
+          m_cmds[i].resetList();
+        }
+
+        t.tick();
+        frameTime = static_cast<float>(t.getCurrentNano())*0.000001f;
+        //frameTime = t.analyzeFrames().x();
+        if (frameTime > 20.f)
+        {
+          currentTriangleCount -= currentTriangleCount / 120;
+        }
+      }
+      F_LOG("frametime: %.3fms CpuTime: %.3fms TriangleCount: %d\n", frameTime, cpuTime, currentTriangleCount);
+      log.update();
+      return true;
     });
 
     t.runTests();
