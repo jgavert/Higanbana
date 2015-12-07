@@ -1,7 +1,7 @@
 #include "CommandList.hpp"
 
-CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList)
-  :m_CommandList(cmdList)
+CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
+  :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator)
 {
 }
 

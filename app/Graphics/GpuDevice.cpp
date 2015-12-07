@@ -5,18 +5,13 @@
 
 GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
 {
-  HRESULT hr = mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&mCommandListAllocator);
-  if (FAILED(hr))
-  {
-    //
-  }
   ComPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
   Desc.NumDescriptors = 100;
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
+  HRESULT hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
   if (FAILED(hr))
   {
     // 
@@ -142,14 +137,19 @@ GpuCommandQueue GpuDevice::createQueue()
 // Needs to be created from descriptor
 GfxCommandList GpuDevice::createUniversalCommandList()
 {
-  ID3D12GraphicsCommandList* m_CommandList;
-  HRESULT hr;
-  hr = mDevice->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListAllocator.get(), NULL, __uuidof(ID3D12CommandList), (void**)&m_CommandList);
+  ComPtr<ID3D12GraphicsCommandList> commandList;
+  ComPtr<ID3D12CommandAllocator> commandListAllocator;
+  HRESULT hr = mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)commandListAllocator.addr());
   if (FAILED(hr))
   {
-    //
+    abort();
   }
-  return std::move(GfxCommandList(m_CommandList));
+  hr = mDevice->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, commandListAllocator.get(), NULL, __uuidof(ID3D12CommandList), (void**)commandList.addr());
+  if (FAILED(hr))
+  {
+    abort();
+  }
+  return std::move(GfxCommandList(commandList, commandListAllocator));
 }
 
 void GpuDevice::doExperiment()
