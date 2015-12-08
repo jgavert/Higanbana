@@ -1,8 +1,7 @@
 #include "utils/rootSig.hlsl"
 
 ConstantBuffer<consts> consta : register( b0 );
-RWTexture2D<float> OutputTex : register( u0 );
-// uav missing
+RWTexture2D<float4> OutputTex : register( u0 );
 
 [RootSignature(MyRS1)]
 [numthreads(32, 1, 1)] // 32 on code side also

@@ -1,7 +1,7 @@
 #include "utils/rootSig.hlsl"
 
 ConstantBuffer<consts> consta : register( b0 );
-Texture2D<float> tex : register( u0 );
+RWTexture2D<float4> tex : register( u0 );
 sampler2D smp : register( s0 );
 
 [RootSignature(MyRS1)]
