@@ -47,7 +47,7 @@ public:
     return m_rawHeaps.data();
   }
 
-  unsigned getCount() // first 3 are safe to always bind to pipeline
+  unsigned getCount() // first 1 are safe to always bind to pipeline
   {
     return 1;
   }

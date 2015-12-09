@@ -141,6 +141,47 @@
         return index;
       }
 
+      inline size_t skip_find_firstEmpty(size_t block) const
+      {
+        uint64_t a = _mm_extract_epi64(m_table[block], 0);
+        uint64_t b = _mm_extract_epi64(m_table[block], 1);
+        size_t offset = block * 128;
+        size_t inner_idx = __builtin_ctzll(a);
+        size_t expectedEmpty = inner_idx;
+        while (a)
+        {
+          //table[idx++] = inner_idx + offset;
+          if (inner_idx > expectedEmpty)
+          {
+            return offset + expectedEmpty;
+          }
+          a &= ~(1LL << (inner_idx));
+          ++expectedEmpty;
+          inner_idx = __builtin_ctzll(a);
+        }
+        if (inner_idx+64 > expectedEmpty)
+        {
+          return offset + expectedEmpty;
+        }
+        inner_idx = __builtin_ctzll(b);
+        expectedEmpty = inner_idx;
+        while (b)
+        {
+          if (inner_idx > expectedEmpty)
+          {
+            return offset + expectedEmpty + 64;
+          }
+          b &= ~(1LL << (inner_idx));
+          ++expectedEmpty;
+          inner_idx = __builtin_ctzll(b);
+        }
+        if (inner_idx + 128 > expectedEmpty)
+        {
+          return offset + 64 + expectedEmpty;
+        }
+        return offset + inner_idx + 64;
+      }
+
       template<size_t TableSize>
       inline size_t skip_find_indexes(std::array<size_t, TableSize>& table, size_t table_size, size_t index) const
       {
