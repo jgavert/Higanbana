@@ -198,7 +198,7 @@ private:
   }
 public:
 
-  static void getShaderInfo(ComPtr<ID3D12Device>& dev, ShaderType type, std::wstring path, ComPtr<ID3D12RootSignature>& root, ComPtr<ID3DBlob>& shaderBlob)
+  static void getShaderInfo(ComPtr<ID3D12Device>& dev, ShaderType type, std::wstring path, ShaderInterface& root, ComPtr<ID3DBlob>& shaderBlob)
   {
     ComPtr<ID3DBlob> errorMsg;
 
@@ -216,7 +216,6 @@ public:
       }
       abort();
     }
-    if (!root.get())
     {
       ComPtr<ID3D12RootSignatureDeserializer> asd;
       hr = D3D12CreateRootSignatureDeserializer(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
@@ -224,22 +223,29 @@ public:
       {
         abort();
       }
-      ComPtr<ID3DBlob> blobSig;
-      ComPtr<ID3DBlob> errorSig;
+
       const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
-
-      hr = D3D12SerializeRootSignature(woot2, D3D_ROOT_SIGNATURE_VERSION_1, blobSig.addr(), errorSig.addr());
-      if (FAILED(hr))
+      // have valid shaderInterface?
+      if (root.valid())
       {
-        abort();
+        // see if this shader differs, and if so, abort. not ok.
+        if (!root.isCopyOf(*woot2))
+        {
+          abort();
+        }
       }
-
-      hr = dev->CreateRootSignature(
-        1, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),
-        __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(root.addr()));
-      if (FAILED(hr))
+      else
       {
-        abort();
+        // create new shaderinterface
+        ComPtr<ID3D12RootSignature> rootSig;
+        hr = dev->CreateRootSignature(
+          1, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),
+          __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.addr()));
+        if (FAILED(hr))
+        {
+          abort();
+        }
+        root = ShaderInterface(rootSig, *woot2);
       }
     }
   }

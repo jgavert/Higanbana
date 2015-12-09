@@ -44,7 +44,10 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 void CptCommandList::Dispatch(ComputeBinding asd, unsigned int x, unsigned int y, unsigned int z)
 {
   if (asd.m_resbars.size() > 0)
+  {
     m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+    asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
+  }
   for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
   {
     if (asd.m_cbvs[i].first.ptr != 0)
@@ -71,9 +74,17 @@ void CptCommandList::DispatchIndirect(ComputeBinding bind)
 
 ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
 {
-  m_CommandList->SetComputeRootSignature(pipeline.getRootSig());
-  m_CommandList->SetPipelineState(pipeline.getState());
-  m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap());
+  auto& inf = pipeline.getShaderInterface();
+  if (m_boundShaderInterface != inf)
+  {
+    m_boundShaderInterface = inf;
+    m_CommandList->SetComputeRootSignature(inf.m_rootSig.get());
+  }
+  if (m_boundCptPipeline != &pipeline)
+  {
+    m_boundCptPipeline = &pipeline;
+    m_CommandList->SetPipelineState(pipeline.getState());
+  }
   return pipeline.getBinding();
 }
 
@@ -85,10 +96,17 @@ bool CptCommandList::isValid()
 
 GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
 {
-  m_CommandList->SetGraphicsRootSignature(pipeline.getRootSig());
-  m_CommandList->SetPipelineState(pipeline.getState());
-  auto* heap = pipeline.getDescHeap();
-  m_CommandList->SetDescriptorHeaps(1, &heap);
+  auto& inf = pipeline.getShaderInterface();
+  if (m_boundShaderInterface != inf)
+  {
+    m_boundShaderInterface = inf;
+    m_CommandList->SetGraphicsRootSignature(inf.m_rootSig.get());
+  }
+  if (m_boundGfxPipeline != &pipeline)
+  {
+    m_boundGfxPipeline = &pipeline;
+    m_CommandList->SetPipelineState(pipeline.getState());
+  }
   return pipeline.getBinding();
 }
 
