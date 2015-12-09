@@ -44,6 +44,9 @@ public:
   }
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void setResourceBarrier();
+
+  void bindComputeBinding(ComputeBinding& bind);
+
   void Dispatch(ComputeBinding bind, unsigned int x, unsigned int y, unsigned int z);
   void DispatchIndirect(ComputeBinding bind);
   ComputeBinding bind(ComputePipeline& pipeline);
@@ -120,6 +123,7 @@ public:
   void ClearDepthStencilView(TextureDSV dsv);
   void ClearStencilView(TextureDSV dsv);
   void ClearDepthView(TextureDSV dsv);
+  void bindGraphicsBinding(ComputeBinding& bind);
   void drawInstanced(GraphicsBinding bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
   {
     if (bind.m_resbars.size() > 0)

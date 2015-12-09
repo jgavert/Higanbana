@@ -12,6 +12,34 @@ void CptCommandList::setResourceBarrier()
 
 }
 
+void CptCommandList::bindComputeBinding(ComputeBinding& asd)
+{
+	if (asd.m_resbars.size() > 0)
+	{
+		m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
+	}
+	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
+	{
+		if (asd.m_cbvs[i].first.ptr != 0)
+			m_CommandList->SetComputeRootConstantBufferView(asd.m_cbvs[i].second, asd.m_cbvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_srvs.size(); ++i)
+	{
+		if (asd.m_srvs[i].first.ptr != 0)
+			m_CommandList->SetComputeRootShaderResourceView(asd.m_srvs[i].second, asd.m_srvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_uavs.size(); ++i)
+	{
+		if (asd.m_uavs[i].first.ptr != 0)
+			m_CommandList->SetComputeRootUnorderedAccessView(asd.m_uavs[i].second, asd.m_uavs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_rootConstants.size(); ++i)
+	{
+		m_CommandList->SetComputeRoot32BitConstant(asd.m_rootConstants[i].second, asd.m_rootConstants[i].first, 0);
+	}
+}
+
 void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
@@ -45,26 +73,8 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 
 void CptCommandList::Dispatch(ComputeBinding asd, unsigned int x, unsigned int y, unsigned int z)
 {
-  if (asd.m_resbars.size() > 0)
-  {
-    m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
-    asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
-  }
-  for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
-  {
-    if (asd.m_cbvs[i].first.ptr != 0)
-      m_CommandList->SetComputeRootConstantBufferView(asd.m_cbvs[i].second, asd.m_cbvs[i].first.ptr);
-  }
-  for (size_t i = 0; i < asd.m_srvs.size(); ++i)
-  {
-    if (asd.m_srvs[i].first.ptr != 0)
-      m_CommandList->SetComputeRootShaderResourceView(asd.m_srvs[i].second, asd.m_srvs[i].first.ptr);
-  }
-  for (size_t i = 0; i < asd.m_uavs.size(); ++i)
-  {
-    if (asd.m_uavs[i].first.ptr != 0)
-      m_CommandList->SetComputeRootUnorderedAccessView(asd.m_uavs[i].second, asd.m_uavs[i].first.ptr);
-  }
+  bindComputeBinding(asd);
+
   m_CommandList->Dispatch(x, y, z);
 }
 
@@ -134,6 +144,34 @@ void GfxCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
 void GfxCommandList::ClearDepthView(TextureDSV dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
+}
+
+void GfxCommandList::bindGraphicsBinding(ComputeBinding& asd)
+{
+	if (asd.m_resbars.size() > 0)
+	{
+		m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
+	}
+	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
+	{
+		if (asd.m_cbvs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootConstantBufferView(asd.m_cbvs[i].second, asd.m_cbvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_srvs.size(); ++i)
+	{
+		if (asd.m_srvs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootShaderResourceView(asd.m_srvs[i].second, asd.m_srvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_uavs.size(); ++i)
+	{
+		if (asd.m_uavs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootUnorderedAccessView(asd.m_uavs[i].second, asd.m_uavs[i].first.ptr);
+	}
+	for (size_t i = 0; i < asd.m_rootConstants.size(); ++i)
+	{
+		m_CommandList->SetGraphicsRoot32BitConstant(asd.m_rootConstants[i].second, asd.m_rootConstants[i].first, 0);
+	}
 }
 
 void GfxCommandList::ClearStencilView(TextureDSV dsv)

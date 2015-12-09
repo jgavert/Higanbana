@@ -254,6 +254,7 @@ public:
   {
     std::vector<std::tuple<UINT, Binding_::RootType, unsigned int>> bindingInput;
     cbv = 0, srv = 0, uav = 0;
+	int rootConstant = 0;
     for (unsigned int i = 0; i < desc->NumParameters;++i)
     {
       auto it = desc->pParameters[i];
@@ -266,6 +267,7 @@ public:
       case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
         //F_LOG("Root constants not yet supported\n");
         //F_LOG("32Bit constant Num32BitValues:%u RegisterSpace:%u ShaderRegister:%u\n", it.Constants.Num32BitValues, it.Constants.RegisterSpace, it.Constants.ShaderRegister);
+		bindingInput.push_back(std::make_tuple(i, Binding_::RootType::Num32, rootConstant++));
         break;
       case D3D12_ROOT_PARAMETER_TYPE_CBV:
         bindingInput.push_back(std::make_tuple(i, Binding_::RootType::CBV, cbv++));
@@ -296,5 +298,43 @@ public:
       }
     }
     return bindingInput;
+  }
+  
+  static void getRootDescriptorReflection2(const D3D12_ROOT_SIGNATURE_DESC* desc, int& srvdesctable, int& uavdesctable)
+  {
+	  for (unsigned int i = 0; i < desc->NumParameters; ++i)
+	  {
+		  auto it = desc->pParameters[i];
+		  switch (it.ParameterType)
+		  {
+
+		  case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+			  //F_LOG("Descriptor tables not supported\n");
+		  {
+			  auto num = it.DescriptorTable.NumDescriptorRanges;
+			  if (num > 1)
+			  {
+				  continue;
+			  }
+			  for (int k = 0; k < num; ++k)
+			  {
+				  auto& it2 = it.DescriptorTable.pDescriptorRanges[k];
+				  if (it2.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+				  {
+					  if (it2.NumDescriptors <= 128)
+						  srvdesctable = it2.BaseShaderRegister;
+				  }
+				  else if (it2.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+				  {
+					  if (it2.NumDescriptors <= 128)
+						  uavdesctable = it2.BaseShaderRegister;
+				  }
+			  }
+		  }
+			  break;
+		  default:
+			  break;
+		  }
+	  }
   }
 };

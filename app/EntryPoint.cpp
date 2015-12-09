@@ -59,14 +59,15 @@ int EntryPoint::main()
       // recommended only in release mode with debugging layer off...
       // didn't bother to find algorithm that would skip towards the right value.
       //StressTests::run(gpu, queue, window, sc, port, gfx, log);
+		//AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     using namespace rendering::utils;
 
-    //Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
+    Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
 
     //graph.changeScreenPos(vec2}))
-    //graph.updateGraphCompute(gfx, 0.5f);
+    graph.updateGraphCompute(gfx, 0.5f);
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples
@@ -144,7 +145,7 @@ int EntryPoint::main()
       {
         GpuProfilingBracket(queue, "Frame");
         {
-          //graph.updateGraphCompute(gfx, std::sinf(time));
+          graph.updateGraphCompute(gfx, std::sinf(time));
         }
         { // set heaps 
           gfx.setHeaps(gpu.getDescHeaps());
@@ -193,7 +194,7 @@ int EntryPoint::main()
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
         { // post process
-          //graph.drawGraph(gfx);
+          graph.drawGraph(gfx);
         }
         // submit all
         gfx.close();
