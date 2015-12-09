@@ -42,7 +42,7 @@ public:
     auto block = m_usedIndexes.popcount_element(fromBlock);
     if (block == 128)
     {
-      abort(); // lol everything used from block
+      abort(); // lol everything used from block, cannot handle this yet.
       return 0;
     }
     else

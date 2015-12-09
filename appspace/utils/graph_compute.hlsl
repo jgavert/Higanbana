@@ -13,10 +13,10 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 		return;
 
 	// err figure logic here.
-	float4 finalColor = float4(0.4f, 0.1f, 0.1f, 0.6f);
+	float4 finalColor = float4(0.8f, 0.1f, 0.1f, 0.6f);
 	float pixelHeight = (consta.val - consta.valueMin) / (consta.valueMax - consta.valueMin);
 	float drawedPixelHeight = (int)((float)consta.height) * pixelHeight;
-	if (drawedPixelHeight == uv.y)
+	if (drawedPixelHeight - uv.y < 0.1)
 	{
 		finalColor = float4(1.f, 1.f, 1.f, 1.f);
 	}

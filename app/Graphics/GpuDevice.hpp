@@ -94,8 +94,8 @@ public:
     size_t cbv = 0, srv = 0, uav = 0;
     int bindlessSRV, bindlessUAV;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-	int descTableSRV = -1, descTableUAV = -1;
-	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
+	  int descTableSRV = -1, descTableUAV = -1;
+	  shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
     ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
     return ComputePipeline(pipeline, existing, sourceBinding);
   }
@@ -472,6 +472,7 @@ public:
     auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descSRVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    buf.texture().view.index = index;
     mDevice->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
@@ -518,8 +519,9 @@ public:
 
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
     auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descUAVHeap.getNextIndex();
+    auto index = m_descUAVHeap.getNextIndex(2);
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    buf.texture().view.index = index-128-128;
     mDevice->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
@@ -576,6 +578,7 @@ public:
     auto lol = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descRTVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    buf.texture().view.index = index;
     mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
@@ -628,6 +631,7 @@ public:
     auto lol = m_descDSVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descDSVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+    buf.texture().view.index = index;
 
     D3D12_DEPTH_STENCIL_VIEW_DESC viewdesc;
     viewdesc.Format = desc.Format;

@@ -42,14 +42,17 @@ namespace rendering
         m[0].val = val;
         m[0].valueMin = valueMin;
         m[0].valueMax = valueMax;
-        m[0].startUvX = (currentUvX + 1) % width;
+        m[0].startUvX = currentUvX;
         m[0].width = width;
         m[0].height = height;
       }
+      currentUvX += 1;
+      currentUvX %= width;
       gfx.CopyResource(m_graphConstants.buffer(), m_uploadConstants.buffer());
 
       auto bind = gfx.bind(m_cmdPipeline);
       bind.CBV(0, m_graphConstants);
+      bind.rootConstant(0, m_graphTexture.texture().view.getIndex());
       unsigned int shaderGroup = 32;
       unsigned int graphSize = height;
       gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
@@ -66,6 +69,7 @@ namespace rendering
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
       auto bind = gfx.bind(m_drawPipeline);
       bind.CBV(0, m_graphConstants); // has the "vertex" data
+      bind.rootConstant(0, m_graphTexture.texture().view.getIndex());
       gfx.drawInstanced(bind, 6, 1, 0, 0); // box
     }
 

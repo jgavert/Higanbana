@@ -62,6 +62,10 @@ public:
   {
     return gpuHandle;
   }
+  size_t getIndex()
+  {
+    return index;
+  }
 };
 
 struct Texture
