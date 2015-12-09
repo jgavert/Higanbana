@@ -1,5 +1,6 @@
 #include "utils/rootSig.hlsl"
 
+uint constant : register ( b1 );
 ConstantBuffer<consts> consta : register( b0 );
 // uav missing
 

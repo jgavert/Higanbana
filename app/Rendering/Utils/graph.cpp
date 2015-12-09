@@ -27,7 +27,7 @@ namespace rendering
 
       m_graphTexture = device.createTextureUAV(
         Dimension(width, height)
-        , Format<int>(FormatType::R8G8B8A8_UNORM_SRGB)
+        , Format<int>(FormatType::R8G8B8A8_UNORM)
         , ResUsage::Gpu
         , MipLevel()
         , Multisampling());

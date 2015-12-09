@@ -94,7 +94,9 @@ public:
     size_t cbv = 0, srv = 0, uav = 0;
     int bindlessSRV, bindlessUAV;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-    ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
+	int descTableSRV = -1, descTableUAV = -1;
+	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
+    ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
     return ComputePipeline(pipeline, existing, sourceBinding);
   }
 
@@ -171,7 +173,9 @@ public:
 
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-    GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
+	int descTableSRV = -1, descTableUAV = -1;
+	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
+    GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
 
     return GraphicsPipeline(pipeline, newIf, sourceBinding);
   }
