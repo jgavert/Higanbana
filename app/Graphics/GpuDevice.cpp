@@ -11,14 +11,14 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 100;
+  Desc.NumDescriptors = 128*3; // 128 of any type
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   HRESULT hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
   if (FAILED(hr))
   {
     // 
   }
-  m_descHeap = ResourceViewManager(heap, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+  ResourceViewManager descHeap = ResourceViewManager(heap, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
 
   ComPtr<ID3D12DescriptorHeap> heap2;
@@ -33,7 +33,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
     // 
     abort();
   }
-  m_descRTVHeap = ResourceViewManager(heap2, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+  ResourceViewManager descRTVHeap = ResourceViewManager(heap2, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
   ComPtr<ID3D12DescriptorHeap> heap3;
   Desc.NodeMask = 0;
@@ -46,39 +46,19 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
     // 
     abort();
   }
-  m_descDSVHeap = ResourceViewManager(heap3, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+  ResourceViewManager descDSVHeap = ResourceViewManager(heap3, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
   // special heaps for bindless textures/buffers
+  // actually no special heaps, need to use one special
+  // generic needs to be splitted into ranges.
+  m_descHeaps.m_heaps[DescriptorHeapManager::Generic] = descHeap;
+  m_descHeaps.m_rawHeaps[DescriptorHeapManager::Generic] = descHeap.m_descHeap.get();
 
-  // SRV
-  ComPtr<ID3D12DescriptorHeap> heap4;
-  Desc.NodeMask = 0;
-  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 128;
-  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap4.addr()));
-  if (FAILED(hr))
-  {
-    // 
-    abort();
-  }
-  m_descSRVHeap = ResourceViewManager(heap4, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+  m_descHeaps.m_heaps[DescriptorHeapManager::RTV] = descRTVHeap;
+  m_descHeaps.m_rawHeaps[DescriptorHeapManager::RTV] = descRTVHeap.m_descHeap.get();
 
-
-  // UAV, urh probably need to invent something if vulkan doesn't share the SRV and UAV idea. fun times waiting.
-  ComPtr<ID3D12DescriptorHeap> heap5;
-  Desc.NodeMask = 0;
-  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 128;
-  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap5.addr()));
-  if (FAILED(hr))
-  {
-    // 
-    abort();
-  }
-  m_descUAVHeap = ResourceViewManager(heap5, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
-
+  m_descHeaps.m_heaps[DescriptorHeapManager::DSV] = descDSVHeap;
+  m_descHeaps.m_rawHeaps[DescriptorHeapManager::DSV] = descDSVHeap.m_descHeap.get();
 }
 
 // Needs to be created from descriptor, if you say you have 2 buffers, it is expected that this will then handle it.

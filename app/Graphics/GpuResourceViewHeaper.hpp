@@ -17,13 +17,6 @@ private:
 
   faze::Bitfield<8> m_usedIndexes;
 
-  ResourceViewManager() :
-    m_descHeap(nullptr),
-    m_handleIncrementSize(0),
-    m_size(0),
-    m_index(0)
-  {}
-
   ResourceViewManager(ComPtr<ID3D12DescriptorHeap>   descHeap, size_t HandleIncrementSize, size_t size) :
     m_descHeap(descHeap),
     m_handleIncrementSize(HandleIncrementSize),
@@ -35,6 +28,12 @@ private:
 
 
 public:
+  ResourceViewManager() :
+    m_descHeap(nullptr),
+    m_handleIncrementSize(0),
+    m_size(0),
+    m_index(0)
+  {}
 
   size_t getNextIndex()
   {
