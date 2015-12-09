@@ -27,12 +27,13 @@ private:
   friend class SystemDevices;
 
   ComPtr<ID3D12Device>           mDevice;
-
-  ComPtr<ID3D12Heap>             m_heap;
-  
   ResourceViewManager            m_descHeap;
+  ResourceViewManager            m_descSRVHeap;
+  ResourceViewManager            m_descUAVHeap;
   ResourceViewManager            m_descRTVHeap;
   ResourceViewManager            m_descDSVHeap;
+
+  std::vector<ShaderInterface>  m_shaderInterfaces;
 
   GpuDevice(ComPtr<ID3D12Device> device);
 public:
@@ -40,10 +41,7 @@ public:
   GpuFence createFence();
   GpuCommandQueue createQueue();
   GfxCommandList createUniversalCommandList();
-  void doExperiment();
-  EvolRes CommittedResTest();
-  ID3D12Heap* heapCreationTest();
-  void RunApiTestCoverage(std::string gpuDescription);
+
 
   // Pipelines
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
@@ -51,10 +49,37 @@ public:
     ComPtr<ID3D12RootSignature>    m_gRootSig;
 	  ComPtr<ID3DBlob> blobCompute;
     auto woot = stringutils::s2ws(desc.shaderSourcePath);
-    shaderUtils::getShaderInfo(mDevice, ShaderType::Compute, woot, m_gRootSig, blobCompute);
+    ShaderInterface existing;
+    shaderUtils::getShaderInfo(mDevice, ShaderType::Compute, woot, existing, blobCompute);
     D3D12_SHADER_BYTECODE byte;
     byte.pShaderBytecode = blobCompute->GetBufferPointer();
     byte.BytecodeLength = blobCompute->GetBufferSize();
+
+    // figure out if we already have that rootDescriptor
+    bool hadOne = false;
+    for (auto&& it : m_shaderInterfaces)
+    {
+      if (it.isCopyOf(existing.m_rootDesc))
+      {
+        existing = it;
+        hadOne = true;
+        break;
+      }
+    }
+    if (!hadOne)
+    {
+      // new shaderinterface
+      m_shaderInterfaces.push_back(existing);
+    }
+    ComPtr<ID3D12RootSignatureDeserializer> asd;
+    HRESULT hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+    if (FAILED(hr))
+    {
+      abort();
+    }
+    const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
+
+    // pipeline is allowed to be done after we have verified the rootDescriptor
     D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
     ZeroMemory(&computeDesc, sizeof(computeDesc));
     computeDesc.CS = byte;
@@ -63,43 +88,33 @@ public:
     computeDesc.pRootSignature = m_gRootSig.get();
 
     ComPtr<ID3D12PipelineState> pipeline;
-    HRESULT hr = mDevice->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
+    hr = mDevice->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
     if (FAILED(hr))
     {
       abort();
     }
-
-    // reflect the root signature
-    ComPtr<ID3D12RootSignatureDeserializer> asd;
-    hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
-    if (FAILED(hr))
-    {
-      abort();
-    }
-    const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
 
     size_t cbv = 0, srv = 0, uav = 0;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
     ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
-    return ComputePipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
+    return ComputePipeline(pipeline, existing, sourceBinding);
   }
 
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
   {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = desc.getDesc();
-    ComPtr<ID3D12RootSignature>    m_gRootSig;
     ComPtr<ID3DBlob> blobVertex;
     ComPtr<ID3DBlob> blobPixel;
     ComPtr<ID3DBlob> blobGeometry;
     ComPtr<ID3DBlob> blobHull;
     ComPtr<ID3DBlob> blobDomain;
-
+    ShaderInterface newIf;
     auto lam = [&](ComPtr<ID3DBlob>& blob, std::string shaderPath, ShaderType type)
     {
       if (!shaderPath.empty())
       {
         auto woot = stringutils::s2ws(shaderPath);
-        shaderUtils::getShaderInfo(mDevice, type, woot, m_gRootSig, blob);
+        shaderUtils::getShaderInfo(mDevice, type, woot, newIf, blob);
       }
     };
     lam(blobVertex, desc.vertexShaderPath, ShaderType::Vertex);
@@ -107,7 +122,24 @@ public:
     lam(blobGeometry, desc.geometryShaderPath, ShaderType::Geometry);
     lam(blobHull, desc.hullShaderPath, ShaderType::Hull);
     lam(blobDomain, desc.domainShaderPath, ShaderType::Domain);
-    
+
+    // need to check, if we had new rootdescriptor or not.
+    bool hadOne = false;
+    for (auto&& it : m_shaderInterfaces)
+    {
+      if (it.isCopyOf(newIf.m_rootDesc))
+      {
+        newIf = it;
+        hadOne = true;
+        break;
+      }
+    }
+    if (!hadOne)
+    {
+      // new shaderinterface
+      m_shaderInterfaces.push_back(newIf);
+    }
+
     auto modi = [](D3D12_SHADER_BYTECODE& byte, ComPtr<ID3DBlob> blob)
     {
       if (blob.get() != nullptr)
@@ -122,7 +154,7 @@ public:
     modi(graphicsDesc.GS, blobGeometry);
     modi(graphicsDesc.HS, blobHull);
     modi(graphicsDesc.DS, blobDomain);
-    graphicsDesc.pRootSignature = m_gRootSig.get();
+    graphicsDesc.pRootSignature = newIf.m_rootSig.get();
     ComPtr<ID3D12PipelineState> pipeline;
     HRESULT hr = mDevice->CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
     if (FAILED(hr))
@@ -143,7 +175,7 @@ public:
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
     GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
 
-    return GraphicsPipeline(pipeline, m_gRootSig, m_descHeap.m_descHeap, sourceBinding);
+    return GraphicsPipeline(pipeline, newIf, sourceBinding);
   }
 
   // buffers
@@ -435,10 +467,9 @@ public:
       buf.texture().m_resource = std::move(ptr);
     }
 
-
-    UINT HandleIncrementSize = static_cast<unsigned int>(m_descHeap.m_handleIncrementSize);
-    auto lol = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descHeap.getNextIndex();
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
+    auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descSRVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
@@ -491,9 +522,9 @@ public:
       buf.texture().m_resource = std::move(ptr);
     }
 
-    UINT HandleIncrementSize = static_cast<unsigned int>(m_descHeap.m_handleIncrementSize);
-    auto lol = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descHeap.getNextIndex();
+    UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
+    auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+    auto index = m_descUAVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
@@ -695,6 +726,15 @@ public:
 
 
     return SwapChain(mSwapChain, lol);
+  }
+
+  ResourceViewManager& getSRVDescriptorHeap()
+  {
+    return m_descSRVHeap;
+  }
+  ResourceViewManager& getUAVDescriptorHeap()
+  {
+    return m_descUAVHeap;
   }
 
 };

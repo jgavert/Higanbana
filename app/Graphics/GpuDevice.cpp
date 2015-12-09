@@ -5,6 +5,8 @@
 
 GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
 {
+  size_t descriptorHeapMaxSize = 128;
+
   ComPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
@@ -45,6 +47,37 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
     abort();
   }
   m_descDSVHeap = ResourceViewManager(heap3, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+
+  // special heaps for bindless textures/buffers
+
+  // SRV
+  ComPtr<ID3D12DescriptorHeap> heap4;
+  Desc.NodeMask = 0;
+  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  Desc.NumDescriptors = 128;
+  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap4.addr()));
+  if (FAILED(hr))
+  {
+    // 
+    abort();
+  }
+  m_descSRVHeap = ResourceViewManager(heap4, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+
+
+  // UAV, urh probably need to invent something if vulkan doesn't share the SRV and UAV idea. fun times waiting.
+  ComPtr<ID3D12DescriptorHeap> heap5;
+  Desc.NodeMask = 0;
+  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  Desc.NumDescriptors = 128;
+  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap5.addr()));
+  if (FAILED(hr))
+  {
+    // 
+    abort();
+  }
+  m_descUAVHeap = ResourceViewManager(heap5, mDevice->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
 }
 
@@ -150,138 +183,4 @@ GfxCommandList GpuDevice::createUniversalCommandList()
     abort();
   }
   return std::move(GfxCommandList(commandList, commandListAllocator));
-}
-
-void GpuDevice::doExperiment()
-{
-
-}
-
-EvolRes GpuDevice::CommittedResTest()
-{
-  float triangleVerts[] ={ 0.0f, 0.5f, 0.0f, 0.45f, -0.5, 0.0f,-0.45f, -0.5f, 0.0f };
-
-  ID3D12Resource *data;
-
-  D3D12_RESOURCE_DESC datadesc = {};
-  datadesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  datadesc.Format = DXGI_FORMAT_UNKNOWN;
-  datadesc.Width = 80000000;
-  datadesc.Height = 1;
-  datadesc.DepthOrArraySize = 1;
-  datadesc.MipLevels = 1;
-  datadesc.SampleDesc.Count = 1;
-  datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  D3D12_HEAP_PROPERTIES heapprop = {};
-  heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-  HRESULT hr = mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), (void**)&data);
-  if (FAILED(hr))
-  {
-    F_LOG("woot!\n");
-  }
-  else
-  {
-    D3D12_HEAP_PROPERTIES properties;
-    D3D12_HEAP_FLAGS flag;
-    hr = data->GetHeapProperties(&properties, &flag);
-    if (!FAILED(hr))
-    {
-      F_LOG("yay!\n", 2);
-    }
-  }
-  EvolRes asd;
-  asd.m_res = data;
-  return asd;
-
-  //
-  // actually create the vert buffer
-  // Note: using upload heaps to transfer static data like vert buffers is not recommended.
-  // Every time the GPU needs it, the upload heap will be marshalled over.  Please read up on Default Heap usage.
-  // An upload heap is used here for code simplicity and because there are very few verts to actually transfer
-  //
-  /*
-  mDevice->CreateCommittedResource(
-    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-    D3D12_HEAP_FLAG_NONE,
-    &CD3DX12_RESOURCE_DESC::Buffer(3 * sizeof(float)),
-    D3D12_RESOURCE_STATE_GENERIC_READ,
-    nullptr,    // Clear value
-    IID_PPV_ARGS(mBufVerts.GetAddressOf()));
-
-  //
-  // copy the triangle data to the vertex buffer
-  //
-
-  UINT8* dataBegin;
-  mBufVerts->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin));
-  memcpy(dataBegin, triangleVerts, sizeof(triangleVerts));
-  mBufVerts->Unmap(0, nullptr);
-
-  //
-  // create vertex buffer view
-  //
-
-  mDescViewBufVert.BufferLocation = mBufVerts->GetGPUVirtualAddress();
-  mDescViewBufVert.StrideInBytes = sizeof(VERTEX);
-  mDescViewBufVert.SizeInBytes = sizeof(triangleVerts);
-  */
-}
-
-ID3D12Heap* GpuDevice::heapCreationTest()
-{
-  ID3D12Heap* m_heap;
-
-  D3D12_HEAP_DESC desc = {};
-  desc.SizeInBytes = 1000*1000*128;
-  // Alignment isnt supported apparently. Leave empty;
-  //desc.Alignment = 16; // struct size?
-  desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-  desc.Properties.VisibleNodeMask = 1; // need to be visible as its upload buffer which is shared 
-  desc.Properties.CreationNodeMask = 1;
-  desc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-  desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-  desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-
-  HRESULT hr = mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
-  if (FAILED(hr))
-  {
-    F_LOG("woot!\n");
-  }
-  else
-  {
-    F_LOG("A real heap now!\n");
-  }
-  return m_heap;
-}
-using namespace faze;
-void GpuDevice::RunApiTestCoverage(std::string gpuDescription)
-{
-  TestWorks t(gpuDescription);
-  t.addTest("layouts", [&]()
-  {
-    return true;
-  });
-  t.addTest("UploadHeap creation test", [&]()
-  {
-    ID3D12Heap* m_heap;
-
-    D3D12_HEAP_DESC desc = {};
-    desc.SizeInBytes = 1000 * 1000 * 128;
-    // Alignment isnt supported apparently. Leave empty;
-    //desc.Alignment = 16; // struct size?
-    desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-    desc.Properties.VisibleNodeMask = 1; // need to be visible as its upload buffer which is shared 
-    desc.Properties.CreationNodeMask = 1;
-    desc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-
-    HRESULT hr = mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
-    if (FAILED(hr))
-    {
-      F_LOG("woot!\n");
-      return false;
-    }
-    return true;
-  });
 }

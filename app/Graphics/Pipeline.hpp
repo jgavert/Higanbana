@@ -1,6 +1,7 @@
 #pragma once
 #include "ComPtr.hpp"
 #include "binding.hpp"
+#include "ShaderInterface.hpp"
 #include <d3d12.h>
 #include <utility>
 
@@ -9,19 +10,17 @@ class ComputePipeline
 	friend class GpuDevice;
 
   ComPtr<ID3D12PipelineState> pipeline;
-  ComPtr<ID3D12RootSignature> rootSig;
-  ComPtr<ID3D12DescriptorHeap> descHeap;
+  ShaderInterface m_shaderInterface;
   ComputeBinding rootBinding;
-  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, ComputeBinding sourceBinding):
+
+  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, ComputeBinding sourceBinding):
     pipeline(std::move(pipe)),
-    rootSig(std::move(rootSig)),
-    descHeap(descHeap),
+    m_shaderInterface(shaderInterface),
     rootBinding(sourceBinding) {}
 public:
   ComputePipeline() :
     pipeline(nullptr),
-    rootSig(nullptr),
-    descHeap(nullptr) {}
+    m_shaderInterface() {}
   ComputeBinding getBinding()
   {
     return rootBinding;
@@ -30,13 +29,13 @@ public:
   {
     return pipeline.get();
   }
-  ID3D12RootSignature* getRootSig()
+  ShaderInterface& getShaderInterface()
   {
-    return rootSig.get();
+    return m_shaderInterface;
   }
-  ID3D12DescriptorHeap** getDescHeap()
+  bool valid()
   {
-    return descHeap.addr();
+    return pipeline.get() != nullptr;
   }
 };
 
@@ -45,19 +44,16 @@ class GraphicsPipeline
 	friend class GpuDevice;
 
   ComPtr<ID3D12PipelineState> pipeline;
-  ComPtr<ID3D12RootSignature> rootSig;
-  ComPtr<ID3D12DescriptorHeap> descHeap;
+  ShaderInterface m_shaderInterface;
   GraphicsBinding rootDescriptor;
-  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ComPtr<ID3D12RootSignature> rootSig, ComPtr<ID3D12DescriptorHeap> descHeap, GraphicsBinding sourceBinding):
+  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, GraphicsBinding sourceBinding):
     pipeline(std::move(pipe)),
-    rootSig(std::move(rootSig)),
-    descHeap(std::move(descHeap)),
+    m_shaderInterface(shaderInterface),
     rootDescriptor(sourceBinding) {}
 public:
   GraphicsPipeline() :
     pipeline(nullptr),
-    rootSig(nullptr),
-    descHeap(nullptr) {}
+    m_shaderInterface() {}
   GraphicsBinding getBinding()
   {
     return rootDescriptor;
@@ -66,13 +62,9 @@ public:
   {
     return pipeline.get();
   }
-  ID3D12RootSignature* getRootSig()
+  ShaderInterface& getShaderInterface()
   {
-    return rootSig.get();
-  }
-  ID3D12DescriptorHeap* getDescHeap()
-  {
-    return descHeap.get();
+    return m_shaderInterface;
   }
   bool valid()
   {

@@ -7,11 +7,15 @@ class ResourceViewManager
 {
 private:
   friend class GpuDevice;
+  friend class CptCommandList;
+  friend class GfxCommandList;
+
   ComPtr<ID3D12DescriptorHeap>   m_descHeap;
   size_t m_handleIncrementSize;
   size_t m_size;
   size_t m_index;
-  faze::Bitfield<64> m_usedIndexes;
+
+  faze::Bitfield<8> m_usedIndexes;
 
   ResourceViewManager() :
     m_descHeap(nullptr),
@@ -25,7 +29,10 @@ private:
     m_handleIncrementSize(HandleIncrementSize),
     m_size(size),
     m_index(0)
-  {}
+  {
+    assert(size < 8 * 128);
+  }
+
 
 public:
 

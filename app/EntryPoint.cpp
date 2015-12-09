@@ -146,6 +146,10 @@ int EntryPoint::main()
         {
           //graph.updateGraphCompute(gfx, std::sinf(time));
         }
+        { // set bindless...
+          gfx.setSRVBindless(gpu.getSRVDescriptorHeap());
+          gfx.setUAVBindless(gpu.getUAVDescriptorHeap());
+        }
         {
           GpuProfilingBracket(gfx, "Updating Constants");
           {

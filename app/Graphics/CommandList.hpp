@@ -6,6 +6,8 @@
 #include "binding.hpp"
 #include "Pipeline.hpp"
 #include "core/src/math/vec_templated.hpp"
+#include "ShaderInterface.hpp"
+#include "GpuResourceViewHeaper.hpp"
 
 #include <d3d12.h>
 // universal command buffer
@@ -23,6 +25,10 @@ private:
   ComPtr<ID3D12GraphicsCommandList> m_CommandList;
   ComPtr<ID3D12CommandAllocator> m_CommandListAllocator;
   bool closed;
+  ShaderInterface m_boundShaderInterface;
+  ComputePipeline* m_boundCptPipeline;
+  GraphicsPipeline* m_boundGfxPipeline;
+
   CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator);
 public:
   CptCommandList() : m_CommandList(nullptr), closed(false) {}
@@ -36,6 +42,14 @@ public:
   void Dispatch(ComputeBinding bind, unsigned int x, unsigned int y, unsigned int z);
   void DispatchIndirect(ComputeBinding bind);
   ComputeBinding bind(ComputePipeline& pipeline);
+  void setSRVBindless(ResourceViewManager& srvDescHeap)
+  {
+    //m_CommandList->SetComputeRootDescriptorTable(m_srvBindlessIndex, srvDescHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart());
+  }
+  void setUAVBindless(ResourceViewManager& uavDescHeap)
+  {
+    //m_CommandList->SetComputeRootDescriptorTable(m_uavBindlessIndex, uavDescHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart());
+  }
   bool isValid();
   void close()
   {
@@ -85,7 +99,10 @@ public:
   void drawInstanced(GraphicsBinding bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
   {
     if (bind.m_resbars.size() > 0)
+    {
       m_CommandList->ResourceBarrier(static_cast<UINT>(bind.m_resbars.size()), bind.m_resbars.data());
+      bind.m_resbars.clear();
+    }
     for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
     {
       if (bind.m_cbvs[i].first.ptr != 0)
