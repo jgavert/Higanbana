@@ -35,14 +35,31 @@ public:
     m_index(0)
   {}
 
-  size_t getNextIndex()
+  size_t getNextIndex(size_t fromBlock)
   {
     // find next empty index
-    size_t size = m_index;
-    ++m_index;
-    return size;
+    fromBlock = fromBlock % 128;
+    auto block = m_usedIndexes.popcount_element(fromBlock);
+    if (block == 128)
+    {
+      abort(); // lol everything used from block
+      return 0;
+    }
+    else
+    {
+      size_t emptyIndex = m_usedIndexes.skip_find_firstEmpty(fromBlock);
+      m_usedIndexes.setIdxBit(emptyIndex);
+      return emptyIndex;
+    }
   }
 
+  size_t getNextIndex()
+  {
+    // find next empty index, only from block 0
+    return getNextIndex(0);
+  }
+
+  // never called yet, should be called by resource's destructor.
   void free(size_t index)
   {
     m_usedIndexes.clearIdxBit(index);
