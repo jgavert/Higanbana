@@ -15,6 +15,8 @@
 #include "EvolRes.hpp"
 #include "helpers.hpp"
 #include "Descriptors/Descriptors.hpp"
+#include "DescriptorHeapManager.hpp"
+
 #include <d3d12.h>
 #include <D3Dcompiler.h>
 #include <string>
@@ -27,13 +29,8 @@ private:
   friend class SystemDevices;
 
   ComPtr<ID3D12Device>           mDevice;
-  ResourceViewManager            m_descHeap;
-  ResourceViewManager            m_descSRVHeap;
-  ResourceViewManager            m_descUAVHeap;
-  ResourceViewManager            m_descRTVHeap;
-  ResourceViewManager            m_descDSVHeap;
-
-  std::vector<ShaderInterface>  m_shaderInterfaces;
+  DescriptorHeapManager         m_descHeaps;
+  std::vector<ShaderInterface>  m_shaderInterfaceCache;
 
   GpuDevice(ComPtr<ID3D12Device> device);
 public:
@@ -57,7 +54,7 @@ public:
 
     // figure out if we already have that rootDescriptor
     bool hadOne = false;
-    for (auto&& it : m_shaderInterfaces)
+    for (auto&& it : m_shaderInterfaceCache)
     {
       if (it.isCopyOf(existing.m_rootDesc))
       {
@@ -69,7 +66,7 @@ public:
     if (!hadOne)
     {
       // new shaderinterface
-      m_shaderInterfaces.push_back(existing);
+      m_shaderInterfaceCache.push_back(existing);
     }
     ComPtr<ID3D12RootSignatureDeserializer> asd;
     HRESULT hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
@@ -95,6 +92,7 @@ public:
     }
 
     size_t cbv = 0, srv = 0, uav = 0;
+    int bindlessSRV, bindlessUAV;
     auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
     ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav));
     return ComputePipeline(pipeline, existing, sourceBinding);
@@ -125,7 +123,7 @@ public:
 
     // need to check, if we had new rootdescriptor or not.
     bool hadOne = false;
-    for (auto&& it : m_shaderInterfaces)
+    for (auto&& it : m_shaderInterfaceCache)
     {
       if (it.isCopyOf(newIf.m_rootDesc))
       {
@@ -137,7 +135,7 @@ public:
     if (!hadOne)
     {
       // new shaderinterface
-      m_shaderInterfaces.push_back(newIf);
+      m_shaderInterfaceCache.push_back(newIf);
     }
 
     auto modi = [](D3D12_SHADER_BYTECODE& byte, ComPtr<ID3DBlob> blob)
@@ -244,6 +242,8 @@ public:
     shaderSRV.Format = DXGI_FORMAT_UNKNOWN;
     shaderSRV.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
+    auto& m_descHeap = m_descHeaps.getGeneric();
+
     BufferView& view = buf.buffer().view;
     view.index = m_descHeap.getNextIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
@@ -302,6 +302,8 @@ public:
     shaderUAV.Buffer = bufferUAV;
     shaderUAV.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     shaderUAV.Format = DXGI_FORMAT_UNKNOWN;
+
+    auto& m_descHeap = m_descHeaps.getGeneric();
 
     BufferView& view = buf.buffer().view;
     view.index = m_descHeap.getNextIndex();
@@ -389,6 +391,8 @@ public:
     shaderCBV.BufferLocation = buf.buffer().m_resource.get()->GetGPUVirtualAddress();
     shaderCBV.SizeInBytes = (buf.buffer().stride + 255) & ~255; // CB size is required to be 256-byte aligned.
 
+    auto& m_descHeap = m_descHeaps.getGeneric();
+
     BufferView& view = buf.buffer().view;
     view.index = m_descHeap.getNextIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
@@ -448,18 +452,9 @@ public:
       buf.texture().type = ResUsage::Readback;
     }
 
-    D3D12_CLEAR_VALUE clearVal;
-    clearVal.Color[0] = 0.f;
-    clearVal.Color[1] = 0.f;
-    clearVal.Color[2] = 0.f;
-    clearVal.Color[3] = 1.f;
-    clearVal.DepthStencil.Depth = 1.f;
-    clearVal.DepthStencil.Stencil = 0xff;
-    clearVal.Format = desc.Format;
-
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
+      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
 
     if (!FAILED(hr))
@@ -467,11 +462,13 @@ public:
       buf.texture().m_resource = std::move(ptr);
     }
 
+    auto& m_descSRVHeap = m_descHeaps.getSRV();
+
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
     auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descSRVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
-    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
+    mDevice->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -504,29 +501,22 @@ public:
       buf.texture().type = ResUsage::Readback;
     }
 
-    D3D12_CLEAR_VALUE clearVal;
-    clearVal.Color[0] = 0.f;
-    clearVal.Color[1] = 0.f;
-    clearVal.Color[2] = 0.f;
-    clearVal.Color[3] = 1.f;
-    clearVal.DepthStencil.Depth = 1.f;
-    clearVal.DepthStencil.Stencil = 0xff;
-    clearVal.Format = desc.Format;
-
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-      buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
+      buf.texture().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
     if (!FAILED(hr))
     {
       buf.texture().m_resource = std::move(ptr);
     }
 
+    auto& m_descUAVHeap = m_descHeaps.getUAV();
+
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
     auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descUAVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
-    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
+    mDevice->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -564,8 +554,6 @@ public:
     clearVal.Color[1] = 0.f;
     clearVal.Color[2] = 0.f;
     clearVal.Color[3] = 1.f;
-    clearVal.DepthStencil.Depth = 1.f;
-    clearVal.DepthStencil.Stencil = 0xff;
     clearVal.Format = desc.Format;
 
     HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
@@ -576,6 +564,10 @@ public:
     {
       buf.texture().m_resource = std::move(ptr);
     }
+
+
+    auto& m_descRTVHeap = m_descHeaps.getRTV();
+
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
     auto lol = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descRTVHeap.getNextIndex();
@@ -614,10 +606,6 @@ public:
     }
 
     D3D12_CLEAR_VALUE clearVal;
-    clearVal.Color[0] = 0.f;
-    clearVal.Color[1] = 0.f;
-    clearVal.Color[2] = 0.f;
-    clearVal.Color[3] = 1.f;
     clearVal.DepthStencil.Depth = 1.f;
     clearVal.DepthStencil.Stencil = 0xff;
     clearVal.Format = desc.Format;
@@ -631,6 +619,7 @@ public:
       buf.texture().m_resource = std::move(ptr);
     }
 
+    auto& m_descDSVHeap = m_descHeaps.getDSV();
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descDSVHeap.m_handleIncrementSize);
     auto lol = m_descDSVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descDSVHeap.getNextIndex();
@@ -679,6 +668,7 @@ public:
     // need the rtv's out
 
     D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[8];
+    auto& m_descRTVHeap = m_descHeaps.getRTV();
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
     mRenderTargetView[0] = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
     auto index = m_descRTVHeap.getNextIndex();
@@ -728,13 +718,14 @@ public:
     return SwapChain(mSwapChain, lol);
   }
 
-  ResourceViewManager& getSRVDescriptorHeap()
+  DescriptorHeapManager& getDescHeaps()
   {
-    return m_descSRVHeap;
+    return m_descHeaps;
   }
-  ResourceViewManager& getUAVDescriptorHeap()
+
+  ResourceViewManager& getGenericDescriptorHeap()
   {
-    return m_descUAVHeap;
+    return m_descHeaps.getGeneric();
   }
 
 };

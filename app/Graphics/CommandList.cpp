@@ -1,7 +1,9 @@
 #include "CommandList.hpp"
 
 CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
-  :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator)
+  :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator),
+  m_boundCptPipeline(nullptr), m_boundGfxPipeline(nullptr)
+  , m_uavBindlessIndex(-1), m_srvBindlessIndex(-1)
 {
 }
 
@@ -84,6 +86,7 @@ ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
   {
     m_boundCptPipeline = &pipeline;
     m_CommandList->SetPipelineState(pipeline.getState());
+    m_boundGfxPipeline = nullptr;
   }
   return pipeline.getBinding();
 }
@@ -106,6 +109,7 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
   {
     m_boundGfxPipeline = &pipeline;
     m_CommandList->SetPipelineState(pipeline.getState());
+    m_boundCptPipeline = nullptr;
   }
   return pipeline.getBinding();
 }

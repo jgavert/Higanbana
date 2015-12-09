@@ -203,9 +203,9 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
         {
-          auto bind = gfx.bind(pipeline);
           for (int i = 0; i < currentTriangleCount; ++i)
           {
+            auto bind = gfx.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx.drawInstanced(bind, 3, 1, 0, i);
           }
@@ -436,9 +436,9 @@ private:
           auto& gfx2 = m_cmds[threadIndex];
           size_t workAmount = currentTriangleCount / 100;
           size_t startIndex = workAmount * id;
-          auto bind = gfx2.bind(pipeline);
           for (int i = startIndex; i < startIndex + workAmount; ++i)
           {
+            auto bind = gfx2.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx2.drawInstanced(bind, 3, 1, 0, i);
           }
@@ -505,6 +505,8 @@ private:
       gfx.close();
       queue.submit(gfx);
       queue.insertFence(fence);
+      fence.wait();
+      gfx.resetList();
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
         .PixelShader("tests/stress/pixel.hlsl")
@@ -515,8 +517,6 @@ private:
 
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
-      fence.wait();
-      gfx.resetList();
 
       WTime t;
       t.firstTick();
@@ -643,9 +643,9 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
         {
-          auto bind = gfx.bind(pipeline);
           for (int i = 0; i < currentTriangleCount; ++i)
           {
+            auto bind = gfx.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx.drawInstanced(bind, 3, 1, 0, i);
           }
@@ -882,9 +882,9 @@ private:
           auto& gfx2 = m_cmds[threadIndex];
           size_t workAmount = currentTriangleCount / 100;
           size_t startIndex = workAmount * id;
-          auto bind = gfx2.bind(pipeline);
           for (int i = startIndex; i < startIndex + workAmount; ++i)
           {
+            auto bind = gfx2.bind(pipeline);
             bind.SRV(0, dstdata);
             gfx2.drawInstanced(bind, 3, 1, 0, i);
           }
