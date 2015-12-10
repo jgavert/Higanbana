@@ -1,4 +1,4 @@
-#include "rootSig.hlsl"
+#include "tests/stress/rootSig.hlsl"
 
 ConstantBuffer<Constants> consta : register(b0);
 
