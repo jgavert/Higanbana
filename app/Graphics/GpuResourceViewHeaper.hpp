@@ -2,6 +2,8 @@
 #include "ComPtr.hpp"
 #include "core/src/entity/bitfield.hpp"
 #include <d3d12.h>
+#include <iostream>
+#include <string>
 // This is probably needed
 class ResourceViewManager
 {
@@ -35,11 +37,11 @@ public:
     m_index(0)
   {}
 
-  size_t getNextIndex(size_t fromBlock)
+  size_t getNextIndex(size_t fromBlock = 0)
   {
     // find next empty index
-    fromBlock = fromBlock % 128;
-    auto block = m_usedIndexes.popcount_element(fromBlock);
+	size_t block = 0;
+	block = m_usedIndexes.popcount_element(fromBlock);
     if (block == 128)
     {
       abort(); // lol everything used from block, cannot handle this yet.
@@ -47,16 +49,11 @@ public:
     }
     else
     {
-      size_t emptyIndex = m_usedIndexes.skip_find_firstEmpty(fromBlock);
+	  int emptyIndex = 0;
+	  emptyIndex = m_usedIndexes.skip_find_firstEmpty(fromBlock);
       m_usedIndexes.setIdxBit(emptyIndex);
       return emptyIndex;
     }
-  }
-
-  size_t getNextIndex()
-  {
-    // find next empty index, only from block 0
-    return getNextIndex(0);
   }
 
   // never called yet, should be called by resource's destructor.

@@ -144,12 +144,13 @@ int EntryPoint::main()
 
       {
         GpuProfilingBracket(queue, "Frame");
+		{ // set heaps 
+			gfx.setHeaps(gpu.getDescHeaps());
+		}
         {
           graph.updateGraphCompute(gfx, std::sinf(time));
         }
-        { // set heaps 
-          gfx.setHeaps(gpu.getDescHeaps());
-        }
+
         {
           GpuProfilingBracket(gfx, "Updating Constants");
           {
@@ -203,7 +204,7 @@ int EntryPoint::main()
         // present
         {
           GpuProfilingBracket(queue, "Presenting frame");
-          sc->Present(1, 0);
+          sc->Present(0, 0);
         }
       }
       queue.insertFence(fence);
