@@ -11,7 +11,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : mDevice(device)
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 128*3; // 128 of any type
+  Desc.NumDescriptors = 128*4; // 128 of any type
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   HRESULT hr = mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
   if (FAILED(hr))

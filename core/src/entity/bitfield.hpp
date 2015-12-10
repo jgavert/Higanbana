@@ -147,7 +147,7 @@
         uint64_t b = _mm_extract_epi64(m_table[block], 1);
         size_t offset = block * 128;
         size_t inner_idx = __builtin_ctzll(a);
-        size_t expectedEmpty = inner_idx;
+        size_t expectedEmpty = 0; // this will be uninitialized value if default value is "inner_idx". wtf!
         while (a)
         {
           //table[idx++] = inner_idx + offset;
