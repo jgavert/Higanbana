@@ -59,7 +59,7 @@ int EntryPoint::main()
       // recommended only in release mode with debugging layer off...
       // didn't bother to find algorithm that would skip towards the right value.
       //StressTests::run(gpu, queue, window, sc, port, gfx, log);
-		//AdvTests::run(gpu, queue, window, sc, port, gfx);
+      //AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     using namespace rendering::utils;
@@ -67,10 +67,11 @@ int EntryPoint::main()
     Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
 
     //graph.changeScreenPos(vec2}))
-    graph.updateGraphCompute(gfx, 0.5f);
+    //graph.updateGraphCompute(gfx, 0.5f);
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples
+	
     ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor()
       .shader("compute_1.hlsl"));
 
@@ -85,7 +86,7 @@ int EntryPoint::main()
     auto dstdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
     auto completedata = gpu.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
     auto rbdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Readback);
-
+	
     {
       auto tmp = srcdata.buffer().Map<buf>();
       for (int i = 0;i < srcdata.buffer().size; ++i)
@@ -94,6 +95,7 @@ int EntryPoint::main()
         tmp[i].k = i;
       }
     }
+	
 
     // graphics 
 
@@ -148,7 +150,7 @@ int EntryPoint::main()
 			gfx.setHeaps(gpu.getDescHeaps());
 		}
         {
-          graph.updateGraphCompute(gfx, std::sinf(time));
+          //graph.updateGraphCompute(gfx, std::sinf(time));
         }
 
         {
@@ -167,26 +169,27 @@ int EntryPoint::main()
           gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
           gfx.setRenderTarget(sc[backBufferIndex]);
         }
-
+		
         {
           GpuProfilingBracket(gfx, "Copy the compute job");
           gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
         }
-
         {
           GpuProfilingBracket(gfx, "Dispatch");
           auto bind = gfx.bind(pipeline);
           bind.SRV(0, dstdata);
           bind.UAV(0, completedata);
-          unsigned int shaderGroup = 50;
+          unsigned int shaderGroup = 64;
           unsigned int inputSize = 1000 * 1000;
           gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
         }
+		
 
         {
           GpuProfilingBracket(gfx, "Copy dispatch results");
           gfx.CopyResource(rbdata.buffer(), completedata.buffer());
         }
+		
 
         {
           GpuProfilingBracket(gfx, "DrawTriangle");
@@ -195,7 +198,7 @@ int EntryPoint::main()
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
         { // post process
-          graph.drawGraph(gfx);
+          //graph.drawGraph(gfx);
         }
         // submit all
         gfx.close();
@@ -210,6 +213,7 @@ int EntryPoint::main()
       queue.insertFence(fence);
       t.tick();
       time += t.getFrameTimeDelta();
+	  log.update();
     }
     t.printStatistics();
     log.update();

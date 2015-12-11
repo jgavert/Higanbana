@@ -5,7 +5,7 @@ ConstantBuffer<consts> consta : register( b0 );
 RWTexture2D<float4> OutputTex[63] : register( u1 );
 
 [RootSignature(MyRS1)]
-[numthreads(32, 1, 1)] // 32 on code side also
+[numthreads(64, 1, 1)] // 64 on code side also
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	int2 uv = int2(consta.startUvX,DTid.x);
