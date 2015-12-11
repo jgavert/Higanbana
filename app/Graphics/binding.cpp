@@ -2,9 +2,10 @@
 
 void Binding_::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
 {
-  if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS == 0)
+  if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
   {
-    D3D12_RESOURCE_BARRIER barrierDesc;
+    D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -17,9 +18,10 @@ void Binding_::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 
 void Binding_::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
 {
-  if (state & D3D12_RESOURCE_STATE_GENERIC_READ == 0)
+  if (state != D3D12_RESOURCE_STATE_GENERIC_READ)
   {
-    D3D12_RESOURCE_BARRIER barrierDesc;
+    D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -32,9 +34,10 @@ void Binding_::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 
 void Binding_::checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state)
 {
-  if (state & D3D12_RESOURCE_STATE_GENERIC_READ == 0)
+  if (state != D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
   {
-    D3D12_RESOURCE_BARRIER barrierDesc;
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -46,7 +49,7 @@ void Binding_::checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 }
 
 
-void Binding_::UAV(unsigned int index, BufferUAV buf)
+void Binding_::UAV(unsigned int index, BufferUAV& buf)
 {
   checkResourceStateUAV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_uavs.at(index).first;
@@ -64,7 +67,7 @@ void Binding_::UAV(unsigned int index, TextureUAV tex)
 }
 */
 
-void Binding_::SRV(unsigned int index, BufferSRV buf)
+void Binding_::SRV(unsigned int index, BufferSRV& buf)
 {
   checkResourceStateSRV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_srvs.at(index).first;
@@ -82,7 +85,7 @@ void Binding_::SRV(unsigned int index, TextureSRV tex)
 }
 */
 
-void Binding_::CBV(unsigned int index, BufferCBV buf)
+void Binding_::CBV(unsigned int index, BufferCBV& buf)
 {
   checkResourceStateCBV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_cbvs.at(index).first;

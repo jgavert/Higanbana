@@ -99,31 +99,36 @@ private:
       }
     });
 
-
+	
 	t.addTest("Pipeline binding and modify data in compute (sub 50 lines!)", [&]()
 	{
 		GpuFence fence = dev.createFence();
 
-    ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+		ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
 
-    struct buf
-    {
-      int i;
-      int k;
-      int x;
-      int y;
-    };
-		auto srcdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Upload);
-		auto dstdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
-		auto completedata = dev.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
-		auto rbdata = dev.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Readback);
+		struct buf
+		{
+			int i;
+			int k;
+			int x;
+			int y;
+		};
+		unsigned int shaderGroup = 64;
+		unsigned int inputSize = 100;
+		unsigned int _bufferSize = shaderGroup*inputSize;
+		auto srcdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Upload);
+		auto dstdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Gpu);
+		auto completedata = dev.createBufferUAV(Dimension(_bufferSize), Format<buf>(), ResUsage::Gpu);
+		auto rbdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Readback);
 
 		{
 			auto tmp = srcdata.buffer().Map<buf>();
-			for (int i = 0;i < srcdata.buffer().size; ++i)
+			for (int i = 0; i < srcdata.buffer().size; ++i)
 			{
-        tmp[i].i = i;
-        tmp[i].k = i;
+				tmp[i].i = i;
+				tmp[i].k = i;
+				tmp[i].x = 0;
+				tmp[i].y = 0;
 			}
 		}
 
@@ -131,31 +136,38 @@ private:
 		auto bind = gfx.bind(pipeline);
 		bind.SRV(0, dstdata);
 		bind.UAV(0, completedata);
-    unsigned int shaderGroup = 50;
-    unsigned int inputSize = 1000 * 1000;
-		gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
-
-		gfx.CopyResource(rbdata.buffer(), completedata.buffer());
-    gfx.close();
-    queue.submit(gfx);
+		//F_LOG("going over by %u\n", goingOverBy);
+		gfx.Dispatch(bind, inputSize, 1, 1);
+		/*
+		gfx.close();
+		queue.submit(gfx);
 		queue.insertFence(fence);
 		fence.wait();
-    auto mapd = rbdata.buffer().Map<buf>();
-    for (int i = 0;i < rbdata.buffer().size;++i)
-    {
-      auto& obj = mapd[i];
-      if (obj.i != i + i)
-      {
-        return false;
-      }
-      if (obj.k != i)
-      {
-        return false;
-      }
-    }
-    return true;
+		gfx.resetList();
+		*/
+		gfx.CopyResource(rbdata.buffer(), completedata.buffer());
+		gfx.close();
+		queue.submit(gfx);
+		queue.insertFence(fence);
+		fence.wait();
+		{
+			auto mapd = rbdata.buffer().Map<buf>();
+			for (int i = 0; i < rbdata.buffer().size; ++i)
+			{
+				auto& obj = mapd[i];
+				if (obj.i != i + i)
+				{
+					return false;
+				}
+				if (obj.k != i)
+				{
+					return false;
+				}
+			}
+		}
+		return true;
 	});
-
+	
 
 	t.addTest("render(?) for full 1 second in loop", [&]()
 	{

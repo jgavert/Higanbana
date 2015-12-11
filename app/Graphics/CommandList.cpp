@@ -16,7 +16,9 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 {
 	if (asd.m_resbars.size() > 0)
 	{
-		m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+		unsigned size = asd.m_resbars.size();
+		const D3D12_RESOURCE_BARRIER * barriers = asd.m_resbars.data();
+		m_CommandList->ResourceBarrier(size, barriers);
 		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
 	}
 	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
@@ -44,24 +46,28 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
-  if (dstdata.state & D3D12_RESOURCE_STATE_COPY_DEST == 0)
+  if (dstdata.state != D3D12_RESOURCE_STATE_COPY_DEST)
   {
     bD[count] = {};
+	bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     bD[count].Transition.pResource = dstdata.m_resource.get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     bD[count].Transition.StateBefore = dstdata.state;
+	dstdata.state = D3D12_RESOURCE_STATE_COPY_DEST;
     bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
     ++count;
   }
-  if (srcdata.state & D3D12_RESOURCE_STATE_COPY_SOURCE == 0)
+  if (srcdata.state != D3D12_RESOURCE_STATE_GENERIC_READ)
   {
     bD[count] = {};
+	bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     bD[count].Transition.pResource = srcdata.m_resource.get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     bD[count].Transition.StateBefore = srcdata.state;
-    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	srcdata.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
     ++count;
   }
   if (count > 0)
