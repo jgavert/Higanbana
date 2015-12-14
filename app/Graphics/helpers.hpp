@@ -205,7 +205,14 @@ public:
     auto woot = path;
     CShaderInclude include("", "");
     auto p = getShaderParams(type);
-    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), D3DCOMPILE_DEBUG, 0, shaderBlob.addr(), errorMsg.addr());
+	UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+#if !defined(RELEASE)
+	compileFlags |= D3DCOMPILE_DEBUG;
+#endif
+#if !defined(DEBUG)
+	compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), compileFlags, 0, shaderBlob.addr(), errorMsg.addr());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
     if (FAILED(hr))
     {
