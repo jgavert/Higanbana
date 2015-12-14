@@ -424,14 +424,6 @@ private:
 		return sc.valid();
 	});
 
-	t.addTest("Seemingly manage to create g-buffer(?)", [id]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
-
-		return false;
-	});
-
 	t.addTest("Create window and render(?) for full 1 second in loop", [&]()
 	{
 		SystemDevices sys;
