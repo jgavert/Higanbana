@@ -4,6 +4,7 @@
 #include <d3d12.h>
 #include <iostream>
 #include <string>
+#include <assert.h>
 
 
 class ResourceViewManager

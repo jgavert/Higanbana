@@ -329,12 +329,12 @@ public:
 				  if (it2.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
 				  {
 					  if (it2.NumDescriptors <= 128)
-						  srvdesctable = it2.BaseShaderRegister;
+						  srvdesctable = i;
 				  }
 				  else if (it2.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
 				  {
 					  if (it2.NumDescriptors <= 128)
-						  uavdesctable = it2.BaseShaderRegister;
+						  uavdesctable = i;
 				  }
 			  }
 		  }
