@@ -18,7 +18,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
   {
     // 
   }
-  ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
+  ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors, 32, 32);
 
 
   ComPtr<ID3D12DescriptorHeap> heap2;

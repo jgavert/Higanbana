@@ -331,7 +331,7 @@ public:
 
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
     auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descSRVHeap.getNextIndex();
+    auto index = m_descSRVHeap.getSRVIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
     m_device->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
@@ -380,13 +380,14 @@ public:
 
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
     auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descUAVHeap.getNextIndex(2);
+    auto index = m_descUAVHeap.getUAVIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index-128-128;
     m_device->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
+
   template <typename ...Args>
   TextureRTV createTextureRTV(Args&& ... args)
   {

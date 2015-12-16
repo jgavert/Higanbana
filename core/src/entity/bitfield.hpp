@@ -10,6 +10,8 @@
   inline unsigned long long __builtin_ctzll(unsigned long long x) { unsigned long r; _BitScanForward64(&r, x); return r; }
 #endif
 
+
+
   namespace faze
   {
     template <size_t rsize>
@@ -181,6 +183,55 @@
         }
         return offset + inner_idx + 64;
       }
+
+	  inline size_t max_retard(size_t a, size_t b) const
+	  {
+		  return (a < b) ? b : a;
+	  }
+
+	  inline size_t skip_find_firstEmpty_offset(size_t block, size_t start_offset) const
+	  {
+		  uint64_t a = _mm_extract_epi64(m_table[block], 0);
+		  uint64_t b = _mm_extract_epi64(m_table[block], 1);
+		  size_t inner_idx = __builtin_ctzll(a);
+		  size_t expectedEmpty = 0; // this will be uninitialized value if default value is "inner_idx". wtf!
+		  if (start_offset < 128)
+		  {
+			  while (a)
+			  {
+				  //table[idx++] = inner_idx + offset;
+				  if (expectedEmpty >= start_offset && inner_idx > expectedEmpty)
+				  {
+					  return expectedEmpty;
+				  }
+				  a &= ~(1LL << (inner_idx));
+				  ++expectedEmpty;
+				  inner_idx = __builtin_ctzll(a);
+			  }
+			  if (inner_idx + 64 > start_offset && inner_idx + 64 > expectedEmpty)
+			  {
+				  return max_retard(start_offset, expectedEmpty);
+			  }
+			  inner_idx = __builtin_ctzll(b);
+			  expectedEmpty = inner_idx;
+		  }
+		  while (b)
+		  {
+			  if (expectedEmpty >= start_offset && inner_idx > expectedEmpty)
+			  {
+				  return expectedEmpty + 64;
+			  }
+			  b &= ~(1LL << (inner_idx));
+			  ++expectedEmpty;
+			  inner_idx = __builtin_ctzll(b);
+		  }
+		  if (inner_idx + 64 > start_offset && inner_idx + 128 > expectedEmpty)
+		  {
+			  return max_retard(start_offset, expectedEmpty+64);
+		  }
+		  return inner_idx + 64;
+	  }
+
 
       template<size_t TableSize>
       inline size_t skip_find_indexes(std::array<size_t, TableSize>& table, size_t table_size, size_t index) const
