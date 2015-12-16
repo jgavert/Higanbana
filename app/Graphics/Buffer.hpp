@@ -88,6 +88,7 @@ struct Buffer
     if (FAILED(hr))
     {
       // something?
+		abort();
       //return nullptr;
     }
     return MappedBuffer<T>(m_resource, range, (type == ResUsage::Readback), ptr);

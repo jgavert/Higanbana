@@ -49,7 +49,7 @@ private:
     ZeroMemory(&rootDesc, sizeof(rootDesc));
     rootDesc.Flags = desc.Flags;
     rootDesc.NumParameters = desc.NumParameters;
-    for (int i = 0;i < desc.NumParameters;++i)
+    for (unsigned i = 0;i < desc.NumParameters;++i)
     {
       rootDesc.pParameters.push_back(rootParam());
     }
@@ -62,11 +62,11 @@ private:
       {
       case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
         rootDesc.pParameters[i].DescriptorTable.NumDescriptorRanges = it.DescriptorTable.NumDescriptorRanges;
-        for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges;++k)
+        for (unsigned k = 0; k < it.DescriptorTable.NumDescriptorRanges;++k)
         {
           rootDesc.pParameters[i].DescriptorTable.pDescriptorRanges.push_back(D3D12_DESCRIPTOR_RANGE());
         }
-        for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges;++k)
+        for (unsigned k = 0; k < it.DescriptorTable.NumDescriptorRanges;++k)
         {
           rootDesc.pParameters[i].DescriptorTable.pDescriptorRanges[k] = it.DescriptorTable.pDescriptorRanges[k];
         }
@@ -83,11 +83,11 @@ private:
       }
     }
     rootDesc.NumStaticSamplers = desc.NumStaticSamplers;
-    for (int i = 0;i < desc.NumStaticSamplers;++i)
+    for (unsigned i = 0;i < desc.NumStaticSamplers;++i)
     {
       rootDesc.pStaticSamplers.push_back(D3D12_STATIC_SAMPLER_DESC());
     }
-    for (int i = 0;i < desc.NumStaticSamplers;++i)
+    for (unsigned i = 0;i < desc.NumStaticSamplers;++i)
     {
       rootDesc.pStaticSamplers[i] = desc.pStaticSamplers[i];
     }
@@ -121,7 +121,7 @@ private:
         {
           return false;
         }
-        for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
+        for (unsigned k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
         {
           auto& it2 = it.DescriptorTable.pDescriptorRanges[k];
           auto& co2 = co.DescriptorTable.pDescriptorRanges[k];
@@ -184,7 +184,7 @@ private:
         {
           return false;
         }
-        for (int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
+        for (unsigned k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
         {
           auto& it2 = it.DescriptorTable.pDescriptorRanges[k];
           auto& co2 = co.DescriptorTable.pDescriptorRanges[k];

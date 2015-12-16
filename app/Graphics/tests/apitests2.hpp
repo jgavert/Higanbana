@@ -182,7 +182,7 @@ private:
         return false;
       }
 
-      hr = dev.mDevice->CreateRootSignature(
+      hr = dev.m_device->CreateRootSignature(
         1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(g_RootSig.addr()));
       return !FAILED(hr);

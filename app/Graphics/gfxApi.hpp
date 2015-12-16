@@ -91,13 +91,13 @@ public:
 
   GpuDevice CreateGpuDevice(bool better)
   {
-    ComPtr<ID3D12Device> mDevice;
-    HRESULT hr = D3D12CreateDevice(vAdapters[better ? betterDevice : lesserDevice], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
+    ComPtr<ID3D12Device> device;
+    HRESULT hr = D3D12CreateDevice(vAdapters[better ? betterDevice : lesserDevice], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
     if (FAILED(hr))
     {
       F_LOG("Device creation failed\n", 2);
     }
-    return std::move(GpuDevice(mDevice));
+    return std::move(GpuDevice(device));
   }
 
   GpuDevice CreateGpuDevice(int num)
