@@ -66,6 +66,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
 // Decided, hardcode this so that we can test better the resource managing and fix this later to be properly configurable.
 // swapchain holds the textures for now with the trivial way.
 // shit
+/*
 SwapChain GpuDevice::createSwapChain(Window& wnd, GpuCommandQueue& queue)
 {
   DXGI_SWAP_CHAIN_DESC swapChainDesc;
@@ -94,6 +95,7 @@ SwapChain GpuDevice::createSwapChain(Window& wnd, GpuCommandQueue& queue)
     dxgiFactory->Release();
     F_LOG("wtf error!", 2);
   }
+  */
   /*
   D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
   ZeroMemory(&heapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
@@ -121,9 +123,10 @@ SwapChain GpuDevice::createSwapChain(Window& wnd, GpuCommandQueue& queue)
   hr = mSwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget[1]);
   mRenderTarget[1]->SetName(L"mRenderTarget1");
   m_device->CreateRenderTargetView(mRenderTarget[1], nullptr, mRenderTargetView[1]);
-  */
+
   return std::move(SwapChain(mSwapChain));
 }
+*/
 
 // Needs to be created from descriptor
 GpuFence GpuDevice::createFence()
@@ -221,7 +224,10 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 	int descTableSRV = -1, descTableUAV = -1;
 	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
 	ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
-	return ComputePipeline(pipeline, existing, sourceBinding);
+	sourceBinding.m_descTableSRV.first = m_descHeaps.getGeneric().getSRVStartAddress();
+	sourceBinding.m_descTableUAV.first = m_descHeaps.getGeneric().getUAVStartAddress();
+	auto pipe = ComputePipeline(pipeline, existing, sourceBinding, m_descHeaps.getGeneric());
+	return pipe;
 }
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -301,5 +307,5 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
 	GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
 
-	return GraphicsPipeline(pipeline, newIf, sourceBinding);
+	return GraphicsPipeline(pipeline, newIf, sourceBinding, m_descHeaps.getGeneric());
 }

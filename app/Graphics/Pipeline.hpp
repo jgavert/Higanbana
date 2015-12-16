@@ -2,6 +2,7 @@
 #include "ComPtr.hpp"
 #include "binding.hpp"
 #include "ShaderInterface.hpp"
+#include "GpuResourceViewHeaper.hpp"
 #include <d3d12.h>
 #include <utility>
 
@@ -12,11 +13,14 @@ class ComputePipeline
   ComPtr<ID3D12PipelineState> pipeline;
   ShaderInterface m_shaderInterface;
   ComputeBinding rootBinding;
+  ResourceViewManager m_heap;
 
-  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, ComputeBinding sourceBinding):
+
+  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, ComputeBinding sourceBinding, ResourceViewManager heap):
     pipeline(std::move(pipe)),
     m_shaderInterface(shaderInterface),
-    rootBinding(sourceBinding) {}
+    rootBinding(sourceBinding),
+	m_heap(heap) {}
 public:
   ComputePipeline() :
     pipeline(nullptr),
@@ -33,6 +37,10 @@ public:
   {
     return m_shaderInterface;
   }
+  ResourceViewManager& getDescHeap()
+  {
+	  return m_heap;
+  }
   bool valid()
   {
     return pipeline.get() != nullptr;
@@ -46,10 +54,13 @@ class GraphicsPipeline
   ComPtr<ID3D12PipelineState> pipeline;
   ShaderInterface m_shaderInterface;
   GraphicsBinding rootDescriptor;
-  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, GraphicsBinding sourceBinding):
+  ResourceViewManager m_heap;
+
+  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, GraphicsBinding sourceBinding, ResourceViewManager heap):
     pipeline(std::move(pipe)),
     m_shaderInterface(shaderInterface),
-    rootDescriptor(sourceBinding) {}
+    rootDescriptor(sourceBinding),
+	m_heap(heap) {}
 public:
   GraphicsPipeline() :
     pipeline(nullptr),
@@ -65,6 +76,10 @@ public:
   ShaderInterface& getShaderInterface()
   {
     return m_shaderInterface;
+  }
+  ResourceViewManager& getDescHeap()
+  {
+	  return m_heap;
   }
   bool valid()
   {

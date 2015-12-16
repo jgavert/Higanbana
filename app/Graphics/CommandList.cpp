@@ -21,6 +21,16 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 		m_CommandList->ResourceBarrier(size, barriers);
 		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
 	}
+	{
+		if (asd.m_descTableSRV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableSRV.second, asd.m_descTableSRV.first);
+		}
+		if (asd.m_descTableUAV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableUAV.second, asd.m_descTableUAV.first);
+		}
+	}
 	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
 	{
 		if (asd.m_cbvs[i].first.ptr != 0)
@@ -175,6 +185,9 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
     m_CommandList->SetPipelineState(pipeline.getState());
     m_boundCptPipeline = nullptr;
   }
+  {
+	  m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.addr());
+  }
   return pipeline.getBinding();
 }
 
@@ -211,6 +224,16 @@ void GfxCommandList::bindGraphicsBinding(ComputeBinding& asd)
 	{
 		m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
 		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
+	}
+	{
+		if (asd.m_descTableSRV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableSRV.second, asd.m_descTableSRV.first);
+		}
+		if (asd.m_descTableUAV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableUAV.second, asd.m_descTableUAV.first);
+		}
 	}
 	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
 	{
