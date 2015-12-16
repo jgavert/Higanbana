@@ -114,6 +114,9 @@ ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
     m_CommandList->SetPipelineState(pipeline.getState());
     m_boundGfxPipeline = nullptr;
   }
+  {
+	m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.addr());
+  }
   return pipeline.getBinding();
 }
 

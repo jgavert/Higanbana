@@ -67,7 +67,7 @@ int EntryPoint::main()
     Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
 
     //graph.changeScreenPos(vec2}))
-    //graph.updateGraphCompute(gfx, 0.5f);
+    graph.updateGraphCompute(gfx, 0.5f);
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
     // compute from examples

@@ -54,11 +54,17 @@ private:
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
   size_t index;
 public:
-  D3D12_CPU_DESCRIPTOR_HANDLE getCpuHandle()
+	TextureView()
+	{
+		ZeroMemory(&cpuHandle, sizeof(cpuHandle));
+		ZeroMemory(&gpuHandle, sizeof(gpuHandle));
+		index = 0;
+	}
+  D3D12_CPU_DESCRIPTOR_HANDLE& getCpuHandle()
   {
     return cpuHandle;
   }
-  D3D12_GPU_DESCRIPTOR_HANDLE getGpuHandle()
+  D3D12_GPU_DESCRIPTOR_HANDLE& getGpuHandle()
   {
     return gpuHandle;
   }
