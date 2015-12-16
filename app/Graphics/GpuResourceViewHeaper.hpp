@@ -50,7 +50,7 @@ public:
     else
     {
 	  int emptyIndex = 0;
-	  emptyIndex = m_usedIndexes.skip_find_firstEmpty(fromBlock);
+	  emptyIndex = static_cast<int>(m_usedIndexes.skip_find_firstEmpty(fromBlock));
       m_usedIndexes.setIdxBit(emptyIndex);
       return emptyIndex;
     }

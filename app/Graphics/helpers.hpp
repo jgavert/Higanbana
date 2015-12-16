@@ -323,7 +323,7 @@ public:
 			  {
 				  continue;
 			  }
-			  for (int k = 0; k < num; ++k)
+			  for (unsigned k = 0; k < num; ++k)
 			  {
 				  auto& it2 = it.DescriptorTable.pDescriptorRanges[k];
 				  if (it2.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)

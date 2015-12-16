@@ -16,7 +16,7 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 {
 	if (asd.m_resbars.size() > 0)
 	{
-		unsigned size = asd.m_resbars.size();
+		unsigned size = static_cast<unsigned>(asd.m_resbars.size());
 		const D3D12_RESOURCE_BARRIER * barriers = asd.m_resbars.data();
 		m_CommandList->ResourceBarrier(size, barriers);
 		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
@@ -72,23 +72,23 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
   }
   if (count > 0)
   {
-    m_CommandList->ResourceBarrier(count, bD);
+    m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
   }
   m_CommandList->CopyResource(dstdata.m_resource.get(), srcdata.m_resource.get());
 }
 
-void CptCommandList::Dispatch(ComputeBinding asd, unsigned int x, unsigned int y, unsigned int z)
+void CptCommandList::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)
 {
   bindComputeBinding(asd);
 
   m_CommandList->Dispatch(x, y, z);
 }
 
-void CptCommandList::DispatchIndirect(ComputeBinding bind)
+void CptCommandList::DispatchIndirect(ComputeBinding& bind)
 {
+  bindComputeBinding(bind);
 
 }
-
 
 ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
 {
@@ -112,6 +112,54 @@ bool CptCommandList::isValid()
   return m_CommandList.get() != nullptr;
 }
 
+void CptCommandList::setHeaps(DescriptorHeapManager& heaps)
+{
+	m_CommandList->SetDescriptorHeaps(heaps.getCount(), heaps.getHeapPtr());
+}
+
+void CptCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
+{
+	if (m_srvBindlessIndex < 0)
+		return;
+	auto srvGpuStart = srvDescHeap.getGeneric().m_descHeap->GetGPUDescriptorHandleForHeapStart();
+	srvGpuStart.ptr += srvDescHeap.getGeneric().m_handleIncrementSize * 128;
+	m_CommandList->SetComputeRootDescriptorTable(m_srvBindlessIndex, srvGpuStart);
+}
+void CptCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
+{
+	if (m_uavBindlessIndex < 0)
+		return;
+	auto uavGpuStart = uavDescHeap.getGeneric().m_descHeap->GetGPUDescriptorHandleForHeapStart();
+	uavGpuStart.ptr += uavDescHeap.getGeneric().m_handleIncrementSize * 128 * 2;
+	m_CommandList->SetComputeRootDescriptorTable(m_uavBindlessIndex, uavGpuStart);
+}
+void CptCommandList::close()
+{
+	HRESULT hr;
+	hr = m_CommandList->Close();
+	if (FAILED(hr))
+	{
+		//
+	}
+	closed = true;
+}
+bool CptCommandList::isClosed()
+{
+	return closed;
+}
+
+void CptCommandList::resetList()
+{
+	m_CommandListAllocator->Reset();
+	if (m_boundCptPipeline != nullptr)
+		m_CommandList->Reset(m_CommandListAllocator.get(), m_boundCptPipeline->getState());
+	else
+		m_CommandList->Reset(m_CommandListAllocator.get(), nullptr);
+	closed = false;
+	if (m_boundShaderInterface.valid())
+		m_CommandList->SetComputeRootSignature(m_boundShaderInterface.m_rootSig.get());
+}
+
 
 GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
 {
@@ -130,7 +178,12 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
   return pipeline.getBinding();
 }
 
-void GfxCommandList::setViewPort(ViewPort view)
+ComputeBinding GfxCommandList::bind(ComputePipeline& pipeline)
+{
+	return CptCommandList::bind(pipeline);
+}
+
+void GfxCommandList::setViewPort(ViewPort& view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
   RECT rect;
@@ -141,13 +194,13 @@ void GfxCommandList::setViewPort(ViewPort view)
   m_CommandList->RSSetScissorRects(1, &rect);
 }
 
-void GfxCommandList::ClearRenderTargetView(TextureRTV rtv, faze::vec4 color)
+void GfxCommandList::ClearRenderTargetView(TextureRTV& rtv, faze::vec4 color)
 {
   m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
 }
 
 
-void GfxCommandList::ClearDepthView(TextureDSV dsv)
+void GfxCommandList::ClearDepthView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
 }
@@ -180,12 +233,80 @@ void GfxCommandList::bindGraphicsBinding(ComputeBinding& asd)
 	}
 }
 
-void GfxCommandList::ClearStencilView(TextureDSV dsv)
+void GfxCommandList::ClearStencilView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_STENCIL, 0.f, 0xFF, 0, nullptr);
 }
 
-void GfxCommandList::ClearDepthStencilView(TextureDSV dsv)
+void GfxCommandList::ClearDepthStencilView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0xFF, 0, nullptr);
+}
+
+void GfxCommandList::drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
+{
+	if (bind.m_resbars.size() > 0)
+	{
+		m_CommandList->ResourceBarrier(static_cast<UINT>(bind.m_resbars.size()), bind.m_resbars.data());
+		bind.m_resbars.clear();
+	}
+	for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
+	{
+		if (bind.m_cbvs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootConstantBufferView(bind.m_cbvs[i].second, bind.m_cbvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < bind.m_srvs.size(); ++i)
+	{
+		if (bind.m_srvs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootShaderResourceView(bind.m_srvs[i].second, bind.m_srvs[i].first.ptr);
+	}
+	for (size_t i = 0; i < bind.m_uavs.size(); ++i)
+	{
+		if (bind.m_uavs[i].first.ptr != 0)
+			m_CommandList->SetGraphicsRootUnorderedAccessView(bind.m_uavs[i].second, bind.m_uavs[i].first.ptr);
+	}
+	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
+}
+
+void GfxCommandList::drawInstancedRaw(unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
+{
+	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
+}
+
+void GfxCommandList::setRenderTarget(TextureRTV& rtv)
+{
+	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
+}
+
+void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
+{
+	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, &dsv.texture().view.getCpuHandle());
+}
+
+void GfxCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
+{
+	if (m_srvBindlessIndex < 0)
+		return;
+	auto srvGpuStart = srvDescHeap.getGeneric().m_descHeap->GetGPUDescriptorHandleForHeapStart();
+	srvGpuStart.ptr += srvDescHeap.getGeneric().m_handleIncrementSize * 128;
+	m_CommandList->SetGraphicsRootDescriptorTable(m_srvBindlessIndex, srvGpuStart);
+}
+void GfxCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
+{
+	if (m_uavBindlessIndex < 0)
+		return;
+	auto uavGpuStart = uavDescHeap.getGeneric().m_descHeap->GetGPUDescriptorHandleForHeapStart();
+	uavGpuStart.ptr += uavDescHeap.getGeneric().m_handleIncrementSize * 128 * 2;
+	m_CommandList->SetGraphicsRootDescriptorTable(m_uavBindlessIndex, uavGpuStart);
+}
+
+void GfxCommandList::resetList()
+{
+	m_CommandListAllocator->Reset();
+	m_CommandList->Reset(m_CommandListAllocator.get(), nullptr);
+	closed = false;
+	m_boundCptPipeline = nullptr;
+	m_boundGfxPipeline = nullptr;
+	m_boundShaderInterface = ShaderInterface();
 }

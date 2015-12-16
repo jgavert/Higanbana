@@ -24,7 +24,7 @@ private:
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
       D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
-      HRESULT hr = dev.mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
+      HRESULT hr = dev.m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
       return !FAILED(hr);
     });
 
@@ -61,7 +61,7 @@ private:
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       D3D12_HEAP_PROPERTIES heapprop = {};
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
 
       return !FAILED(hr);
     });
@@ -83,7 +83,7 @@ private:
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       D3D12_HEAP_PROPERTIES heapprop = {};
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
       if (FAILED(hr))
       {
 
@@ -116,7 +116,7 @@ private:
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       D3D12_HEAP_PROPERTIES heapprop = {};
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
 
       return !FAILED(hr);
     });
@@ -141,7 +141,7 @@ private:
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       D3D12_HEAP_PROPERTIES heapprop = {};
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
       if (FAILED(hr))
       {
 
@@ -174,7 +174,7 @@ private:
       ID3D12Resource *DestData;
 
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&DestData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&DestData));
       if (FAILED(hr))
       {
 
@@ -208,7 +208,7 @@ private:
       desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
       desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
-      HRESULT hr = dev.mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
+      HRESULT hr = dev.m_device->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
 
       return !FAILED(hr);
     });
@@ -229,7 +229,7 @@ private:
       desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
       desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
-      HRESULT hr = dev.mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
+      HRESULT hr = dev.m_device->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
       D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
       D3D12_RESOURCE_DESC datadesc = {};
       datadesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -240,7 +240,7 @@ private:
       datadesc.MipLevels = 1;
       datadesc.SampleDesc.Count = 1;
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      hr = dev.mDevice->CreatePlacedResource(m_heap, 0, &datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      hr = dev.m_device->CreatePlacedResource(m_heap, 0, &datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
 
       return !FAILED(hr);
     });
@@ -261,7 +261,7 @@ private:
       datadesc.MipLevels = 1;
       datadesc.SampleDesc.Count = 1;
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      hr = dev.mDevice->CreateReservedResource(&datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      hr = dev.m_device->CreateReservedResource(&datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
 
       return !FAILED(hr);
     });
@@ -284,7 +284,7 @@ private:
       datadesc.MipLevels = 1;
       datadesc.SampleDesc.Count = 1;
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      hr = dev.mDevice->CreateReservedResource(&datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      hr = dev.m_device->CreateReservedResource(&datadesc, state, 0, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
 
       if (FAILED(hr))
       {
@@ -301,7 +301,7 @@ private:
       desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
       desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
-      hr = dev.mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
+      hr = dev.m_device->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
       if (FAILED(hr))
       {
         return false;
@@ -342,7 +342,7 @@ private:
 
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
       if (FAILED(hr))
       {
         return false;
@@ -358,7 +358,7 @@ private:
       data->Unmap(0, &range);
 
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&DestData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&DestData));
       if (FAILED(hr))
       {
         return false;
@@ -386,7 +386,7 @@ private:
       readdesc.SampleDesc.Count = 1;
       readdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       heapprop.Type = D3D12_HEAP_TYPE_READBACK;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
       if (FAILED(hr))
       {
         return false;
@@ -437,7 +437,7 @@ private:
       datadesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       D3D12_HEAP_PROPERTIES heapprop = {};
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&data));
       if (FAILED(hr))
       {
         return false;
@@ -449,7 +449,7 @@ private:
       Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
       Desc.NumDescriptors = 1;
       Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-      hr = dev.mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
+      hr = dev.m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
       if (FAILED(hr))
       {
         return false;
@@ -467,7 +467,7 @@ private:
 
       D3D12_CPU_DESCRIPTOR_HANDLE cpuhandle = descHeap->GetCPUDescriptorHandleForHeapStart();
 
-      dev.mDevice->CreateShaderResourceView(data, &shaderSRV, cpuhandle);
+      dev.m_device->CreateShaderResourceView(data, &shaderSRV, cpuhandle);
       return true;
     });
 
@@ -532,7 +532,7 @@ private:
         return false;
       }
 
-      hr = dev.mDevice->CreateRootSignature(
+      hr = dev.m_device->CreateRootSignature(
         1, blobSig->GetBufferPointer(), blobSig->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&g_RootSig));
       return !FAILED(hr);
@@ -598,7 +598,7 @@ private:
         return false;
       }
 
-      hr = dev.mDevice->CreateRootSignature(
+      hr = dev.m_device->CreateRootSignature(
         0, blobSig->GetBufferPointer(), blobSig->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&g_RootSig));
       if (FAILED(hr))
@@ -615,7 +615,7 @@ private:
       comPi.pRootSignature = g_RootSig;
 
       ID3D12PipelineState* pipeline;
-      hr = dev.mDevice->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
+      hr = dev.m_device->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
       return !FAILED(hr);
     });
 
@@ -667,7 +667,7 @@ private:
 
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&UploadData));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&UploadData));
       if (FAILED(hr))
       {
         return false;
@@ -691,14 +691,14 @@ private:
       // -----------------------------GPU RESIDING BUFFERS------------------------
       // -------------------------------------------------------------------------
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuData));
       if (FAILED(hr))
       {
         return false;
       }
 
       datadesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuOutData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuOutData));
       if (FAILED(hr))
       {
         return false;
@@ -718,7 +718,7 @@ private:
       readdesc.SampleDesc.Count = 1;
       readdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       heapprop.Type = D3D12_HEAP_TYPE_READBACK;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
       if (FAILED(hr))
       {
         return false;
@@ -784,7 +784,7 @@ private:
         return false;
       }
 
-      hr = dev.mDevice->CreateRootSignature(
+      hr = dev.m_device->CreateRootSignature(
         0, blobSig->GetBufferPointer(), blobSig->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&g_RootSig));
       if (FAILED(hr))
@@ -803,7 +803,7 @@ private:
       comPi.pRootSignature = g_RootSig;
 
       ID3D12PipelineState* pipeline;
-      hr = dev.mDevice->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
+      hr = dev.m_device->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
       if (FAILED(hr))
       {
         return false;
@@ -818,7 +818,7 @@ private:
       Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
       Desc.NumDescriptors = 2;
       Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-      hr = dev.mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
+      hr = dev.m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
       if (FAILED(hr))
       {
         return false;
@@ -836,8 +836,8 @@ private:
       shaderSRV.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
       D3D12_CPU_DESCRIPTOR_HANDLE GpuDataSRV = descHeap->GetCPUDescriptorHandleForHeapStart();
-      size_t HandleIncrementSize = dev.mDevice->GetDescriptorHandleIncrementSize(Desc.Type);
-      dev.mDevice->CreateShaderResourceView(GpuData, &shaderSRV, GpuDataSRV);
+      size_t HandleIncrementSize = dev.m_device->GetDescriptorHandleIncrementSize(Desc.Type);
+      dev.m_device->CreateShaderResourceView(GpuData, &shaderSRV, GpuDataSRV);
 
       D3D12_BUFFER_UAV bufferUAV;
       bufferUAV.FirstElement = 0;
@@ -855,7 +855,7 @@ private:
       D3D12_CPU_DESCRIPTOR_HANDLE GpuOutDataUAV;
       GpuOutDataUAV.ptr = GpuDataSRV.ptr + 1 * HandleIncrementSize;
 
-      dev.mDevice->CreateUnorderedAccessView(GpuOutData,nullptr, &shaderUAV, GpuOutDataUAV);
+      dev.m_device->CreateUnorderedAccessView(GpuOutData,nullptr, &shaderUAV, GpuOutDataUAV);
 
       D3D12_GPU_DESCRIPTOR_HANDLE GpuView = descHeap->GetGPUDescriptorHandleForHeapStart();
       // -------------------------------------------------------------------------
@@ -966,7 +966,7 @@ private:
 
       heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-      HRESULT hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&UploadData));
+      HRESULT hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&UploadData));
       if (FAILED(hr))
       {
         return false;
@@ -990,14 +990,14 @@ private:
       // -----------------------------GPU RESIDING BUFFERS------------------------
       // -------------------------------------------------------------------------
       heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuData));
       if (FAILED(hr))
       {
         return false;
       }
 
       datadesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuOutData));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &datadesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&GpuOutData));
       if (FAILED(hr))
       {
         return false;
@@ -1017,7 +1017,7 @@ private:
       readdesc.SampleDesc.Count = 1;
       readdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       heapprop.Type = D3D12_HEAP_TYPE_READBACK;
-      hr = dev.mDevice->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
+      hr = dev.m_device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &readdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&readBackRes));
       if (FAILED(hr))
       {
         return false;
@@ -1063,7 +1063,7 @@ private:
         abort();
       }
 
-      hr = dev.mDevice->CreateRootSignature(
+      hr = dev.m_device->CreateRootSignature(
         1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&g_RootSig));
       if (FAILED(hr))
@@ -1082,7 +1082,7 @@ private:
       comPi.pRootSignature = g_RootSig;
 
       ID3D12PipelineState* pipeline;
-      hr = dev.mDevice->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
+      hr = dev.m_device->CreateComputePipelineState(&comPi, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&pipeline));
       if (FAILED(hr))
       {
         return false;
@@ -1097,7 +1097,7 @@ private:
       Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
       Desc.NumDescriptors = 2;
       Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-      hr = dev.mDevice->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
+      hr = dev.m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&descHeap));
       if (FAILED(hr))
       {
         return false;
@@ -1115,8 +1115,8 @@ private:
       shaderSRV.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
       D3D12_CPU_DESCRIPTOR_HANDLE GpuDataSRV = descHeap->GetCPUDescriptorHandleForHeapStart();
-      size_t HandleIncrementSize = dev.mDevice->GetDescriptorHandleIncrementSize(Desc.Type);
-      dev.mDevice->CreateShaderResourceView(GpuData, &shaderSRV, GpuDataSRV);
+      size_t HandleIncrementSize = dev.m_device->GetDescriptorHandleIncrementSize(Desc.Type);
+      dev.m_device->CreateShaderResourceView(GpuData, &shaderSRV, GpuDataSRV);
 
       D3D12_BUFFER_UAV bufferUAV;
       bufferUAV.FirstElement = 0;
@@ -1134,7 +1134,7 @@ private:
       D3D12_CPU_DESCRIPTOR_HANDLE GpuOutDataUAV;
       GpuOutDataUAV.ptr = GpuDataSRV.ptr + 1 * HandleIncrementSize;
 
-      dev.mDevice->CreateUnorderedAccessView(GpuOutData, nullptr, &shaderUAV, GpuOutDataUAV);
+      dev.m_device->CreateUnorderedAccessView(GpuOutData, nullptr, &shaderUAV, GpuOutDataUAV);
 
 
       // -------------------------------------------------------------------------
@@ -1223,7 +1223,7 @@ private:
       desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
       desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
-      HRESULT hr = dev.mDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
+      HRESULT hr = dev.m_device->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));
       return !FAILED(hr);
     });
 

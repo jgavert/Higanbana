@@ -26,159 +26,20 @@ private:
   friend class test;
   friend class ApiTests;
   friend class ApiTests2;
-  friend class SystemDevices;
+  friend class System_devices;
 
-  ComPtr<ID3D12Device>           mDevice;
+  ComPtr<ID3D12Device>          m_device;
   DescriptorHeapManager         m_descHeaps;
   std::vector<ShaderInterface>  m_shaderInterfaceCache;
 
-  GpuDevice(ComPtr<ID3D12Device> device);
 public:
+  GpuDevice(ComPtr<ID3D12Device> device);
   SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
   GpuFence createFence();
   GpuCommandQueue createQueue();
   GfxCommandList createUniversalCommandList();
-
-
-  // Pipelines
-  ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
-  {
-    ComPtr<ID3D12RootSignature>    m_gRootSig;
-	  ComPtr<ID3DBlob> blobCompute;
-    auto woot = stringutils::s2ws(desc.shaderSourcePath);
-    ShaderInterface existing;
-    shaderUtils::getShaderInfo(mDevice, ShaderType::Compute, woot, existing, blobCompute);
-    D3D12_SHADER_BYTECODE byte;
-    byte.pShaderBytecode = blobCompute->GetBufferPointer();
-    byte.BytecodeLength = blobCompute->GetBufferSize();
-
-    // figure out if we already have that rootDescriptor
-    bool hadOne = false;
-    for (auto&& it : m_shaderInterfaceCache)
-    {
-      if (it.isCopyOf(existing.m_rootDesc))
-      {
-        existing = it;
-        hadOne = true;
-        break;
-      }
-    }
-    if (!hadOne)
-    {
-      // new shaderinterface
-      m_shaderInterfaceCache.push_back(existing);
-    }
-    ComPtr<ID3D12RootSignatureDeserializer> asd;
-    HRESULT hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
-    if (FAILED(hr))
-    {
-      abort();
-    }
-    const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
-
-    // pipeline is allowed to be done after we have verified the rootDescriptor
-    D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
-    ZeroMemory(&computeDesc, sizeof(computeDesc));
-    computeDesc.CS = byte;
-    computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-    computeDesc.NodeMask = 0;
-    computeDesc.pRootSignature = m_gRootSig.get();
-
-    ComPtr<ID3D12PipelineState> pipeline;
-    hr = mDevice->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
-    if (FAILED(hr))
-    {
-      abort();
-    }
-
-    size_t cbv = 0, srv = 0, uav = 0;
-    int bindlessSRV, bindlessUAV;
-    auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-	  int descTableSRV = -1, descTableUAV = -1;
-	  shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
-    ComputeBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
-    return ComputePipeline(pipeline, existing, sourceBinding);
-  }
-
-  GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
-  {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = desc.getDesc();
-    ComPtr<ID3DBlob> blobVertex;
-    ComPtr<ID3DBlob> blobPixel;
-    ComPtr<ID3DBlob> blobGeometry;
-    ComPtr<ID3DBlob> blobHull;
-    ComPtr<ID3DBlob> blobDomain;
-    ShaderInterface newIf;
-    auto lam = [&](ComPtr<ID3DBlob>& blob, std::string shaderPath, ShaderType type)
-    {
-      if (!shaderPath.empty())
-      {
-        auto woot = stringutils::s2ws(shaderPath);
-        shaderUtils::getShaderInfo(mDevice, type, woot, newIf, blob);
-      }
-    };
-    lam(blobVertex, desc.vertexShaderPath, ShaderType::Vertex);
-    lam(blobPixel, desc.pixelShaderPath, ShaderType::Pixel);
-    lam(blobGeometry, desc.geometryShaderPath, ShaderType::Geometry);
-    lam(blobHull, desc.hullShaderPath, ShaderType::Hull);
-    lam(blobDomain, desc.domainShaderPath, ShaderType::Domain);
-
-    // need to check, if we had new rootdescriptor or not.
-    bool hadOne = false;
-    for (auto&& it : m_shaderInterfaceCache)
-    {
-      if (it.isCopyOf(newIf.m_rootDesc))
-      {
-        newIf = it;
-        hadOne = true;
-        break;
-      }
-    }
-    if (!hadOne)
-    {
-      // new shaderinterface
-      m_shaderInterfaceCache.push_back(newIf);
-    }
-
-    auto modi = [](D3D12_SHADER_BYTECODE& byte, ComPtr<ID3DBlob> blob)
-    {
-      if (blob.get() != nullptr)
-      {
-        byte.BytecodeLength = blob->GetBufferSize();
-        byte.pShaderBytecode = blob->GetBufferPointer();
-      }
-    };
-
-    modi(graphicsDesc.VS, blobVertex);
-    modi(graphicsDesc.PS, blobPixel);
-    modi(graphicsDesc.GS, blobGeometry);
-    modi(graphicsDesc.HS, blobHull);
-    modi(graphicsDesc.DS, blobDomain);
-    graphicsDesc.pRootSignature = newIf.m_rootSig.get();
-    ComPtr<ID3D12PipelineState> pipeline;
-    HRESULT hr = mDevice->CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
-    if (FAILED(hr))
-    {
-      abort();
-    }
-
-    // reflect the root signature
-    ComPtr<ID3D12RootSignatureDeserializer> asd;
-    hr = D3D12CreateRootSignatureDeserializer(blobVertex->GetBufferPointer(), blobVertex->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
-    if (FAILED(hr))
-    {
-      abort();
-    }
-    const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
-
-    size_t cbv = 0, srv = 0, uav = 0;
-    auto bindingInput = shaderUtils::getRootDescriptorReflection(woot2, cbv, srv, uav);
-	int descTableSRV = -1, descTableUAV = -1;
-	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
-    GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
-
-    return GraphicsPipeline(pipeline, newIf, sourceBinding);
-  }
+  ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
+  GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
   // buffers
 private:
@@ -225,7 +86,7 @@ public:
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.buffer().type = ResUsage::Readback;
     }
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.buffer().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -252,7 +113,7 @@ public:
     view.index = m_descHeap.getNextIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
 
-    mDevice->CreateShaderResourceView(buf.buffer().m_resource.get(), &shaderSRV, view.cpuHandle);
+    m_device->CreateShaderResourceView(buf.buffer().m_resource.get(), &shaderSRV, view.cpuHandle);
 
     view.gpuHandle.ptr = m_descHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart().ptr + view.index*m_descHeap.m_handleIncrementSize;
 
@@ -285,7 +146,7 @@ public:
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.buffer().type = ResUsage::Readback;
     }
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop, 
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop, 
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.buffer().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -313,7 +174,7 @@ public:
     view.index = m_descHeap.getNextIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
 
-    mDevice->CreateUnorderedAccessView(buf.buffer().m_resource.get(), nullptr, &shaderUAV, view.cpuHandle);
+    m_device->CreateUnorderedAccessView(buf.buffer().m_resource.get(), nullptr, &shaderUAV, view.cpuHandle);
 
     view.gpuHandle.ptr = m_descHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart().ptr + view.index*m_descHeap.m_handleIncrementSize;
 
@@ -344,7 +205,7 @@ public:
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.buffer().type = ResUsage::Readback;
     }
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.buffer().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -382,7 +243,7 @@ public:
       buf.buffer().state = D3D12_RESOURCE_STATE_COPY_DEST;
       buf.buffer().type = ResUsage::Readback;
     }
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.buffer().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -401,7 +262,7 @@ public:
     view.index = m_descHeap.getNextIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
 
-    mDevice->CreateConstantBufferView(&shaderCBV, view.cpuHandle);
+    m_device->CreateConstantBufferView(&shaderCBV, view.cpuHandle);
 
     view.gpuHandle.ptr = m_descHeap.m_descHeap->GetGPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
 
@@ -456,7 +317,7 @@ public:
       buf.texture().type = ResUsage::Readback;
     }
 
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.texture().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -473,7 +334,7 @@ public:
     auto index = m_descSRVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
-    mDevice->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
+    m_device->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -506,7 +367,7 @@ public:
       buf.texture().type = ResUsage::Readback;
     }
 
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.texture().state, nullptr, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -522,7 +383,7 @@ public:
     auto index = m_descUAVHeap.getNextIndex(2);
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index-128-128;
-    mDevice->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, buf.texture().view.getCpuHandle());
+    m_device->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -562,7 +423,7 @@ public:
     clearVal.Color[3] = 1.f;
     clearVal.Format = desc.Format;
 
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -579,7 +440,7 @@ public:
     auto index = m_descRTVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
-    mDevice->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
+    m_device->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
   }
@@ -617,7 +478,7 @@ public:
     clearVal.DepthStencil.Stencil = 0xff;
     clearVal.Format = desc.Format;
 
-    HRESULT hr = mDevice->CreateCommittedResource(&heapprop,
+    HRESULT hr = m_device->CreateCommittedResource(&heapprop,
       D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
       buf.texture().state, &clearVal, __uuidof(ID3D12Resource),
       reinterpret_cast<void**>(ptr.addr()));
@@ -639,14 +500,14 @@ public:
     viewdesc.Texture2D.MipSlice = 0;
     viewdesc.Flags = D3D12_DSV_FLAG_NONE;
 
-    mDevice->CreateDepthStencilView(buf.texture().m_resource.get(), &viewdesc, buf.texture().view.getCpuHandle());
+    m_device->CreateDepthStencilView(buf.texture().m_resource.get(), &viewdesc, buf.texture().view.getCpuHandle());
 
     return buf;
   }
 
   bool isValid()
   {
-    return mDevice.get() != nullptr;
+    return m_device.get() != nullptr;
   }
 
   // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
@@ -715,7 +576,7 @@ public:
     {
       hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
       //mRenderTarget->SetName(L"mRenderTarget0");  //set debug name 
-      mDevice->CreateRenderTargetView(mRenderTarget, &desc, mRenderTargetView[i]);
+      m_device->CreateRenderTargetView(mRenderTarget, &desc, mRenderTargetView[i]);
       buf.m_scRTV = mRenderTarget;
       buf.texture().view.cpuHandle = mRenderTargetView[i];
       buf.texture().view.index = indexes[i];
