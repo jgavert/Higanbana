@@ -35,7 +35,7 @@ private:
 	  m_srvCount(srvCount),
 	  m_uavCount(uavCount)
   {
-    assert(size > srvCount + uavCount && size < 128*8);
+    assert(size >= srvCount + uavCount && size < 128*8);
   }
 
 
@@ -125,7 +125,7 @@ public:
   D3D12_GPU_DESCRIPTOR_HANDLE getUAVStartAddress()
   {
 	  D3D12_GPU_DESCRIPTOR_HANDLE woot = m_descHeap->GetGPUDescriptorHandleForHeapStart();
-	  woot.ptr = m_uavStart*m_handleIncrementSize;
+	  woot.ptr += m_uavStart*m_handleIncrementSize;
 	  return woot;
   }
 
@@ -137,7 +137,7 @@ public:
   D3D12_GPU_DESCRIPTOR_HANDLE getSRVStartAddress()
   {
 	  D3D12_GPU_DESCRIPTOR_HANDLE woot = m_descHeap->GetGPUDescriptorHandleForHeapStart();
-	  woot.ptr = m_srvStart*m_handleIncrementSize;
+	  woot.ptr += m_srvStart*m_handleIncrementSize;
 	  return woot;
   }
 

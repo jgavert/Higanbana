@@ -2,7 +2,7 @@
 
 uint constant : register ( b1 );
 ConstantBuffer<consts> consta : register( b0 );
-RWTexture2D<float4> OutputTex[63] : register( u1 );
+RWTexture2D<float4> OutputTex[31] : register( u1 );
 
 [RootSignature(MyRS1)]
 [numthreads(64, 1, 1)] // 64 on code side also

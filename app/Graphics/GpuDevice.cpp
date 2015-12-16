@@ -5,13 +5,14 @@
 
 GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
 {
-  size_t descriptorHeapMaxSize = 128;
+  m_nullSrv = createTextureSrvObj(Dimension(1,1));
+  m_nullUav = createTextureUavObj(Dimension(1,1));
 
   ComPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 128*4; // 128 of any type
+  Desc.NumDescriptors = 64; // 128 of any type
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   HRESULT hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
   if (FAILED(hr))
@@ -19,6 +20,29 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
     // 
   }
   ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors, 32, 32);
+  // srv's
+  
+  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc;
+  ZeroMemory(&srvdesc, sizeof(srvdesc));
+  auto lol = heap->GetCPUDescriptorHandleForHeapStart();
+  UINT HandleIncrementSize = m_device->GetDescriptorHandleIncrementSize(Desc.Type);
+  for (int i = 0; i < 32; i++)
+  {
+	  auto lol2 = lol;
+	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
+	  m_device->CreateShaderResourceView(m_nullSrv.texture().m_resource.get(), nullptr, lol2);
+  }
+
+  // uav's
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc;
+  ZeroMemory(&uavdesc, sizeof(uavdesc));
+  for (int i = 32; i < 64; i++)
+  {
+	  auto lol2 = lol;
+	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
+	  m_device->CreateUnorderedAccessView(m_nullUav.texture().m_resource.get(), nullptr, nullptr, lol2);
+  }
+  
 
 
   ComPtr<ID3D12DescriptorHeap> heap2;
@@ -51,6 +75,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
   // special heaps for bindless textures/buffers
   // actually no special heaps, need to use one special
   // generic needs to be splitted into ranges.
+
   m_descHeaps.m_heaps[DescriptorHeapManager::Generic] = descHeap;
   m_descHeaps.m_rawHeaps[DescriptorHeapManager::Generic] = descHeap.m_descHeap.get();
 
@@ -59,6 +84,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
 
   m_descHeaps.m_heaps[DescriptorHeapManager::DSV] = descDSVHeap;
   m_descHeaps.m_rawHeaps[DescriptorHeapManager::DSV] = descDSVHeap.m_descHeap.get();
+
 }
 
 // Needs to be created from descriptor, if you say you have 2 buffers, it is expected that this will then handle it.

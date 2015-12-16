@@ -823,6 +823,7 @@ private:
       {
         return false;
       }
+	  D3D12_GPU_DESCRIPTOR_HANDLE GpuView = descHeap->GetGPUDescriptorHandleForHeapStart();
       // Actual descriptors
       D3D12_BUFFER_SRV bufferSRV;
       bufferSRV.FirstElement = 0;
@@ -856,8 +857,6 @@ private:
       GpuOutDataUAV.ptr = GpuDataSRV.ptr + 1 * HandleIncrementSize;
 
       dev.m_device->CreateUnorderedAccessView(GpuOutData,nullptr, &shaderUAV, GpuOutDataUAV);
-
-      D3D12_GPU_DESCRIPTOR_HANDLE GpuView = descHeap->GetGPUDescriptorHandleForHeapStart();
       // -------------------------------------------------------------------------
       // -------------------------Begin Commandlist-------------------------------
       // -------------------------------------------------------------------------

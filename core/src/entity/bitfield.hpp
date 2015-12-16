@@ -189,13 +189,14 @@
 		  return (a < b) ? b : a;
 	  }
 
+	  // this is bullshit
 	  inline size_t skip_find_firstEmpty_offset(size_t block, size_t start_offset) const
 	  {
 		  uint64_t a = _mm_extract_epi64(m_table[block], 0);
 		  uint64_t b = _mm_extract_epi64(m_table[block], 1);
 		  size_t inner_idx = __builtin_ctzll(a);
 		  size_t expectedEmpty = 0; // this will be uninitialized value if default value is "inner_idx". wtf!
-		  if (start_offset < 128)
+		  if (start_offset < 64)
 		  {
 			  while (a)
 			  {
