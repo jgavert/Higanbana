@@ -129,6 +129,8 @@ int EntryPoint::main()
 
     GpuFence fence = gpu.createFence();
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+	//gfx.preparePresent(sc[0]);
+	//gfx.preparePresent(sc[1]);
     gfx.close();
     queue.submit(gfx);
     queue.insertFence(fence);
@@ -147,7 +149,7 @@ int EntryPoint::main()
       {
         GpuProfilingBracket(queue, "Frame");
 		{ // set heaps 
-			gfx.setHeaps(gpu.getDescHeaps());
+			//gfx.setHeaps(gpu.getDescHeaps());
 		}
         {
           //graph.updateGraphCompute(gfx, std::sinf(time));
@@ -162,10 +164,10 @@ int EntryPoint::main()
           }
           gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
         }
+        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
         {
           GpuProfilingBracket(gfx, "Clearing&Setting RTV");
           gfx.setViewPort(port);
-          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
           gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
           gfx.setRenderTarget(sc[backBufferIndex]);
         }
@@ -198,9 +200,10 @@ int EntryPoint::main()
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
         { // post process
-          //graph.drawGraph(gfx);
+          graph.drawGraph(gfx);
         }
         // submit all
+		gfx.preparePresent(sc[backBufferIndex]);
         gfx.close();
         queue.submit(gfx);
 

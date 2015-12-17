@@ -81,6 +81,7 @@ public:
   void drawInstancedRaw(unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId);
   void setRenderTarget(TextureRTV& rtv);
   void setRenderTarget(TextureRTV& rtv, TextureDSV& dsv);
+  void preparePresent(TextureRTV& rtv);
   void setSRVBindless(DescriptorHeapManager& srvDescHeap);
   void setUAVBindless(DescriptorHeapManager& uavDescHeap);
   void resetList();
