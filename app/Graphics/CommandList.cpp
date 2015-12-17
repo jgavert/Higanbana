@@ -300,13 +300,70 @@ void GfxCommandList::drawInstancedRaw(unsigned int vertexCountPerInstance, unsig
 	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
 }
 
+void GfxCommandList::preparePresent(TextureRTV& rtv)
+{
+	if (rtv.texture().state != D3D12_RESOURCE_STATE_PRESENT)
+	{
+		D3D12_RESOURCE_BARRIER desc = {};
+		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		desc.Transition.pResource = rtv.textureRTV();
+		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		desc.Transition.StateBefore = rtv.texture().state;
+		rtv.texture().state = D3D12_RESOURCE_STATE_PRESENT;
+		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		m_CommandList->ResourceBarrier(1, &desc);
+	}
+}
+
 void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 {
+	/*
+	if (rtv.texture().state != D3D12_RESOURCE_STATE_RENDER_TARGET)
+	{
+		D3D12_RESOURCE_BARRIER desc = {};
+		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		desc.Transition.pResource = rtv.textureRTV();
+		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		desc.Transition.StateBefore = rtv.texture().state;
+		rtv.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		m_CommandList->ResourceBarrier(1, &desc);
+	}
+	*/
 	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
 }
 
 void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 {
+	D3D12_RESOURCE_BARRIER desc[2];
+	int count = 0;
+	if (rtv.texture().state != D3D12_RESOURCE_STATE_RENDER_TARGET)
+	{
+		desc[count] = {};
+		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		desc[count].Transition.pResource = rtv.textureRTV(); // uh oh
+		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		desc[count].Transition.StateBefore = rtv.texture().state;
+		rtv.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		desc[count].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		++count;
+	}
+	if (dsv.texture().state != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+	{
+		desc[count] = {};
+		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		desc[count].Transition.pResource = dsv.texture().m_resource.get();
+		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		desc[count].Transition.StateBefore = dsv.texture().state;
+		dsv.texture().state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		desc[count].Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	}
+	if (count != 0)
+		m_CommandList->ResourceBarrier(count, desc);
 	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, &dsv.texture().view.getCpuHandle());
 }
 

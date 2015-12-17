@@ -464,7 +464,7 @@ public:
 
     UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
     auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
-    auto index = m_descUAVHeap.getUAVIndex()-1;
+    auto index = m_descUAVHeap.getUAVIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
 	D3D12_CPU_DESCRIPTOR_HANDLE handle;

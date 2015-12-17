@@ -87,8 +87,8 @@ public:
 		  emptyIndex = static_cast<int>(m_usedIndexes.skip_find_firstEmpty_offset(block, offset));
 		  if (emptyIndex <= offset+range && emptyIndex >= offset)
 		  {
-			m_usedIndexes.setIdxBit(start + emptyIndex);
-			return start + emptyIndex;
+			m_usedIndexes.setIdxBit(128*block + emptyIndex);
+			return 128*block + emptyIndex;
 		  }
 		  else
 		  {
