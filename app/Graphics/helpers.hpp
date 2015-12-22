@@ -212,6 +212,9 @@ public:
 #if !defined(DEBUG)
 	compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
+// IF you really need to debug shaders, uncomment.
+//  compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+
     HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), compileFlags, 0, shaderBlob.addr(), errorMsg.addr());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
     if (FAILED(hr))
