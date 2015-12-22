@@ -318,7 +318,6 @@ void GfxCommandList::preparePresent(TextureRTV& rtv)
 
 void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 {
-	/*
 	if (rtv.texture().state != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
 		D3D12_RESOURCE_BARRIER desc = {};
@@ -331,7 +330,6 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		m_CommandList->ResourceBarrier(1, &desc);
 	}
-	*/
 	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
 }
 
