@@ -8,39 +8,54 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
   m_nullSrv = createTextureSrvObj(Dimension(1,1));
   m_nullUav = createTextureUavObj(Dimension(1,1));
 
+  constexpr unsigned HeapSRVCount = 6;
+  constexpr unsigned HeapUAVCount = HeapSRVCount;
+  constexpr unsigned HeapDescriptorCount = HeapSRVCount + HeapUAVCount;
+
   ComPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  Desc.NumDescriptors = 64; // 128 of any type
+  Desc.NumDescriptors = HeapDescriptorCount; // 128 of any type
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   HRESULT hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
   if (FAILED(hr))
   {
     // 
   }
-  ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors, 32, 32);
+  ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), HeapDescriptorCount, HeapSRVCount, HeapUAVCount);
   // srv's
   
-  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc;
-  ZeroMemory(&srvdesc, sizeof(srvdesc));
+
   auto lol = heap->GetCPUDescriptorHandleForHeapStart();
   UINT HandleIncrementSize = m_device->GetDescriptorHandleIncrementSize(Desc.Type);
-  for (int i = 0; i < 32; i++)
+
+  // srv desc
+  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc;
+  ZeroMemory(&srvdesc, sizeof(srvdesc));
+  srvdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  srvdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  srvdesc.Texture2D.MipLevels = 1;
+
+  for (int i = 0; i < HeapSRVCount; i++)
   {
 	  auto lol2 = lol;
 	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateShaderResourceView(m_nullSrv.texture().m_resource.get(), nullptr, lol2);
+	  m_device->CreateShaderResourceView(m_nullSrv.texture().m_resource.get(), &srvdesc, lol2);
   }
 
   // uav's
-  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc;
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
   ZeroMemory(&uavdesc, sizeof(uavdesc));
-  for (int i = 32; i < 64; i++)
+  uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+  uavdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  //uavdesc.Texture2D
+  for (int i = HeapSRVCount; i < HeapUAVCount; i++)
   {
 	  auto lol2 = lol;
 	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateUnorderedAccessView(m_nullUav.texture().m_resource.get(), nullptr, nullptr, lol2);
+	  m_device->CreateUnorderedAccessView(m_nullUav.texture().m_resource.get(), nullptr, &uavdesc, lol2);
   }
   
 
