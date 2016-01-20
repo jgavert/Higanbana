@@ -149,7 +149,7 @@ int EntryPoint::main()
       {
         GpuProfilingBracket(queue, "Frame");
 		{ // set heaps 
-			//gfx.setHeaps(gpu.getDescHeaps());
+			gfx.setHeaps(gpu.getDescHeaps());
 		}
         {
           //graph.updateGraphCompute(gfx, std::sinf(time));
