@@ -4,6 +4,7 @@ CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr
   :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator),
   m_boundCptPipeline(nullptr), m_boundGfxPipeline(nullptr)
   , m_uavBindlessIndex(-1), m_srvBindlessIndex(-1)
+	, m_graphicsBound(false)
 {
 }
 
@@ -103,10 +104,11 @@ void CptCommandList::DispatchIndirect(ComputeBinding& bind)
 ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
 {
   auto& inf = pipeline.getShaderInterface();
-  if (m_boundShaderInterface != inf)
+  if (m_boundShaderInterface != inf || m_graphicsBound)
   {
     m_boundShaderInterface = inf;
     m_CommandList->SetComputeRootSignature(inf.m_rootSig.get());
+	m_graphicsBound = false;
   }
   if (m_boundCptPipeline != &pipeline)
   {
@@ -177,10 +179,11 @@ void CptCommandList::resetList()
 GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
 {
   auto& inf = pipeline.getShaderInterface();
-  if (m_boundShaderInterface != inf)
+  if (m_boundShaderInterface != inf || !m_graphicsBound)
   {
     m_boundShaderInterface = inf;
     m_CommandList->SetGraphicsRootSignature(inf.m_rootSig.get());
+	m_graphicsBound = true;
   }
   if (m_boundGfxPipeline != &pipeline)
   {
@@ -275,6 +278,16 @@ void GfxCommandList::drawInstanced(GraphicsBinding& bind, unsigned int vertexCou
 	{
 		m_CommandList->ResourceBarrier(static_cast<UINT>(bind.m_resbars.size()), bind.m_resbars.data());
 		bind.m_resbars.clear();
+	}
+	{
+		if (bind.m_descTableSRV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(bind.m_descTableSRV.second, bind.m_descTableSRV.first);
+		}
+		if (bind.m_descTableUAV.second != -1)
+		{
+			m_CommandList->SetComputeRootDescriptorTable(bind.m_descTableUAV.second, bind.m_descTableUAV.first);
+		}
 	}
 	for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
 	{

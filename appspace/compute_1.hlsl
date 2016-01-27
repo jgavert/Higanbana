@@ -1,9 +1,6 @@
-#define MyRS1 "RootFlags( DENY_VERTEX_SHADER_ROOT_ACCESS), " \
-              "SRV(t0), " \
-              "UAV(u0) "
+#include "rootSig.hlsl"
 
-
-struct buffer
+struct buffer2
 {
   int i;
   int k;
@@ -11,8 +8,8 @@ struct buffer
   int y;
 };
 
-StructuredBuffer<buffer> Ind : register(t0);
-RWStructuredBuffer<buffer> Outd : register(u0);
+StructuredBuffer<buffer2> Ind : register(t0);
+RWStructuredBuffer<buffer2> Outd : register(u0);
 
 [RootSignature(MyRS1)]
 [numthreads(64, 1, 1)]

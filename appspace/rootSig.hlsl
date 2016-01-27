@@ -3,8 +3,8 @@
         "CBV(b0), " \
         "SRV(t0), " \
         "UAV(u0), " \
-        "DescriptorTable( SRV(t1, numDescriptors = 127)), " \
-        "DescriptorTable( UAV(u1, numDescriptors = 63))"
+        "DescriptorTable( SRV(t1, numDescriptors = 3)), " \
+        "DescriptorTable( UAV(u1, numDescriptors = 3))"
 struct Constants
 {
   float4x4 worldMatrix;

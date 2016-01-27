@@ -64,7 +64,7 @@ int EntryPoint::main()
 
     using namespace rendering::utils;
 
-    //Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
+    Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
 
     //graph.changeScreenPos(vec2}))
     //graph.updateGraphCompute(gfx, 0.5f);
@@ -116,6 +116,7 @@ int EntryPoint::main()
       float filler;
     };
 
+    auto lol = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
     auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
     auto dstConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
 
@@ -148,11 +149,8 @@ int EntryPoint::main()
 
       {
         GpuProfilingBracket(queue, "Frame");
-		{ // set heaps 
-			gfx.setHeaps(gpu.getDescHeaps());
-		}
         {
-          //graph.updateGraphCompute(gfx, std::sinf(time));
+          graph.updateGraphCompute(gfx, std::sinf(time));
         }
 
         {
@@ -200,7 +198,7 @@ int EntryPoint::main()
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
         { // post process
-          //graph.drawGraph(gfx);
+          graph.drawGraph(gfx);
         }
         // submit all
 		gfx.preparePresent(sc[backBufferIndex]);

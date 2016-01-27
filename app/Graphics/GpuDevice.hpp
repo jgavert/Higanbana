@@ -644,7 +644,7 @@ public:
     buf.texture().width = swapChainDesc.BufferDesc.Width;
     buf.texture().height = swapChainDesc.BufferDesc.Height;
     buf.texture().stride = 1;
-    buf.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    buf.texture().state = D3D12_RESOURCE_STATE_PRESENT;
     buf.texture().type = ResUsage::Gpu;
 
     buf.texture().view.cpuHandle = mRenderTargetView[0];

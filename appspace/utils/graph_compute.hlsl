@@ -2,9 +2,9 @@
 
 uint constant : register ( b1 );
 ConstantBuffer<consts> consta : register( b0 );
-RWTexture2D<float4> OutputTex[31] : register( u1 );
+RWTexture2D<float4> OutputTex[3] : register( u1 );
 
-[RootSignature(MyRS1)]
+[RootSignature(MyRS3)]
 [numthreads(64, 1, 1)] // 64 on code side also
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
