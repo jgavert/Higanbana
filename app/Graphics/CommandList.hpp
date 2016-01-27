@@ -29,6 +29,7 @@ private:
   ShaderInterface m_boundShaderInterface;
   ComputePipeline* m_boundCptPipeline;
   GraphicsPipeline* m_boundGfxPipeline;
+  bool m_graphicsBound;
 
   int m_srvBindlessIndex;
   int m_uavBindlessIndex;

@@ -4,7 +4,7 @@ uint constant : register ( b1 );
 ConstantBuffer<consts> consta : register( b0 );
 // uav missing
 
-[RootSignature(MyRS1)]
+[RootSignature(MyRS3)]
 PSInput VSMain(uint id: SV_VertexID)
 {
   PSInput output;

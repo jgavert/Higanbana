@@ -347,6 +347,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	int descTableSRV = -1, descTableUAV = -1;
 	shaderUtils::getRootDescriptorReflection2(woot2, descTableSRV, descTableUAV);
 	GraphicsBinding sourceBinding(bindingInput, static_cast<unsigned int>(cbv), static_cast<unsigned int>(srv), static_cast<unsigned int>(uav), descTableSRV, descTableUAV);
-
+	sourceBinding.m_descTableSRV.first = m_descHeaps.getGeneric().getSRVStartAddress();
+	sourceBinding.m_descTableUAV.first = m_descHeaps.getGeneric().getUAVStartAddress();
 	return GraphicsPipeline(pipeline, newIf, sourceBinding, m_descHeaps.getGeneric());
 }

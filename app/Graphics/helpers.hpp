@@ -63,17 +63,19 @@ void fillData(D3D12_RESOURCE_DESC& desc, D3D12_HEAP_PROPERTIES& heapProp,
   {
   case ResUsage::Upload:
     heapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
-    heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    //heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     break;
   case ResUsage::Gpu:
     heapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	//heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
     break;
   case ResUsage::Readback:
     heapProp.Type = D3D12_HEAP_TYPE_READBACK;
-    heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    //heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     break;
   default:
     heapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	//heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
     break;
   }
   fillData(desc, heapProp, std::forward<Args>(args)...);
