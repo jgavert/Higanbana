@@ -22,5 +22,5 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	}
 	// need to get texture pos, look at min/max if the val is in the same y coordinate, and put it white.
 	// otherwise put alpha 0.0 to make it transparent. (I guess)
-	OutputTex[constant][uv] = finalColor;
+	OutputTex[0][uv] = finalColor;
 }
