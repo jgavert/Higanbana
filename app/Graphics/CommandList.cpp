@@ -224,21 +224,23 @@ void GfxCommandList::ClearDepthView(TextureDSV& dsv)
   m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
 }
 
-void GfxCommandList::bindGraphicsBinding(ComputeBinding& asd)
+void GfxCommandList::bindGraphicsBinding(GraphicsBinding& asd)
 {
 	if (asd.m_resbars.size() > 0)
 	{
-		m_CommandList->ResourceBarrier(asd.m_resbars.size(), asd.m_resbars.data());
+		unsigned size = static_cast<unsigned>(asd.m_resbars.size());
+		const D3D12_RESOURCE_BARRIER * barriers = asd.m_resbars.data();
+		m_CommandList->ResourceBarrier(size, barriers);
 		asd.m_resbars.clear(); // don't if binding many times, don't accidentally add tons of useless resource barriers.
 	}
 	{
 		if (asd.m_descTableSRV.second != -1)
 		{
-			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableSRV.second, asd.m_descTableSRV.first);
+			m_CommandList->SetGraphicsRootDescriptorTable(asd.m_descTableSRV.second, asd.m_descTableSRV.first);
 		}
 		if (asd.m_descTableUAV.second != -1)
 		{
-			m_CommandList->SetComputeRootDescriptorTable(asd.m_descTableUAV.second, asd.m_descTableUAV.first);
+			m_CommandList->SetGraphicsRootDescriptorTable(asd.m_descTableUAV.second, asd.m_descTableUAV.first);
 		}
 	}
 	for (size_t i = 0; i < asd.m_cbvs.size(); ++i)
@@ -274,36 +276,7 @@ void GfxCommandList::ClearDepthStencilView(TextureDSV& dsv)
 
 void GfxCommandList::drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
 {
-	if (bind.m_resbars.size() > 0)
-	{
-		m_CommandList->ResourceBarrier(static_cast<UINT>(bind.m_resbars.size()), bind.m_resbars.data());
-		bind.m_resbars.clear();
-	}
-	{
-		if (bind.m_descTableSRV.second != -1)
-		{
-			m_CommandList->SetComputeRootDescriptorTable(bind.m_descTableSRV.second, bind.m_descTableSRV.first);
-		}
-		if (bind.m_descTableUAV.second != -1)
-		{
-			m_CommandList->SetComputeRootDescriptorTable(bind.m_descTableUAV.second, bind.m_descTableUAV.first);
-		}
-	}
-	for (size_t i = 0; i < bind.m_cbvs.size(); ++i)
-	{
-		if (bind.m_cbvs[i].first.ptr != 0)
-			m_CommandList->SetGraphicsRootConstantBufferView(bind.m_cbvs[i].second, bind.m_cbvs[i].first.ptr);
-	}
-	for (size_t i = 0; i < bind.m_srvs.size(); ++i)
-	{
-		if (bind.m_srvs[i].first.ptr != 0)
-			m_CommandList->SetGraphicsRootShaderResourceView(bind.m_srvs[i].second, bind.m_srvs[i].first.ptr);
-	}
-	for (size_t i = 0; i < bind.m_uavs.size(); ++i)
-	{
-		if (bind.m_uavs[i].first.ptr != 0)
-			m_CommandList->SetGraphicsRootUnorderedAccessView(bind.m_uavs[i].second, bind.m_uavs[i].first.ptr);
-	}
+	bindGraphicsBinding(bind);
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
 }

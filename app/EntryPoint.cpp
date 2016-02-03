@@ -129,8 +129,6 @@ int EntryPoint::main()
 
     GpuFence fence = gpu.createFence();
     gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
-	//gfx.preparePresent(sc[0]);
-	//gfx.preparePresent(sc[1]);
     gfx.close();
     queue.submit(gfx);
     queue.insertFence(fence);

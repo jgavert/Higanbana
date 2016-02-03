@@ -77,8 +77,8 @@ public:
   void ClearDepthStencilView(TextureDSV& dsv);
   void ClearStencilView(TextureDSV& dsv);
   void ClearDepthView(TextureDSV& dsv);
-  void bindGraphicsBinding(ComputeBinding& bind);
-  void drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId);
+  void bindGraphicsBinding(GraphicsBinding& bind);
+  void drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount = 1, unsigned int startVertexId = 0, unsigned int startInstanceId = 0);
   void drawInstancedRaw(unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId);
   void setRenderTarget(TextureRTV& rtv);
   void setRenderTarget(TextureRTV& rtv, TextureDSV& dsv);

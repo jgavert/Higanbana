@@ -70,7 +70,7 @@ namespace rendering
       auto bind = gfx.bind(m_drawPipeline);
       bind.CBV(0, m_graphConstants); // has the "vertex" data
       bind.rootConstant(0, m_graphTexture.texture().view.getIndex());
-      gfx.drawInstanced(bind, 6, 1, 0, 0); // box
+      gfx.drawInstanced(bind, 6); // box
     }
 
     void Graph::changeMin(float min)
