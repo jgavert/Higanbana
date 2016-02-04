@@ -12,7 +12,7 @@ float4 PSMain(PSInput input) : SV_Target
   // need to sample the UAV from coordinates
   float2 uv = (input.uv);
   uv += float2(1.f, 1.f);
-  uv.x += ((float)consta.startUvX) / ((float)consta.width)*2.0;
+  uv.x += ((float)consta.startUvX+1) / ((float)consta.width)*2.0;
   if (uv.x >= 2.0)
     uv.x -= 2.0;
   return float4(tex[0].Load(int2(uv*int2(400,100))).xyzw);
