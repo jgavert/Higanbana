@@ -43,6 +43,7 @@ int EntryPoint::main()
 
   auto main = [=](std::string name)
   {
+    LBS lbs;
     Logger log;
     WTime t;
     vec2 res = { 800.f, 600.f };
@@ -64,34 +65,9 @@ int EntryPoint::main()
 
     using namespace rendering::utils;
 
-    Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
+    Graph graph(gpu, -1.f, 1.f, ivec2({ 1600,600 }));
 
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
-	
-    ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor()
-      .shader("compute_1.hlsl"));
-
-    struct buf
-    {
-      int i;
-      int k;
-      int x;
-      int y;
-    };
-    auto srcdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Upload);
-    auto dstdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
-    auto completedata = gpu.createBufferUAV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Gpu);
-    auto rbdata = gpu.createBufferSRV(Dimension(1000 * 1000), Format<buf>(), ResUsage::Readback);
-	
-    {
-      auto tmp = srcdata.buffer().Map<buf>();
-      for (int i = 0;i < srcdata.buffer().size; ++i)
-      {
-        tmp[i].i = i;
-        tmp[i].k = i;
-      }
-    }
-	
 
     // graphics 
 
@@ -112,7 +88,7 @@ int EntryPoint::main()
       float filler;
     };
 
-	auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
+	  auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
     auto dstConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
 
     {
@@ -124,7 +100,6 @@ int EntryPoint::main()
 
 
     GpuFence fence = gpu.createFence();
-    gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
     gfx.close();
     queue.submit(gfx);
     queue.insertFence(fence);
@@ -137,9 +112,13 @@ int EntryPoint::main()
       if (window.simpleReadMessages())
         break;
 
-      fence.wait();
-      gfx.resetList();
+      lbs.addTask("StartFrame", [&](size_t, size_t)
+      {
+        fence.wait();
+        gfx.resetList();
+      });
 
+      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t, size_t)
       {
         GpuProfilingBracket(queue, "Frame");
         {
@@ -162,25 +141,6 @@ int EntryPoint::main()
           gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
           gfx.setRenderTarget(sc[backBufferIndex]);
         }
-		
-        {
-          GpuProfilingBracket(gfx, "Copy the compute job");
-          gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
-        }
-        {
-          GpuProfilingBracket(gfx, "Dispatch");
-          auto bind = gfx.bind(pipeline);
-          bind.SRV(0, dstdata);
-          bind.UAV(0, completedata);
-          unsigned int shaderGroup = 64;
-          unsigned int inputSize = 1000 * 1000;
-          gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
-        }
-
-        {
-          GpuProfilingBracket(gfx, "Copy dispatch results");
-          gfx.CopyResource(rbdata.buffer(), completedata.buffer());
-        }
 
         {
           GpuProfilingBracket(gfx, "DrawTriangle");
@@ -188,24 +148,31 @@ int EntryPoint::main()
           bind.CBV(0, dstConstants);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
         }
+
         { // post process
           graph.drawGraph(gfx);
         }
         // submit all
-		gfx.preparePresent(sc[backBufferIndex]);
+        gfx.preparePresent(sc[backBufferIndex]);
+      });
+
+      lbs.addTask("Submit&Present", { "FillCommandlists" }, {}, [&](size_t, size_t)
+      {
         gfx.close();
         queue.submit(gfx);
 
         // present
         {
           GpuProfilingBracket(queue, "Presenting frame");
-          sc->Present(0, 0);
+          sc->Present(1, 0);
         }
-      }
-      queue.insertFence(fence);
+        queue.insertFence(fence);
+      });
+
+      lbs.sleepTillKeywords({ "Submit&Present" });
       t.tick();
       time += t.getFrameTimeDelta();
-	  log.update();
+	    log.update();
     }
     t.printStatistics();
     log.update();

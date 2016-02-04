@@ -15,6 +15,7 @@ void CptCommandList::setResourceBarrier()
 
 void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 {
+
 	if (asd.m_resbars.size() > 0)
 	{
 		unsigned size = static_cast<unsigned>(asd.m_resbars.size());
