@@ -15,12 +15,19 @@ namespace rendering
     {
       m_cmdPipeline = device.createComputePipeline(ComputePipelineDescriptor().shader("utils/graph_compute.hlsl"));
       // shouldnt need to know that its doing srgb, device should know.
-      m_drawPipeline = device.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("utils/pixel_drawGraph.hlsl")
-        .VertexShader("utils/vertex_drawGraph.hlsl")
-        .setRenderTargetCount(1)
-        .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
-        .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
+	  m_drawPipeline = device.createGraphicsPipeline(GraphicsPipelineDescriptor()
+		  .PixelShader("utils/pixel_drawGraph.hlsl")
+		  .VertexShader("utils/vertex_drawGraph.hlsl")
+		  .setRenderTargetCount(1)
+		  .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+		  .DepthStencil(DepthStencilDescriptor().DepthEnable(false))
+		  .Blend(GraphicsBlendDescriptor()
+			  .setRenderTarget(0, RenderTargetBlendDescriptor()
+				  .BlendEnable(true)
+				  .setBlendOp(BlendOp::Add)
+				  .BlendOpAlpha(BlendOp::Add)
+				  .SrcBlend(Blend::SrcAlpha)
+				  .DestBlend(Blend::InvSrcAlpha))));
 
       m_uploadConstants = device.createConstantBuffer(Dimension(1), Format<consts>(), ResUsage::Upload);
       m_graphConstants = device.createConstantBuffer(Dimension(1), Format<consts>(), ResUsage::Gpu);
