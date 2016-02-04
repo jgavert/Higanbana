@@ -89,26 +89,49 @@ public:
     }
   }
 
-  GpuDevice CreateGpuDevice(bool better)
+  GpuDevice CreateGpuDevice(bool debug = false, bool warpDriver = false)
   {
-    ComPtr<ID3D12Device> device;
-    HRESULT hr = D3D12CreateDevice(vAdapters[better ? betterDevice : lesserDevice], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
-    if (FAILED(hr))
-    {
-      F_LOG("Device creation failed\n", 2);
-    }
-    return std::move(GpuDevice(device));
+#ifdef DEBUG
+    debug = true;
+#endif
+    return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
 
-  GpuDevice CreateGpuDevice(int num)
+  GpuDevice CreateGpuDevice(int num, bool debug = false, bool warpDriver = false)
   {
-    ComPtr<ID3D12Device> mDevice;
-    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&mDevice));
+    if (debug)
+    {
+      ComPtr<ID3D12Debug> debugController;
+      if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), reinterpret_cast<void**>(debugController.addr()))))
+      {
+        debugController->EnableDebugLayer();
+      }
+    }
+    ComPtr<ID3D12Device> device;
+    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
     if (FAILED(hr))
     {
       F_LOG("Device creation failed\n", 2);
     }
-    return std::move(GpuDevice(mDevice));
+    else if (debug)
+    {
+      ComPtr<ID3D12DebugDevice> debugInterface;
+      if (SUCCEEDED(device->QueryInterface(debugInterface.addr())))
+      {
+        debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+      }
+
+      // configure infoqueue
+      ComPtr<ID3D12InfoQueue> infoQueue;
+      if (SUCCEEDED(device->QueryInterface(infoQueue.addr())))
+      {
+        infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+        infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
+        infoQueue->SetBreakOnID(D3D12_MESSAGE_ID_SET_ROOT_CONSTANT_BUFFER_VIEW_INVALID, false);
+        infoQueue->SetBreakOnID(D3D12_MESSAGE_ID_CREATE_CONSTANT_BUFFER_VIEW_INVALID_RESOURCE, false);
+      }
+    }
+    return std::move(GpuDevice(device, debug));
   }
 
   GpuInfo getInfo(int num)

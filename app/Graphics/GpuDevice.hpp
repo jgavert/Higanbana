@@ -29,13 +29,14 @@ private:
   friend class System_devices;
 
   ComPtr<ID3D12Device>          m_device;
+  bool                          m_debugLayer;
   DescriptorHeapManager         m_descHeaps;
   std::vector<ShaderInterface>  m_shaderInterfaceCache;
-  TextureSRV					m_nullSrv;
-  TextureUAV					m_nullUav;
+  TextureSRV					          m_nullSrv;
+  TextureUAV					          m_nullUav;
 
 public:
-  GpuDevice(ComPtr<ID3D12Device> device);
+  GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer);
   SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
   GpuFence createFence();
   GpuCommandQueue createQueue();

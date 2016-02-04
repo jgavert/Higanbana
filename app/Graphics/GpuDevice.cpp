@@ -3,7 +3,7 @@
 #include "ComPtr.hpp"
 #include "core/src/tests/TestWorks.hpp"
 
-GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
+GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
 {
   m_nullSrv = createTextureSrvObj(Dimension(1,1));
   m_nullUav = createTextureUavObj(Dimension(1,1));
@@ -102,88 +102,21 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device) : m_device(device)
 
 }
 
-// Needs to be created from descriptor, if you say you have 2 buffers, it is expected that this will then handle it.
-// gpudevice handles the memory so it's fine. Strange that I don't have any heap stuff yet. hmm
-// Decided, hardcode this so that we can test better the resource managing and fix this later to be properly configurable.
-// swapchain holds the textures for now with the trivial way.
-// shit
-/*
-SwapChain GpuDevice::createSwapChain(Window& wnd, GpuCommandQueue& queue)
-{
-  DXGI_SWAP_CHAIN_DESC swapChainDesc;
-  ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-  swapChainDesc.BufferCount = 2;
-  swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swapChainDesc.OutputWindow = wnd.getNative();
-  swapChainDesc.SampleDesc.Count = 1;
-  swapChainDesc.Windowed = TRUE;
-  swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-  swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-  IDXGIFactory2 *dxgiFactory = nullptr;
-  HRESULT hr;
-  hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&dxgiFactory);
-  if (FAILED(hr))
-  {
-    //
-  }
-  ComPtr<IDXGISwapChain3> mSwapChain;
-  hr = dxgiFactory->CreateSwapChain(queue.m_CommandQueue.get(), &swapChainDesc, (IDXGISwapChain**)mSwapChain.addr());
-  dxgiFactory->Release();
-  if (FAILED(hr))
-  {
-    dxgiFactory->Release();
-    F_LOG("wtf error!", 2);
-  }
-  */
-  /*
-  D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
-  ZeroMemory(&heapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-  heapDesc.NumDescriptors = 2;
-  heapDesc.Type = D3D12_RTV_DESCRIPTOR_HEAP; //must set the type
-  ID3D12DescriptorHeap* mDescriptorHeap;
-  D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[2];
-  hr = m_device->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&mDescriptorHeap);
-
-  //create cpu descriptor handle for backbuffer 0
-  mRenderTargetView[0] = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
-  //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
-  UINT HandleIncrementSize = m_device->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP);
-  mRenderTargetView[1] = mRenderTargetView[0].MakeOffsetted(1, HandleIncrementSize);
-
-  ID3D12Resource* mRenderTarget[2];
-  //A buffer is required to render to.This example shows how to create that buffer by using the swap chain and device.
-  //This example shows calling ID3D12Device::CreateRenderTargetView.
-  hr = mSwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget[0]);
-  mRenderTarget[0]->SetName(L"mRenderTarget0");  //set debug name 
-  m_device->CreateRenderTargetView(mRenderTarget[0], nullptr, mRenderTargetView[0]);
-
-  //repeat for buffer #2
-  hr = mSwapChain->GetBuffer(1, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget[1]);
-  mRenderTarget[1]->SetName(L"mRenderTarget1");
-  m_device->CreateRenderTargetView(mRenderTarget[1], nullptr, mRenderTargetView[1]);
-
-  return std::move(SwapChain(mSwapChain));
-}
-*/
-
 // Needs to be created from descriptor
 GpuFence GpuDevice::createFence()
 {
-  ID3D12Fence* mFence;
-  m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&mFence);
+  ComPtr<ID3D12Fence> mFence;
+  m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(mFence.addr()));
   return std::move(GpuFence(mFence));
 }
 
 GpuCommandQueue GpuDevice::createQueue()
 {
-  ID3D12CommandQueue* m_CommandQueue;
+  ComPtr<ID3D12CommandQueue> m_CommandQueue;
   HRESULT hr;
   D3D12_COMMAND_QUEUE_DESC desc = {};
   desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-  hr = m_device->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), reinterpret_cast<void**>(&m_CommandQueue));
+  hr = m_device->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), reinterpret_cast<void**>(m_CommandQueue.addr()));
   if (FAILED(hr))
   {
     //
