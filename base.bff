@@ -10,7 +10,7 @@ Settings
         .Environment  = { "PATH=$VSBasePath$\Common7\IDE\;$VSBasePath$\VC\bin\",
                             "TMP=C:\Windows\Temp",
                             "SystemRoot=C:\Windows" }
-        .CachePath    = "Z:\fastbuild\cache"
+        .CachePath    = .FBuildCache
     #endif
 }
 // definitions
@@ -187,11 +187,11 @@ Compiler( 'Compiler-x64' )
 //------------------------------------------------------------------------------
 .ProjectCommon = 
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache ^$(ProjectName)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean ^$(ProjectName)-^$(Configuration)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)\bin\^$(Configuration)\App'
   .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Configuration)\App'
-  .Platform                 = 'x64' // unused
+  .Platform                 = 'x64'
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
