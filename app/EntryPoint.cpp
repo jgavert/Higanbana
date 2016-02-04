@@ -66,11 +66,7 @@ int EntryPoint::main()
 
     Graph graph(gpu, -1.f, 1.f, ivec2({ 800,200 }));
 
-    //graph.changeScreenPos(vec2}))
-    //graph.updateGraphCompute(gfx, 0.5f);
-
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
-    // compute from examples
 	
     ComputePipeline pipeline = gpu.createComputePipeline(ComputePipelineDescriptor()
       .shader("compute_1.hlsl"));
@@ -180,13 +176,11 @@ int EntryPoint::main()
           unsigned int inputSize = 1000 * 1000;
           gfx.Dispatch(bind, inputSize / shaderGroup, 1, 1);
         }
-		
 
         {
           GpuProfilingBracket(gfx, "Copy dispatch results");
           gfx.CopyResource(rbdata.buffer(), completedata.buffer());
         }
-		
 
         {
           GpuProfilingBracket(gfx, "DrawTriangle");
@@ -218,7 +212,5 @@ int EntryPoint::main()
   };
 
   main("w1");
-  
-
-	return 1;
+  return 1;
 }
