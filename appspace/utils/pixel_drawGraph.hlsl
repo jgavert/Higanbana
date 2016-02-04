@@ -15,7 +15,7 @@ float4 PSMain(PSInput input) : SV_Target
   uv.x += ((float)consta.startUvX) / ((float)consta.width)*2.0;
   if (uv.x >= 2.0)
     uv.x -= 2.0;
-  return float4(tex[0].Load(int2(uv*int2(400,100))).xyz, 0.5);
+  return float4(tex[0].Load(int2(uv*int2(400,100))).xyzw);
 
   if (constant == 0)
   	return float4(1.0, 0, 0, 0.1);
