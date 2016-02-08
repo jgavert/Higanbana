@@ -6,6 +6,7 @@
 #include "core/src/entity/database.hpp"
 #include "core/src/system/time.hpp"
 #include "core/src/tests/schedulertests.hpp"
+#include "core/src/tests/bitfield_tests.hpp"
 #include "Graphics/gfxApi.hpp"
 #include "graphics/tests/apitests.hpp"
 #include "graphics/tests/apitests2.hpp"
@@ -23,7 +24,7 @@ using namespace faze;
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
-  /*
+
   {
     ApiTests tests;
     tests.run(m_params);
@@ -36,9 +37,12 @@ int EntryPoint::main()
   {
     SchedulerTests::Run();
   }
-  */
-  //return 1;
+  //return 0;
  
+	{
+		BitfieldTests::Run();
+	}
+	return 0;
   
 
   auto main = [=](std::string name)
@@ -65,8 +69,16 @@ int EntryPoint::main()
 
     using namespace rendering::utils;
 
-    Graph graph(gpu, -1.f, 1.f, ivec2({ 1600,600 }));
-
+	auto texSize = ivec2({ 400,200 });
+	std::vector<Graph> graphs;
+	float startpos = 0.9f;
+	float heightpos = 0.3f;
+	for (int i = 0; i < 3; ++i)
+	{
+		Graph graph(gpu, -1.f, 1.f, texSize);
+		graph.changeScreenPos({-1.0f, startpos-(i*heightpos)}, {-0.5f, startpos - ((i+1.f)*heightpos) });
+		graphs.emplace_back(graph);
+	}
     auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
     // graphics 
@@ -118,11 +130,14 @@ int EntryPoint::main()
         gfx.resetList();
       });
 
-      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t, size_t)
+      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t i, size_t cpu)
       {
         GpuProfilingBracket(queue, "Frame");
         {
-          graph.updateGraphCompute(gfx, std::sinf(time));
+			for (auto&& it : graphs)
+			{
+				it.updateGraphCompute(gfx, std::sinf(time + cpu));
+			}
         }
 
         {
@@ -150,7 +165,10 @@ int EntryPoint::main()
         }
 
         { // post process
-          graph.drawGraph(gfx);
+			for (auto&& it : graphs)
+			{
+				it.drawGraph(gfx);
+			}
         }
         // submit all
         gfx.preparePresent(sc[backBufferIndex]);
@@ -179,5 +197,5 @@ int EntryPoint::main()
   };
 
   main("w1");
-  return 1;
+  return 0;
 }
