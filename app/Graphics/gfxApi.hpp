@@ -93,6 +93,7 @@ public:
   {
 #ifdef DEBUG
     debug = true;
+	warpDriver = true;
 #endif
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }

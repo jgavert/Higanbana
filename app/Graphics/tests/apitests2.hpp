@@ -148,8 +148,9 @@ private:
     // doing dynamic reflection might give the best results. Atleast easiest.
     // Maybe compare root signature between shaders or just define some "extract_rootsignature.hlsl" thats included to every file.
     // Honestly sounds fine, just the problem of creating "root signature" object that knows what to put and where needed to be done.
-    t.addTest("shader root signature", [&]()
+    t.addTest("shader root signature (DISABLED)", [&]()
     {
+		return false;
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComPtr<ID3DBlob> blobCompute;
@@ -188,8 +189,9 @@ private:
       return !FAILED(hr);
     });
 
-	t.addTest("shader root signature mirror structure", [&]()
+	t.addTest("shader root signature mirror structure (DISABLED)", [&]()
 	{
+		return false;
 		SystemDevices sys;
 		GpuDevice dev = sys.CreateGpuDevice(id);
 		ComPtr<ID3DBlob> blobCompute;
