@@ -58,9 +58,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -158,9 +158,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -257,9 +257,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -307,7 +307,6 @@ private:
         for (size_t i = 1; i < lbs.threadCount(); ++i)
         {
           m_cmds[i].setViewPort(port);
-          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
           //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
           m_cmds[i].setRenderTarget(sc[backBufferIndex]);
         }
@@ -315,12 +314,12 @@ private:
         lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
         {
           auto& gfx2 = m_cmds[threadIndex];
-          size_t workAmount = currentTriangleCount / 100;
-          size_t startIndex = workAmount * id;
+          unsigned workAmount = currentTriangleCount / 100;
+          unsigned startIndex = static_cast<unsigned>(workAmount * id);
           auto bind = gfx2.bind(pipeline);
           bind.SRV(0, dstdata);
           gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
-          for (int i = startIndex+1; i < startIndex + workAmount; ++i)
+          for (unsigned i = startIndex+1; i < startIndex + workAmount; ++i)
           {
             gfx2.drawInstancedRaw(3, 1, 0, i);
           }
@@ -376,9 +375,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -426,7 +425,6 @@ private:
         for (size_t i = 1; i < lbs.threadCount(); ++i)
         {
           m_cmds[i].setViewPort(port);
-          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
           //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
           m_cmds[i].setRenderTarget(sc[backBufferIndex]);
         }
@@ -434,9 +432,9 @@ private:
         lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
         {
           auto& gfx2 = m_cmds[threadIndex];
-          size_t workAmount = currentTriangleCount / 100;
-          size_t startIndex = workAmount * id;
-          for (int i = startIndex; i < startIndex + workAmount; ++i)
+          unsigned workAmount = currentTriangleCount / 100;
+          unsigned startIndex = static_cast<unsigned>(workAmount * id);
+          for (unsigned i = startIndex; i < startIndex + workAmount; ++i)
           {
             auto bind = gfx2.bind(pipeline);
             bind.SRV(0, dstdata);
@@ -494,9 +492,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -596,9 +594,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -697,9 +695,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -750,7 +748,6 @@ private:
         for (size_t i = 1; i < lbs.threadCount(); ++i)
         {
           m_cmds[i].setViewPort(port);
-          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
           //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
           m_cmds[i].setRenderTarget(sc[backBufferIndex]);
         }
@@ -758,12 +755,12 @@ private:
         lbs.addParallelFor<1>("fillCommands", {}, {}, 0, 100, [&](size_t id, size_t threadIndex)
         {
           auto& gfx2 = m_cmds[threadIndex];
-          size_t workAmount = currentTriangleCount / 100;
-          size_t startIndex = workAmount * id;
+          unsigned workAmount = static_cast<unsigned>(currentTriangleCount / 100);
+          unsigned startIndex = static_cast<unsigned>(workAmount * id);
           auto bind = gfx2.bind(pipeline);
           bind.SRV(0, dstdata);
           gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
-          for (int i = startIndex + 1; i < startIndex + workAmount; ++i)
+          for (unsigned i = startIndex + 1; i < startIndex + workAmount; ++i)
           {
             gfx2.drawInstancedRaw(3, 1, 0, i);
           }
@@ -819,9 +816,9 @@ private:
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
-          it[0] = dis(gen);
-          it[1] = dis(gen);
-          it[2] = dis2(gen);
+          it[0] = static_cast<float>(dis(gen));
+          it[1] = static_cast<float>(dis(gen));
+          it[2] = static_cast<float>(dis2(gen));
         }
       }
 
@@ -872,7 +869,6 @@ private:
         for (size_t i = 1; i < lbs.threadCount(); ++i)
         {
           m_cmds[i].setViewPort(port);
-          auto backBufferIndex = sc->GetCurrentBackBufferIndex();
           //m_cmds[i].ClearRenderTargetView(sc[backBufferIndex], vec);
           m_cmds[i].setRenderTarget(sc[backBufferIndex]);
         }
@@ -882,7 +878,7 @@ private:
           auto& gfx2 = m_cmds[threadIndex];
           size_t workAmount = currentTriangleCount / 100;
           size_t startIndex = workAmount * id;
-          for (int i = startIndex; i < startIndex + workAmount; ++i)
+          for (unsigned i = static_cast<unsigned>(startIndex); i < static_cast<unsigned>(startIndex + workAmount); ++i)
           {
             auto bind = gfx2.bind(pipeline);
             bind.SRV(0, dstdata);

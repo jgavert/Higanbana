@@ -91,7 +91,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("Sequential tasks", []()
 	{
-		LBS s(2);
+		LBS s(5);
 		std::vector<int> v;
 		s.addTask("task5", {"task4"}, {}, [&v](size_t, size_t)
 		{

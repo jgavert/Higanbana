@@ -84,6 +84,7 @@ struct Texture
   size_t width;
   size_t height;
   size_t stride;
+  int shader_heap_index; // TODO: Create a view and this should be inside the "view" because this is only valid in a view.
   D3D12_RESOURCE_STATES state;
   D3D12_RANGE range;
   ResUsage type;

@@ -3,8 +3,8 @@
         "CBV(b0), " \
         "SRV(t0), " \
         "UAV(u0), " \
-        "DescriptorTable( SRV(t1, numDescriptors = 6)), " \
-        "DescriptorTable( UAV(u1, numDescriptors = 6)) " 
+        "DescriptorTable( SRV(t1, numDescriptors = 60)), " \
+        "DescriptorTable( UAV(u1, numDescriptors = 60)) " 
 //        "StaticSampler(s0, " \
 //             "addressU = TEXTURE_ADDRESS_WRAP, " \
 //             "filter = FILTER_MIN_MAG_MIP_LINEAR )"

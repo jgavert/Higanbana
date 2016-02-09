@@ -295,10 +295,12 @@ private:
       D3D12_HEAP_DESC desc = {};
       desc.SizeInBytes = 1000 * 1000 * 8;
       desc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+      /*
       desc.Properties.VisibleNodeMask = 0;
       desc.Properties.CreationNodeMask = 0;
       desc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
       desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      */
       desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
       hr = dev.m_device->CreateHeap(&desc, __uuidof(ID3D12Heap), reinterpret_cast<void**>(&m_heap));

@@ -59,7 +59,7 @@ namespace rendering
 
       auto bind = gfx.bind(m_cmdPipeline);
       bind.CBV(0, m_graphConstants);
-      bind.rootConstant(0, m_graphTexture.texture().view.getIndex());
+      bind.rootConstant(0, m_graphTexture.texture().shader_heap_index);
       unsigned int shaderGroup = 32;
       unsigned int graphSize = height;
       gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
@@ -76,7 +76,7 @@ namespace rendering
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
       auto bind = gfx.bind(m_drawPipeline);
       bind.CBV(0, m_graphConstants); // has the "vertex" data
-      bind.rootConstant(0, m_graphTexture.texture().view.getIndex());
+      bind.rootConstant(0, m_graphTexture.texture().shader_heap_index);
       gfx.drawInstanced(bind, 6); // box
     }
 
