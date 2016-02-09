@@ -8,9 +8,9 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(de
   m_nullSrv = createTextureSrvObj(Dimension(1,1));
   m_nullUav = createTextureUavObj(Dimension(1,1));
 
-  constexpr unsigned HeapSRVCount = 6;
+  constexpr unsigned HeapSRVCount = 60;
   constexpr unsigned HeapUAVCount = HeapSRVCount;
-  constexpr unsigned HeapDescriptorCount = HeapSRVCount + HeapUAVCount;
+  constexpr unsigned HeapDescriptorCount = HeapSRVCount + HeapUAVCount + 120;
 
   ComPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;

@@ -68,6 +68,7 @@ struct Buffer
   ComPtr<ID3D12Resource> m_resource;
   size_t size;
   size_t stride;
+  int shader_heap_index;
   D3D12_RESOURCE_STATES state;
   D3D12_RANGE range;
   ResUsage type;

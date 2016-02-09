@@ -207,7 +207,7 @@ public:
     auto woot = path;
     CShaderInclude include("", "");
     auto p = getShaderParams(type);
-	UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+	UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
 #if !defined(RELEASE)
 	compileFlags |= D3DCOMPILE_DEBUG;
 #endif
@@ -215,7 +215,7 @@ public:
 	compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 // IF you really need to debug shaders, uncomment.
-//  compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+    //compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
 
     HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), compileFlags, 0, shaderBlob.addr(), errorMsg.addr());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
@@ -249,6 +249,8 @@ public:
       else
       {
         // create new shaderinterface
+        // TODO: look at shader binding and implement extraction/separation and proper root signature handling so that shaders contain the same root signature.
+        // Currently all shaders have their own root signature in the shader binary when they should be all compiled with the same root signature.
         ComPtr<ID3D12RootSignature> rootSig;
         hr = dev->CreateRootSignature(
           1, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),

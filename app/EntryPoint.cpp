@@ -25,15 +25,17 @@ int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
 
+  /*
   {
     ApiTests tests;
     tests.run(m_params);
   }
-  
+
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
+  */
   {
     SchedulerTests::Run();
   }
@@ -42,7 +44,7 @@ int EntryPoint::main()
 	{
 		BitfieldTests::Run();
 	}
-	return 0;
+	//return 0;
   
 
   auto main = [=](std::string name)
@@ -50,21 +52,22 @@ int EntryPoint::main()
     LBS lbs;
     Logger log;
     WTime t;
-    vec2 res = { 800.f, 600.f };
-    Window window(m_params, name, res.x(), res.y());
+    ivec2 ires = { 800, 600 };
+    vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
+    Window window(m_params, name, ires.x(), ires.y());
     window.open();
     SystemDevices devices;
     GpuDevice gpu = devices.CreateGpuDevice(true);
     GpuCommandQueue queue = gpu.createQueue();
     SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
-    ViewPort port(res.x(), res.y());
+    ViewPort port(ires.x(), ires.y());
 
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
       // recommended only in release mode with debugging layer off...
       // didn't bother to find algorithm that would skip towards the right value.
-      //StressTests::run(gpu, queue, window, sc, port, gfx, log);
-      //AdvTests::run(gpu, queue, window, sc, port, gfx);
+      // StressTests::run(gpu, queue, window, sc, port, gfx, log);
+      // AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     using namespace rendering::utils;
@@ -73,7 +76,7 @@ int EntryPoint::main()
 	std::vector<Graph> graphs;
 	float startpos = 0.9f;
 	float heightpos = 0.3f;
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 1; ++i)
 	{
 		Graph graph(gpu, -1.f, 1.f, texSize);
 		graph.changeScreenPos({-1.0f, startpos-(i*heightpos)}, {-0.5f, startpos - ((i+1.f)*heightpos) });
@@ -130,14 +133,14 @@ int EntryPoint::main()
         gfx.resetList();
       });
 
-      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t i, size_t cpu)
+      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t /*i*/, size_t /*cpu*/)
       {
         GpuProfilingBracket(queue, "Frame");
         {
-			for (auto&& it : graphs)
-			{
-				it.updateGraphCompute(gfx, std::sinf(time + cpu));
-			}
+          for (auto&& it : graphs)
+          {
+            it.updateGraphCompute(gfx, std::sinf(time/* + cpu*/));
+          }
         }
 
         {
@@ -165,10 +168,10 @@ int EntryPoint::main()
         }
 
         { // post process
-			for (auto&& it : graphs)
-			{
-				it.drawGraph(gfx);
-			}
+          for (auto&& it : graphs)
+          {
+            it.drawGraph(gfx);
+          }
         }
         // submit all
         gfx.preparePresent(sc[backBufferIndex]);

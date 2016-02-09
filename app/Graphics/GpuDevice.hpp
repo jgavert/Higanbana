@@ -100,8 +100,8 @@ public:
     }
     D3D12_BUFFER_SRV bufferSRV;
     bufferSRV.FirstElement = 0;
-    bufferSRV.NumElements = buf.buffer().size;
-    bufferSRV.StructureByteStride = buf.buffer().stride;
+    bufferSRV.NumElements = static_cast<unsigned>(buf.buffer().size);
+    bufferSRV.StructureByteStride = static_cast<unsigned>(buf.buffer().stride);
     bufferSRV.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
     D3D12_SHADER_RESOURCE_VIEW_DESC shaderSRV;
@@ -113,8 +113,9 @@ public:
     auto& m_descHeap = m_descHeaps.getGeneric();
 
     BufferView& view = buf.buffer().view;
-    view.index = m_descHeap.getNextIndex();
+    view.index = m_descHeap.getSRVIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
+    buf.buffer().shader_heap_index = static_cast<int>(view.index - m_descHeap.getUAVStartIndex()); // FIXME 
 
     m_device->CreateShaderResourceView(buf.buffer().m_resource.get(), &shaderSRV, view.cpuHandle);
 
@@ -161,8 +162,8 @@ public:
     // create view assdfoöuihsdagåöouihgasdöbhujasdgpöbujhkasdgöhujikoad
     D3D12_BUFFER_UAV bufferUAV;
     bufferUAV.FirstElement = 0;
-    bufferUAV.NumElements = buf.buffer().size;
-    bufferUAV.StructureByteStride = buf.buffer().stride;
+    bufferUAV.NumElements = static_cast<unsigned>(buf.buffer().size);
+    bufferUAV.StructureByteStride = static_cast<unsigned>(buf.buffer().stride);
     bufferUAV.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
     bufferUAV.CounterOffsetInBytes = 0;
 
@@ -174,8 +175,9 @@ public:
     auto& m_descHeap = m_descHeaps.getGeneric();
 
     BufferView& view = buf.buffer().view;
-    view.index = m_descHeap.getNextIndex();
+    view.index = m_descHeap.getUAVIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
+    buf.buffer().shader_heap_index = static_cast<int>(view.index - m_descHeap.getUAVStartIndex()); // FIXME 
 
     m_device->CreateUnorderedAccessView(buf.buffer().m_resource.get(), nullptr, &shaderUAV, view.cpuHandle);
 
@@ -262,8 +264,9 @@ public:
     auto& m_descHeap = m_descHeaps.getGeneric();
 
     BufferView& view = buf.buffer().view;
-    view.index = m_descHeap.getNextIndex();
+    view.index = m_descHeap.getCBVIndex();
     view.cpuHandle.ptr = m_descHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart().ptr + view.index * m_descHeap.m_handleIncrementSize;
+    buf.buffer().shader_heap_index = static_cast<int>(view.index - m_descHeap.getCBVStartIndex()); // FIXME 
 
     m_device->CreateConstantBufferView(&shaderCBV, view.cpuHandle);
 
@@ -379,6 +382,7 @@ public:
     auto index = m_descSRVHeap.getSRVIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
+    buf.texture().shader_heap_index = index - m_descSRVHeap.getSRVStartIndex();
     m_device->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
@@ -468,8 +472,10 @@ public:
     auto index = m_descUAVHeap.getUAVIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
-	D3D12_CPU_DESCRIPTOR_HANDLE handle;
-	handle.ptr = lol.ptr + index * HandleIncrementSize;
+    buf.texture().shader_heap_index = index - m_descUAVHeap.getUAVStartIndex(); // FIXME 
+    D3D12_CPU_DESCRIPTOR_HANDLE handle;
+    handle.ptr = lol.ptr + index * HandleIncrementSize;
+
     m_device->CreateUnorderedAccessView(buf.texture().m_resource.get(), nullptr,nullptr, handle);
 
     return buf;
@@ -528,6 +534,7 @@ public:
     auto index = m_descRTVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
+    buf.texture().shader_heap_index = static_cast<unsigned>(index); // FIXME 
     m_device->CreateRenderTargetView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
@@ -581,6 +588,7 @@ public:
     auto index = m_descDSVHeap.getNextIndex();
     buf.texture().view.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
     buf.texture().view.index = index;
+    buf.texture().shader_heap_index = static_cast<unsigned>(index); // FIXME 
 
     D3D12_DEPTH_STENCIL_VIEW_DESC viewdesc;
     viewdesc.Format = desc.Format;
@@ -650,6 +658,7 @@ public:
 
     buf.texture().view.cpuHandle = mRenderTargetView[0];
     buf.texture().view.index = 0;
+    buf.texture().shader_heap_index = 0; // FIXME 
 
     std::vector<TextureRTV> lol;
     ID3D12Resource* mRenderTarget;
@@ -668,6 +677,7 @@ public:
       buf.m_scRTV = mRenderTarget;
       buf.texture().view.cpuHandle = mRenderTargetView[i];
       buf.texture().view.index = indexes[i];
+      buf.texture().shader_heap_index = static_cast<int>(indexes[i]); // FIXME 
       lol.push_back(buf);
     }
 

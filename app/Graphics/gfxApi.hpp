@@ -109,7 +109,7 @@ public:
       }
     }
     ComPtr<ID3D12Device> device;
-    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
     if (FAILED(hr))
     {
       F_LOG("Device creation failed\n", 2);

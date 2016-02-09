@@ -22,7 +22,7 @@ private:
   size_t m_srvCount;
   size_t m_uavStart;
   size_t m_uavCount;
-  size_t m_restStart;
+  size_t m_cbvStart;
 
   faze::Bitfield<8> m_usedIndexes;
 
@@ -33,7 +33,8 @@ private:
 	  m_srvStart(0),
 	  m_uavStart(srvCount),
 	  m_srvCount(srvCount),
-	  m_uavCount(uavCount)
+	  m_uavCount(uavCount),
+    m_cbvStart(srvCount+uavCount)
   {
     assert(size >= srvCount + uavCount && size < 128*8);
   }
@@ -49,12 +50,12 @@ public:
 		m_uavStart(0),
 		m_uavCount(0)
   {}
-
+private:
   size_t getNextIndex(size_t fromBlock = 0)
   {
     // find next empty index
-	size_t block = 0;
-	block = m_usedIndexes.popcount_element(fromBlock);
+    size_t block = 0;
+    block = m_usedIndexes.popcount_element(fromBlock);
     if (block == 128)
     {
       abort(); // lol everything used from block, cannot handle this yet.
@@ -69,34 +70,18 @@ public:
     }
   }
 
-  // this needs heavy testing to see if it works as expected
   int getNextFromRange(size_t start, size_t range)
   {
 	  // find next empty index
-	  size_t block = start / 128;
-	  size_t offset = start % 128;
-	  size_t ret = 0;
-	  ret = m_usedIndexes.popcount_element(block);
-	  if (ret == 128)
-	  {
-		  return -1;
-	  }
-	  else
-	  {
-		  int emptyIndex = 0;
-		  emptyIndex = static_cast<int>(m_usedIndexes.skip_find_firstEmpty_offset(block, offset));
-		  if (emptyIndex <= offset+range && emptyIndex >= offset)
-		  {
-			m_usedIndexes.setIdxBit(128*block + emptyIndex);
-			return 128*block + emptyIndex;
-		  }
-		  else
-		  {
-			return -1;
-		  }
-	  }
+    int64_t ret = m_usedIndexes.skip_find_firstEmpty_full_offset(start);
+    if (ret == -1 || ret > static_cast<int64_t>(start + range) || ret < static_cast<int64_t>(start))
+    {
+      return -1;
+    }
+    m_usedIndexes.setIdxBit(ret);
+    return static_cast<int>(ret);
   }
-
+public:
   unsigned getUAVIndex()
   {
 	  auto val = getNextFromRange(m_uavStart, m_uavCount);
@@ -117,9 +102,19 @@ public:
 	  return val;
   }
 
+  unsigned getCBVIndex()
+  {
+    auto val = getNextFromRange(m_cbvStart, m_size-m_cbvStart);
+    if (val == -1)
+    {
+      abort();
+    }
+    return val;
+  }
+
   unsigned getUAVStartIndex()
   {
-	  return m_uavStart;
+	  return static_cast<unsigned>(m_uavStart);
   }
 
   D3D12_GPU_DESCRIPTOR_HANDLE getUAVStartAddress()
@@ -131,7 +126,7 @@ public:
 
   unsigned getSRVStartIndex()
   {
-	  return m_srvStart;
+	  return static_cast<unsigned>(m_srvStart);
   }
 
   D3D12_GPU_DESCRIPTOR_HANDLE getSRVStartAddress()
@@ -139,6 +134,18 @@ public:
 	  D3D12_GPU_DESCRIPTOR_HANDLE woot = m_descHeap->GetGPUDescriptorHandleForHeapStart();
 	  woot.ptr += m_srvStart*m_handleIncrementSize;
 	  return woot;
+  }
+
+  unsigned getCBVStartIndex()
+  {
+    return static_cast<unsigned>(m_cbvStart);
+  }
+
+  D3D12_GPU_DESCRIPTOR_HANDLE getCBVStartAddress()
+  {
+    D3D12_GPU_DESCRIPTOR_HANDLE woot = m_descHeap->GetGPUDescriptorHandleForHeapStart();
+    woot.ptr += m_cbvStart*m_handleIncrementSize;
+    return woot;
   }
 
   // never called yet, should be called by resource's destructor.

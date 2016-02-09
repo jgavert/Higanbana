@@ -63,7 +63,7 @@
       inline void clearbit(__m128i& vec, int n)
       {
         __m128i shuf = _mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-        shuf = _mm_add_epi8(shuf, _mm_set1_epi8(16 - (n >> 3)));
+        shuf = _mm_add_epi8(shuf, _mm_set1_epi8(static_cast<char>(16 - (n >> 3))));
         shuf = _mm_and_si128(shuf, _mm_set1_epi8(0x0F));
         __m128i setmask = _mm_shuffle_epi8(_mm_cvtsi32_si128(1 << (n & 0x7)), shuf);
         setmask = _mm_andnot_si128(setmask, _mm_sub_epi64(_mm_set_epi64x(0LL, 0LL), _mm_set_epi64x(1LL, 1LL)));
@@ -86,7 +86,7 @@
       size_t countOneBlocks(const std::array<__m128i, rsize>& vec) const
       {
         size_t res = 0;
-        const long long vl = std::numeric_limits<long long>::max();
+        const long long vl = (std::numeric_limits<long long>::max)();
         const __m128i mask = { vl, vl };
         for (size_t i = 0; i < rsize; ++i)
         {
@@ -143,96 +143,94 @@
         return index;
       }
 
-      inline size_t skip_find_firstEmpty(size_t block) const
+      inline int64_t nextBucketWithRoom(size_t index) const
       {
-        uint64_t a = _mm_extract_epi64(m_table[block], 0);
-        uint64_t b = _mm_extract_epi64(m_table[block], 1);
-        size_t offset = block * 128;
-        size_t inner_idx = __builtin_ctzll(a);
-        size_t expectedEmpty = 0; // this will be uninitialized value if default value is "inner_idx". wtf!
-        while (a)
+        while (index < rsize && popcount(m_table[index]) == 128)
         {
-          //table[idx++] = inner_idx + offset;
-          if (inner_idx > expectedEmpty)
-          {
-            return offset + expectedEmpty;
-          }
-          a &= ~(1LL << (inner_idx));
-          ++expectedEmpty;
-          inner_idx = __builtin_ctzll(a);
+          ++index;
         }
-        if (inner_idx+64 > expectedEmpty)
-        {
-          return offset + expectedEmpty;
-        }
-        inner_idx = __builtin_ctzll(b);
-        expectedEmpty = inner_idx;
-        while (b)
-        {
-          if (inner_idx > expectedEmpty)
-          {
-            return offset + expectedEmpty + 64;
-          }
-          b &= ~(1LL << (inner_idx));
-          ++expectedEmpty;
-          inner_idx = __builtin_ctzll(b);
-        }
-        if (inner_idx + 128 > expectedEmpty)
-        {
-          return offset + 64 + expectedEmpty;
-        }
-        return offset + inner_idx + 64;
+        if (index >= rsize)
+          return -1;
+        return index;
       }
 
-	  inline size_t max_retard(size_t a, size_t b) const
-	  {
-		  return (a < b) ? b : a;
-	  }
+      inline int64_t skip_find_firstEmpty_full() const
+      {
+        int64_t partiallyEmpty = nextBucketWithRoom(0);
+        if (partiallyEmpty == -1)
+          return -1;
+        return skip_find_firstEmpty(partiallyEmpty);
+      }
 
-	  // this is bullshit
-	  inline size_t skip_find_firstEmpty_offset(size_t block, size_t start_offset) const
-	  {
-		  uint64_t a = _mm_extract_epi64(m_table[block], 0);
-		  uint64_t b = _mm_extract_epi64(m_table[block], 1);
-		  size_t inner_idx = __builtin_ctzll(a);
-		  size_t expectedEmpty = 0; // this will be uninitialized value if default value is "inner_idx". wtf!
-		  if (start_offset < 64)
-		  {
-			  while (a)
-			  {
-				  //table[idx++] = inner_idx + offset;
-				  if (expectedEmpty >= start_offset && inner_idx > expectedEmpty)
-				  {
-					  return expectedEmpty;
-				  }
-				  a &= ~(1LL << (inner_idx));
-				  ++expectedEmpty;
-				  inner_idx = __builtin_ctzll(a);
-			  }
-			  if (inner_idx + 64 > start_offset && inner_idx + 64 > expectedEmpty)
-			  {
-				  return max_retard(start_offset, expectedEmpty);
-			  }
-			  inner_idx = __builtin_ctzll(b);
-			  expectedEmpty = inner_idx;
-		  }
-		  while (b)
-		  {
-			  if (expectedEmpty >= start_offset && inner_idx > expectedEmpty)
-			  {
-				  return expectedEmpty + 64;
-			  }
-			  b &= ~(1LL << (inner_idx));
-			  ++expectedEmpty;
-			  inner_idx = __builtin_ctzll(b);
-		  }
-		  if (inner_idx + 64 > start_offset && inner_idx + 128 > expectedEmpty)
-		  {
-			  return max_retard(start_offset, expectedEmpty+64);
-		  }
-		  return inner_idx + 64;
-	  }
+      inline int64_t skip_find_firstEmpty_full_offset(size_t index_offset) const
+      {
+        size_t block = index_offset / 128;
+        size_t block_offset = index_offset % 128;
+        int64_t partiallyEmpty = nextBucketWithRoom(block);
+        if (partiallyEmpty == -1)
+          return -1;
+        return skip_find_firstEmpty_offset(partiallyEmpty, block_offset);
+      }
 
+      inline int64_t skip_find_firstEmpty(size_t block) const
+      {
+        uint64_t a = ~(_mm_extract_epi64(m_table[block], 0));
+        uint64_t b = ~(_mm_extract_epi64(m_table[block], 1));
+        size_t offset = block * 128;
+        size_t inner_idx = __builtin_ctzll(a);
+        if (a)
+        {
+          return inner_idx + offset;
+        }
+        else if (b)
+        {
+          inner_idx = __builtin_ctzll(b);
+          return inner_idx + 64 + offset;
+        }
+        return -1;
+      }
+
+      inline int64_t skip_find_firstEmpty_offset(size_t block, size_t offset) const
+      {
+        uint64_t a = ~(_mm_extract_epi64(m_table[block], 0));
+        uint64_t b = ~(_mm_extract_epi64(m_table[block], 1));
+        size_t offset_tmp = 0;
+        size_t blockOffset = block * 128;
+        size_t inner_idx = 0;
+
+        if (offset >= 64) // only b to check
+        {
+          offset_tmp = (std::min)(64, static_cast<int>(offset)-64);
+          for (size_t i = 0; i < offset_tmp; ++i)
+          {
+            b ^= (-0LL ^ b) & (1LL << i);
+          }
+          if (b)
+          {
+            inner_idx = __builtin_ctzll(b);
+            return inner_idx + 64 + blockOffset;
+          }
+          return -1;
+        }
+        // both a and b to check
+        offset_tmp = offset;
+        for (size_t i = 0; i < offset_tmp; ++i)
+        {
+          a ^= (-0LL ^ a) & (1LL << i);
+        }
+
+        if (a)
+        {
+          inner_idx = __builtin_ctzll(a);
+          return inner_idx + blockOffset;
+        }
+        else if (b)
+        {
+          inner_idx = __builtin_ctzll(b);
+          return inner_idx + 64 + blockOffset;
+        }
+        return -1;
+      }
 
       template<size_t TableSize>
       inline size_t skip_find_indexes(std::array<size_t, TableSize>& table, size_t table_size, size_t index) const
@@ -320,9 +318,6 @@
         return idx;
       }
 
-
-
-
       std::array<__m128i, rsize>&& mv_data()
       {
         return std::move(m_table);
@@ -360,7 +355,8 @@
 
       inline size_t popcount_element(size_t index) const
       {
-        return _mm_popcnt_u64(_mm_extract_epi64(m_table[index], 0)) + _mm_popcnt_u64(_mm_extract_epi64(m_table[index], 1));
+        return popcount(m_table[index]);
       }
+
     };
   }
