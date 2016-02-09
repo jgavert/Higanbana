@@ -229,8 +229,14 @@ public:
       abort();
     }
     {
+		ComPtr<ID3DBlob> rootBlob;
+		// extract root
+		// D3DGetBlobPart(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.addr());
+		// removes and returns root
+		D3DStripShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, rootBlob.addr());
+
       ComPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      hr = D3D12CreateRootSignatureDeserializer(rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {
         abort();
@@ -253,7 +259,7 @@ public:
         // Currently all shaders have their own root signature in the shader binary when they should be all compiled with the same root signature.
         ComPtr<ID3D12RootSignature> rootSig;
         hr = dev->CreateRootSignature(
-          1, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(),
+          1, rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(),
           __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.addr()));
         if (FAILED(hr))
         {

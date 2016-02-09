@@ -29,3 +29,8 @@ struct PSInput
   float2 uv : TEXCOORD0;
   float4 pos : SV_Position;
 };
+
+struct RootConstants
+{
+  uint texIndex;
+};

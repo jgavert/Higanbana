@@ -1,6 +1,6 @@
 #include "utils/rootSig.hlsl"
 
-uint constant : register ( b1 );
+ConstantBuffer<RootConstants> rootconst : register(b1, space0);
 ConstantBuffer<consts> consta : register( b0 );
 RWTexture2D<float4> OutputTex[60] : register( u1 );
 
@@ -26,9 +26,11 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	}
 	// need to get texture pos, look at min/max if the val is in the same y coordinate, and put it white.
 	// otherwise put alpha 0.0 to make it transparent. (I guess)
-	float c1 = float(constant) / 10.0;
-	finalColor.b += c1;
-	OutputTex[0][uv] = finalColor;
-	//OutputTex[constant][uv] = finalColor;
-	//OutputTex[NonUniformResourceIndex(constant)][uv] = finalColor;
+
+	//OutputTex[0][uv] = finalColor;
+	int index = rootconst.texIndex;
+	if (index != 0)
+		index = 0;
+	OutputTex[index][uv] = finalColor;
+	//OutputTex[NonUniformResourceIndex(index)][uv] = finalColor;
 }

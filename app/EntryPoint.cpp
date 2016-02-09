@@ -30,12 +30,12 @@ int EntryPoint::main()
     ApiTests tests;
     tests.run(m_params);
   }
-
+  */
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
-  */
+  
   {
     SchedulerTests::Run();
   }
@@ -57,7 +57,7 @@ int EntryPoint::main()
     Window window(m_params, name, ires.x(), ires.y());
     window.open();
     SystemDevices devices;
-    GpuDevice gpu = devices.CreateGpuDevice(true);
+    GpuDevice gpu = devices.CreateGpuDevice(0);
     GpuCommandQueue queue = gpu.createQueue();
     SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
     ViewPort port(ires.x(), ires.y());
@@ -67,7 +67,7 @@ int EntryPoint::main()
       // recommended only in release mode with debugging layer off...
       // didn't bother to find algorithm that would skip towards the right value.
       // StressTests::run(gpu, queue, window, sc, port, gfx, log);
-      // AdvTests::run(gpu, queue, window, sc, port, gfx);
+      //AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     using namespace rendering::utils;

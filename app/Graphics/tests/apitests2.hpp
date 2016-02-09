@@ -313,7 +313,7 @@ private:
 		auto bind = list.bind(pipeline);
 		bind.SRV(0, dstdata);
 		bind.UAV(0, completedata);
-    unsigned int shaderGroup = 50;
+    unsigned int shaderGroup = 64;
     unsigned int inputSize = 1000 * 1000;
 		list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
 
@@ -552,14 +552,100 @@ private:
 
 		return true;
 	});
+  
+	  t.addTest("Pipeline binding and modify data in compute with root constant", [id]()
+	  {
+		  SystemDevices sys;
+		  GpuDevice dev = sys.CreateGpuDevice(id);
+		  GpuCommandQueue queue = dev.createQueue();
+		  GfxCommandList list = dev.createUniversalCommandList();
+		  GpuFence fence = dev.createFence();
 
-	t.addTest("Rotating triangle with shaders", [id]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
+		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant.hlsl"));
 
-		return false;
-	});
+		  struct buf
+		  {
+			  int i;
+			  int k;
+			  int x;
+			  int y;
+		  };
+		  auto completedata = dev.createBufferUAV(Dimension(1), Format<buf>(), ResUsage::Gpu);
+		  auto rbdata = dev.createBufferSRV(Dimension(1), Format<buf>(), ResUsage::Readback);
+
+
+		  auto bind = list.bind(pipeline);
+		  bind.rootConstant(0, 1337);
+		  bind.UAV(0, completedata);
+		  list.Dispatch(bind, 1, 1, 1);
+
+		  list.CopyResource(rbdata.buffer(), completedata.buffer());
+		  list.close();
+		  queue.submit(list);
+		  queue.insertFence(fence);
+		  fence.wait();
+
+		  auto mapd = rbdata.buffer().Map<buf>();
+		  auto& obj = mapd[0];
+		  return (obj.k == 1337);
+	  });
+	  
+	  t.addTest("Pipeline binding and modify data in compute with variable UAV", [id]()
+	  {
+		  SystemDevices sys;
+		  GpuDevice dev = sys.CreateGpuDevice(id);
+		  GpuCommandQueue queue = dev.createQueue();
+		  GfxCommandList list = dev.createUniversalCommandList();
+		  GpuFence fence = dev.createFence();
+
+		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver2.hlsl"));
+
+		  struct buf
+		  {
+			  int i;
+			  int k;
+			  int x;
+			  int y;
+		  };
+		  auto completedata = dev.createBufferUAV(Dimension(1), Format<buf>(), ResUsage::Gpu);
+		  auto completedata2 = dev.createBufferUAV(Dimension(1), Format<buf>(), ResUsage::Gpu);
+		  auto completedata3 = dev.createBufferUAV(Dimension(1), Format<buf>(), ResUsage::Gpu);
+		  auto rbdata = dev.createBufferSRV(Dimension(1), Format<buf>(), ResUsage::Readback);
+		  auto rbdata2 = dev.createBufferSRV(Dimension(1), Format<buf>(), ResUsage::Readback);
+		  auto rbdata3 = dev.createBufferSRV(Dimension(1), Format<buf>(), ResUsage::Readback);
+
+		  {
+			  auto bind = list.bind(pipeline);
+			  bind.rootConstant(0, completedata.buffer().shader_heap_index);
+			  list.Dispatch(bind, 1, 1, 1);
+		  }
+		  {
+			  auto bind = list.bind(pipeline);
+			  bind.rootConstant(0, completedata2.buffer().shader_heap_index);
+			  list.Dispatch(bind, 1, 1, 1);
+		  }
+		  {
+			  auto bind = list.bind(pipeline);
+			  bind.rootConstant(0, completedata3.buffer().shader_heap_index);
+			  list.Dispatch(bind, 1, 1, 1);
+		  }
+
+		  list.CopyResource(rbdata.buffer(), completedata.buffer());
+		  list.CopyResource(rbdata2.buffer(), completedata2.buffer());
+		  list.CopyResource(rbdata3.buffer(), completedata3.buffer());
+		  list.close();
+		  queue.submit(list);
+		  queue.insertFence(fence);
+		  fence.wait();
+
+		  auto mapd = rbdata.buffer().Map<buf>();
+		  auto& obj = mapd[0];
+		  auto mapd2 = rbdata2.buffer().Map<buf>();
+		  auto& obj2 = mapd2[0];
+		  auto mapd3 = rbdata3.buffer().Map<buf>();
+		  auto& obj3 = mapd3[0];
+		  return (obj.k == completedata.buffer().shader_heap_index);
+	  });
 
     t.runTests();
   }
