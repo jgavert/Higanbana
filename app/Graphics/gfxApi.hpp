@@ -7,6 +7,7 @@
 #include <utility>
 #include <string>
 #include <DXGI.h>
+#include <dxgi1_4.h>	// For WARP
 
 
 struct GpuInfo
@@ -35,7 +36,7 @@ public:
   SystemDevices() : betterDevice(-1), lesserDevice(-1)
   {
     UINT i = 0;
-    CreateDXGIFactory1(__uuidof(IDXGIFactory4), reinterpret_cast<void**>(&pFactory));
+    CreateDXGIFactory1(__uuidof(IDXGIFactory4), reinterpret_cast<void**>(pFactory.addr()));
     IDXGIAdapter1* pAdapter;
     while (pFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
     {
@@ -93,12 +94,12 @@ public:
   {
 #ifdef DEBUG
     debug = true;
-	warpDriver = true;
+	  warpDriver = false;
 #endif
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
 
-  GpuDevice CreateGpuDevice(int num, bool debug = false, bool warpDriver = false)
+  GpuDevice CreateGpuDevice(int num, bool debug = false, bool warpDevice = false)
   {
     if (debug)
     {
@@ -109,12 +110,28 @@ public:
       }
     }
     ComPtr<ID3D12Device> device;
-    HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
-    if (FAILED(hr))
+    if (!warpDevice)
     {
-      F_LOG("Device creation failed\n", 2);
+      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      if (FAILED(hr))
+      {
+        F_LOG("Device creation failed\n", 2);
+        abort();
+      }
     }
-    else if (debug)
+    else
+    {
+      ComPtr<IDXGIAdapter1> pAdapter;
+      pFactory->EnumWarpAdapter(__uuidof(IDXGIAdapter1), reinterpret_cast<void**>(pAdapter.addr()));
+      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      if (FAILED(hr))
+      {
+        F_LOG("Device creation failed\n", 2);
+        abort();
+      }
+    }
+
+    if (debug && device.get())
     {
       ComPtr<ID3D12DebugDevice> debugInterface;
       if (SUCCEEDED(device->QueryInterface(debugInterface.addr())))
