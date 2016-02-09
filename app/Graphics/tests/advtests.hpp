@@ -262,6 +262,7 @@ private:
 
 
       // submit all
+	  gfx.preparePresent(sc[backBufferIndex]);
       gfx.close();
       queue.submit(gfx);
 
@@ -378,6 +379,7 @@ private:
 
 
       // submit all
+	  gfx.preparePresent(sc[backBufferIndex]);
       gfx.close();
       queue.submit(gfx);
 

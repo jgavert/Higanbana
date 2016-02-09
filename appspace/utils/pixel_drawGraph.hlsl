@@ -1,6 +1,6 @@
 #include "utils/rootSig.hlsl"
 
-uint constant : register ( b1 );
+ConstantBuffer<RootConstants> rootconst : register(b1);
 ConstantBuffer<consts> consta : register( b0 );
 RWTexture2D<float4> tex[60] : register( u1 );
 
@@ -15,6 +15,8 @@ float4 PSMain(PSInput input) : SV_Target
   uv.x += ((float)consta.startUvX+1) / ((float)consta.width)*2.0;
   if (uv.x >= 2.0)
     uv.x -= 2.0;
+
+
   return float4(tex[0].Load(int2(uv*int2(consta.width/2.0,consta.height/2.0))).xyzw);
   //return float4(tex[constant].Load(int2(uv*int2(consta.width/2.0,consta.height/2.0))).xyzw);
   //return float4(tex[NonUniformResourceIndex(constant)].Load(int2(uv*int2(consta.width/2.0,consta.height/2.0))).xyzw);
