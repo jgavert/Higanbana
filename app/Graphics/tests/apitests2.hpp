@@ -46,7 +46,7 @@ private:
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createBufferUAV(
+      auto buf = dev.createBufferSRV(
         Dimension(4096)
         , Format<float>()
         , ResUsage::Upload);
@@ -57,7 +57,7 @@ private:
     {
       SystemDevices sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createBufferUAV(
+      auto buf = dev.createBufferSRV(
         Dimension(4096), Format<float>(), ResUsage::Upload);
 
       auto a = buf.buffer().Map<float>();
@@ -644,7 +644,7 @@ private:
 		  auto& obj2 = mapd2[0];
 		  auto mapd3 = rbdata3.buffer().Map<buf>();
 		  auto& obj3 = mapd3[0];
-		  return (obj.k == completedata.buffer().shader_heap_index);
+		  return (obj3.k == completedata3.buffer().shader_heap_index);
 	  });
 
     t.runTests();
