@@ -289,14 +289,14 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
   ComPtr<ID3D12Resource> ptr;
-  Buffer_new buf;
+  Buffer_new buf = {};
   buf.m_desc = resDesc;
 
   desc.Width = resDesc.m_width;
   desc.Height = resDesc.m_height;
   desc.DepthOrArraySize = resDesc.m_arraySize;
   desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; // TODO: need something that isn't platform specific
-  desc.Format = DXGI_FORMAT_UNKNOWN;
+  desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
   desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   desc.MipLevels = resDesc.m_miplevels;
@@ -335,8 +335,56 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   return buf;
 }
 
-Texture_new GpuDevice::createTexture(ResourceDescriptor desc)
+Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
 {
-  Texture_new tex;
+  Texture_new tex = {};
+  D3D12_RESOURCE_DESC desc = {};
+  D3D12_HEAP_PROPERTIES heapprop = {};
+  ID3D12Resource* ptr;
+  tex.m_desc = resDesc;
+
+  desc.Width = resDesc.m_width;
+  desc.Height = resDesc.m_height;
+  desc.DepthOrArraySize = resDesc.m_arraySize;
+  desc.Dimension = FormatDimensionToD3D12[FormatDimension::DimTexture2D]; // TODO: need something that isn't platform specific
+  desc.Format = FormatToDXGIFormat[resDesc.m_format];
+  desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
+  desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  desc.MipLevels = resDesc.m_miplevels;
+  desc.SampleDesc.Count = resDesc.m_msCount;
+  desc.SampleDesc.Quality = resDesc.m_msQuality;
+
+  tex.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+  // should probably be D3D12_RESOURCE_STATE_COMMON, for the sake of using specialized state
+  // Every state used should be explicitly true and barriers used to change between those. Generic read is horrible!
+  // TODO: sanitize this.
+  heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
+  tex.m_immutableState = false;
+  if (resDesc.m_usage == ResourceUsage::UploadHeap)
+  {
+    tex.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+    tex.m_immutableState = true;
+    heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+  }
+  else if (resDesc.m_usage == ResourceUsage::ReadbackHeap)
+  {
+    tex.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
+    heapprop.Type = D3D12_HEAP_TYPE_READBACK;
+    tex.m_immutableState = true;
+  }
+
+  HRESULT hr = m_device->CreateCommittedResource(
+    &heapprop,
+    D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+    &desc,
+    tex.m_state,
+    nullptr,
+    __uuidof(ID3D12Resource),
+    reinterpret_cast<void**>(&ptr));
+
+  if (!FAILED(hr))
+  {
+    tex.m_resource = std::make_shared<RawResource>(ptr);
+  }
   return tex;
 }
