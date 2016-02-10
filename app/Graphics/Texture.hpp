@@ -237,4 +237,9 @@ struct Texture_new
     }
     return MappedTexture_new<T>(m_resource, m_range, (m_desc.m_usage == ResourceUsage::ReadbackHeap), ptr);
   }
+
+  bool isValid()
+  {
+	  return m_resource.get() != nullptr;
+  }
 };

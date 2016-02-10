@@ -90,7 +90,7 @@ public:
     }
   }
 
-  GpuDevice CreateGpuDevice(bool debug = false, bool warpDriver = false)
+  GpuDevice CreateGpuDevice(bool debug = true, bool warpDriver = true)
   {
 #ifdef DEBUG
     debug = true;
@@ -99,7 +99,7 @@ public:
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
 
-  GpuDevice CreateGpuDevice(int num, bool debug = false, bool warpDevice = false)
+  GpuDevice CreateGpuDevice(int num, bool debug = true, bool warpDevice = true)
   {
     if (debug)
     {
@@ -112,7 +112,7 @@ public:
     ComPtr<ID3D12Device> device;
     if (!warpDevice)
     {
-      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed\n", 2);
@@ -123,7 +123,7 @@ public:
     {
       ComPtr<IDXGIAdapter1> pAdapter;
       pFactory->EnumWarpAdapter(__uuidof(IDXGIAdapter1), reinterpret_cast<void**>(pAdapter.addr()));
-      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed\n", 2);
@@ -145,8 +145,6 @@ public:
       {
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
-        infoQueue->SetBreakOnID(D3D12_MESSAGE_ID_SET_ROOT_CONSTANT_BUFFER_VIEW_INVALID, false);
-        infoQueue->SetBreakOnID(D3D12_MESSAGE_ID_CREATE_CONSTANT_BUFFER_VIEW_INVALID_RESOURCE, false);
       }
     }
     return std::move(GpuDevice(device, debug));

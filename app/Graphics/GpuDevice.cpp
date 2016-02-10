@@ -5,6 +5,28 @@
 
 GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
 {
+	// Check support of various features
+	D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+	auto hri = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
+	D3D12_FEATURE_DATA_ARCHITECTURE arch = {};
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &arch, sizeof(D3D12_FEATURE_DATA_ARCHITECTURE));
+	D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels = {};
+	const D3D_FEATURE_LEVEL levels[9] = { D3D_FEATURE_LEVEL_9_1 , D3D_FEATURE_LEVEL_9_2, D3D_FEATURE_LEVEL_9_3,
+		D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_12_0, D3D_FEATURE_LEVEL_12_1 };
+	featureLevels.pFeatureLevelsRequested = levels;
+	featureLevels.NumFeatureLevels = 9;
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(D3D12_FEATURE_DATA_FEATURE_LEVELS));
+	D3D12_FEATURE_DATA_FORMAT_SUPPORT formatOptions = {};
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatOptions, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms_quality_levels = {};
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &ms_quality_levels, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS));
+	D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(D3D12_FEATURE_DATA_FORMAT_INFO));
+	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT virtual_address_support = {};
+	hri = device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &virtual_address_support, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT));
+
+
   m_nullSrv = createTextureSrvObj(Dimension(1,1));
   m_nullUav = createTextureUavObj(Dimension(1,1));
 
@@ -101,6 +123,21 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(de
   m_descHeaps.m_rawHeaps[DescriptorHeapManager::DSV] = descDSVHeap.m_descHeap.get();
 
 }
+
+GpuDevice::~GpuDevice()
+{
+	if (m_debugLayer)
+	{
+		ComPtr<ID3D12InfoQueue> infoQueue;
+		HRESULT hr = m_device->QueryInterface(infoQueue.addr());
+		if (!FAILED(hr))
+		{
+			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, false);
+			infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
+		}
+	}
+}
+
 
 // Needs to be created from descriptor
 GpuFence GpuDevice::createFence()
@@ -298,26 +335,40 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; // TODO: need something that isn't platform specific
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
-  desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // for buffers, "Layout must be"
   desc.MipLevels = resDesc.m_miplevels;
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
+  desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // 64KB
+  
 
-  buf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
   heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
+  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
   buf.m_immutableState = false;
   if (resDesc.m_usage == ResourceUsage::UploadHeap)
   {
-    buf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-    buf.m_immutableState = true;
-    heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	  buf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	  buf.m_immutableState = true;
+	  heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
   }
   else if (resDesc.m_usage == ResourceUsage::ReadbackHeap)
   {
-    buf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
-    heapprop.Type = D3D12_HEAP_TYPE_READBACK;
-    buf.m_immutableState = true;
+	  buf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
+	  heapprop.Type = D3D12_HEAP_TYPE_READBACK;
+	  buf.m_immutableState = true;
+	  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
   }
+
+  auto info = m_device->GetResourceAllocationInfo(0, 1, &desc);
+
+  if (desc.Alignment != info.Alignment)
+  {
+	  F_LOG("Resource creation alignment differed from d3d12 devices defaults.\n");
+	  desc.Alignment = info.Alignment;
+  }
+  F_LOG("Resource sizeInBytes: %.2f KB, %zu B\n", static_cast<float>(info.SizeInBytes) / 1024.f, info.SizeInBytes);
+  F_LOG("Resource Alignment:   %.2f KB\n", static_cast<float>(info.Alignment) / 1024.f, info.SizeInBytes);
 
   HRESULT hr = m_device->CreateCommittedResource(
                   &heapprop,
@@ -346,32 +397,48 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
   desc.Width = resDesc.m_width;
   desc.Height = resDesc.m_height;
   desc.DepthOrArraySize = resDesc.m_arraySize;
-  desc.Dimension = FormatDimensionToD3D12[FormatDimension::DimTexture2D]; // TODO: need something that isn't platform specific
+  desc.Dimension = FormatDimensionToD3D12[FormatDimension::DimTexture2D]; // TODO: need something that isn't hardcoded
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
-  desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN; // Basically, leave the choice to driver.
+  // other msaa supported layout is D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE but requires reservedResource and updated with updateTileMappings
   desc.MipLevels = resDesc.m_miplevels;
   desc.SampleDesc.Count = resDesc.m_msCount;
   desc.SampleDesc.Quality = resDesc.m_msQuality;
+  desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
   tex.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
   // should probably be D3D12_RESOURCE_STATE_COMMON, for the sake of using specialized state
   // Every state used should be explicitly true and barriers used to change between those. Generic read is horrible!
   // TODO: sanitize this.
+
   heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
+  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
   tex.m_immutableState = false;
   if (resDesc.m_usage == ResourceUsage::UploadHeap)
   {
     tex.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
     tex.m_immutableState = true;
     heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	//heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
   }
   else if (resDesc.m_usage == ResourceUsage::ReadbackHeap)
   {
     tex.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
     heapprop.Type = D3D12_HEAP_TYPE_READBACK;
     tex.m_immutableState = true;
+	//heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
   }
+
+  auto info = m_device->GetResourceAllocationInfo(0, 1, &desc);
+
+  if (desc.Alignment != info.Alignment)
+  {
+	  F_LOG("Resource creation alignment differed from d3d12 devices defaults.\n");
+	  desc.Alignment = info.Alignment;
+  }
+  F_LOG("Resource sizeInBytes: %.2f KB, %zu B\n", static_cast<float>(info.SizeInBytes) / 1024.f, info.SizeInBytes);
+  F_LOG("Resource Alignment:   %.2f KB\n", static_cast<float>(info.Alignment) / 1024.f, info.SizeInBytes);
 
   HRESULT hr = m_device->CreateCommittedResource(
     &heapprop,
@@ -384,7 +451,12 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
 
   if (!FAILED(hr))
   {
+	//F_LOG("Texture creation failed!");
     tex.m_resource = std::make_shared<RawResource>(ptr);
+  } 
+  else
+  {
+	tex.m_resource = std::make_shared<RawResource>(nullptr);
   }
   return tex;
 }
