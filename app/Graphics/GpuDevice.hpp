@@ -37,6 +37,7 @@ private:
 
 public:
   GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer);
+  ~GpuDevice();
   SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
   GpuFence createFence();
   GpuCommandQueue createQueue();

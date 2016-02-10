@@ -26,8 +26,8 @@ public:
     , m_usage(ResourceUsage::GpuOnly)
     , m_stride(0)
     , m_miplevels(1)
-    , m_width(0)
-    , m_height(0)
+    , m_width(1)
+    , m_height(1)
     , m_arraySize(1)
     , m_msCount(1)
     , m_msQuality(0)
@@ -56,17 +56,15 @@ public:
     return *this;
   }
 
-  ResourceDescriptor& Dimensions(unsigned size)
+  ResourceDescriptor& Width(unsigned size)
   {
     m_width = size;
-    m_height = 1;
     return *this;
   }
 
-  ResourceDescriptor& Dimensions(unsigned width, unsigned height)
+  ResourceDescriptor& Height(unsigned size)
   {
-    m_width = width;
-    m_height = height;
+    m_height = size;
     return *this;
   }
 

@@ -31,18 +31,19 @@ int EntryPoint::main()
     tests.run(m_params);
   }
   */
+	
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
   
   {
-    SchedulerTests::Run();
+    //SchedulerTests::Run();
   }
   //return 0;
  
 	{
-		BitfieldTests::Run();
+		//BitfieldTests::Run();
 	}
 	//return 0;
   

@@ -74,6 +74,26 @@ private:
       return buf.isValid();
     });
 
+	t.addTest("Create Gpu resident buffer (new)", [&]()
+	{
+		SystemDevices sys;
+		GpuDevice dev = sys.CreateGpuDevice(id);
+		auto buf = dev.createBuffer(ResourceDescriptor()
+									.Width(10));
+		return buf.isValid();
+	});
+
+	t.addTest("Create Gpu resident texture (new)", [&]()
+	{
+		SystemDevices sys;
+		GpuDevice dev = sys.CreateGpuDevice(id);
+		auto tex = dev.createTexture(ResourceDescriptor()
+							.Width(1024)
+							.Height(1024)
+							.Format(R8G8B8A8_UNORM));
+		return tex.isValid();
+	});
+
     t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
       SystemDevices sys;
@@ -540,6 +560,7 @@ private:
 
 
         // submit all
+		gfx.preparePresent(sc[backBufferIndex]);
         gfx.close();
         queue.submit(gfx);
 
@@ -590,8 +611,9 @@ private:
 		  return (obj.k == 1337);
 	  });
 	  
-	  t.addTest("Pipeline binding and modify data in compute with variable UAV", [id]()
+	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
 	  {
+		  return false;
 		  SystemDevices sys;
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GpuCommandQueue queue = dev.createQueue();

@@ -13,3 +13,4 @@ enum class ResourceUsage
   ReadbackHeap,
   GpuOnly
 };
+;

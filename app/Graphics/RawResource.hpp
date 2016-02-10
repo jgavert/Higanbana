@@ -15,7 +15,7 @@ struct RawResource
 
   ~RawResource()
   {
-    if (m_owned)
+    if (m_owned && p_resource)
     {
       p_resource->Release();
     }
