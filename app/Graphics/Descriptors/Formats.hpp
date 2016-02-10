@@ -4,6 +4,24 @@
 // declare all formats and their d3d12 counterparts
 // all tables must be kepts insync
 
+enum FormatDimension
+{
+  DimUnknown,
+  DimBuffer,
+  DimTexture1D,
+  DimTexture2D,
+  DimTexture3D
+};
+
+static D3D12_RESOURCE_DIMENSION FormatDimensionToD3D12[] =
+{
+  D3D12_RESOURCE_DIMENSION_UNKNOWN,
+  D3D12_RESOURCE_DIMENSION_BUFFER,
+  D3D12_RESOURCE_DIMENSION_TEXTURE1D,
+  D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+  D3D12_RESOURCE_DIMENSION_TEXTURE3D
+};
+
 enum FormatType
 {
   Unknown = 0,

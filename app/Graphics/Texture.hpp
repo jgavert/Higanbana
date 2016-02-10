@@ -217,6 +217,7 @@ struct Texture_new
   std::shared_ptr<RawResource> m_resource; // SpecialWrapping so that we can take "not owned" objects as our resources.
   ResourceDescriptor m_desc;
   D3D12_RESOURCE_STATES m_state;
+  bool m_immutableState;
   D3D12_RANGE m_range;
 
   template<typename T>
