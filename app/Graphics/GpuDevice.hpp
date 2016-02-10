@@ -43,6 +43,8 @@ public:
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
+  Buffer_new createBuffer(ResourceDescriptor desc);
+  Texture_new createTexture(ResourceDescriptor desc);
 
   // buffers
 private:

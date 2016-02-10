@@ -1,10 +1,14 @@
 #pragma once
 #include "Descriptors/ResUsage.hpp"
 #include "ComPtr.hpp"
+#include "RawResource.hpp"
+#include "ResourceDescriptor.hpp"
+
 #include <d3d12.h>
+#include <memory>
 
 template<typename type>
-struct MappedTexture
+struct MappedTexture // TODO: add support for "invalid mapping".
 {
   ComPtr<ID3D12Resource> m_mappedresource;
   D3D12_RANGE range;
@@ -76,9 +80,6 @@ public:
 
 struct Texture
 {
-  friend class GpuDevice;
-  friend class GfxCommandList;
-  friend class CptCommandList;
   ComPtr<ID3D12Resource> m_resource;
 
   size_t width;
@@ -109,7 +110,6 @@ struct Texture
     }
     return MappedTexture<T>(m_resource, range, (type == ResUsage::Readback), ptr);
   }
-
 };
 
 class _Texture
@@ -146,4 +146,94 @@ public:
 class TextureDSV : public _Texture
 {
 
+};
+
+//////////////////////////////////////////////////////////////////
+// New stuff
+
+template<typename type>
+struct MappedTexture_new
+{
+  std::shared_ptr<RawResource> m_mappedresource;
+  D3D12_RANGE range;
+  bool readback;
+  type* mapped;
+
+  MappedTexture_new(type* ptr)
+    : m_mappedresource(nullptr)
+    , range({})
+    , readback(false)
+    , mapped(ptr)
+  {}
+
+  MappedTexture_new(std::shared_ptr<RawResource> res, D3D12_RANGE r, bool readback, type* ptr)
+    : m_mappedresource(res)
+    , range(r)
+    , readback(readback)
+    , mapped(ptr)
+  {}
+
+  ~MappedTexture_new()
+  {
+    if (valid())
+    {
+      if (readback)
+      {
+        range.End = 0;
+      }
+      m_mappedresource->Unmap(0, &range);
+    }
+  }
+
+  size_t rangeBegin()
+  {
+    return range.Begin;
+  }
+
+  size_t rangeEnd()
+  {
+    return range.End;
+  }
+
+  type& operator[](size_t i)
+  {
+    return mapped[i];
+  }
+
+  type* get()
+  {
+    return mapped;
+  }
+
+  // should always check if mapping is valid.
+  bool valid()
+  {
+    return mapped != nullptr;
+  }
+};
+
+struct Texture_new
+{
+  std::shared_ptr<RawResource> m_resource; // SpecialWrapping so that we can take "not owned" objects as our resources.
+  ResourceDescriptor m_desc;
+  D3D12_RESOURCE_STATES m_state;
+  D3D12_RANGE m_range;
+
+  template<typename T>
+  MappedTexture<T> Map()
+  {
+    if (m_desc.m_usage == ResourceUsage::Gpu)
+    {
+      return MappedTexture_new<T>(nullptr);
+    }
+    T* ptr;
+    m_range.Begin = 0;
+    m_range.End = width*height*stride; // TODO: !??!?!??!
+    HRESULT hr = m_resource->Map(0, &m_range, reinterpret_cast<void**>(&ptr));
+    if (FAILED(hr))
+    {
+      return MappedTexture_new<T>(nullptr);
+    }
+    return MappedTexture_new<T>(m_resource, m_range, (m_desc.m_usage == ResourceUsage::ReadbackHeap), ptr);
+  }
 };

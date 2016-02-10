@@ -7,3 +7,9 @@ enum class ResUsage
   Gpu
 };
 
+enum class ResourceUsage
+{
+  UploadHeap,
+  ReadbackHeap,
+  GpuOnly
+};
