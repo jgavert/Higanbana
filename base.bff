@@ -138,9 +138,9 @@ Compiler( 'Compiler-x64' )
 [
   Using( .X64BaseConfig )
   .Config             = 'Debug'
-  .CompilerOptions    + ' /DDEBUG /DPROFILING_ENABLED'
+  .CompilerOptions    + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
                       + .CompilerDebugOptimizations             
-  .PCHOptions         + ' /DDEBUG /DPROFILING_ENABLED'
+  .PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
                       + .CompilerDebugOptimizations             
   .LibrarianOptions   + .LibrarianDebugOptimizations
   .LinkerOptions      + .LinkerDebugOptimizations
@@ -198,7 +198,7 @@ Compiler( 'Compiler-x64' )
                             + .externalIncludesVisualStudio
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
 							              + .extDefines
-  .DebugDefines             = 'DEBUG;PROFILING_ENABLED'
+  .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
 ]

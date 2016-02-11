@@ -4,14 +4,16 @@
 #ifdef WIN64
 #define NOMINMAX
 #include <windows.h>
-struct ProgramParams
+class ProgramParams
 {
+public:
   ProgramParams(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
     : m_hInstance(hInstance)
     , m_hPrevInstance(hPrevInstance)
     , m_lpCmdLine(lpCmdLine)
     , m_nCmdShow(nCmdShow)
   {}
+
 	HINSTANCE m_hInstance;
 	HINSTANCE m_hPrevInstance;
 	LPSTR     m_lpCmdLine;
