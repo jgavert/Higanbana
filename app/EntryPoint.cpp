@@ -36,6 +36,7 @@ int EntryPoint::main()
     ApiTests tests;
     tests.run(m_params);
   }*/
+	/*
   {
     ApiTests2 tests2;
     tests2.run(m_params);
@@ -44,14 +45,14 @@ int EntryPoint::main()
     SchedulerTests::Run();
   }
  
-	{
-		BitfieldTests::Run();
-	}
+  {
+    BitfieldTests::Run();
+  }*/
   
 
   auto main = [=](std::string name)
   {
-    LBS lbs;
+    //LBS lbs;
     Logger log;
     WTime t;
     ivec2 ires = { 800, 600 };
@@ -105,7 +106,7 @@ int EntryPoint::main()
       float filler;
     };
 
-	  auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
+	auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
     auto dstConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
 
     {
@@ -129,13 +130,13 @@ int EntryPoint::main()
       if (window.simpleReadMessages())
         break;
 
-      lbs.addTask("StartFrame", [&](size_t, size_t)
+      //lbs.addTask("StartFrame", [&](size_t, size_t)
       {
         fence.wait();
         gfx.resetList();
-      });
+      }//);
 
-      lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t /*i*/, size_t /*cpu*/)
+      //lbs.addTask("FillCommandlists", { "StartFrame" }, {}, [&](size_t /*i*/, size_t /*cpu*/)
       {
         GpuProfilingBracket(queue, "Frame");
         {
@@ -177,9 +178,9 @@ int EntryPoint::main()
         }
         // submit all
         gfx.preparePresent(sc[backBufferIndex]);
-      });
+      }//);
 
-      lbs.addTask("Submit&Present", { "FillCommandlists" }, {}, [&](size_t, size_t)
+      //lbs.addTask("Submit&Present", { "FillCommandlists" }, {}, [&](size_t, size_t)
       {
         gfx.close();
         queue.submit(gfx);
@@ -190,9 +191,9 @@ int EntryPoint::main()
           sc->Present(1, 0);
         }
         queue.insertFence(fence);
-      });
+      }//);
 
-      lbs.sleepTillKeywords({ "Submit&Present" });
+      //lbs.sleepTillKeywords({ "Submit&Present" });
       t.tick();
       time += t.getFrameTimeDelta();
 	    log.update();
