@@ -7,31 +7,48 @@
 // for the sake of my own sanity and NOW RAW POINTERS OR DELETES.
 // Ill just get them wrong also they are const pointers in the structs.
 
-class descriptorTable
+struct descriptorTable
 {
-public:
   UINT NumDescriptorRanges;
   std::vector<D3D12_DESCRIPTOR_RANGE> pDescriptorRanges;
+
+  descriptorTable()
+	  : NumDescriptorRanges(0)
+  {
+  }
 };
 
-class rootParam
+struct rootParam
 {
-public:
   D3D12_ROOT_PARAMETER_TYPE ParameterType;
   descriptorTable DescriptorTable;
   D3D12_ROOT_CONSTANTS Constants;
   D3D12_ROOT_DESCRIPTOR Descriptor;
   D3D12_SHADER_VISIBILITY ShaderVisibility;
+
+  rootParam()
+	  : ParameterType(D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+	  , Constants({})
+	  , Descriptor({})
+	  , ShaderVisibility(D3D12_SHADER_VISIBILITY_ALL)
+  {
+  }
 };
 
-class RootSignatureReflection
+struct RootSignatureReflection
 {
-public:
   UINT NumParameters;
   std::vector<rootParam> pParameters;
   UINT NumStaticSamplers;
   std::vector<D3D12_STATIC_SAMPLER_DESC> pStaticSamplers;
   D3D12_ROOT_SIGNATURE_FLAGS Flags;
+
+  RootSignatureReflection()
+	  : NumParameters(0)
+	  , NumStaticSamplers(0)
+	  , Flags(D3D12_ROOT_SIGNATURE_FLAG_NONE)
+  {
+  }
 };
 
 class ShaderInterface 
@@ -228,7 +245,6 @@ private:
 public:
   ShaderInterface():m_rootSig(nullptr)
   {
-    ZeroMemory(&m_rootDesc, sizeof(m_rootDesc));
   }
 
   bool operator!=(ShaderInterface& compared)
