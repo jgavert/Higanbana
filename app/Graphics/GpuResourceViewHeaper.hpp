@@ -149,10 +149,11 @@ public:
   }
 
   // never called yet, should be called by resource's destructor.
+  /*
   void free(size_t index)
   {
     m_usedIndexes.clearIdxBit(index);
-  }
+  }*/
 
   size_t size()
   {

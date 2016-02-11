@@ -1,4 +1,10 @@
 // EntryPoint.cpp
+#ifdef WIN64
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
 #include "Platform/EntryPoint.hpp"
 #include "Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
@@ -19,33 +25,28 @@
 #include <cstdio>
 #include <iostream>
 
+
 using namespace faze;
 
 int EntryPoint::main()
 {
   // these tests will screw with directx frame capture
-
   /*
   {
     ApiTests tests;
     tests.run(m_params);
-  }
-  */
-	
+  }*/
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
-  
   {
-    //SchedulerTests::Run();
+    SchedulerTests::Run();
   }
-  //return 0;
  
 	{
-		//BitfieldTests::Run();
+		BitfieldTests::Run();
 	}
-	//return 0;
   
 
   auto main = [=](std::string name)
@@ -198,6 +199,8 @@ int EntryPoint::main()
     }
     t.printStatistics();
     log.update();
+    fence.wait();
+    gfx.resetList();
   };
 
   main("w1");

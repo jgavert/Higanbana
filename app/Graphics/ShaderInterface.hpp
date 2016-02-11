@@ -7,14 +7,16 @@
 // for the sake of my own sanity and NOW RAW POINTERS OR DELETES.
 // Ill just get them wrong also they are const pointers in the structs.
 
-struct descriptorTable
+class descriptorTable
 {
+public:
   UINT NumDescriptorRanges;
   std::vector<D3D12_DESCRIPTOR_RANGE> pDescriptorRanges;
 };
 
-struct rootParam
+class rootParam
 {
+public:
   D3D12_ROOT_PARAMETER_TYPE ParameterType;
   descriptorTable DescriptorTable;
   D3D12_ROOT_CONSTANTS Constants;
@@ -22,8 +24,9 @@ struct rootParam
   D3D12_SHADER_VISIBILITY ShaderVisibility;
 };
 
-struct RootSignatureReflection
+class RootSignatureReflection
 {
+public:
   UINT NumParameters;
   std::vector<rootParam> pParameters;
   UINT NumStaticSamplers;

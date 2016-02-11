@@ -1,4 +1,11 @@
 #pragma once
+
+#ifdef WIN64
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
 #include "ComPtr.hpp"
 #include "Descriptors/Descriptors.hpp"
 #include "binding.hpp"
@@ -135,7 +142,7 @@ public:
 
       if (includeFile.is_open()) {
         long long fileSize = includeFile.tellg();
-        char* buf = new char[fileSize];
+        char* buf = new char[fileSize]; // TODO: new here, probably leaks memory. whole function should be implemented differently.
         includeFile.seekg(0, std::ios::beg);
         includeFile.read(buf, fileSize);
         includeFile.close();
