@@ -59,7 +59,6 @@ private:
     if (block == 128)
     {
       abort(); // lol everything used from block, cannot handle this yet.
-      return 0;
     }
     else
     {

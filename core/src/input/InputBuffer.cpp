@@ -43,7 +43,7 @@ void InputBuffer::readUntil(std::function<bool(int, int)> func)
   }
 }
 
-void InputBuffer::readTill(int64_t time, std::function<void(int,int, int64_t)> func)
+void InputBuffer::readTill(int64_t /*time*/, std::function<void(int,int, int64_t)> /*func*/)
 {
   // TODO: readTill(time, function)
   std::cerr << "InputBuffer: I don't know wtf to do\n";

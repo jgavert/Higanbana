@@ -66,6 +66,7 @@ Compiler( 'Compiler-x64' )
                         + ' /we4906' // string literal cast to 'LPWSTR'
 
   .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
+					  + ' /WX' // warnings as errors, also required as fastbuild hides warnings
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)

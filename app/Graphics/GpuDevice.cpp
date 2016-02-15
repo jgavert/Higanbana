@@ -331,12 +331,12 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
 
   desc.Width = resDesc.m_width;
   desc.Height = resDesc.m_height;
-  desc.DepthOrArraySize = resDesc.m_arraySize;
+  desc.DepthOrArraySize = static_cast<UINT16>(resDesc.m_arraySize);
   desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; // TODO: need something that isn't platform specific
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
   desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // for buffers, "Layout must be"
-  desc.MipLevels = resDesc.m_miplevels;
+  desc.MipLevels = static_cast<UINT16>(resDesc.m_miplevels);
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // 64KB
@@ -396,13 +396,13 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
 
   desc.Width = resDesc.m_width;
   desc.Height = resDesc.m_height;
-  desc.DepthOrArraySize = resDesc.m_arraySize;
+  desc.DepthOrArraySize = static_cast<UINT16>(resDesc.m_arraySize);
   desc.Dimension = FormatDimensionToD3D12[FormatDimension::DimTexture2D]; // TODO: need something that isn't hardcoded
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
   desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN; // Basically, leave the choice to driver.
   // other msaa supported layout is D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE but requires reservedResource and updated with updateTileMappings
-  desc.MipLevels = resDesc.m_miplevels;
+  desc.MipLevels = static_cast<UINT16>(resDesc.m_miplevels);
   desc.SampleDesc.Count = resDesc.m_msCount;
   desc.SampleDesc.Quality = resDesc.m_msQuality;
   desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;

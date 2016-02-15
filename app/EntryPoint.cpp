@@ -1,6 +1,5 @@
 // EntryPoint.cpp
 #ifdef WIN64
-#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
@@ -68,9 +67,8 @@ int EntryPoint::main()
     GfxCommandList gfx = gpu.createUniversalCommandList();
     {
       // recommended only in release mode with debugging layer off...
-      // didn't bother to find algorithm that would skip towards the right value.
       // StressTests::run(gpu, queue, window, sc, port, gfx, log);
-      //AdvTests::run(gpu, queue, window, sc, port, gfx);
+      // AdvTests::run(gpu, queue, window, sc, port, gfx);
     }
 
     using namespace rendering::utils;
