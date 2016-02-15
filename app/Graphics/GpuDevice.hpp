@@ -20,6 +20,7 @@
 #include <d3d12.h>
 #include <D3Dcompiler.h>
 #include <string>
+
 class GpuDevice
 {
 private:

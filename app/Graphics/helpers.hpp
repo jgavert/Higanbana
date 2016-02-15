@@ -1,7 +1,6 @@
 #pragma once
 
 #ifdef WIN64
-#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
@@ -44,7 +43,7 @@ void fillData(D3D12_RESOURCE_DESC& desc, D3D12_HEAP_PROPERTIES&heapProp,
   desc.Format = FormatToDXGIFormat[format.format];
   if (FormatType::Unknown == format.format) // ONLY FOR BUFFERS !?!?!?!?
   {
-    desc.DepthOrArraySize = format.stride;
+    desc.DepthOrArraySize = static_cast<UINT16>(format.stride);
   }
   fillData(desc, heapProp, std::forward<Args>(args)...);
 }
@@ -101,7 +100,7 @@ template <typename ...Args>
 void fillData(D3D12_RESOURCE_DESC& desc, D3D12_HEAP_PROPERTIES& heapProp,
   MipLevel mip, Args... args)
 {
-  desc.MipLevels = mip.level;
+  desc.MipLevels = static_cast<UINT16>(mip.level);
   fillData(desc, heapProp, std::forward<Args>(args)...);
 }
 
@@ -297,7 +296,7 @@ public:
 		bindingInput.push_back(std::make_tuple(i, Binding_::RootType::Num32, rootConstant++));
         break;
       case D3D12_ROOT_PARAMETER_TYPE_CBV:
-        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::CBV, cbv++));
+        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::CBV, static_cast<unsigned int>(cbv++)));
         if (it.Descriptor.ShaderRegister != cbv - 1)
         {
           //F_LOG(" WARNING! Shader registers don't match.\n");
@@ -305,7 +304,7 @@ public:
         //F_LOG("CBV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
         break;
       case D3D12_ROOT_PARAMETER_TYPE_SRV:
-        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::SRV, srv++));
+        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::SRV, static_cast<unsigned int>(srv++)));
         if (it.Descriptor.ShaderRegister != srv - 1)
         {
           //F_LOG(" WARNING! Shader registers don't match.\n");
@@ -313,7 +312,7 @@ public:
         //F_LOG("SRV RegisterSpace:%u ShaderRegister:%u\n", it.Descriptor.RegisterSpace, it.Descriptor.ShaderRegister);
         break;
       case D3D12_ROOT_PARAMETER_TYPE_UAV:
-        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::UAV, uav++));
+        bindingInput.push_back(std::make_tuple(i, Binding_::RootType::UAV, static_cast<unsigned int>(uav++)));
         if (it.Descriptor.ShaderRegister != uav - 1)
         {
           //F_LOG(" WARNING! Shader registers don't match.\n");

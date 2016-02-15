@@ -8,7 +8,7 @@ private:
   Microsoft::WRL::ComPtr<T> ptr;
 public:
   ComPtr() : ptr(nullptr){}
-  ComPtr(T* type) :ptr(Microsoft::WRL::ComPtr<T>(type)) {}
+  ComPtr(T* type) :ptr(type) {}
 
   T* operator->() const throw()
   {

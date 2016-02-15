@@ -73,7 +73,7 @@ bool SchedulerTests::Run()
   t.addTest("ParallelFor3", []()
   {
     LBS s;
-    std::unique_ptr<std::array<int, 2000000>> v = std::make_unique<std::array<int, 2000000>>();
+    std::unique_ptr<std::array<size_t, 2000000>> v = std::make_unique<std::array<size_t, 2000000>>();
     std::atomic<bool> b(true);
 
     s.addParallelFor<1024>("task", {}, {}, 0, 2000000, [&v](size_t i, size_t)
@@ -92,7 +92,7 @@ bool SchedulerTests::Run()
 	t.addTest("Sequential tasks", []()
 	{
 		LBS s(5);
-		std::vector<int> v;
+		std::vector<size_t> v;
 		s.addTask("task5", {"task4"}, {}, [&v](size_t, size_t)
 		{
 			v.emplace_back(5);
@@ -116,7 +116,7 @@ bool SchedulerTests::Run()
 		s.sleepTillKeywords({/*"task1", "task2", "task3", "task4",*/ "task5"});
 		if (v.size() != 5)
 			return false;
-		for (int i=1; i<6; i++)
+		for (size_t i=1; i<6; i++)
 		{
 			if (v[i-1] != i)
 				return false;

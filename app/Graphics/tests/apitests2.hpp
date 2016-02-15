@@ -12,6 +12,10 @@
 #include <d3d12shader.h>
 #include <D3Dcompiler.h>
 
+
+#pragma warning( push )
+#pragma warning( disable : 4189 ) // don't really want warnings from "local variable is initialized but not referenced"
+
 class ApiTests2
 {
 private:
@@ -682,3 +686,5 @@ public:
     }
   }
 };
+
+#pragma warning( pop ) 
