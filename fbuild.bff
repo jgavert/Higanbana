@@ -1,10 +1,13 @@
 #include "base.bff"
 
 // Core
-#include "core\core.bff"
-
+#include "core/core.bff"
+// Add graphics here
+#include "gfxdx12/dx12.bff"
+#include "gfxvk/vulkan.bff"
+#include "gfxnull/gfxnull.bff"
 // App
-#include "app\app.bff"
+#include "app/app.bff"
 
 // Aliases : All-$Platform$-$Config$
 //------------------------------------------------------------------------------
@@ -13,18 +16,18 @@ ForEach( .gfxApi in .GraphicsBackends)
 	Using( .gfxApi )
 	ForEach( .Config in .Configs )
 	{
-	  Using( .Config )
+		Using( .Config )
 
-	  Alias( 'All-$Platform$-$GraphicsApi$-$Config$' )
-	  {
-		.Targets    = { // tests
-					  // executables
-					  'App-Exe-$Platform$-$GraphicsApi$-$Config$'
+		Alias( 'All-$Platform$-$GraphicsApi$-$Config$' )
+		{
+			.Targets    = { // tests
+						  // executables
+						  'App-Exe-$Platform$-$GraphicsApi$-$Config$'
 
-					  // Clang doesn't link at the moment, so we need list all the libs manually
-					  //'Core-$Platform$-$Config$'
-					  }
-	  }
+						  // Clang doesn't link at the moment, so we need list all the libs manually
+						  //'Core-$Platform$-$Config$'
+						  }
+		}
 	}
 }
 
@@ -34,14 +37,14 @@ ForEach( .Platform in .Platforms )
 	ForEach( .gfxApi in .GraphicsBackends)
 	{
 		Using( .gfxApi )
-		  Alias( 'All-$Platform$-$GraphicsApi$' )
-		  {
-			.Targets    = { 'All-$Platform$-$GraphicsApi$-Debug',
+		Alias( 'All-$Platform$-$GraphicsApi$' )
+		{
+			.Targets	= {
+							'All-$Platform$-$GraphicsApi$-Debug',
 							'All-$Platform$-$GraphicsApi$-Profile',
 							'All-$Platform$-$GraphicsApi$-Release'
-							}
-		  }
-		
+						  }
+		}
 	}
 }
 
@@ -50,10 +53,11 @@ ForEach( .Platform in .Platforms )
 {
   Alias( 'All-$Platform$' )
   {
-    .Targets    = { 'All-$Platform$-D3D12',
-				  'All-$Platform$-Vulkan',
-				  'All-$Platform$-Null'
-				  }
+    .Targets = {
+				'All-$Platform$-D3D12',
+				'All-$Platform$-Vulkan',
+				'All-$Platform$-Null'
+				}
   }
 }
 
@@ -85,12 +89,17 @@ Alias( 'All+Tests' )
 
 Alias( 'proj' )
 {
-  .Targets    = { 'All-proj',
-            'Core-proj',
-            'App-proj' 
-            }
+  .Targets    = { 
+				  'All-proj',
+				  'Core-proj',
+				  'App-proj',
+				  'GfxDx12-proj',
+				  'GfxVk-proj',
+				  'GfxNull-proj'
+				}
 }
 
+// Solution ... is not that nice as all projects don't have the exact same targets... wait that can be fixed actually!
 //VSSolution( 'solution' )
 //{
 //  // Basic options

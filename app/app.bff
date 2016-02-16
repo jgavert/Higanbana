@@ -101,6 +101,10 @@
 		ForEach( .Config in .Configs_Windows_MSVC2 )
 		{
 			Using( .Config )
+			
+			.CompilerOptions    + .gfxDefines
+			.PCHOptions         + .gfxDefines
+
 			.OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
 			//Print('$LinkerOptions$')
 			//Print('$BaseIncludePaths$')
@@ -120,7 +124,8 @@
 			{
 				.Libraries					= {
 												  '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-												  'core-Lib-$Platform$-$Config$'
+												  'core-Lib-$Platform$-$Config$',
+												  '$GfxName$-Lib-$Platform$-$Config$'
 												}
 				.LinkerOutput				= '$OutputBase$\$ProjectName$\$ProjectName$.exe'
 			}
