@@ -75,16 +75,16 @@ Compiler( 'Compiler-x64' )
                       + ' /D"WIN32_LEAN_AND_MEAN" /D_WIN32 /D__WINDOWS__'
                       + ' /D"_CRT_SECURE_NO_WARNINGS"' // don't warn about unsafe functions
                       + ' /D"_WINSOCK_DEPRECATED_NO_WARNINGS"' // don't warn about deprecated winsock functions - TODO:C Update API use
-					            + ' /showIncludes'
-					            + ' /Gd'
+					  + ' /showIncludes'
+					  + ' /Gd'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
   .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
-					            + ' /IGNORE:4217' // don't complain about locally defined symbols
-					            + ' /IGNORE:4049' // urgh
+					  + ' /IGNORE:4217' // don't complain about locally defined symbols
+					  + ' /IGNORE:4049' // urgh
 
   // Optimizations
   .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
@@ -101,7 +101,7 @@ Compiler( 'Compiler-x64' )
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt"'
-					            + .externalIncludes
+					  + .externalIncludes
 
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
@@ -190,34 +190,53 @@ Compiler( 'Compiler-x64' )
 [
   .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Configuration)'
   .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Configuration)'
-  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Configuration)\App'
-  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Configuration)\App'
+  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Configuration)\^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Configuration)\^$(ProjectName)'
   .Platform                 = 'x64'
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
                             + .externalIncludesVisualStudio
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
-							              + .extDefines
+							+ .extDefines
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
 ]
 
-.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'x64-Debug' .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
-.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'x64-Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
-.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'x64-Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
+.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
+.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
+.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
 
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
+.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug' ]
+.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile' ]
+.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release' ]
+.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug' ]
+.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile' ]
+.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release' ]
+.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug' ]
+.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile' ]
+.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release' ]
+
+.ProjectGfxConfigs = { .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release
+				  , .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease
+				  , .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+
 VCXProject( 'All-proj' )
 {
-  .ProjectOutput    = '.\All.vcxproj'
-  .ProjectFiles     = { '.\fbuild.bff', '.\base.bff', '.\externals\externals.bff' }
+  .ProjectOutput    = '.\fbuild_all.vcxproj'
+  .ProjectFiles     = { '.\fbuild.bff', '.\base.bff', '.\externals\externals.bff', '.\config.bff' }
   .ProjectBasePath  = '.\'
 }
 
 // helper definitions
-.Configs = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
+.Configs              = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
 .Configs_Windows_MSVC = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
 
+.GfxDX12         = [ .GraphicsApi = 'D3D12' ]
+.GfxVulkan       = [ .GraphicsApi = 'Vulkan']
+.GfxNull         = [ .GraphicsApi = 'Null'  ]
+
+.GraphicsBackends = { .GfxDX12, .GfxVulkan, .GfxNull }
