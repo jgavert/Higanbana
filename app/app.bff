@@ -6,31 +6,39 @@
 
 	// Visual Studio Project Generation
 	//--------------------------------------------------------------------------
+
+
+
 	VCXProject( '$ProjectName$-proj' )
 	{
 		.ProjectOutput				= '$ProjectPath$\$ProjectName$.vcxproj'
 		.ProjectInputPaths			= '$ProjectPath$\'
 		.ProjectBasePath			= '$ProjectPath$\'
-    	.OutputDirectory      = '^$(SolutionDir)\bin\^$(Configuration)\App'
-		.LocalDebuggerCommand		= '^$(SolutionDir)\bin\^$(Configuration)\App\App.exe'
+		.OutputDirectory			= '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
+		.LocalDebuggerCommand		= '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)\^$(ProjectName).exe'
 		.LocalDebuggerWorkingDirectory = '^$(SolutionDir)\appspace\'
+		.ProjectConfigs				= .ProjectGfxConfigs
 	}
 
     // Unity
     //--------------------------------------------------------------------------
-    {
-        // Common options
-        .UnityInputPath             = '$ProjectPath$\'
-        .UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$\'
+	ForEach( .gfxApi in .GraphicsBackends)
+	{
+		Using( .gfxApi )
+		{
+			// Common options
+			.UnityInputPath             = '$ProjectPath$\'
+			.UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$-$GraphicsApi$\'
 
-        // Windows
-        Unity( '$ProjectName$-Unity-Windows' )
-        {
-        }
-    }
+			// Windows
+			Unity( '$ProjectName$-$GraphicsApi$-Unity-Windows' )
+			{
+			}
+		}
+	}
 
     .CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
-						            + ' libcmt.lib'
+						+ ' libcmt.lib'
                         + ' kernel32.lib'
                         + ' user32.lib'
                         + ' gdi32.lib'
@@ -44,18 +52,18 @@
                         + ' odbc32.lib'
                         + ' odbccp32.lib'
                         + ' libconcrt1.lib'
-						            + ' OLDNAMES.lib'
-						            + ' D3d12.lib'
-						            + ' Dxgi.lib'
-						            + ' atls.lib'
-						            + ' D3DCompiler.lib'
-	.Debuglinkerlibs      = ' libcpmtd.lib' // brings thread support
-						            + ' libucrtd.lib'
+						+ ' OLDNAMES.lib'
+						+ ' D3d12.lib'
+						+ ' Dxgi.lib'
+						+ ' atls.lib'
+						+ ' D3DCompiler.lib'
+	.Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
+						+ ' libucrtd.lib'
                         + ' libvcruntimed.lib'
-	.Releaselinkerlibs    = ' libcpmt.lib'
-						            + ' libucrt.lib'
+	.Releaselinkerlibs  = ' libcpmt.lib'
+						+ ' libucrt.lib'
                         + ' libvcruntime.lib' 
-	.Profilelinkerlibs    = .Releaselinkerlibs
+	.Profilelinkerlibs  = .Releaselinkerlibs
 
 	.X64DebugConfiguration =
 	[
@@ -87,50 +95,58 @@
 
 	// Windows (MSVC)
 	//--------------------------------------------------------------------------
-	ForEach( .Config in .Configs_Windows_MSVC2 )
+	ForEach( .gfxApi in .GraphicsBackends)
 	{
-		Using( .Config )
-		.OutputBase + '\$Platform$-$Config$'
-		//Print('$LinkerOptions$')
-		//Print('$BaseIncludePaths$')
-		// Static Library
-		Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+		Using( .gfxApi )
+		ForEach( .Config in .Configs_Windows_MSVC2 )
 		{
-			// Input (Unity)
-			.CompilerInputUnity			= '$ProjectName$-Unity-Windows'
+			Using( .Config )
+			.OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
+			//Print('$LinkerOptions$')
+			//Print('$BaseIncludePaths$')
+			// Static Library
+			Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
+			{
+				// Input (Unity)
+				.CompilerInputUnity			= '$ProjectName$-$GraphicsApi$-Unity-Windows'
 
-			// Output
-			.CompilerOutputPath			= '$OutputBase$\$ProjectName$\'
- 			.LibrarianOutput 			  = '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+				// Output
+				.CompilerOutputPath			= '$OutputBase$\$ProjectName$\'
+				.LibrarianOutput 			= '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+			}
+
+			// Executable
+			Executable( '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' )
+			{
+				.Libraries					= {
+												  '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
+												  'core-Lib-$Platform$-$Config$'
+												}
+				.LinkerOutput				= '$OutputBase$\$ProjectName$\$ProjectName$.exe'
+			}
+			Alias( '$ProjectName$-$Platform$-$GraphicsApi$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' }
 		}
+		
+		// Aliases
+		//--------------------------------------------------------------------------
+		// Per-Config
+		Alias( '$ProjectName$-$GraphicsApi$-Debug' )	{ .Targets = { '$ProjectName$-X64-$GraphicsApi$-Debug'} }
+		Alias( '$ProjectName$-$GraphicsApi$-Profile' )	{ .Targets = { '$ProjectName$-X64-$GraphicsApi$-Profile'} }
+		Alias( '$ProjectName$-$GraphicsApi$-Release' )	{ .Targets = { '$ProjectName$-X64-$GraphicsApi$-Release'} }
 
-		// Executable
-		Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
+		// Per-Platform
+		Alias( '$ProjectName$-X64-$GraphicsApi$' )		{ .Targets = { '$ProjectName$-X64-$GraphicsApi$-Debug', '$ProjectName$-X64-$GraphicsApi$-Release', '$ProjectName$-X64-$GraphicsApi$-Profile' } }
+
+		// All
+		Alias( '$ProjectName$-$GraphicsApi$' )
 		{
-			.Libraries					= {
-                              'App-Lib-$Platform$-$Config$',
-                              'core-Lib-$Platform$-$Config$'
-                            }
-			.LinkerOutput				= '$OutputBase$\App\App.exe'
+			.Targets = { '$ProjectName$-$GraphicsApi$-Debug', '$ProjectName$-$GraphicsApi$-Profile', '$ProjectName$-$GraphicsApi$-Release' }
 		}
-		Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$Config$' }
 	}
 
-	// Aliases
-	//--------------------------------------------------------------------------
-	// Per-Config
-
-	Alias( '$ProjectName$-Debug' )		{ .Targets = { '$ProjectName$-X64-Debug'} }
-	Alias( '$ProjectName$-Profile' )	{ .Targets = { '$ProjectName$-X64-Profile'} }
-	Alias( '$ProjectName$-Release' )	{ .Targets = { '$ProjectName$-X64-Release'} }
-
-	// Per-Platform
-	Alias( '$ProjectName$-X64' )		{ .Targets = { '$ProjectName$-X64-Debug', '$ProjectName$-X64-Release', '$ProjectName$-X64-Profile' } }
-
-
-	// All
 	Alias( '$ProjectName$' )
 	{
-		.Targets = { '$ProjectName$-Debug', '$ProjectName$-Profile', '$ProjectName$-Release' }
+		.Targets = {'$ProjectName$-D3D12', '$ProjectName$-Vulkan', '$ProjectName$-Null'}
 	}
+
 }

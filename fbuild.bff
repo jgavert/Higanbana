@@ -8,20 +8,41 @@
 
 // Aliases : All-$Platform$-$Config$
 //------------------------------------------------------------------------------
-ForEach( .Config in .Configs )
+ForEach( .gfxApi in .GraphicsBackends)
 {
-  Using( .Config )
+	Using( .gfxApi )
+	ForEach( .Config in .Configs )
+	{
+	  Using( .Config )
 
-  Alias( 'All-$Platform$-$Config$' )
-  {
-    .Targets    = { // tests
-              // executables
-              'App-Exe-$Platform$-$Config$'
+	  Alias( 'All-$Platform$-$GraphicsApi$-$Config$' )
+	  {
+		.Targets    = { // tests
+					  // executables
+					  'App-Exe-$Platform$-$GraphicsApi$-$Config$'
 
-              // Clang doesn't link at the moment, so we need list all the libs manually
-              //'Core-$Platform$-$Config$'
-              }
-  }
+					  // Clang doesn't link at the moment, so we need list all the libs manually
+					  //'Core-$Platform$-$Config$'
+					  }
+	  }
+	}
+}
+
+.Platforms = { 'x64' }
+ForEach( .Platform in .Platforms )
+{
+	ForEach( .gfxApi in .GraphicsBackends)
+	{
+		Using( .gfxApi )
+		  Alias( 'All-$Platform$-$GraphicsApi$' )
+		  {
+			.Targets    = { 'All-$Platform$-$GraphicsApi$-Debug',
+							'All-$Platform$-$GraphicsApi$-Profile',
+							'All-$Platform$-$GraphicsApi$-Release'
+							}
+		  }
+		
+	}
 }
 
 .Platforms = { 'x64' }
@@ -29,10 +50,10 @@ ForEach( .Platform in .Platforms )
 {
   Alias( 'All-$Platform$' )
   {
-    .Targets    = { 'All-$Platform$-Debug',
-              'All-$Platform$-Profile',
-              'All-$Platform$-Release'
-              }
+    .Targets    = { 'All-$Platform$-D3D12',
+				  'All-$Platform$-Vulkan',
+				  'All-$Platform$-Null'
+				  }
   }
 }
 
@@ -61,6 +82,7 @@ Alias( 'All+Tests' )
 
 // Aliases : proj (all projects)
 //------------------------------------------------------------------------------
+
 Alias( 'proj' )
 {
   .Targets    = { 'All-proj',
@@ -68,3 +90,28 @@ Alias( 'proj' )
             'App-proj' 
             }
 }
+
+//VSSolution( 'solution' )
+//{
+//  // Basic options
+//  .SolutionOutput                    = '.\faze_debug.sln' // Path to Solution file to be generated
+//  .SolutionProjects =
+//	{
+//	  'App-proj' // Previously defined with VCXProject
+//	  'Core-proj' // Previously defined with VCXProject
+//	}
+  //.SolutionConfigs                    // (optional) Solution configurations (see below)
+  //.SolutionBuildProject               // (optional) Project set to build when "Build Solution" is selected
+  // Folders
+  //.SolutionFolders                    // (optional) Folders to organize projects (see below)
+
+  // Advanced options
+  //.SolutionDependencies               // (optional) Project dependency information (see below)
+  
+  // Version Info
+//  .SolutionVisualStudioVersion			= "14.0.24720.00" 
+//  .SolutionMinimumVisualStudioVersion	= "14.0.22823.1"  
+  //.SolutionVisualStudioVersion        // (optional) Version of Solution (default "14.0.22823.1" VS2015 RC)
+  //.SolutionMinimumVisualStudioVersion // (optional) Min version of Solution (default "10.0.40219.1" VS2010 Express)
+//}
+
