@@ -21,6 +21,14 @@
 // app
 #include "Rendering/Utils/graph.hpp"
 
+#if defined(GFX_VULKAN)
+#include "gfxvk/src/temp.hpp"
+#elif defined(GFX_D3D12)
+#include "gfxdx12/src/temp.hpp"
+#elif defined(GFX_NULL)
+#include "gfxnull/src/temp.hpp"
+#endif
+
 #include <cstdio>
 #include <iostream>
 
@@ -53,6 +61,8 @@ int EntryPoint::main()
   {
     //LBS lbs;
     Logger log;
+    F_LOG("Hei olen %s\n", yay::message());
+    log.update();
     WTime t;
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };

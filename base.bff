@@ -188,10 +188,10 @@ Compiler( 'Compiler-x64' )
 //------------------------------------------------------------------------------
 .ProjectCommon = 
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Configuration)'
-  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Configuration)\^$(ProjectName)'
-  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Configuration)\^$(ProjectName)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
   .Platform                 = 'x64'
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
@@ -203,26 +203,37 @@ Compiler( 'Compiler-x64' )
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
 ]
-
+// not everything needs graphics targets
 .ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
 .ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
 .ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
 
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
-.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug' ]
-.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile' ]
-.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release' ]
-.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug' ]
-.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile' ]
-.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release' ]
-.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug' ]
-.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile' ]
-.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release' ]
+.D3D12Define  = 'GFX_D3D12'
+.VulkanDefine = 'GFX_VULKAN'
+.NullDefine   = 'GFX_NULL'
+// global gfx backend config
+.GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
+.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
+.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' /D$NullDefine$']
 
-.ProjectGfxConfigs = { .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release
-				  , .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease
-				  , .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+.GraphicsBackends = { .GfxDX12, .GfxVulkan, .GfxNull }
+
+// Solution targets 
+.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug'		.PreprocessorDefinitions + ';$D3D12Define$']
+.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile'	.PreprocessorDefinitions + ';$D3D12Define$']
+.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release'	.PreprocessorDefinitions + ';$D3D12Define$']
+.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'	.PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'	.PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'	.PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug'		.PreprocessorDefinitions + ';$NullDefine$']
+.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile'	.PreprocessorDefinitions + ';$NullDefine$']
+.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release'	.PreprocessorDefinitions + ';$NullDefine$']
+
+.ProjectGfxConfigs = {  .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release
+					  , .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease
+					  , .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
 
 VCXProject( 'All-proj' )
 {
@@ -235,8 +246,3 @@ VCXProject( 'All-proj' )
 .Configs              = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
 .Configs_Windows_MSVC = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
 
-.GfxDX12         = [ .GraphicsApi = 'D3D12' ]
-.GfxVulkan       = [ .GraphicsApi = 'Vulkan']
-.GfxNull         = [ .GraphicsApi = 'Null'  ]
-
-.GraphicsBackends = { .GfxDX12, .GfxVulkan, .GfxNull }
