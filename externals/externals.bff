@@ -33,6 +33,28 @@
 .oculuslibRelDeb	+ ' LibOVR.lib'
 .oculuslibRelease	+ ' LibOVR.lib'
 
+// VULKAN cpp
+.vulkanCppInclude	= .extIncludeDir
+				+ 'Vulkan/include'
+
+// VULKAN 
+.vulkanInclude	= '$VulkanSDKBasePath$/include'
+.vulkanLibPath	= ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
+				+ .extEndBasePath
+.vulkanlibs	= ' vulkan-1.lib'
+			+ ' layer_utils.lib'
+			+ ' VkLayer_api_dump.lib'
+			+ ' VkLayer_device_limits.lib'
+			+ ' VkLayer_draw_state.lib'
+			+ ' VkLayer_image.lib'
+			+ ' VkLayer_mem_tracker.lib'
+			+ ' VkLayer_object_tracker.lib'
+			+ ' VkLayer_param_checker.lib'
+			+ ' VkLayer_screenshot.lib'
+			+ ' VkLayer_swapchain.lib'
+			+ ' VkLayer_threading.lib'
+			+ ' VkLayer_unique_objects.lib'
+
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////
@@ -40,10 +62,15 @@
 // these 2 are automatically in right place
 .extLibPaths 					+ .oculuslibPath
 								+ .oculuskernellibPath
+								+ .vulkanLibPath
 .externalIncludes				= ' /I^"$oculusInclude$"'
 								+ ' /I^"$oculusKernelInclude$"'
+								+ ' /I^"$vulkanInclude$"'
+								+ ' /I^"$vulkanCppInclude$"'
 .externalIncludesVisualStudio	= '$oculusInclude$;'
 								+ '$oculusKernelInclude$;'
+								+ '$vulkanInclude$;'
+								+ '$vulkanCppInclude$;'
 
 // disable oculus by uncommenting these lines
 
