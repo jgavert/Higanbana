@@ -1,7 +1,7 @@
 #include "CommandList.hpp"
 
 CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
-  :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator),
+  :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator), closed(false),
   m_boundCptPipeline(nullptr), m_boundGfxPipeline(nullptr)
   , m_uavBindlessIndex(-1), m_srvBindlessIndex(-1)
 	, m_graphicsBound(false)

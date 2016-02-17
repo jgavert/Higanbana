@@ -4,30 +4,25 @@
 #include <crtdbg.h>
 #endif
 
-#include "Platform/EntryPoint.hpp"
-#include "Platform/Window.hpp"
+#include "core/src/Platform/EntryPoint.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
 #include "core/src/entity/database.hpp"
 #include "core/src/system/time.hpp"
 #include "core/src/tests/schedulertests.hpp"
 #include "core/src/tests/bitfield_tests.hpp"
+#include "core/src/math/mat_templated.hpp"
 #include "Graphics/gfxApi.hpp"
+
+#if defined(GFX_D3D12)
 #include "graphics/tests/apitests.hpp"
 #include "graphics/tests/apitests2.hpp"
 #include "graphics/tests/advtests.hpp"
 #include "graphics/tests/stresstests.hpp"
-
+#endif
 // app
 #include "Rendering/Utils/graph.hpp"
-
-#if defined(GFX_VULKAN)
-#include "gfxvk/src/temp.hpp"
-#elif defined(GFX_D3D12)
-#include "gfxdx12/src/temp.hpp"
-#elif defined(GFX_NULL)
-#include "gfxnull/src/temp.hpp"
-#endif
 
 #include <cstdio>
 #include <iostream>
@@ -163,7 +158,7 @@ int EntryPoint::main()
           }
           gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
         }
-        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        auto backBufferIndex = sc.GetCurrentBackBufferIndex();
         {
           GpuProfilingBracket(gfx, "Clearing&Setting RTV");
           gfx.setViewPort(port);
@@ -196,7 +191,7 @@ int EntryPoint::main()
         // present
         {
           GpuProfilingBracket(queue, "Presenting frame");
-          sc->Present(1, 0);
+          sc.present(1, 0);
         }
         queue.insertFence(fence);
       }//);

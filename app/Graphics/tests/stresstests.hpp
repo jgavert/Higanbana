@@ -1,8 +1,8 @@
 #pragma once
 #include "core/src/math/mat_templated.hpp"
 //#include "core/src/math/vec_templated.hpp"
-#include "Platform/EntryPoint.hpp"
-#include "Platform/Window.hpp"
+#include "core/src/Platform/EntryPoint.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
 #include "core/src/entity/database.hpp"
