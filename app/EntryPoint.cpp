@@ -199,7 +199,7 @@ int EntryPoint::main()
       //lbs.sleepTillKeywords({ "Submit&Present" });
       t.tick();
       time += t.getFrameTimeDelta();
-	    log.update();
+	  log.update();
     }
     t.printStatistics();
     log.update();
