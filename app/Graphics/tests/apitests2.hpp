@@ -1,6 +1,6 @@
 #pragma once
-#include "Platform/EntryPoint.hpp"
-#include "Platform/Window.hpp"
+#include "core/src/Platform/EntryPoint.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
 #include "core/src/entity/database.hpp"

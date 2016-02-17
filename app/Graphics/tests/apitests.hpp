@@ -1,6 +1,6 @@
 #pragma once
-#include "Platform/EntryPoint.hpp"
-#include "Platform/Window.hpp"
+#include "core/src/Platform/EntryPoint.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
 #include "Graphics/gfxApi.hpp"
@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <iostream>
 #include "core/src/tests/TestWorks.hpp"
-#include "app/Platform/Window.hpp"
 
 #include <d3d12shader.h>
 #include <D3Dcompiler.h>

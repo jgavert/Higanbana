@@ -4,8 +4,8 @@
 #include <crtdbg.h>
 #endif
 
-#include "Platform/ProgramParams.hpp"
-#include "Platform/EntryPoint.hpp" // client entrypoint
+#include "core/src/Platform/ProgramParams.hpp"
+#include "core/src/Platform/EntryPoint.hpp" // client entrypoint
 
 
 #ifdef WIN64

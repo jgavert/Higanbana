@@ -42,6 +42,16 @@ public:
     return m_resources.size();
   }
 
+  unsigned GetCurrentBackBufferIndex()
+  {
+    return  m_SwapChain->GetCurrentBackBufferIndex();
+  }
+
+  void present(unsigned syncInterval, unsigned flags)
+  {
+    m_SwapChain->Present(syncInterval, flags);
+  }
+
   bool valid()
   {
     bool arr = m_SwapChain.get() != nullptr;

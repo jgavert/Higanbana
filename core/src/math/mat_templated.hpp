@@ -138,7 +138,8 @@ namespace faze
 
   typedef Matrix<float, 4, 4> mat4;
   typedef Matrix<float, 3, 3> mat3;
-
+#pragma warning( push )
+#pragma warning( disable : 4505 ) // unreferenced local function has been removed
   namespace MatrixMath
   {
     const float PI = 3.14159265f;
@@ -243,5 +244,5 @@ namespace faze
     }
   };
 
-
+#pragma warning( pop )
 }
