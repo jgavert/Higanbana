@@ -47,7 +47,7 @@
 
 			// Extra Include paths
 			//.CompilerOptions			+ .LZ4IncludePaths
-			.LinkerOptions				+ .vulkanlibs
+			
 			// Input (Unity)
 			.CompilerInputUnity			= '$ProjectName$-Unity-Windows'
 

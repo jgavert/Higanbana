@@ -57,6 +57,10 @@ int EntryPoint::main()
     //LBS lbs;
     Logger log;
     F_LOG("Hei olen %s\n", yay::message());
+    if (yay::test())
+      F_LOG("Oikea vulkan! zomg\n");
+    else
+      F_LOG("Vissiin ei vulkan\n");
     log.update();
     WTime t;
     ivec2 ires = { 800, 600 };
