@@ -1,7 +1,10 @@
 #include "temp.hpp"
 
-#include <vk_cpp.h>
+#include "core/src/memory/ManagedResource.hpp"
+
+#include <vulkan/vk_cpp.h>
 #include <iostream>
+#include <memory>
 
 const char* yay::message()
 {
@@ -29,10 +32,13 @@ bool yay::test()
   inst_info.enabledLayerCount = 0;
   inst_info.ppEnabledLayerNames = NULL;
   */
-  vk::Instance inst;
-  vk::Result res;
+  FazPtr<vk::Instance> instance([](vk::Instance ist)
+  {
+    vk::destroyInstance(ist, nullptr);
+  });
 
-  res = vk::createInstance(&inst_info, nullptr, &inst);
+  vk::Result res;
+  res = vk::createInstance(&inst_info, nullptr, instance.get());
   if (res == vk::Result::eVkErrorIncompatibleDriver) {
     std::cout << "cannot find a compatible Vulkan ICD\n";
 	  return false;
@@ -41,6 +47,6 @@ bool yay::test()
     std::cout << "unknown error\n";
     return false;
   }
-  vk::destroyInstance(inst, nullptr);
+  //vk::destroyInstance(inst, nullptr); // FazPtr handles the destruction.
 	return true;
 }
