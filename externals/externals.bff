@@ -1,9 +1,10 @@
 // external base
-.extBasePath	= ' /LIBPATH:^"$FazEPath$/externals/'
-.extEndBasePath = '"'
-.extIncludeDir	= '$FazEPath$/externals/'
-.extDefines		= ''
-.extLibPaths	= ''
+.extBasePath				= ' /LIBPATH:^"$FazEPath$/externals/'
+.extEndBasePath				= '"'
+.extIncludeDir				= '$FazEPath$/externals/'
+.extVisualStudioDefines		= ''
+.extDefines					= ''
+.extLibPaths				= ''
 
 /////////////////////////////////
 // ADD DEPENDENCIES AFTER THIS //
@@ -34,26 +35,28 @@
 .oculuslibRelease	+ ' LibOVR.lib'
 
 // VULKAN cpp
-.vulkanCppInclude	= .extIncludeDir
-					+ 'Vulkan/include'
+.vulkanCppInclude		= .extIncludeDir
+						+ 'Vulkan/include'
+.extVisualStudioDefines	+ 'VKCPP_ENHANCED_MODE;'
+.extDefines				+ ' /DVKCPP_ENHANCED_MODE'
 
 // VULKAN 
 .vulkanInclude	= '$VulkanSDKBasePath$/include'
 .vulkanLibPath	= ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
 				+ .extEndBasePath
-.vulkanlibs	= ' vulkan-1.lib'
-			+ ' layer_utils.lib'
-			+ ' VkLayer_api_dump.lib'
-			+ ' VkLayer_device_limits.lib'
-			+ ' VkLayer_draw_state.lib'
-			+ ' VkLayer_image.lib'
-			+ ' VkLayer_mem_tracker.lib'
-			+ ' VkLayer_object_tracker.lib'
-			+ ' VkLayer_param_checker.lib'
-			+ ' VkLayer_screenshot.lib'
-			+ ' VkLayer_swapchain.lib'
-			+ ' VkLayer_threading.lib'
-			+ ' VkLayer_unique_objects.lib'
+.vulkanlibs		= ' vulkan-1.lib'
+				+ ' layer_utils.lib'
+				+ ' VkLayer_api_dump.lib'
+				+ ' VkLayer_device_limits.lib'
+				+ ' VkLayer_draw_state.lib'
+				+ ' VkLayer_image.lib'
+				+ ' VkLayer_mem_tracker.lib'
+				+ ' VkLayer_object_tracker.lib'
+				+ ' VkLayer_param_checker.lib'
+				+ ' VkLayer_screenshot.lib'
+				+ ' VkLayer_swapchain.lib'
+				+ ' VkLayer_threading.lib'
+				+ ' VkLayer_unique_objects.lib'
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //

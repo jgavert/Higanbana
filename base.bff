@@ -54,16 +54,17 @@ Compiler( 'Compiler-x64' )
 //------------------------------------------------------------------------------
 .MSVCBaseConfig =
 [
-  .AdditionalWarnings   = ' /we4062' // enumerator 'identifier' in a switch of enum 'enumeration' is not handled
-                        + ' /we4263' // 'function' : member function does not override any base class virtual member function
-                        + ' /we4296' // 'operator': expression is always false
-                        + ' /we4555' // expression has no effect; expected expression with side-effect
-                        + ' /we4619' // #pragma warning : there is no warning number 'number'
-                        + ' /we4640' // 'instance' : construction of local static object is not thread-safe
-                        + ' /we4826' // Conversion from 'type1 ' to 'type_2' is sign-extended. This may cause unexpected runtime behavior.
-                        + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
-                        + ' /we4905' // wide string literal cast to 'LPSTR'
-                        + ' /we4906' // string literal cast to 'LPWSTR'
+  .AdditionalWarnings   = '' // ' /we4062' // enumerator 'identifier' in a switch of enum 'enumeration' is not handled
+                     //   + ' /we4263' // 'function' : member function does not override any base class virtual member function
+                     //   + ' /we4296' // 'operator': expression is always false
+                     //   + ' /we4555' // expression has no effect; expected expression with side-effect
+                     //   + ' /we4619' // #pragma warning : there is no warning number 'number'
+                     //   + ' /we4640' // 'instance' : construction of local static object is not thread-safe
+                     //   + ' /we4826' // Conversion from 'type1 ' to 'type_2' is sign-extended. This may cause unexpected runtime behavior.
+                     //   + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
+                     //   + ' /we4905' // wide string literal cast to 'LPSTR'
+                     //   + ' /we4906' // string literal cast to 'LPWSTR'
+					 	  + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
 
   .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
 					  + ' /WX' // warnings as errors, also required as fastbuild hides warnings
@@ -75,8 +76,9 @@ Compiler( 'Compiler-x64' )
                       + ' /D"WIN32_LEAN_AND_MEAN" /D_WIN32 /D__WINDOWS__'
                       + ' /D"_CRT_SECURE_NO_WARNINGS"' // don't warn about unsafe functions
                       + ' /D"_WINSOCK_DEPRECATED_NO_WARNINGS"' // don't warn about deprecated winsock functions - TODO:C Update API use
-					  + ' /showIncludes'
+					  //+ ' /showIncludes'
 					  + ' /Gd'
+					  + '$extDefines$'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
@@ -196,9 +198,9 @@ Compiler( 'Compiler-x64' )
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
-                            + .externalIncludesVisualStudio
+                            + '$externalIncludesVisualStudio$'
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;'
-							+ .extDefines
+							+ '$extVisualStudioDefines$'
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
