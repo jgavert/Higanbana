@@ -11,11 +11,54 @@ const char* yay::message()
   return "Vulkan!";
 }
 
+void* pfnAllocation(
+  void*                                       /*pUserData*/,
+  size_t                                      size, // bytes
+  size_t                                      alignment,
+  VkSystemAllocationScope                     /*allocationScope*/)
+{
+  return _aligned_malloc(size, alignment);
+};
+
+void* pfnReallocation(
+  void*                                       /*pUserData*/,
+  void*                                       pOriginal,
+  size_t                                      size,
+  size_t                                      alignment,
+  VkSystemAllocationScope                     /*allocationScope*/)
+{
+  return _aligned_realloc(pOriginal, size, alignment);
+};
+
+void pfnFree(
+  void*                                       /*pUserData*/,
+  void*                                       pMemory)
+{
+  _aligned_free(pMemory);
+};
+
+void pfnInternalAllocation(
+  void*                                       /*pUserData*/,
+  size_t                                      /*size*/,
+  VkInternalAllocationType                    /*allocationType*/,
+  VkSystemAllocationScope                     /*allocationScope*/)
+{
+
+};
+
+void pfnInternalFree(
+  void*                                       /*pUserData*/,
+  size_t                                      /*size*/,
+  VkInternalAllocationType                    /*allocationType*/,
+  VkSystemAllocationScope                     /*allocationScope*/)
+{
+
+};
+
 bool yay::test()
 {
   vk::ApplicationInfo app_info = vk::ApplicationInfo()
     .sType(vk::StructureType::eApplicationInfo)
-    .pNext(nullptr)
     .pApplicationName("vulkan test")
     .applicationVersion(1)
     .pEngineName("faze")
@@ -32,21 +75,21 @@ bool yay::test()
   inst_info.enabledLayerCount = 0;
   inst_info.ppEnabledLayerNames = NULL;
   */
-  FazPtr<vk::Instance> instance([](vk::Instance ist)
+
+  vk::AllocationCallbacks alloc_info(nullptr, pfnAllocation, pfnReallocation, pfnFree, pfnInternalAllocation, pfnInternalFree);
+
+  FazPtr<vk::Instance> instance([=](vk::Instance ist)
   {
-    vk::destroyInstance(ist, nullptr);
+    vk::destroyInstance(ist, &alloc_info);
   });
 
-  vk::Result res;
-  res = vk::createInstance(&inst_info, nullptr, instance.get());
-  if (res == vk::Result::eVkErrorIncompatibleDriver) {
-    std::cout << "cannot find a compatible Vulkan ICD\n";
+  vk::Result res = vk::createInstance(&inst_info, &alloc_info, instance.get());
+
+  if (res != vk::Result::eVkSuccess)
+  {
+    // quite hot shit baby yeah!
+    std::cout << vk::getString(res) << std::endl;
 	  return false;
   }
-  else if (static_cast<int>(res)) {
-    std::cout << "unknown error\n";
-    return false;
-  }
-  //vk::destroyInstance(inst, nullptr); // FazPtr handles the destruction.
 	return true;
 }
