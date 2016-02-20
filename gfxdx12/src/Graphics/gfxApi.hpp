@@ -22,7 +22,7 @@ struct GpuInfo
   size_t shaSysMem;
 };
 
-class SystemDevices
+class GraphicsInstance
 {
 private:
   ComPtr<IDXGIFactory4> pFactory;
@@ -33,7 +33,7 @@ private:
   int lesserDevice;
 
 public:
-  SystemDevices() : betterDevice(-1), lesserDevice(-1)
+  GraphicsInstance() : betterDevice(-1), lesserDevice(-1)
   {
     UINT i = 0;
     CreateDXGIFactory1(__uuidof(IDXGIFactory4), reinterpret_cast<void**>(pFactory.addr()));
@@ -88,6 +88,16 @@ public:
     {
       betterDevice = lesserDevice;
     }
+  }
+
+  bool createInstance(const char* /*appName*/)
+  {
+    return true;
+  }
+
+  bool createInstance(const char* /*appName*/, unsigned /*appVersion = 1*/, const char* /*engineName = "faze"*/, unsigned /*engineVersion = 1*/)
+  {
+    return true;
   }
 
   GpuDevice CreateGpuDevice(bool debug = true, bool warpDriver = true)
