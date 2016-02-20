@@ -38,7 +38,13 @@
 .vulkanCppInclude		= .extIncludeDir
 						+ 'Vulkan/include'
 .extVisualStudioDefines	+ 'VKCPP_ENHANCED_MODE;'
+#if __WINDOWS__
+						+ 'VK_USE_PLATFORM_WIN32_KHR;'
+#endif
 .extDefines				+ ' /DVKCPP_ENHANCED_MODE'
+#if __WINDOWS__
+						+ ' /DVK_USE_PLATFORM_WIN32_KHR'
+#endif
 
 // VULKAN 
 .vulkanInclude	= '$VulkanSDKBasePath$/include'

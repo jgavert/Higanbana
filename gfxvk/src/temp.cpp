@@ -1,7 +1,7 @@
 #include "temp.hpp"
 
 #include "core/src/memory/ManagedResource.hpp"
-
+#include "Graphics/vk_specifics/AllocStuff.hpp"
 #include <vulkan/vk_cpp.h>
 #include <iostream>
 #include <memory>
@@ -10,50 +10,6 @@ const char* yay::message()
 {
   return "Vulkan!";
 }
-
-void* pfnAllocation(
-  void*                                       /*pUserData*/,
-  size_t                                      size, // bytes
-  size_t                                      alignment,
-  VkSystemAllocationScope                     /*allocationScope*/)
-{
-  return _aligned_malloc(size, alignment);
-};
-
-void* pfnReallocation(
-  void*                                       /*pUserData*/,
-  void*                                       pOriginal,
-  size_t                                      size,
-  size_t                                      alignment,
-  VkSystemAllocationScope                     /*allocationScope*/)
-{
-  return _aligned_realloc(pOriginal, size, alignment);
-};
-
-void pfnFree(
-  void*                                       /*pUserData*/,
-  void*                                       pMemory)
-{
-  _aligned_free(pMemory);
-};
-
-void pfnInternalAllocation(
-  void*                                       /*pUserData*/,
-  size_t                                      /*size*/,
-  VkInternalAllocationType                    /*allocationType*/,
-  VkSystemAllocationScope                     /*allocationScope*/)
-{
-
-};
-
-void pfnInternalFree(
-  void*                                       /*pUserData*/,
-  size_t                                      /*size*/,
-  VkInternalAllocationType                    /*allocationType*/,
-  VkSystemAllocationScope                     /*allocationScope*/)
-{
-
-};
 
 bool yay::test()
 {
@@ -76,7 +32,7 @@ bool yay::test()
   inst_info.ppEnabledLayerNames = NULL;
   */
 
-  vk::AllocationCallbacks alloc_info(nullptr, pfnAllocation, pfnReallocation, pfnFree, pfnInternalAllocation, pfnInternalFree);
+  vk::AllocationCallbacks alloc_info(nullptr, allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree);
 
   FazPtr<vk::Instance> instance([=](vk::Instance ist)
   {
