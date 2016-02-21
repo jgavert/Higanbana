@@ -70,6 +70,7 @@ int EntryPoint::main()
       return;
     }
     {
+      GpuDevice gpu = devices.CreateGpuDevice();
       float time = 0.f;
       while (true)
       {

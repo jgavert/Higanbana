@@ -14,18 +14,20 @@
 #include "core/src/Platform/Window.hpp"
 #include "Descriptors/Descriptors.hpp"
 #include "DescriptorHeapManager.hpp"
+#include "core/src/memory/ManagedResource.hpp"
 
 #include <string>
+#include <vulkan/vk_cpp.h>
 
 class GpuDevice
 {
 private:
 
-  void* m_device;
+  FazPtr<vk::Device> m_device;
   bool  m_debugLayer;
   DescriptorHeapManager heap;
 public:
-  GpuDevice(void* device, bool debugLayer);
+  GpuDevice(FazPtr<vk::Device> device, bool debugLayer);
   ~GpuDevice();
   SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
   GpuFence createFence();
