@@ -1,11 +1,14 @@
 #include "AllocStuff.hpp"
+#include "core/src/global_debug.hpp"
 
 void* allocs::pfnAllocation(
-  void*                                       /*pUserData*/,
+  void*                                       pUserData,
   size_t                                      size, // bytes
   size_t                                      alignment,
   VkSystemAllocationScope                     /*allocationScope*/)
 {
+  allocs* info = reinterpret_cast<allocs*>(pUserData);
+  info->normalUse.fetch_add(size, std::memory_order_relaxed);
   return _aligned_malloc(size, alignment);
 };
 
@@ -33,7 +36,8 @@ void allocs::pfnInternalAllocation(
   VkSystemAllocationScope                     /*allocationScope*/)
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
-  info->superInt.fetch_add(size, std::memory_order_relaxed);
+  auto tmp = info->internalUse.fetch_add(size, std::memory_order_relaxed);
+  F_LOG("internal memory used: %u bytes", tmp);
 };
 
 void allocs::pfnInternalFree(
@@ -43,5 +47,6 @@ void allocs::pfnInternalFree(
   VkSystemAllocationScope                     /*allocationScope*/)
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
-  info->superInt.fetch_sub(size, std::memory_order_relaxed);
+  auto tmp = info->internalUse.fetch_sub(size, std::memory_order_relaxed);
+  F_LOG("internal memory used: %u bytes", tmp);
 };

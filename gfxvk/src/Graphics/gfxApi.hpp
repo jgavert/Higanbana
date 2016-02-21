@@ -31,6 +31,8 @@ public:
   size_t shaSysMem;
 };
 
+//extern PFN_vkGetPhysicalDeviceDisplayPropertiesKHR vkGetPhysicalDeviceDisplayPropertiesKHR;
+
 class GraphicsInstance
 {
 private:
@@ -39,10 +41,41 @@ private:
   vk::AllocationCallbacks m_alloc_info;
   vk::ApplicationInfo app_info;
   vk::InstanceCreateInfo instance_info;
+  std::vector<vk::ExtensionProperties> m_extensions;
+  std::vector<vk::LayerProperties> m_layers;
+  std::vector<vk::PhysicalDevice> m_devices;
   FazPtr<vk::Instance> instance;
   // 2 device support only
   int betterDevice;
   int lesserDevice;
+
+  // lunargvalidation list order
+  std::vector<std::string> layerOrder = {
+#if defined(DEBUG)
+    "VK_LAYER_LUNARG_threading"
+    ,"VK_LAYER_LUNARG_param_checker"
+    ,"VK_LAYER_LUNARG_device_limits"
+    ,"VK_LAYER_LUNARG_object_tracker"
+    ,"VK_LAYER_LUNARG_image"
+    ,"VK_LAYER_LUNARG_mem_tracker"
+    ,"VK_LAYER_LUNARG_draw_state"
+    ,
+#endif
+    "VK_LAYER_LUNARG_swapchain"
+#if defined(DEBUG)
+    ,"VK_LAYER_GOOGLE_unique_objects"
+#endif
+  };
+
+  std::vector<std::string> extOrder = {
+    VK_KHR_SURFACE_EXTENSION_NAME
+#if defined(PF_WINDOWS)
+    , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+#endif
+#if defined(DEBUG)
+    , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+#endif
+  };
 
 public:
   GraphicsInstance()
@@ -67,21 +100,6 @@ public:
     std::vector<const char*> layers;
     {
       // lunargvalidation list order
-      std::vector<std::string> layerOrder = {
-#if defined(DEBUG)
-        "VK_LAYER_LUNARG_threading"
-        ,"VK_LAYER_LUNARG_param_checker"
-        ,"VK_LAYER_LUNARG_device_limits"
-        ,"VK_LAYER_LUNARG_object_tracker"
-        ,"VK_LAYER_LUNARG_image"
-        ,"VK_LAYER_LUNARG_mem_tracker"
-        ,"VK_LAYER_LUNARG_draw_state"
-#endif
-        ,"VK_LAYER_LUNARG_swapchain"
-#if defined(DEBUG)
-        ,"VK_LAYER_GOOGLE_unique_objects"
-#endif
-      };
       F_LOG("Enabled Vulkan debug layers:\n");
       for (auto&& it : layerOrder)
       {
@@ -92,11 +110,11 @@ public:
         if (found != layersInfos.end())
         {
           layers.push_back(found->layerName());
+          m_layers.push_back(*found);
           F_LOG("%s\n", found->layerName());
         }
       }
     }
-
     /////////////////////////////////
     // Getting extensions
     std::vector<vk::ExtensionProperties> extInfos;
@@ -105,19 +123,9 @@ public:
     std::vector<const char*> extensions;
     {
       // lunargvalidation list order
-      //VkSurfaceKHR
-      std::vector<std::string> layerOrder = {
-        VK_KHR_SURFACE_EXTENSION_NAME
-#if defined(PF_WINDOWS)
-      , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
-#endif
-#if defined(DEBUG)
-      , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
-#endif
-      };
       F_LOG("Enabled Vulkan extensions:\n");
 
-      for (auto&& it : layerOrder)
+      for (auto&& it : extOrder)
       {
         auto found = std::find_if(extInfos.begin(), extInfos.end(), [&](const vk::ExtensionProperties& layer)
         {
@@ -126,6 +134,7 @@ public:
         if (found != extInfos.end())
         {
           extensions.push_back(found->extensionName());
+          m_extensions.push_back(*found);
           F_LOG("found %s\n", found->extensionName());
         }
       }
@@ -149,7 +158,6 @@ public:
       .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
       .ppEnabledExtensionNames(extensions.data());
 
-
     vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, instance.get());
 
     if (res != vk::Result::eVkSuccess)
@@ -158,24 +166,140 @@ public:
       F_LOG("Instance creation error: %s\n", vk::getString(res));
       return false;
     }
+    // get addresses for few functions
+
 
     // since creation was success -> lets enumerate the physical devices
+    vk::enumeratePhysicalDevices(*instance.get(), m_devices);
 
+    /*
+    for (auto&& device : m_devices)
+    {
+      // gather gpu info
+    }*/
     return true;
   }
 
-  GpuDevice CreateGpuDevice(bool debug = true, bool warpDriver = true)
+  GpuDevice CreateGpuDevice()
   {
-#ifdef DEBUG
-    debug = true;
-	  warpDriver = false;
-#endif
-    return CreateGpuDevice(betterDevice, debug, warpDriver);
+    return CreateGpuDevice(betterDevice, false, false);
   }
 
-  GpuDevice CreateGpuDevice(int , bool debug /*= false*/, bool  /*warpDevice = true*/)
+  GpuDevice CreateGpuDevice(bool, bool)
   {
-    return GpuDevice(nullptr, debug);
+    return CreateGpuDevice(betterDevice, false, false);
+  }
+
+  GpuDevice CreateGpuDevice(int , bool, bool)
+  {
+
+    auto canPresent = [](vk::PhysicalDevice dev)
+    {
+      auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(dev);
+      for (auto&& queueProp : queueProperties)
+      {
+        for (uint32_t i = 0; i < queueProp.queueCount(); ++i)
+        {
+          if (vk::getPhysicalDeviceWin32PresentationSupportKHR(dev, i))
+          {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    int devId = 0;
+    for (devId = 0; devId < m_devices.size(); ++devId)
+    {
+      if (canPresent(m_devices[devId]))
+        break;
+    }
+    auto&& physDev = m_devices[devId]; // assuming first device is best
+    // layers
+    std::vector<vk::LayerProperties> devLayers;
+    vk::enumerateDeviceLayerProperties(physDev, devLayers);
+    std::vector<const char*> layers;
+    {
+      // lunargvalidation list order
+      F_LOG("Enabled Vulkan debug layers for device:\n");
+      for (auto&& it : layerOrder)
+      {
+        auto found = std::find_if(devLayers.begin(), devLayers.end(), [&](const vk::LayerProperties& layer)
+        {
+          return it == layer.layerName();
+        });
+        if (found != devLayers.end())
+        {
+          layers.push_back(found->layerName());
+          m_layers.push_back(*found);
+          F_LOG("%s\n", found->layerName());
+        }
+      }
+    }
+    // extensions
+    std::vector<vk::ExtensionProperties> devExts;
+    vk::enumerateDeviceExtensionProperties(physDev,"", devExts);
+    std::vector<const char*> extensions;
+    {
+      // lunargvalidation list order
+      F_LOG("Enabled Vulkan extensions for device:\n");
+
+      for (auto&& it : extOrder)
+      {
+        auto found = std::find_if(devExts.begin(), devExts.end(), [&](const vk::ExtensionProperties& layer)
+        {
+          return it == layer.extensionName();
+        });
+        if (found != devExts.end())
+        {
+          extensions.push_back(found->extensionName());
+          m_extensions.push_back(*found);
+          F_LOG("found %s\n", found->extensionName());
+        }
+      }
+    }
+    // queue
+
+
+    auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(physDev);
+    std::vector<vk::DeviceQueueCreateInfo> queueInfos;
+    uint32_t i = 0;
+    for (auto&& queueProp : queueProperties)
+    {
+      vk::DeviceQueueCreateInfo queueInfo = vk::DeviceQueueCreateInfo()
+        .sType(vk::StructureType::eDeviceQueueCreateInfo)
+        .queueFamilyIndex(i)
+        .queueCount(queueProp.queueCount());
+      // queue priorities go here.
+      queueInfos.push_back(queueInfo);
+      ++i;
+    }
+
+    vk::PhysicalDeviceFeatures features;
+    vk::getPhysicalDeviceFeatures(physDev, features);
+
+    vk::DeviceCreateInfo device_info = vk::DeviceCreateInfo()
+      .sType(vk::StructureType::eDeviceCreateInfo)
+      .queueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
+      .pQueueCreateInfos(queueInfos.data())
+      .enabledLayerCount(static_cast<uint32_t>(layers.size()))
+      .ppEnabledLayerNames(layers.data())
+      .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+      .ppEnabledExtensionNames(extensions.data())
+      .pEnabledFeatures(&features);
+     
+
+    FazPtr<vk::Device> device([=](vk::Device ist)
+    {
+      vk::destroyDevice(ist, &m_alloc_info);
+    });
+
+    vk::Result res = vk::createDevice(physDev, device_info, m_alloc_info, device.getRef());
+    if (res != vk::Result::eVkSuccess)
+    {
+      F_LOG("Device creation failed: %s\n", vk::getString(res));
+    }
+    return GpuDevice(device, false);
   }
 
   GpuInfo getInfo(int num)

@@ -61,4 +61,9 @@ public:
   {
     return &resource->p_resource;
   }
+
+  T& getRef()
+  {
+    return resource->p_resource;
+  }
 };

@@ -1,6 +1,6 @@
 #include "GpuDevice.hpp"
 
-GpuDevice::GpuDevice(void* device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
+GpuDevice::GpuDevice(FazPtr<vk::Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
 {
 }
 
