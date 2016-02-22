@@ -20,16 +20,18 @@ private:
     faze::TestWorks t(name);
     t.addTest("Device creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
-      HRESULT hr = dev.m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
-      return !FAILED(hr);
+      //D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
+      //HRESULT hr = dev.m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
+      return dev.isValid();
     });
 
     t.addTest("Queue creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       return queue.m_CommandQueue.get() != nullptr;
@@ -37,7 +39,8 @@ private:
 
     t.addTest("CommandList creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GfxCommandList list = dev.createUniversalCommandList();
       return list.m_CommandList.get() != nullptr;
@@ -45,7 +48,8 @@ private:
 
     t.addTest("CreateCommittedResource Upload", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Resource *data;
 
@@ -67,7 +71,8 @@ private:
 
     t.addTest("Map upload resource to program memory", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Resource *data;
 
@@ -100,7 +105,8 @@ private:
 
     t.addTest("CreateCommittedResource", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Resource *data;
 
@@ -123,7 +129,8 @@ private:
 
     t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -192,7 +199,8 @@ private:
 
     t.addTest("GpuHeap creation", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Heap* m_heap;
 
@@ -214,7 +222,8 @@ private:
 
     t.addTest("Place resource in self created heap", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Heap* m_heap;
       ID3D12Resource *data;
@@ -247,7 +256,8 @@ private:
     t.addTest("Create Virtual Resource", [id]()
     {
       HRESULT hr;
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Resource *data;
       D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -268,7 +278,8 @@ private:
     t.addTest("Allocate real memory from heap for virtual resource", [id]()
     {
       HRESULT hr;
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -319,7 +330,8 @@ private:
 
     t.addTest("Upload and readback the same data", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -417,7 +429,7 @@ private:
 
     t.addTest("Create Resoure Descriptor", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Resource *data;
 
@@ -492,7 +504,8 @@ private:
 
     t.addTest("Create Root Descriptor", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
 
       ID3D12RootSignature* g_RootSig;
@@ -541,7 +554,8 @@ private:
 
     t.addTest("Create compute Pipeline", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
 
       ID3DBlob* blobCompute;
@@ -628,7 +642,8 @@ private:
     t.addTest("Modify data with compute shader", [id]()
     {
       // holy fuck... err Initialize phase
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -926,7 +941,8 @@ private:
     t.addTest("Modify data with compute shader (part2)", [id]()
     {
       // holy fuck... err Initialize phase
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -1208,7 +1224,8 @@ private:
     
     t.addTest("UploadHeap creation", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ID3D12Heap* m_heap;
 
@@ -1231,7 +1248,8 @@ private:
     {
       IDXGISwapChain* mSwapChain = nullptr;
       {
-        SystemDevices sys;
+        GraphicsInstance sys;
+        sys.createInstance("test", 1, "faze_test", 1);
         GpuDevice dev = sys.CreateGpuDevice(id);
         GpuCommandQueue queue = dev.createQueue();
 
@@ -1278,10 +1296,6 @@ private:
 public:
   void run(ProgramParams params)
   {
-    SystemDevices sys;
-    for (int i = 0; i < 1; ++i)
-    {
-      runTestsForDevice(sys.getInfo(i).description, i, params);
-    }
+    runTestsForDevice("todo", 0, params);
   }
 };

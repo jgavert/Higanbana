@@ -16,7 +16,7 @@ namespace faze
     std::function<void()> m_before;
     std::function<void()> m_after;
     std::string m_name;
-    Logger logs;
+    //Logger logs;
     Bentsumaakaa b;
   public:
     TestWorks(std::string name) :m_name(name), m_before([]() {}), m_after([]() {}) {}
@@ -66,7 +66,7 @@ namespace faze
       F_LOG("----------------------------------------------------------------\n");
       F_LOG("Tests %zu / %zu completed\n", testCount, m_tests.size());
       F_LOG("----------------------------------------------------------------\n");
-      logs.update();
+      //logs.update();
       return (testCount - m_tests.size() == 0);
     }
 

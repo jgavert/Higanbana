@@ -23,13 +23,15 @@ class GpuDevice
 {
 private:
 
+  vk::AllocationCallbacks m_alloc_info;
   FazPtr<vk::Device> m_device;
   bool  m_debugLayer;
   DescriptorHeapManager heap;
 public:
-  GpuDevice(FazPtr<vk::Device> device, bool debugLayer);
+  GpuDevice(FazPtr<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer);
   ~GpuDevice();
-  SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
+  SwapChain createSwapChain(GpuCommandQueue&, Window&);
+  SwapChain createSwapChain(GpuCommandQueue& queue, Window& wnd, int, FormatType);
   GpuFence createFence();
   GpuCommandQueue createQueue();
   GfxCommandList createUniversalCommandList();
@@ -38,6 +40,10 @@ public:
   Buffer_new createBuffer(ResourceDescriptor desc);
   Texture_new createTexture(ResourceDescriptor desc);
 
+  bool isValid()
+  {
+    return m_device.isValid();
+  }
 
 public:
   template <typename ...Args>
@@ -103,11 +109,6 @@ public:
   TextureDSV createTextureDSV(Args&& ... )
   {
     return TextureDSV();
-  }
-
-  bool isValid()
-  {
-    return true;
   }
 
   // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
