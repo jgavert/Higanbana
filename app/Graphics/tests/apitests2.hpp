@@ -642,7 +642,7 @@ private:
 		  auto& obj = mapd[0];
 		  return (obj.k == 1337);
 	  });
-#if !defined(GFX_VULKAN)
+#if defined(GFX_D3D12)
 	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
 	  {
 		  return false;
