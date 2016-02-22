@@ -195,7 +195,7 @@ private:
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComPtr<ID3DBlob> blobCompute;
       ComPtr<ID3DBlob> errorMsg;
-      HRESULT hr = D3DCompileFromFile(L"compute_1.hlsl", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
+      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
       {
@@ -236,7 +236,7 @@ private:
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComPtr<ID3DBlob> blobCompute;
       ComPtr<ID3DBlob> errorMsg;
-      HRESULT hr = D3DCompileFromFile(L"compute_1.hlsl", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
+      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
       {
@@ -314,7 +314,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1"));
       return true;
     });
 
@@ -329,7 +329,7 @@ private:
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
-      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1"));
 
       struct buf
       {
@@ -445,8 +445,8 @@ private:
       GpuDevice dev = sys.CreateGpuDevice(id);
 
       auto woot = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("pixel.hlsl")
-        .VertexShader("vertex.hlsl")
+        .PixelShader("pixel")
+        .VertexShader("vertex")
         .DSVFormat(FormatType::D32_FLOAT)
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB));
@@ -556,8 +556,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("pixel.hlsl")
-        .VertexShader("vertex.hlsl")
+        .PixelShader("pixel")
+        .VertexShader("vertex")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -614,7 +614,7 @@ private:
 		  GfxCommandList list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
-		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant.hlsl"));
+		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant"));
 
 		  struct buf
 		  {
@@ -653,7 +653,7 @@ private:
 		  GfxCommandList list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
-		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver2.hlsl"));
+		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver2"));
 
 		  struct buf
 		  {

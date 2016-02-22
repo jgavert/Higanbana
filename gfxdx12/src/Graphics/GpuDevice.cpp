@@ -183,7 +183,7 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
 	ComPtr<ID3D12RootSignature>    m_gRootSig;
 	ComPtr<ID3DBlob> blobCompute;
-	auto woot = stringutils::s2ws(desc.shaderSourcePath);
+	auto woot = stringutils::s2ws(desc.shaderSourcePath + ".hlsl");
 	ShaderInterface existing;
 	shaderUtils::getShaderInfo(m_device, ShaderType::Compute, woot, existing, blobCompute);
 	D3D12_SHADER_BYTECODE byte;
@@ -253,7 +253,8 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	{
 		if (!shaderPath.empty())
 		{
-			auto woot = stringutils::s2ws(shaderPath);
+      auto addHlsl = shaderPath + ".hlsl";
+			auto woot = stringutils::s2ws(addHlsl);
 			shaderUtils::getShaderInfo(m_device, type, woot, newIf, blob);
 		}
 	};

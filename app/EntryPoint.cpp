@@ -102,8 +102,8 @@ int EntryPoint::main()
       // graphics 
 
       auto pipeline2 = gpu.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("pixel2.hlsl")
-        .VertexShader("vertex_triangle.hlsl")
+        .PixelShader("pixel2")
+        .VertexShader("vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
