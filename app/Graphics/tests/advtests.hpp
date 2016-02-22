@@ -108,7 +108,7 @@ private:
     {
       GpuFence fence = dev.createFence();
 
-      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
+      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1"));
 
       struct buf
       {
@@ -233,8 +233,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("pixel.hlsl")
-        .VertexShader("vertex.hlsl")
+        .PixelShader("pixel")
+        .VertexShader("vertex")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -332,8 +332,8 @@ private:
         , Multisampling());
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("pixel.hlsl")
-        .VertexShader("vertex2.hlsl")
+        .PixelShader("pixel")
+        .VertexShader("vertex2")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DSVFormat(FormatType::D32_FLOAT)

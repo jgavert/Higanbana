@@ -71,8 +71,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -171,8 +171,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -270,8 +270,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -388,8 +388,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -507,8 +507,8 @@ private:
       gfx.resetList();
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -607,8 +607,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -708,8 +708,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
@@ -829,8 +829,8 @@ private:
       queue.insertFence(fence);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-        .PixelShader("tests/stress/pixel.hlsl")
-        .VertexShader("tests/stress/vertex_triangle.hlsl")
+        .PixelShader("tests/stress/pixel")
+        .VertexShader("tests/stress/vertex_triangle")
         .setRenderTargetCount(1)
         .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));

@@ -13,11 +13,11 @@ namespace rendering
       , m_bottomright({ 0.5f, -0.5f })
       , m_topleft({-0.5f, 0.5f})
     {
-      m_cmdPipeline = device.createComputePipeline(ComputePipelineDescriptor().shader("utils/graph_compute.hlsl"));
+      m_cmdPipeline = device.createComputePipeline(ComputePipelineDescriptor().shader("utils/graph_compute"));
       // shouldnt need to know that its doing srgb, device should know.
 	  m_drawPipeline = device.createGraphicsPipeline(GraphicsPipelineDescriptor()
-		  .PixelShader("utils/pixel_drawGraph.hlsl")
-		  .VertexShader("utils/vertex_drawGraph.hlsl")
+		  .PixelShader("utils/pixel_drawGraph")
+		  .VertexShader("utils/vertex_drawGraph")
 		  .setRenderTargetCount(1)
 		  .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
 		  .DepthStencil(DepthStencilDescriptor().DepthEnable(false))
