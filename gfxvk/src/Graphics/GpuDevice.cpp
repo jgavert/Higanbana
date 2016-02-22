@@ -1,6 +1,7 @@
 #include "GpuDevice.hpp"
 
-GpuDevice::GpuDevice(FazPtr<vk::Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
+GpuDevice::GpuDevice(FazPtr<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer)
+  : m_device(device), m_alloc_info(alloc_info), m_debugLayer(debugLayer)
 {
 }
 
@@ -48,4 +49,14 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
   Texture_new tex = {};
   tex.m_desc = resDesc;
   return tex;
+}
+
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&)
+{
+  return SwapChain();
+}
+
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue& , Window& , int, FormatType)
+{
+  return SwapChain();
 }

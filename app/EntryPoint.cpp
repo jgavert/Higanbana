@@ -17,10 +17,10 @@
 
 #if defined(GFX_D3D12)
 #include "graphics/tests/apitests.hpp"
-#include "graphics/tests/apitests2.hpp"
-#include "graphics/tests/advtests.hpp"
 #include "graphics/tests/stresstests.hpp"
 #endif
+#include "graphics/tests/apitests2.hpp"
+#include "graphics/tests/advtests.hpp"
 // app
 #include "Rendering/Utils/graph.hpp"
 
@@ -43,6 +43,7 @@ int EntryPoint::main()
     ApiTests2 tests2;
     tests2.run(m_params);
   }
+  
   {
     SchedulerTests::Run();
   }
@@ -63,7 +64,7 @@ int EntryPoint::main()
     Window window(m_params, name, ires.x(), ires.y());
     window.open();
     GraphicsInstance devices;
-    if (!devices.createInstance("faze app"))
+    if (!devices.createInstance("faze"))
     {
       F_LOG("Failed to create Vulkan instance, exiting\n");
       log.update();
@@ -71,18 +72,6 @@ int EntryPoint::main()
     }
     {
       GpuDevice gpu = devices.CreateGpuDevice();
-      float time = 0.f;
-      while (true)
-      {
-        if (window.simpleReadMessages())
-          break;
-        t.tick();
-        time += t.getFrameTimeDelta();
-        log.update();
-      }
-#if defined(GFX_VULKAN)
-#else
-      GpuDevice gpu = devices.CreateGpuDevice(0);
       GpuCommandQueue queue = gpu.createQueue();
       SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
       ViewPort port(ires.x(), ires.y());
@@ -91,8 +80,10 @@ int EntryPoint::main()
       {
         // recommended only in release mode with debugging layer off...
         // StressTests::run(gpu, queue, window, sc, port, gfx, log);
-        // AdvTests::run(gpu, queue, window, sc, port, gfx);
+        //AdvTests::run(gpu, queue, window, sc, port, gfx);
+        log.update();
       }
+
 
       using namespace rendering::utils;
 
@@ -223,7 +214,6 @@ int EntryPoint::main()
       log.update();
       fence.wait();
       gfx.resetList();
-#endif
     }
   };
 

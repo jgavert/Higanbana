@@ -27,12 +27,12 @@ struct MappedBuffer
 
   size_t rangeBegin()
   {
-    return range.Begin;
+    return range.Begin / sizeof(type);
   }
 
   size_t rangeEnd()
   {
-    return range.End;
+    return range.End / sizeof(type);
   }
 
   type& operator[](size_t i)
@@ -43,6 +43,11 @@ struct MappedBuffer
   type* get()
   {
     return mapped;
+  }
+ 
+  bool isValid()
+  {
+    return mapped != nullptr;
   }
 };
 

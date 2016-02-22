@@ -9,12 +9,16 @@
 #include "Graphics/gfxApi.hpp"
 #include <cstdio>
 #include <iostream>
+
+#if defined(GFX_D3D12)
 #include <d3d12shader.h>
 #include <D3Dcompiler.h>
+#endif
 
 
 #pragma warning( push )
 #pragma warning( disable : 4189 ) // don't really want warnings from "local variable is initialized but not referenced"
+#pragma warning( disable : 4702 )
 
 class ApiTests2
 {
@@ -25,14 +29,16 @@ private:
     
     t.addTest("Device creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       return dev.isValid();
     });
 
     t.addTest("Queue creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       return queue.isValid();
@@ -40,7 +46,8 @@ private:
 
     t.addTest("CommandList creation", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GfxCommandList list = dev.createUniversalCommandList();
       return list.isValid();
@@ -48,7 +55,8 @@ private:
 
     t.addTest("Create Upload buffer", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createBufferSRV(
         Dimension(4096)
@@ -59,7 +67,8 @@ private:
 
     t.addTest("Map upload resource to program memory", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createBufferSRV(
         Dimension(4096), Format<float>(), ResUsage::Upload);
@@ -71,36 +80,40 @@ private:
 
     t.addTest("Create Gpu resident buffer", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createBufferSRV(
         Dimension(4096), Format<float>());
       return buf.isValid();
     });
 
-	t.addTest("Create Gpu resident buffer (new)", [&]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
-		auto buf = dev.createBuffer(ResourceDescriptor()
-									.Width(10));
-		return buf.isValid();
-	});
+    t.addTest("Create Gpu resident buffer (new)", [&]()
+    {
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
+      GpuDevice dev = sys.CreateGpuDevice(id);
+      auto buf = dev.createBuffer(ResourceDescriptor()
+                    .Width(10));
+      return buf.isValid();
+    });
 
-	t.addTest("Create Gpu resident texture (new)", [&]()
-	{
-		SystemDevices sys;
-		GpuDevice dev = sys.CreateGpuDevice(id);
-		auto tex = dev.createTexture(ResourceDescriptor()
-							.Width(1024)
-							.Height(1024)
-							.Format(R8G8B8A8_UNORM));
-		return tex.isValid();
-	});
+    t.addTest("Create Gpu resident texture (new)", [&]()
+    {
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
+      GpuDevice dev = sys.CreateGpuDevice(id);
+      auto tex = dev.createTexture(ResourceDescriptor()
+                .Width(1024)
+                .Height(1024)
+                .Format(R8G8B8A8_UNORM));
+      return tex.isValid();
+    });
 
     t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -112,7 +125,7 @@ private:
 
       {
         auto tmp = srcdata.buffer().Map<float>();
-        for (int i = 0;i < srcdata.buffer().size; ++i)
+        for (size_t i = tmp.rangeBegin();i < tmp.rangeEnd(); ++i)
         {
           tmp.get()[i] = static_cast<float>(i);
         }
@@ -129,7 +142,8 @@ private:
     });
     t.addTest("Upload and readback the same data", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -141,7 +155,7 @@ private:
 
       {
         auto tmp = srcdata.buffer().Map<float>();
-        for (int i = 0;i < srcdata.buffer().size; ++i)
+        for (size_t i = tmp.rangeEnd();i < tmp.rangeEnd(); ++i)
         {
           tmp[i] = static_cast<float>(i);
         }
@@ -155,7 +169,7 @@ private:
       fence.wait();
       {
         auto woot = rbdata.buffer().Map<float>();
-        for (int i = 0;i < rbdata.buffer().size; ++i)
+        for (size_t i = woot.rangeBegin();i < woot.rangeEnd(); ++i)
         {
           if (woot[i] != static_cast<float>(i))
           {
@@ -172,10 +186,12 @@ private:
     // doing dynamic reflection might give the best results. Atleast easiest.
     // Maybe compare root signature between shaders or just define some "extract_rootsignature.hlsl" thats included to every file.
     // Honestly sounds fine, just the problem of creating "root signature" object that knows what to put and where needed to be done.
+#if defined(GFX_D3D12)
     t.addTest("shader root signature (DISABLED)", [&]()
     {
 		return false;
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComPtr<ID3DBlob> blobCompute;
       ComPtr<ID3DBlob> errorMsg;
@@ -212,11 +228,11 @@ private:
         __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(g_RootSig.addr()));
       return !FAILED(hr);
     });
-
     t.addTest("shader root signature mirror structure (DISABLED)", [&]()
     {
       return false;
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComPtr<ID3DBlob> blobCompute;
       ComPtr<ID3DBlob> errorMsg;
@@ -291,10 +307,12 @@ private:
       //F_LOG("\n");
       return true;
     });
+#endif
 
     t.addTest("Create compute Pipeline", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1.hlsl"));
       return true;
@@ -304,7 +322,8 @@ private:
 
     t.addTest("Pipeline binding and modify data in compute (sub 50 lines!)", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -326,10 +345,10 @@ private:
 
       {
         auto tmp = srcdata.buffer().Map<buf>();
-        for (int i = 0;i < srcdata.buffer().size; ++i)
+        for (size_t i = tmp.rangeBegin();i < tmp.rangeEnd(); ++i)
         {
-          tmp[i].i = i;
-          tmp[i].k = i;
+          tmp[i].i = static_cast<int>(i);
+          tmp[i].k = static_cast<int>(i);
         }
       }
 
@@ -348,7 +367,7 @@ private:
       fence.wait();
 
       auto mapd = rbdata.buffer().Map<buf>();
-      for (int i = 0;i < rbdata.buffer().size;++i)
+      for (size_t i = mapd.rangeBegin();i < mapd.rangeEnd();++i)
       {
         auto& obj = mapd[i];
         if (obj.i != i + i)
@@ -365,7 +384,8 @@ private:
 
     t.addTest("Create TextureSRV", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createTextureSRV(
         Dimension(800,600)
@@ -378,7 +398,8 @@ private:
 
     t.addTest("Create TextureUAV", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createTextureUAV(
         Dimension(800, 600)
@@ -391,7 +412,8 @@ private:
 
     t.addTest("Create TextureRTV", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createTextureRTV(
         Dimension(800, 600)
@@ -404,7 +426,8 @@ private:
 
     t.addTest("Create TextureDSV", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       auto buf = dev.createTextureDSV(
         Dimension(800, 600)
@@ -417,7 +440,8 @@ private:
 
     t.addTest("Create Graphics Pipeline", [id]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
 
       auto woot = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
@@ -432,13 +456,14 @@ private:
 
     t.addTest("Create SwapChain", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
 
       Window window(params, "kek", 800, 600);
       window.open();
-      SwapChain sc = std::move(dev.createSwapChain(queue, window));
+      SwapChain sc = dev.createSwapChain(queue, window);
       MSG msg;
       while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
       {
@@ -452,7 +477,8 @@ private:
 
     t.addTest("Create window and render(?) for full 1 second in loop", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
@@ -474,7 +500,7 @@ private:
         window.simpleReadMessages();
         GpuFence fence = dev.createFence();
         list.setViewPort(port);
-        UINT backBufferIndex = sc->GetCurrentBackBufferIndex();
+        UINT backBufferIndex = sc.GetCurrentBackBufferIndex();
         vec[0] += 0.02f;
         if (vec[0] > 1.0f)
           vec[0] = 0.f;
@@ -482,7 +508,7 @@ private:
         list.close();
         queue.submit(list);
 
-        sc->Present(1, 0);
+        sc.present(1, 0);
         queue.insertFence(fence);
         fence.wait();
         list.resetList();
@@ -494,7 +520,8 @@ private:
     
     t.addTest("Create window and render a triangle for full 1 second in loop", [&]()
     {
-      SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList gfx = dev.createUniversalCommandList();
@@ -554,7 +581,7 @@ private:
         vec[2] += 0.02f;
         if (vec[2] > 1.0f)
           vec[2] = 0.f;
-        auto backBufferIndex = sc->GetCurrentBackBufferIndex();
+        auto backBufferIndex = sc.GetCurrentBackBufferIndex();
         gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
@@ -564,12 +591,12 @@ private:
 
 
         // submit all
-		gfx.preparePresent(sc[backBufferIndex]);
+		    gfx.preparePresent(sc[backBufferIndex]);
         gfx.close();
         queue.submit(gfx);
 
         // present
-        sc->Present(1, 0);
+        sc.present(1, 0);
         queue.insertFence(fence);
       }
       fence.wait();
@@ -580,7 +607,8 @@ private:
   
 	  t.addTest("Pipeline binding and modify data in compute with root constant", [id]()
 	  {
-		  SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GpuCommandQueue queue = dev.createQueue();
 		  GfxCommandList list = dev.createUniversalCommandList();
@@ -614,11 +642,12 @@ private:
 		  auto& obj = mapd[0];
 		  return (obj.k == 1337);
 	  });
-	  
+#if !defined(GFX_VULKAN)
 	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
 	  {
 		  return false;
-		  SystemDevices sys;
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GpuCommandQueue queue = dev.createQueue();
 		  GfxCommandList list = dev.createUniversalCommandList();
@@ -672,6 +701,7 @@ private:
 		  auto& obj3 = mapd3[0];
 		  return (obj3.k == completedata3.buffer().shader_heap_index);
 	  });
+#endif
 
     t.runTests();
   }
@@ -679,11 +709,7 @@ private:
 public:
   void run(ProgramParams params)
   {
-    SystemDevices sys;
-    for (int i = 0; i < 1; ++i)
-    {
-      runTestsForDevice(sys.getInfo(i).description, i, params);
-    }
+    runTestsForDevice("todo", 0, params);
   }
 };
 

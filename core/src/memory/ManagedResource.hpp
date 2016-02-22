@@ -35,22 +35,23 @@ public:
   FazPtr() // usually owned
   {
     resource = std::make_shared<ManagedResource_<T>>();
+    resource.get()->p_resource = nullptr;
   }
 
   FazPtr(std::function<void(T)> destructor, bool owned = true) // usually owned
   {
     resource = std::make_shared<ManagedResource_<T>>();
-    resource.get()->p_resource = nullptr;
-    resource.get()->m_owned = owned;
-    resource.get()->destructor = destructor;
+    resource->p_resource = nullptr;
+    resource->m_owned = owned;
+    resource->destructor = destructor;
   }
 
   FazPtr(T ptr, std::function<void(T)> destructor, bool owned = true) // usually owned
   {
     resource = std::make_shared<ManagedResource_<T>>();
-    resource.get()->p_resource = ptr;
-    resource.get()->m_owned = owned;
-    resource.get()->destructor = destructor;
+    resource->p_resource = ptr;
+    resource->m_owned = owned;
+    resource->destructor = destructor;
   }
   T* operator->() const throw()
   {
@@ -62,8 +63,18 @@ public:
     return &resource->p_resource;
   }
 
+  T* get() const
+  {
+    return &resource->p_resource;
+  }
+
   T& getRef()
   {
     return resource->p_resource;
+  }
+
+  bool isValid()
+  {
+    return resource->p_resource != nullptr;
   }
 };
