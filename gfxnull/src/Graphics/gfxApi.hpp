@@ -41,6 +41,10 @@ public:
   {
     return true;
   }
+  GpuDevice CreateGpuDevice(int)
+  {
+    return CreateGpuDevice(0, false, false);
+  }
 
   GpuDevice CreateGpuDevice(bool debug = true, bool warpDriver = true)
   {

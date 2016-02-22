@@ -27,7 +27,8 @@ private:
 public:
   GpuDevice(void* device, bool debugLayer);
   ~GpuDevice();
-  SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
+  SwapChain createSwapChain(GpuCommandQueue&, Window&);
+  SwapChain createSwapChain(GpuCommandQueue& queue, Window& wnd, int, FormatType);;
   GpuFence createFence();
   GpuCommandQueue createQueue();
   GfxCommandList createUniversalCommandList();

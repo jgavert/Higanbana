@@ -49,3 +49,13 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
   tex.m_desc = resDesc;
   return tex;
 }
+
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&)
+{
+  return SwapChain();
+}
+
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&, int, FormatType)
+{
+  return SwapChain();
+}
