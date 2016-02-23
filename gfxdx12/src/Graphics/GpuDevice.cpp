@@ -1,9 +1,9 @@
 #include "GpuDevice.hpp"
 #include "core/src/global_debug.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "core/src/tests/TestWorks.hpp"
 
-GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
+GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(device), m_debugLayer(debugLayer)
 {
 	// Check support of various features
 	D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
@@ -34,7 +34,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(de
   constexpr unsigned HeapUAVCount = HeapSRVCount;
   constexpr unsigned HeapDescriptorCount = HeapSRVCount + HeapUAVCount + 120;
 
-  ComPtr<ID3D12DescriptorHeap> heap;
+  FazCPtr<ID3D12DescriptorHeap> heap;
   D3D12_DESCRIPTOR_HEAP_DESC Desc;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -82,7 +82,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(de
   
 
 
-  ComPtr<ID3D12DescriptorHeap> heap2;
+  FazCPtr<ID3D12DescriptorHeap> heap2;
   D3D12_DESCRIPTOR_HEAP_DESC Desc2;
   Desc2.NodeMask = 0;
   Desc2.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -96,7 +96,7 @@ GpuDevice::GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer) : m_device(de
   }
   ResourceViewManager descRTVHeap = ResourceViewManager(heap2, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
-  ComPtr<ID3D12DescriptorHeap> heap3;
+  FazCPtr<ID3D12DescriptorHeap> heap3;
   Desc.NodeMask = 0;
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
   Desc.NumDescriptors = 8;
@@ -128,7 +128,7 @@ GpuDevice::~GpuDevice()
 {
 	if (m_debugLayer)
 	{
-		ComPtr<ID3D12InfoQueue> infoQueue;
+		FazCPtr<ID3D12InfoQueue> infoQueue;
 		HRESULT hr = m_device->QueryInterface(infoQueue.addr());
 		if (!FAILED(hr))
 		{
@@ -142,14 +142,14 @@ GpuDevice::~GpuDevice()
 // Needs to be created from descriptor
 GpuFence GpuDevice::createFence()
 {
-  ComPtr<ID3D12Fence> mFence;
+  FazCPtr<ID3D12Fence> mFence;
   m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(mFence.addr()));
   return std::move(GpuFence(mFence));
 }
 
 GpuCommandQueue GpuDevice::createQueue()
 {
-  ComPtr<ID3D12CommandQueue> m_CommandQueue;
+  FazCPtr<ID3D12CommandQueue> m_CommandQueue;
   HRESULT hr;
   D3D12_COMMAND_QUEUE_DESC desc = {};
   desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -164,8 +164,8 @@ GpuCommandQueue GpuDevice::createQueue()
 // Needs to be created from descriptor
 GfxCommandList GpuDevice::createUniversalCommandList()
 {
-  ComPtr<ID3D12GraphicsCommandList> commandList;
-  ComPtr<ID3D12CommandAllocator> commandListAllocator;
+  FazCPtr<ID3D12GraphicsCommandList> commandList;
+  FazCPtr<ID3D12CommandAllocator> commandListAllocator;
   HRESULT hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)commandListAllocator.addr());
   if (FAILED(hr))
   {
@@ -181,8 +181,8 @@ GfxCommandList GpuDevice::createUniversalCommandList()
 
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
-	ComPtr<ID3D12RootSignature>    m_gRootSig;
-	ComPtr<ID3DBlob> blobCompute;
+	FazCPtr<ID3D12RootSignature>    m_gRootSig;
+	FazCPtr<ID3DBlob> blobCompute;
 	auto woot = stringutils::s2ws(desc.shaderSourcePath + ".hlsl");
 	ShaderInterface existing;
 	shaderUtils::getShaderInfo(m_device, ShaderType::Compute, woot, existing, blobCompute);
@@ -206,7 +206,7 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 		// new shaderinterface
 		m_shaderInterfaceCache.push_back(existing);
 	}
-	ComPtr<ID3D12RootSignatureDeserializer> asd;
+	FazCPtr<ID3D12RootSignatureDeserializer> asd;
 	HRESULT hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
 	if (FAILED(hr))
 	{
@@ -222,7 +222,7 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 	computeDesc.NodeMask = 0;
 	computeDesc.pRootSignature = m_gRootSig.get();
 
-	ComPtr<ID3D12PipelineState> pipeline;
+	FazCPtr<ID3D12PipelineState> pipeline;
 	hr = m_device->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
 	if (FAILED(hr))
 	{
@@ -243,13 +243,13 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = desc.getDesc();
-	ComPtr<ID3DBlob> blobVertex;
-	ComPtr<ID3DBlob> blobPixel;
-	ComPtr<ID3DBlob> blobGeometry;
-	ComPtr<ID3DBlob> blobHull;
-	ComPtr<ID3DBlob> blobDomain;
+	FazCPtr<ID3DBlob> blobVertex;
+	FazCPtr<ID3DBlob> blobPixel;
+	FazCPtr<ID3DBlob> blobGeometry;
+	FazCPtr<ID3DBlob> blobHull;
+	FazCPtr<ID3DBlob> blobDomain;
 	ShaderInterface newIf;
-	auto lam = [&](ComPtr<ID3DBlob>& blob, std::string shaderPath, ShaderType type)
+	auto lam = [&](FazCPtr<ID3DBlob>& blob, std::string shaderPath, ShaderType type)
 	{
 		if (!shaderPath.empty())
 		{
@@ -281,7 +281,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 		m_shaderInterfaceCache.push_back(newIf);
 	}
 
-	auto modi = [](D3D12_SHADER_BYTECODE& byte, ComPtr<ID3DBlob> blob)
+	auto modi = [](D3D12_SHADER_BYTECODE& byte, FazCPtr<ID3DBlob> blob)
 	{
 		if (blob.get() != nullptr)
 		{
@@ -296,7 +296,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	modi(graphicsDesc.HS, blobHull);
 	modi(graphicsDesc.DS, blobDomain);
 	graphicsDesc.pRootSignature = newIf.m_rootSig.get();
-	ComPtr<ID3D12PipelineState> pipeline;
+	FazCPtr<ID3D12PipelineState> pipeline;
 	HRESULT hr = m_device->CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
 	if (FAILED(hr))
 	{
@@ -304,7 +304,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	}
 
 	// reflect the root signature
-	ComPtr<ID3D12RootSignatureDeserializer> asd;
+	FazCPtr<ID3D12RootSignatureDeserializer> asd;
 	hr = D3D12CreateRootSignatureDeserializer(blobVertex->GetBufferPointer(), blobVertex->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
 	if (FAILED(hr))
 	{
@@ -326,7 +326,7 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
 {
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
-  ComPtr<ID3D12Resource> ptr;
+  FazCPtr<ID3D12Resource> ptr;
   Buffer_new buf = {};
   buf.m_desc = resDesc;
 
@@ -406,7 +406,7 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
                   buf.m_state,
                   nullptr,
                   __uuidof(ID3D12Resource),
-                  reinterpret_cast<void**>(ptr.addr()));
+                  reinterpret_cast<void**>(ptr.releaseAndAddr()));
   BufferNew buf_ret;
   if (!FAILED(hr))
   {
@@ -779,10 +779,10 @@ TextureNewSRV GpuDevice::createTextureSRV(TextureNew targetTexture, ShaderViewDe
   srv.m_texture = targetTexture;
 
   // create descriptor for shaderview
-  auto srvdesc = createSrvDesc(targetTexture.m_desc, viewDesc);
+  auto srvdesc = createSrvDesc(srv.texture().m_desc, viewDesc);
   srv.viewDesc = viewDesc;
   // create srv
-  m_device->CreateShaderResourceView(targetTexture.m_resource->get(), &srvdesc, srv.cpuHandle);
+  m_device->CreateShaderResourceView(srv.texture().m_resource->get(), &srvdesc, srv.cpuHandle);
   return srv;
 }
 
@@ -805,11 +805,11 @@ TextureNewUAV GpuDevice::createTextureUAV(TextureNew targetTexture, ShaderViewDe
   uav.m_texture = targetTexture;
 
   // create descriptor for shaderview
-  auto uavdesc = createUavDesc(targetTexture.m_desc, viewDesc);
+  auto uavdesc = createUavDesc(uav.texture().m_desc, viewDesc);
   uav.viewDesc = viewDesc;
   // create uav
   // TODO add counterResourceSupport?
-  m_device->CreateUnorderedAccessView(targetTexture.m_resource->get(), nullptr, &uavdesc, uav.cpuHandle);
+  m_device->CreateUnorderedAccessView(uav.texture().m_resource->get(), nullptr, &uavdesc, uav.cpuHandle);
   return uav;
 }
 
@@ -832,10 +832,10 @@ TextureNewRTV GpuDevice::createTextureRTV(TextureNew targetTexture, ShaderViewDe
   rtv.m_texture = targetTexture;
 
   // create descriptor for shaderview
-  auto rtvdesc = createRtvDesc(targetTexture.m_desc, viewDesc);
+  auto rtvdesc = createRtvDesc(rtv.texture().m_desc, viewDesc);
   rtv.viewDesc = viewDesc;
   // create srv
-  m_device->CreateRenderTargetView(targetTexture.m_resource->get(), &rtvdesc, rtv.cpuHandle);
+  m_device->CreateRenderTargetView(rtv.texture().m_resource->get(), &rtvdesc, rtv.cpuHandle);
   return rtv;
 }
 
@@ -858,10 +858,10 @@ TextureNewDSV GpuDevice::createTextureDSV(TextureNew targetTexture, ShaderViewDe
   dsv.m_texture = targetTexture;
 
   // create descriptor for shaderview
-  auto dsvdesc = createDsvDesc(targetTexture.m_desc, viewDesc);
+  auto dsvdesc = createDsvDesc(dsv.texture().m_desc, viewDesc);
   dsv.viewDesc = viewDesc;
   // create srv
-  m_device->CreateDepthStencilView(targetTexture.m_resource->get(), &dsvdesc, dsv.cpuHandle);
+  m_device->CreateDepthStencilView(dsv.texture().m_resource->get(), &dsvdesc, dsv.cpuHandle);
   return dsv;
 }
 

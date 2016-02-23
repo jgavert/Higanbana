@@ -2,7 +2,7 @@
 #include "viewport.hpp"
 #include "Fence.hpp"
 #include "Buffer.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "binding.hpp"
 #include "Pipeline.hpp"
 #include "core/src/math/vec_templated.hpp"
@@ -23,8 +23,8 @@ private:
   friend class GfxCommandList;
   friend class _GpuBracket;
 
-  ComPtr<ID3D12GraphicsCommandList> m_CommandList;
-  ComPtr<ID3D12CommandAllocator> m_CommandListAllocator;
+  FazCPtr<ID3D12GraphicsCommandList> m_CommandList;
+  FazCPtr<ID3D12CommandAllocator> m_CommandListAllocator;
   bool closed;
   ShaderInterface m_boundShaderInterface;
   ComputePipeline* m_boundCptPipeline;
@@ -34,7 +34,7 @@ private:
   int m_srvBindlessIndex;
   int m_uavBindlessIndex;
 
-  CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator);
+  CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator);
 public:
   CptCommandList() :
 	  m_CommandList(nullptr),
@@ -46,6 +46,7 @@ public:
   {}
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void CopyResource(BufferNew& dstdata, BufferNew& srcdata);
+  void CopyResource(TextureNew& dstdata, TextureNew& srcdata);
   void setResourceBarrier();
   void bindComputeBinding(ComputeBinding& bind);
   void Dispatch(ComputeBinding& bind, unsigned int x, unsigned int y, unsigned int z);
@@ -68,7 +69,7 @@ private:
   friend class GpuCommandQueue;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GfxCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator) :CptCommandList(cmdList, commandListAllocator){}
+  GfxCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator) :CptCommandList(cmdList, commandListAllocator){}
 public:
   GfxCommandList() : CptCommandList() {}
   GraphicsBinding bind(GraphicsPipeline& pipeline);

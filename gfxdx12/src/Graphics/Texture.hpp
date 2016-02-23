@@ -1,6 +1,6 @@
 #pragma once
 #include "Descriptors/ResUsage.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "RawResource.hpp"
 #include "ResourceDescriptor.hpp"
 #include "core/src/memory/ManagedResource.hpp"
@@ -11,11 +11,11 @@
 template<typename type>
 struct MappedTexture // TODO: add support for "invalid mapping".
 {
-  ComPtr<ID3D12Resource> m_mappedresource;
+  FazCPtr<ID3D12Resource> m_mappedresource;
   D3D12_RANGE range;
   bool readback;
   type* mapped;
-  MappedTexture(ComPtr<ID3D12Resource> res, D3D12_RANGE r, bool readback, type* ptr)
+  MappedTexture(FazCPtr<ID3D12Resource> res, D3D12_RANGE r, bool readback, type* ptr)
     : m_mappedresource(res)
     , range(r)
     , readback(readback)
@@ -81,7 +81,7 @@ public:
 
 struct Texture
 {
-  ComPtr<ID3D12Resource> m_resource;
+  FazCPtr<ID3D12Resource> m_resource;
 
   size_t width;
   size_t height;
@@ -273,7 +273,7 @@ class TextureShaderView
 {
 private:
   friend class GpuDevice;
-  Texture_new m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  TextureNew m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
   ShaderViewDescriptor viewDesc;
   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
@@ -282,12 +282,12 @@ private:
 public:
   Texture_new& texture()
   {
-    return m_texture;
+    return m_texture.getTexture();
   }
 
   bool isValid()
   {
-    return m_texture.m_resource.get() != nullptr;
+    return m_texture.getTexture().isValid();
   }
 
   size_t getIndexInHeap()

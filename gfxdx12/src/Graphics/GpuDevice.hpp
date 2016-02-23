@@ -28,15 +28,15 @@ private:
   friend class ApiTests2;
   friend class System_devices;
 
-  ComPtr<ID3D12Device>          m_device;
+  FazCPtr<ID3D12Device>         m_device;
   bool                          m_debugLayer;
   DescriptorHeapManager         m_descHeaps;
   std::vector<ShaderInterface>  m_shaderInterfaceCache;
-  TextureSRV					          m_nullSrv;
-  TextureUAV					          m_nullUav;
+  TextureSRV					m_nullSrv;
+  TextureUAV					m_nullUav;
 
 public:
-  GpuDevice(ComPtr<ID3D12Device> device, bool debugLayer);
+  GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer);
   ~GpuDevice();
   SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
   GpuFence createFence();
@@ -92,7 +92,7 @@ public:
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapprop;
     createBuffer(desc, heapprop, std::forward<Args>(args)...);
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     BufferSRV buf;
     buf.buffer().size = desc.Width;
     desc.Width *= desc.DepthOrArraySize;
@@ -152,7 +152,7 @@ public:
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapprop;
     createBuffer(desc, heapprop, std::forward<Args>(args)...);
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     BufferUAV buf;
     buf.buffer().size = desc.Width;
@@ -213,7 +213,7 @@ public:
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapprop;
     createBuffer(desc, heapprop, std::forward<Args>(args)...);
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     BufferIBV buf;
     buf.buffer().size = desc.Width;
     desc.Width *= desc.DepthOrArraySize;
@@ -251,7 +251,7 @@ public:
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapprop;
     createBuffer(desc, heapprop, std::forward<Args>(args)...);
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     BufferCBV buf;
     buf.buffer().size = desc.Width;
     desc.Width *= desc.DepthOrArraySize;
@@ -324,7 +324,7 @@ public:
 		  D3D12_HEAP_PROPERTIES heapprop;
 		  createTexture(desc, heapprop, std::forward<Args>(args)...);
 
-		  ComPtr<ID3D12Resource> ptr;
+		  FazCPtr<ID3D12Resource> ptr;
 		  TextureSRV buf;
 		  buf.texture().width = desc.Width;
 		  buf.texture().height = desc.Height;
@@ -366,7 +366,7 @@ public:
     D3D12_HEAP_PROPERTIES heapprop;
     createTexture(desc, heapprop, std::forward<Args>(args)...);
 
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     TextureSRV buf;
     buf.texture().width = desc.Width;
     buf.texture().height = desc.Height;
@@ -416,7 +416,7 @@ public:
 	  D3D12_HEAP_PROPERTIES heapprop;
 	  createTexture(desc, heapprop, std::forward<Args>(args)...);
 
-	  ComPtr<ID3D12Resource> ptr;
+	  FazCPtr<ID3D12Resource> ptr;
 	  desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	  TextureUAV buf;
 	  buf.texture().width = desc.Width;
@@ -456,7 +456,7 @@ public:
     D3D12_HEAP_PROPERTIES heapprop;
     createTexture(desc, heapprop, std::forward<Args>(args)...);
 
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     TextureUAV buf;
     buf.texture().width = desc.Width;
@@ -509,7 +509,7 @@ public:
     D3D12_HEAP_PROPERTIES heapprop;
     createTexture(desc, heapprop, std::forward<Args>(args)...);
 
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     TextureRTV buf;
     buf.texture().width = desc.Width;
@@ -568,7 +568,7 @@ public:
     createTexture(desc, heapprop, std::forward<Args>(args)...);
 
 
-    ComPtr<ID3D12Resource> ptr;
+    FazCPtr<ID3D12Resource> ptr;
     desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     TextureDSV buf;
     buf.texture().width = desc.Width;
@@ -643,11 +643,11 @@ public:
     swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    ComPtr<IDXGIFactory4> dxgiFactory = nullptr;
+    FazCPtr<IDXGIFactory4> dxgiFactory = nullptr;
     HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory4), (void**)dxgiFactory.addr());
     assert(!FAILED(hr));
 
-    ComPtr<IDXGISwapChain3> mSwapChain = nullptr;
+    FazCPtr<IDXGISwapChain3> mSwapChain = nullptr;
     hr = dxgiFactory->CreateSwapChain(queue.get().get(), &swapChainDesc, (IDXGISwapChain**)mSwapChain.addr());
     assert(!FAILED(hr));
 

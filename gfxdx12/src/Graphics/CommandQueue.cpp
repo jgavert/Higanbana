@@ -1,6 +1,6 @@
 #include "CommandQueue.hpp"
 
-GpuCommandQueue::GpuCommandQueue(ComPtr<ID3D12CommandQueue> que) :m_CommandQueue(que) {}
+GpuCommandQueue::GpuCommandQueue(FazCPtr<ID3D12CommandQueue> que) :m_CommandQueue(que) {}
 
 void GpuCommandQueue::submit(GfxCommandList& list)
 {

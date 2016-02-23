@@ -1,5 +1,5 @@
 #pragma once
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include <d3d12.h>
 
 class ViewPort

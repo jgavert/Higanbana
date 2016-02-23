@@ -1,5 +1,5 @@
 #pragma once
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "Texture.hpp"
 
 #include <vector>
@@ -12,13 +12,13 @@ private:
   friend class GpuDevice;
 
   std::vector<TextureRTV> m_resources;
-  ComPtr<IDXGISwapChain3> m_SwapChain;
+  FazCPtr<IDXGISwapChain3> m_SwapChain;
   
-  SwapChain(ComPtr<IDXGISwapChain3> SwapChain) :
+  SwapChain(FazCPtr<IDXGISwapChain3> SwapChain) :
     m_SwapChain(std::move(SwapChain))
   {}
 
-  SwapChain(ComPtr<IDXGISwapChain3> SwapChain, std::vector<TextureRTV> resources) :
+  SwapChain(FazCPtr<IDXGISwapChain3> SwapChain, std::vector<TextureRTV> resources) :
     m_SwapChain(std::move(SwapChain)), m_resources(resources)
   {}
 

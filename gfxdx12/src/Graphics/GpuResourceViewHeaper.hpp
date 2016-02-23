@@ -1,5 +1,5 @@
 #pragma once
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "core/src/entity/bitfield.hpp"
 #include <d3d12.h>
 #include <iostream>
@@ -14,7 +14,7 @@ private:
   friend class CptCommandList;
   friend class GfxCommandList;
 
-  ComPtr<ID3D12DescriptorHeap>   m_descHeap;
+  FazCPtr<ID3D12DescriptorHeap>   m_descHeap;
   size_t m_handleIncrementSize;
   size_t m_size;
 
@@ -26,7 +26,7 @@ private:
 
   faze::Bitfield<8> m_usedIndexes;
 
-  ResourceViewManager(ComPtr<ID3D12DescriptorHeap>   descHeap, size_t HandleIncrementSize, size_t size, size_t srvCount = 0, size_t uavCount = 0) :
+  ResourceViewManager(FazCPtr<ID3D12DescriptorHeap>   descHeap, size_t HandleIncrementSize, size_t size, size_t srvCount = 0, size_t uavCount = 0) :
 	  m_descHeap(descHeap),
 	  m_handleIncrementSize(HandleIncrementSize),
 	  m_size(size),

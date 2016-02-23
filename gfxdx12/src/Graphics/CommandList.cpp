@@ -1,6 +1,6 @@
 #include "CommandList.hpp"
 
-CptCommandList::CptCommandList(ComPtr<ID3D12GraphicsCommandList> cmdList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
+CptCommandList::CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator)
   :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator), closed(false),
   m_boundCptPipeline(nullptr), m_boundGfxPipeline(nullptr)
   , m_uavBindlessIndex(-1), m_srvBindlessIndex(-1)
@@ -124,6 +124,43 @@ void CptCommandList::CopyResource(BufferNew& dstdata, BufferNew& srcdata)
     m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
   }
   m_CommandList->CopyResource(dstbuf.m_resource.get(), srcbuf.m_resource.get());
+}
+
+void CptCommandList::CopyResource(TextureNew& dstdata, TextureNew& srcdata)
+{
+	D3D12_RESOURCE_BARRIER bD[2];
+	size_t count = 0;
+	auto& dstbuf = dstdata.getTexture();
+	auto& srcbuf = srcdata.getTexture();
+	if (!dstbuf.m_immutableState && dstbuf.m_state != D3D12_RESOURCE_STATE_COPY_DEST)
+	{
+		bD[count] = {};
+		bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		bD[count].Transition.pResource = dstbuf.m_resource->get();
+		bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		bD[count].Transition.StateBefore = dstbuf.m_state;
+		dstbuf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
+		bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+		++count;
+	}
+	if (!srcbuf.m_immutableState && srcbuf.m_state != D3D12_RESOURCE_STATE_GENERIC_READ)
+	{
+		bD[count] = {};
+		bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		bD[count].Transition.pResource = srcbuf.m_resource->get();
+		bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		bD[count].Transition.StateBefore = srcbuf.m_state;
+		srcbuf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+		bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+		++count;
+	}
+	if (count > 0)
+	{
+		m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
+	}
+	m_CommandList->CopyResource(dstbuf.m_resource->get(), srcbuf.m_resource->get());
 }
 
 void CptCommandList::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)

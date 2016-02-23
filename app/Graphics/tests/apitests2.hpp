@@ -198,8 +198,8 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      ComPtr<ID3DBlob> blobCompute;
-      ComPtr<ID3DBlob> errorMsg;
+      FazCPtr<ID3DBlob> blobCompute;
+      FazCPtr<ID3DBlob> errorMsg;
       HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
@@ -211,15 +211,15 @@ private:
         }
         return false;
       }
-      ComPtr<ID3D12RootSignatureDeserializer> asd;
+      FazCPtr<ID3D12RootSignatureDeserializer> asd;
       hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {
         return false;
       }
-      ComPtr<ID3D12RootSignature> g_RootSig;
-      ComPtr<ID3DBlob> blobSig;
-      ComPtr<ID3DBlob> errorSig;
+      FazCPtr<ID3D12RootSignature> g_RootSig;
+      FazCPtr<ID3DBlob> blobSig;
+      FazCPtr<ID3DBlob> errorSig;
       const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
 
       hr = D3D12SerializeRootSignature(woot, D3D_ROOT_SIGNATURE_VERSION_1, blobSig.addr(), errorSig.addr());
@@ -239,8 +239,8 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      ComPtr<ID3DBlob> blobCompute;
-      ComPtr<ID3DBlob> errorMsg;
+      FazCPtr<ID3DBlob> blobCompute;
+      FazCPtr<ID3DBlob> errorMsg;
       HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
@@ -252,7 +252,7 @@ private:
         }
         return false;
       }
-      ComPtr<ID3D12RootSignatureDeserializer> asd;
+      FazCPtr<ID3D12RootSignatureDeserializer> asd;
       hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {
