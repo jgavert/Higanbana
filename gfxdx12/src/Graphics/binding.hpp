@@ -31,7 +31,7 @@ public:
     CBV,
     SRV,
     UAV,
-	Num32
+	  Num32
   };
   Binding_(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount, int descriptorTableSRVSlot = -1, int descriptorTableUAVslot = -1)
   {
