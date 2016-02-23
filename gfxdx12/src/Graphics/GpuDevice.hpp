@@ -46,7 +46,7 @@ public:
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
   // raw resources
-  Buffer_new createBuffer(ResourceDescriptor desc);
+  BufferNew createBuffer(ResourceDescriptor desc);
   Texture_new createTexture(ResourceDescriptor desc);
 private:
   D3D12_SHADER_RESOURCE_VIEW_DESC createSrvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc);
@@ -60,10 +60,10 @@ public:
   TextureNewRTV createTextureRTV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   TextureNewDSV createTextureDSV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
-  BufferNewSRV createBufferSRV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  BufferNewUAV createBufferUAV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  BufferNewCBV createBufferCBV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  BufferNewIBV createBufferIBV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewSRV createBufferSRV(BufferNew targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewUAV createBufferUAV(BufferNew targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewCBV createBufferCBV(BufferNew targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewIBV createBufferIBV(BufferNew targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
   // buffers
 private:
