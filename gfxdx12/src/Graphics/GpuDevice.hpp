@@ -32,8 +32,8 @@ private:
   bool                          m_debugLayer;
   DescriptorHeapManager         m_descHeaps;
   std::vector<ShaderInterface>  m_shaderInterfaceCache;
-  TextureSRV					m_nullSrv;
-  TextureUAV					m_nullUav;
+  TextureNewSRV					m_nullSrv;
+  TextureNewUAV					m_nullUav;
 
 public:
   GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer);
@@ -85,50 +85,7 @@ public:
 
     };
   public:
-
 	  template <typename ...Args>
-	  TextureSRV createTextureSrvObj(Args&& ... args)
-	  {
-		  D3D12_RESOURCE_DESC desc;
-		  D3D12_HEAP_PROPERTIES heapprop;
-		  createTexture(desc, heapprop, std::forward<Args>(args)...);
-
-		  FazCPtr<ID3D12Resource> ptr;
-		  TextureSRV buf;
-		  buf.texture().width = desc.Width;
-		  buf.texture().height = desc.Height;
-		  desc.Width *= desc.DepthOrArraySize;
-		  buf.texture().stride = desc.DepthOrArraySize;
-		  desc.DepthOrArraySize = 1;
-		  buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-		  buf.texture().type = ResUsage::Gpu;
-		  if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
-		  {
-			  buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-			  buf.texture().type = ResUsage::Upload;
-		  }
-		  else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
-		  {
-			  buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-			  buf.texture().type = ResUsage::Readback;
-		  }
-
-		  HRESULT hr = m_device->CreateCommittedResource(&heapprop,
-			  D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-			  buf.texture().state, nullptr, __uuidof(ID3D12Resource),
-			  reinterpret_cast<void**>(ptr.addr()));
-
-		  if (!FAILED(hr))
-		  {
-			  buf.texture().m_resource = std::move(ptr);
-		  }
-		  return buf;
-	  }
-
-
-
-
-  template <typename ...Args>
   TextureSRV createTextureSRV(Args&& ... args)
   {
     D3D12_RESOURCE_DESC desc;
@@ -176,46 +133,6 @@ public:
     m_device->CreateShaderResourceView(buf.texture().m_resource.get(), nullptr, buf.texture().view.getCpuHandle());
 
     return buf;
-  }
-
-  template <typename ...Args>
-  TextureUAV createTextureUavObj(Args&& ... args)
-  {
-	  D3D12_RESOURCE_DESC desc;
-	  D3D12_HEAP_PROPERTIES heapprop;
-	  createTexture(desc, heapprop, std::forward<Args>(args)...);
-
-	  FazCPtr<ID3D12Resource> ptr;
-	  desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	  TextureUAV buf;
-	  buf.texture().width = desc.Width;
-	  buf.texture().height = desc.Height;
-	  desc.Width *= desc.DepthOrArraySize;
-	  buf.texture().stride = desc.DepthOrArraySize;
-	  desc.DepthOrArraySize = 1;
-	  buf.texture().state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	  buf.texture().type = ResUsage::Gpu;
-	  if (heapprop.Type == D3D12_HEAP_TYPE_UPLOAD)
-	  {
-		  buf.texture().state = D3D12_RESOURCE_STATE_GENERIC_READ;
-		  buf.texture().type = ResUsage::Upload;
-	  }
-	  else if (heapprop.Type == D3D12_HEAP_TYPE_READBACK)
-	  {
-		  buf.texture().state = D3D12_RESOURCE_STATE_COPY_DEST;
-		  buf.texture().type = ResUsage::Readback;
-	  }
-
-	  HRESULT hr = m_device->CreateCommittedResource(&heapprop,
-		  D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc,
-		  buf.texture().state, nullptr, __uuidof(ID3D12Resource),
-		  reinterpret_cast<void**>(ptr.addr()));
-	  if (!FAILED(hr))
-	  {
-		  buf.texture().m_resource = std::move(ptr);
-	  }
-
-	  return buf;
   }
 
   template <typename ...Args>

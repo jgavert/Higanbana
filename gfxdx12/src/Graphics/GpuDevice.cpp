@@ -26,9 +26,10 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
 	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT virtual_address_support = {};
 	hri = device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &virtual_address_support, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT));
 
-
-  m_nullSrv = createTextureSrvObj(Dimension(1,1));
-  m_nullUav = createTextureUavObj(Dimension(1,1));
+  auto nullTexture = createTexture(ResourceDescriptor()
+	  .enableUnorderedAccess()
+	  .Dimension(FormatDimension::Texture1D)
+	  .Format(FormatType::R8G8B8A8_UNORM));
 
   constexpr unsigned HeapSRVCount = 60;
   constexpr unsigned HeapUAVCount = HeapSRVCount;
@@ -64,7 +65,7 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   {
 	  auto lol2 = lol;
 	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateShaderResourceView(m_nullSrv.texture().m_resource.get(), &srvdesc, lol2);
+	  m_device->CreateShaderResourceView(nullTexture.getTexture().m_resource->get(), &srvdesc, lol2);
   }
 
   // uav's
@@ -77,7 +78,7 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   {
 	  auto lol2 = lol;
 	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateUnorderedAccessView(m_nullUav.texture().m_resource.get(), nullptr, &uavdesc, lol2);
+	  m_device->CreateUnorderedAccessView(nullTexture.getTexture().m_resource->get(), nullptr, &uavdesc, lol2);
   }
   
 

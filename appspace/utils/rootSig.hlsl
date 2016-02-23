@@ -21,7 +21,8 @@ struct consts // reflects hlsl
   int startUvX;
   int width;
   int height;
-  float2 empty;
+  uint texIndex;
+  float empty;
 };
 
 struct PSInput
