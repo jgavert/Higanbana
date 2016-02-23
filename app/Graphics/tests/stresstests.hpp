@@ -45,8 +45,14 @@ private:
       };
       auto triangleCount = 1000000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+      auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -54,7 +60,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -64,7 +70,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -103,7 +109,7 @@ private:
         // graphics begin
         {
           auto bind = gfx.bind(pipeline);
-          bind.SRV(0, dstdata);
+          bind.SRV(0, dstdataSrv);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
           
           for (int i = 1; i < currentTriangleCount; ++i)
@@ -145,8 +151,15 @@ private:
       };
       auto triangleCount = 200000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
+
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -154,7 +167,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -164,7 +177,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -206,7 +219,7 @@ private:
           for (int i = 0; i < currentTriangleCount; ++i)
           {
             auto bind = gfx.bind(pipeline);
-            bind.SRV(0, dstdata);
+            bind.SRV(0, dstdataSrv);
             gfx.drawInstanced(bind, 3, 1, 0, i);
           }
         }
@@ -244,8 +257,14 @@ private:
       };
       auto triangleCount = 4000000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -253,7 +272,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -263,7 +282,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -317,7 +336,7 @@ private:
           unsigned workAmount = currentTriangleCount / 100;
           unsigned startIndex = static_cast<unsigned>(workAmount * id);
           auto bind = gfx2.bind(pipeline);
-          bind.SRV(0, dstdata);
+          bind.SRV(0, dstdataSrv);
           gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
           for (unsigned i = startIndex+1; i < startIndex + workAmount; ++i)
           {
@@ -362,8 +381,14 @@ private:
       };
       auto triangleCount = 2000000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -371,7 +396,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -381,7 +406,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -437,7 +462,7 @@ private:
           for (unsigned i = startIndex; i < startIndex + workAmount; ++i)
           {
             auto bind = gfx2.bind(pipeline);
-            bind.SRV(0, dstdata);
+            bind.SRV(0, dstdataSrv);
             gfx2.drawInstanced(bind, 3, 1, 0, i);
           }
         });
@@ -479,8 +504,14 @@ private:
       };
       auto triangleCount = 800000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -488,7 +519,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -498,7 +529,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -539,7 +570,7 @@ private:
         // graphics begin
         {
           auto bind = gfx.bind(pipeline);
-          bind.SRV(0, dstdata);
+          bind.SRV(0, dstdataSrv);
           gfx.drawInstanced(bind, 3, 1, 0, 0);
 
           for (int i = 1; i < currentTriangleCount; ++i)
@@ -581,8 +612,14 @@ private:
       };
       auto triangleCount = 100000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -590,7 +627,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -600,7 +637,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -644,7 +681,7 @@ private:
           for (int i = 0; i < currentTriangleCount; ++i)
           {
             auto bind = gfx.bind(pipeline);
-            bind.SRV(0, dstdata);
+            bind.SRV(0, dstdataSrv);
             gfx.drawInstanced(bind, 3, 1, 0, i);
           }
         }
@@ -682,8 +719,14 @@ private:
       };
       auto triangleCount = 1000000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -691,7 +734,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -701,7 +744,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -758,7 +801,7 @@ private:
           unsigned workAmount = static_cast<unsigned>(currentTriangleCount / 100);
           unsigned startIndex = static_cast<unsigned>(workAmount * id);
           auto bind = gfx2.bind(pipeline);
-          bind.SRV(0, dstdata);
+          bind.SRV(0, dstdataSrv);
           gfx2.drawInstanced(bind, 3, 1, 0, startIndex);
           for (unsigned i = startIndex + 1; i < startIndex + workAmount; ++i)
           {
@@ -803,8 +846,14 @@ private:
       };
       auto triangleCount = 400000;
       auto currentTriangleCount = triangleCount;
-      auto srcdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(triangleCount), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(triangleCount)
+		  .Format<buf>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       std::random_device rd;
       std::mt19937 gen(rd());
@@ -812,7 +861,7 @@ private:
       std::uniform_real_distribution<> dis2(0.f, 1.f);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (int i = 0;i < triangleCount; ++i)
         {
           auto& it = tmp[i].pos;
@@ -822,7 +871,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -881,7 +930,7 @@ private:
           for (unsigned i = static_cast<unsigned>(startIndex); i < static_cast<unsigned>(startIndex + workAmount); ++i)
           {
             auto bind = gfx2.bind(pipeline);
-            bind.SRV(0, dstdata);
+            bind.SRV(0, dstdataSrv);
             gfx2.drawInstanced(bind, 3, 1, 0, i);
           }
         });

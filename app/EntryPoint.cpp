@@ -118,15 +118,20 @@ int EntryPoint::main()
         float filler;
       };
 
-      auto srcConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
-      auto dstConstants = gpu.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
+	  auto srcConstants = gpu.createBuffer(ResourceDescriptor()
+		  .Format<ConstantsCustom>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstConstants = gpu.createBuffer(ResourceDescriptor()
+		  .Format<ConstantsCustom>());
+
+	  auto dstConstantsCbv = gpu.createBufferCBV(dstConstants);
 
       {
-        auto m = srcConstants.buffer().Map<ConstantsCustom>();
+        auto m = srcConstants.Map<ConstantsCustom>();
         m[0].resolution = res;
       }
 
-      gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+      gfx.CopyResource(dstConstants, srcConstants);
 
 
       GpuFence fence = gpu.createFence();
@@ -161,11 +166,11 @@ int EntryPoint::main()
           {
             GpuProfilingBracket(gfx, "Updating Constants");
             {
-              auto m = srcConstants.buffer().Map<ConstantsCustom>();
+              auto m = srcConstants.Map<ConstantsCustom>();
               m[0].resolution = res;
               m[0].time = time;
             }
-            gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+            gfx.CopyResource(dstConstants, srcConstants);
           }
           auto backBufferIndex = sc.GetCurrentBackBufferIndex();
           {
@@ -178,7 +183,7 @@ int EntryPoint::main()
           {
             GpuProfilingBracket(gfx, "DrawTriangle");
             auto bind = gfx.bind(pipeline2);
-            bind.CBV(0, dstConstants);
+            bind.CBV(0, dstConstantsCbv);
             gfx.drawInstanced(bind, 3, 1, 0, 0);
           }
 

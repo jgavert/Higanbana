@@ -31,7 +31,7 @@ public:
     CBV,
     SRV,
     UAV,
-	  Num32
+    Num32
   };
   Binding_(std::vector<std::tuple<UINT, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount, int descriptorTableSRVSlot = -1, int descriptorTableUAVslot = -1)
   {
@@ -100,15 +100,9 @@ public:
   void checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
-  void UAV(unsigned int index, BufferUAV& buf);
-  //void UAV(unsigned int index, TextureUAV tex);
-  void SRV(unsigned int index, BufferSRV& buf);
-  //void SRV(unsigned int index, TextureSRV tex);
-  void CBV(unsigned int index, BufferCBV& buf);
   void UAV(unsigned int index, BufferNewUAV& buf);
   void SRV(unsigned int index, BufferNewSRV& buf);
   void CBV(unsigned int index, BufferNewCBV& buf);
-
   void rootConstant(unsigned int index, unsigned int value);
 };
 
