@@ -44,7 +44,6 @@ public:
 	  m_uavBindlessIndex(-1),
 	  m_srvBindlessIndex(-1)
   {}
-  void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void CopyResource(BufferNew& dstdata, BufferNew& srcdata);
   void CopyResource(TextureNew& dstdata, TextureNew& srcdata);
   void setResourceBarrier();

@@ -29,21 +29,29 @@ namespace rendering
 				  .SrcBlend(Blend::SrcAlpha)
 				  .DestBlend(Blend::InvSrcAlpha))));
 
-      m_uploadConstants = device.createConstantBuffer(Dimension(1), Format<consts>(), ResUsage::Upload);
-      m_graphConstants = device.createConstantBuffer(Dimension(1), Format<consts>(), ResUsage::Gpu);
+	  m_uploadConstants = device.createBuffer(ResourceDescriptor()
+		  .Format<consts>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  m_graphConstants = device.createBuffer(ResourceDescriptor()
+		  .Format<consts>());
 
-      m_graphTexture = device.createTextureUAV(
-        Dimension(width, height)
-        , Format<int>(FormatType::R8G8B8A8_UNORM)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
+	  m_graphConstantsCbv = device.createBufferCBV(m_graphConstants);
+
+	  m_graphTexture = device.createTexture(ResourceDescriptor()
+		  .Width(width)
+		  .Height(height)
+		  .Format(FormatType::R8G8B8A8_UNORM)
+		  .enableUnorderedAccess()
+		  .Dimension(FormatDimension::Texture2D));
+
+	  m_graphTextureUav = device.createTextureUAV(m_graphTexture);
+
     }
     void Graph::updateGraphCompute(GfxCommandList& gfx, float val)
     {
       GpuProfilingBracket(gfx, "Updating UtilGraph");
       {
-        auto m = m_uploadConstants.buffer().Map<consts>();
+        auto m = m_uploadConstants.Map<consts>();
         m[0].bottomright = m_bottomright;
         m[0].topleft = m_topleft;
         m[0].val = val;
@@ -55,11 +63,11 @@ namespace rendering
       }
       currentUvX += 1;
       currentUvX %= width;
-      gfx.CopyResource(m_graphConstants.buffer(), m_uploadConstants.buffer());
+      gfx.CopyResource(m_graphConstants, m_uploadConstants);
 
       auto bind = gfx.bind(m_cmdPipeline);
-      bind.CBV(0, m_graphConstants);
-      bind.rootConstant(0, m_graphTexture.texture().shader_heap_index);
+      bind.CBV(0, m_graphConstantsCbv);
+      bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
       unsigned int shaderGroup = 32;
       unsigned int graphSize = height;
       gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
@@ -75,8 +83,8 @@ namespace rendering
     {
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
       auto bind = gfx.bind(m_drawPipeline);
-      bind.CBV(0, m_graphConstants); // has the "vertex" data
-      bind.rootConstant(0, m_graphTexture.texture().shader_heap_index);
+      bind.CBV(0, m_graphConstantsCbv); // has the "vertex" data
+      bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
       gfx.drawInstanced(bind, 6); // box
     }
 
@@ -95,12 +103,14 @@ namespace rendering
     {
       width = graphSize.x();
       height = graphSize.y();
-      m_graphTexture = device.createTextureUAV(
-        Dimension(width, height)
-        , Format<int>(FormatType::R8G8B8A8_UNORM_SRGB)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
+
+	  m_graphTexture = device.createTexture(ResourceDescriptor()
+		  .Width(width)
+		  .Height(height)
+		  .Format(FormatType::R8G8B8A8_UNORM)
+		  .enableUnorderedAccess());
+
+	  m_graphTextureUav = device.createTextureUAV(m_graphTexture);
     }
   };
 };

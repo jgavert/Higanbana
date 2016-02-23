@@ -42,13 +42,17 @@ private:
 
     t.addTest("Move data to upload heap and move to gpu memory", [&]()
     {
-      auto srcdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(4096)
+		  .Format<float>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(4096)
+		  .Format<float>());
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       {
-        auto tmp = srcdata.buffer().Map<float>();
+        auto tmp = srcdata.Map<float>();
         if (!tmp.isValid())
           return false;
         for (auto i = tmp.rangeBegin();i < tmp.rangeEnd(); ++i)
@@ -57,7 +61,7 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       gfx.closeList();
       queue.submit(gfx);
       GpuFence fence = dev.createFence();
@@ -70,26 +74,35 @@ private:
     {
       GpuFence fence = dev.createFence();
 
-      auto srcdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Gpu);
-      auto rbdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Readback);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(4096)
+		  .Format<float>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(4096)
+		  .Format<float>());
+	  auto rbdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(4096)
+		  .Format<float>()
+		  .Usage(ResourceUsage::ReadbackHeap));
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       {
-        auto tmp = srcdata.buffer().Map<float>();
+        auto tmp = srcdata.Map<float>();
         for (auto i = tmp.rangeBegin(); i < tmp.rangeEnd(); ++i)
         {
           tmp[i] = static_cast<float>(i);
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
-      gfx.CopyResource(rbdata.buffer(), dstdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
+      gfx.CopyResource(rbdata, dstdata);
       gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
       {
-        auto woot = rbdata.buffer().Map<float>();
+        auto woot = rbdata.Map<float>();
         if (!woot.isValid())
           return false;
         for (auto i = woot.rangeBegin(); i < woot.rangeEnd(); ++i)
@@ -120,13 +133,29 @@ private:
       unsigned int shaderGroup = 64;
       unsigned int inputSize = 100;
       unsigned int _bufferSize = shaderGroup*inputSize;
-      auto srcdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Gpu);
-      auto completedata = dev.createBufferUAV(Dimension(_bufferSize), Format<buf>(), ResUsage::Gpu);
-      auto rbdata = dev.createBufferSRV(Dimension(_bufferSize), Format<buf>(), ResUsage::Readback);
+
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(_bufferSize)
+		  .Format<float>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(_bufferSize)
+		  .Format<float>());
+	  auto completedata = dev.createBuffer(ResourceDescriptor()
+		  .Width(_bufferSize)
+		  .Format<float>()
+		  .enableUnorderedAccess());
+	  auto rbdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(_bufferSize)
+		  .Format<float>()
+		  .Usage(ResourceUsage::ReadbackHeap));
+
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
+	  auto completedataUav = dev.createBufferUAV(completedata);
+
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         for (auto i = tmp.rangeBegin(); i < tmp.rangeEnd(); ++i)
         {
           tmp[i].i = static_cast<int>(i);
@@ -136,10 +165,10 @@ private:
         }
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       auto bind = gfx.bind(pipeline);
-      bind.SRV(0, dstdata);
-      bind.UAV(0, completedata);
+      bind.SRV(0, dstdataSrv);
+      bind.UAV(0, completedataUav);
       //F_LOG("going over by %u\n", goingOverBy);
       gfx.Dispatch(bind, inputSize, 1, 1);
       /*
@@ -149,13 +178,13 @@ private:
       fence.wait();
       gfx.resetList();
       */
-      gfx.CopyResource(rbdata.buffer(), completedata.buffer());
+      gfx.CopyResource(rbdata, completedata);
       gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
       {
-        auto mapd = rbdata.buffer().Map<buf>();
+        auto mapd = rbdata.Map<buf>();
         if (!mapd.isValid())
           return false;
         for (auto i = mapd.rangeBegin(); i < mapd.rangeEnd(); ++i)
@@ -212,11 +241,18 @@ private:
       {
         float pos[4];
       };
-      auto srcdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Gpu);
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(6)
+		  .Format<float>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(6)
+		  .Format<float>());
+
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         float size = 0.8f;
         tmp[0] = { size, size, -0.1f, 1.f };
         tmp[1] = { size, -size, 1.1f, 1.f };
@@ -226,7 +262,7 @@ private:
         tmp[5] = { -size, -size, 0.2f, 1.f };
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -263,7 +299,7 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex]);
         // graphics begin
         auto bind = gfx.bind(pipeline);
-        bind.SRV(0, dstdata);
+        bind.SRV(0, dstdataSrv);
         gfx.drawInstanced(bind, 6,1,0,0);
 
 
@@ -294,20 +330,33 @@ private:
         float filler;
       };
 
-      auto srcConstants = dev.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Upload);
-      auto dstConstants = dev.createConstantBuffer(Dimension(1), Format<ConstantsCustom>(), ResUsage::Gpu);
+	  auto srcConstants = dev.createBuffer(ResourceDescriptor()
+		  .Format<ConstantsCustom>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstConstants = dev.createBuffer(ResourceDescriptor()
+		  .Format<ConstantsCustom>());
 
-      gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+	  auto dstConstantsCbv = dev.createBufferCBV(dstConstants);
+
+
+      gfx.CopyResource(dstConstants, srcConstants);
 
       struct buf
       {
         float pos[4];
-      };
-      auto srcdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(6), Format<buf>(), ResUsage::Gpu);
+	  };
+	  auto srcdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(6)
+		  .Format<float>()
+		  .Usage(ResourceUsage::UploadHeap));
+	  auto dstdata = dev.createBuffer(ResourceDescriptor()
+		  .Width(6)
+		  .Format<float>());
+
+	  auto dstdataSrv = dev.createBufferSRV(dstdata);
 
       {
-        auto tmp = srcdata.buffer().Map<buf>();
+        auto tmp = srcdata.Map<buf>();
         float size = 0.5f;
         float z = 0.f;
         tmp[0] = { 0, size, z - 0.01f, 1.f };
@@ -318,7 +367,7 @@ private:
         tmp[5] = { 0,size, z+0.01f, 1.f };
       }
 
-      gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
+      gfx.CopyResource(dstdata, srcdata);
       GpuFence fence = dev.createFence();
       gfx.closeList();
       queue.submit(gfx);
@@ -361,7 +410,7 @@ private:
 
         // yay, update the constant buffer for the frame
         {
-          auto tmp = srcConstants.buffer().Map<ConstantsCustom>();
+          auto tmp = srcConstants.Map<ConstantsCustom>();
           tmp[0].WorldMatrix = MatrixMath::Translation(std::sin(timeSince2*0.001f), std::cos(timeSince2*0.001f), 1.f);
           // look at target 'z' is negative !? 
           tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.0f, 0.0f, 1.f }), vec4({ std::sin(timeSince2*0.001f),std::cos(timeSince2*0.001f), -1.0f, 1.f }));
@@ -370,7 +419,7 @@ private:
           tmp[0].resolution = { 800.f, 600.f };
           tmp[0].filler = 0.f;
         }
-        gfx.CopyResource(dstConstants.buffer(), srcConstants.buffer());
+        gfx.CopyResource(dstConstants, srcConstants);
         // Rendertarget
         gfx.setViewPort(port);
         auto backBufferIndex = sc.GetCurrentBackBufferIndex();
@@ -379,8 +428,8 @@ private:
         gfx.setRenderTarget(sc[backBufferIndex], depth);
         // graphics begin
         auto bind = gfx.bind(pipeline);
-        bind.SRV(0, dstdata);
-        bind.CBV(0, dstConstants);
+        bind.SRV(0, dstdataSrv);
+        bind.CBV(0, dstConstantsCbv);
         gfx.drawInstanced(bind, 6, 1, 0, 0);
 
 

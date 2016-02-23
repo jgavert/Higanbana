@@ -54,41 +54,6 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 	}
 }
 
-void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
-{
-  D3D12_RESOURCE_BARRIER bD[2];
-  size_t count = 0;
-  if (dstdata.state != D3D12_RESOURCE_STATE_COPY_DEST)
-  {
-    bD[count] = {};
-	bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = dstdata.m_resource.get();
-    bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    bD[count].Transition.StateBefore = dstdata.state;
-	dstdata.state = D3D12_RESOURCE_STATE_COPY_DEST;
-    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-    ++count;
-  }
-  if (srcdata.state != D3D12_RESOURCE_STATE_GENERIC_READ)
-  {
-    bD[count] = {};
-	bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = srcdata.m_resource.get();
-    bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    bD[count].Transition.StateBefore = srcdata.state;
-	srcdata.state = D3D12_RESOURCE_STATE_GENERIC_READ;
-    bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
-    ++count;
-  }
-  if (count > 0)
-  {
-    m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
-  }
-  m_CommandList->CopyResource(dstdata.m_resource.get(), srcdata.m_resource.get());
-}
-
 void CptCommandList::CopyResource(BufferNew& dstdata, BufferNew& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
