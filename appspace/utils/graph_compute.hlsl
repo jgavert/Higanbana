@@ -13,7 +13,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 		return;
 
 	// err figure logic here.
-	float4 finalColor = float4(0.8f, 0.1f, 0.1f, 0.4f);
+	float4 finalColor = float4(0.8f, 0.1f, float(consta.texIndex)*0.1f, 0.4f);
 	float pixelHeight = (consta.val - consta.valueMin) / (consta.valueMax - consta.valueMin);
 	float drawedPixelHeight = (int)((float)consta.height) * pixelHeight;
 	if (abs(drawedPixelHeight - uv.y) < 1.8)
@@ -27,10 +27,10 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	// need to get texture pos, look at min/max if the val is in the same y coordinate, and put it white.
 	// otherwise put alpha 0.0 to make it transparent. (I guess)
 
-	//OutputTex[0][uv] = finalColor;
-	int index = rootconst.texIndex;
-	if (index != 0)
-		index = 0;
-	OutputTex[index][uv] = finalColor;
+	OutputTex[0][uv] = finalColor;
+	//int index = consta.texIndex;
+	//if (index != 0)
+	//	index = 0;
+	//OutputTex[index][uv] = finalColor;
 	//OutputTex[NonUniformResourceIndex(index)][uv] = finalColor;
 }

@@ -60,17 +60,11 @@ namespace rendering
         m[0].startUvX = currentUvX;
         m[0].width = width;
         m[0].height = height;
+		m[0].texIndex = m_graphTextureUav.getCustomIndexInHeap();
       }
       currentUvX += 1;
       currentUvX %= width;
       gfx.CopyResource(m_graphConstants, m_uploadConstants);
-
-      auto bind = gfx.bind(m_cmdPipeline);
-      bind.CBV(0, m_graphConstantsCbv);
-      bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
-      unsigned int shaderGroup = 32;
-      unsigned int graphSize = height;
-      gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
     }
 
     void Graph::changeScreenPos(faze::vec2 topleft, faze::vec2 bottomright)
@@ -82,10 +76,20 @@ namespace rendering
     void Graph::drawGraph(GfxCommandList& gfx)
     {
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
-      auto bind = gfx.bind(m_drawPipeline);
-      bind.CBV(0, m_graphConstantsCbv); // has the "vertex" data
-      bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
-      gfx.drawInstanced(bind, 6); // box
+	  {
+		  auto bind = gfx.bind(m_cmdPipeline);
+		  bind.CBV(0, m_graphConstantsCbv);
+		  bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
+		  unsigned int shaderGroup = 32;
+		  unsigned int graphSize = height;
+		  gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
+	  }
+	  {
+		  auto bind = gfx.bind(m_drawPipeline);
+		  bind.CBV(0, m_graphConstantsCbv); // has the "vertex" data
+		  bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
+		  gfx.drawInstanced(bind, 6); // box
+	  }
     }
 
     void Graph::changeMin(float min)

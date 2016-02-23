@@ -20,7 +20,8 @@ namespace rendering
         int startUvX;
         int width;
         int height;
-        faze::vec2 empty;
+		unsigned texIndex;
+        float empty;
       };
 
       ComputePipeline m_cmdPipeline;

@@ -40,8 +40,8 @@ int EntryPoint::main()
   }*/
 	
   {
-    ApiTests2 tests2;
-    tests2.run(m_params);
+    //ApiTests2 tests2;
+    //tests2.run(m_params);
   }
   /*
   {
