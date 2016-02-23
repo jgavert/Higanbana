@@ -1,5 +1,5 @@
 #pragma once
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "binding.hpp"
 #include "ShaderInterface.hpp"
 #include "GpuResourceViewHeaper.hpp"
@@ -10,13 +10,13 @@ class ComputePipeline
 {
 	friend class GpuDevice;
 
-  ComPtr<ID3D12PipelineState> pipeline;
+  FazCPtr<ID3D12PipelineState> pipeline;
   ShaderInterface m_shaderInterface;
   ComputeBinding rootBinding;
   ResourceViewManager m_heap;
 
 
-  ComputePipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, ComputeBinding sourceBinding, ResourceViewManager heap):
+  ComputePipeline(FazCPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, ComputeBinding sourceBinding, ResourceViewManager heap):
     pipeline(std::move(pipe)),
     m_shaderInterface(shaderInterface),
     rootBinding(sourceBinding),
@@ -51,12 +51,12 @@ class GraphicsPipeline
 {
 	friend class GpuDevice;
 
-  ComPtr<ID3D12PipelineState> pipeline;
+  FazCPtr<ID3D12PipelineState> pipeline;
   ShaderInterface m_shaderInterface;
   GraphicsBinding rootDescriptor;
   ResourceViewManager m_heap;
 
-  GraphicsPipeline(ComPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, GraphicsBinding sourceBinding, ResourceViewManager heap):
+  GraphicsPipeline(FazCPtr<ID3D12PipelineState> pipe, ShaderInterface shaderInterface, GraphicsBinding sourceBinding, ResourceViewManager heap):
     pipeline(std::move(pipe)),
     m_shaderInterface(shaderInterface),
     rootDescriptor(sourceBinding),

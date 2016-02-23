@@ -1065,7 +1065,7 @@ private:
       ID3D12RootSignature* g_RootSig;
       ID3DBlob* blobSig;
       ID3DBlob* errorSig;
-      ComPtr<ID3D12RootSignatureDeserializer> asd;
+      FazCPtr<ID3D12RootSignatureDeserializer> asd;
       hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {

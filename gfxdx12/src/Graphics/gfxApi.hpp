@@ -2,7 +2,7 @@
 
 #include "GpuDevice.hpp"
 #include "core/src/global_debug.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "gfxDebug.hpp"
 #include <utility>
 #include <string>
@@ -25,7 +25,7 @@ struct GpuInfo
 class GraphicsInstance
 {
 private:
-  ComPtr<IDXGIFactory4> pFactory;
+  FazCPtr<IDXGIFactory4> pFactory;
   std::vector<IDXGIAdapter1*> vAdapters;
   std::vector<GpuInfo> infos;
   // 2 device support only
@@ -104,7 +104,7 @@ public:
   {
 #ifdef DEBUG
     debug = true;
-	  warpDriver = false;
+	warpDriver = true;
 #endif
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
@@ -113,45 +113,53 @@ public:
   {
     if (debug)
     {
-      ComPtr<ID3D12Debug> debugController;
+      FazCPtr<ID3D12Debug> debugController;
       if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), reinterpret_cast<void**>(debugController.addr()))))
       {
         debugController->EnableDebugLayer();
       }
     }
-    ComPtr<ID3D12Device> device;
+    FazCPtr<ID3D12Device> device;
     if (!warpDevice)
     {
-      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
-        F_LOG("Device creation failed\n", 2);
-        abort();
+        F_LOG("Device creation failed with D3D_FEATURE_LEVEL_12_0, falling back to warpdriver\n");
+		warpDevice = true;
       }
+	  else
+	  {
+		device.get()->SetName(L"Real");
+	  }
     }
-    else
+    if (warpDevice)
     {
-      ComPtr<IDXGIAdapter1> pAdapter;
+      FazCPtr<IDXGIAdapter1> pAdapter;
       pFactory->EnumWarpAdapter(__uuidof(IDXGIAdapter1), reinterpret_cast<void**>(pAdapter.addr()));
-      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.addr()));
+      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed\n", 2);
         abort();
       }
+	  else
+	  {
+		device->SetName(L"Warp");
+	  }
     }
 
     if (debug && device.get())
     {
-      ComPtr<ID3D12DebugDevice> debugInterface;
-      if (SUCCEEDED(device->QueryInterface(debugInterface.addr())))
+      FazCPtr<ID3D12DebugDevice> debugInterface;
+      if (SUCCEEDED(device->QueryInterface(debugInterface.releaseAndAddr())))
       {
-        debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+        debugInterface->ReportLiveDeviceObjects(/*D3D12_RLDO_DETAIL |*/ D3D12_RLDO_IGNORE_INTERNAL);
       }
 
       // configure infoqueue
-      ComPtr<ID3D12InfoQueue> infoQueue;
-      if (SUCCEEDED(device->QueryInterface(infoQueue.addr())))
+      FazCPtr<ID3D12InfoQueue> infoQueue;
+      if (SUCCEEDED(device->QueryInterface(infoQueue.releaseAndAddr())))
       {
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);

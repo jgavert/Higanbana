@@ -1,7 +1,7 @@
 #pragma once
 #include "Descriptors/ResUsage.hpp"
 #include "ResourceDescriptor.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "core/src/memory/ManagedResource.hpp"
 
 #include <d3d12.h>
@@ -10,11 +10,11 @@
 template<typename type>
 struct MappedBuffer
 {
-  ComPtr<ID3D12Resource> m_mappedresource;
+  FazCPtr<ID3D12Resource> m_mappedresource;
   D3D12_RANGE range;
   bool readback;
   type* mapped;
-  MappedBuffer(ComPtr<ID3D12Resource> res, D3D12_RANGE r, bool readback, type* ptr)
+  MappedBuffer(FazCPtr<ID3D12Resource> res, D3D12_RANGE r, bool readback, type* ptr)
     : m_mappedresource(res)
     , range(r)
     , mapped(ptr)
@@ -73,7 +73,7 @@ public:
 
 struct Buffer
 {
-  ComPtr<ID3D12Resource> m_resource;
+  FazCPtr<ID3D12Resource> m_resource;
   size_t size;
   size_t stride;
   int shader_heap_index;
@@ -153,7 +153,7 @@ public:
 
 struct Buffer_new
 {
-  ComPtr<ID3D12Resource> m_resource; 
+  FazCPtr<ID3D12Resource> m_resource; 
   ResourceDescriptor m_desc;
   D3D12_RESOURCE_STATES m_state; // important and all shader views should share this
   bool m_immutableState;

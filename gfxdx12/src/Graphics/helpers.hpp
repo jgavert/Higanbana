@@ -5,7 +5,7 @@
 #include <crtdbg.h>
 #endif
 
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include "Descriptors/Descriptors.hpp"
 #include "binding.hpp"
 #include <string>
@@ -206,9 +206,9 @@ private:
   }
 public:
 
-  static void getShaderInfo(ComPtr<ID3D12Device>& dev, ShaderType type, std::wstring path, ShaderInterface& root, ComPtr<ID3DBlob>& shaderBlob)
+  static void getShaderInfo(FazCPtr<ID3D12Device>& dev, ShaderType type, std::wstring path, ShaderInterface& root, FazCPtr<ID3DBlob>& shaderBlob)
   {
-    ComPtr<ID3DBlob> errorMsg;
+    FazCPtr<ID3DBlob> errorMsg;
 
     auto woot = path;
     CShaderInclude include("", "");
@@ -235,13 +235,13 @@ public:
       abort();
     }
     {
-		ComPtr<ID3DBlob> rootBlob;
+		FazCPtr<ID3DBlob> rootBlob;
 		// extract root
 		// D3DGetBlobPart(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.addr());
 		// removes and returns root
 		D3DStripShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, rootBlob.addr());
 
-      ComPtr<ID3D12RootSignatureDeserializer> asd;
+      FazCPtr<ID3D12RootSignatureDeserializer> asd;
       hr = D3D12CreateRootSignatureDeserializer(rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {
@@ -263,7 +263,7 @@ public:
         // create new shaderinterface
         // TODO: look at shader binding and implement extraction/separation and proper root signature handling so that shaders contain the same root signature.
         // Currently all shaders have their own root signature in the shader binary when they should be all compiled with the same root signature.
-        ComPtr<ID3D12RootSignature> rootSig;
+        FazCPtr<ID3D12RootSignature> rootSig;
         hr = dev->CreateRootSignature(
           1, rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(),
           __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.addr()));

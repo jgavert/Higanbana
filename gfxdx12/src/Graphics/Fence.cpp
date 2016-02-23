@@ -1,6 +1,6 @@
 #include "Fence.hpp"
 
-GpuFence::GpuFence(ComPtr<ID3D12Fence> mFence)
+GpuFence::GpuFence(FazCPtr<ID3D12Fence> mFence)
   :m_fence(mFence)
   , m_handle(CreateEvent(nullptr, FALSE, FALSE, nullptr))
 {

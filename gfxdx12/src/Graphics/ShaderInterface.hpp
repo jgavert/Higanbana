@@ -1,5 +1,5 @@
 #pragma once
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include <d3d12.h>
 #include <vector>
 
@@ -60,7 +60,7 @@ private:
   friend class CptCommandList;
   friend class shaderUtils;
 
-  ComPtr<ID3D12RootSignature> m_rootSig;
+  FazCPtr<ID3D12RootSignature> m_rootSig;
   RootSignatureReflection m_rootDesc;
 
   static RootSignatureReflection copyDesc(const D3D12_ROOT_SIGNATURE_DESC& desc)
@@ -114,7 +114,7 @@ private:
     return rootDesc;
   }
 
-  ShaderInterface(ComPtr<ID3D12RootSignature> rootSig,const D3D12_ROOT_SIGNATURE_DESC& desc) : m_rootSig(rootSig), m_rootDesc(copyDesc(desc)){}
+  ShaderInterface(FazCPtr<ID3D12RootSignature> rootSig,const D3D12_ROOT_SIGNATURE_DESC& desc) : m_rootSig(rootSig), m_rootDesc(copyDesc(desc)){}
 
   bool isCopyOf(const D3D12_ROOT_SIGNATURE_DESC& compared)
   {

@@ -1,7 +1,7 @@
 #pragma once
 #include "CommandList.hpp"
 #include "Fence.hpp"
-#include "ComPtr.hpp"
+#include "FazCPtr.hpp"
 #include <d3d12.h>
 
 class GpuCommandQueue
@@ -11,13 +11,13 @@ private:
   friend class ApiTests;
   friend class GpuDevice;
   friend class _GpuBracket;
-  ComPtr<ID3D12CommandQueue> m_CommandQueue;
+  FazCPtr<ID3D12CommandQueue> m_CommandQueue;
 public:
-  GpuCommandQueue(ComPtr<ID3D12CommandQueue> que);
+  GpuCommandQueue(FazCPtr<ID3D12CommandQueue> que);
   void submit(GfxCommandList& list);
   void insertFence(GpuFence& fence);
   bool isValid();
-  ComPtr<ID3D12CommandQueue> get()
+  FazCPtr<ID3D12CommandQueue> get()
   {
     return m_CommandQueue;
   }

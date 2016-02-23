@@ -25,14 +25,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
   // Set flag to the new value.
   _CrtSetDbgFlag(tmpFlag);
-	ProgramParams params(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+  int returnValue = 0;
+  ProgramParams params(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 #else
 int main(int argc, const char* argv[])
 {
+	int returnValue = 0;
 	ProgramParams params(argc, argv);
 #endif
-	EntryPoint ep(params);
-	int returnValue = ep.main();
+	{
+		EntryPoint ep(params);
+
+		returnValue = ep.main();
+	}
+
 #ifdef WIN64
   _CrtDumpMemoryLeaks();
 #endif
