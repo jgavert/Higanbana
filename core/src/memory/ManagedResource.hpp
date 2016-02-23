@@ -22,7 +22,6 @@ struct ManagedResource_
       destructor(p_resource);
     }
   }
-
 };
 
 // heavyweight smartpointer for resources, expects typedef hidden pointers... yeah dont ask.
@@ -95,7 +94,6 @@ public:
   FazPtr(std::function<void(T)> destructor, bool owned = true) // usually owned
   {
     resource = std::make_shared<ManagedResource_<T>>();
-    resource->p_resource = nullptr;
     resource->m_owned = owned;
     resource->destructor = destructor;
   }

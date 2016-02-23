@@ -150,6 +150,7 @@ public:
 //////////////////////////////////////////////////////////////////
 // New stuff
 
+
 struct Buffer_new
 {
   ComPtr<ID3D12Resource> m_resource; 
@@ -185,19 +186,41 @@ struct Buffer_new
   }
 };
 
+class BufferNew
+{
+public:
+  FazPtr<Buffer_new> buffer;
+
+  template<typename T>
+  MappedBuffer<T> Map()
+  {
+    return buffer.Map<T>();
+  }
+
+  Buffer_new& getBuffer()
+  {
+    return buffer.getRef();
+  }
+
+  bool isValid()
+  {
+    return buffer.isValid();
+  }
+};
+
 class BufferShaderView
 {
 private:
   friend class Binding_;
   friend class GpuDevice;
-  Buffer_new m_buffer; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  BufferNew m_buffer; // TODO: m_state needs to be synchronized 
   ShaderViewDescriptor viewDesc;
   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
 public:
-  Buffer_new& buffer()
+  BufferNew& buffer()
   {
     return m_buffer;
   }
@@ -205,6 +228,11 @@ public:
   bool isValid()
   {
     return m_buffer.isValid();
+  }
+
+  Buffer_new& getBuffer()
+  {
+    return m_buffer.getBuffer();
   }
 
   size_t getIndexInHeap()

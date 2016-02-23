@@ -322,12 +322,14 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	return GraphicsPipeline(pipeline, newIf, sourceBinding, m_descHeaps.getGeneric());
 }
 
-Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
+BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
 {
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
   ComPtr<ID3D12Resource> ptr;
-  Buffer_new buf = {};
+  BufferNew buf_ret;
+  buf_ret.buffer = FazPtr<Buffer_new>([](Buffer_new) {});
+  Buffer_new& buf = buf_ret.buffer.getRef();
   buf.m_desc = resDesc;
 
   desc.Width = resDesc.m_width * (std::max)(resDesc.m_stride, 1u);
@@ -340,7 +342,7 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // 64KB
-
+  buf.m_state = D3D12_RESOURCE_STATE_COMMON;
   desc.Flags = D3D12_RESOURCE_FLAG_NONE;
   if (resDesc.m_rendertarget)
   {
@@ -412,7 +414,7 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   {
     buf.m_resource = std::move(ptr);
   }
-  return buf;
+  return buf_ret;
 }
 
 Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
@@ -862,9 +864,10 @@ TextureNewDSV GpuDevice::createTextureDSV(Texture_new targetTexture, ShaderViewD
   return dsv;
 }
 
-BufferNewSRV GpuDevice::createBufferSRV(Buffer_new targetBuffer, ShaderViewDescriptor viewDesc)
+BufferNewSRV GpuDevice::createBufferSRV(BufferNew buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
+  Buffer_new& targetBuffer = buffer.buffer.getRef();
   auto& m_descSRVHeap = m_descHeaps.getSRV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
   auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
@@ -878,7 +881,7 @@ BufferNewSRV GpuDevice::createBufferSRV(Buffer_new targetBuffer, ShaderViewDescr
     m_descSRVHeap.freeView(index);
   });
   srv.customIndex = index - m_descSRVHeap.getSRVStartIndex();
-  srv.m_buffer = targetBuffer;
+  srv.m_buffer = buffer;
 
   // create descriptor
   auto srvdesc = createSrvDesc(targetBuffer.m_desc, viewDesc);
@@ -889,9 +892,10 @@ BufferNewSRV GpuDevice::createBufferSRV(Buffer_new targetBuffer, ShaderViewDescr
   return srv;
 }
 
-BufferNewUAV GpuDevice::createBufferUAV(Buffer_new targetBuffer, ShaderViewDescriptor viewDesc)
+BufferNewUAV GpuDevice::createBufferUAV(BufferNew buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
+  Buffer_new& targetBuffer = buffer.buffer.getRef();
   auto& m_descUAVHeap = m_descHeaps.getUAV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
   auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
@@ -905,7 +909,7 @@ BufferNewUAV GpuDevice::createBufferUAV(Buffer_new targetBuffer, ShaderViewDescr
     m_descUAVHeap.freeView(index);
   });
   uav.customIndex = index - m_descUAVHeap.getUAVStartIndex();
-  uav.m_buffer = targetBuffer;
+  uav.m_buffer = buffer;
 
   // create descriptor for uav
   auto uavdesc = createUavDesc(targetBuffer.m_desc, viewDesc);
@@ -917,9 +921,10 @@ BufferNewUAV GpuDevice::createBufferUAV(Buffer_new targetBuffer, ShaderViewDescr
   return uav;
 }
 
-BufferNewCBV GpuDevice::createBufferCBV(Buffer_new targetBuffer, ShaderViewDescriptor)
+BufferNewCBV GpuDevice::createBufferCBV(BufferNew buffer, ShaderViewDescriptor)
 {
   // get index
+  Buffer_new& targetBuffer = buffer.buffer.getRef();
   auto& m_descCBVHeap = m_descHeaps.getGeneric();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descCBVHeap.m_handleIncrementSize);
   auto lol = m_descCBVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
@@ -933,7 +938,7 @@ BufferNewCBV GpuDevice::createBufferCBV(Buffer_new targetBuffer, ShaderViewDescr
     m_descCBVHeap.freeView(index);
   });
   cbv.customIndex = index - m_descCBVHeap.getCBVStartIndex();
-  cbv.m_buffer = targetBuffer;
+  cbv.m_buffer = buffer;
 
   // create descriptor for cbv
   D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdesc = {};
@@ -946,10 +951,10 @@ BufferNewCBV GpuDevice::createBufferCBV(Buffer_new targetBuffer, ShaderViewDescr
 }
 
 // !? TODO
-BufferNewIBV GpuDevice::createBufferIBV(Buffer_new targetBuffer, ShaderViewDescriptor )
+BufferNewIBV GpuDevice::createBufferIBV(BufferNew buffer, ShaderViewDescriptor )
 {
   BufferNewIBV ibv;
-  ibv.m_buffer = targetBuffer;
+  ibv.m_buffer = buffer;
 
   
   return ibv;

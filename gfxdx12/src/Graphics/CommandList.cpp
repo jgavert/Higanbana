@@ -93,7 +93,7 @@ void CptCommandList::CopyResource(Buffer_new& dstdata, Buffer_new& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
-  if (dstdata.m_state != D3D12_RESOURCE_STATE_COPY_DEST)
+  if (!dstdata.m_immutableState && dstdata.m_state != D3D12_RESOURCE_STATE_COPY_DEST)
   {
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -105,7 +105,7 @@ void CptCommandList::CopyResource(Buffer_new& dstdata, Buffer_new& srcdata)
     bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
     ++count;
   }
-  if (srcdata.m_state != D3D12_RESOURCE_STATE_GENERIC_READ)
+  if (!srcdata.m_immutableState && srcdata.m_state != D3D12_RESOURCE_STATE_GENERIC_READ)
   {
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;

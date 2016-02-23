@@ -75,23 +75,26 @@ void Binding_::CBV(unsigned int index, BufferCBV& buf)
 
 void Binding_::UAV(unsigned int index, BufferNewUAV& buf)
 {
-  checkResourceStateUAV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  if (!buf.getBuffer().m_immutableState)
+    checkResourceStateUAV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
   auto& ptr = m_uavs.at(index).first;
-  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
+  ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
 
 void Binding_::SRV(unsigned int index, BufferNewSRV& buf)
 {
-  checkResourceStateSRV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  if (!buf.getBuffer().m_immutableState)
+    checkResourceStateSRV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
   auto& ptr = m_srvs.at(index).first;
-  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
+  ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
 
 void Binding_::CBV(unsigned int index, BufferNewCBV& buf)
 {
-  checkResourceStateCBV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  if (!buf.getBuffer().m_immutableState)
+    checkResourceStateCBV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
   auto& ptr = m_cbvs.at(index).first;
-  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
+  ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
 
 void Binding_::rootConstant(unsigned int index, unsigned int value)
