@@ -189,22 +189,22 @@ struct Buffer_new
 class BufferNew
 {
 public:
-  FazPtr<Buffer_new> buffer;
+  std::shared_ptr<Buffer_new> buffer;
 
   template<typename T>
   MappedBuffer<T> Map()
   {
-    return buffer.Map<T>();
+    return buffer->Map<T>();
   }
 
   Buffer_new& getBuffer()
   {
-    return buffer.getRef();
+    return *buffer;
   }
 
   bool isValid()
   {
-    return buffer.isValid();
+    return buffer->isValid();
   }
 };
 

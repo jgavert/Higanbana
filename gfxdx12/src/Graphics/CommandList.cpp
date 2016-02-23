@@ -89,31 +89,33 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
   m_CommandList->CopyResource(dstdata.m_resource.get(), srcdata.m_resource.get());
 }
 
-void CptCommandList::CopyResource(Buffer_new& dstdata, Buffer_new& srcdata)
+void CptCommandList::CopyResource(BufferNew& dstdata, BufferNew& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
-  if (!dstdata.m_immutableState && dstdata.m_state != D3D12_RESOURCE_STATE_COPY_DEST)
+  auto& dstbuf = dstdata.getBuffer();
+  auto& srcbuf = srcdata.getBuffer();
+  if (!dstbuf.m_immutableState && dstbuf.m_state != D3D12_RESOURCE_STATE_COPY_DEST)
   {
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = dstdata.m_resource.get();
+    bD[count].Transition.pResource = dstbuf.m_resource.get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    bD[count].Transition.StateBefore = dstdata.m_state;
-    dstdata.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
+    bD[count].Transition.StateBefore = dstbuf.m_state;
+    dstbuf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
     bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
     ++count;
   }
-  if (!srcdata.m_immutableState && srcdata.m_state != D3D12_RESOURCE_STATE_GENERIC_READ)
+  if (!srcbuf.m_immutableState && srcbuf.m_state != D3D12_RESOURCE_STATE_GENERIC_READ)
   {
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = srcdata.m_resource.get();
+    bD[count].Transition.pResource = srcbuf.m_resource.get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    bD[count].Transition.StateBefore = srcdata.m_state;
-    srcdata.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+    bD[count].Transition.StateBefore = srcbuf.m_state;
+    srcbuf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
     bD[count].Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
     ++count;
   }
@@ -121,7 +123,7 @@ void CptCommandList::CopyResource(Buffer_new& dstdata, Buffer_new& srcdata)
   {
     m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
   }
-  m_CommandList->CopyResource(dstdata.m_resource.get(), srcdata.m_resource.get());
+  m_CommandList->CopyResource(dstbuf.m_resource.get(), srcbuf.m_resource.get());
 }
 
 void CptCommandList::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)

@@ -328,8 +328,8 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
   D3D12_HEAP_PROPERTIES heapprop = {};
   ComPtr<ID3D12Resource> ptr;
   BufferNew buf_ret;
-  buf_ret.buffer = FazPtr<Buffer_new>([](Buffer_new) {});
-  Buffer_new& buf = buf_ret.buffer.getRef();
+  buf_ret.buffer = std::make_shared<Buffer_new>();
+  Buffer_new& buf = buf_ret.getBuffer();
   buf.m_desc = resDesc;
 
   desc.Width = resDesc.m_width * (std::max)(resDesc.m_stride, 1u);
@@ -867,7 +867,7 @@ TextureNewDSV GpuDevice::createTextureDSV(Texture_new targetTexture, ShaderViewD
 BufferNewSRV GpuDevice::createBufferSRV(BufferNew buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.buffer.getRef();
+  Buffer_new& targetBuffer = buffer.getBuffer();
   auto& m_descSRVHeap = m_descHeaps.getSRV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
   auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
@@ -895,7 +895,7 @@ BufferNewSRV GpuDevice::createBufferSRV(BufferNew buffer, ShaderViewDescriptor v
 BufferNewUAV GpuDevice::createBufferUAV(BufferNew buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.buffer.getRef();
+  Buffer_new& targetBuffer = buffer.getBuffer();
   auto& m_descUAVHeap = m_descHeaps.getUAV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
   auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
@@ -924,7 +924,7 @@ BufferNewUAV GpuDevice::createBufferUAV(BufferNew buffer, ShaderViewDescriptor v
 BufferNewCBV GpuDevice::createBufferCBV(BufferNew buffer, ShaderViewDescriptor)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.buffer.getRef();
+  Buffer_new& targetBuffer = buffer.getBuffer();
   auto& m_descCBVHeap = m_descHeaps.getGeneric();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descCBVHeap.m_handleIncrementSize);
   auto lol = m_descCBVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
