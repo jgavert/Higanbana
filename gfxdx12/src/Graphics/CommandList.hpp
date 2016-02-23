@@ -45,7 +45,7 @@ public:
 	  m_srvBindlessIndex(-1)
   {}
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
-  void CopyResource(Buffer_new& dstdata, Buffer_new& srcdata);
+  void CopyResource(BufferNew& dstdata, BufferNew& srcdata);
   void setResourceBarrier();
   void bindComputeBinding(ComputeBinding& bind);
   void Dispatch(ComputeBinding& bind, unsigned int x, unsigned int y, unsigned int z);
