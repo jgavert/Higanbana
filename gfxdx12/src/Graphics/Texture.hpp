@@ -245,6 +245,30 @@ struct Texture_new
   }
 };
 
+// public interace?
+class TextureNew
+{
+  friend class GpuDevice;
+  std::shared_ptr<Texture_new> texture;
+public:
+
+  template<typename T>
+  MappedTexture<T> Map()
+  {
+    return buffer->Map<T>();
+  }
+
+  Texture_new& getTexture()
+  {
+    return *texture;
+  }
+
+  bool isValid()
+  {
+    return texture->isValid();
+  }
+};
+
 class TextureShaderView
 {
 private:

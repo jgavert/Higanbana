@@ -327,9 +327,7 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
   ComPtr<ID3D12Resource> ptr;
-  BufferNew buf_ret;
-  buf_ret.buffer = std::make_shared<Buffer_new>();
-  Buffer_new& buf = buf_ret.getBuffer();
+  Buffer_new buf = {};
   buf.m_desc = resDesc;
 
   desc.Width = resDesc.m_width * (std::max)(resDesc.m_stride, 1u);
@@ -409,15 +407,16 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
                   nullptr,
                   __uuidof(ID3D12Resource),
                   reinterpret_cast<void**>(ptr.addr()));
-
+  BufferNew buf_ret;
   if (!FAILED(hr))
   {
     buf.m_resource = std::move(ptr);
+    buf_ret.buffer = std::make_shared<Buffer_new>(std::move(buf));
   }
   return buf_ret;
 }
 
-Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
+TextureNew GpuDevice::createTexture(ResourceDescriptor resDesc)
 {
   Texture_new tex = {};
   D3D12_RESOURCE_DESC desc = {};
@@ -480,16 +479,18 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
     __uuidof(ID3D12Resource),
     reinterpret_cast<void**>(&ptr));
 
+  TextureNew tex_ret;
   if (!FAILED(hr))
   {
 	//F_LOG("Texture creation failed!");
     tex.m_resource = std::make_shared<RawResource>(ptr);
+    tex_ret.texture = std::make_shared<Texture_new>(tex);
   } 
   else
   {
-	tex.m_resource = std::make_shared<RawResource>(nullptr);
+	  tex.m_resource = std::make_shared<RawResource>(nullptr);
   }
-  return tex;
+  return tex_ret;
 }
 
 D3D12_SHADER_RESOURCE_VIEW_DESC GpuDevice::createSrvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc)
@@ -759,7 +760,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GpuDevice::createDsvDesc(ResourceDescriptor& desc,
   return dsv;
 }
 
-TextureNewSRV GpuDevice::createTextureSRV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+TextureNewSRV GpuDevice::createTextureSRV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descSRVHeap = m_descHeaps.getSRV();
@@ -785,7 +786,7 @@ TextureNewSRV GpuDevice::createTextureSRV(Texture_new targetTexture, ShaderViewD
   return srv;
 }
 
-TextureNewUAV GpuDevice::createTextureUAV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+TextureNewUAV GpuDevice::createTextureUAV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descUAVHeap = m_descHeaps.getUAV();
@@ -812,7 +813,7 @@ TextureNewUAV GpuDevice::createTextureUAV(Texture_new targetTexture, ShaderViewD
   return uav;
 }
 
-TextureNewRTV GpuDevice::createTextureRTV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+TextureNewRTV GpuDevice::createTextureRTV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descRTVHeap = m_descHeaps.getRTV();
@@ -838,7 +839,7 @@ TextureNewRTV GpuDevice::createTextureRTV(Texture_new targetTexture, ShaderViewD
   return rtv;
 }
 
-TextureNewDSV GpuDevice::createTextureDSV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+TextureNewDSV GpuDevice::createTextureDSV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descDSVHeap = m_descHeaps.getDSV();

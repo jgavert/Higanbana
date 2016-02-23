@@ -186,10 +186,12 @@ struct Buffer_new
   }
 };
 
+// public interace?
 class BufferNew
 {
-public:
+  friend class GpuDevice;
   std::shared_ptr<Buffer_new> buffer;
+public:
 
   template<typename T>
   MappedBuffer<T> Map()
