@@ -3,6 +3,7 @@
 #include "ComPtr.hpp"
 #include "RawResource.hpp"
 #include "ResourceDescriptor.hpp"
+#include "core/src/memory/ManagedResource.hpp"
 
 #include <d3d12.h>
 #include <memory>
@@ -242,4 +243,58 @@ struct Texture_new
   {
 	  return m_resource.get() != nullptr;
   }
+};
+
+class TextureShaderView
+{
+private:
+  friend class GpuDevice;
+  Texture_new m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  ShaderViewDescriptor viewDesc;
+  D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+  D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  size_t customIndex;
+public:
+  Texture_new& texture()
+  {
+    return m_texture;
+  }
+
+  bool isValid()
+  {
+    return m_texture.m_resource.get() != nullptr;
+  }
+
+  size_t getIndexInHeap()
+  {
+    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
+  }
+
+  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
+  {
+    return static_cast<unsigned>(customIndex);
+  }
+};
+
+// to separate different views typewise, also enables information to know from which view we are trying to move into.
+
+class TextureNewSRV : public TextureShaderView
+{
+
+};
+
+class TextureNewUAV : public TextureShaderView
+{
+
+};
+
+class TextureNewRTV : public TextureShaderView
+{
+
+};
+
+class TextureNewDSV : public TextureShaderView
+{
+
 };

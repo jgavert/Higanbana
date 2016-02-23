@@ -109,7 +109,7 @@ public:
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
 
-  GpuDevice CreateGpuDevice(int num, bool debug = false, bool warpDevice = true)
+  GpuDevice CreateGpuDevice(int num, bool debug = true, bool warpDevice = true)
   {
     if (debug)
     {

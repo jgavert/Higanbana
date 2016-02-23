@@ -4,7 +4,31 @@
 // declare all formats and their d3d12 counterparts
 // all tables must be kepts insync
 
-enum FormatDimension
+enum class TextureLayout
+{
+  Unknown,
+  RowMajor,
+  UndefinedSwizzle64kb,
+  StandardSwizzle64kb
+};
+
+// this is more descriptive than formatbase
+enum class FormatDimension
+{
+  Unknown,
+  Buffer,
+  Texture1D,
+  Texture1DArray,
+  Texture2D,
+  Texture2DArray,
+  Texture2DMS,
+  Texture2DMSArray,
+  Texture3D,
+  TextureCube,
+  TextureCubeArray
+};
+
+enum FormatDimensionBase //?
 {
   DimUnknown,
   DimBuffer,
@@ -13,6 +37,7 @@ enum FormatDimension
   DimTexture3D
 };
 
+// unsure where this is needed
 static D3D12_RESOURCE_DIMENSION FormatDimensionToD3D12[] =
 {
   D3D12_RESOURCE_DIMENSION_UNKNOWN,

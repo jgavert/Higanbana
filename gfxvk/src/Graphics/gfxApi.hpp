@@ -44,8 +44,8 @@ private:
   std::vector<vk::ExtensionProperties> m_extensions;
   std::vector<vk::LayerProperties> m_layers;
   std::vector<vk::PhysicalDevice> m_devices;
-  FazPtr<vk::Instance> m_instance;
-  FazPtr<vk::DebugReportCallbackEXT> m_debugcallback;
+  FazPtrVk<vk::Instance> m_instance;
+  FazPtrVk<vk::DebugReportCallbackEXT> m_debugcallback;
   // 2 device support only
   int betterDevice;
   int lesserDevice;

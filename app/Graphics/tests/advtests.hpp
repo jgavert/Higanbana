@@ -30,7 +30,7 @@ private:
       {
         //auto fence = dev.createFence();
         
-        gfx.close(); // as expected, explicit close is kind of nice.
+        gfx.closeList(); // as expected, explicit close is kind of nice.
         // Much nicer to close and enforce errors if trying to add after that.
         // Although seems like you can still "put" stuff there.
       }
@@ -58,7 +58,7 @@ private:
       }
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       GpuFence fence = dev.createFence();
       queue.insertFence(fence);
@@ -84,7 +84,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       gfx.CopyResource(rbdata.buffer(), dstdata.buffer());
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
@@ -143,14 +143,14 @@ private:
       //F_LOG("going over by %u\n", goingOverBy);
       gfx.Dispatch(bind, inputSize, 1, 1);
       /*
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
       gfx.resetList();
       */
       gfx.CopyResource(rbdata.buffer(), completedata.buffer());
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
@@ -194,7 +194,7 @@ private:
         if (vec[0] > 1.0f)
           vec[0] = 0.f;
         gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
 
         sc.present(1, 0);
@@ -228,7 +228,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -269,7 +269,7 @@ private:
 
         // submit all
         gfx.preparePresent(sc[backBufferIndex]);
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
 
         // present
@@ -320,7 +320,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -386,7 +386,7 @@ private:
 
         // submit all
         gfx.preparePresent(sc[backBufferIndex]);
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
 
         // present

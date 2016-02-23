@@ -53,27 +53,17 @@ private:
       return list.isValid();
     });
 
-    t.addTest("Create Upload buffer", [&]()
-    {
-      GraphicsInstance sys;
-      sys.createInstance("test", 1, "faze_test", 1);
-      GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createBufferSRV(
-        Dimension(4096)
-        , Format<float>()
-        , ResUsage::Upload);
-      return buf.isValid();
-    });
-
     t.addTest("Map upload resource to program memory", [&]()
     {
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResUsage::Upload);
+      auto buf = dev.createBuffer(ResourceDescriptor()
+        .Width(1)
+        .Format<float>()
+        .Usage(ResourceUsage::UploadHeap));
 
-      auto a = buf.buffer().Map<float>();
+      auto a = buf.Map<float>();
       a[0] = 1.f;
       return a[0] != 0.f;
     });
@@ -83,8 +73,9 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createBufferSRV(
-        Dimension(4096), Format<float>());
+      auto buf = dev.createBuffer(ResourceDescriptor()
+        .Width(4096)
+        .Format<float>());
       return buf.isValid();
     });
 
@@ -110,7 +101,7 @@ private:
       return tex.isValid();
     });
 
-    t.addTest("Move data to upload heap and move to gpu memory", [&]()
+    t.addTest("Move data to upload heap and move to gpu memory (new resource)", [&]()
     {
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
@@ -118,21 +109,25 @@ private:
       GpuCommandQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
 
-      auto srcdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(
-        Dimension(4096), Format<float>(), ResUsage::Gpu);
+      auto srcdata = dev.createBuffer(ResourceDescriptor()
+          .Width(4096)
+          .Format<float>()
+          .Usage(ResourceUsage::UploadHeap));
+      auto dstdata = dev.createBuffer(ResourceDescriptor()
+        .Width(4096)
+        .Format<float>()
+        .Usage(ResourceUsage::GpuOnly)); 
 
       {
-        auto tmp = srcdata.buffer().Map<float>();
-        for (size_t i = tmp.rangeBegin();i < tmp.rangeEnd(); ++i)
+        auto tmp = srcdata.Map<float>();
+        for (size_t i = tmp.rangeBegin(); i < tmp.rangeEnd(); ++i)
         {
           tmp.get()[i] = static_cast<float>(i);
         }
       }
 
-      list.CopyResource(dstdata.buffer(), srcdata.buffer());
-      list.close();
+      list.CopyResource(dstdata, srcdata);
+      list.closeList();
       queue.submit(list);
       GpuFence fence = dev.createFence();
       queue.insertFence(fence);
@@ -140,6 +135,7 @@ private:
 
       return true;
     });
+
     t.addTest("Upload and readback the same data", [&]()
     {
       GraphicsInstance sys;
@@ -149,26 +145,35 @@ private:
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
-      auto srcdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Upload);
-      auto dstdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Gpu);
-      auto rbdata = dev.createBufferSRV(Dimension(4096), Format<float>(), ResUsage::Readback);
+      auto srcdata = dev.createBuffer(ResourceDescriptor()
+        .Width(4096)
+        .Format<float>()
+        .Usage(ResourceUsage::UploadHeap));
+      auto dstdata = dev.createBuffer(ResourceDescriptor()
+        .Width(4096)
+        .Format<float>()
+        .Usage(ResourceUsage::GpuOnly));
+      auto rbdata = dev.createBuffer(ResourceDescriptor()
+        .Width(4096)
+        .Format<float>()
+        .Usage(ResourceUsage::ReadbackHeap));
 
       {
-        auto tmp = srcdata.buffer().Map<float>();
+        auto tmp = srcdata.Map<float>();
         for (size_t i = tmp.rangeEnd();i < tmp.rangeEnd(); ++i)
         {
           tmp[i] = static_cast<float>(i);
         }
       }
 
-      list.CopyResource(dstdata.buffer(), srcdata.buffer());
-      list.CopyResource(rbdata.buffer(), dstdata.buffer());
-      list.close();
+      list.CopyResource(dstdata, srcdata);
+      list.CopyResource(rbdata, dstdata);
+      list.closeList();
       queue.submit(list);
       queue.insertFence(fence);
       fence.wait();
       {
-        auto woot = rbdata.buffer().Map<float>();
+        auto woot = rbdata.Map<float>();
         for (size_t i = woot.rangeBegin();i < woot.rangeEnd(); ++i)
         {
           if (woot[i] != static_cast<float>(i))
@@ -361,13 +366,89 @@ private:
       list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
 
       list.CopyResource(rbdata.buffer(), completedata.buffer());
-      list.close();
+      list.closeList();
       queue.submit(list);
       queue.insertFence(fence);
       fence.wait();
 
       auto mapd = rbdata.buffer().Map<buf>();
       for (size_t i = mapd.rangeBegin();i < mapd.rangeEnd();++i)
+      {
+        auto& obj = mapd[i];
+        if (obj.i != i + i)
+        {
+          return false;
+        }
+        if (obj.k != i)
+        {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    t.addTest("Pipeline binding and modify data in compute (sub 50 lines!) (new resources)", [id]()
+    {
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
+      GpuDevice dev = sys.CreateGpuDevice(id);
+      GpuCommandQueue queue = dev.createQueue();
+      GfxCommandList list = dev.createUniversalCommandList();
+      GpuFence fence = dev.createFence();
+
+      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1"));
+
+      struct buf
+      {
+        int i;
+        int k;
+        int x;
+        int y;
+      };
+      auto srcdata = dev.createBuffer(ResourceDescriptor()
+        .Width(1000 * 1000)
+        .Format<buf>()
+        .Usage(ResourceUsage::UploadHeap));
+      auto dstdata = dev.createBuffer(ResourceDescriptor()
+        .Width(1000 * 1000)
+        .Format<buf>());
+      auto completedata = dev.createBuffer(ResourceDescriptor()
+        .Width(1000 * 1000)
+        .Format<buf>()
+        .enableUnorderedAccess());
+      auto rbdata = dev.createBuffer(ResourceDescriptor()
+        .Width(1000 * 1000)
+        .Format<buf>()
+        .Usage(ResourceUsage::ReadbackHeap));
+
+      auto dstdataSRV = dev.createBufferSRV(dstdata);
+      auto completedataUAV = dev.createBufferUAV(completedata);
+
+      {
+        auto tmp = srcdata.Map<buf>();
+        for (size_t i = tmp.rangeBegin(); i < tmp.rangeEnd(); ++i)
+        {
+          tmp[i].i = static_cast<int>(i);
+          tmp[i].k = static_cast<int>(i);
+        }
+      }
+
+      list.CopyResource(dstdata, srcdata);
+      auto bind = list.bind(pipeline);
+      bind.SRV(0, dstdataSRV);
+      bind.UAV(0, completedataUAV);
+      unsigned int shaderGroup = 64;
+      unsigned int inputSize = 1000 * 1000;
+      list.Dispatch(bind, inputSize / shaderGroup, 1, 1);
+
+      list.CopyResource(rbdata, completedata);
+      list.closeList();
+      queue.submit(list);
+      queue.insertFence(fence);
+      fence.wait();
+
+      auto mapd = rbdata.Map<buf>();
+      for (size_t i = mapd.rangeBegin(); i < mapd.rangeEnd(); ++i)
       {
         auto& obj = mapd[i];
         if (obj.i != i + i)
@@ -406,7 +487,7 @@ private:
         , Format<int>(FormatType::R8G8B8A8_UNORM)
         , ResUsage::Gpu
         , MipLevel()
-        , Multisampling());;
+        , Multisampling());
       return buf.isValid();
     });
 
@@ -505,7 +586,7 @@ private:
         if (vec[0] > 1.0f)
           vec[0] = 0.f;
         list.ClearRenderTargetView(sc[backBufferIndex], vec);
-        list.close();
+        list.closeList();
         queue.submit(list);
 
         sc.present(1, 0);
@@ -551,7 +632,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -592,7 +673,7 @@ private:
 
         // submit all
 		    gfx.preparePresent(sc[backBufferIndex]);
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
 
         // present
@@ -633,7 +714,7 @@ private:
 		  list.Dispatch(bind, 1, 1, 1);
 
 		  list.CopyResource(rbdata.buffer(), completedata.buffer());
-		  list.close();
+		  list.closeList();
 		  queue.submit(list);
 		  queue.insertFence(fence);
 		  fence.wait();
@@ -688,7 +769,7 @@ private:
 		  list.CopyResource(rbdata.buffer(), completedata.buffer());
 		  list.CopyResource(rbdata2.buffer(), completedata2.buffer());
 		  list.CopyResource(rbdata3.buffer(), completedata3.buffer());
-		  list.close();
+		  list.closeList();
 		  queue.submit(list);
 		  queue.insertFence(fence);
 		  fence.wait();

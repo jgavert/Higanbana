@@ -2,6 +2,8 @@
 #include "Descriptors/ResUsage.hpp"
 #include "ResourceDescriptor.hpp"
 #include "ComPtr.hpp"
+#include "core/src/memory/ManagedResource.hpp"
+
 #include <d3d12.h>
 #include <vector>
 
@@ -155,28 +157,89 @@ struct Buffer_new
   D3D12_RESOURCE_STATES m_state; // important and all shader views should share this
   bool m_immutableState;
   D3D12_RANGE m_range;
+  size_t m_sizeInBytes;
+  size_t m_alignment;
 
   template<typename T>
   MappedBuffer<T> Map()
   {
-    if (type == ResourceUsage::Gpu)
+    if (m_desc.m_usage == ResourceUsage::GpuOnly)
     {
       abort();
     }
     T* ptr;
     m_range.Begin = 0;
-    m_range.End = size*stride;
+    m_range.End = m_desc.m_width * m_desc.m_stride;
     HRESULT hr = m_resource->Map(0, &m_range, reinterpret_cast<void**>(&ptr));
     if (FAILED(hr))
     {
       // something?
       abort();
     }
-    return MappedBuffer<T>(m_resource, m_range, (m_desc.m_format == ResourceUsage::Readback), ptr);
+    return MappedBuffer<T>(m_resource, m_range, (m_desc.m_usage == ResourceUsage::ReadbackHeap), ptr);
   }
 
   bool isValid()
   {
     return m_resource.get() != nullptr;
   }
+};
+
+class BufferShaderView
+{
+private:
+  friend class Binding_;
+  friend class GpuDevice;
+  Buffer_new m_buffer; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  ShaderViewDescriptor viewDesc;
+  D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+  D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  size_t customIndex;
+public:
+  Buffer_new& buffer()
+  {
+    return m_buffer;
+  }
+
+  bool isValid()
+  {
+    return m_buffer.isValid();
+  }
+
+  size_t getIndexInHeap()
+  {
+    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
+  }
+
+  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
+  {
+    return static_cast<unsigned>(customIndex);
+  }
+};
+
+// to separate different views typewise
+
+class BufferNewSRV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferNewUAV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferNewIBV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferNewCBV : public BufferShaderView
+{
+public:
+
 };

@@ -330,35 +330,58 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
   Buffer_new buf = {};
   buf.m_desc = resDesc;
 
-  desc.Width = resDesc.m_width;
+  desc.Width = resDesc.m_width * (std::max)(resDesc.m_stride, 1u);
   desc.Height = resDesc.m_height;
   desc.DepthOrArraySize = static_cast<UINT16>(resDesc.m_arraySize);
   desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; // TODO: need something that isn't platform specific
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
-  desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
-  desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // for buffers, "Layout must be"
+  desc.Layout = static_cast<D3D12_TEXTURE_LAYOUT>(resDesc.m_layout); // for buffers, "Layout must be"
   desc.MipLevels = static_cast<UINT16>(resDesc.m_miplevels);
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // 64KB
-  
+
+  desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  if (resDesc.m_rendertarget)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  }
+  if (resDesc.m_depthstencil)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+  }
+  if (resDesc.m_unorderedaccess)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  }
+  if (resDesc.m_denysrv)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+  }
+  if (resDesc.m_allowCrossAdapter)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+  }
+  if (resDesc.m_allowSimultaneousAccess)
+  {
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+  }
 
   heapprop.Type = D3D12_HEAP_TYPE_DEFAULT;
-  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
   buf.m_immutableState = false;
   if (resDesc.m_usage == ResourceUsage::UploadHeap)
   {
 	  buf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
 	  buf.m_immutableState = true;
 	  heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-	  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
   }
   else if (resDesc.m_usage == ResourceUsage::ReadbackHeap)
   {
 	  buf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
 	  heapprop.Type = D3D12_HEAP_TYPE_READBACK;
 	  buf.m_immutableState = true;
-	  //heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
   }
 
   auto info = m_device->GetResourceAllocationInfo(0, 1, &desc);
@@ -368,8 +391,13 @@ Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
 	  F_LOG("Resource creation alignment differed from d3d12 devices defaults.\n");
 	  desc.Alignment = info.Alignment;
   }
+  /*
   F_LOG("Resource sizeInBytes: %.2f KB, %zu B\n", static_cast<float>(info.SizeInBytes) / 1024.f, info.SizeInBytes);
   F_LOG("Resource Alignment:   %.2f KB\n", static_cast<float>(info.Alignment) / 1024.f, info.SizeInBytes);
+  */
+
+  buf.m_sizeInBytes = info.SizeInBytes;
+  buf.m_alignment = info.Alignment;
 
   HRESULT hr = m_device->CreateCommittedResource(
                   &heapprop,
@@ -398,7 +426,7 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
   desc.Width = resDesc.m_width;
   desc.Height = resDesc.m_height;
   desc.DepthOrArraySize = static_cast<UINT16>(resDesc.m_arraySize);
-  desc.Dimension = FormatDimensionToD3D12[FormatDimension::DimTexture2D]; // TODO: need something that isn't hardcoded
+  desc.Dimension = FormatDimensionToD3D12[FormatDimensionBase::DimTexture2D]; // TODO: need something that isn't hardcoded
   desc.Format = FormatToDXGIFormat[resDesc.m_format];
   desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // ...?
   desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN; // Basically, leave the choice to driver.
@@ -460,4 +488,469 @@ Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
 	tex.m_resource = std::make_shared<RawResource>(nullptr);
   }
   return tex;
+}
+
+D3D12_SHADER_RESOURCE_VIEW_DESC GpuDevice::createSrvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc)
+{
+  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
+  srvdesc.Format = FormatToDXGIFormat[desc.m_format];
+  
+  if (desc.m_dimension == FormatDimension::Unknown)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER; // structured buffer
+    srvdesc.Buffer.FirstElement = viewDesc.m_firstElement;
+    srvdesc.Buffer.NumElements = desc.m_width;
+    srvdesc.Buffer.StructureByteStride = desc.m_stride;
+    srvdesc.Buffer.Flags = (srvdesc.Format == DXGI_FORMAT_R32_TYPELESS) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+  }
+  else 
+  if (desc.m_dimension == FormatDimension::Buffer)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srvdesc.Buffer.FirstElement = viewDesc.m_firstElement;
+    srvdesc.Buffer.NumElements = desc.m_width;
+    srvdesc.Buffer.StructureByteStride = desc.m_stride; // must be 0 if not structured buffer
+    srvdesc.Buffer.Flags = (srvdesc.Format == DXGI_FORMAT_R32_TYPELESS) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1D)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+    srvdesc.Texture1D.MipLevels = desc.m_miplevels;
+    srvdesc.Texture1D.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.Texture1D.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1DArray)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+    srvdesc.Texture1DArray.ArraySize = desc.m_arraySize;
+    srvdesc.Texture1DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    srvdesc.Texture1DArray.MipLevels = desc.m_miplevels;
+    srvdesc.Texture1DArray.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.Texture1DArray.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp; 
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2D)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvdesc.Texture2D.PlaneSlice = viewDesc.m_planeSlice;
+    srvdesc.Texture2D.MipLevels = desc.m_miplevels;
+    srvdesc.Texture2D.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.Texture2D.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMS)
+  { 
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DArray)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvdesc.Texture2DArray.PlaneSlice = viewDesc.m_planeSlice;
+    srvdesc.Texture2DArray.ArraySize = desc.m_arraySize;
+    srvdesc.Texture2DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    srvdesc.Texture2DArray.MipLevels = desc.m_miplevels;
+    srvdesc.Texture2DArray.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.Texture2DArray.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMSArray)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+    srvdesc.Texture2DMSArray.ArraySize = desc.m_arraySize;
+    srvdesc.Texture2DMSArray.FirstArraySlice = viewDesc.m_arraySlice;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture3D)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+    srvdesc.Texture3D.MipLevels = desc.m_miplevels;
+    srvdesc.Texture3D.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.Texture3D.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  else if (desc.m_dimension == FormatDimension::TextureCube)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    srvdesc.TextureCube.MipLevels = desc.m_miplevels;
+    srvdesc.TextureCube.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.TextureCube.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  else if (desc.m_dimension == FormatDimension::TextureCubeArray)
+  {
+    srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+    srvdesc.TextureCubeArray.First2DArrayFace = viewDesc.m_first2DArrayFace;
+    srvdesc.TextureCubeArray.MipLevels = desc.m_miplevels;
+    srvdesc.TextureCubeArray.MostDetailedMip = viewDesc.m_mostDetailedMip;
+    srvdesc.TextureCubeArray.ResourceMinLODClamp = viewDesc.m_resourceMinLODClamp;
+  }
+  srvdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // when should this differ?
+  return srvdesc;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC GpuDevice::createUavDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc)
+{
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
+  uavdesc.Format = FormatToDXGIFormat[desc.m_format];
+
+  if (desc.m_dimension == FormatDimension::Unknown)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER; // structured buffer
+    uavdesc.Buffer.FirstElement = viewDesc.m_firstElement;
+    uavdesc.Buffer.NumElements = desc.m_width;
+    uavdesc.Buffer.StructureByteStride = desc.m_stride;
+    uavdesc.Buffer.CounterOffsetInBytes = 0;
+    uavdesc.Buffer.Flags = (uavdesc.Format == DXGI_FORMAT_R32_TYPELESS) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+  }
+  else if (desc.m_dimension == FormatDimension::Buffer)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavdesc.Buffer.FirstElement = viewDesc.m_firstElement;
+    uavdesc.Buffer.NumElements = desc.m_width;
+    uavdesc.Buffer.StructureByteStride = desc.m_stride; // must be 0 if not structured buffer
+    uavdesc.Buffer.CounterOffsetInBytes = 0; // must be 0 if not structured buffer
+    uavdesc.Buffer.Flags = (uavdesc.Format == DXGI_FORMAT_R32_TYPELESS) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1D)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+    uavdesc.Texture1D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1DArray)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+    uavdesc.Texture1DArray.ArraySize = desc.m_arraySize;
+    uavdesc.Texture1DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    uavdesc.Texture1DArray.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2D)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    uavdesc.Texture2D.PlaneSlice = viewDesc.m_planeSlice;
+    uavdesc.Texture2D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DArray)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+    uavdesc.Texture2DArray.PlaneSlice = viewDesc.m_planeSlice;
+    uavdesc.Texture2DArray.ArraySize = desc.m_arraySize;
+    uavdesc.Texture2DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    uavdesc.Texture2DArray.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture3D)
+  {
+    uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+    uavdesc.Texture3D.FirstWSlice = 0; // The zero-based index of the first depth slice to be accessed.
+    uavdesc.Texture3D.MipSlice = viewDesc.m_mostDetailedMip; // The zero-based index of the first depth slice to be accessed.
+    uavdesc.Texture3D.WSize = 0; //The number of depth slices.
+  }
+  else
+  {
+    abort(); // replace with assert and exit.
+  }
+
+  return uavdesc;
+}
+
+D3D12_RENDER_TARGET_VIEW_DESC GpuDevice::createRtvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc)
+{
+  D3D12_RENDER_TARGET_VIEW_DESC rtv = {};
+  rtv.Format = FormatToDXGIFormat[desc.m_format];
+  if (desc.m_dimension == FormatDimension::Unknown)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_UNKNOWN;
+    rtv.Buffer.FirstElement;
+    rtv.Buffer.NumElements;
+  }
+  else if (desc.m_dimension == FormatDimension::Buffer)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_BUFFER;
+    rtv.Buffer.FirstElement;
+    rtv.Buffer.NumElements;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1D)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+    rtv.Texture1D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1DArray)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+    rtv.Texture1DArray.ArraySize = desc.m_arraySize;
+    rtv.Texture1DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    rtv.Texture1DArray.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2D)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtv.Texture2D.PlaneSlice = viewDesc.m_planeSlice;
+    rtv.Texture2D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMS)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DArray)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+    rtv.Texture2DArray.ArraySize = desc.m_arraySize;
+    rtv.Texture2DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    rtv.Texture2DArray.MipSlice = viewDesc.m_mostDetailedMip;
+    rtv.Texture2DArray.PlaneSlice = viewDesc.m_planeSlice;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMSArray)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+    rtv.Texture2DMSArray.ArraySize = desc.m_arraySize;
+    rtv.Texture2DMSArray.FirstArraySlice = viewDesc.m_arraySlice;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture3D)
+  {
+    rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+    rtv.Texture3D.FirstWSlice = 0; // The zero-based index of the first depth slice to be accessed.
+    rtv.Texture3D.MipSlice = viewDesc.m_mostDetailedMip; // The zero-based index of the first depth slice to be accessed.
+    rtv.Texture3D.WSize = 0; //The number of depth slices.
+  }
+  else
+  {
+    abort(); // TODO: replace with somethign better
+  }
+  return rtv;
+}
+
+D3D12_DEPTH_STENCIL_VIEW_DESC GpuDevice::createDsvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc)
+{
+  D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+  dsv.Format = FormatToDXGIFormat[desc.m_format];
+  if (desc.m_dimension == FormatDimension::Texture1D)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+    dsv.Texture1D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture1DArray)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+    dsv.Texture1DArray.ArraySize = desc.m_arraySize;
+    dsv.Texture1DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    dsv.Texture1DArray.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2D)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsv.Texture2D.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMS)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DArray)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+    dsv.Texture2DArray.ArraySize = desc.m_arraySize;
+    dsv.Texture2DArray.FirstArraySlice = viewDesc.m_arraySlice;
+    dsv.Texture2DArray.MipSlice = viewDesc.m_mostDetailedMip;
+  }
+  else if (desc.m_dimension == FormatDimension::Texture2DMSArray)
+  {
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+    dsv.Texture2DMSArray.ArraySize = desc.m_arraySize;
+    dsv.Texture2DMSArray.FirstArraySlice = viewDesc.m_arraySlice;
+  }
+  else
+  {
+    abort(); // TODO: replace with somethign better
+  }
+  return dsv;
+}
+
+TextureNewSRV GpuDevice::createTextureSRV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descSRVHeap = m_descHeaps.getSRV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
+  auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descSRVHeap.getSRVIndex();
+
+  // save information
+  TextureNewSRV srv;
+  srv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  srv.indexInHeap = FazPtr<size_t>(index, [&m_descSRVHeap](size_t index)
+  {
+    m_descSRVHeap.freeView(index);
+  });
+  srv.customIndex = index - m_descSRVHeap.getSRVStartIndex();
+  srv.m_texture = targetTexture;
+
+  // create descriptor for shaderview
+  auto srvdesc = createSrvDesc(targetTexture.m_desc, viewDesc);
+  srv.viewDesc = viewDesc;
+  // create srv
+  m_device->CreateShaderResourceView(targetTexture.m_resource->get(), &srvdesc, srv.cpuHandle);
+  return srv;
+}
+
+TextureNewUAV GpuDevice::createTextureUAV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descUAVHeap = m_descHeaps.getUAV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
+  auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descUAVHeap.getUAVIndex();
+
+  // save information
+  TextureNewUAV uav;
+  uav.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  uav.indexInHeap = FazPtr<size_t>(index, [&m_descUAVHeap](size_t index)
+  {
+    m_descUAVHeap.freeView(index);
+  });
+  uav.customIndex = index - m_descUAVHeap.getUAVStartIndex();
+  uav.m_texture = targetTexture;
+
+  // create descriptor for shaderview
+  auto uavdesc = createUavDesc(targetTexture.m_desc, viewDesc);
+  uav.viewDesc = viewDesc;
+  // create uav
+  // TODO add counterResourceSupport?
+  m_device->CreateUnorderedAccessView(targetTexture.m_resource->get(), nullptr, &uavdesc, uav.cpuHandle);
+  return uav;
+}
+
+TextureNewRTV GpuDevice::createTextureRTV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descRTVHeap = m_descHeaps.getRTV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
+  auto lol = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descRTVHeap.getNextIndex(); 
+
+  // save information
+  TextureNewRTV rtv;
+  rtv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  rtv.indexInHeap = FazPtr<size_t>(index, [&m_descRTVHeap](size_t index)
+  {
+    m_descRTVHeap.freeView(index);
+  });
+  rtv.customIndex = index;
+  rtv.m_texture = targetTexture;
+
+  // create descriptor for shaderview
+  auto rtvdesc = createRtvDesc(targetTexture.m_desc, viewDesc);
+  rtv.viewDesc = viewDesc;
+  // create srv
+  m_device->CreateRenderTargetView(targetTexture.m_resource->get(), &rtvdesc, rtv.cpuHandle);
+  return rtv;
+}
+
+TextureNewDSV GpuDevice::createTextureDSV(Texture_new targetTexture, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descDSVHeap = m_descHeaps.getDSV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descDSVHeap.m_handleIncrementSize);
+  auto lol = m_descDSVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descDSVHeap.getNextIndex();
+
+  // save information
+  TextureNewDSV dsv;
+  dsv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  dsv.indexInHeap = FazPtr<size_t>(index, [&m_descDSVHeap](size_t index)
+  {
+    m_descDSVHeap.freeView(index);
+  });
+  dsv.customIndex = index;
+  dsv.m_texture = targetTexture;
+
+  // create descriptor for shaderview
+  auto dsvdesc = createDsvDesc(targetTexture.m_desc, viewDesc);
+  dsv.viewDesc = viewDesc;
+  // create srv
+  m_device->CreateDepthStencilView(targetTexture.m_resource->get(), &dsvdesc, dsv.cpuHandle);
+  return dsv;
+}
+
+BufferNewSRV GpuDevice::createBufferSRV(Buffer_new targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descSRVHeap = m_descHeaps.getSRV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
+  auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descSRVHeap.getSRVIndex();
+
+  // save information
+  BufferNewSRV srv;
+  srv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  srv.indexInHeap = FazPtr<size_t>(index, [&m_descSRVHeap](size_t index)
+  {
+    m_descSRVHeap.freeView(index);
+  });
+  srv.customIndex = index - m_descSRVHeap.getSRVStartIndex();
+  srv.m_buffer = targetBuffer;
+
+  // create descriptor
+  auto srvdesc = createSrvDesc(targetBuffer.m_desc, viewDesc);
+  srv.viewDesc = viewDesc;
+
+  // create srv
+  m_device->CreateShaderResourceView(targetBuffer.m_resource.get(), &srvdesc, srv.cpuHandle);
+  return srv;
+}
+
+BufferNewUAV GpuDevice::createBufferUAV(Buffer_new targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  // get index
+  auto& m_descUAVHeap = m_descHeaps.getUAV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
+  auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descUAVHeap.getUAVIndex();
+
+  // save information
+  BufferNewUAV uav;
+  uav.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  uav.indexInHeap = FazPtr<size_t>(index, [&m_descUAVHeap](size_t index)
+  {
+    m_descUAVHeap.freeView(index);
+  });
+  uav.customIndex = index - m_descUAVHeap.getUAVStartIndex();
+  uav.m_buffer = targetBuffer;
+
+  // create descriptor for uav
+  auto uavdesc = createUavDesc(targetBuffer.m_desc, viewDesc);
+  uav.viewDesc = viewDesc;
+
+  // create uav
+  // TODO add counterResourceSupport?
+  m_device->CreateUnorderedAccessView(targetBuffer.m_resource.get(), nullptr, &uavdesc, uav.cpuHandle);
+  return uav;
+}
+
+BufferNewCBV GpuDevice::createBufferCBV(Buffer_new targetBuffer, ShaderViewDescriptor)
+{
+  // get index
+  auto& m_descCBVHeap = m_descHeaps.getGeneric();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descCBVHeap.m_handleIncrementSize);
+  auto lol = m_descCBVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descCBVHeap.getCBVIndex();
+
+  // save information
+  BufferNewCBV cbv;
+  cbv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
+  cbv.indexInHeap = FazPtr<size_t>(index, [&m_descCBVHeap](size_t index)
+  {
+    m_descCBVHeap.freeView(index);
+  });
+  cbv.customIndex = index - m_descCBVHeap.getCBVStartIndex();
+  cbv.m_buffer = targetBuffer;
+
+  // create descriptor for cbv
+  D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdesc = {};
+  cbvdesc.BufferLocation = 0;
+  cbvdesc.SizeInBytes = static_cast<unsigned>(targetBuffer.m_sizeInBytes);
+
+  // create cbv
+  m_device->CreateConstantBufferView(&cbvdesc, cbv.cpuHandle);
+  return cbv;
+}
+
+// !? TODO
+BufferNewIBV GpuDevice::createBufferIBV(Buffer_new targetBuffer, ShaderViewDescriptor )
+{
+  BufferNewIBV ibv;
+  ibv.m_buffer = targetBuffer;
+
+  
+  return ibv;
 }

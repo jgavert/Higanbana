@@ -189,7 +189,7 @@ private:
 
       list.m_CommandList->CopyResource(DestData, data);
       GpuFence fence = dev.createFence();
-      list.close();
+      list.closeList();
       queue.submit(list);
       queue.insertFence(fence);
       fence.wait();
@@ -406,7 +406,7 @@ private:
       }
 
       list.m_CommandList->CopyResource(readBackRes, DestData);
-      list.close();
+      list.closeList();
       queue.submit(list);
       GpuFence fence = dev.createFence();
       queue.insertFence(fence);
@@ -907,7 +907,7 @@ private:
       // -------------------------------------------------------------------------
       // ---------------------------end commandlist-------------------------------
       // -------------------------------------------------------------------------
-      list.close();
+      list.closeList();
       queue.submit(list);
           
       GpuFence fence = dev.createFence();
@@ -1191,7 +1191,7 @@ private:
       // -------------------------------------------------------------------------
       // ---------------------------end commandlist-------------------------------
       // -------------------------------------------------------------------------
-      list.close();
+      list.closeList();
       queue.submit(list);
 
       GpuFence fence = dev.createFence();

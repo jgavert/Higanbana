@@ -29,7 +29,7 @@ private:
       fence.wait();
       if (!gfx.isClosed())
       {
-        gfx.close();
+        gfx.closeList();
       }
       gfx.resetList();
 
@@ -66,7 +66,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -114,7 +114,7 @@ private:
         }
 
         // submit all
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
         cpuTime = b.stop(false) / 1000000.f;
         // present
@@ -166,7 +166,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -212,7 +212,7 @@ private:
         }
 
         // submit all
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
         cpuTime = b.stop(false) / 1000000.f;
         // present
@@ -265,7 +265,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -327,7 +327,7 @@ private:
         lbs.sleepTillKeywords({ "fillCommands" });
         for (size_t i = 0; i < lbs.threadCount(); ++i)
         {
-          m_cmds[i].close();
+          m_cmds[i].closeList();
           queue.submit(m_cmds[i]);
         }
         cpuTime = b.stop(false) / 1000000.f;
@@ -383,7 +383,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -444,7 +444,7 @@ private:
         lbs.sleepTillKeywords({ "fillCommands" });
         for (size_t i = 0; i < lbs.threadCount(); ++i)
         {
-          m_cmds[i].close();
+          m_cmds[i].closeList();
           queue.submit(m_cmds[i]);
         }
         cpuTime = b.stop(false) / 1000000.f;
@@ -500,7 +500,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
       fence.wait();
@@ -550,7 +550,7 @@ private:
         }
 
         // submit all
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
         cpuTime = b.stop(false) / 1000000.f;
         // present
@@ -602,7 +602,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -650,7 +650,7 @@ private:
         }
 
         // submit all
-        gfx.close();
+        gfx.closeList();
         queue.submit(gfx);
         cpuTime = b.stop(false) / 1000000.f;
         // present
@@ -703,7 +703,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -768,7 +768,7 @@ private:
         lbs.sleepTillKeywords({ "fillCommands" });
         for (size_t i = 0; i < lbs.threadCount(); ++i)
         {
-          m_cmds[i].close();
+          m_cmds[i].closeList();
           queue.submit(m_cmds[i]);
         }
         cpuTime = b.stop(false) / 1000000.f;
@@ -824,7 +824,7 @@ private:
 
       gfx.CopyResource(dstdata.buffer(), srcdata.buffer());
       GpuFence fence = dev.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -888,7 +888,7 @@ private:
         lbs.sleepTillKeywords({ "fillCommands" });
         for (size_t i = 0; i < lbs.threadCount(); ++i)
         {
-          m_cmds[i].close();
+          m_cmds[i].closeList();
           queue.submit(m_cmds[i]);
         }
         cpuTime = b.stop(false) / 1000000.f;
