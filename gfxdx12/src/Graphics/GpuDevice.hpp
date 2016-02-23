@@ -44,8 +44,26 @@ public:
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
+
+  // raw resources
   Buffer_new createBuffer(ResourceDescriptor desc);
   Texture_new createTexture(ResourceDescriptor desc);
+private:
+  D3D12_SHADER_RESOURCE_VIEW_DESC createSrvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc);
+  D3D12_UNORDERED_ACCESS_VIEW_DESC createUavDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc);
+  D3D12_RENDER_TARGET_VIEW_DESC createRtvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc);
+  D3D12_DEPTH_STENCIL_VIEW_DESC createDsvDesc(ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc);
+public:
+  // shader views
+  TextureNewSRV createTextureSRV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureNewUAV createTextureUAV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureNewRTV createTextureRTV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureNewDSV createTextureDSV(Texture_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+
+  BufferNewSRV createBufferSRV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewUAV createBufferUAV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewCBV createBufferCBV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferNewIBV createBufferIBV(Buffer_new targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
   // buffers
 private:

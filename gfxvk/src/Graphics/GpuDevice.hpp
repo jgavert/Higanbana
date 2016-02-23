@@ -24,11 +24,11 @@ class GpuDevice
 private:
 
   vk::AllocationCallbacks m_alloc_info;
-  FazPtr<vk::Device> m_device;
+  FazPtrVk<vk::Device> m_device;
   bool  m_debugLayer;
   DescriptorHeapManager heap;
 public:
-  GpuDevice(FazPtr<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer);
+  GpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer);
   ~GpuDevice();
   SwapChain createSwapChain(GpuCommandQueue&, Window&);
   SwapChain createSwapChain(GpuCommandQueue& queue, Window& wnd, int, FormatType);

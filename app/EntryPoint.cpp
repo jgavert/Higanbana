@@ -38,12 +38,12 @@ int EntryPoint::main()
     ApiTests tests;
     tests.run(m_params);
   }*/
-	/*
+	
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
-  
+  /*
   {
     SchedulerTests::Run();
   }
@@ -51,7 +51,7 @@ int EntryPoint::main()
   {
     BitfieldTests::Run();
   }*/
-  
+  //return 0;
 
   auto main = [=](std::string name)
   {
@@ -130,7 +130,7 @@ int EntryPoint::main()
 
 
       GpuFence fence = gpu.createFence();
-      gfx.close();
+      gfx.closeList();
       queue.submit(gfx);
       queue.insertFence(fence);
 
@@ -194,7 +194,7 @@ int EntryPoint::main()
 
         //lbs.addTask("Submit&Present", { "FillCommandlists" }, {}, [&](size_t, size_t)
         {
-          gfx.close();
+          gfx.closeList();
           queue.submit(gfx);
 
           // present

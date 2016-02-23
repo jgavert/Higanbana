@@ -25,7 +25,62 @@ struct ManagedResource_
 
 };
 
-// heavyweight smartpointer for resources
+// heavyweight smartpointer for resources, expects typedef hidden pointers... yeah dont ask.
+template <typename T>
+class FazPtrVk
+{
+  std::shared_ptr<ManagedResource_<T>> resource;
+
+public:
+  FazPtrVk() // usually owned
+  {
+    resource = std::make_shared<ManagedResource_<T>>();
+    resource.get()->p_resource = nullptr;
+  }
+
+  FazPtrVk(std::function<void(T)> destructor, bool owned = true) // usually owned
+  {
+    resource = std::make_shared<ManagedResource_<T>>();
+    resource->p_resource = nullptr;
+    resource->m_owned = owned;
+    resource->destructor = destructor;
+  }
+
+  FazPtrVk(T ptr, std::function<void(T)> destructor, bool owned = true) // usually owned
+  {
+    resource = std::make_shared<ManagedResource_<T>>();
+    resource->p_resource = ptr;
+    resource->m_owned = owned;
+    resource->destructor = destructor;
+  }
+  T* operator->() const throw()
+  {
+    return &resource->p_resource;
+  }
+
+  T* get()
+  {
+    return &resource->p_resource;
+  }
+
+  T* get() const
+  {
+    return &resource->p_resource;
+  }
+
+  T& getRef()
+  {
+    return resource->p_resource;
+  }
+
+  bool isValid()
+  {
+    return resource->p_resource != nullptr;
+  }
+};
+
+// bit special use, be careful with constructors
+// expects you to give "not pointer"
 template <typename T>
 class FazPtr
 {
@@ -34,8 +89,7 @@ class FazPtr
 public:
   FazPtr() // usually owned
   {
-    resource = std::make_shared<ManagedResource_<T>>();
-    resource.get()->p_resource = nullptr;
+    resource = nullptr;
   }
 
   FazPtr(std::function<void(T)> destructor, bool owned = true) // usually owned
@@ -75,6 +129,6 @@ public:
 
   bool isValid()
   {
-    return resource->p_resource != nullptr;
+    return resource.get() != nullptr;
   }
 };

@@ -5,8 +5,8 @@ void Binding_::checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
   if (state != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
   {
     D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	  barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrierDesc.Transition.StateBefore = state;
@@ -21,7 +21,7 @@ void Binding_::checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
   if (state != D3D12_RESOURCE_STATE_GENERIC_READ)
   {
     D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	  barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -36,8 +36,8 @@ void Binding_::checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 {
   if (state != D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
   {
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	  D3D12_RESOURCE_BARRIER barrierDesc = {};
+	  barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierDesc.Transition.pResource = resptr;
     barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -57,16 +57,6 @@ void Binding_::UAV(unsigned int index, BufferUAV& buf)
   ptr.ptr = buf.buffer().m_resource->GetGPUVirtualAddress();
 }
 
-/*
-void Binding_::UAV(unsigned int index, TextureUAV tex)
-{
-  checkResourceStateSRV(tex.texture().m_resource.get(), tex.texture().state);
-  auto& ptr = m_uavs.at(index).first;
-  //ptr = buf.buffer().view.getGpuHandle();
-  ptr.ptr = tex.texture().m_resource->GetGPUVirtualAddress();
-}
-*/
-
 void Binding_::SRV(unsigned int index, BufferSRV& buf)
 {
   checkResourceStateSRV(buf.buffer().m_resource.get(), buf.buffer().state);
@@ -75,22 +65,33 @@ void Binding_::SRV(unsigned int index, BufferSRV& buf)
   ptr.ptr = buf.buffer().m_resource->GetGPUVirtualAddress();
 }
 
-/*
-void Binding_::SRV(unsigned int index, TextureSRV tex)
-{
-  checkResourceStateSRV(tex.texture().m_resource.get(), tex.texture().state);
-  auto& ptr = m_srvs.at(index).first;
-  //ptr = buf.buffer().view.getGpuHandle();
-  ptr.ptr = tex.texture().m_resource->GetGPUVirtualAddress();
-}
-*/
-
 void Binding_::CBV(unsigned int index, BufferCBV& buf)
 {
   checkResourceStateCBV(buf.buffer().m_resource.get(), buf.buffer().state);
   auto& ptr = m_cbvs.at(index).first;
   //ptr = buf.buffer().view.getGpuHandle();
   ptr.ptr = buf.buffer().m_resource->GetGPUVirtualAddress();
+}
+
+void Binding_::UAV(unsigned int index, BufferNewUAV& buf)
+{
+  checkResourceStateUAV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  auto& ptr = m_uavs.at(index).first;
+  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
+}
+
+void Binding_::SRV(unsigned int index, BufferNewSRV& buf)
+{
+  checkResourceStateSRV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  auto& ptr = m_srvs.at(index).first;
+  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
+}
+
+void Binding_::CBV(unsigned int index, BufferNewCBV& buf)
+{
+  checkResourceStateCBV(buf.m_buffer.m_resource.get(), buf.m_buffer.m_state);
+  auto& ptr = m_cbvs.at(index).first;
+  ptr.ptr = buf.m_buffer.m_resource->GetGPUVirtualAddress();
 }
 
 void Binding_::rootConstant(unsigned int index, unsigned int value)

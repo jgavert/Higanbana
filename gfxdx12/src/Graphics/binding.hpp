@@ -105,6 +105,9 @@ public:
   void SRV(unsigned int index, BufferSRV& buf);
   //void SRV(unsigned int index, TextureSRV tex);
   void CBV(unsigned int index, BufferCBV& buf);
+  void UAV(unsigned int index, BufferNewUAV& buf);
+  void SRV(unsigned int index, BufferNewSRV& buf);
+  void CBV(unsigned int index, BufferNewCBV& buf);
 
   void rootConstant(unsigned int index, unsigned int value);
 };

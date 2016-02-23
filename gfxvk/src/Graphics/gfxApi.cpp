@@ -145,7 +145,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
 
   auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
   auto allocInfo = m_alloc_info;
-  m_debugcallback = FazPtr<vk::DebugReportCallbackEXT>([lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT ist)
+  m_debugcallback = FazPtrVk<vk::DebugReportCallbackEXT>([lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT ist)
   {
     dbgDestroyDebugReportCallback(*lol.get(), ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
   });
@@ -274,7 +274,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
     .pEnabledFeatures(&features);
    
 
-  FazPtr<vk::Device> device([=](vk::Device ist)
+  FazPtrVk<vk::Device> device([=](vk::Device ist)
   {
     vk::destroyDevice(ist, &m_alloc_info);
   });
