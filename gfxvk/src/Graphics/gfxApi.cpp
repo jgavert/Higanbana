@@ -1,5 +1,7 @@
 #include "GfxApi.hpp"
 
+#include <intrin.h>
+
 GraphicsInstance::GraphicsInstance()
   : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
 
@@ -22,11 +24,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   void*                                       /*pUserData*/)
 {
   std::string msgType = "[Vulkan] ";
+  bool breakOn = false;
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
     msgType + "ERROR: ";
+	breakOn = true;
   }
   else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
     msgType + "WARNING: ";
+	breakOn = true;
   }
   else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
     msgType + "PERFORMANCE WARNING: ";
@@ -38,6 +43,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     msgType + "DEBUG: ";
   }
   F_LOG("%s[%s] Code %d : %s\n", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+  if (breakOn)
+	__debugbreak();
   return false;
 }
 
