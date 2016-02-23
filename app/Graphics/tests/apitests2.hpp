@@ -762,6 +762,76 @@ private:
 		  return (obj3.k == static_cast<int>(completedataUav3.getCustomIndexInHeap()));
 	  });
 #endif
+	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
+	  {
+		  GraphicsInstance sys;
+		  sys.createInstance("test", 1, "faze_test", 1);
+		  GpuDevice dev = sys.CreateGpuDevice(id);
+		  GpuCommandQueue queue = dev.createQueue();
+		  GfxCommandList list = dev.createUniversalCommandList();
+		  GpuFence fence = dev.createFence();
+
+		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver3"));
+
+		  struct buf
+		  {
+			  int i;
+			  int k;
+			  int x;
+			  int y;
+		  };
+		  std::vector<BufferNew> uploadBuffers;
+		  std::vector<BufferNewSRV> bufferSRVs;
+		  for (int i = 0; i < 3; ++i)
+		  {
+			  auto buffer = dev.createBuffer(ResourceDescriptor()
+				  .Width(1)
+				  .Format<buf>());
+			  auto bufferSRV = dev.createBufferSRV(buffer);
+			  auto upload = dev.createBuffer(ResourceDescriptor()
+				  .Width(1)
+				  .Format<buf>()
+				  .Usage(ResourceUsage::UploadHeap));
+
+			  {
+				  auto map = upload.Map<buf>();
+				  map[0].i = bufferSRV.getCustomIndexInHeap();
+				  map[0].k = i;
+				  map[0].x = bufferSRV.getCustomIndexInHeap();
+				  map[0].y = bufferSRV.getCustomIndexInHeap();
+			  }
+			  uploadBuffers.push_back(upload);
+			  bufferSRVs.push_back(bufferSRV);
+		  }
+
+		  auto completedata = dev.createBuffer(ResourceDescriptor()
+			  .Width(1)
+			  .Format<buf>()
+			  .enableUnorderedAccess());
+		  auto completedataUav = dev.createBufferUAV(completedata);
+
+		  auto rbdata = dev.createBuffer(ResourceDescriptor()
+			  .Width(1)
+			  .Format<buf>()
+			  .Usage(ResourceUsage::ReadbackHeap));
+
+		  {
+			  auto bind = list.bind(pipeline);
+			  bind.UAV(0, completedataUav);
+			  bind.rootConstant(0, bufferSRVs[bufferSRVs.size()-1].getCustomIndexInHeap());
+			  list.Dispatch(bind, 1, 1, 1);
+		  }
+
+		  list.CopyResource(rbdata, completedata);
+		  list.closeList();
+		  queue.submit(list);
+		  queue.insertFence(fence);
+		  fence.wait();
+
+		  auto mapd = rbdata.Map<buf>();
+		  auto& obj = mapd[0];
+		  return (obj.i == static_cast<int>(bufferSRVs[bufferSRVs.size()-1].getCustomIndexInHeap()));
+	  });
 
     t.runTests();
   }
