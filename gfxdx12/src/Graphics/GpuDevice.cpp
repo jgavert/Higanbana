@@ -27,8 +27,11 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
 	hri = device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &virtual_address_support, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT));
 
   auto nullTexture = createTexture(ResourceDescriptor()
+	  .Width(100)
+	  .Height(100)
 	  .enableUnorderedAccess()
-	  .Dimension(FormatDimension::Texture1D)
+	  .Layout(TextureLayout::StandardSwizzle64kb)
+	  .Dimension(FormatDimension::Texture2D)
 	  .Format(FormatType::R8G8B8A8_UNORM));
 
   constexpr unsigned HeapSRVCount = 60;
@@ -41,47 +44,12 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
   Desc.NumDescriptors = HeapDescriptorCount; // 128 of any type
   Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  HRESULT hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.addr()));
+  HRESULT hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.releaseAndAddr()));
   if (FAILED(hr))
   {
     // 
   }
   ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), HeapDescriptorCount, HeapSRVCount, HeapUAVCount);
-  // srv's
-  
-
-  auto lol = heap->GetCPUDescriptorHandleForHeapStart();
-  UINT HandleIncrementSize = m_device->GetDescriptorHandleIncrementSize(Desc.Type);
-
-  // srv desc
-  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc;
-  ZeroMemory(&srvdesc, sizeof(srvdesc));
-  srvdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-  srvdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvdesc.Texture2D.MipLevels = 1;
-
-  for (int i = 0; i < HeapSRVCount; i++)
-  {
-	  auto lol2 = lol;
-	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateShaderResourceView(nullTexture.getTexture().m_resource->get(), &srvdesc, lol2);
-  }
-
-  // uav's
-  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
-  ZeroMemory(&uavdesc, sizeof(uavdesc));
-  uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-  uavdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  //uavdesc.Texture2D
-  for (int i = HeapSRVCount; i < HeapUAVCount; i++)
-  {
-	  auto lol2 = lol;
-	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
-	  m_device->CreateUnorderedAccessView(nullTexture.getTexture().m_resource->get(), nullptr, &uavdesc, lol2);
-  }
-  
-
 
   FazCPtr<ID3D12DescriptorHeap> heap2;
   D3D12_DESCRIPTOR_HEAP_DESC Desc2;
@@ -89,30 +57,27 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   Desc2.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   Desc2.NumDescriptors = 8;
   Desc2.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  hr = m_device->CreateDescriptorHeap(&Desc2, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap2.addr()));
+  hr = m_device->CreateDescriptorHeap(&Desc2, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap2.releaseAndAddr()));
   if (FAILED(hr))
   {
-    // 
-    abort();
+	  // 
+	  abort();
   }
   ResourceViewManager descRTVHeap = ResourceViewManager(heap2, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
 
   FazCPtr<ID3D12DescriptorHeap> heap3;
-  Desc.NodeMask = 0;
-  Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  Desc.NumDescriptors = 8;
-  Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap3.addr()));
+  D3D12_DESCRIPTOR_HEAP_DESC Desc3;
+  Desc3.NodeMask = 0;
+  Desc3.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+  Desc3.NumDescriptors = 8;
+  Desc3.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  hr = m_device->CreateDescriptorHeap(&Desc3, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap3.releaseAndAddr()));
   if (FAILED(hr))
   {
-    // 
-    abort();
+	  // 
+	  abort();
   }
   ResourceViewManager descDSVHeap = ResourceViewManager(heap3, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
-
-  // special heaps for bindless textures/buffers
-  // actually no special heaps, need to use one special
-  // generic needs to be splitted into ranges.
 
   m_descHeaps.m_heaps[DescriptorHeapManager::Generic] = descHeap;
   m_descHeaps.m_rawHeaps[DescriptorHeapManager::Generic] = descHeap.m_descHeap.get();
@@ -122,6 +87,38 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
 
   m_descHeaps.m_heaps[DescriptorHeapManager::DSV] = descDSVHeap;
   m_descHeaps.m_rawHeaps[DescriptorHeapManager::DSV] = descDSVHeap.m_descHeap.get();
+  // srv's
+  
+
+  auto lol = m_descHeaps.getSRV().m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  UINT HandleIncrementSize = m_device->GetDescriptorHandleIncrementSize(Desc.Type);
+
+  // srv desc
+  ShaderViewDescriptor Viewdesc;
+  D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = createSrvDesc(nullTexture.getTexture().m_desc, Viewdesc);
+
+  for (int i = 0; i < HeapSRVCount; i++)
+  {
+	  auto lol2 = lol;
+	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
+	  m_device->CreateShaderResourceView(nullTexture.getTexture().m_resource->get(), &srvdesc, lol2);
+  }
+
+  // uav's
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc  = createUavDesc(nullTexture.getTexture().m_desc, Viewdesc);
+
+  //uavdesc.Texture2D
+  for (int i = HeapSRVCount; i < HeapUAVCount; i++)
+  {
+	  auto lol2 = lol;
+	  lol2.ptr = lol.ptr + i * HandleIncrementSize;
+	  m_device->CreateUnorderedAccessView(nullTexture.getTexture().m_resource->get(), nullptr, &uavdesc, lol2);
+  }
+
+  // special heaps for bindless textures/buffers
+  // actually no special heaps, need to use one special
+  // generic needs to be splitted into ranges.
+
 
 }
 
