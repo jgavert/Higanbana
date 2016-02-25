@@ -13,10 +13,12 @@ StructuredBuffer<buffer> Inbuf[] : register( t1 );
 RWStructuredBuffer<buffer> Outd : register( u0 );
 
 [RootSignature(MyRS4)]
-[numthreads(1, 1, 1)]
+[numthreads(32, 1, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	int uv = DTid.x;
+	if (uv != 0)
+		return;
 	buffer buf;
 	const buffer input = Inbuf[rootconst.texIndex].Load(0);
 	buf.i = input.i;

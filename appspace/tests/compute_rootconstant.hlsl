@@ -12,10 +12,12 @@ ConstantBuffer<RootConstants> rootconst : register(b1, space0);
 RWStructuredBuffer<buffer2> Outd : register(u0);
 
 [RootSignature(MyRS4)]
-[numthreads(1, 1, 1)]
+[numthreads(32, 1, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	int uv = DTid.x;
+	if (uv != 0)
+		return; 
 	buffer2 buf;
 	buf.i = 0;
 	buf.k = 0;
