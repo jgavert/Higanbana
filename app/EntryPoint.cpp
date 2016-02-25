@@ -39,9 +39,10 @@ int EntryPoint::main()
     tests.run(m_params);
   }*/
 	
+  Logger log;
   {
-    //ApiTests2 tests2;
-    //tests2.run(m_params);
+    ApiTests2 tests2;
+    tests2.run(m_params);
   }
   /*
   {
@@ -53,10 +54,9 @@ int EntryPoint::main()
   }*/
   //return 0;
 
-  auto main = [=](std::string name)
+  auto main = [=, &log](std::string name)
   {
     //LBS lbs;
-    Logger log;
     F_LOG("Hei olen %s\n", yay::message());
     WTime t;
     ivec2 ires = { 800, 600 };
@@ -71,7 +71,8 @@ int EntryPoint::main()
       return;
     }
     {
-	  GpuDevice gpu = devices.CreateGpuDevice(true, true);
+	    GpuDevice gpu = devices.CreateGpuDevice(true, true);
+
       GpuCommandQueue queue = gpu.createQueue();
       SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
       ViewPort port(ires.x(), ires.y());
@@ -91,7 +92,7 @@ int EntryPoint::main()
       std::vector<Graph> graphs;
       float startpos = 0.9f;
       float heightpos = 0.3f;
-      for (int i = 0; i < 1; ++i)
+      for (int i = 0; i < 5; ++i)
       {
         Graph graph(gpu, -1.f, 1.f, texSize);
         graph.changeScreenPos({ -1.0f, startpos - (i*heightpos) }, { -0.5f, startpos - ((i + 1.f)*heightpos) });

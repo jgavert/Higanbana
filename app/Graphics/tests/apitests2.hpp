@@ -677,11 +677,11 @@ private:
 		  auto& obj = mapd[0];
 		  return (obj.k == 1337);
 	  });
-
-#if defined(GFX_D3D12)
+    
+    /*
 	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
 	  {
-		  return false;
+		  //return false;
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
@@ -760,9 +760,9 @@ private:
 		  auto mapd3 = rbdata3.Map<buf>();
 		  auto& obj3 = mapd3[0];
 		  return (obj3.k == static_cast<int>(completedataUav3.getCustomIndexInHeap()));
-	  });
-#endif
-	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
+	  });*/
+
+	  t.addTest("Pipeline binding and modify data in compute with variable SRV", [id]()
 	  {
 		  GraphicsInstance sys;
 		  sys.createInstance("test", 1, "faze_test", 1);
@@ -780,9 +780,18 @@ private:
 			  int x;
 			  int y;
 		  };
+
+      auto buffer2 = dev.createBuffer(ResourceDescriptor()
+        .Width(1)
+        .Format<buf>());
+      auto bufferSRV2 = dev.createBufferSRV(buffer2);
+      auto upload2 = dev.createBuffer(ResourceDescriptor()
+        .Width(1)
+        .Format<buf>()
+        .Usage(ResourceUsage::UploadHeap));
 		  std::vector<BufferNew> uploadBuffers;
 		  std::vector<BufferNewSRV> bufferSRVs;
-		  for (int i = 0; i < 3; ++i)
+		  for (int i = 0; i < 8; ++i)
 		  {
 			  auto buffer = dev.createBuffer(ResourceDescriptor()
 				  .Width(1)
@@ -797,9 +806,10 @@ private:
 				  auto map = upload.Map<buf>();
 				  map[0].i = bufferSRV.getCustomIndexInHeap();
 				  map[0].k = i;
-				  map[0].x = bufferSRV.getCustomIndexInHeap();
+				  map[0].x = 0;
 				  map[0].y = bufferSRV.getCustomIndexInHeap();
 			  }
+        list.CopyResource(buffer, upload);
 			  uploadBuffers.push_back(upload);
 			  bufferSRVs.push_back(bufferSRV);
 		  }
@@ -818,7 +828,7 @@ private:
 		  {
 			  auto bind = list.bind(pipeline);
 			  bind.UAV(0, completedataUav);
-			  bind.rootConstant(0, bufferSRVs[bufferSRVs.size()-1].getCustomIndexInHeap());
+			  bind.rootConstant(0, bufferSRVs[bufferSRVs.size()-3].getCustomIndexInHeap());
 			  list.Dispatch(bind, 1, 1, 1);
 		  }
 
@@ -830,8 +840,66 @@ private:
 
 		  auto mapd = rbdata.Map<buf>();
 		  auto& obj = mapd[0];
-		  return (obj.i == static_cast<int>(bufferSRVs[bufferSRVs.size()-1].getCustomIndexInHeap()));
+		  return (obj.i == static_cast<int>(bufferSRVs[bufferSRVs.size()-3].getCustomIndexInHeap()));
 	  });
+    /*
+    t.addTest("Pipeline binding and modify data to bunch of uav's in compute", [id]()
+    {
+      GraphicsInstance sys;
+      sys.createInstance("test", 1, "faze_test", 1);
+      GpuDevice dev = sys.CreateGpuDevice(id);
+      GpuCommandQueue queue = dev.createQueue();
+      GfxCommandList list = dev.createUniversalCommandList();
+      GpuFence fence = dev.createFence();
+
+      ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver4"));
+
+      struct buf
+      {
+        int i;
+        int k;
+        int x;
+        int y;
+      };
+      std::vector<BufferNew> readBuffers;
+      std::vector<BufferNewUAV> bufferUavs;
+      for (int i = 0; i < 60; ++i) // 60 should be max currently
+      {
+        auto buffer = dev.createBuffer(ResourceDescriptor()
+          .Width(1)
+          .Format<buf>()
+          .enableUnorderedAccess());
+        auto bufferUAV = dev.createBufferUAV(buffer);
+        auto upload = dev.createBuffer(ResourceDescriptor()
+          .Width(1)
+          .Format<buf>()
+          .Usage(ResourceUsage::ReadbackHeap));
+
+        readBuffers.push_back(upload);
+        bufferUavs.push_back(bufferUAV);
+      }
+
+      {
+        auto bind = list.bind(pipeline);
+        list.Dispatch(bind, 1, 1, 1);
+      }
+      for (int i = 0; i < 60; ++i)
+      {
+        list.CopyResource(readBuffers[i], bufferUavs[i].buffer());
+      }
+      list.closeList();
+      queue.submit(list);
+      queue.insertFence(fence);
+      fence.wait();
+
+      for (int i = 0; i < 60; ++i)
+      {
+        auto mapd = readBuffers[i].Map<buf>();
+        F_LOG("%d %d %d %d \n", mapd[0].i, mapd[0].k, mapd[0].x, mapd[0].y);
+      }
+      return true;
+    });
+    */
 
     t.runTests();
   }

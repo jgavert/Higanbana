@@ -32,8 +32,7 @@ private:
   bool                          m_debugLayer;
   DescriptorHeapManager         m_descHeaps;
   std::vector<ShaderInterface>  m_shaderInterfaceCache;
-  TextureNewSRV					m_nullSrv;
-  TextureNewUAV					m_nullUav;
+  TextureNew				m_null;
 
 public:
   GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer);
