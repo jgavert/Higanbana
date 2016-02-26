@@ -29,8 +29,8 @@ private:
 	  m_handleIncrementSize(HandleIncrementSize),
 	  m_size(size),
 	  m_srvStart(0),
-	  m_uavStart(srvCount),
 	  m_srvCount(srvCount),
+	  m_uavStart(srvCount),
 	  m_uavCount(uavCount),
     m_cbvStart(srvCount+uavCount)
   {
@@ -88,7 +88,7 @@ public:
 	  }
 	  return val;
   }
-  
+
   unsigned getSRVIndex()
   {
 	  auto val = getNextFromRange(m_srvStart, m_srvCount);

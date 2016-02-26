@@ -1,4 +1,5 @@
 #include "global_debug.hpp"
+
 #ifdef _MSC_VER
 inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
 {
@@ -34,7 +35,11 @@ void log_adv(const char *fn, int ln, const char* format, ...)
   int n = snprintf(buf, sizeof(buf), "%s:%d> ", fn, ln);
 
   va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
   _vsnprintf(&buf[n], sizeof(buf)-n, format, args);
+#else
+  vsnprintf(&buf[n], sizeof(buf)-n, format, args);
+#endif
   va_end(args);
 
   LogMessage log(buf);
@@ -46,7 +51,11 @@ void log_def(const char* format, ...)
   va_list args;
   char buf[1024];
   va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
   va_end(args);
   LogMessage log(buf);
   sendMessage(log);

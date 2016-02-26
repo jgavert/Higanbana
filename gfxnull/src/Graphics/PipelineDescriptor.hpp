@@ -1,5 +1,5 @@
 #pragma once
-#include "Descriptors\Formats.hpp"
+#include "Descriptors/Formats.hpp"
 #include <string>
 #include <array>
 
@@ -109,10 +109,19 @@ private:
     return 1;
   }
 public:
-  RenderTargetBlendDescriptor(): 
-    blendEnable(false), logicOpEnable(false), colorWriteEnable(ColorWriteEnable::All),
-    srcBlend(Blend::One), destBlend(Blend::Zero), blendOp(BlendOp::Add),
-    srcBlendAlpha(Blend::One), destBlendAlpha(Blend::Zero),  blendOpAlpha(BlendOp::Add), logicOp(LogicOp::Noop){}
+  RenderTargetBlendDescriptor()
+    :blendEnable(false)
+    ,logicOpEnable(false)
+    ,srcBlend(Blend::One)
+    ,destBlend(Blend::Zero)
+    ,blendOp(BlendOp::Add)
+    ,srcBlendAlpha(Blend::One)
+    ,destBlendAlpha(Blend::Zero)
+    ,blendOpAlpha(BlendOp::Add)
+    ,logicOp(LogicOp::Noop)
+    ,colorWriteEnable(ColorWriteEnable::All)
+  {}
+
   RenderTargetBlendDescriptor& BlendEnable(bool value)
   {
     blendEnable = value;
@@ -207,9 +216,18 @@ private:
   }
 
 public:
-  RasterizerDescriptor(): frontCounterClockwise(false), depthBias(0), depthBiasClamp(0.f), slopeScaledDepthBias(0.f),
-    depthClipEnable(true), multisampleEnable(false), antialiasedLineEnable(false), forcedSampleCount(0), conservativeRaster(ConvervativeRasterization::Off),
-    fill(FillMode::Solid), cull(CullMode::Back)
+  RasterizerDescriptor()
+    : fill(FillMode::Solid)
+    , cull(CullMode::Back)
+    , frontCounterClockwise(false)
+    , depthBias(0)
+    , depthBiasClamp(0.f)
+    , slopeScaledDepthBias(0.f)
+    , depthClipEnable(true)
+    , multisampleEnable(false)
+    , antialiasedLineEnable(false)
+    , forcedSampleCount(0)
+    , conservativeRaster(ConvervativeRasterization::Off)
   {}
   RasterizerDescriptor& FillMode(FillMode value)
   {
@@ -477,7 +495,11 @@ class GraphicsPipelineDescriptor
 
 public:
   GraphicsPipelineDescriptor()
-  : numRenderTargets(0), sampleCount(1), sampleQuality(0), dsvFormat(FormatType::Unknown), primitiveTopology(PrimitiveTopology::Triangle)
+  : primitiveTopology(PrimitiveTopology::Triangle)
+  , numRenderTargets(0)
+  , dsvFormat(FormatType::Unknown)
+  , sampleCount(1)
+  , sampleQuality(0)
   {
     for (int i = 0;i < 8;++i)
     {

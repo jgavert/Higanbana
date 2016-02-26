@@ -16,8 +16,8 @@
 #include <sstream>
 #include <cassert>
 
-#define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, __VA_ARGS__)
-#define F_LOG(msg, ...) log_def(msg, __VA_ARGS__)
+#define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
+#define F_LOG(msg, ...) log_def(msg, ##__VA_ARGS__)
 #ifdef _MSC_VER
 #define _snprintf c99_snprintf
 #define _vsnprintf c99_vsnprintf

@@ -14,20 +14,22 @@ public:
     , m_nCmdShow(nCmdShow)
   {}
 
-	HINSTANCE m_hInstance;
-	HINSTANCE m_hPrevInstance;
-	LPSTR     m_lpCmdLine;
-	int       m_nCmdShow;
+  HINSTANCE m_hInstance;
+  HINSTANCE m_hPrevInstance;
+  LPSTR     m_lpCmdLine;
+  int       m_nCmdShow;
 };
 
 #else
 
 struct ProgramParams
 {
-	ProgramParams(int argc, const char* argv[])
-		: m_argc(argc)
-		, m_argv(argv)
-	int         m_argc;
-	const char* m_argv[];
+  int         m_argc;
+  char**      m_argv;
+
+  ProgramParams(int argc, char** argv)
+    : m_argc(argc)
+    , m_argv(argv)
+  {}
 };
 #endif

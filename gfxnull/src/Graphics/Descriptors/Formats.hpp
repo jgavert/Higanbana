@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 
 // declare all formats and their d3d12 counterparts
 // all tables must be kepts insync

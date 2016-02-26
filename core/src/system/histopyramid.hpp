@@ -18,12 +18,12 @@ namespace faze
     size_t m_row;
 
     size_t          countMaxSize(size_t a);
-    inline uint32_t HistoPyramid::EncodeMorton2D(uint32_t x, uint32_t y)
+    inline uint32_t EncodeMorton2D(uint32_t x, uint32_t y)
     {
       return (Part1By1(y) << 1) + Part1By1(x);
     }
 
-    inline uint32_t HistoPyramid::Part1By1(uint32_t x)
+    inline uint32_t Part1By1(uint32_t x)
     {
       x &= 0x0000ffff;                  // x = ---- ---- ---- ---- fedc ba98 7654 3210
       x = (x ^ (x << 8)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
