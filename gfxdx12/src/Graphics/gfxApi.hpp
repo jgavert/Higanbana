@@ -104,12 +104,12 @@ public:
   {
 #ifdef DEBUG
     debug = true;
-	warpDriver = true;
+	  warpDriver = false;
 #endif
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
 
-  GpuDevice CreateGpuDevice(int num, bool debug = true, bool warpDevice = true)
+  GpuDevice CreateGpuDevice(int num, bool debug = true, bool warpDevice = false)
   {
     if (debug)
     {
@@ -126,12 +126,12 @@ public:
       if (FAILED(hr))
       {
         F_LOG("Device creation failed with D3D_FEATURE_LEVEL_12_0, falling back to warpdriver\n");
-		warpDevice = true;
+		    warpDevice = true;
       }
-	  else
-	  {
-		device.get()->SetName(L"Real");
-	  }
+      else
+      {
+      device.get()->SetName(L"Real");
+      }
     }
     if (warpDevice)
     {
@@ -143,10 +143,10 @@ public:
         F_LOG("Device creation failed\n", 2);
         abort();
       }
-	  else
-	  {
-		device->SetName(L"Warp");
-	  }
+      else
+      {
+        device->SetName(L"Warp");
+      }
     }
 
     if (debug && device.get())

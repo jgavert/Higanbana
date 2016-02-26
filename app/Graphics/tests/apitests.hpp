@@ -1261,7 +1261,7 @@ private:
         swapChainDesc.BufferCount = 2;
         swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDesc.OutputWindow = window.getNative();
+        swapChainDesc.OutputWindow = window.getInternalWindow().getNative();
         swapChainDesc.SampleDesc.Count = 1;
         swapChainDesc.Windowed = TRUE;
         swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
