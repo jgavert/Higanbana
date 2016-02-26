@@ -46,7 +46,7 @@ struct MappedBuffer
   {
     return mapped;
   }
- 
+
   bool isValid()
   {
     return mapped != nullptr;
@@ -55,7 +55,7 @@ struct MappedBuffer
 
 struct Buffer_new
 {
-  FazCPtr<ID3D12Resource> m_resource; 
+  FazCPtr<ID3D12Resource> m_resource;
   ResourceDescriptor m_desc;
   D3D12_RESOURCE_STATES m_state; // important and all shader views should share this
   bool m_immutableState;
@@ -117,7 +117,7 @@ class BufferShaderView
 private:
   friend class Binding_;
   friend class GpuDevice;
-  BufferNew m_buffer; // TODO: m_state needs to be synchronized 
+  BufferNew m_buffer; // TODO: m_state needs to be synchronized
   ShaderViewDescriptor viewDesc;
   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;

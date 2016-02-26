@@ -19,7 +19,11 @@ namespace faze
     //Logger logs;
     Bentsumaakaa b;
   public:
-    TestWorks(std::string name) :m_name(name), m_before([]() {}), m_after([]() {}) {}
+    TestWorks(std::string name)
+      : m_before([]() {})
+      , m_after([]() {})
+      , m_name(name)
+    {}
     void setBeforeTest(std::function<void()> func)
     {
       m_before = func;

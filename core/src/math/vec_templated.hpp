@@ -214,7 +214,11 @@ namespace faze
 
   struct Quaternion
   {
-    Quaternion() : data({ 1.f, 0.f, 0.f, 0.f }) { }
+    Quaternion()
+      : data( { 1.f, 0.f, 0.f, 0.f} )
+    {
+
+    }
 
     Vector<4, float> data;
 

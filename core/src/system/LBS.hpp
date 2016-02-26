@@ -51,19 +51,19 @@ namespace faze
   {
   public:
     Task() :
+      m_id(0),
       m_iterations(0),
       m_iterID(0),
       m_ppt(1),
-      m_id(0),
       m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
     {
       genWorkFunc<1>([](size_t, size_t) {});
     };
     Task(size_t id, size_t start, size_t iterations) :
+      m_id(id),
       m_iterations(iterations),
       m_iterID(start),
       m_ppt(1),
-      m_id(id),
       m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
     {
       genWorkFunc<1>([](size_t, size_t) {});
@@ -72,10 +72,10 @@ namespace faze
 
   private:
     Task(size_t id, size_t start, size_t iterations, std::shared_ptr < std::atomic<size_t> > sharedWorkCount) :
+      m_id(id),
       m_iterations(iterations),
       m_iterID(start),
       m_ppt(1),
-      m_id(id),
       m_sharedWorkCounter(sharedWorkCount)
     {
       genWorkFunc<1>([](size_t, size_t) {});
@@ -225,7 +225,11 @@ namespace faze
 
   public:
 
-    LBS() : StopCondition(false), idle_threads(0), m_nextTaskID(1), m_mainthreadsleeping(false)
+    LBS()
+      : StopCondition(false)
+      , m_nextTaskID(1)
+      , idle_threads(0)
+      , m_mainthreadsleeping(false)
     {
       int procs = std::thread::hardware_concurrency();
       // control the amount of threads made.
@@ -251,7 +255,11 @@ namespace faze
       F_LOG("LBS: Initializing with %d threads\n", procs);
 #endif
     }
-    LBS(int threadCount) : StopCondition(false), idle_threads(0), m_nextTaskID(1), m_mainthreadsleeping(false)
+    LBS(int threadCount)
+      : StopCondition(false)
+      , m_nextTaskID(1)
+      , idle_threads(0)
+      , m_mainthreadsleeping(false)
     {
       int procs = threadCount;
       // control the amount of threads made.
@@ -472,7 +480,7 @@ namespace faze
       data.m_regs.erase(newEnd, data.m_regs.end());
       return data.m_regs.size() == 0;
     }
-	
+
 	// Checks and does all postTask related work.
 	// Includes adding new tasks that are waiting for the reported task.
     void postTaskWork(size_t taskID)

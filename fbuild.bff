@@ -1,9 +1,13 @@
 #include "base.bff"
 
 // Core
+
 #include "core/core.bff"
 // Add graphics here
+#if __WINDOWS__
 #include "gfxdx12/dx12.bff"
+#endif
+
 #include "gfxvk/vulkan.bff"
 #include "gfxnull/gfxnull.bff"
 // App
@@ -24,14 +28,14 @@ ForEach( .gfxApi in .GraphicsBackends)
 						  // executables
 						  'App-Exe-$Platform$-$GraphicsApi$-$Config$'
 
-						  // Clang doesn't link at the moment, so we need list all the libs manually
+						  // Clang(windows) doesn't link at the moment, so we need list all the libs manually
 						  //'Core-$Platform$-$Config$'
 						  }
 		}
 	}
 }
 
-.Platforms = { 'x64' }
+.Platforms = { 'x64', 'x64Linux' }
 ForEach( .Platform in .Platforms )
 {
 	ForEach( .gfxApi in .GraphicsBackends)
@@ -48,16 +52,21 @@ ForEach( .Platform in .Platforms )
 	}
 }
 
-.Platforms = { 'x64' }
 ForEach( .Platform in .Platforms )
 {
   Alias( 'All-$Platform$' )
   {
     .Targets = {
-				'All-$Platform$-D3D12',
-				'All-$Platform$-Vulkan',
-				'All-$Platform$-Null'
-				}
+      'All-$Platform$-Vulkan',
+      'All-$Platform$-Null'
+    }
+#if __WINDOWS__
+    .Targets = {
+      'All-$Platform$-D3D12',
+      'All-$Platform$-Vulkan',
+      'All-$Platform$-Null'
+    }
+#endif
   }
 }
 
@@ -67,6 +76,12 @@ ForEach( .Platform in .Platforms )
     Alias( 'All' )
     {
         .Targets    = { 'All-x64' }
+    }
+#endif
+#if __LINUX__
+    Alias( 'All' )
+    {
+        .Targets    = { 'All-x64Linux' }
     }
 #endif
 
@@ -89,7 +104,7 @@ Alias( 'All+Tests' )
 
 Alias( 'proj' )
 {
-  .Targets    = { 
+  .Targets    = {
 				  'All-proj',
 				  'Core-proj',
 				  'App-proj',
@@ -116,10 +131,10 @@ Alias( 'proj' )
 
   // Advanced options
   //.SolutionDependencies               // (optional) Project dependency information (see below)
-  
+
   // Version Info
-//  .SolutionVisualStudioVersion			= "14.0.24720.00" 
-//  .SolutionMinimumVisualStudioVersion	= "14.0.22823.1"  
+//  .SolutionVisualStudioVersion			= "14.0.24720.00"
+//  .SolutionMinimumVisualStudioVersion	= "14.0.22823.1"
   //.SolutionVisualStudioVersion        // (optional) Version of Solution (default "14.0.22823.1" VS2015 RC)
   //.SolutionMinimumVisualStudioVersion // (optional) Min version of Solution (default "10.0.40219.1" VS2010 Express)
 //}

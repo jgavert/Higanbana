@@ -1,5 +1,6 @@
 #include "Window.hpp"
 
+#if defined(PLATFORM_WINDOWS)
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
@@ -43,7 +44,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   {
     printf("wtf window null\n");
   }
-	
+
   std::string lol = (windowname + "class");
   m_window = std::make_shared<WindowInternal>(hWnd, wc, params, lol);
 
@@ -82,4 +83,5 @@ bool Window::simpleReadMessages()
   }
   return false;
 }
+#endif
 

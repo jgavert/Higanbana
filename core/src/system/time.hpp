@@ -42,13 +42,13 @@ namespace faze
   private:
     float interpolateFpsFromNanoseconds(int64_t time);
     float deltatime;
-    float fps;
+    //float fps;
     int64_t frames;
-    float fpsHigh;
-    float fpsLow;
+    //float fpsHigh;
+    //float fpsLow;
     int64_t frametime_high;
     int64_t frametime_low;
-    int64_t frametime_median;
+    //int64_t frametime_median;
     int64_t frametime_current;
     timepoint start;
     timepoint timepoint_last;

@@ -10,8 +10,8 @@ Settings
         .Environment  = { "PATH=$VSBasePath$\Common7\IDE\;$VSBasePath$\VC\bin\",
                             "TMP=C:\Windows\Temp",
                             "SystemRoot=C:\Windows" }
-        .CachePath    = .FBuildCache
     #endif
+    .CachePath    = .FBuildCache
 }
 // definitions
 Compiler( 'Compiler-x64' )
@@ -41,13 +41,18 @@ Compiler( 'Compiler-x64' )
                   }
 }
 
+Compiler( 'Compiler-x64-Linux' )
+{
+  .Executable = '/usr/bin/clang++-3.6'
+}
+
 // Resource Compiler
 //------------------------------------------------------------------------------
 .ResourceCompiler =
 [
-	.Compiler					= '$WindowsSDKBasePath10$\Bin\x64\RC.exe'
-	.CompilerOutputExtension	= '.res'
-	.CompilerOptions			= '/nologo /fo"%2" %1'
+  .Compiler         = '$WindowsSDKBasePath10$\Bin\x64\RC.exe'
+  .CompilerOutputExtension  = '.res'
+  .CompilerOptions      = '/nologo /fo"%2" %1'
 ]
 //------------------------------------------------------------------------------
 // Configurations
@@ -64,11 +69,11 @@ Compiler( 'Compiler-x64' )
                      //   + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
                      //   + ' /we4905' // wide string literal cast to 'LPSTR'
                      //   + ' /we4906' // string literal cast to 'LPWSTR'
-					 	  + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
-						  + ' /wd4065' // switch statement contains 'default' but no 'case' labels
+              + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
+              + ' /wd4065' // switch statement contains 'default' but no 'case' labels
 
   .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
-					  + ' /WX' // warnings as errors, also required as fastbuild hides warnings
+            + ' /WX' // warnings as errors, also required as fastbuild hides warnings
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
@@ -77,17 +82,17 @@ Compiler( 'Compiler-x64' )
                       + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /D__WINDOWS__ /DPF_WINDOWS'
                       + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
                       + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
-					  //+ ' /showIncludes'
-					  + ' /Gd'
-					  + '$extDefines$'
+            //+ ' /showIncludes'
+            + ' /Gd'
+            + '$extDefines$'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
   .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
-					  + ' /IGNORE:4217' // don't complain about locally defined symbols
-					  + ' /IGNORE:4049' // urgh
+            + ' /IGNORE:4217' // don't complain about locally defined symbols
+            + ' /IGNORE:4049' // urgh
 
   // Optimizations
   .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
@@ -104,7 +109,7 @@ Compiler( 'Compiler-x64' )
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt"'
-					  + .externalIncludes
+                      + .externalIncludes
 
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
@@ -115,9 +120,44 @@ Compiler( 'Compiler-x64' )
 
   .UseExceptions      = ' /EHsc'
 ]
+
+.LinuxBaseConfig =
+[
+  .Compiler               = 'Compiler-x64-Linux'
+  .BaseCompilerOptions    = '"%1"'          // Input
+                          + ' -o "%2"'      // Output
+                          + ' -c'           // Compile only
+                          + ' -g'           // Debug information for gdb
+                          + ' -Wall'        // warnings
+                          + ' -Werror'      // warnings as errors
+                          + ' -Wfatal-errors'
+                          + ' -Wno-missing-braces' // strange warning
+                          + ' -Wno-unused-private-field'
+                          + ' -m64'         // x86-64
+                          + ' -std=c++14'   // allow C++14 features
+                          + ' -msse4.2'     // SSE4.1
+  .BaseIncludePaths       = ' -I "./"' // TODO: horrible
+                          + ' -isystem /usr/include'
+                          //+ .externalIncludes
+  .CompilerOptions        = .BaseCompilerOptions
+                          + .BaseIncludePaths
+  .Librarian              = '/usr/bin/ar'
+  .Linker                 = '/usr/bin/clang++-3.6'
+  .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin'
+  .LibrarianOptions       = 'rcs "%2" "%1"'
+
+    // Optimizations
+  .CompilerDebugOptimizations     = ' -O0'
+  .CompilerReleaseOptimizations   = ' -O3'
+  .LibrarianDebugOptimizations    = ''
+  .LibrarianReleaseOptimizations  = ''
+  .LinkerDebugOptimizations       = ''
+  .LinkerReleaseOptimizations     = ''
+]
+
 // X64
 //------------------------------------------------------------------------------
-.X64BaseConfig = 
+.X64BaseConfig =
 [
   Using( .MSVCBaseConfig )
   .ToolsBasePath      = '$VSBasePath$\VC\bin\amd64'
@@ -143,9 +183,9 @@ Compiler( 'Compiler-x64' )
   Using( .X64BaseConfig )
   .Config             = 'Debug'
   .CompilerOptions    + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
-                      + .CompilerDebugOptimizations             
+                      + .CompilerDebugOptimizations
   .PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
-                      + .CompilerDebugOptimizations             
+                      + .CompilerDebugOptimizations
   .LibrarianOptions   + .LibrarianDebugOptimizations
   .LinkerOptions      + .LinkerDebugOptimizations
 ]
@@ -162,8 +202,8 @@ Compiler( 'Compiler-x64' )
   .CompilerOptionsDeoptimized         = '$CompilerOptions$ /Od'
   .PCHOptionsDeoptimized              = '$PCHOptions$ /Od'
 
-  .CompilerOptions    + .CompilerReleaseOptimizations             
-  .PCHOptions         + .CompilerReleaseOptimizations             
+  .CompilerOptions    + .CompilerReleaseOptimizations
+  .PCHOptions         + .CompilerReleaseOptimizations
   .LibrarianOptions   + .LibrarianReleaseOptimizations
   .LinkerOptions      + .LinkerReleaseOptimizations
 ]
@@ -178,6 +218,38 @@ Compiler( 'Compiler-x64' )
   .DeoptimizeWritableFilesWithToken = false
 ]
 
+// linux
+
+
+.X64LinuxBaseConfig =
+[
+    Using( .LinuxBaseConfig )
+    .Platform               = 'x64Linux'
+]
+.X64LinuxDebugConfig =
+[
+    Using( .X64LinuxBaseConfig )
+    .Config                 = 'Debug'
+    .CompilerOptions        + ' -DDEBUG -DPROFILING_ENABLED'
+                            + .CompilerDebugOptimizations
+    .LibrarianOptions       + .LibrarianDebugOptimizations
+    .LinkerOptions          + .LinkerDebugOptimizations
+]
+.X64LinuxReleaseConfig =
+[
+    Using( .X64LinuxBaseConfig )
+    .Config                 = 'Release'
+    .CompilerOptions        + ' -DRELEASE'
+                            + .CompilerReleaseOptimizations
+    .LibrarianOptions       + .LibrarianReleaseOptimizations
+    .LinkerOptions          + .LinkerReleaseOptimizations
+]
+.X64LinuxProfileConfig =
+[
+    Using( .X64LinuxReleaseConfig ) // Note: based on Release config
+    .Config                 = 'Profile'
+    .CompilerOptions        + ' -DPROFILING_ENABLED'
+]
 
 .OutputBase = 'bin'
 
@@ -189,19 +261,19 @@ Compiler( 'Compiler-x64' )
 //------------------------------------------------------------------------------
 // VisualStudio Project Generation
 //------------------------------------------------------------------------------
-.ProjectCommon = 
+.ProjectCommon =
 [
   .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
-  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(onfiguration)\^$(ProjectName)'
   .Platform                 = 'x64'
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
                             + '$externalIncludesVisualStudio$'
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;PF_WINDOWS;'
-							+ '$extVisualStudioDefines$'
+              + '$extVisualStudioDefines$'
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
@@ -213,30 +285,48 @@ Compiler( 'Compiler-x64' )
 
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
+#if __WINDOWS__
 .D3D12Define  = 'GFX_D3D12'
+#endif
 .VulkanDefine = 'GFX_VULKAN'
 .NullDefine   = 'GFX_NULL'
+
 // global gfx backend config
+#if __WINDOWS__
 .GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
+#endif
 .GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
 .GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' /D$NullDefine$']
 
-.GraphicsBackends = { .GfxDX12, .GfxVulkan, .GfxNull }
+#if __WINDOWS__
+.GraphicsBackends = {.GfxDX12, .GfxVulkan, .GfxNull }
+#endif
+#if __LINUX__
+.GraphicsBackends = {.GfxVulkan, .GfxNull }
+#endif
 
-// Solution targets 
-.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug'		.PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile'	.PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release'	.PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'	.PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'	.PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'	.PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug'		.PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile'	.PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release'	.PreprocessorDefinitions + ';$NullDefine$']
+// Solution targets
+#if __WINDOWS__
+.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug'   .PreprocessorDefinitions + ';$D3D12Define$']
+.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile' .PreprocessorDefinitions + ';$D3D12Define$']
+.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release' .PreprocessorDefinitions + ';$D3D12Define$']
+#endif
+.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'  .PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'  .PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'  .PreprocessorDefinitions + ';$VulkanDefine$']
+.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug'    .PreprocessorDefinitions + ';$NullDefine$']
+.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile'  .PreprocessorDefinitions + ';$NullDefine$']
+.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release'  .PreprocessorDefinitions + ';$NullDefine$']
 
-.ProjectGfxConfigs = {  .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release
-					  , .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease
-					  , .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+.ProjectGfxConfigs = {
+  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
+  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+#if __WINDOWS__
+.ProjectGfxConfigs = {
+  .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release,
+  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
+  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+#endif
 
 VCXProject( 'All-proj' )
 {
@@ -246,6 +336,8 @@ VCXProject( 'All-proj' )
 }
 
 // helper definitions
-.Configs              = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
+.Configs              = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig ,
+                          .X64LinuxDebugConfig, .X64LinuxProfileConfig, .X64LinuxReleaseConfig }
 .Configs_Windows_MSVC = { .X64DebugConfig, .X64ProfileConfig, .X64ReleaseConfig }
+.Configs_Linux        = { .X64LinuxDebugConfig, .X64LinuxProfileConfig, .X64LinuxReleaseConfig }
 

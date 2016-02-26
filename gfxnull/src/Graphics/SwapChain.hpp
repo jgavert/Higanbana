@@ -8,15 +8,16 @@ class SwapChain
 private:
   friend class GpuDevice;
 
-  std::vector<TextureRTV> m_resources;
   void* m_SwapChain;
-  
-  SwapChain(void* SwapChain) :
-    m_SwapChain(std::move(SwapChain))
+  std::vector<TextureRTV> m_resources;
+
+  SwapChain(void* SwapChain)
+    : m_SwapChain(std::move(SwapChain))
   {}
 
-  SwapChain(void* SwapChain, std::vector<TextureRTV> resources) :
-    m_SwapChain(std::move(SwapChain)), m_resources(resources)
+  SwapChain(void* SwapChain, std::vector<TextureRTV> resources)
+    : m_SwapChain(std::move(SwapChain))
+    , m_resources(resources)
   {
     m_resources.push_back(TextureRTV());
   }

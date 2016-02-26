@@ -21,7 +21,29 @@ public:
   {
     DestroyWindow(hWnd);
   }
+  HWND& getNative() { return hWnd; }
 };
+#else
+class WindowInternal
+{
+private:
+  friend class Window;
+  int m_ptr;
+  ProgramParams m_params;
+  std::string m_className;
+
+public:
+  WindowInternal(ProgramParams params, std::string className)
+    : m_ptr(0)
+    , m_params(params)
+    , m_className(className)
+  {
+  }
+
+  int& getNative() { return m_ptr; }
+
+};
+#endif
 
 class Window
 {
@@ -34,9 +56,7 @@ public:
   bool open();
   void close();
   void cursorHidden(bool enabled);
-  HWND& getNative() { return m_window->hWnd; }
+  WindowInternal& getInternalWindow() { return *m_window; }
   bool simpleReadMessages();
 };
-
-#endif
 
