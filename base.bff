@@ -43,7 +43,7 @@ Compiler( 'Compiler-x64' )
 
 Compiler( 'Compiler-x64-Linux' )
 {
-  .Executable = '/usr/bin/clang++-3.6'
+  .Executable = '/usr/bin/clang++'
 }
 
 // Resource Compiler
