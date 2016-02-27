@@ -1,6 +1,13 @@
 // external base
 .extBasePath              = ' /LIBPATH:^"$FazEPath$/externals/'
+#if __LINUX__
+.extBasePath              = ' -L ^"$FazEPath$/externals/'
+#endif
 .extEndBasePath           = '"'
+.extLibPrefix             = ''
+#if __LINUX__
+.extLibPrefix             = ' -l '
+#endif
 .extIncludeDir            = '$FazEPath$/externals/'
 .extVisualStudioDefines   = ''
 .extDefines               = ''
@@ -18,9 +25,12 @@
 .oculuskernellibPath  = .extBasePath
                       + 'OculusSDK/LibOVRKernel/Lib'
                       + .extEndBasePath
-.oculuslibDebug       = ' LibOVRKerneld.lib'
-.oculuslibRelDeb      = ' LibOVRKernel.lib'
-.oculuslibRelease     = ' LibOVRKernel.lib'
+.oculuslibDebug       = .extLibPrefix
+                      + ' LibOVRKerneld.lib'
+.oculuslibRelDeb      = .extLibPrefix
+                      + ' LibOVRKernel.lib'
+.oculuslibRelease     = .extLibPrefix
+                      + ' LibOVRKernel.lib'
 
 // LibOVR
 .oculusInclude  = .extIncludeDir
@@ -30,39 +40,46 @@
                 + .extEndBasePath
 
 // these need to be seperately be added for necessary projects,
-.oculuslibDebug   + ' LibOVRd.lib'
-.oculuslibRelDeb  + ' LibOVR.lib'
-.oculuslibRelease + ' LibOVR.lib'
+.oculuslibDebug   + .extLibPrefix
+                  + ' LibOVRd.lib'
+.oculuslibRelDeb  + .extLibPrefix
+                  + ' LibOVR.lib'
+.oculuslibRelease + .extLibPrefix
+                  + ' LibOVR.lib'
 
 // VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
                   + 'Vulkan/include'
 .extVisualStudioDefines + 'VKCPP_ENHANCED_MODE;'
-#if __WINDOWS__
                         + 'VK_USE_PLATFORM_WIN32_KHR;'
-#endif
-.extDefines       + ' /DVKCPP_ENHANCED_MODE'
 #if __WINDOWS__
+.extDefines       + ' /DVKCPP_ENHANCED_MODE'
                   + ' /DVK_USE_PLATFORM_WIN32_KHR'
+#endif
+#if __LINUX__
+                  + ' -DVKCPP_ENHANCED_MODE'
 #endif
 
 // VULKAN
 .vulkanInclude  = '$VulkanSDKBasePath$/include'
 .vulkanLibPath  = ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
+#if __LINUX__
+.vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
+#endif
                 + .extEndBasePath
-.vulkanlibs     = ' vulkan-1.lib'
-                + ' layer_utils.lib'
-                + ' VkLayer_api_dump.lib'
-                + ' VkLayer_device_limits.lib'
-                + ' VkLayer_draw_state.lib'
-                + ' VkLayer_image.lib'
-                + ' VkLayer_mem_tracker.lib'
-                + ' VkLayer_object_tracker.lib'
-                + ' VkLayer_param_checker.lib'
-                + ' VkLayer_screenshot.lib'
-                + ' VkLayer_swapchain.lib'
-                + ' VkLayer_threading.lib'
-                + ' VkLayer_unique_objects.lib'
+.vulkanlibs     = .extLibPrefix + ' vulkan-1.lib'
+                + .extLibPrefix + ' layer_utils.lib'
+                + .extLibPrefix + ' VkLayer_api_dump.lib'
+                + .extLibPrefix + ' VkLayer_device_limits.lib'
+                + .extLibPrefix + ' VkLayer_draw_state.lib'
+                + .extLibPrefix + ' VkLayer_image.lib'
+                + .extLibPrefix + ' VkLayer_mem_tracker.lib'
+                + .extLibPrefix + ' VkLayer_object_tracker.lib'
+                + .extLibPrefix + ' VkLayer_param_checker.lib'
+                + .extLibPrefix + ' VkLayer_screenshot.lib'
+                + .extLibPrefix + ' VkLayer_swapchain.lib'
+                + .extLibPrefix + ' VkLayer_threading.lib'
+                + .extLibPrefix + ' VkLayer_unique_objects.lib'
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
@@ -76,6 +93,12 @@
                   + ' /I^"$oculusKernelInclude$"'
                   + ' /I^"$vulkanInclude$"'
                   + ' /I^"$vulkanCppInclude$"'
+#if __LINUX__
+.externalIncludes = ' -I ^"$oculusInclude$"'
+                  + ' -I ^"$oculusKernelInclude$"'
+                  + ' -I ^"$vulkanInclude$"'
+                  + ' -I ^"$vulkanCppInclude$"'
+#endif
 .externalIncludesVisualStudio = '$oculusInclude$;'
                               + '$oculusKernelInclude$;'
                               + '$vulkanInclude$;'
