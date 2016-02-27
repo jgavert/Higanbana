@@ -39,16 +39,16 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
 	return GraphicsPipeline();
 }
 
-Buffer_new GpuDevice::createBuffer(ResourceDescriptor resDesc)
+BufferInternal GpuDevice::createBuffer(ResourceDescriptor resDesc)
 {
-  Buffer_new buf = {};
+  BufferInternal buf = {};
   buf.m_desc = resDesc;
   return buf;
 }
 
-Texture_new GpuDevice::createTexture(ResourceDescriptor resDesc)
+TextureInternal GpuDevice::createTexture(ResourceDescriptor resDesc)
 {
-  Texture_new tex = {};
+  TextureInternal tex = {};
   tex.m_desc = resDesc;
   return tex;
 }

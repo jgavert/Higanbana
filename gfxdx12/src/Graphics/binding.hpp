@@ -100,9 +100,9 @@ public:
   void checkResourceStateUAV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateSRV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
   void checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STATES& state);
-  void UAV(unsigned int index, BufferNewUAV& buf);
-  void SRV(unsigned int index, BufferNewSRV& buf);
-  void CBV(unsigned int index, BufferNewCBV& buf);
+  void UAV(unsigned int index, BufferUAV& buf);
+  void SRV(unsigned int index, BufferSRV& buf);
+  void CBV(unsigned int index, BufferCBV& buf);
   void rootConstant(unsigned int index, unsigned int value);
 };
 

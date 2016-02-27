@@ -57,7 +57,7 @@ public:
     bool arr = m_SwapChain.get() != nullptr;
     for (auto&& it : m_resources)
     {
-      if (it.textureRTV() == nullptr)
+      if (!it.isValid())
         return false;
     }
     return arr;

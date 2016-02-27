@@ -316,12 +316,107 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	return GraphicsPipeline(pipeline, newIf, sourceBinding, m_descHeaps.getGeneric());
 }
 
-BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
+// If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
+// basically create pipeline and pretend that the rtv is SRGB. It will get handled properly.
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount, FormatType type)
+{
+  assert(bufferCount < 9);
+  DXGI_SWAP_CHAIN_DESC swapChainDesc;
+  ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+  swapChainDesc.BufferCount = bufferCount;
+  swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R8G8B8A8_UNORM];
+  swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  swapChainDesc.OutputWindow = window.getInternalWindow().getNative();
+  swapChainDesc.SampleDesc.Count = 1;
+  swapChainDesc.Windowed = TRUE;
+  swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+  FazCPtr<IDXGIFactory4> dxgiFactory = nullptr;
+  HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory4), (void**)dxgiFactory.addr());
+  assert(!FAILED(hr));
+
+  FazCPtr<IDXGISwapChain3> mSwapChain = nullptr;
+  hr = dxgiFactory->CreateSwapChain(queue.get().get(), &swapChainDesc, (IDXGISwapChain**)mSwapChain.addr());
+  assert(!FAILED(hr));
+
+  // need the rtv's out
+
+  D3D12_CPU_DESCRIPTOR_HANDLE mRenderTargetView[8];
+  auto& m_descRTVHeap = m_descHeaps.getRTV();
+  UINT HandleIncrementSize = static_cast<unsigned int>(m_descRTVHeap.m_handleIncrementSize);
+  mRenderTargetView[0] = m_descRTVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
+  auto index = m_descRTVHeap.getNextIndex();
+  mRenderTargetView[0].ptr = mRenderTargetView[0].ptr + index*HandleIncrementSize;
+  std::vector<size_t> indexes;
+  indexes.push_back(index);
+  for (unsigned int i = 1; i < bufferCount; ++i)
+  {
+    //create cpu descriptor handle for backbuffer 0
+    index = m_descRTVHeap.getNextIndex();
+    indexes.push_back(index);
+    mRenderTargetView[i].ptr = mRenderTargetView[0].ptr + index * HandleIncrementSize;
+  }
+  //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
+
+  TextureRTV tex;
+  tex.texture().m_desc = ResourceDescriptor()
+    .Width(swapChainDesc.BufferDesc.Width)
+    .Height(swapChainDesc.BufferDesc.Height)
+    .Usage(ResourceUsage::GpuOnly);
+
+  tex.texture().m_state = D3D12_RESOURCE_STATE_PRESENT;
+
+  tex.cpuHandle = mRenderTargetView[0];
+  tex.indexInHeap = FazPtr<size_t>(index, [](size_t) {});
+  tex.customIndex = index;
+
+  std::vector<TextureRTV> lol;
+  ID3D12Resource* mRenderTarget;
+  //A buffer is required to render to.This example shows how to create that buffer by using the swap chain and device.
+  //This example shows calling ID3D12Device::CreateRenderTargetView.
+  D3D12_RENDER_TARGET_VIEW_DESC desc;
+  desc.Format = FormatToDXGIFormat[type];
+  desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  desc.Texture2D.MipSlice = 0;
+  desc.Texture2D.PlaneSlice = 0;
+  for (unsigned int i = 0; i < bufferCount; ++i)
+  {
+    hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
+    auto debugName = L"mRenderTarget" + std::to_wstring(i);
+    mRenderTarget->SetName(debugName.c_str());  //set debug name 
+    m_device->CreateRenderTargetView(mRenderTarget, &desc, mRenderTargetView[i]);
+    tex.texture().m_resource = std::make_shared<RawResource>(mRenderTarget, false);
+    tex.cpuHandle = mRenderTargetView[i];
+    tex.indexInHeap = FazPtr<size_t>(indexes[i], [](size_t) {});
+    tex.customIndex = static_cast<int>(indexes[i]); // FIXME 
+    lol.push_back(tex);
+  }
+
+  return SwapChain(mSwapChain, lol);
+}
+
+bool GpuDevice::isValid() const
+{
+  return m_device.get() != nullptr;
+}
+
+DescriptorHeapManager& GpuDevice::getDescHeaps()
+{
+  return m_descHeaps;
+}
+
+ResourceViewManager& GpuDevice::getGenericDescriptorHeap()
+{
+  return m_descHeaps.getGeneric();
+}
+
+Buffer GpuDevice::createBuffer(ResourceDescriptor resDesc)
 {
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
   FazCPtr<ID3D12Resource> ptr;
-  Buffer_new buf = {};
+  BufferInternal buf = {};
   buf.m_desc = resDesc;
 
   desc.Width = resDesc.m_width * (std::max)(resDesc.m_stride, 1u);
@@ -401,18 +496,18 @@ BufferNew GpuDevice::createBuffer(ResourceDescriptor resDesc)
                   nullptr,
                   __uuidof(ID3D12Resource),
                   reinterpret_cast<void**>(ptr.releaseAndAddr()));
-  BufferNew buf_ret;
+  Buffer buf_ret;
   if (!FAILED(hr))
   {
     buf.m_resource = std::move(ptr);
-    buf_ret.buffer = std::make_shared<Buffer_new>(std::move(buf));
+    buf_ret.buffer = std::make_shared<BufferInternal>(std::move(buf));
   }
   return buf_ret;
 }
 
-TextureNew GpuDevice::createTexture(ResourceDescriptor resDesc)
+Texture GpuDevice::createTexture(ResourceDescriptor resDesc)
 {
-  Texture_new tex = {};
+  TextureInternal tex = {};
   D3D12_RESOURCE_DESC desc = {};
   D3D12_HEAP_PROPERTIES heapprop = {};
   ID3D12Resource* ptr;
@@ -473,12 +568,12 @@ TextureNew GpuDevice::createTexture(ResourceDescriptor resDesc)
     __uuidof(ID3D12Resource),
     reinterpret_cast<void**>(&ptr));
 
-  TextureNew tex_ret;
+  Texture tex_ret;
   if (!FAILED(hr))
   {
 	//F_LOG("Texture creation failed!");
     tex.m_resource = std::make_shared<RawResource>(ptr);
-    tex_ret.texture = std::make_shared<Texture_new>(tex);
+    tex_ret.texture = std::make_shared<TextureInternal>(tex);
   } 
   else
   {
@@ -754,7 +849,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GpuDevice::createDsvDesc(ResourceDescriptor& desc,
   return dsv;
 }
 
-TextureNewSRV GpuDevice::createTextureSRV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
+TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descSRVHeap = m_descHeaps.getSRV();
@@ -763,7 +858,7 @@ TextureNewSRV GpuDevice::createTextureSRV(TextureNew targetTexture, ShaderViewDe
   auto index = m_descSRVHeap.getSRVIndex();
 
   // save information
-  TextureNewSRV srv;
+  TextureSRV srv;
   srv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   srv.indexInHeap = FazPtr<size_t>(index, [&m_descSRVHeap](size_t index)
   {
@@ -780,7 +875,7 @@ TextureNewSRV GpuDevice::createTextureSRV(TextureNew targetTexture, ShaderViewDe
   return srv;
 }
 
-TextureNewUAV GpuDevice::createTextureUAV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
+TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descUAVHeap = m_descHeaps.getUAV();
@@ -789,7 +884,7 @@ TextureNewUAV GpuDevice::createTextureUAV(TextureNew targetTexture, ShaderViewDe
   auto index = m_descUAVHeap.getUAVIndex();
 
   // save information
-  TextureNewUAV uav;
+  TextureUAV uav;
   uav.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   uav.indexInHeap = FazPtr<size_t>(index, [&m_descUAVHeap](size_t index)
   {
@@ -807,7 +902,7 @@ TextureNewUAV GpuDevice::createTextureUAV(TextureNew targetTexture, ShaderViewDe
   return uav;
 }
 
-TextureNewRTV GpuDevice::createTextureRTV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
+TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descRTVHeap = m_descHeaps.getRTV();
@@ -816,7 +911,7 @@ TextureNewRTV GpuDevice::createTextureRTV(TextureNew targetTexture, ShaderViewDe
   auto index = m_descRTVHeap.getNextIndex(); 
 
   // save information
-  TextureNewRTV rtv;
+  TextureRTV rtv;
   rtv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   rtv.indexInHeap = FazPtr<size_t>(index, [&m_descRTVHeap](size_t index)
   {
@@ -833,7 +928,7 @@ TextureNewRTV GpuDevice::createTextureRTV(TextureNew targetTexture, ShaderViewDe
   return rtv;
 }
 
-TextureNewDSV GpuDevice::createTextureDSV(TextureNew targetTexture, ShaderViewDescriptor viewDesc)
+TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   // get index
   auto& m_descDSVHeap = m_descHeaps.getDSV();
@@ -842,7 +937,7 @@ TextureNewDSV GpuDevice::createTextureDSV(TextureNew targetTexture, ShaderViewDe
   auto index = m_descDSVHeap.getNextIndex();
 
   // save information
-  TextureNewDSV dsv;
+  TextureDSV dsv;
   dsv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   dsv.indexInHeap = FazPtr<size_t>(index, [&m_descDSVHeap](size_t index)
   {
@@ -859,17 +954,17 @@ TextureNewDSV GpuDevice::createTextureDSV(TextureNew targetTexture, ShaderViewDe
   return dsv;
 }
 
-BufferNewSRV GpuDevice::createBufferSRV(BufferNew buffer, ShaderViewDescriptor viewDesc)
+BufferSRV GpuDevice::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.getBuffer();
+  BufferInternal& targetBuffer = buffer.getBuffer();
   auto& m_descSRVHeap = m_descHeaps.getSRV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descSRVHeap.m_handleIncrementSize);
   auto lol = m_descSRVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
   auto index = m_descSRVHeap.getSRVIndex();
 
   // save information
-  BufferNewSRV srv;
+  BufferSRV srv;
   srv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   srv.indexInHeap = FazPtr<size_t>(index, [&m_descSRVHeap](size_t index)
   {
@@ -887,17 +982,17 @@ BufferNewSRV GpuDevice::createBufferSRV(BufferNew buffer, ShaderViewDescriptor v
   return srv;
 }
 
-BufferNewUAV GpuDevice::createBufferUAV(BufferNew buffer, ShaderViewDescriptor viewDesc)
+BufferUAV GpuDevice::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.getBuffer();
+  BufferInternal& targetBuffer = buffer.getBuffer();
   auto& m_descUAVHeap = m_descHeaps.getUAV();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descUAVHeap.m_handleIncrementSize);
   auto lol = m_descUAVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
   auto index = m_descUAVHeap.getUAVIndex();
 
   // save information
-  BufferNewUAV uav;
+  BufferUAV uav;
   uav.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   uav.indexInHeap = FazPtr<size_t>(index, [&m_descUAVHeap](size_t index)
   {
@@ -916,17 +1011,17 @@ BufferNewUAV GpuDevice::createBufferUAV(BufferNew buffer, ShaderViewDescriptor v
   return uav;
 }
 
-BufferNewCBV GpuDevice::createBufferCBV(BufferNew buffer, ShaderViewDescriptor)
+BufferCBV GpuDevice::createBufferCBV(Buffer buffer, ShaderViewDescriptor)
 {
   // get index
-  Buffer_new& targetBuffer = buffer.getBuffer();
+  BufferInternal& targetBuffer = buffer.getBuffer();
   auto& m_descCBVHeap = m_descHeaps.getGeneric();
   UINT HandleIncrementSize = static_cast<unsigned int>(m_descCBVHeap.m_handleIncrementSize);
   auto lol = m_descCBVHeap.m_descHeap->GetCPUDescriptorHandleForHeapStart();
   auto index = m_descCBVHeap.getCBVIndex();
 
   // save information
-  BufferNewCBV cbv;
+  BufferCBV cbv;
   cbv.cpuHandle.ptr = lol.ptr + index * HandleIncrementSize;
   cbv.indexInHeap = FazPtr<size_t>(index, [&m_descCBVHeap](size_t index)
   {
@@ -946,9 +1041,9 @@ BufferNewCBV GpuDevice::createBufferCBV(BufferNew buffer, ShaderViewDescriptor)
 }
 
 // !? TODO
-BufferNewIBV GpuDevice::createBufferIBV(BufferNew buffer, ShaderViewDescriptor )
+BufferIBV GpuDevice::createBufferIBV(Buffer buffer, ShaderViewDescriptor )
 {
-  BufferNewIBV ibv;
+  BufferIBV ibv;
   ibv.m_buffer = buffer;
 
   

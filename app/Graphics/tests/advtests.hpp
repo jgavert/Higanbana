@@ -373,12 +373,11 @@ private:
       queue.submit(gfx);
       queue.insertFence(fence);
 
-      auto depth = dev.createTextureDSV(
-        Dimension(800, 600)
-        , Format<int>(FormatType::D32_FLOAT)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
+      auto tex = dev.createTexture(ResourceDescriptor()
+        .Width(800).Height(600)
+        .Format(FormatType::D32_FLOAT)
+        .enableDepthStencil());
+      auto depth = dev.createTextureDSV(tex);
 
       auto pipeline = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
         .PixelShader("pixel")

@@ -17,7 +17,7 @@ public:
     return ptr.operator->();
   }
 
-  T* get()
+  T* get() const
   {
     return ptr.Get();
   }

@@ -26,11 +26,11 @@ namespace rendering
 
       ComputePipeline m_cmdPipeline;
       GraphicsPipeline m_drawPipeline;
-      BufferNew m_uploadConstants;
-      BufferNew m_graphConstants;
-      BufferNewCBV m_graphConstantsCbv;
-	  TextureNew m_graphTexture;
-      TextureNewUAV m_graphTextureUav;
+      Buffer m_uploadConstants;
+      Buffer m_graphConstants;
+      BufferCBV m_graphConstantsCbv;
+	    Texture m_graphTexture;
+      TextureUAV m_graphTextureUav;
 
       faze::vec2 m_topleft;
       faze::vec2 m_bottomright;

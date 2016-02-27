@@ -405,13 +405,12 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createTextureSRV(
-        Dimension(800,600)
-        , Format<int>(FormatType::R8G8B8A8_UNORM)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
-      return buf.isValid();
+
+      auto tex = dev.createTexture(ResourceDescriptor()
+        .Width(800).Height(600)
+        .Format(FormatType::R8G8B8A8_UNORM));
+      auto texSRV = dev.createTextureSRV(tex);
+      return texSRV.isValid();
     });
 
     t.addTest("Create TextureUAV", [id]()
@@ -419,13 +418,12 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createTextureUAV(
-        Dimension(800, 600)
-        , Format<int>(FormatType::R8G8B8A8_UNORM)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
-      return buf.isValid();
+
+      auto tex = dev.createTexture(ResourceDescriptor()
+        .Width(800).Height(600)
+        .Format(FormatType::R8G8B8A8_UNORM).enableUnorderedAccess());
+      auto texUAV = dev.createTextureUAV(tex);
+      return texUAV.isValid();
     });
 
     t.addTest("Create TextureRTV", [id]()
@@ -433,13 +431,12 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createTextureRTV(
-        Dimension(800, 600)
-        , Format<int>(FormatType::R8G8B8A8_UNORM)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
-      return buf.isValid();
+      auto tex = dev.createTexture(ResourceDescriptor()
+        .Width(800).Height(600)
+        .Format(FormatType::R8G8B8A8_UNORM)
+        .enableRendertarget());
+      auto texRTV = dev.createTextureRTV(tex);
+      return texRTV.isValid();
     });
 
     t.addTest("Create TextureDSV", [id]()
@@ -447,13 +444,12 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      auto buf = dev.createTextureDSV(
-        Dimension(800, 600)
-        , Format<int>(FormatType::D32_FLOAT)
-        , ResUsage::Gpu
-        , MipLevel()
-        , Multisampling());
-      return buf.isValid();
+      auto tex = dev.createTexture(ResourceDescriptor()
+        .Width(800).Height(600)
+        .Format(FormatType::D32_FLOAT)
+        .enableDepthStencil());
+      auto texDSV = dev.createTextureDSV(tex);
+      return texDSV.isValid();
     });
 
     t.addTest("Create Graphics Pipeline", [id]()
@@ -789,8 +785,8 @@ private:
         .Width(1)
         .Format<buf>()
         .Usage(ResourceUsage::UploadHeap));
-		  std::vector<BufferNew> uploadBuffers;
-		  std::vector<BufferNewSRV> bufferSRVs;
+		  std::vector<Buffer> uploadBuffers;
+		  std::vector<BufferSRV> bufferSRVs;
 		  for (int i = 0; i < 8; ++i)
 		  {
 			  auto buffer = dev.createBuffer(ResourceDescriptor()
@@ -861,8 +857,8 @@ private:
         int x;
         int y;
       };
-      std::vector<BufferNew> readBuffers;
-      std::vector<BufferNewUAV> bufferUavs;
+      std::vector<Buffer> readBuffers;
+      std::vector<BufferUAV> bufferUavs;
       for (int i = 0; i < 60; ++i) // 60 should be max currently
       {
         auto buffer = dev.createBuffer(ResourceDescriptor()

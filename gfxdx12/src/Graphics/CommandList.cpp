@@ -54,7 +54,7 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 	}
 }
 
-void CptCommandList::CopyResource(BufferNew& dstdata, BufferNew& srcdata)
+void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
@@ -91,7 +91,7 @@ void CptCommandList::CopyResource(BufferNew& dstdata, BufferNew& srcdata)
   m_CommandList->CopyResource(dstbuf.m_resource.get(), srcbuf.m_resource.get());
 }
 
-void CptCommandList::CopyResource(TextureNew& dstdata, TextureNew& srcdata)
+void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
 {
 	D3D12_RESOURCE_BARRIER bD[2];
 	size_t count = 0;
@@ -255,13 +255,13 @@ void GfxCommandList::setViewPort(ViewPort& view)
 
 void GfxCommandList::ClearRenderTargetView(TextureRTV& rtv, faze::vec4 color)
 {
-  m_CommandList->ClearRenderTargetView(rtv.texture().view.getCpuHandle(), color.data.data(), NULL, 0);
+  m_CommandList->ClearRenderTargetView(rtv.cpuHandle, color.data.data(), NULL, 0);
 }
 
 
 void GfxCommandList::ClearDepthView(TextureDSV& dsv)
 {
-  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
+  m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
 }
 
 void GfxCommandList::bindGraphicsBinding(GraphicsBinding& asd)
@@ -306,12 +306,12 @@ void GfxCommandList::bindGraphicsBinding(GraphicsBinding& asd)
 
 void GfxCommandList::ClearStencilView(TextureDSV& dsv)
 {
-  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_STENCIL, 0.f, 0xFF, 0, nullptr);
+  m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_STENCIL, 0.f, 0xFF, 0, nullptr);
 }
 
 void GfxCommandList::ClearDepthStencilView(TextureDSV& dsv)
 {
-  m_CommandList->ClearDepthStencilView(dsv.texture().view.getCpuHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0xFF, 0, nullptr);
+  m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0xFF, 0, nullptr);
 }
 
 void GfxCommandList::drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
@@ -328,15 +328,15 @@ void GfxCommandList::drawInstancedRaw(unsigned int vertexCountPerInstance, unsig
 
 void GfxCommandList::preparePresent(TextureRTV& rtv)
 {
-	if (rtv.texture().state != D3D12_RESOURCE_STATE_PRESENT)
+	if (rtv.texture().m_state != D3D12_RESOURCE_STATE_PRESENT)
 	{
 		D3D12_RESOURCE_BARRIER desc = {};
 		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc.Transition.pResource = rtv.textureRTV();
+		desc.Transition.pResource = rtv.texture().m_resource->get();
 		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		desc.Transition.StateBefore = rtv.texture().state;
-		rtv.texture().state = D3D12_RESOURCE_STATE_PRESENT;
+		desc.Transition.StateBefore = rtv.texture().m_state;
+		rtv.texture().m_state = D3D12_RESOURCE_STATE_PRESENT;
 		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		m_CommandList->ResourceBarrier(1, &desc);
 	}
@@ -344,51 +344,51 @@ void GfxCommandList::preparePresent(TextureRTV& rtv)
 
 void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 {
-	if (rtv.texture().state != D3D12_RESOURCE_STATE_RENDER_TARGET)
+	if (rtv.texture().m_state != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
 		D3D12_RESOURCE_BARRIER desc = {};
 		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc.Transition.pResource = rtv.textureRTV();
+		desc.Transition.pResource = rtv.texture().m_resource->get();
 		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		desc.Transition.StateBefore = rtv.texture().state;
-		rtv.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		desc.Transition.StateBefore = rtv.texture().m_state;
+		rtv.texture().m_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		m_CommandList->ResourceBarrier(1, &desc);
 	}
-	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, nullptr);
+	m_CommandList->OMSetRenderTargets(1, &rtv.cpuHandle, false, nullptr);
 }
 
 void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 {
 	D3D12_RESOURCE_BARRIER desc[2];
 	int count = 0;
-	if (rtv.texture().state != D3D12_RESOURCE_STATE_RENDER_TARGET)
+	if (rtv.texture().m_state != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
 		desc[count] = {};
 		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc[count].Transition.pResource = rtv.textureRTV(); // uh oh
+		desc[count].Transition.pResource = rtv.texture().m_resource->get(); // uh oh
 		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		desc[count].Transition.StateBefore = rtv.texture().state;
-		rtv.texture().state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		desc[count].Transition.StateBefore = rtv.texture().m_state;
+		rtv.texture().m_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		desc[count].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		++count;
 	}
-	if (dsv.texture().state != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+	if (dsv.texture().m_state != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 	{
 		desc[count] = {};
 		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc[count].Transition.pResource = dsv.texture().m_resource.get();
+		desc[count].Transition.pResource = dsv.texture().m_resource->get();
 		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		desc[count].Transition.StateBefore = dsv.texture().state;
-		dsv.texture().state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		desc[count].Transition.StateBefore = dsv.texture().m_state;
+		dsv.texture().m_state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		desc[count].Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
 	if (count != 0)
 		m_CommandList->ResourceBarrier(count, desc);
-	m_CommandList->OMSetRenderTargets(1, &rtv.texture().view.getCpuHandle(), false, &dsv.texture().view.getCpuHandle());
+	m_CommandList->OMSetRenderTargets(1, &rtv.cpuHandle, false, &dsv.cpuHandle);
 }
 
 void GfxCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
