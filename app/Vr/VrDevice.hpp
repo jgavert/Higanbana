@@ -1,4 +1,5 @@
 #pragma once
+#if defined(PLATFORM_WINDOWS)
 #include "core/src/global_debug.hpp"
 #include <OVR.h>
 
@@ -50,3 +51,4 @@ public:
     }
   }
 };
+#endif

@@ -4,14 +4,23 @@ namespace rendering
 {
   namespace utils
   {
+    /*
+    faze::vec2 m_topleft;
+    faze::vec2 m_bottomright;
+    int currentUvX;
+    int width;
+    int height;
+    float valueMin;
+    float valueMax;
+    */
     Graph::Graph(GpuDevice& device, float min, float max, faze::ivec2 graphSize)
-      : currentUvX(0)
+      : m_topleft({-0.5f, 0.5f})
+      , m_bottomright({ 0.5f, -0.5f })
+      , currentUvX(0)
       , width(graphSize.x())
       , height(graphSize.y())
       , valueMin(min)
       , valueMax(max)
-      , m_bottomright({ 0.5f, -0.5f })
-      , m_topleft({-0.5f, 0.5f})
     {
       m_cmdPipeline = device.createComputePipeline(ComputePipelineDescriptor().shader("utils/graph_compute"));
       // shouldnt need to know that its doing srgb, device should know.
