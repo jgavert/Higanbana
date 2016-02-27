@@ -16,11 +16,11 @@
 #include "Graphics/gfxApi.hpp"
 
 #if defined(GFX_D3D12)
-#include "graphics/tests/apitests.hpp"
-#include "graphics/tests/stresstests.hpp"
+#include "Graphics/tests/apitests.hpp"
+#include "Graphics/tests/stresstests.hpp"
 #endif
-#include "graphics/tests/apitests2.hpp"
-#include "graphics/tests/advtests.hpp"
+#include "Graphics/tests/apitests2.hpp"
+#include "Graphics/tests/advtests.hpp"
 // app
 #include "Rendering/Utils/graph.hpp"
 
