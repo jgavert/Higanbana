@@ -27,12 +27,12 @@ class GpuBracket
 private:
   std::shared_ptr<_ActualBracket<T>> m_bracket;
 public:
-  template <typename T>
+  //template <typename >
   GpuBracket(T* ptr, std::string& /*name*/)
   {
     m_bracket = std::make_shared<_ActualBracket<T>>(ptr);
   }
-  template <typename T>
+  //template <typename T>
   GpuBracket(T* ptr, const char* /*name*/)
   {
     m_bracket = std::make_shared<_ActualBracket<T>>(ptr);

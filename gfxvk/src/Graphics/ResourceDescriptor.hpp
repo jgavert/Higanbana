@@ -1,11 +1,11 @@
 #pragma once
-#include "Descriptors\Formats.hpp"
-#include "Descriptors\ResUsage.hpp"
+#include "Descriptors/Formats.hpp"
+#include "Descriptors/ResUsage.hpp"
 #include <string>
 #include <array>
 
 // Describes resource
-class ResourceDescriptor 
+class ResourceDescriptor
 {
 public:
 
@@ -39,7 +39,7 @@ public:
     m_miplevels = levels;
     return *this;
   }
-  
+
   template <typename T>
   ResourceDescriptor& Format()
   {

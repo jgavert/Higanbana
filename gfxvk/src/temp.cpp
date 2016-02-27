@@ -20,7 +20,7 @@ bool yay::test()
     .pEngineName("faze")
     .engineVersion(1)
     .apiVersion(VK_API_VERSION);
-  
+
   vk::InstanceCreateInfo inst_info = vk::InstanceCreateInfo()
     .sType(vk::StructureType::eInstanceCreateInfo)
     .pApplicationInfo(&app_info);
@@ -41,7 +41,7 @@ bool yay::test()
 
   vk::Result res = vk::createInstance(&inst_info, &alloc_info, instance.get());
 
-  if (res != vk::Result::eVkSuccess)
+  if (res != vk::Result::eSuccess)
   {
     // quite hot shit baby yeah!
     std::cout << vk::getString(res) << std::endl;

@@ -5,8 +5,10 @@
 #endif
 .extEndBasePath           = '"'
 .extLibPrefix             = ''
+.extLibPostfix            = '.lib'
 #if __LINUX__
 .extLibPrefix             = ' -l '
+.extLibPostfix            = '.a'
 #endif
 .extIncludeDir            = '$FazEPath$/externals/'
 .extVisualStudioDefines   = ''
@@ -26,11 +28,11 @@
                       + 'OculusSDK/LibOVRKernel/Lib'
                       + .extEndBasePath
 .oculuslibDebug       = .extLibPrefix
-                      + ' LibOVRKerneld.lib'
+                      + ' LibOVRKerneld' + .extLibPostfix
 .oculuslibRelDeb      = .extLibPrefix
-                      + ' LibOVRKernel.lib'
+                      + ' LibOVRKernel' + .extLibPostfix
 .oculuslibRelease     = .extLibPrefix
-                      + ' LibOVRKernel.lib'
+                      + ' LibOVRKernel' + .extLibPostfix
 
 // LibOVR
 .oculusInclude  = .extIncludeDir
@@ -41,11 +43,11 @@
 
 // these need to be seperately be added for necessary projects,
 .oculuslibDebug   + .extLibPrefix
-                  + ' LibOVRd.lib'
+                  + ' LibOVRd' + .extLibPostfix
 .oculuslibRelDeb  + .extLibPrefix
-                  + ' LibOVR.lib'
+                  + ' LibOVR' + .extLibPostfix
 .oculuslibRelease + .extLibPrefix
-                  + ' LibOVR.lib'
+                  + ' LibOVR' + .extLibPostfix
 
 // VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
@@ -57,7 +59,7 @@
                   + ' /DVK_USE_PLATFORM_WIN32_KHR'
 #endif
 #if __LINUX__
-                  + ' -DVKCPP_ENHANCED_MODE'
+.extDefines       + ' -DVKCPP_ENHANCED_MODE'
 #endif
 
 // VULKAN
@@ -67,36 +69,42 @@
 .vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
 #endif
                 + .extEndBasePath
-.vulkanlibs     = .extLibPrefix + ' vulkan-1.lib'
-                + .extLibPrefix + ' layer_utils.lib'
-                + .extLibPrefix + ' VkLayer_api_dump.lib'
-                + .extLibPrefix + ' VkLayer_device_limits.lib'
-                + .extLibPrefix + ' VkLayer_draw_state.lib'
-                + .extLibPrefix + ' VkLayer_image.lib'
-                + .extLibPrefix + ' VkLayer_mem_tracker.lib'
-                + .extLibPrefix + ' VkLayer_object_tracker.lib'
-                + .extLibPrefix + ' VkLayer_param_checker.lib'
-                + .extLibPrefix + ' VkLayer_screenshot.lib'
-                + .extLibPrefix + ' VkLayer_swapchain.lib'
-                + .extLibPrefix + ' VkLayer_threading.lib'
-                + .extLibPrefix + ' VkLayer_unique_objects.lib'
+.vulkanlibs     = .extLibPrefix + ' vulkan-1' + .extLibPostfix
+                + .extLibPrefix + ' layer_utils' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_api_dump' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_device_limits' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_draw_state' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_image' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_mem_tracker' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_object_tracker' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_param_checker' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_screenshot' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_swapchain' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_threading' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_unique_objects' + .extLibPostfix
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////
 
 // these 2 are automatically in right place
-.extLibPaths  + .oculuslibPath
+#if __WINDOWS__
+.extLibPaths  + .vulkanLibPath
+              + .oculuslibPath
               + .oculuskernellibPath
-              + .vulkanLibPath
+#endif
+#if __LINUX__
+.extLibPaths  + .vulkanLibPath
+#endif
 .externalIncludes = ' /I^"$oculusInclude$"'
                   + ' /I^"$oculusKernelInclude$"'
                   + ' /I^"$vulkanInclude$"'
                   + ' /I^"$vulkanCppInclude$"'
 #if __LINUX__
-.externalIncludes = ' -I ^"$oculusInclude$"'
-                  + ' -I ^"$oculusKernelInclude$"'
-                  + ' -I ^"$vulkanInclude$"'
+.externalIncludes = ''
+//                  + ' -I ^"$oculusInclude$"'
+//                  + ' -I ^"$oculusKernelInclude$"'
+//                  + ' -I ^"$vulkanInclude$"'
                   + ' -I ^"$vulkanCppInclude$"'
 #endif
 .externalIncludesVisualStudio = '$oculusInclude$;'
