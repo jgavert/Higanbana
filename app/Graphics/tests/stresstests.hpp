@@ -9,7 +9,7 @@
 #include "core/src/tests/TestWorks.hpp"
 #include "core/src/system/time.hpp"
 #include "core/src/tools/bentsumaakaa.hpp"
-#include "Graphics/gfxApi.hpp"
+#include "app/Graphics/gfxApi.hpp"
 
 #include <random>
 #include <cstdio>

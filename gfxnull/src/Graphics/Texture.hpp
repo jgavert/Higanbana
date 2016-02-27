@@ -73,10 +73,10 @@ class Texture
   std::shared_ptr<TextureInternal> texture;
 public:
 
-  template<typename T>
-  MappedTexture<T> Map()
+  template<typename type>
+  MappedTexture<type> Map()
   {
-    return buffer->Map<T>();
+    return buffer->Map<type>();
   }
 
   TextureInternal& getTexture()

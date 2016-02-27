@@ -6,7 +6,7 @@
 #include "core/src/entity/database.hpp"
 #include "core/src/tests/TestWorks.hpp"
 
-#include "Graphics/gfxApi.hpp"
+#include "app/Graphics/gfxApi.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -15,10 +15,11 @@
 #include <D3Dcompiler.h>
 #endif
 
-
+#if defined(PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4189 ) // don't really want warnings from "local variable is initialized but not referenced"
 #pragma warning( disable : 4702 )
+#endif
 
 class ApiTests2
 {
@@ -906,5 +907,6 @@ public:
     runTestsForDevice("todo", 0, params);
   }
 };
-
+#if defined(PLATFORM_WINDOWS)
 #pragma warning( pop ) 
+#endif
