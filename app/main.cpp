@@ -10,9 +10,9 @@
 
 #ifdef WIN64
 int WINAPI WinMain(HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpCmdLine,
-	int nCmdShow)
+  HINSTANCE hPrevInstance,
+  LPSTR lpCmdLine,
+  int nCmdShow)
 {
   // Get current flag
   int tmpFlag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
@@ -28,19 +28,19 @@ int WINAPI WinMain(HINSTANCE hInstance,
   int returnValue = 0;
   ProgramParams params(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 #else
-int main(int argc, const char* argv[])
+int main(int argc, char** argv)
 {
-	int returnValue = 0;
-	ProgramParams params(argc, argv);
+  int returnValue = 0;
+  ProgramParams params(argc, argv);
 #endif
-	{
-		EntryPoint ep(params);
+  {
+    EntryPoint ep(params);
 
-		returnValue = ep.main();
-	}
+    returnValue = ep.main();
+  }
 
 #ifdef WIN64
   _CrtDumpMemoryLeaks();
 #endif
-	return returnValue;
+  return returnValue;
 }

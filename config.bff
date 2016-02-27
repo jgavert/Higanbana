@@ -4,6 +4,13 @@
 .VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 .WindowsSDKSubVersion = '10.0.10586.0'
+#if __WINDOWS__
 .FazEPath = 'F:/toki/Faze'
 .FBuildCache = 'F:/temp/cache'
 .VulkanSDKBasePath = 'C:/VulkanSDK/1.0.3.1'
+#endif
+#if __LINUX__
+.FazEPath = '/home/juho/code/new/Faze'
+.FBuildCache = '/tmp/.fbuild.cache'
+.VulkanSDKBasePath = ''
+#endif

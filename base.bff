@@ -59,32 +59,33 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .MSVCBaseConfig =
 [
-  .AdditionalWarnings   = '' // ' /we4062' // enumerator 'identifier' in a switch of enum 'enumeration' is not handled
-                     //   + ' /we4263' // 'function' : member function does not override any base class virtual member function
-                     //   + ' /we4296' // 'operator': expression is always false
-                     //   + ' /we4555' // expression has no effect; expected expression with side-effect
-                     //   + ' /we4619' // #pragma warning : there is no warning number 'number'
-                     //   + ' /we4640' // 'instance' : construction of local static object is not thread-safe
-                     //   + ' /we4826' // Conversion from 'type1 ' to 'type_2' is sign-extended. This may cause unexpected runtime behavior.
-                     //   + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
-                     //   + ' /we4905' // wide string literal cast to 'LPSTR'
-                     //   + ' /we4906' // string literal cast to 'LPWSTR'
-              + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
-              + ' /wd4065' // switch statement contains 'default' but no 'case' labels
+  .AdditionalWarnings = '' // ' /we4062' // enumerator 'identifier' in a switch of enum 'enumeration' is not handled
+                  //   + ' /we4263' // 'function' : member function does not override any base class virtual member function
+                  //   + ' /we4296' // 'operator': expression is always false
+                  //   + ' /we4555' // expression has no effect; expected expression with side-effect
+                  //   + ' /we4619' // #pragma warning : there is no warning number 'number'
+                  //   + ' /we4640' // 'instance' : construction of local static object is not thread-safe
+                  //   + ' /we4826' // Conversion from 'type1 ' to 'type_2' is sign-extended. This may cause unexpected runtime behavior.
+                  //   + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
+                  //   + ' /we4905' // wide string literal cast to 'LPSTR'
+                  //   + ' /we4906' // string literal cast to 'LPWSTR'
+                       + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
+                       + ' /wd4065' // switch statement contains 'default' but no 'case' labels
 
   .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
-            + ' /WX' // warnings as errors, also required as fastbuild hides warnings
+                      + ' /WX' // warnings as errors, also required as fastbuild hides warnings
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
                       + .AdditionalWarnings
                       + ' /fp:fast'
-                      + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /D__WINDOWS__ /DPF_WINDOWS'
+                      + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /D__WINDOWS__'
                       + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
                       + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
-            //+ ' /showIncludes'
-            + ' /Gd'
-            + '$extDefines$'
+                      //+ ' /showIncludes'
+                      + ' /Gd'
+                      + '$extDefines$'
+                      + ' /DPLATFORM_LINUX'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
@@ -135,10 +136,12 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Wno-unused-private-field'
                           + ' -m64'         // x86-64
                           + ' -std=c++14'   // allow C++14 features
-                          + ' -msse4.2'     // SSE4.1
+                          + ' -msse4.2'     // SSE4.2
+                          + ' -DPLATFORM_LINUX -D__LINUX__'
+                          + '$extDefines$'
   .BaseIncludePaths       = ' -I "./"' // TODO: horrible
                           + ' -isystem /usr/include'
-                          //+ .externalIncludes
+                          + .externalIncludes
   .CompilerOptions        = .BaseCompilerOptions
                           + .BaseIncludePaths
   .Librarian              = '/usr/bin/ar'
@@ -294,9 +297,13 @@ Compiler( 'Compiler-x64-Linux' )
 // global gfx backend config
 #if __WINDOWS__
 .GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
-#endif
 .GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
 .GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' /D$NullDefine$']
+#endif
+#if __LINUX__
+.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' -D$VulkanDefine$']
+.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' -D$NullDefine$']
+#endif
 
 #if __WINDOWS__
 .GraphicsBackends = {.GfxDX12, .GfxVulkan, .GfxNull }
