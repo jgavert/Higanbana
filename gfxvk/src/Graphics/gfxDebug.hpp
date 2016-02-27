@@ -1,10 +1,18 @@
 #pragma once
 #include "CommandQueue.hpp"
 #include "CommandList.hpp"
+#include "core/src/global_debug.hpp"
+
 #include <utility>
 #include <string>
 #include <memory>
 
+
+class _ApiDebug
+{
+public:
+  static void dbgMsg(const char* msg, int num);
+};
 
 template <typename T>
 class _ActualBracket
@@ -63,3 +71,7 @@ public:
 
 #define GpuProfilingBracket(queueOrList, name) \
   auto _CONCAT(__gpuprofilingbracket, __COUNTER__) = _GpuBracket::createBracket(queueOrList, name);
+
+#define F_VK_ERROR(msg, eeenum) \
+ _ApiDebug::dbgMsg(msg, eeenum); 
+
