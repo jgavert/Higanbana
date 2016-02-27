@@ -134,6 +134,8 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Wfatal-errors'
                           + ' -Wno-missing-braces' // strange warning
                           + ' -Wno-unused-private-field'
+                          + ' -Wno-unused-variable'
+                          + ' -Wno-unused-function'
                           + ' -m64'         // x86-64
                           + ' -std=c++14'   // allow C++14 features
                           + ' -msse4.2'     // SSE4.2
@@ -145,7 +147,7 @@ Compiler( 'Compiler-x64-Linux' )
   .CompilerOptions        = .BaseCompilerOptions
                           + .BaseIncludePaths
   .Librarian              = '/usr/bin/ar'
-  .Linker                 = '/usr/bin/clang++-3.6'
+  .Linker                 = '/usr/bin/clang++'
   .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin'
   .LibrarianOptions       = 'rcs "%2" "%1"'
 

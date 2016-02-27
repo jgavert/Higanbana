@@ -111,7 +111,7 @@
     Using (.X64LinuxDebugConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxDebuglinkerlibs
-                    + .oculuslibDebug
+                    //+ .oculuslibDebug
 
   ]
 
@@ -120,7 +120,7 @@
     Using (.X64LinuxProfileConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxProfilelinkerlibs
-                    + .oculuslibRelDeb
+                    //+ .oculuslibRelDeb
   ]
 
   .X64LinuxReleaseConfiguration =
@@ -128,7 +128,7 @@
     Using (.X64LinuxReleaseConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxReleaselinkerlibs
-                    + .oculuslibRelease
+                    //+ .oculuslibRelease
   ]
 
 
