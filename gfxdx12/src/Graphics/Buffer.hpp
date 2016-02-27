@@ -53,7 +53,7 @@ struct MappedBuffer
   }
 };
 
-struct Buffer_new
+struct BufferInternal
 {
   FazCPtr<ID3D12Resource> m_resource;
   ResourceDescriptor m_desc;
@@ -89,10 +89,10 @@ struct Buffer_new
 };
 
 // public interace?
-class BufferNew
+class Buffer
 {
   friend class GpuDevice;
-  std::shared_ptr<Buffer_new> buffer;
+  std::shared_ptr<BufferInternal> buffer;
 public:
 
   template<typename T>
@@ -101,7 +101,7 @@ public:
     return buffer->Map<T>();
   }
 
-  Buffer_new& getBuffer()
+  BufferInternal& getBuffer()
   {
     return *buffer;
   }
@@ -117,14 +117,14 @@ class BufferShaderView
 private:
   friend class Binding_;
   friend class GpuDevice;
-  BufferNew m_buffer; // TODO: m_state needs to be synchronized
+  Buffer m_buffer; // TODO: m_state needs to be synchronized
   ShaderViewDescriptor viewDesc;
   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
 public:
-  BufferNew& buffer()
+  Buffer& buffer()
   {
     return m_buffer;
   }
@@ -134,7 +134,7 @@ public:
     return m_buffer.isValid();
   }
 
-  Buffer_new& getBuffer()
+  BufferInternal& getBuffer()
   {
     return m_buffer.getBuffer();
   }
@@ -152,25 +152,25 @@ public:
 
 // to separate different views typewise
 
-class BufferNewSRV : public BufferShaderView
+class BufferSRV : public BufferShaderView
 {
 public:
 
 };
 
-class BufferNewUAV : public BufferShaderView
+class BufferUAV : public BufferShaderView
 {
 public:
 
 };
 
-class BufferNewIBV : public BufferShaderView
+class BufferIBV : public BufferShaderView
 {
 public:
 
 };
 
-class BufferNewCBV : public BufferShaderView
+class BufferCBV : public BufferShaderView
 {
 public:
 

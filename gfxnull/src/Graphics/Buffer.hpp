@@ -1,7 +1,9 @@
 #pragma once
 #include "Descriptors/ResUsage.hpp"
 #include "ResourceDescriptor.hpp"
+#include "core/src/memory/ManagedResource.hpp"
 #include <vector>
+#include <memory>
 
 template<typename type>
 struct MappedBuffer
@@ -41,79 +43,8 @@ struct MappedBuffer
   }
 };
 
-struct BufferView
-{
-private:
-  size_t index;
-public:
-  size_t getCpuHandle()
-  {
-    return index;
-  }
-  size_t getGpuHandle()
-  {
-    return index;
-  }
-};
 
-struct Buffer
-{
-  void* m_resource;
-
-  template<typename T>
-  MappedBuffer<T> Map()
-  {
-    return MappedBuffer<T>(m_resource);
-  }
-
-  bool isValid()
-  {
-    return true;
-  }
-};
-
-class _Buffer
-{
-private:
-
-  Buffer m_buffer;
-public:
-  Buffer& buffer() { return m_buffer; }
-
-  bool isValid()
-  {
-    return m_buffer.isValid();
-  }
-};
-
-class BufferSRV : public _Buffer
-{
-public:
-
-};
-
-class BufferUAV : public _Buffer
-{
-public:
-
-};
-
-class BufferIBV : public _Buffer
-{
-public:
-
-};
-
-class BufferCBV : public _Buffer
-{
-public:
-
-};
-
-//////////////////////////////////////////////////////////////////
-// New stuff
-
-struct Buffer_new
+struct BufferInternal
 {
   void* m_resource;
   ResourceDescriptor m_desc;
@@ -122,7 +53,7 @@ struct Buffer_new
   template<typename T>
   MappedBuffer<T> Map()
   {
-    return MappedBuffer<T>(m_resource, nullptr);
+    return MappedBuffer<T>(nullptr);
   }
 
   bool isValid()
@@ -130,3 +61,89 @@ struct Buffer_new
     return true;
   }
 };
+
+// public interace?
+class Buffer
+{
+  friend class GpuDevice;
+  std::shared_ptr<BufferInternal> buffer;
+public:
+
+  template<typename T>
+  MappedBuffer<T> Map()
+  {
+    return buffer->Map<T>();
+  }
+
+  BufferInternal& getBuffer()
+  {
+    return *buffer;
+  }
+
+  bool isValid()
+  {
+    return buffer->isValid();
+  }
+};
+
+class BufferShaderView
+{
+private:
+  friend class Binding_;
+  friend class GpuDevice;
+  Buffer m_buffer; // TODO: m_state needs to be synchronized
+  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  size_t customIndex;
+public:
+  Buffer& buffer()
+  {
+    return m_buffer;
+  }
+
+  bool isValid()
+  {
+    return m_buffer.isValid();
+  }
+
+  BufferInternal& getBuffer()
+  {
+    return m_buffer.getBuffer();
+  }
+
+  size_t getIndexInHeap()
+  {
+    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
+  }
+
+  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
+  {
+    return static_cast<unsigned>(customIndex);
+  }
+};
+
+// to separate different views typewise
+
+class BufferSRV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferUAV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferIBV : public BufferShaderView
+{
+public:
+
+};
+
+class BufferCBV : public BufferShaderView
+{
+public:
+
+};
+

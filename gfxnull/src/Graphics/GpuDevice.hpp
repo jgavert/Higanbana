@@ -14,6 +14,7 @@
 #include "core/src/Platform/Window.hpp"
 #include "Descriptors/Descriptors.hpp"
 #include "DescriptorHeapManager.hpp"
+#include "ResourceDescriptor.hpp"
 
 #include <string>
 
@@ -34,76 +35,18 @@ public:
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-  Buffer_new createBuffer(ResourceDescriptor desc);
-  Texture_new createTexture(ResourceDescriptor desc);
+  Buffer createBuffer(ResourceDescriptor desc);
+  Texture createTexture(ResourceDescriptor desc);
+  // shader views
+  TextureSRV createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureUAV createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureRTV createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureDSV createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
-
-public:
-  template <typename ...Args>
-  BufferSRV createBufferSRV(Args&& ... )
-  {
-    return BufferSRV();
-  }
-
-  template <typename ...Args>
-  BufferUAV createBufferUAV(Args&& ... )
-  {
-    return BufferUAV();
-  }
-
-  template <typename ...Args>
-  BufferIBV createBufferIBV(Args&& ... )
-  {
-    return BufferIBV();
-  }
-
-  template <typename ...Args>
-  BufferCBV createConstantBuffer(Args&& ... )
-  {
-    return BufferCBV();
-  }
-
-
-  public:
-
-	  template <typename ...Args>
-	  TextureSRV createTextureSrvObj(Args&& ... )
-	  {
-      return TextureSRV();
-	  }
-
-
-
-
-  template <typename ...Args>
-  TextureSRV createTextureSRV(Args&& ... )
-  {
-    return TextureSRV();
-  }
-
-  template <typename ...Args>
-  TextureUAV createTextureUavObj(Args&& ... )
-  {
-    return TextureUAV();
-  }
-
-  template <typename ...Args>
-  TextureUAV createTextureUAV(Args&& ... )
-  {
-    return TextureUAV();
-  }
-
-  template <typename ...Args>
-  TextureRTV createTextureRTV(Args&& ... )
-  {
-    return TextureRTV();
-  }
-  template <typename ...Args>
-  TextureDSV createTextureDSV(Args&& ... )
-  {
-    return TextureDSV();
-  }
-
+  BufferSRV createBufferSRV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferUAV createBufferUAV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferCBV createBufferCBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   bool isValid()
   {
     return true;

@@ -13,7 +13,7 @@
 #include "core/src/tests/schedulertests.hpp"
 #include "core/src/tests/bitfield_tests.hpp"
 #include "core/src/math/mat_templated.hpp"
-#include "Graphics/gfxApi.hpp"
+#include "app/Graphics/gfxApi.hpp"
 
 #if defined(GFX_D3D12)
 #include "Graphics/tests/apitests.hpp"

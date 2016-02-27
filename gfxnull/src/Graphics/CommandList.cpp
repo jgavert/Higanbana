@@ -13,9 +13,6 @@ void CptCommandList::bindComputeBinding(ComputeBinding& )
 {
 }
 
-void CptCommandList::CopyResource(Buffer& , Buffer& )
-{
-}
 
 void CptCommandList::Dispatch(ComputeBinding& , unsigned int , unsigned int , unsigned int )
 {
@@ -45,7 +42,7 @@ void CptCommandList::setSRVBindless(DescriptorHeapManager& )
 void CptCommandList::setUAVBindless(DescriptorHeapManager& )
 {
 }
-void CptCommandList::close()
+void CptCommandList::closeList()
 {
 	closed = true;
 }
@@ -58,6 +55,9 @@ void CptCommandList::resetList()
 {
 }
 
+void CptCommandList::CopyResource(Buffer&, Buffer&)
+{
+}
 
 GraphicsBinding GfxCommandList::bind(GraphicsPipeline& )
 {

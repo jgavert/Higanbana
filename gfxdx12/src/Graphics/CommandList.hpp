@@ -44,8 +44,8 @@ public:
 	  m_uavBindlessIndex(-1),
 	  m_srvBindlessIndex(-1)
   {}
-  void CopyResource(BufferNew& dstdata, BufferNew& srcdata);
-  void CopyResource(TextureNew& dstdata, TextureNew& srcdata);
+  void CopyResource(Buffer& dstdata, Buffer& srcdata);
+  void CopyResource(Texture& dstdata, Texture& srcdata);
   void setResourceBarrier();
   void bindComputeBinding(ComputeBinding& bind);
   void Dispatch(ComputeBinding& bind, unsigned int x, unsigned int y, unsigned int z);

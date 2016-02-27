@@ -113,7 +113,7 @@ public:
 //////////////////////////////////////////////////////////////////
 // New stuff
 
-struct Buffer_new
+struct BufferInternal
 {
   void* m_resource;
   ResourceDescriptor m_desc;

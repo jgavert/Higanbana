@@ -48,7 +48,7 @@ void Binding_::checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 	}
 }
 
-void Binding_::UAV(unsigned int index, BufferNewUAV& buf)
+void Binding_::UAV(unsigned int index, BufferUAV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
     checkResourceStateUAV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
@@ -56,7 +56,7 @@ void Binding_::UAV(unsigned int index, BufferNewUAV& buf)
   ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding_::SRV(unsigned int index, BufferNewSRV& buf)
+void Binding_::SRV(unsigned int index, BufferSRV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
     checkResourceStateSRV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
@@ -64,7 +64,7 @@ void Binding_::SRV(unsigned int index, BufferNewSRV& buf)
   ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
 
-void Binding_::CBV(unsigned int index, BufferNewCBV& buf)
+void Binding_::CBV(unsigned int index, BufferCBV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
     checkResourceStateCBV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
