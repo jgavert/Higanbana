@@ -76,7 +76,7 @@ public:
   template<typename type>
   MappedTexture<type> Map()
   {
-    return buffer->Map<type>();
+    return texture->Map<type>();
   }
 
   TextureInternal& getTexture()
