@@ -89,7 +89,7 @@ public:
 class BufferSRV : public _Buffer
 {
 public:
- 
+
 };
 
 class BufferUAV : public _Buffer
@@ -115,14 +115,14 @@ public:
 
 struct Buffer_new
 {
-  void* m_resource; 
+  void* m_resource;
   ResourceDescriptor m_desc;
 
 
   template<typename T>
   MappedBuffer<T> Map()
   {
-    return MappedBuffer<T>(m_resource, ptr);
+    return MappedBuffer<T>(m_resource, nullptr);
   }
 
   bool isValid()

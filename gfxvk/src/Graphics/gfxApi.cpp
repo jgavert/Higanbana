@@ -1,6 +1,8 @@
-#include "GfxApi.hpp"
+#include "gfxApi.hpp"
 
+#if defined(PLATFORM_WINDOWS)
 #include <intrin.h>
+#endif
 
 GraphicsInstance::GraphicsInstance()
   : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
@@ -25,26 +27,33 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 {
   std::string msgType = "[Vulkan] ";
   bool breakOn = false;
-  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+  {
     msgType + "ERROR: ";
-	breakOn = true;
+    breakOn = true;
   }
-  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+  {
     msgType + "WARNING: ";
-	breakOn = true;
+    breakOn = true;
   }
-  else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
+  else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+  {
     msgType + "PERFORMANCE WARNING: ";
   }
-  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
+  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+  {
     msgType + "INFO: ";
   }
-  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
+  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+  {
     msgType + "DEBUG: ";
   }
   F_LOG("%s[%s] Code %d : %s\n", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+#if defined(PLATFORM_WINDOWS)
   if (breakOn)
-	__debugbreak();
+    __debugbreak();
+#endif
   return false;
 }
 
@@ -119,13 +128,19 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
 
   vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, m_instance.get());
 
-  if (res != vk::Result::eVkSuccess)
+  if (res != vk::Result::eSuccess)
   {
     // quite hot shit baby yeah!
-    F_LOG("Instance creation error: %s\n", vk::getString(res));
+    auto error = vk::getString(res);
+    F_LOG("Instance creation error: %s\n", error.c_str());
     return false;
   }
-  vk::enumeratePhysicalDevices(*m_instance.get(), m_devices);
+  m_devices.resize(4);
+  uint32_t count = 0;
+  vk::enumeratePhysicalDevices(*m_instance.get(), &count, m_devices.data());
+  m_devices.resize(count);
+  vk::enumeratePhysicalDevices(*m_instance.get(), &count, m_devices.data());
+//  m_devices = m_instance.enumeratePhysicalDevices();
 
   // get addresses for few functions
   PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
@@ -180,12 +195,19 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
 
   auto canPresent = [](vk::PhysicalDevice dev)
   {
-    auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(dev);
+    std::vector<vk::QueueFamilyProperties> queueProperties;
+    uint32_t count = 4;
+    queueProperties.resize(count);
+    vk::getPhysicalDeviceQueueFamilyProperties(dev, &count, queueProperties.data());
+    queueProperties.resize(count);
+    vk::getPhysicalDeviceQueueFamilyProperties(dev, &count, queueProperties.data());
     for (auto&& queueProp : queueProperties)
     {
       for (uint32_t i = 0; i < queueProp.queueCount(); ++i)
       {
+#if defined(PLATFORM_WINDOWS)
         if (vk::getPhysicalDeviceWin32PresentationSupportKHR(dev, i))
+#endif
         {
           return true;
         }
@@ -202,7 +224,11 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   auto&& physDev = m_devices[devId]; // assuming first device is best
   // layers
   std::vector<vk::LayerProperties> devLayers;
-  vk::enumerateDeviceLayerProperties(physDev, devLayers);
+  uint32_t count = 4;
+  devLayers.resize(count);
+  vk::enumerateDeviceLayerProperties(physDev, &count, devLayers.data());
+  devLayers.resize(count);
+  vk::enumerateDeviceLayerProperties(physDev, &count, devLayers.data());
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
@@ -279,7 +305,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
     .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
     .ppEnabledExtensionNames(extensions.data())
     .pEnabledFeatures(&features);
-   
+
 
   FazPtrVk<vk::Device> device([=](vk::Device ist)
   {
@@ -289,7 +315,8 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   vk::Result res = vk::createDevice(physDev, device_info, m_alloc_info, device.getRef());
   if (res != vk::Result::eVkSuccess)
   {
-    F_LOG("Device creation failed: %s\n", vk::getString(res));
+    auto error = vk::getString(res);
+    F_LOG("Device creation error: %s\n", error.c_str());
   }
   return GpuDevice(device, m_alloc_info, false);
 }

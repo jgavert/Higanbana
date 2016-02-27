@@ -143,7 +143,7 @@ namespace faze
       Task splittedWork(m_id, newStart, iters + m_iterations % 2, m_sharedWorkCounter);
       splittedWork.f_work = f_work;
       m_iterations = iters;
-      return std::move(splittedWork);
+      return splittedWork;
     }
   };
 

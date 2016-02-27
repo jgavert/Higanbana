@@ -1,7 +1,9 @@
 #include "GpuDevice.hpp"
 
 GpuDevice::GpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer)
-  : m_device(device), m_alloc_info(alloc_info), m_debugLayer(debugLayer)
+  : m_alloc_info(alloc_info)
+  , m_device(device)
+  , m_debugLayer(debugLayer)
 {
 }
 
