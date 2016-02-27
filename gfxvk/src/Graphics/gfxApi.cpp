@@ -249,7 +249,13 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   }
   // extensions
   std::vector<vk::ExtensionProperties> devExts;
-  vk::enumerateDeviceExtensionProperties(physDev,"", devExts);
+  auto res = physDev.enumerateDeviceExtensionProperties("", devExts);
+  if (res != vk::Result::eSuccess)
+  {
+    auto error = vk::getString(res);
+    F_LOG("Device creation error: %s\n", error.c_str());
+  }
+
   std::vector<const char*> extensions;
   {
     // lunargvalidation list order
@@ -272,7 +278,8 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   // queue
 
 
-  auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(physDev);
+  //auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(physDev);
+  auto queueProperties = physDev.getQueueFamilyProperties();
   std::vector<vk::DeviceQueueCreateInfo> queueInfos;
   uint32_t i = 0;
   std::vector<std::vector<float>> priorities;
@@ -293,10 +300,9 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
     ++i;
   }
 
-  vk::PhysicalDeviceFeatures features;
-  vk::getPhysicalDeviceFeatures(physDev, features);
+  auto features = physDev.getFeatures();
 
-  vk::DeviceCreateInfo device_info = vk::DeviceCreateInfo()
+  auto device_info = vk::DeviceCreateInfo()
     .sType(vk::StructureType::eDeviceCreateInfo)
     .queueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
     .pQueueCreateInfos(queueInfos.data())
@@ -307,17 +313,12 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
     .pEnabledFeatures(&features);
 
 
-  FazPtrVk<vk::Device> device([=](vk::Device ist)
+  auto dev = physDev.createDevice(device_info, m_alloc_info);
+  FazPtrVk<vk::Device> device(dev, [=](vk::Device ist)
   {
     vk::destroyDevice(ist, &m_alloc_info);
   });
 
-  vk::Result res = vk::createDevice(physDev, device_info, m_alloc_info, device.getRef());
-  if (res != vk::Result::eVkSuccess)
-  {
-    auto error = vk::getString(res);
-    F_LOG("Device creation error: %s\n", error.c_str());
-  }
   return GpuDevice(device, m_alloc_info, false);
 }
 
