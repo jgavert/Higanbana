@@ -73,7 +73,7 @@
     Library( '$ProjectName$-Lib-$Platform$-$Config$' )
     {
       // Input (Unity)
-      .CompilerInputUnity     = '$ProjectName$-Unity-Windows'
+      .CompilerInputUnity     = '$ProjectName$-Unity-Linux'
 
       // Output
       .CompilerOutputPath     = '$OutputBase$\$ProjectName$\'
