@@ -38,7 +38,7 @@ int EntryPoint::main()
     ApiTests tests;
     tests.run(m_params);
   }*/
-	
+
   Logger log;
   {
     ApiTests2 tests2;
@@ -48,7 +48,7 @@ int EntryPoint::main()
   {
     SchedulerTests::Run();
   }
- 
+
   {
     BitfieldTests::Run();
   }*/
@@ -100,7 +100,7 @@ int EntryPoint::main()
       }
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
-      // graphics 
+      // graphics
 
       auto pipeline2 = gpu.createGraphicsPipeline(GraphicsPipelineDescriptor()
         .PixelShader("pixel2")
@@ -160,7 +160,7 @@ int EntryPoint::main()
           {
             for (auto&& it : graphs)
             {
-              it.updateGraphCompute(gfx, std::sinf(time/* + cpu*/));
+              it.updateGraphCompute(gfx, sinf(time/* + cpu*/));
             }
           }
 

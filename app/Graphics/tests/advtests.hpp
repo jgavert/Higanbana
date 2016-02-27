@@ -19,7 +19,7 @@ private:
   static void runTestsForDevice(GpuDevice& dev, GpuCommandQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx)
   {
     faze::TestWorks t("advtests");
-    
+
 
     auto end = [&]()
     {
@@ -29,7 +29,7 @@ private:
       if (!gfx.isClosed())
       {
         //auto fence = dev.createFence();
-        
+
         gfx.closeList(); // as expected, explicit close is kind of nice.
         // Much nicer to close and enforce errors if trying to add after that.
         // Although seems like you can still "put" stuff there.
@@ -116,7 +116,7 @@ private:
       }
     });
 
-	
+
     t.addTest("Pipeline binding and modify data in compute (sub 50 lines!)", [&]()
     {
       GpuFence fence = dev.createFence();
@@ -202,7 +202,7 @@ private:
       }
       return true;
     });
-    
+
 
     t.addTest("render(?) for full 1 second in loop", [&]()
     {
@@ -218,7 +218,7 @@ private:
         window.simpleReadMessages();
         GpuFence fence = dev.createFence();
         gfx.setViewPort(port);
-        UINT backBufferIndex = sc.GetCurrentBackBufferIndex();
+        auto backBufferIndex = sc.GetCurrentBackBufferIndex();
         vec[0] += 0.02f;
         if (vec[0] > 1.0f)
           vec[0] = 0.f;
@@ -234,7 +234,7 @@ private:
       }
       return true;
     });
-    
+
     t.addTest("render a triangle for full 1 second in loop", [&]()
     {
       struct buf
@@ -411,7 +411,7 @@ private:
         {
           auto tmp = srcConstants.Map<ConstantsCustom>();
           tmp[0].WorldMatrix = MatrixMath::Translation(std::sin(timeSince2*0.001f), std::cos(timeSince2*0.001f), 1.f);
-          // look at target 'z' is negative !? 
+          // look at target 'z' is negative !?
           tmp[0].ViewMatrix = MatrixMath::lookAt(vec4({ 0.f, 0.0f, 0.0f, 1.f }), vec4({ std::sin(timeSince2*0.001f),std::cos(timeSince2*0.001f), -1.0f, 1.f }));
           tmp[0].ProjectionMatrix = MatrixMath::Perspective(60.f, 800.f / 600.f, 0.01f, 100.f);
           tmp[0].time = 0.f;

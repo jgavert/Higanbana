@@ -3,6 +3,8 @@
 #include "../tests/TestWorks.hpp"
 #include "vec_templated.hpp"
 
+#include <cmath>
+
 namespace faze
 {
 
@@ -117,7 +119,7 @@ namespace faze
     }
 
 
-    // TODO: oh fuck 
+    // TODO: oh fuck
     static Matrix Identity()
     {
       Matrix mat;
@@ -159,8 +161,12 @@ namespace faze
       {
         return mat4();
       }
-      
+
+#if defined(PLATFORM_WINDOWS)
       float b = 1.0f / std::tanf(fov*(PI / 180.f)*0.5f);
+#else
+      float b = 1.0f / tanf(fov*(PI / 180.f)*0.5f);
+#endif
 
       mat4 result;
       result[0][0] = aspect * b;

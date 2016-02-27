@@ -58,6 +58,10 @@ public:
     return GpuBracket<void>(list.m_CommandList, name);
   }
 };
-
+#if defined(PLATFORM_WINDOWS)
 #define GpuProfilingBracket(queueOrList, name) \
   auto _CONCAT(__gpuprofilingbracket, __COUNTER__) = _GpuBracket::createBracket(queueOrList, name);
+#else
+#define GpuProfilingBracket(queueOrList, name) \
+  auto __gpuprofilingbracket##__COUNTER__ = _GpuBracket::createBracket(queueOrList, name);
+#endif

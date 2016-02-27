@@ -27,7 +27,7 @@ private:
   void runTestsForDevice(std::string name, int id, ProgramParams params)
   {
     faze::TestWorks t(name);
-    
+
     t.addTest("Device creation", [&]()
     {
       GraphicsInstance sys;
@@ -117,7 +117,7 @@ private:
       auto dstdata = dev.createBuffer(ResourceDescriptor()
         .Width(4096)
         .Format<float>()
-        .Usage(ResourceUsage::GpuOnly)); 
+        .Usage(ResourceUsage::GpuOnly));
 
       {
         auto tmp = srcdata.Map<float>();
@@ -266,7 +266,7 @@ private:
         auto it = woot->pParameters[i];
         switch (it.ParameterType)
         {
-          
+
         case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
           //F_LOG("DescTable:\n", it.DescriptorTable);
           for (unsigned int k = 0; k < it.DescriptorTable.NumDescriptorRanges; ++k)
@@ -277,7 +277,7 @@ private:
             {
             case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
               //F_LOG("SRV ");
-              break; 
+              break;
             case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
               //F_LOG("UAV ");
               break;
@@ -479,14 +479,6 @@ private:
       Window window(params, "kek", 800, 600);
       window.open();
       SwapChain sc = dev.createSwapChain(queue, window);
-      MSG msg;
-      while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-      {
-        if (msg.message == WM_QUIT)
-          continue;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-      }
       return sc.valid();
     });
 
@@ -515,7 +507,7 @@ private:
         window.simpleReadMessages();
         GpuFence fence = dev.createFence();
         list.setViewPort(port);
-        UINT backBufferIndex = sc.GetCurrentBackBufferIndex();
+        unsigned backBufferIndex = sc.GetCurrentBackBufferIndex();
         vec[0] += 0.02f;
         if (vec[0] > 1.0f)
           vec[0] = 0.f;
@@ -532,7 +524,7 @@ private:
 
       return true;
     });
-    
+
     t.addTest("Create window and render a triangle for full 1 second in loop", [&]()
     {
       GraphicsInstance sys;
@@ -627,7 +619,7 @@ private:
 
       return true;
     });
-  
+
 	  t.addTest("Pipeline binding and modify data in compute with root constant", [id]()
 	  {
       GraphicsInstance sys;
@@ -674,7 +666,7 @@ private:
 		  auto& obj = mapd[0];
 		  return (obj.k == 1337);
 	  });
-    
+
     /*
 	  t.addTest("Pipeline binding and modify data in compute with variable UAV (doesnt work)", [id]()
 	  {
@@ -908,5 +900,5 @@ public:
   }
 };
 #if defined(PLATFORM_WINDOWS)
-#pragma warning( pop ) 
+#pragma warning( pop )
 #endif
