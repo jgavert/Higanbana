@@ -8,7 +8,7 @@
 #include "core/src/entity/database.hpp"
 #include "core/src/tests/TestWorks.hpp"
 
-#include "Graphics/gfxApi.hpp"
+#include "app/Graphics/gfxApi.hpp"
 
 #include <cstdio>
 #include <iostream>

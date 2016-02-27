@@ -20,7 +20,7 @@ namespace rendering
         int startUvX;
         int width;
         int height;
-		unsigned texIndex;
+		    unsigned texIndex;
         float empty;
       };
 
