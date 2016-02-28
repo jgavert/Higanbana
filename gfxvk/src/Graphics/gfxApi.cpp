@@ -68,7 +68,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
-    //F_LOG("Enabled Vulkan debug layers:\n");
+    F_LOG("Enabled Vulkan debug layers:\n");
     for (auto&& it : layerOrder)
     {
       auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
@@ -79,7 +79,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        //F_LOG("%s\n", found->layerName());
+        F_LOG("%s\n", found->layerName());
       }
     }
   }
@@ -91,7 +91,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
   std::vector<const char*> extensions;
   {
     // lunargvalidation list order
-    //F_LOG("Enabled Vulkan extensions:\n");
+    F_LOG("Enabled Vulkan extensions:\n");
 
     for (auto&& it : extOrder)
     {
@@ -103,7 +103,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        //F_LOG("found %s\n", found->extensionName());
+        F_LOG("found %s\n", found->extensionName());
       }
     }
   }
@@ -232,7 +232,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
-    //F_LOG("Enabled Vulkan debug layers for device:\n");
+    F_LOG("Enabled Vulkan debug layers for device:\n");
     for (auto&& it : layerOrder)
     {
       auto found = std::find_if(devLayers.begin(), devLayers.end(), [&](const vk::LayerProperties& layer)
@@ -243,7 +243,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        //F_LOG("%s\n", found->layerName());
+        F_LOG("%s\n", found->layerName());
       }
     }
   }
@@ -259,7 +259,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   std::vector<const char*> extensions;
   {
     // lunargvalidation list order
-    //F_LOG("Enabled Vulkan extensions for device:\n");
+    F_LOG("Enabled Vulkan extensions for device:\n");
 
     for (auto&& it : devExtOrder)
     {
@@ -271,7 +271,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        //F_LOG("found %s\n", found->extensionName());
+        F_LOG("found %s\n", found->extensionName());
       }
     }
   }
