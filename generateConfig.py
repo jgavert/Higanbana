@@ -1,16 +1,25 @@
-// This file should be the only file that contains absolute paths
-// everywhere else relative paths should be used to keep things sane.
+#!/bin/python3.5
+import os
 
+config = """
 .VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 .WindowsSDKSubVersion = '10.0.10586.0'
 #if __WINDOWS__
-.FazEPath = 'C:/code/faze'
+.FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/cache'
 .VulkanSDKBasePath = 'C:/VulkanSDK/1.0.3.1'
 #endif
 #if __LINUX__
-.FazEPath = '/home/juho/code/new/Faze'
+.FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = '/tmp/.fbuild.cache'
 .VulkanSDKBasePath = '/usr/lib'
-#endif
+#endif"""
+
+curDir = os.getcwd()
+print("current directory: " + curDir)
+
+config = config.replace("CURRENT_DIRECTORY", curDir)
+
+with open('config.bff', 'w') as out:
+        out.write(config)
