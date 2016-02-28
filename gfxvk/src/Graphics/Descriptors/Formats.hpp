@@ -1,11 +1,34 @@
 #pragma once
-
-#include <cstddef>
+#include <stddef.h>
 
 // declare all formats and their d3d12 counterparts
 // all tables must be kepts insync
 
-enum FormatDimension
+enum class TextureLayout
+{
+  Unknown,
+  RowMajor,
+  UndefinedSwizzle64kb,
+  StandardSwizzle64kb
+};
+
+// this is more descriptive than formatbase
+enum class FormatDimension
+{
+  Unknown,
+  Buffer,
+  Texture1D,
+  Texture1DArray,
+  Texture2D,
+  Texture2DArray,
+  Texture2DMS,
+  Texture2DMSArray,
+  Texture3D,
+  TextureCube,
+  TextureCubeArray
+};
+
+enum FormatDimensionBase
 {
   DimUnknown,
   DimBuffer,

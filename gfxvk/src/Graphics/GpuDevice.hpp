@@ -37,82 +37,23 @@ public:
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-  BufferInternal createBuffer(ResourceDescriptor desc);
-  TextureInternal createTexture(ResourceDescriptor desc);
+  Buffer createBuffer(ResourceDescriptor desc);
+  Texture createTexture(ResourceDescriptor desc);
 
+  TextureSRV createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureUAV createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureRTV createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  TextureDSV createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+
+  BufferSRV createBufferSRV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferUAV createBufferUAV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferCBV createBufferCBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   bool isValid()
   {
     return m_device.isValid();
   }
 
-public:
-  template <typename ...Args>
-  BufferSRV createBufferSRV(Args&& ... )
-  {
-    return BufferSRV();
-  }
-
-  template <typename ...Args>
-  BufferUAV createBufferUAV(Args&& ... )
-  {
-    return BufferUAV();
-  }
-
-  template <typename ...Args>
-  BufferIBV createBufferIBV(Args&& ... )
-  {
-    return BufferIBV();
-  }
-
-  template <typename ...Args>
-  BufferCBV createConstantBuffer(Args&& ... )
-  {
-    return BufferCBV();
-  }
-
-
-  public:
-
-	  template <typename ...Args>
-	  TextureSRV createTextureSrvObj(Args&& ... )
-	  {
-      return TextureSRV();
-	  }
-
-
-
-
-  template <typename ...Args>
-  TextureSRV createTextureSRV(Args&& ... )
-  {
-    return TextureSRV();
-  }
-
-  template <typename ...Args>
-  TextureUAV createTextureUavObj(Args&& ... )
-  {
-    return TextureUAV();
-  }
-
-  template <typename ...Args>
-  TextureUAV createTextureUAV(Args&& ... )
-  {
-    return TextureUAV();
-  }
-
-  template <typename ...Args>
-  TextureRTV createTextureRTV(Args&& ... )
-  {
-    return TextureRTV();
-  }
-  template <typename ...Args>
-  TextureDSV createTextureDSV(Args&& ... )
-  {
-    return TextureDSV();
-  }
-
-  // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
-  // basically create pipeline and pretend that the rtv is SRGB. It will get handled properly.
   SwapChain createSwapChain(GpuCommandQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
   {
      return SwapChain();
