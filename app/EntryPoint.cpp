@@ -40,11 +40,12 @@ int EntryPoint::main()
   }*/
 
   Logger log;
+  /*
   {
     ApiTests2 tests2;
     tests2.run(m_params);
   }
-  /*
+  
   {
     SchedulerTests::Run();
   }
