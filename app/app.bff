@@ -104,7 +104,7 @@
                       + .vulkanlibs
   .LinuxDebuglinkerlibs    = ' ' // brings thread support
   .LinuxReleaselinkerlibs  = ' '
-  .LinuxProfilelinkerlibs  = .Releaselinkerlibs
+  .LinuxProfilelinkerlibs  = .LinuxReleaselinkerlibs
 
   .X64LinuxDebugConfiguration =
   [
