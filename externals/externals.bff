@@ -114,7 +114,7 @@
 //                  + ' -I ^"$oculusInclude$"'
 //                  + ' -I ^"$oculusKernelInclude$"'
 //                  + ' -I ^"$vulkanInclude$"'
-                  + ' -I ^"$vulkanCppInclude$"'
+                  + ' -isystem ^"$vulkanCppInclude$"'
 #endif
 .externalIncludesVisualStudio = '$oculusInclude$;'
                               + '$oculusKernelInclude$;'
