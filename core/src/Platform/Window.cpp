@@ -14,12 +14,14 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
   return DefWindowProc(hWnd, message, wParam, lParam);
 }
+#endif
 
 // Initializes the window and shows it
-Window::Window(ProgramParams params, std::string windowname, int width, int height):
-    m_height(height)
-  , m_width(width)
+Window::Window(ProgramParams params, std::string windowname, int width, int height)
+  : m_width(width)
+  , m_height(height)
 {
+#if defined(PLATFORM_WINDOWS)
   WNDCLASSEX wc;
   HWND hWnd;
   ZeroMemory(&hWnd, sizeof(HWND));
@@ -51,27 +53,34 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
 
   // clean messages away
   simpleReadMessages();
-
+#endif
 }
 
 bool Window::open()
 {
+#if defined(PLATFORM_WINDOWS)
 	ShowWindow(m_window->hWnd, m_window->m_params.m_nCmdShow);
+#endif
 	return true;
 }
 
 void Window::close()
 {
+#if defined(PLATFORM_WINDOWS)
   CloseWindow(m_window->hWnd);
+#endif
 }
 
 void Window::cursorHidden(bool enabled)
 {
+#if defined(PLATFORM_WINDOWS)
   ShowCursor(enabled);
+#endif
 }
 
 bool Window::simpleReadMessages()
 {
+#if defined(PLATFORM_WINDOWS)
   MSG msg;
 
   while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -82,6 +91,8 @@ bool Window::simpleReadMessages()
     DispatchMessage(&msg);
   }
   return false;
-}
+#else
+  return true;
 #endif
+}
 
