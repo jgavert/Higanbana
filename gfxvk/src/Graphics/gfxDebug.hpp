@@ -69,9 +69,14 @@ public:
   }
 };
 
+#if defined(PLATFORM_WINDOWS)
 #define GpuProfilingBracket(queueOrList, name) \
   auto _CONCAT(__gpuprofilingbracket, __COUNTER__) = _GpuBracket::createBracket(queueOrList, name);
+#else
+#define GpuProfilingBracket(queueOrList, name) \
+  auto __gpuprofilingbracket##__COUNTER__ = _GpuBracket::createBracket(queueOrList, name);
+#endif
 
 #define F_VK_ERROR(msg, eeenum) \
- _ApiDebug::dbgMsg(msg, eeenum); 
+ _ApiDebug::dbgMsg(msg, eeenum);
 

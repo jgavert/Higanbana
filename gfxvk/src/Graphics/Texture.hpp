@@ -5,8 +5,6 @@
 #include "core/src/memory/ManagedResource.hpp"
 
 #include <memory>
-//////////////////////////////////////////////////////////////////
-// New stuff
 
 template<typename type>
 struct MappedTexture
@@ -66,4 +64,80 @@ struct TextureInternal
   {
 	  return true;
   }
+};
+
+// public interace?
+class Texture
+{
+  friend class GpuDevice;
+  std::shared_ptr<TextureInternal> texture;
+public:
+
+  template<typename type>
+  MappedTexture<type> Map()
+  {
+    return texture->Map<type>();
+  }
+
+  TextureInternal& getTexture()
+  {
+    return *texture;
+  }
+
+  bool isValid()
+  {
+    return texture->isValid();
+  }
+};
+
+class TextureShaderView
+{
+private:
+  friend class GpuDevice;
+  friend class GfxCommandList;
+  Texture m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  size_t customIndex;
+public:
+  TextureInternal& texture()
+  {
+    return m_texture.getTexture();
+  }
+
+  bool isValid()
+  {
+    return m_texture.getTexture().isValid();
+  }
+
+  size_t getIndexInHeap()
+  {
+    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
+  }
+
+  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
+  {
+    return static_cast<unsigned>(customIndex);
+  }
+};
+
+// to separate different views typewise, also enables information to know from which view we are trying to move into.
+
+class TextureSRV : public TextureShaderView
+{
+
+};
+
+class TextureUAV : public TextureShaderView
+{
+
+};
+
+class TextureRTV : public TextureShaderView
+{
+
+};
+
+class TextureDSV : public TextureShaderView
+{
+
 };

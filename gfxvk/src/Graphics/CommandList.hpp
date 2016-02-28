@@ -38,7 +38,7 @@ public:
   void setSRVBindless(DescriptorHeapManager& srvDescHeap);
   void setUAVBindless(DescriptorHeapManager& uavDescHeap);
   bool isValid();
-  void close();
+  void closeList();
   bool isClosed();
   void resetList();
 };
