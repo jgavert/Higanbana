@@ -8,7 +8,7 @@
 .extLibPostfix            = '.lib'
 #if __LINUX__
 .extLibPrefix             = ' -l '
-.extLibPostfix            = '.a'
+.extLibPostfix            = ''
 #endif
 .extIncludeDir            = '$FazEPath$/externals/'
 .extVisualStudioDefines   = ''
@@ -69,16 +69,25 @@
 .vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
 #endif
                 + .extEndBasePath
-.vulkanlibs     = .extLibPrefix + ' vulkan-1' + .extLibPostfix
+.vulkanlibs     = ''
+#if __WINDOWS__
+                + .extLibPrefix + ' vulkan-1' + .extLibPostfix
+#endif
+#if __LINUX__
+                + .extLibPrefix + ' vulkan' + .extLibPostfix
+#endif
                 + .extLibPrefix + ' layer_utils' + .extLibPostfix
+
+#if __WINDOWS__
                 + .extLibPrefix + ' VkLayer_api_dump' + .extLibPostfix
+                + .extLibPrefix + ' VkLayer_screenshot' + .extLibPostfix
+#endif
                 + .extLibPrefix + ' VkLayer_device_limits' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_draw_state' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_image' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_mem_tracker' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_object_tracker' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_param_checker' + .extLibPostfix
-                + .extLibPrefix + ' VkLayer_screenshot' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_swapchain' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_threading' + .extLibPostfix
                 + .extLibPrefix + ' VkLayer_unique_objects' + .extLibPostfix

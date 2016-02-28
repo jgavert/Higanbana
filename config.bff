@@ -12,5 +12,5 @@
 #if __LINUX__
 .FazEPath = '/home/juho/code/new/Faze'
 .FBuildCache = '/tmp/.fbuild.cache'
-.VulkanSDKBasePath = ''
+.VulkanSDKBasePath = '/usr/lib'
 #endif
