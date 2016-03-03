@@ -28,10 +28,10 @@ private:
 public:
   GpuDevice(void* device, bool debugLayer);
   ~GpuDevice();
-  SwapChain createSwapChain(GpuCommandQueue&, Window&);
-  SwapChain createSwapChain(GpuCommandQueue& queue, Window& wnd, int, FormatType);;
+  SwapChain createSwapChain(GraphicsQueue&, Window&);
+  SwapChain createSwapChain(GraphicsQueue& queue, Window& wnd, int, FormatType);;
   GpuFence createFence();
-  GpuCommandQueue createQueue();
+  GraphicsQueue createQueue();
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
@@ -54,7 +54,7 @@ public:
 
   // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
   // basically create pipeline and pretend that the rtv is SRGB. It will get handled properly.
-  SwapChain createSwapChain(GpuCommandQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
+  SwapChain createSwapChain(GraphicsQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
   {
      return SwapChain();
   }

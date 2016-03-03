@@ -16,7 +16,7 @@
 class AdvTests
 {
 private:
-  static void runTestsForDevice(GpuDevice& dev, GpuCommandQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx)
+  static void runTestsForDevice(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx)
   {
     faze::TestWorks t("advtests");
 
@@ -450,7 +450,7 @@ private:
   }
 
 public:
-  static void run(GpuDevice& dev, GpuCommandQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx)
+  static void run(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx)
   {
     runTestsForDevice(dev, queue, window, sc, port, gfx);
   }

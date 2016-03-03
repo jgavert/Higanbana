@@ -6,7 +6,7 @@ class GpuFence
 {
 private:
   friend class GpuDevice;
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GfxCommandList;
 
   FazCPtr<ID3D12Fence> m_fence;

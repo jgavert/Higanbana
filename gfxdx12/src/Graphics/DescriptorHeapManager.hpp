@@ -13,7 +13,7 @@ private:
     DSV = 2
   };
   friend class GpuDevice;
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GfxCommandList;
 
   std::array<ResourceViewManager, 3> m_heaps;

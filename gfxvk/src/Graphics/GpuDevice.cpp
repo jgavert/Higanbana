@@ -18,9 +18,10 @@ GpuFence GpuDevice::createFence()
   return GpuFence();
 }
 
-GpuCommandQueue GpuDevice::createQueue()
+GraphicsQueue GpuDevice::createQueue()
 {
-  return GpuCommandQueue(nullptr);
+  FazPtrVk<vk::Queue> ret = FazPtrVk<vk::Queue>([](vk::Queue ) {});
+  return GraphicsQueue(ret);
 }
 
 // Needs to be created from descriptor
@@ -59,12 +60,12 @@ Texture GpuDevice::createTexture(ResourceDescriptor resDesc)
   return tex;
 }
 
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue&, Window&)
 {
   return SwapChain();
 }
 
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&, int, FormatType)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue&, Window&, int, FormatType)
 {
   return SwapChain();
 }
@@ -124,7 +125,7 @@ bool GpuDevice::isValid()
   return m_device.isValid();
 }
 
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
 {
   return SwapChain();
 }

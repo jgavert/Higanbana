@@ -37,9 +37,9 @@ private:
 public:
   GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer);
   ~GpuDevice();
-  SwapChain createSwapChain(Window& wnd, GpuCommandQueue& queue);
+  SwapChain createSwapChain(Window& wnd, GraphicsQueue& queue);
   GpuFence createFence();
-  GpuCommandQueue createQueue();
+  GraphicsQueue createQueue();
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
@@ -64,7 +64,7 @@ public:
   BufferCBV createBufferCBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   bool isValid() const;
-  SwapChain createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount = 2, FormatType type = FormatType::R8G8B8A8_UNORM);
+  SwapChain createSwapChain(GraphicsQueue queue, Window& window, unsigned int bufferCount = 2, FormatType type = FormatType::R8G8B8A8_UNORM);
   DescriptorHeapManager& getDescHeaps();
   ResourceViewManager& getGenericDescriptorHeap();
 

@@ -55,7 +55,7 @@ class ShaderInterface
 {
 private:
   friend class GpuDevice;
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GfxCommandList;
   friend class CptCommandList;
   friend class shaderUtils;

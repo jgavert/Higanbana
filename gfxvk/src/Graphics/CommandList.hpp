@@ -14,7 +14,7 @@
 class CptCommandList
 {
 private:
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GpuDevice;
   friend class GfxCommandList;
   friend class _GpuBracket;
@@ -48,7 +48,7 @@ class GfxCommandList : public CptCommandList
 private:
   friend class test;
   friend class ApiTests;
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GpuDevice;
   friend class _GpuBracket;
   GfxCommandList(void* cmdList) :CptCommandList(cmdList){}

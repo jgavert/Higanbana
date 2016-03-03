@@ -18,7 +18,7 @@
 class StressTests
 {
 private:
-  static void runTestsForDevice(GpuDevice& dev, GpuCommandQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
+  static void runTestsForDevice(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
   {
     faze::TestWorks t("advtests");
     t.setAfterTest([&]()
@@ -967,7 +967,7 @@ private:
   }
 
 public:
-  static void run(GpuDevice& dev, GpuCommandQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
+  static void run(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
   {
     runTestsForDevice(dev, queue, window, sc, port, gfx, log);
   }

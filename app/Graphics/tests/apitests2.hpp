@@ -41,7 +41,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       return queue.isValid();
     });
 
@@ -107,7 +107,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
 
       auto srcdata = dev.createBuffer(ResourceDescriptor()
@@ -142,7 +142,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
@@ -330,7 +330,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
@@ -474,7 +474,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
 
       Window window(params, "kek", 800, 600);
       window.open();
@@ -487,7 +487,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
 
       Window window(params, "ebin", 800, 600);
@@ -530,7 +530,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList gfx = dev.createUniversalCommandList();
 
       Window window(params, "ebin", 800, 600);
@@ -625,7 +625,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
-		  GpuCommandQueue queue = dev.createQueue();
+		  GraphicsQueue queue = dev.createQueue();
 		  GfxCommandList list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
@@ -674,7 +674,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
-		  GpuCommandQueue queue = dev.createQueue();
+		  GraphicsQueue queue = dev.createQueue();
 		  GfxCommandList list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
@@ -756,7 +756,7 @@ private:
 		  GraphicsInstance sys;
 		  sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
-		  GpuCommandQueue queue = dev.createQueue();
+		  GraphicsQueue queue = dev.createQueue();
 		  GfxCommandList list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
@@ -837,7 +837,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 

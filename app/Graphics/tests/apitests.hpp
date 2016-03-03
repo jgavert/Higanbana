@@ -33,7 +33,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       return queue.m_CommandQueue.get() != nullptr;
     });
 
@@ -132,7 +132,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       ID3D12Resource *data;
 
@@ -281,7 +281,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       ID3D12Resource *data;
       D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -333,7 +333,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       ID3D12Resource *data;
       ID3D12Resource *DestData;
@@ -645,7 +645,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       // lots of shit
       ID3D12Resource *UploadData;
@@ -944,7 +944,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GpuCommandQueue queue = dev.createQueue();
+      GraphicsQueue queue = dev.createQueue();
       GfxCommandList list = dev.createUniversalCommandList();
       // lots of shit
       ID3D12Resource *UploadData;
@@ -1251,7 +1251,7 @@ private:
         GraphicsInstance sys;
         sys.createInstance("test", 1, "faze_test", 1);
         GpuDevice dev = sys.CreateGpuDevice(id);
-        GpuCommandQueue queue = dev.createQueue();
+        GraphicsQueue queue = dev.createQueue();
 
         Window window(params, "testw", 800, 600);
         window.open();

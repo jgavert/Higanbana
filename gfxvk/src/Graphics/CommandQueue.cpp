@@ -1,17 +1,17 @@
 #include "CommandQueue.hpp"
 
-GpuCommandQueue::GpuCommandQueue(void* que) :m_CommandQueue(que) {}
+GraphicsQueue::GraphicsQueue(FazPtrVk<vk::Queue> queue) :m_queue(queue) {}
 
-void GpuCommandQueue::submit(GfxCommandList& )
+void GraphicsQueue::submit(GfxCommandList& )
 {
 }
 
 // simple case
-void GpuCommandQueue::insertFence(GpuFence& )
+void GraphicsQueue::insertFence(GpuFence& )
 {
 }
 
-bool GpuCommandQueue::isValid()
+bool GraphicsQueue::isValid()
 {
   return true;
 }

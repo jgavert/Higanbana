@@ -2,7 +2,7 @@
 #include "CommandList.hpp"
 #include "Fence.hpp"
 
-class GpuCommandQueue
+class GraphicsQueue
 {
 private:
   friend class test;
@@ -11,7 +11,7 @@ private:
   friend class _GpuBracket;
   void* m_CommandQueue;
 public:
-  GpuCommandQueue(void* que);
+  GraphicsQueue(void* que);
   void submit(GfxCommandList& list);
   void insertFence(GpuFence& fence);
   bool isValid();

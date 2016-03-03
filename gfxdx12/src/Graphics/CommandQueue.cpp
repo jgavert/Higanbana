@@ -1,8 +1,8 @@
 #include "CommandQueue.hpp"
 
-GpuCommandQueue::GpuCommandQueue(FazCPtr<ID3D12CommandQueue> que) :m_CommandQueue(que) {}
+GraphicsQueue::GraphicsQueue(FazCPtr<ID3D12CommandQueue> que) :m_CommandQueue(que) {}
 
-void GpuCommandQueue::submit(GfxCommandList& list)
+void GraphicsQueue::submit(GfxCommandList& list)
 {
   if (!list.isClosed())
   {
@@ -12,7 +12,7 @@ void GpuCommandQueue::submit(GfxCommandList& list)
 }
 
 // simple case
-void GpuCommandQueue::insertFence(GpuFence& fence)
+void GraphicsQueue::insertFence(GpuFence& fence)
 {
   auto mFence = fence.m_fence;
 
@@ -24,7 +24,7 @@ void GpuCommandQueue::insertFence(GpuFence& fence)
   m_CommandQueue->Signal(mFence.get(), 1);
 }
 
-bool GpuCommandQueue::isValid()
+bool GraphicsQueue::isValid()
 {
   return m_CommandQueue.get() != nullptr;
 }

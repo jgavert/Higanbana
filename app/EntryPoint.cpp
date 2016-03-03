@@ -74,7 +74,7 @@ int EntryPoint::main()
     {
 	    GpuDevice gpu = devices.CreateGpuDevice(true, true);
 
-      GpuCommandQueue queue = gpu.createQueue();
+      GraphicsQueue queue = gpu.createQueue();
       SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
       ViewPort port(ires.x(), ires.y());
 
