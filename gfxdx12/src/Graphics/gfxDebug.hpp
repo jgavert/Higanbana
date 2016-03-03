@@ -52,7 +52,7 @@ class _GpuBracket
 {
 private:
 public:
-  static GpuBracket<ID3D12CommandQueue> createBracket(GpuCommandQueue& queue, const char* name)
+  static GpuBracket<ID3D12CommandQueue> createBracket(GraphicsQueue& queue, const char* name)
   {
     return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
   }
@@ -60,7 +60,7 @@ public:
   {
     return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.get(), name);
   }
-  static GpuBracket<ID3D12CommandQueue> createBracket(GpuCommandQueue& queue, std::string& name)
+  static GpuBracket<ID3D12CommandQueue> createBracket(GraphicsQueue& queue, std::string& name)
   {
     return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
   }

@@ -1,18 +1,10 @@
 #pragma once
 #include "CommandQueue.hpp"
 #include "CommandList.hpp"
-#include "core/src/global_debug.hpp"
 
 #include <utility>
 #include <string>
 #include <memory>
-
-
-class _ApiDebug
-{
-public:
-  static void dbgMsg(const char* msg, int num);
-};
 
 template <typename T>
 class _ActualBracket
@@ -36,14 +28,14 @@ private:
   std::shared_ptr<_ActualBracket<T>> m_bracket;
 public:
   //template <typename >
-  GpuBracket(T* ptr, std::string& /*name*/)
+  GpuBracket(T* , std::string& /*name*/)
   {
-    m_bracket = std::make_shared<_ActualBracket<T>>(ptr);
+    m_bracket = std::make_shared<_ActualBracket<T>>(nullptr);
   }
   //template <typename T>
-  GpuBracket(T* ptr, const char* /*name*/)
+  GpuBracket(T* , const char* /*name*/)
   {
-    m_bracket = std::make_shared<_ActualBracket<T>>(ptr);
+    m_bracket = std::make_shared<_ActualBracket<T>>(nullptr);
   }
 };
 
@@ -51,17 +43,17 @@ class _GpuBracket
 {
 private:
 public:
-  static GpuBracket<void> createBracket(GpuCommandQueue& queue, const char* name)
+  static GpuBracket<void> createBracket(GraphicsQueue& , const char* name)
   {
-    return GpuBracket<void>(queue.m_CommandQueue, name);
+    return GpuBracket<void>(nullptr, name);
   }
   static GpuBracket<void> createBracket(GfxCommandList& list, const char* name)
   {
     return GpuBracket<void>(list.m_CommandList, name);
   }
-  static GpuBracket<void> createBracket(GpuCommandQueue& queue, std::string& name)
+  static GpuBracket<void> createBracket(GraphicsQueue& , std::string& name)
   {
-    return GpuBracket<void>(queue.m_CommandQueue, name);
+    return GpuBracket<void>(nullptr, name);
   }
   static GpuBracket<void> createBracket(GfxCommandList& list, std::string& name)
   {
@@ -77,6 +69,4 @@ public:
   auto __gpuprofilingbracket##__COUNTER__ = _GpuBracket::createBracket(queueOrList, name);
 #endif
 
-#define F_VK_ERROR(msg, eeenum) \
- _ApiDebug::dbgMsg(msg, eeenum);
 

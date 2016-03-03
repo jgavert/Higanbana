@@ -41,7 +41,7 @@ class _GpuBracket
 {
 private:
 public:
-  static GpuBracket<void> createBracket(GpuCommandQueue& queue, const char* name)
+  static GpuBracket<void> createBracket(GraphicsQueue& queue, const char* name)
   {
     return GpuBracket<void>(queue.m_CommandQueue, name);
   }
@@ -49,7 +49,7 @@ public:
   {
     return GpuBracket<void>(list.m_CommandList, name);
   }
-  static GpuBracket<void> createBracket(GpuCommandQueue& queue, std::string& name)
+  static GpuBracket<void> createBracket(GraphicsQueue& queue, std::string& name)
   {
     return GpuBracket<void>(queue.m_CommandQueue, name);
   }

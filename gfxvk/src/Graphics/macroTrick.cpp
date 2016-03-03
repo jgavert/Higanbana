@@ -1,4 +1,4 @@
-#include "gfxDebug.hpp"
+#include "macroTrick.hpp"
 
 #include <vulkan/vk_cpp.h>
 

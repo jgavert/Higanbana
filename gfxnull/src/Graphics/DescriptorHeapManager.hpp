@@ -11,7 +11,7 @@ private:
     DSV = 2
   };
   friend class GpuDevice;
-  friend class GpuCommandQueue;
+  friend class GraphicsQueue;
   friend class GfxCommandList;
 
   ResourceViewManager m_heaps;

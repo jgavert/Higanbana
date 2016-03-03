@@ -4,7 +4,7 @@
 #include "FazCPtr.hpp"
 #include <d3d12.h>
 
-class GpuCommandQueue
+class GraphicsQueue
 {
 private:
   friend class test;
@@ -13,7 +13,7 @@ private:
   friend class _GpuBracket;
   FazCPtr<ID3D12CommandQueue> m_CommandQueue;
 public:
-  GpuCommandQueue(FazCPtr<ID3D12CommandQueue> que);
+  GraphicsQueue(FazCPtr<ID3D12CommandQueue> que);
   void submit(GfxCommandList& list);
   void insertFence(GpuFence& fence);
   bool isValid();

@@ -141,7 +141,7 @@ GpuFence GpuDevice::createFence()
   return std::move(GpuFence(mFence));
 }
 
-GpuCommandQueue GpuDevice::createQueue()
+GraphicsQueue GpuDevice::createQueue()
 {
   FazCPtr<ID3D12CommandQueue> m_CommandQueue;
   HRESULT hr;
@@ -152,7 +152,7 @@ GpuCommandQueue GpuDevice::createQueue()
   {
     //
   }
-  return std::move(GpuCommandQueue(m_CommandQueue));
+  return std::move(GraphicsQueue(m_CommandQueue));
 }
 
 // Needs to be created from descriptor
@@ -318,7 +318,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 
 // If you want SRGB, https://msdn.microsoft.com/en-us/library/windows/desktop/bb173064.aspx
 // basically create pipeline and pretend that the rtv is SRGB. It will get handled properly.
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue queue, Window& window, unsigned int bufferCount, FormatType type)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue queue, Window& window, unsigned int bufferCount, FormatType type)
 {
   assert(bufferCount < 9);
   DXGI_SWAP_CHAIN_DESC swapChainDesc;

@@ -15,9 +15,9 @@ GpuFence GpuDevice::createFence()
   return GpuFence();
 }
 
-GpuCommandQueue GpuDevice::createQueue()
+GraphicsQueue GpuDevice::createQueue()
 {
-  return GpuCommandQueue(nullptr);
+  return GraphicsQueue(nullptr);
 }
 
 // Needs to be created from descriptor
@@ -56,12 +56,12 @@ Texture GpuDevice::createTexture(ResourceDescriptor resDesc)
   return tex;
 }
 
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue&, Window&)
 {
   return SwapChain();
 }
 
-SwapChain GpuDevice::createSwapChain(GpuCommandQueue&, Window&, int, FormatType)
+SwapChain GpuDevice::createSwapChain(GraphicsQueue&, Window&, int, FormatType)
 {
   return SwapChain();
 }

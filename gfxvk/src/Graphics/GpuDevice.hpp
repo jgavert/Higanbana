@@ -30,10 +30,10 @@ private:
 public:
   GpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer);
   ~GpuDevice();
-  SwapChain createSwapChain(GpuCommandQueue&, Window&);
-  SwapChain createSwapChain(GpuCommandQueue& queue, Window& wnd, int, FormatType);
+  SwapChain createSwapChain(GraphicsQueue&, Window&);
+  SwapChain createSwapChain(GraphicsQueue& queue, Window& wnd, int, FormatType);
   GpuFence createFence();
-  GpuCommandQueue createQueue();
+  GraphicsQueue createQueue();
   GfxCommandList createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
@@ -49,7 +49,7 @@ public:
   BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   bool isValid();
   SwapChain createSwapChain(
-    GpuCommandQueue /*queue*/, Window& /*window*/,
+    GraphicsQueue /*queue*/, Window& /*window*/,
     unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/);
   DescriptorHeapManager& getDescHeaps();
   ResourceViewManager& getGenericDescriptorHeap();
