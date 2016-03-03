@@ -7,7 +7,7 @@
 GraphicsInstance::GraphicsInstance()
   : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
 
-  , m_instance([=](vk::Instance& ist)
+  , m_instance([=](vk::Instance ist)
     {
       ist.destroy(&m_alloc_info);
     })
@@ -300,7 +300,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
 
 
   auto dev = physDev.createDevice(device_info, m_alloc_info);
-  FazPtrVk<vk::Device> device(dev, [=](vk::Device& ist)
+  FazPtrVk<vk::Device> device(dev, [=](vk::Device ist)
   {
     ist.destroy(&m_alloc_info);
   });

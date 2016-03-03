@@ -34,7 +34,7 @@ bool yay::test()
 
   vk::AllocationCallbacks alloc_info(nullptr, allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree);
 
-  FazPtr<vk::Instance> instance([=](vk::Instance& ist)
+  FazPtr<vk::Instance> instance([=](vk::Instance ist)
   {
     ist.destroy(&alloc_info);
   });
