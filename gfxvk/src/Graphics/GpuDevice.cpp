@@ -118,3 +118,23 @@ BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor)
   dsv.m_buffer = targetBuffer;
   return dsv;
 }
+
+bool GpuDevice::isValid()
+{
+  return m_device.isValid();
+}
+
+SwapChain GpuDevice::createSwapChain(GpuCommandQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
+{
+  return SwapChain();
+}
+
+DescriptorHeapManager& GpuDevice::getDescHeaps()
+{
+  return heap;
+}
+
+ResourceViewManager& GpuDevice::getGenericDescriptorHeap()
+{
+  return heap.getGeneric();
+}

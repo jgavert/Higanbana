@@ -7,9 +7,9 @@
 GraphicsInstance::GraphicsInstance()
   : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
 
-  , m_instance([=](vk::Instance ist)
+  , m_instance([=](vk::Instance& ist)
     {
-      vk::destroyInstance(ist, &m_alloc_info);
+      ist.destroy(&m_alloc_info);
     })
   ,betterDevice(-1), lesserDevice(-1)
 {
@@ -135,12 +135,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
     F_LOG("Instance creation error: %s\n", error.c_str());
     return false;
   }
-  m_devices.resize(4);
-  uint32_t count = 0;
-  vk::enumeratePhysicalDevices(*m_instance.get(), &count, m_devices.data());
-  m_devices.resize(count);
-  vk::enumeratePhysicalDevices(*m_instance.get(), &count, m_devices.data());
-//  m_devices = m_instance.enumeratePhysicalDevices();
+  m_devices = m_instance->enumeratePhysicalDevices();
 
   // get addresses for few functions
   PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
@@ -195,18 +190,13 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
 
   auto canPresent = [](vk::PhysicalDevice dev)
   {
-    std::vector<vk::QueueFamilyProperties> queueProperties;
-    uint32_t count = 4;
-    queueProperties.resize(count);
-    vk::getPhysicalDeviceQueueFamilyProperties(dev, &count, queueProperties.data());
-    queueProperties.resize(count);
-    vk::getPhysicalDeviceQueueFamilyProperties(dev, &count, queueProperties.data());
+    auto queueProperties = dev.getQueueFamilyProperties();
     for (auto&& queueProp : queueProperties)
     {
       for (uint32_t i = 0; i < queueProp.queueCount(); ++i)
       {
 #if defined(PLATFORM_WINDOWS)
-        if (vk::getPhysicalDeviceWin32PresentationSupportKHR(dev, i))
+        if (dev.getWin32PresentationSupportKHR(i))
 #endif
         {
           return true;
@@ -224,11 +214,7 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
   auto&& physDev = m_devices[devId]; // assuming first device is best
   // layers
   std::vector<vk::LayerProperties> devLayers;
-  uint32_t count = 4;
-  devLayers.resize(count);
-  vk::enumerateDeviceLayerProperties(physDev, &count, devLayers.data());
-  devLayers.resize(count);
-  vk::enumerateDeviceLayerProperties(physDev, &count, devLayers.data());
+  physDev.enumerateDeviceLayerProperties(devLayers);
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
@@ -314,9 +300,9 @@ GpuDevice GraphicsInstance::CreateGpuDevice(int , bool, bool)
 
 
   auto dev = physDev.createDevice(device_info, m_alloc_info);
-  FazPtrVk<vk::Device> device(dev, [=](vk::Device ist)
+  FazPtrVk<vk::Device> device(dev, [=](vk::Device& ist)
   {
-    vk::destroyDevice(ist, &m_alloc_info);
+    ist.destroy(&m_alloc_info);
   });
 
   return GpuDevice(device, m_alloc_info, false);
