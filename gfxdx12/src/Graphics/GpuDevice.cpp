@@ -359,17 +359,10 @@ SwapChain GpuDevice::createSwapChain(GpuCommandQueue queue, Window& window, unsi
   }
   //create cpu descriptor handle for backbuffer 1, offset by D3D12_RTV_DESCRIPTOR_HEAP from backbuffer 0's descriptor
 
-  TextureRTV tex;
-  tex.texture().m_desc = ResourceDescriptor()
-    .Width(swapChainDesc.BufferDesc.Width)
-    .Height(swapChainDesc.BufferDesc.Height)
-    .Usage(ResourceUsage::GpuOnly);
-
-  tex.texture().m_state = D3D12_RESOURCE_STATE_PRESENT;
-
-  tex.cpuHandle = mRenderTargetView[0];
-  tex.indexInHeap = FazPtr<size_t>(index, [](size_t) {});
-  tex.customIndex = index;
+  TextureRTV texrtv;
+  texrtv.cpuHandle = mRenderTargetView[0];
+  texrtv.indexInHeap = FazPtr<size_t>(index, [](size_t) {});
+  texrtv.customIndex = index;
 
   std::vector<TextureRTV> lol;
   ID3D12Resource* mRenderTarget;
@@ -382,15 +375,26 @@ SwapChain GpuDevice::createSwapChain(GpuCommandQueue queue, Window& window, unsi
   desc.Texture2D.PlaneSlice = 0;
   for (unsigned int i = 0; i < bufferCount; ++i)
   {
+    Texture tex;
+    tex.texture = std::make_shared<TextureInternal>();
+    tex.getTexture().m_desc = ResourceDescriptor()
+      .Width(swapChainDesc.BufferDesc.Width)
+      .Height(swapChainDesc.BufferDesc.Height)
+      .Usage(ResourceUsage::GpuOnly);
+    tex.getTexture().m_state = D3D12_RESOURCE_STATE_PRESENT;
+
     hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
     auto debugName = L"mRenderTarget" + std::to_wstring(i);
     mRenderTarget->SetName(debugName.c_str());  //set debug name 
     m_device->CreateRenderTargetView(mRenderTarget, &desc, mRenderTargetView[i]);
-    tex.texture().m_resource = std::make_shared<RawResource>(mRenderTarget, false);
-    tex.cpuHandle = mRenderTargetView[i];
-    tex.indexInHeap = FazPtr<size_t>(indexes[i], [](size_t) {});
-    tex.customIndex = static_cast<int>(indexes[i]); // FIXME 
-    lol.push_back(tex);
+    tex.getTexture().m_resource = std::make_shared<RawResource>(mRenderTarget, false);
+    texrtv.cpuHandle = mRenderTargetView[i];
+    texrtv.indexInHeap = FazPtr<size_t>(indexes[i], [](size_t) {});
+    texrtv.customIndex = static_cast<int>(indexes[i]); // FIXME 
+
+    texrtv.m_texture = tex;
+
+    lol.push_back(texrtv);
   }
 
   return SwapChain(mSwapChain, lol);
