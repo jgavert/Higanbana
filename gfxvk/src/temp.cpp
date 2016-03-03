@@ -34,9 +34,9 @@ bool yay::test()
 
   vk::AllocationCallbacks alloc_info(nullptr, allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree);
 
-  FazPtr<vk::Instance> instance([=](vk::Instance ist)
+  FazPtr<vk::Instance> instance([=](vk::Instance& ist)
   {
-    vk::destroyInstance(ist, &alloc_info);
+    ist.destroy(&alloc_info);
   });
 
   vk::Result res = vk::createInstance(&inst_info, &alloc_info, instance.get());

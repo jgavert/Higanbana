@@ -24,9 +24,9 @@ class GpuDevice
 private:
 
   vk::AllocationCallbacks m_alloc_info;
-  FazPtrVk<vk::Device> m_device;
-  bool  m_debugLayer;
-  DescriptorHeapManager heap;
+  FazPtrVk<vk::Device>    m_device;
+  bool                    m_debugLayer;
+  DescriptorHeapManager   heap;
 public:
   GpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, bool debugLayer);
   ~GpuDevice();
@@ -39,34 +39,19 @@ public:
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
   Buffer createBuffer(ResourceDescriptor desc);
   Texture createTexture(ResourceDescriptor desc);
-
   TextureSRV createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   TextureUAV createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   TextureRTV createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   TextureDSV createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-
   BufferSRV createBufferSRV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   BufferUAV createBufferUAV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   BufferCBV createBufferCBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  bool isValid()
-  {
-    return m_device.isValid();
-  }
-
-  SwapChain createSwapChain(GpuCommandQueue /*queue*/, Window& /*window*/, unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/)
-  {
-     return SwapChain();
-  }
-
-  DescriptorHeapManager& getDescHeaps()
-  {
-    return heap;
-  }
-
-  ResourceViewManager& getGenericDescriptorHeap()
-  {
-    return heap.getGeneric();
-  }
+  bool isValid();
+  SwapChain createSwapChain(
+    GpuCommandQueue /*queue*/, Window& /*window*/,
+    unsigned int /*bufferCount = 2*/, FormatType /*type = FormatType::R8G8B8A8_UNORM*/);
+  DescriptorHeapManager& getDescHeaps();
+  ResourceViewManager& getGenericDescriptorHeap();
 
 };
