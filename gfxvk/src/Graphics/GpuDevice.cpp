@@ -25,9 +25,9 @@ GraphicsQueue GpuDevice::createQueue()
 }
 
 // Needs to be created from descriptor
-GfxCommandList GpuDevice::createUniversalCommandList()
+GraphicsCmdBuffer GpuDevice::createUniversalCommandList()
 {
-  return GfxCommandList(nullptr);
+  return GraphicsCmdBuffer(nullptr);
 }
 
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor )

@@ -14,7 +14,7 @@ private:
   };
   friend class GpuDevice;
   friend class GraphicsQueue;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
 
   std::array<ResourceViewManager, 3> m_heaps;
   std::array<ID3D12DescriptorHeap*, 3> m_rawHeaps;

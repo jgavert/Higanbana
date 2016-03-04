@@ -12,7 +12,7 @@ private:
   void* m_CommandQueue;
 public:
   GraphicsQueue(void* que);
-  void submit(GfxCommandList& list);
+  void submit(GraphicsCmdBuffer& list);
   void insertFence(GpuFence& fence);
   bool isValid();
   void* get()

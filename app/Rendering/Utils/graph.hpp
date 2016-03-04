@@ -41,8 +41,8 @@ namespace rendering
       float valueMax;
     public:
       Graph(GpuDevice& device, float min, float max, faze::ivec2 graphSize);
-      void updateGraphCompute(GfxCommandList& gfx, float val);
-      void drawGraph(GfxCommandList& gfx);
+      void updateGraphCompute(GraphicsCmdBuffer& gfx, float val);
+      void drawGraph(GraphicsCmdBuffer& gfx);
       void changeScreenPos(faze::vec2 topleft, faze::vec2 bottomright);
       void changeMin(float min);
       void changeMax(float max);

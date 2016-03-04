@@ -78,7 +78,7 @@ int EntryPoint::main()
       SwapChain sc = gpu.createSwapChain(queue, window, 2, R8G8B8A8_UNORM_SRGB);
       ViewPort port(ires.x(), ires.y());
 
-      GfxCommandList gfx = gpu.createUniversalCommandList();
+      GraphicsCmdBuffer gfx = gpu.createUniversalCommandList();
       {
         // recommended only in release mode with debugging layer off...
         // StressTests::run(gpu, queue, window, sc, port, gfx, log);

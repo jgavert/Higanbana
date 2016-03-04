@@ -47,7 +47,7 @@ public:
   {
     return GpuBracket<void>(nullptr, name);
   }
-  static GpuBracket<void> createBracket(GfxCommandList& list, const char* name)
+  static GpuBracket<void> createBracket(GraphicsCmdBuffer& list, const char* name)
   {
     return GpuBracket<void>(list.m_CommandList, name);
   }
@@ -55,7 +55,7 @@ public:
   {
     return GpuBracket<void>(nullptr, name);
   }
-  static GpuBracket<void> createBracket(GfxCommandList& list, std::string& name)
+  static GpuBracket<void> createBracket(GraphicsCmdBuffer& list, std::string& name)
   {
     return GpuBracket<void>(list.m_CommandList, name);
   }

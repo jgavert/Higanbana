@@ -1,6 +1,6 @@
 #include "CommandList.hpp"
 
-CptCommandList::CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator)
+ComputeCmdBuffer::ComputeCmdBuffer(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator)
   :m_CommandList(cmdList), m_CommandListAllocator(commandListAllocator), closed(false),
   m_boundCptPipeline(nullptr), m_boundGfxPipeline(nullptr)
   , m_uavBindlessIndex(-1), m_srvBindlessIndex(-1)
@@ -8,12 +8,12 @@ CptCommandList::CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCP
 {
 }
 
-void CptCommandList::setResourceBarrier()
+void ComputeCmdBuffer::setResourceBarrier()
 {
 
 }
 
-void CptCommandList::bindComputeBinding(ComputeBinding& asd)
+void ComputeCmdBuffer::bindComputeBinding(ComputeBinding& asd)
 {
 
 	if (asd.m_resbars.size() > 0)
@@ -54,7 +54,7 @@ void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 	}
 }
 
-void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
+void ComputeCmdBuffer::CopyResource(Buffer& dstdata, Buffer& srcdata)
 {
   D3D12_RESOURCE_BARRIER bD[2];
   size_t count = 0;
@@ -91,7 +91,7 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
   m_CommandList->CopyResource(dstbuf.m_resource.get(), srcbuf.m_resource.get());
 }
 
-void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
+void ComputeCmdBuffer::CopyResource(Texture& dstdata, Texture& srcdata)
 {
 	D3D12_RESOURCE_BARRIER bD[2];
 	size_t count = 0;
@@ -128,20 +128,20 @@ void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
 	m_CommandList->CopyResource(dstbuf.m_resource->get(), srcbuf.m_resource->get());
 }
 
-void CptCommandList::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)
+void ComputeCmdBuffer::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)
 {
   bindComputeBinding(asd);
 
   m_CommandList->Dispatch(x, y, z);
 }
 
-void CptCommandList::DispatchIndirect(ComputeBinding& bind)
+void ComputeCmdBuffer::DispatchIndirect(ComputeBinding& bind)
 {
   bindComputeBinding(bind);
 
 }
 
-ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
+ComputeBinding ComputeCmdBuffer::bind(ComputePipeline& pipeline)
 {
   auto& inf = pipeline.getShaderInterface();
   if (m_boundShaderInterface != inf || m_graphicsBound)
@@ -162,17 +162,17 @@ ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
   return pipeline.getBinding();
 }
 
-bool CptCommandList::isValid()
+bool ComputeCmdBuffer::isValid()
 {
   return m_CommandList.get() != nullptr;
 }
 
-void CptCommandList::setHeaps(DescriptorHeapManager& heaps)
+void ComputeCmdBuffer::setHeaps(DescriptorHeapManager& heaps)
 {
 	m_CommandList->SetDescriptorHeaps(heaps.getCount(), heaps.getHeapPtr());
 }
 
-void CptCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
+void ComputeCmdBuffer::setSRVBindless(DescriptorHeapManager& srvDescHeap)
 {
 	if (m_srvBindlessIndex < 0)
 		return;
@@ -180,7 +180,7 @@ void CptCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
 	srvGpuStart.ptr += srvDescHeap.getGeneric().m_handleIncrementSize * 128;
 	m_CommandList->SetComputeRootDescriptorTable(m_srvBindlessIndex, srvGpuStart);
 }
-void CptCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
+void ComputeCmdBuffer::setUAVBindless(DescriptorHeapManager& uavDescHeap)
 {
 	if (m_uavBindlessIndex < 0)
 		return;
@@ -188,7 +188,7 @@ void CptCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
 	uavGpuStart.ptr += uavDescHeap.getGeneric().m_handleIncrementSize * 128 * 2;
 	m_CommandList->SetComputeRootDescriptorTable(m_uavBindlessIndex, uavGpuStart);
 }
-void CptCommandList::closeList()
+void ComputeCmdBuffer::closeList()
 {
 	HRESULT hr;
 	hr = m_CommandList->Close();
@@ -198,12 +198,12 @@ void CptCommandList::closeList()
 	}
 	closed = true;
 }
-bool CptCommandList::isClosed()
+bool ComputeCmdBuffer::isClosed()
 {
 	return closed;
 }
 
-void CptCommandList::resetList()
+void ComputeCmdBuffer::resetList()
 {
 	m_CommandListAllocator->Reset();
 	if (m_boundCptPipeline != nullptr)
@@ -216,7 +216,7 @@ void CptCommandList::resetList()
 }
 
 
-GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
+GraphicsBinding GraphicsCmdBuffer::bind(GraphicsPipeline& pipeline)
 {
   auto& inf = pipeline.getShaderInterface();
   if (m_boundShaderInterface != inf || !m_graphicsBound)
@@ -237,12 +237,12 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
   return pipeline.getBinding();
 }
 
-ComputeBinding GfxCommandList::bind(ComputePipeline& pipeline)
+ComputeBinding GraphicsCmdBuffer::bind(ComputePipeline& pipeline)
 {
-	return CptCommandList::bind(pipeline);
+	return ComputeCmdBuffer::bind(pipeline);
 }
 
-void GfxCommandList::setViewPort(ViewPort& view)
+void GraphicsCmdBuffer::setViewPort(ViewPort& view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
   RECT rect;
@@ -253,18 +253,18 @@ void GfxCommandList::setViewPort(ViewPort& view)
   m_CommandList->RSSetScissorRects(1, &rect);
 }
 
-void GfxCommandList::ClearRenderTargetView(TextureRTV& rtv, faze::vec4 color)
+void GraphicsCmdBuffer::ClearRenderTargetView(TextureRTV& rtv, faze::vec4 color)
 {
   m_CommandList->ClearRenderTargetView(rtv.cpuHandle, color.data.data(), NULL, 0);
 }
 
 
-void GfxCommandList::ClearDepthView(TextureDSV& dsv)
+void GraphicsCmdBuffer::ClearDepthView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_DEPTH , 1.f, 0, 0, nullptr);
 }
 
-void GfxCommandList::bindGraphicsBinding(GraphicsBinding& asd)
+void GraphicsCmdBuffer::bindGraphicsBinding(GraphicsBinding& asd)
 {
 	if (asd.m_resbars.size() > 0)
 	{
@@ -304,29 +304,29 @@ void GfxCommandList::bindGraphicsBinding(GraphicsBinding& asd)
 	}
 }
 
-void GfxCommandList::ClearStencilView(TextureDSV& dsv)
+void GraphicsCmdBuffer::ClearStencilView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_STENCIL, 0.f, 0xFF, 0, nullptr);
 }
 
-void GfxCommandList::ClearDepthStencilView(TextureDSV& dsv)
+void GraphicsCmdBuffer::ClearDepthStencilView(TextureDSV& dsv)
 {
   m_CommandList->ClearDepthStencilView(dsv.cpuHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0xFF, 0, nullptr);
 }
 
-void GfxCommandList::drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
+void GraphicsCmdBuffer::drawInstanced(GraphicsBinding& bind, unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
 {
 	bindGraphicsBinding(bind);
 	m_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
 }
 
-void GfxCommandList::drawInstancedRaw(unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
+void GraphicsCmdBuffer::drawInstancedRaw(unsigned int vertexCountPerInstance, unsigned int instanceCount, unsigned int startVertexId, unsigned int startInstanceId)
 {
 	m_CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexId, startInstanceId);
 }
 
-void GfxCommandList::preparePresent(TextureRTV& rtv)
+void GraphicsCmdBuffer::preparePresent(TextureRTV& rtv)
 {
 	if (rtv.texture().m_state != D3D12_RESOURCE_STATE_PRESENT)
 	{
@@ -342,7 +342,7 @@ void GfxCommandList::preparePresent(TextureRTV& rtv)
 	}
 }
 
-void GfxCommandList::setRenderTarget(TextureRTV& rtv)
+void GraphicsCmdBuffer::setRenderTarget(TextureRTV& rtv)
 {
 	if (rtv.texture().m_state != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
@@ -359,7 +359,7 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 	m_CommandList->OMSetRenderTargets(1, &rtv.cpuHandle, false, nullptr);
 }
 
-void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
+void GraphicsCmdBuffer::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 {
 	D3D12_RESOURCE_BARRIER desc[2];
 	int count = 0;
@@ -391,7 +391,7 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 	m_CommandList->OMSetRenderTargets(1, &rtv.cpuHandle, false, &dsv.cpuHandle);
 }
 
-void GfxCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
+void GraphicsCmdBuffer::setSRVBindless(DescriptorHeapManager& srvDescHeap)
 {
 	if (m_srvBindlessIndex < 0)
 		return;
@@ -399,7 +399,7 @@ void GfxCommandList::setSRVBindless(DescriptorHeapManager& srvDescHeap)
 	srvGpuStart.ptr += srvDescHeap.getGeneric().m_handleIncrementSize * 128;
 	m_CommandList->SetGraphicsRootDescriptorTable(m_srvBindlessIndex, srvGpuStart);
 }
-void GfxCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
+void GraphicsCmdBuffer::setUAVBindless(DescriptorHeapManager& uavDescHeap)
 {
 	if (m_uavBindlessIndex < 0)
 		return;
@@ -408,7 +408,7 @@ void GfxCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
 	m_CommandList->SetGraphicsRootDescriptorTable(m_uavBindlessIndex, uavGpuStart);
 }
 
-void GfxCommandList::resetList()
+void GraphicsCmdBuffer::resetList()
 {
 	m_CommandListAllocator->Reset();
 	m_CommandList->Reset(m_CommandListAllocator.get(), nullptr);

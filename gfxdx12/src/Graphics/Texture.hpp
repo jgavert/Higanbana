@@ -132,7 +132,7 @@ class TextureShaderView
 {
 private:
   friend class GpuDevice;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
   Texture m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
   ShaderViewDescriptor viewDesc;
   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;

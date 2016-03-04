@@ -14,7 +14,7 @@ private:
   FazCPtr<ID3D12CommandQueue> m_CommandQueue;
 public:
   GraphicsQueue(FazCPtr<ID3D12CommandQueue> que);
-  void submit(GfxCommandList& list);
+  void submit(GraphicsCmdBuffer& list);
   void insertFence(GpuFence& fence);
   bool isValid();
   FazCPtr<ID3D12CommandQueue> get()

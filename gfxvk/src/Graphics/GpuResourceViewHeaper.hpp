@@ -9,8 +9,8 @@ class ResourceViewManager
 {
 private:
   friend class GpuDevice;
-  friend class CptCommandList;
-  friend class GfxCommandList;
+  friend class ComputeCmdBuffer;
+  friend class GraphicsCmdBuffer;
 
   void*   m_descHeap;
   size_t m_handleIncrementSize;

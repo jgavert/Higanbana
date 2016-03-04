@@ -40,7 +40,7 @@ public:
   SwapChain createSwapChain(Window& wnd, GraphicsQueue& queue);
   GpuFence createFence();
   GraphicsQueue createQueue();
-  GfxCommandList createUniversalCommandList();
+  GraphicsCmdBuffer createUniversalCommandList();
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 

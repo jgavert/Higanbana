@@ -56,7 +56,7 @@ namespace rendering
 	  m_graphTextureUav = device.createTextureUAV(m_graphTexture);
 
     }
-    void Graph::updateGraphCompute(GfxCommandList& gfx, float val)
+    void Graph::updateGraphCompute(GraphicsCmdBuffer& gfx, float val)
     {
       GpuProfilingBracket(gfx, "Updating UtilGraph");
       {
@@ -82,7 +82,7 @@ namespace rendering
       m_topleft = topleft;
     }
 
-    void Graph::drawGraph(GfxCommandList& gfx)
+    void Graph::drawGraph(GraphicsCmdBuffer& gfx)
     {
       GpuProfilingBracket(gfx, "Drawing Utilgraph");
 	  {

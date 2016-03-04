@@ -2,7 +2,7 @@
 
 GraphicsQueue::GraphicsQueue(FazCPtr<ID3D12CommandQueue> que) :m_CommandQueue(que) {}
 
-void GraphicsQueue::submit(GfxCommandList& list)
+void GraphicsQueue::submit(GraphicsCmdBuffer& list)
 {
   if (!list.isClosed())
   {
