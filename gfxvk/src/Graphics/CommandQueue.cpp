@@ -1,6 +1,6 @@
 #include "CommandQueue.hpp"
 
-Queue_::Queue_(std::shared_ptr<IQueue> queue) :m_queue(queue)
+Queue_::Queue_(PQueue queue) :m_queue(queue)
 {
 
 }
@@ -14,21 +14,21 @@ bool Queue_::isValid()
   return m_queue->isValid();
 }
 
-DMAQueue::DMAQueue(std::shared_ptr<IQueue> queue) : Queue_(queue) {};
+DMAQueue::DMAQueue(PQueue queue) : Queue_(queue) {};
 
 void DMAQueue::submit(DMACmdBuffer& )
 {
 
 }
 
-ComputeQueue::ComputeQueue(std::shared_ptr<IQueue> queue) : Queue_(queue) {};
+ComputeQueue::ComputeQueue(PQueue queue) : Queue_(queue) {};
 
 void ComputeQueue::submit(ComputeCmdBuffer& )
 {
 
 }
 
-GraphicsQueue::GraphicsQueue(std::shared_ptr<IQueue> queue) : ComputeQueue(queue) {}
+GraphicsQueue::GraphicsQueue(PQueue queue) : ComputeQueue(queue) {}
 
 void GraphicsQueue::submit(GraphicsCmdBuffer& )
 {

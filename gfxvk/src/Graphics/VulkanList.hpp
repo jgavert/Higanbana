@@ -2,13 +2,13 @@
 
 #include <vulkan/vk_cpp.h>
 
-class VulkanCmdBuffer : public ICmdBuffer
+class VulkanCmdBuffer
 {
 private:
   friend class GpuDevice;
   friend class VulkanQueue;
   FazPtrVk<vk::CommandBuffer>    m_cmdBuffer;
 public:
-  bool isValid() = 0;
-  void CopyResource() = 0;
+  bool isValid();
+  void CopyResource();
 };

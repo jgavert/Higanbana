@@ -8,31 +8,27 @@
 #include "ShaderInterface.hpp"
 #include "GpuResourceViewHeaper.hpp"
 #include "DescriptorHeapManager.hpp"
+#include "VulkanList.hpp"
 
 #include <memory>
 // universal command buffer
 
-class ICmdBuffer
-{
-public:
-  virtual bool isValid() = 0;
-  virtual void CopyResource() = 0;
-};
+using PCmdBuffer = VulkanCmdBuffer;
 
 class _CmdBuffer
 {
 private:
   friend class GpuDevice;
   friend class DMACmdBuffer;
-  std::shared_ptr<ICmdBuffer> m_cmdBuffer;
-  _CmdBuffer(std::shared_ptr<ICmdBuffer> cmdBuffer) : m_cmdBuffer(cmdBuffer) {}
+  PCmdBuffer m_cmdBuffer;
+  _CmdBuffer(PCmdBuffer cmdBuffer) : m_cmdBuffer(cmdBuffer) {}
 };
 
 class DMACmdBuffer : public _CmdBuffer
 {
 private:
   friend class GpuDevice;
-  DMACmdBuffer(std::shared_ptr<ICmdBuffer> cmdBuffer) : _CmdBuffer(cmdBuffer) {}
+  DMACmdBuffer(PCmdBuffer cmdBuffer) : _CmdBuffer(cmdBuffer) {}
   void CopyResource(Buffer& dstdata, Buffer& srcdata); // this is here only temporarily, will be removed
 };
 
