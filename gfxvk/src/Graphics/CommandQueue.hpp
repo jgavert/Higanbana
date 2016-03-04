@@ -1,17 +1,12 @@
 #pragma once
 #include "CommandList.hpp"
 #include "Fence.hpp"
+#include "VulkanQueue.hpp"
 
 #include <memory>
 
 // trying out interface approach to simplify backend implementations and remove duplicate code.
-class IQueue
-{
-public:
-  virtual bool isValid() = 0;
-  virtual void insertFence() = 0;
-  virtual void submit(ICmdBuffer& buffer) = 0;
-};
+using PQueue = VulkanQueue;
 
 // hosts basic queue commands.
 class Queue_
@@ -24,14 +19,10 @@ private:
   friend class GraphicsQueue;
   friend class ComputeQueue;
   friend class DMAQueue;
-  std::shared_ptr<IQueue> m_queue;
+  PQueue m_queue;
 
-  Queue_(std::shared_ptr<IQueue> queue);
+  Queue_(PQueue queue);
 
-  IQueue& getRef()
-  {
-    return *m_queue.get();
-  }
 public:
   void insertFence(GpuFence& fence);
   bool isValid();
@@ -44,7 +35,7 @@ private:
   friend class ApiTests;
   friend class GpuDevice;
   friend class _GpuBracket;
-  DMAQueue(std::shared_ptr<IQueue> queue);
+  DMAQueue(PQueue queue);
 public:
   void submit(DMACmdBuffer& list);
 };
@@ -57,7 +48,7 @@ private:
   friend class GpuDevice;
   friend class _GpuBracket;
   friend class GraphicsQueue;
-  ComputeQueue(std::shared_ptr<IQueue> queue);
+  ComputeQueue(PQueue queue);
 public:
   void submit(ComputeCmdBuffer& list);
 };
@@ -70,7 +61,7 @@ private:
   friend class ApiTests;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GraphicsQueue(std::shared_ptr<IQueue> queue);
+  GraphicsQueue(PQueue queue);
 public:
   void submit(GraphicsCmdBuffer& list);
 };
