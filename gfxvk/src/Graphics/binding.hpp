@@ -47,8 +47,8 @@ public:
 class GraphicsBinding : public Binding_
 {
   friend class GpuDevice;
-  friend class GfxCommandList;
-  friend class CptCommandList;
+  friend class GraphicsCmdBuffer;
+  friend class ComputeCmdBuffer;
 
   GraphicsBinding(std::vector<std::tuple<unsigned, RootType, ShaderIndex>> input, unsigned int cbvCount, unsigned int srvCount, unsigned int uavCount, int descriptorTableSRVSlot = -1, int descriptorTableUAVslot = -1) :
     Binding_(input, cbvCount, srvCount, uavCount, descriptorTableSRVSlot, descriptorTableUAVslot)

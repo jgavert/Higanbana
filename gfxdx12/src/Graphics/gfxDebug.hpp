@@ -56,7 +56,7 @@ public:
   {
     return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
   }
-  static GpuBracket<ID3D12GraphicsCommandList> createBracket(GfxCommandList& list, const char* name)
+  static GpuBracket<ID3D12GraphicsCommandList> createBracket(GraphicsCmdBuffer& list, const char* name)
   {
     return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.get(), name);
   }
@@ -64,12 +64,12 @@ public:
   {
     return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
   }
-  static GpuBracket<ID3D12GraphicsCommandList> createBracket(GfxCommandList& list, std::string& name)
+  static GpuBracket<ID3D12GraphicsCommandList> createBracket(GraphicsCmdBuffer& list, std::string& name)
   {
     return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.get(), name);
   }
   /* There is no such bracket D:
-  static GpuBracket<ID3D12CommandList> createBracket(CptCommandList& list, std::string& name)
+  static GpuBracket<ID3D12CommandList> createBracket(ComputeCmdBuffer& list, std::string& name)
   {
     return GpuBracket<ID3D12CommandList>(list.m_CommandList.get(), name);
   }*/

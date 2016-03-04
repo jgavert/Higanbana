@@ -56,8 +56,8 @@ class ShaderInterface
 private:
   friend class GpuDevice;
   friend class GraphicsQueue;
-  friend class GfxCommandList;
-  friend class CptCommandList;
+  friend class GraphicsCmdBuffer;
+  friend class ComputeCmdBuffer;
   friend class shaderUtils;
 
   FazCPtr<ID3D12RootSignature> m_rootSig;

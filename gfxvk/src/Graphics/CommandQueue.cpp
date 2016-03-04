@@ -1,17 +1,38 @@
 #include "CommandQueue.hpp"
 
-GraphicsQueue::GraphicsQueue(FazPtrVk<vk::Queue> queue) :m_queue(queue) {}
-
-void GraphicsQueue::submit(GfxCommandList& )
+Queue_::Queue_(std::shared_ptr<IQueue> queue) :m_queue(queue)
 {
-}
 
+}
 // simple case
-void GraphicsQueue::insertFence(GpuFence& )
+void Queue_::insertFence(GpuFence& )
 {
 }
 
-bool GraphicsQueue::isValid()
+bool Queue_::isValid()
 {
-  return true;
+  return m_queue->isValid();
 }
+
+DMAQueue::DMAQueue(std::shared_ptr<IQueue> queue) : Queue_(queue) {};
+
+void DMAQueue::submit(DMACmdBuffer& )
+{
+
+}
+
+ComputeQueue::ComputeQueue(std::shared_ptr<IQueue> queue) : Queue_(queue) {};
+
+void ComputeQueue::submit(ComputeCmdBuffer& )
+{
+
+}
+
+GraphicsQueue::GraphicsQueue(std::shared_ptr<IQueue> queue) : ComputeQueue(queue) {}
+
+void GraphicsQueue::submit(GraphicsCmdBuffer& )
+{
+
+}
+
+

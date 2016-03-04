@@ -12,7 +12,7 @@ private:
   };
   friend class GpuDevice;
   friend class GraphicsQueue;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
 
   ResourceViewManager m_heaps;
   

@@ -50,7 +50,7 @@ private:
       GraphicsInstance sys;
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
       return list.isValid();
     });
 
@@ -108,7 +108,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
 
       auto srcdata = dev.createBuffer(ResourceDescriptor()
           .Width(4096)
@@ -143,7 +143,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
       auto srcdata = dev.createBuffer(ResourceDescriptor()
@@ -331,7 +331,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
       ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("compute_1"));
@@ -488,7 +488,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
 
       Window window(params, "ebin", 800, 600);
       window.open();
@@ -531,7 +531,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList gfx = dev.createUniversalCommandList();
+      GraphicsCmdBuffer gfx = dev.createUniversalCommandList();
 
       Window window(params, "ebin", 800, 600);
       window.open();
@@ -626,7 +626,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GraphicsQueue queue = dev.createQueue();
-		  GfxCommandList list = dev.createUniversalCommandList();
+		  GraphicsCmdBuffer list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
 		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant"));
@@ -675,7 +675,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GraphicsQueue queue = dev.createQueue();
-		  GfxCommandList list = dev.createUniversalCommandList();
+		  GraphicsCmdBuffer list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
 		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver2"));
@@ -757,7 +757,7 @@ private:
 		  sys.createInstance("test", 1, "faze_test", 1);
 		  GpuDevice dev = sys.CreateGpuDevice(id);
 		  GraphicsQueue queue = dev.createQueue();
-		  GfxCommandList list = dev.createUniversalCommandList();
+		  GraphicsCmdBuffer list = dev.createUniversalCommandList();
 		  GpuFence fence = dev.createFence();
 
 		  ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver3"));
@@ -838,7 +838,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      GfxCommandList list = dev.createUniversalCommandList();
+      GraphicsCmdBuffer list = dev.createUniversalCommandList();
       GpuFence fence = dev.createFence();
 
       ComputePipeline pipeline = dev.createComputePipeline(ComputePipelineDescriptor().shader("tests/compute_rootconstant_ver4"));

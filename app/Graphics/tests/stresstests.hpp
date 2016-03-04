@@ -18,7 +18,7 @@
 class StressTests
 {
 private:
-  static void runTestsForDevice(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
+  static void runTestsForDevice(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GraphicsCmdBuffer& gfx, faze::Logger& log)
   {
     faze::TestWorks t("advtests");
     t.setAfterTest([&]()
@@ -306,7 +306,7 @@ private:
       float cpuTime = 30.f;
       Bentsumaakaa b;
       LBS lbs;
-      std::vector<GfxCommandList> m_cmds;
+      std::vector<GraphicsCmdBuffer> m_cmds;
       for (size_t i = 0; i < lbs.threadCount(); ++i)
       {
         m_cmds.push_back(dev.createUniversalCommandList());
@@ -430,7 +430,7 @@ private:
       float cpuTime = 30.f;
       Bentsumaakaa b;
       LBS lbs;
-      std::vector<GfxCommandList> m_cmds;
+      std::vector<GraphicsCmdBuffer> m_cmds;
       for (size_t i = 0; i < lbs.threadCount(); ++i)
       {
         m_cmds.push_back(dev.createUniversalCommandList());
@@ -768,7 +768,7 @@ private:
       float cpuTime = 30.f;
       Bentsumaakaa b;
       LBS lbs;
-      std::vector<GfxCommandList> m_cmds;
+      std::vector<GraphicsCmdBuffer> m_cmds;
       for (size_t i = 0; i < lbs.threadCount(); ++i)
       {
         m_cmds.push_back(dev.createUniversalCommandList());
@@ -895,7 +895,7 @@ private:
       float cpuTime = 30.f;
       Bentsumaakaa b;
       LBS lbs;
-      std::vector<GfxCommandList> m_cmds;
+      std::vector<GraphicsCmdBuffer> m_cmds;
       for (size_t i = 0; i < lbs.threadCount(); ++i)
       {
         m_cmds.push_back(dev.createUniversalCommandList());
@@ -967,7 +967,7 @@ private:
   }
 
 public:
-  static void run(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GfxCommandList& gfx, faze::Logger& log)
+  static void run(GpuDevice& dev, GraphicsQueue& queue, Window& window, SwapChain& sc, ViewPort& port, GraphicsCmdBuffer& gfx, faze::Logger& log)
   {
     runTestsForDevice(dev, queue, window, sc, port, gfx, log);
   }

@@ -11,8 +11,8 @@ class ResourceViewManager
 {
 private:
   friend class GpuDevice;
-  friend class CptCommandList;
-  friend class GfxCommandList;
+  friend class ComputeCmdBuffer;
+  friend class GraphicsCmdBuffer;
 
   FazCPtr<ID3D12DescriptorHeap>   m_descHeap;
   size_t m_handleIncrementSize;

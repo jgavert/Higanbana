@@ -156,7 +156,7 @@ GraphicsQueue GpuDevice::createQueue()
 }
 
 // Needs to be created from descriptor
-GfxCommandList GpuDevice::createUniversalCommandList()
+GraphicsCmdBuffer GpuDevice::createUniversalCommandList()
 {
   FazCPtr<ID3D12GraphicsCommandList> commandList;
   FazCPtr<ID3D12CommandAllocator> commandListAllocator;
@@ -170,7 +170,7 @@ GfxCommandList GpuDevice::createUniversalCommandList()
   {
     abort();
   }
-  return std::move(GfxCommandList(commandList, commandListAllocator));
+  return std::move(GraphicsCmdBuffer(commandList, commandListAllocator));
 }
 
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)

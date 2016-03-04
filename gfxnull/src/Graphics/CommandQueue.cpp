@@ -2,7 +2,7 @@
 
 GraphicsQueue::GraphicsQueue(void* que) :m_CommandQueue(que) {}
 
-void GraphicsQueue::submit(GfxCommandList& )
+void GraphicsQueue::submit(GraphicsCmdBuffer& )
 {
 }
 

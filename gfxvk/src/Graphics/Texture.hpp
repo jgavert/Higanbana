@@ -94,7 +94,7 @@ class TextureShaderView
 {
 private:
   friend class GpuDevice;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
   Texture m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;

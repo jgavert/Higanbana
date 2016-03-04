@@ -1,126 +1,126 @@
 #include "CommandList.hpp"
 
-CptCommandList::CptCommandList(void* cmdList)
+ComputeCmdBuffer::ComputeCmdBuffer(void* cmdList)
   :m_CommandList(cmdList), closed(false)
 {
 }
 
-void CptCommandList::setResourceBarrier()
+void ComputeCmdBuffer::setResourceBarrier()
 {
 }
 
-void CptCommandList::bindComputeBinding(ComputeBinding& )
+void ComputeCmdBuffer::bindComputeBinding(ComputeBinding& )
 {
 }
 
 
-void CptCommandList::Dispatch(ComputeBinding& , unsigned int , unsigned int , unsigned int )
+void ComputeCmdBuffer::Dispatch(ComputeBinding& , unsigned int , unsigned int , unsigned int )
 {
 }
 
-void CptCommandList::DispatchIndirect(ComputeBinding& )
+void ComputeCmdBuffer::DispatchIndirect(ComputeBinding& )
 {
 }
 
-ComputeBinding CptCommandList::bind(ComputePipeline& )
+ComputeBinding ComputeCmdBuffer::bind(ComputePipeline& )
 {
   return ComputeBinding();
 }
 
-bool CptCommandList::isValid()
+bool ComputeCmdBuffer::isValid()
 {
   return true;
 }
 
-void CptCommandList::setHeaps(DescriptorHeapManager& )
+void ComputeCmdBuffer::setHeaps(DescriptorHeapManager& )
 {
 }
 
-void CptCommandList::setSRVBindless(DescriptorHeapManager& )
+void ComputeCmdBuffer::setSRVBindless(DescriptorHeapManager& )
 {
 }
-void CptCommandList::setUAVBindless(DescriptorHeapManager& )
+void ComputeCmdBuffer::setUAVBindless(DescriptorHeapManager& )
 {
 }
-void CptCommandList::closeList()
+void ComputeCmdBuffer::closeList()
 {
 	closed = true;
 }
-bool CptCommandList::isClosed()
+bool ComputeCmdBuffer::isClosed()
 {
 	return closed;
 }
 
-void CptCommandList::resetList()
+void ComputeCmdBuffer::resetList()
 {
 }
 
-void CptCommandList::CopyResource(Buffer&, Buffer&)
+void ComputeCmdBuffer::CopyResource(Buffer&, Buffer&)
 {
 }
 
-GraphicsBinding GfxCommandList::bind(GraphicsPipeline& )
+GraphicsBinding GraphicsCmdBuffer::bind(GraphicsPipeline& )
 {
   return GraphicsBinding();
 }
 
-ComputeBinding GfxCommandList::bind(ComputePipeline& )
+ComputeBinding GraphicsCmdBuffer::bind(ComputePipeline& )
 {
   return ComputeBinding();
 }
 
-void GfxCommandList::setViewPort(ViewPort& )
+void GraphicsCmdBuffer::setViewPort(ViewPort& )
 {
 }
 
-void GfxCommandList::ClearRenderTargetView(TextureRTV& , faze::vec4 )
+void GraphicsCmdBuffer::ClearRenderTargetView(TextureRTV& , faze::vec4 )
 {
 }
 
 
-void GfxCommandList::ClearDepthView(TextureDSV& )
+void GraphicsCmdBuffer::ClearDepthView(TextureDSV& )
 {
 }
 
-void GfxCommandList::bindGraphicsBinding(GraphicsBinding& )
+void GraphicsCmdBuffer::bindGraphicsBinding(GraphicsBinding& )
 {
 }
 
-void GfxCommandList::ClearStencilView(TextureDSV& )
+void GraphicsCmdBuffer::ClearStencilView(TextureDSV& )
 {
 }
 
-void GfxCommandList::ClearDepthStencilView(TextureDSV& )
+void GraphicsCmdBuffer::ClearDepthStencilView(TextureDSV& )
 {
 }
 
-void GfxCommandList::drawInstanced(GraphicsBinding& , unsigned int , unsigned int , unsigned int , unsigned int )
+void GraphicsCmdBuffer::drawInstanced(GraphicsBinding& , unsigned int , unsigned int , unsigned int , unsigned int )
 {
 }
 
-void GfxCommandList::drawInstancedRaw(unsigned int , unsigned int , unsigned int , unsigned int )
+void GraphicsCmdBuffer::drawInstancedRaw(unsigned int , unsigned int , unsigned int , unsigned int )
 {
 }
 
-void GfxCommandList::preparePresent(TextureRTV& )
+void GraphicsCmdBuffer::preparePresent(TextureRTV& )
 {
 }
 
-void GfxCommandList::setRenderTarget(TextureRTV& )
+void GraphicsCmdBuffer::setRenderTarget(TextureRTV& )
 {
 }
 
-void GfxCommandList::setRenderTarget(TextureRTV& , TextureDSV& )
+void GraphicsCmdBuffer::setRenderTarget(TextureRTV& , TextureDSV& )
 {
 }
 
-void GfxCommandList::setSRVBindless(DescriptorHeapManager& )
+void GraphicsCmdBuffer::setSRVBindless(DescriptorHeapManager& )
 {
 }
-void GfxCommandList::setUAVBindless(DescriptorHeapManager& )
+void GraphicsCmdBuffer::setUAVBindless(DescriptorHeapManager& )
 {
 }
 
-void GfxCommandList::resetList()
+void GraphicsCmdBuffer::resetList()
 {
 }

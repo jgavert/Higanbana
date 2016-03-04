@@ -11,20 +11,20 @@
 
 // universal command buffer
 
-class CptCommandList
+class ComputeCmdBuffer
 {
 private:
   friend class GraphicsQueue;
   friend class GpuDevice;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
   friend class _GpuBracket;
 
   void* m_CommandList;
   bool closed;
 
-  CptCommandList(void* cmdList);
+  ComputeCmdBuffer(void* cmdList);
 public:
-  CptCommandList() :
+  ComputeCmdBuffer() :
 	  m_CommandList(nullptr),
 	  closed(false)
   {}
@@ -43,7 +43,7 @@ public:
   void resetList();
 };
 
-class GfxCommandList : public CptCommandList
+class GraphicsCmdBuffer : public ComputeCmdBuffer
 {
 private:
   friend class test;
@@ -51,9 +51,9 @@ private:
   friend class GraphicsQueue;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GfxCommandList(void* cmdList) :CptCommandList(cmdList){}
+  GraphicsCmdBuffer(void* cmdList) :ComputeCmdBuffer(cmdList){}
 public:
-  GfxCommandList() : CptCommandList() {}
+  GraphicsCmdBuffer() : ComputeCmdBuffer() {}
   GraphicsBinding bind(GraphicsPipeline& pipeline);
   ComputeBinding bind(ComputePipeline& pipeline);
   void setViewPort(ViewPort& view);

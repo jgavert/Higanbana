@@ -13,14 +13,14 @@
 #include <d3d12.h>
 // universal command buffer
 
-class CptCommandList
+class ComputeCmdBuffer
 {
 private:
   friend class test;
   friend class ApiTests;
   friend class GraphicsQueue;
   friend class GpuDevice;
-  friend class GfxCommandList;
+  friend class GraphicsCmdBuffer;
   friend class _GpuBracket;
 
   FazCPtr<ID3D12GraphicsCommandList> m_CommandList;
@@ -34,9 +34,9 @@ private:
   int m_srvBindlessIndex;
   int m_uavBindlessIndex;
 
-  CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator);
+  ComputeCmdBuffer(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator);
 public:
-  CptCommandList() :
+  ComputeCmdBuffer() :
 	  m_CommandList(nullptr),
 	  closed(false),
 	  m_boundCptPipeline(nullptr),
@@ -60,7 +60,7 @@ public:
   void resetList();
 };
 
-class GfxCommandList : public CptCommandList
+class GraphicsCmdBuffer : public ComputeCmdBuffer
 {
 private:
   friend class test;
@@ -68,9 +68,9 @@ private:
   friend class GraphicsQueue;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GfxCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator) :CptCommandList(cmdList, commandListAllocator){}
+  GraphicsCmdBuffer(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCPtr<ID3D12CommandAllocator> commandListAllocator) :ComputeCmdBuffer(cmdList, commandListAllocator){}
 public:
-  GfxCommandList() : CptCommandList() {}
+  GraphicsCmdBuffer() : ComputeCmdBuffer() {}
   GraphicsBinding bind(GraphicsPipeline& pipeline);
   ComputeBinding bind(ComputePipeline& pipeline);
   void setViewPort(ViewPort& view);
