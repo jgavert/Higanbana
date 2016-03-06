@@ -1,15 +1,10 @@
 #pragma once
 #include "CommandList.hpp"
 #include "Fence.hpp"
-#include "VulkanQueue.hpp"
-
-#include <memory>
-
-// trying out interface approach to simplify backend implementations and remove duplicate code.
-using PQueue = VulkanQueue;
+#include "vk_specifics/VulkanQueue.hpp"
 
 // hosts basic queue commands.
-class Queue_
+class GpuQueue 
 {
 private:
   friend class test;
@@ -19,28 +14,28 @@ private:
   friend class GraphicsQueue;
   friend class ComputeQueue;
   friend class DMAQueue;
-  PQueue m_queue;
+  QueueImpl m_queue;
 
-  Queue_(PQueue queue);
+  GpuQueue(QueueImpl queue);
 
 public:
   void insertFence(GpuFence& fence);
   bool isValid();
 };
 
-class DMAQueue : public Queue_
+class DMAQueue : public GpuQueue
 {
 private:
   friend class test;
   friend class ApiTests;
   friend class GpuDevice;
   friend class _GpuBracket;
-  DMAQueue(PQueue queue);
+  DMAQueue(QueueImpl queue);
 public:
   void submit(DMACmdBuffer& list);
 };
 
-class ComputeQueue : public Queue_
+class ComputeQueue : public GpuQueue
 {
 private:
   friend class test;
@@ -48,7 +43,7 @@ private:
   friend class GpuDevice;
   friend class _GpuBracket;
   friend class GraphicsQueue;
-  ComputeQueue(PQueue queue);
+  ComputeQueue(QueueImpl queue);
 public:
   void submit(ComputeCmdBuffer& list);
 };
@@ -61,7 +56,7 @@ private:
   friend class ApiTests;
   friend class GpuDevice;
   friend class _GpuBracket;
-  GraphicsQueue(PQueue queue);
+  GraphicsQueue(QueueImpl queue);
 public:
   void submit(GraphicsCmdBuffer& list);
 };

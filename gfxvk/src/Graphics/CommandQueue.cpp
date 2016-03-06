@@ -1,34 +1,34 @@
 #include "CommandQueue.hpp"
 
-Queue_::Queue_(PQueue queue) :m_queue(queue)
+GpuQueue::GpuQueue(QueueImpl queue) :m_queue(queue)
 {
 
 }
 // simple case
-void Queue_::insertFence(GpuFence& )
+void GpuQueue::insertFence(GpuFence& )
 {
 }
 
-bool Queue_::isValid()
+bool GpuQueue::isValid()
 {
-  return m_queue->isValid();
+  return m_queue.isValid();
 }
 
-DMAQueue::DMAQueue(PQueue queue) : Queue_(queue) {};
+DMAQueue::DMAQueue(QueueImpl queue) : GpuQueue(queue) {};
 
 void DMAQueue::submit(DMACmdBuffer& )
 {
 
 }
 
-ComputeQueue::ComputeQueue(PQueue queue) : Queue_(queue) {};
+ComputeQueue::ComputeQueue(QueueImpl queue) : GpuQueue(queue) {};
 
 void ComputeQueue::submit(ComputeCmdBuffer& )
 {
 
 }
 
-GraphicsQueue::GraphicsQueue(PQueue queue) : ComputeQueue(queue) {}
+GraphicsQueue::GraphicsQueue(QueueImpl queue) : ComputeQueue(queue) {}
 
 void GraphicsQueue::submit(GraphicsCmdBuffer& )
 {
