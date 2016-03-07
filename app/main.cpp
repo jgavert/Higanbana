@@ -26,14 +26,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
   // Set flag to the new value.
   _CrtSetDbgFlag(tmpFlag);
   int returnValue = 0;
-  ProgramParams params(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+  {
+    ProgramParams params(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 #else
 int main(int argc, char** argv)
 {
   int returnValue = 0;
-  ProgramParams params(argc, argv);
-#endif
   {
+    ProgramParams params(argc, argv);
+#endif
     EntryPoint ep(params);
 
     returnValue = ep.main();

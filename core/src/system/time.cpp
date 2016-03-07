@@ -12,10 +12,6 @@ WTime::WTime() : start(HighPrecisionClock::now())
   });
 }
 
-WTime::~WTime()
-{
-}
-
 void WTime::firstTick() {
   start = HighPrecisionClock::now();
   timepoint_last = HighPrecisionClock::now();
