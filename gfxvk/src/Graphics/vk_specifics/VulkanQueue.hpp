@@ -1,4 +1,5 @@
 #pragma once
+#include "core/src/memory/ManagedResource.hpp"
 #include "VulkanCmdBuffer.hpp"
 
 #include <vulkan/vk_cpp.h>

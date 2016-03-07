@@ -11,14 +11,31 @@ GpuDevice::~GpuDevice()
 
 GraphicsQueue GpuDevice::createGraphicsQueue()
 {
-  auto ret = m_device.createGraphicsQueue();
-  return GraphicsQueue(ret);
+  return m_device.createGraphicsQueue();
+}
+
+DMAQueue GpuDevice::createDMAQueue()
+{
+  return m_device.createDMAQueue();
+}
+ComputeQueue GpuDevice::createComputeQueue()
+{
+  return m_device.createComputeQueue();
+}
+
+DMACmdBuffer GpuDevice::createDMACommandBuffer()
+{
+  return m_device.createDMACommandBuffer();
+}
+
+ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
+{
+  return m_device.createComputeCommandBuffer();
 }
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 {
-  auto ret = m_device.createGraphicsCommandBuffer();
-  return GraphicsCmdBuffer(ret);
+  return m_device.createGraphicsCommandBuffer();
 }
 
 bool GpuDevice::isValid()
