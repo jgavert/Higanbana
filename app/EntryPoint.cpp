@@ -42,7 +42,8 @@ int EntryPoint::main()
     }
     {
       GpuDevice gpu = devices.createGpuDevice();
-      GraphicsQueue queue = gpu.createGraphicsQueue();
+      GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
+      DMAQueue dmaQueue = gpu.createDMAQueue();
 
     }
   };

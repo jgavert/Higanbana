@@ -11,10 +11,34 @@ VulkanGpuDevice::~VulkanGpuDevice()
 {
 }
 
+VulkanQueue VulkanGpuDevice::createDMAQueue()
+{
+  FazPtrVk<vk::Queue> ret = FazPtrVk<vk::Queue>([](vk::Queue) {});
+  return VulkanQueue(ret);
+}
+
+VulkanQueue VulkanGpuDevice::createComputeQueue()
+{
+  FazPtrVk<vk::Queue> ret = FazPtrVk<vk::Queue>([](vk::Queue) {});
+  return VulkanQueue(ret);
+}
+
 VulkanQueue VulkanGpuDevice::createGraphicsQueue()
 {
-  FazPtrVk<vk::Queue> ret = FazPtrVk<vk::Queue>([](vk::Queue ) {});
+  FazPtrVk<vk::Queue> ret = FazPtrVk<vk::Queue>([](vk::Queue) {});
   return VulkanQueue(ret);
+}
+
+VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
+{
+  FazPtrVk<vk::CommandBuffer> ret = FazPtrVk<vk::CommandBuffer>([](vk::CommandBuffer) {});
+  return VulkanCmdBuffer(ret);
+}
+
+VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
+{
+  FazPtrVk<vk::CommandBuffer> ret = FazPtrVk<vk::CommandBuffer>([](vk::CommandBuffer) {});
+  return VulkanCmdBuffer(ret);
 }
 
 VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()

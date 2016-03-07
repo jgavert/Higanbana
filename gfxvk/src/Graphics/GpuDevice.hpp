@@ -11,7 +11,11 @@ private:
   GpuDevice(GpuDeviceImpl device);
 public:
   ~GpuDevice();
+  DMAQueue createDMAQueue();
+  ComputeQueue createComputeQueue();
   GraphicsQueue createGraphicsQueue();
+  DMACmdBuffer createDMACommandBuffer();
+  ComputeCmdBuffer createComputeCommandBuffer();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   bool isValid();
 };
