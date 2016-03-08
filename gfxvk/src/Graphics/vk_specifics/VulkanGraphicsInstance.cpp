@@ -289,5 +289,5 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     ist.destroy(&m_alloc_info);
   });
 
-  return VulkanGpuDevice(device, m_alloc_info, false);
+  return VulkanGpuDevice(device, m_alloc_info, queueProperties, false);
 }

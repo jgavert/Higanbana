@@ -27,12 +27,11 @@ int EntryPoint::main()
   auto main = [=, &log](std::string name)
   {
     //LBS lbs;
-    F_LOG("Hei olen %s\n", yay::message());
     WTime t;
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
-    Window window(m_params, name, ires.x(), ires.y());
-    window.open();
+    //Window window(m_params, name, ires.x(), ires.y());
+    //window.open();
     GraphicsInstance devices;
     if (!devices.createInstance("faze"))
     {
@@ -40,12 +39,13 @@ int EntryPoint::main()
       log.update();
       return;
     }
+    
     {
       GpuDevice gpu = devices.createGpuDevice();
       GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
       DMAQueue dmaQueue = gpu.createDMAQueue();
-
     }
+    log.update();
   };
 
   main("w1");
