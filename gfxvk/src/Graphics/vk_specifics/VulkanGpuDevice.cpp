@@ -127,7 +127,7 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     queueFamilyIndex = m_freeQueueIndexes.computeIndex;
     queueId = m_freeQueueIndexes.compute.back();
     m_freeQueueIndexes.compute.pop_back();
-    auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
+    auto que = m_device->getQueue(queueFamilyIndex, queueId);
     return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.compute.push_back(queueId); });
   }
   if (m_freeQueueIndexes.universal.size() > 0)
@@ -135,7 +135,7 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     queueFamilyIndex = m_freeQueueIndexes.universalIndex;
     queueId = m_freeQueueIndexes.universal.back();
     m_freeQueueIndexes.universal.pop_back();
-    auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
+    auto que = m_device->getQueue(queueFamilyIndex, queueId);
     return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.universal.push_back(queueId); });
   }
 
@@ -174,20 +174,86 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
 
 VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
 {
-  FazPtrVk<vk::CommandBuffer> ret = FazPtrVk<vk::CommandBuffer>([](vk::CommandBuffer) {});
-  return VulkanCmdBuffer(ret);
+  vk::CommandPoolCreateInfo poolInfo;
+  if (m_onlySeparateQueues)
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.dmaIndex);
+  }
+  else
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+  }
+  auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
+  auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
+    .commandBufferCount(1)
+    .commandPool(pool)
+    .sType(vk::StructureType::eCommandBufferAllocateInfo)
+    .level(vk::CommandBufferLevel::ePrimary));
+  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
+  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  return VulkanCmdBuffer(retBuf, retPool);
 }
 
 VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
 {
-  FazPtrVk<vk::CommandBuffer> ret = FazPtrVk<vk::CommandBuffer>([](vk::CommandBuffer) {});
-  return VulkanCmdBuffer(ret);
+  vk::CommandPoolCreateInfo poolInfo;
+  if (m_onlySeparateQueues)
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.computeIndex);
+  }
+  else
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+  }
+  auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
+  auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
+    .commandBufferCount(1)
+    .commandPool(pool)
+    .sType(vk::StructureType::eCommandBufferAllocateInfo)
+    .level(vk::CommandBufferLevel::ePrimary));
+  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
+  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  return VulkanCmdBuffer(retBuf, retPool);
 }
 
 VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
 {
-  FazPtrVk<vk::CommandBuffer> ret = FazPtrVk<vk::CommandBuffer>([](vk::CommandBuffer) {});
-  return VulkanCmdBuffer(ret);
+  vk::CommandPoolCreateInfo poolInfo;
+  if (m_onlySeparateQueues)
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.graphicsIndex);
+  }
+  else
+  {
+    poolInfo = vk::CommandPoolCreateInfo()
+      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .sType(vk::StructureType::eCommandPoolCreateInfo)
+      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+  }
+  auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
+  auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
+    .commandBufferCount(1)
+    .commandPool(pool)
+    .sType(vk::StructureType::eCommandBufferAllocateInfo)
+    .level(vk::CommandBufferLevel::ePrimary));
+  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
+  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  return VulkanCmdBuffer(retBuf, retPool);
 }
 
 bool VulkanGpuDevice::isValid()
