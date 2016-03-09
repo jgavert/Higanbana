@@ -42,9 +42,9 @@ int EntryPoint::main()
     
     {
       GpuDevice gpu = devices.createGpuDevice();
+      GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
+      DMAQueue dmaQueue = gpu.createDMAQueue();
       {
-        GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
-        DMAQueue dmaQueue = gpu.createDMAQueue();
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
       }
