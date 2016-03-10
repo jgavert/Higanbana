@@ -11,12 +11,24 @@ class Buffer
 {
   friend class GpuDevice;
   std::shared_ptr<BufferImpl> buffer;
+
+  Buffer()
+  {}
+
+  Buffer(BufferImpl impl)
+    : buffer(std::make_shared<BufferImpl>(std::forward<decltype(impl)>(impl)))
+  {}
 public:
 
   template<typename T>
   MappedBufferImpl<T> Map()
   {
     return buffer->Map<T>();
+  }
+
+  ResourceDescriptor desc()
+  {
+    return buffer->desc();
   }
 
   BufferImpl& getBuffer()
@@ -37,6 +49,7 @@ private:
   friend class GpuDevice;
   Buffer m_buffer; // TODO: m_state needs to be synchronized
   BufferShaderViewImpl m_view;
+
 public:
   Buffer& buffer()
   {
@@ -45,7 +58,7 @@ public:
 
   bool isValid()
   {
-    return m_buffer.isValid();
+    return m_buffer.isValid() && m_view.isValid();
   }
 
   size_t getIndexInHeap()

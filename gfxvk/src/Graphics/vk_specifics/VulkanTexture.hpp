@@ -7,9 +7,9 @@
 #include <vulkan/vk_cpp.h>
 
 template<typename type>
-struct VulkanMappedBuffer
+struct VulkanMappedTexture
 {
-  FazPtrVk<vk::Buffer> m_mappedresource;
+  FazPtrVk<vk::Image> m_mappedresource;
   type mapped;
 
   size_t rangeBegin()
@@ -39,26 +39,26 @@ struct VulkanMappedBuffer
 };
 
 template <typename T>
-using MappedBufferImpl = VulkanMappedBuffer<T>;
+using MappedTextureImpl = VulkanMappedTexture<T>;
 
-class VulkanBuffer
+class VulkanTexture
 {
-  FazPtrVk<vk::Buffer> m_resource;
+  FazPtrVk<vk::Image> m_resource;
   ResourceDescriptor m_desc;
 
-  VulkanBuffer()
+  VulkanTexture()
     : m_resource(nullptr)
   {}
 
-  VulkanBuffer(FazPtrVk<vk::Buffer> impl, ResourceDescriptor desc)
+  VulkanTexture(FazPtrVk<vk::Image> impl, ResourceDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_desc(std::forward<decltype(desc)>(desc))
   {}
 public:
   template<typename T>
-  VulkanMappedBuffer<T> Map()
+  VulkanMappedTexture<T> Map()
   {
-    return VulkanMappedBuffer<T>(nullptr);
+    return VulkanMappedTexture<T>(nullptr);
   }
 
   ResourceDescriptor& desc()
@@ -72,14 +72,15 @@ public:
   }
 };
 
-using BufferImpl = VulkanBuffer;
+using TextureImpl = VulkanTexture;
 
-class VulkanBufferShaderView
+class VulkanTextureShaderView
 {
 private:
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
-  VulkanBufferShaderView()
+
+  VulkanTextureShaderView()
     : indexInHeap([](size_t) {})
     , customIndex(0)
   {}
@@ -100,5 +101,5 @@ public:
   }
 };
 
-using BufferShaderViewImpl = VulkanBufferShaderView;
+using TextureShaderViewImpl = VulkanTextureShaderView;
 

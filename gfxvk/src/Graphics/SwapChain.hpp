@@ -19,12 +19,10 @@ private:
     : m_SwapChain(std::move(SwapChain))
     , m_resources(resources)
   {
-    m_resources.push_back(TextureRTV());
   }
 
   SwapChain():m_SwapChain(nullptr)
   {
-    m_resources.push_back(TextureRTV());
   }
 public:
 
