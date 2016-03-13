@@ -54,10 +54,4 @@ public:
   {
     return true;
   }
-
-  void* operator->() const throw()
-  {
-    return m_SwapChain;
-  }
-
 };

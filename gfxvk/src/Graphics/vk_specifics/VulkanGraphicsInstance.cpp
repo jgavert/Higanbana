@@ -270,7 +270,9 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     ++i;
   }
 
-  auto features = physDev.getFeatures();
+  auto features = physDev.getFeatures(); // ALL OF THEM FEATURES.
+
+  auto heapInfos = physDev.getMemoryProperties();
 
   auto device_info = vk::DeviceCreateInfo()
     .sType(vk::StructureType::eDeviceCreateInfo)
@@ -289,5 +291,5 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     ist.destroy(&m_alloc_info);
   });
 
-  return VulkanGpuDevice(device, m_alloc_info, queueProperties, false);
+  return VulkanGpuDevice(device, m_alloc_info, queueProperties, heapInfos, false);
 }

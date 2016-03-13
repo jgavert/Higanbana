@@ -1,6 +1,11 @@
 #include "VulkanGpuDevice.hpp"
 
-VulkanGpuDevice::VulkanGpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, std::vector<vk::QueueFamilyProperties> queues, bool debugLayer)
+VulkanGpuDevice::VulkanGpuDevice(
+  FazPtrVk<vk::Device> device,
+  vk::AllocationCallbacks alloc_info,
+  std::vector<vk::QueueFamilyProperties> queues,
+  vk::PhysicalDeviceMemoryProperties memProp,
+  bool debugLayer)
   : m_alloc_info(alloc_info)
   , m_device(device)
   , m_debugLayer(debugLayer)
@@ -8,6 +13,8 @@ VulkanGpuDevice::VulkanGpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCall
   , m_singleQueue(false)
   , m_onlySeparateQueues(false)
   , m_freeQueueIndexes({})
+  , m_uma(false)
+  , m_memoryTypes({-1, -1, -1, -1})
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
   // universal
@@ -80,6 +87,61 @@ VulkanGpuDevice::VulkanGpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCall
   {
     m_onlySeparateQueues = true; // This is ideal for design. Only on amd.
   }
+
+  // Heap infos
+  auto heapCounts = memProp.memoryHeapCount();
+  if (heapCounts == 1 && memProp.memoryHeaps()[0].flags() == vk::MemoryHeapFlagBits::eDeviceLocal)
+  {
+    m_uma = true;
+  }
+
+  auto memTypeCount = memProp.memoryTypeCount();
+  auto memPtr = memProp.memoryTypes();
+
+  auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
+  {
+    return (type.propertyFlags() & flag) == flag;
+  };
+
+  for (int i = 0; i < static_cast<int>(memTypeCount); ++i)
+  {
+    // TODO probably bug here with flags.
+    auto memType = memPtr[i];
+    if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
+    {
+      if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
+      {
+        // weird memory only for uma... usually
+        m_memoryTypes.deviceHostIndex = i;
+      }
+      else
+      {
+        m_memoryTypes.deviceLocalIndex = i;
+      }
+    }
+    else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
+    {
+      if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
+      {
+        m_memoryTypes.hostCachedIndex = i;
+      }
+      else
+      {
+        m_memoryTypes.hostNormalIndex = i;
+      }
+    }
+  }
+  // validify memorytypes
+  if (m_memoryTypes.deviceHostIndex != 0 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
+  {
+    // normal!
+  }
+  else
+  {
+    abort(); // not sane situation.
+  }
+
+  // figure out indexes for default, upload, readback...
 }
 
 VulkanQueue VulkanGpuDevice::createDMAQueue()
@@ -259,4 +321,96 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
 bool VulkanGpuDevice::isValid()
 {
   return m_device.isValid();
+}
+
+VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
+{
+  if (desc.m_sizeInBytes == 0)
+  {
+    abort(); // TODO: macro that does __debug_break and prints error and exits the program.
+  }
+  auto ensureAlignment = [](uint64_t sizeInBytes, uint64_t alignment)
+  {
+    uint64_t spill = sizeInBytes % alignment;
+    if (spill == 0)
+    {
+      return sizeInBytes;
+    }
+    return sizeInBytes + alignment - spill;
+  };
+
+  desc.m_sizeInBytes = ensureAlignment(desc.m_sizeInBytes, desc.m_alignment);
+  // Heaps don't waste space by definition so it's fine if we upscale it.
+  vk::MemoryAllocateInfo allocInfo;
+  if (m_uma)
+  {
+    if (m_memoryTypes.deviceHostIndex != -1)
+    {
+      allocInfo = vk::MemoryAllocateInfo()
+        .sType(vk::StructureType::eMemoryAllocateInfo)
+        .allocationSize(desc.m_sizeInBytes)
+        .memoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
+    }
+    else
+    {
+      // oh shit
+      abort();
+    }
+  }
+  else
+  {
+    uint32_t memoryTypeIndex = 0;
+    if ((desc.m_heapType == HeapType::Default) && m_memoryTypes.deviceLocalIndex != -1)
+    {
+      memoryTypeIndex = m_memoryTypes.deviceLocalIndex;
+    }
+    else if ((desc.m_heapType == HeapType::Readback || desc.m_heapType == HeapType::Upload) && m_memoryTypes.hostNormalIndex != -1)
+    {
+      memoryTypeIndex = m_memoryTypes.hostNormalIndex;
+    }
+    else
+    {
+      // oh shit;
+      abort();
+    }
+    allocInfo = vk::MemoryAllocateInfo()
+      .sType(vk::StructureType::eMemoryAllocateInfo)
+      .allocationSize(desc.m_sizeInBytes)
+      .memoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
+  }
+
+  auto memory = m_device->allocateMemory(allocInfo, m_alloc_info);
+  auto ret = FazPtrVk<vk::DeviceMemory>(memory, [&](vk::DeviceMemory memory)
+  {
+    m_device->freeMemory(memory, m_alloc_info);
+  });
+  return VulkanMemoryHeap(ret, desc);
+}
+
+VulkanBuffer VulkanGpuDevice::createBuffer(ResourceDescriptor )
+{
+  return VulkanBuffer();
+}
+VulkanTexture VulkanGpuDevice::createTexture(ResourceDescriptor )
+{
+  return VulkanTexture();
+}
+// shader views
+VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer , ShaderViewDescriptor )
+{
+  return VulkanBufferShaderView();
+}
+VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture , ShaderViewDescriptor)
+{
+  return VulkanTextureShaderView();
+}
+
+VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
+{
+  return VulkanPipeline();
+}
+
+VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor )
+{
+  return VulkanPipeline();
 }

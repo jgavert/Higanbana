@@ -5,10 +5,6 @@ GpuDevice::GpuDevice(GpuDeviceImpl device)
 {
 }
 
-GpuDevice::~GpuDevice()
-{
-}
-
 GraphicsQueue GpuDevice::createGraphicsQueue()
 {
   return m_device.createGraphicsQueue();
@@ -28,6 +24,16 @@ DMACmdBuffer GpuDevice::createDMACommandBuffer()
   return m_device.createDMACommandBuffer();
 }
 
+GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
+{
+  return m_device.createGraphicsPipeline(desc);
+}
+
+ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
+{
+  return m_device.createComputePipeline(desc);
+}
+
 ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
 {
   return m_device.createComputeCommandBuffer();
@@ -36,6 +42,78 @@ ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 {
   return m_device.createGraphicsCommandBuffer();
+}
+
+ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
+{
+  return m_device.createMemoryHeap(desc);
+}
+
+Buffer GpuDevice::createBuffer(ResourceDescriptor desc)
+{
+  return m_device.createBuffer(desc);
+}
+Texture GpuDevice::createTexture(ResourceDescriptor desc)
+{
+  return m_device.createTexture(desc);
+}
+// shader views
+TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc)
+{
+  TextureSRV view;
+  view.m_texture = targetTexture;
+  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  return view;
+}
+TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
+{
+  TextureUAV view;
+  view.m_texture = targetTexture;
+  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  return view;
+}
+TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
+{
+  TextureRTV view;
+  view.m_texture = targetTexture;
+  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  return view;
+}
+TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
+{
+  TextureDSV view;
+  view.m_texture = targetTexture;
+  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  return view;
+}
+
+BufferSRV GpuDevice::createBufferSRV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  BufferSRV view;
+  view.m_buffer = targetBuffer;
+  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  return view;
+}
+BufferUAV GpuDevice::createBufferUAV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  BufferUAV view;
+  view.m_buffer = targetBuffer;
+  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  return view;
+}
+BufferCBV GpuDevice::createBufferCBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  BufferCBV view;
+  view.m_buffer = targetBuffer;
+  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  return view;
+}
+BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
+{
+  BufferIBV view;
+  view.m_buffer = targetBuffer;
+  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  return view;
 }
 
 bool GpuDevice::isValid()

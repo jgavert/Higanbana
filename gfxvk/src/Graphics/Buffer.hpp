@@ -10,6 +10,7 @@
 class Buffer
 {
   friend class GpuDevice;
+  friend class BufferShaderView;
   std::shared_ptr<BufferImpl> buffer;
 
   Buffer()
@@ -47,9 +48,15 @@ class BufferShaderView
 private:
   friend class Binding_;
   friend class GpuDevice;
+  friend class BufferSRV;
+  friend class BufferUAV;
+  friend class BufferIBV;
+  friend class BufferCBV;
+
   Buffer m_buffer; // TODO: m_state needs to be synchronized
   BufferShaderViewImpl m_view;
-
+  BufferShaderView()
+  {}
 public:
   Buffer& buffer()
   {
@@ -76,25 +83,21 @@ public:
 
 class BufferSRV : public BufferShaderView
 {
-public:
 
 };
 
 class BufferUAV : public BufferShaderView
 {
-public:
 
 };
 
 class BufferIBV : public BufferShaderView
 {
-public:
 
 };
 
 class BufferCBV : public BufferShaderView
 {
-public:
 
 };
 

@@ -34,7 +34,7 @@ struct VulkanMappedBuffer
 
   bool isValid()
   {
-    return false;
+    return mapped != nullptr;
   }
 };
 
@@ -43,6 +43,8 @@ using MappedBufferImpl = VulkanMappedBuffer<T>;
 
 class VulkanBuffer
 {
+  friend class VulkanGpuDevice;
+
   FazPtrVk<vk::Buffer> m_resource;
   ResourceDescriptor m_desc;
 
@@ -68,7 +70,7 @@ public:
 
   bool isValid()
   {
-    return true;
+    return m_resource.isValid();
   }
 };
 
@@ -77,6 +79,9 @@ using BufferImpl = VulkanBuffer;
 class VulkanBufferShaderView
 {
 private:
+  friend class VulkanGpuDevice;
+  friend class BufferShaderView;
+
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
   VulkanBufferShaderView()
