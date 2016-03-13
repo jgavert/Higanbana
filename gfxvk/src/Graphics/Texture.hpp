@@ -10,6 +10,7 @@
 class Texture
 {
   friend class GpuDevice;
+  friend class TextureShaderView;
   std::shared_ptr<TextureImpl> texture;
 
   Texture()
@@ -47,10 +48,18 @@ class TextureShaderView
 private:
   friend class GpuDevice;
   friend class GraphicsCmdBuffer;
+  friend class TextureSRV;
+  friend class TextureUAV;
   friend class TextureRTV;
+  friend class TextureDSV;
+
   Texture m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
   TextureShaderViewImpl m_view;
+
+  TextureShaderView()
+  {}
 public:
+
   Texture& texture()
   {
     return m_texture;

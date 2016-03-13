@@ -34,7 +34,7 @@ struct VulkanMappedTexture
 
   bool isValid()
   {
-    return false;
+    return mapped != nullptr;
   }
 };
 
@@ -43,6 +43,8 @@ using MappedTextureImpl = VulkanMappedTexture<T>;
 
 class VulkanTexture
 {
+  friend class VulkanGpuDevice;
+
   FazPtrVk<vk::Image> m_resource;
   ResourceDescriptor m_desc;
 
@@ -68,7 +70,7 @@ public:
 
   bool isValid()
   {
-    return true;
+    return m_resource.isValid();
   }
 };
 
@@ -77,6 +79,8 @@ using TextureImpl = VulkanTexture;
 class VulkanTextureShaderView
 {
 private:
+  friend class VulkanGpuDevice;
+  friend class TextureShaderView;
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
 

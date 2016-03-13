@@ -1,7 +1,13 @@
 #pragma once
 #include "VulkanQueue.hpp"
 #include "VulkanCmdBuffer.hpp"
+#include "VulkanBuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanHeap.hpp"
+#include "VulkanPipeline.hpp"
 #include "core/src/memory/ManagedResource.hpp"
+#include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
+#include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include <vulkan/vk_cpp.h>
 
 class VulkanGpuDevice
@@ -16,6 +22,7 @@ private:
   bool                    m_singleQueue;
   bool                    m_onlySeparateQueues;
   FazPtrVk<vk::Queue>     m_internalUniversalQueue;
+  bool                    m_uma;
   struct FreeQueues
   {
     int universalIndex;
@@ -28,15 +35,37 @@ private:
     std::vector<uint32_t> dma;
   } m_freeQueueIndexes;
 
+  struct MemoryTypes
+  {
+    int deviceLocalIndex;
+    int hostNormalIndex;
+    int hostCachedIndex; // probably not needed
+    int deviceHostIndex; // default for uma, when discrete has this... what
+  } m_memoryTypes;
+
 public:
-  VulkanGpuDevice(FazPtrVk<vk::Device> device, vk::AllocationCallbacks alloc_info, std::vector<vk::QueueFamilyProperties> queues, bool debugLayer);
+  VulkanGpuDevice(
+    FazPtrVk<vk::Device> device,
+    vk::AllocationCallbacks alloc_info,
+    std::vector<vk::QueueFamilyProperties> queues,
+    vk::PhysicalDeviceMemoryProperties memProp,
+    bool debugLayer);
+  bool isValid();
   VulkanQueue createDMAQueue();
   VulkanQueue createComputeQueue();
   VulkanQueue createGraphicsQueue();
   VulkanCmdBuffer createDMACommandBuffer();
   VulkanCmdBuffer createComputeCommandBuffer();
   VulkanCmdBuffer createGraphicsCommandBuffer();
-  bool isValid();
+  VulkanPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
+  VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc);
+  VulkanMemoryHeap createMemoryHeap(HeapDescriptor desc);
+  VulkanBuffer createBuffer(ResourceDescriptor desc);
+  VulkanTexture createTexture(ResourceDescriptor desc);
+  // shader views
+  VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

@@ -21,9 +21,11 @@ public:
 class ComputePipeline : public GpuPipeline
 {
   friend class GpuDevice;
+  ComputePipeline(PipelineImpl pipeline) : GpuPipeline(std::forward<decltype(pipeline)>(pipeline)) {}
 };
 
 class GraphicsPipeline : public GpuPipeline
 {
   friend class GpuDevice;
+  GraphicsPipeline(PipelineImpl pipeline) : GpuPipeline(std::forward<decltype(pipeline)>(pipeline)) {}
 };

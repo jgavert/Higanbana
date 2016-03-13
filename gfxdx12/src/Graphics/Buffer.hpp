@@ -123,6 +123,7 @@ private:
   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
   FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
+
 public:
   Buffer& buffer()
   {
