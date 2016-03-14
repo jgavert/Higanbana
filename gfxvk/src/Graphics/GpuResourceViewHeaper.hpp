@@ -1,5 +1,6 @@
 #pragma once
 #include "core/src/entity/bitfield.hpp"
+#include "core/src/global_debug.hpp"
 #include <iostream>
 #include <string>
 #include <assert.h>
@@ -56,7 +57,7 @@ private:
     block = m_usedIndexes.popcount_element(fromBlock);
     if (block == 128)
     {
-      abort(); // lol everything used from block, cannot handle this yet.
+      F_ERROR("lol everything used from block, cannot handle this yet.");
     }
     else
     {
@@ -84,7 +85,7 @@ public:
 	  auto val = getNextFromRange(m_uavStart, m_uavCount);
 	  if (val == -1)
 	  {
-		  abort();
+      F_ERROR("No UAV indexes left in this ResourceViewManager");
 	  }
 	  return val;
   }
@@ -94,7 +95,7 @@ public:
 	  auto val = getNextFromRange(m_srvStart, m_srvCount);
 	  if (val == -1)
 	  {
-		  abort();
+      F_ERROR("No SRV indexes left in this ResourceViewManager");
 	  }
 	  return val;
   }
@@ -104,7 +105,7 @@ public:
     auto val = getNextFromRange(m_cbvStart, m_size-m_cbvStart);
     if (val == -1)
     {
-      abort();
+      F_ERROR("No CBV indexes left in this ResourceViewManager");
     }
     return val;
   }

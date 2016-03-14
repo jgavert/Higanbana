@@ -232,7 +232,7 @@ public:
         OutputDebugStringA((char*)errorMsg->GetBufferPointer());
         errorMsg->Release();
       }
-      abort();
+      F_ERROR("Shader compiling failed");
     }
     {
 		FazCPtr<ID3DBlob> rootBlob;
@@ -245,7 +245,7 @@ public:
       hr = D3D12CreateRootSignatureDeserializer(rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
       if (FAILED(hr))
       {
-        abort();
+        F_ERROR("D3D12CreateRootSignatureDeserializer failed");
       }
 
       const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
@@ -255,7 +255,7 @@ public:
         // see if this shader differs, and if so, abort. not ok.
         if (!root.isCopyOf(*woot2))
         {
-          abort();
+          F_ERROR("Rootsignature differs from other shaders.");
         }
       }
       else
@@ -269,7 +269,7 @@ public:
           __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.addr()));
         if (FAILED(hr))
         {
-          abort();
+          F_ERROR("CreateRootSignature failed");
         }
         root = ShaderInterface(rootSig, *woot2);
       }

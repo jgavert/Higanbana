@@ -47,8 +47,7 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   HRESULT hr = m_device->CreateDescriptorHeap(&Desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap.releaseAndAddr()));
   if (FAILED(hr))
   {
-    // 
-    abort();
+    F_ERROR("Failed to create CBV/SRV/UAV descriptor heap");
   }
   heap.get()->SetName(L"MainDescHeap");
   ResourceViewManager descHeap = ResourceViewManager(heap, m_device->GetDescriptorHandleIncrementSize(Desc.Type), HeapDescriptorCount, HeapSRVCount, HeapUAVCount);
@@ -62,8 +61,7 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   hr = m_device->CreateDescriptorHeap(&Desc2, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap2.releaseAndAddr()));
   if (FAILED(hr))
   {
-	  // 
-	  abort();
+    F_ERROR("Failed to create RTV descriptor heap");
   }
   heap2.get()->SetName(L"RTVDescHeap");
   ResourceViewManager descRTVHeap = ResourceViewManager(heap2, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
@@ -77,8 +75,7 @@ GpuDevice::GpuDevice(FazCPtr<ID3D12Device> device, bool debugLayer) : m_device(d
   hr = m_device->CreateDescriptorHeap(&Desc3, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(heap3.releaseAndAddr()));
   if (FAILED(hr))
   {
-	  // 
-	  abort();
+    F_ERROR("Failed to create DSV descriptor heap");
   }
   ResourceViewManager descDSVHeap = ResourceViewManager(heap3, m_device->GetDescriptorHandleIncrementSize(Desc.Type), Desc.NumDescriptors);
   heap3.get()->SetName(L"RTVDescHeap");
@@ -163,12 +160,12 @@ GraphicsCmdBuffer GpuDevice::createUniversalCommandList()
   HRESULT hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)commandListAllocator.addr());
   if (FAILED(hr))
   {
-    abort();
+    F_ERROR("Failed to create CommandListAllocator");
   }
   hr = m_device->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, commandListAllocator.get(), NULL, __uuidof(ID3D12CommandList), (void**)commandList.addr());
   if (FAILED(hr))
   {
-    abort();
+    F_ERROR("Failed to create CommandList");
   }
   return std::move(GraphicsCmdBuffer(commandList, commandListAllocator));
 }
@@ -204,7 +201,7 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 	HRESULT hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
 	if (FAILED(hr))
 	{
-		abort();
+    F_ERROR("Failed to create D3D12CreateRootSignatureDeserializer");
 	}
 	const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
 
@@ -220,7 +217,7 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 	hr = m_device->CreateComputePipelineState(&computeDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
 	if (FAILED(hr))
 	{
-		abort();
+    F_ERROR("Failed to create D3D12CreateRootSignatureDeserializer");
 	}
 
 	size_t cbv = 0, srv = 0, uav = 0;
@@ -294,7 +291,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	HRESULT hr = m_device->CreateGraphicsPipelineState(&graphicsDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(pipeline.addr()));
 	if (FAILED(hr))
 	{
-		abort();
+    F_ERROR("Failed to create CreateGraphicsPipelineState");
 	}
 
 	// reflect the root signature
@@ -302,7 +299,7 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 	hr = D3D12CreateRootSignatureDeserializer(blobVertex->GetBufferPointer(), blobVertex->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
 	if (FAILED(hr))
 	{
-		abort();
+    F_ERROR("Failed to create D3D12CreateRootSignatureDeserializer");
 	}
 	const D3D12_ROOT_SIGNATURE_DESC* woot2 = asd->GetRootSignatureDesc();
 
@@ -736,7 +733,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GpuDevice::createUavDesc(ResourceDescriptor& de
   }
   else
   {
-    abort(); // replace with assert and exit.
+    F_ERROR("Failed to create createUavDesc");
   }
 
   return uavdesc;
@@ -803,7 +800,7 @@ D3D12_RENDER_TARGET_VIEW_DESC GpuDevice::createRtvDesc(ResourceDescriptor& desc,
   }
   else
   {
-    abort(); // TODO: replace with somethign better
+    F_ERROR("Failed to create createRtvDesc");
   }
   return rtv;
 }
@@ -848,7 +845,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GpuDevice::createDsvDesc(ResourceDescriptor& desc,
   }
   else
   {
-    abort(); // TODO: replace with somethign better
+    F_ERROR("Failed to create createDsvDesc");
   }
   return dsv;
 }

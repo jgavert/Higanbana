@@ -3,6 +3,7 @@
 #include "ResourceDescriptor.hpp"
 #include "FazCPtr.hpp"
 #include "core/src/memory/ManagedResource.hpp"
+#include "core/src/global_debug.hpp"
 
 #include <d3d12.h>
 #include <vector>
@@ -68,7 +69,7 @@ struct BufferInternal
   {
     if (m_desc.m_usage == ResourceUsage::GpuOnly)
     {
-      abort();
+      F_ERROR("Tried to map GpuOnly resource!");
     }
     T* ptr;
     m_range.Begin = 0;
@@ -77,7 +78,7 @@ struct BufferInternal
     if (FAILED(hr))
     {
       // something?
-      abort();
+      F_ERROR("Resource failed to map!");
     }
     return MappedBuffer<T>(m_resource, m_range, (m_desc.m_usage == ResourceUsage::ReadbackHeap), ptr);
   }

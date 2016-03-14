@@ -50,7 +50,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   }
   F_LOG("%s[%s] Code %d : %s\n", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(PLATFORM_WINDOWS)
-  if (breakOn)
+  if (breakOn && IsDebuggerPresent())
     __debugbreak();
 #endif
   return false;

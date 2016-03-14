@@ -6,7 +6,7 @@ void GraphicsQueue::submit(GraphicsCmdBuffer& list)
 {
   if (!list.isClosed())
   {
-    abort();
+    F_ERROR("CmdBuffer wasn't closed when tried to submit!");
   }
   m_CommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(list.m_CommandList.addr()));
 }

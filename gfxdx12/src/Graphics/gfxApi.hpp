@@ -140,8 +140,7 @@ public:
       HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
-        F_LOG("Device creation failed\n", 2);
-        abort();
+        F_ERROR("Device creation failed");
       }
       else
       {
