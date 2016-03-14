@@ -28,10 +28,8 @@ void Logger::handleFazMesg(LogMessage &mesg)
   unhandled_buffer_size++; m_writerIndex++;
 #ifdef WIN64
   //OutputDebugString(mesg.m_data);
-  //std::cerr.write(mesg.m_data, dataSize);
-#else
-  //std::cerr.write(mesg.m_data, dataSize);
 #endif
+  //std::cerr.write(mesg.m_data, dataSize);
 }
 
 void Logger::update()

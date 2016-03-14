@@ -65,7 +65,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   }
   if (totalQueues == 0)
   {
-    abort(); // wtf, not sane device.
+    F_ERROR("wtf, not sane device.");
   }
   else if (totalQueues == 1)
   {
@@ -78,7 +78,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   if (m_freeQueueIndexes.universal.size() > 0
     && m_freeQueueIndexes.graphics.size() > 0)
   {
-    abort(); // abort mission. Too many variations of queues.
+    F_ERROR("abort mission. Too many variations of queues.");
   }
   if (m_freeQueueIndexes.universal.size() == 0
     && m_freeQueueIndexes.graphics.size() > 0
@@ -138,7 +138,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   }
   else
   {
-    abort(); // not sane situation.
+    F_ERROR("not sane situation."); // not sane situation.
   }
 
   // figure out indexes for default, upload, readback...
@@ -325,22 +325,6 @@ bool VulkanGpuDevice::isValid()
 
 VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
 {
-  if (desc.m_sizeInBytes == 0)
-  {
-    abort(); // TODO: macro that does __debug_break and prints error and exits the program.
-  }
-  auto ensureAlignment = [](uint64_t sizeInBytes, uint64_t alignment)
-  {
-    uint64_t spill = sizeInBytes % alignment;
-    if (spill == 0)
-    {
-      return sizeInBytes;
-    }
-    return sizeInBytes + alignment - spill;
-  };
-
-  desc.m_sizeInBytes = ensureAlignment(desc.m_sizeInBytes, desc.m_alignment);
-  // Heaps don't waste space by definition so it's fine if we upscale it.
   vk::MemoryAllocateInfo allocInfo;
   if (m_uma)
   {
@@ -353,8 +337,7 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
     }
     else
     {
-      // oh shit
-      abort();
+      F_ERROR("uma but no memory type can be used");
     }
   }
   else
@@ -370,8 +353,7 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
     }
     else
     {
-      // oh shit;
-      abort();
+      F_ERROR("normal device but no valid memory type available");
     }
     allocInfo = vk::MemoryAllocateInfo()
       .sType(vk::StructureType::eMemoryAllocateInfo)

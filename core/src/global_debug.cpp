@@ -32,7 +32,7 @@ void log_adv(const char *fn, int ln, const char* format, ...)
 {
   va_list args;
   char buf[1024];
-  int n = snprintf(buf, sizeof(buf), "%s:%d> ", fn, ln);
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
 
   va_start(args, format);
 #if defined(PLATFORM_WINDOWS)
@@ -59,6 +59,28 @@ void log_def(const char* format, ...)
   va_end(args);
   LogMessage log(buf);
   sendMessage(log);
+}
+
+void log_immideate(const char *fn, int ln, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
+
+  va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
+  _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#else
+  vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#endif
+  va_end(args);
+
+#if defined(PLATFORM_WINDOWS)
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
 }
 
 std::string _log_getvalue(std::string type, float& value)

@@ -194,7 +194,7 @@ void ComputeCmdBuffer::closeList()
 	hr = m_CommandList->Close();
 	if (FAILED(hr))
 	{
-    abort();
+    F_ERROR("CommandList failed to close.");
 	}
 	closed = true;
 }

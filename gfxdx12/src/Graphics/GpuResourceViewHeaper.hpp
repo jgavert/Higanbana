@@ -58,7 +58,7 @@ private:
     block = m_usedIndexes.popcount_element(fromBlock);
     if (block == 128)
     {
-      abort(); // lol everything used from block, cannot handle this yet.
+      F_ERROR("lol everything used from block, cannot handle this yet.");
     }
     else
     {
@@ -83,30 +83,30 @@ private:
 public:
   unsigned getUAVIndex()
   {
-	  auto val = getNextFromRange(m_uavStart, m_uavCount);
-	  if (val == -1)
-	  {
-		  abort();
-	  }
-	  return val;
+    auto val = getNextFromRange(m_uavStart, m_uavCount);
+    if (val == -1)
+    {
+      F_ERROR("No UAV indexes left in this ResourceViewManager");
+    }
+    return val;
   }
-  
+
   unsigned getSRVIndex()
   {
-	  auto val = getNextFromRange(m_srvStart, m_srvCount);
-	  if (val == -1)
-	  {
-		  abort();
-	  }
-	  return val;
+    auto val = getNextFromRange(m_srvStart, m_srvCount);
+    if (val == -1)
+    {
+      F_ERROR("No SRV indexes left in this ResourceViewManager");
+    }
+    return val;
   }
 
   unsigned getCBVIndex()
   {
-    auto val = getNextFromRange(m_cbvStart, m_size-m_cbvStart);
+    auto val = getNextFromRange(m_cbvStart, m_size - m_cbvStart);
     if (val == -1)
     {
-      abort();
+      F_ERROR("No CBV indexes left in this ResourceViewManager");
     }
     return val;
   }

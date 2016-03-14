@@ -46,6 +46,21 @@ GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 
 ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
 {
+  if (desc.m_sizeInBytes == 0)
+  {
+    F_ERROR("Not valid to create memory heap of size 0"); // TODO: macro that does __debug_break and prints error and exits the program.
+  }
+  auto ensureAlignment = [](uint64_t sizeInBytes, uint64_t alignment)
+  {
+    uint64_t spill = sizeInBytes % alignment;
+    if (spill == 0)
+    {
+      return sizeInBytes;
+    }
+    return sizeInBytes + alignment - spill;
+  };
+
+  desc.m_sizeInBytes = ensureAlignment(desc.m_sizeInBytes, desc.m_alignment);
   return m_device.createMemoryHeap(desc);
 }
 
