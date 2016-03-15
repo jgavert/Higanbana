@@ -36,6 +36,7 @@ class HeapDescriptor
 {
 	friend class GpuDevice;
   friend class VulkanGpuDevice;
+  friend class ResourceHeap;
 
   std::string     m_name;
   CPUPageProperty m_cpuPage;

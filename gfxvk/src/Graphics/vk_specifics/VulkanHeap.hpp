@@ -6,6 +6,27 @@
 #include <memory>
 #include <vulkan/vk_cpp.h>
 
+
+struct RawMapping 
+{
+  char* mapped;
+
+  size_t rangeBegin()
+  {
+    return 0;
+  }
+
+  size_t rangeEnd()
+  {
+    return 0;
+  }
+
+  bool isValid()
+  {
+    return mapped != nullptr;
+  }
+};
+
 class VulkanMemoryHeap
 {
   friend class VulkanGpuDevice;
