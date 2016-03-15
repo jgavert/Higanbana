@@ -47,7 +47,7 @@ int EntryPoint::main()
       {
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
-        auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(320000000)); // 32megs
+        auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000)); // 32megs, should be the common size...
       }
     }
     log.update();

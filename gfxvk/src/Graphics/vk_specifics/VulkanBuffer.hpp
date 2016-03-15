@@ -2,6 +2,7 @@
 #include "gfxvk/src/Graphics/Descriptors/ResUsage.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "core/src/memory/ManagedResource.hpp"
+#include "VulkanHeap.hpp"
 #include <vector>
 #include <memory>
 #include <vulkan/vk_cpp.h>
@@ -38,6 +39,7 @@ struct VulkanMappedBuffer
   }
 };
 
+
 template <typename T>
 using MappedBufferImpl = VulkanMappedBuffer<T>;
 
@@ -47,6 +49,7 @@ class VulkanBuffer
 
   FazPtrVk<vk::Buffer> m_resource;
   ResourceDescriptor m_desc;
+  std::function<RawMapping(int64_t, int64_t)> m_mapResource; // on vulkan, heap is here.
 
   VulkanBuffer()
     : m_resource(nullptr)

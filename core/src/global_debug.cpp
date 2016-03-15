@@ -65,7 +65,7 @@ void log_immideate(const char *fn, int ln, const char* format, ...)
 {
   va_list args;
   char buf[1024];
-  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ASSERT!!!\n", fn, ln);
 
   va_start(args, format);
 #if defined(PLATFORM_WINDOWS)
