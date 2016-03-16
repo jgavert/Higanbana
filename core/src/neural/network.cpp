@@ -25,7 +25,14 @@ namespace faze
 		}
 		auto res{ test * test2 };
 
-		
+		Matrix<double, 3, 2> input;
+		input[0] = { 3.0,5.0 };
+		input[1] = { 5.0,1.0 };
+		input[2] = { 10.0,2.0 };
+
+		NeuralNetwork<3, 2, 1, 3> ann;
+		auto res2 = ann.forward(input);
+
 	}
 
 }

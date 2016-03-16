@@ -17,12 +17,12 @@ namespace faze
 		data = {};
     }
 
-	template <int rows2>
-    Matrix<T, rows, rows> operator*(Matrix<T, rows2, rows>& scnd)
+	template <int rows2, int cols2>
+    Matrix<T, rows, cols2> operator*(Matrix<T, rows2, cols2>& scnd)
     {
-		Matrix<T, rows, rows> result;
+		Matrix<T, rows, cols2> result;
 
-		for (int y = 0; y < rows; ++y)
+		for (int y = 0; y < cols2; ++y)
 		{
 			for (int x = 0; x < rows; ++x)
 			{
