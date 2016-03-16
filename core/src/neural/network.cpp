@@ -33,6 +33,15 @@ namespace faze
 		NeuralNetwork<3, 2, 1, 3> ann;
 		auto res2 = ann.forward(input);
 
+    Matrix<double, 3, 1> expected;
+    expected[0] = { 75.0 };
+    expected[1] = { 82.0 };
+    expected[2] = { 93.0 };
+
+    auto oo = ann.costFunction(input, expected);
+    printf("%f\n", oo);
+    ann.costFunctionPrime(input, expected);
+
 	}
 
 }

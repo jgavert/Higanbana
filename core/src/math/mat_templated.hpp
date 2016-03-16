@@ -14,25 +14,25 @@ namespace faze
 
     Matrix()
     {
-		data = {};
+		  data = {};
     }
 
-	template <int rows2, int cols2>
+	  template <int rows2, int cols2>
     Matrix<T, rows, cols2> operator*(Matrix<T, rows2, cols2>& scnd)
     {
-		Matrix<T, rows, cols2> result;
+      Matrix<T, rows, cols2> result;
 
-		for (int y = 0; y < cols2; ++y)
-		{
-			for (int x = 0; x < rows; ++x)
-			{
-				for (int j = 0; j < rows2; ++j)
-				{
-					result[x][y] += data[x][j] * scnd[j][y];
-				}
-			}
-		}
-		return result;
+      for (int y = 0; y < cols2; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            result[x][y] += data[x][j] * scnd[j][y];
+          }
+        }
+      }
+      return result;
     }
 
     Matrix operator+(Matrix& scnd)
@@ -250,6 +250,108 @@ namespace faze
       retur[1][3] = 2.f*quat[2] * quat[3] + 2.f*quat[0] * quat[1];
       return retur;
     }
+
+    template <typename T, int rows, int cols>
+    Matrix<T, cols, rows> transpose(Matrix<T, rows, cols> value)
+    {
+      Matrix<T, cols, rows> outResult;
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult[x][y] = value[y][x];
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols, typename Func>
+    inline Matrix<T, rows, cols> transform(Matrix<T, rows, cols> value, Func f)
+    {
+      Matrix<T, rows, cols> outResult;
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult[y][x] = f(value[y][x]);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols, typename Func>
+    inline void transform(Matrix<T, rows, cols> value, Matrix<T, rows, cols>& outResult, Func f)
+    {
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult[y][x] = f(value[y][x]);
+        }
+      }
+    }
+
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline void mul(Matrix<T, rows, cols> a, Matrix<T, rows2, cols2> b, Matrix<T, rows, cols2>& outResult)
+    {
+      for (int y = 0; y < cols2; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            outResult[x][y] += a[x][j] * b[j][y];
+          }
+        }
+      }
+    }
+
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline Matrix<T, rows, cols2> mul(Matrix<T, rows, cols> a, Matrix<T, rows2, cols2> b)
+    {
+      Matrix<T, rows, cols2> outResult;
+      for (int y = 0; y < cols2; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            outResult[x][y] += a[x][j] * b[j][y];
+          }
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix<T, rows, cols> multiplyElementWise(Matrix<T, rows, cols> a, Matrix<T, rows, cols> b)
+    {
+      Matrix<T, rows, cols> outResult;
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult[y][x] = a[y][x] * b[y][x];
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline T sum(Matrix<T, rows, cols> value)
+    {
+      T outResult = {};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult += value[y][x];
+        }
+      }
+      return outResult;
+    }
+
+
   };
 
 #if defined(PLATFORM_WINDOWS)
