@@ -14,25 +14,25 @@ namespace faze
 
     Matrix()
     {
-      for (int i = 0; i < rows*cols; i++)
-      {
-        int row = i / 4;
-        int column = i % 4;
-        data[row][column] = 0.f;
-      }
+		data = {};
     }
 
-    Matrix operator*(Matrix& scnd)
+	template <int rows2>
+    Matrix<T, rows, rows> operator*(Matrix<T, rows2, rows>& scnd)
     {
-      Matrix mat;
+		Matrix<T, rows, rows> result;
 
-      for (int i = 0; i < rows*cols; i++)
-      {
-        int row = i / 4;
-        int column = i % 4;
-        mat.data[row][column] = data[row][0] * scnd.data[0][column] + data[row][1] * scnd.data[1][column] + data[row][2] * scnd.data[2][column] + data[row][3] * scnd.data[3][column];
-      }
-      return mat;
+		for (int y = 0; y < rows; ++y)
+		{
+			for (int x = 0; x < rows; ++x)
+			{
+				for (int j = 0; j < rows2; ++j)
+				{
+					result[x][y] += data[x][j] * scnd[j][y];
+				}
+			}
+		}
+		return result;
     }
 
     Matrix operator+(Matrix& scnd)
@@ -125,8 +125,8 @@ namespace faze
       Matrix mat;
       for (int i = 0; i < rows*cols; i++)
       {
-        int row = i / 4;
-        int column = i % 4;
+        int row = i / cols;
+        int column = i % cols;
         mat.data[row][column] = 0.f;
       }
       for (int i = 0; i < std::min(rows, cols); i++)
