@@ -154,6 +154,8 @@ namespace faze
   */
 #define printMat(input) input.print(#input)
 
+
+
   template <typename T, int rowCount, int columnCount>
   struct Matrix2 {
     std::array<T, rowCount*columnCount> data;
@@ -198,6 +200,23 @@ namespace faze
   namespace MatrixMath
   {
     // new stuff
+	  template <typename T, int rows, int cols, int rows2, int cols2>
+	  inline Matrix2<T, 1, rows*cols + rows2*cols2> concatenateToSingleDimension(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
+	  {
+		  Matrix2<T, 1, rows*cols + rows2*cols2> outResult{};
+		  std::copy(std::begin(a.data), std::end(a.data), std::begin(outResult.data));
+		  std::copy(std::begin(b.data), std::end(b.data), std::begin(outResult.data)+rows*cols);
+		  return outResult;
+	  }
+
+	  template <typename T, int rows, int cols, int rows2, int cols2>
+	  inline void extractMatrices(Matrix2<T, 1, rows*cols + rows2*cols2> input, Matrix2<T, rows, cols>& a, Matrix2<T, rows2, cols2>& b)
+	  {
+		  std::copy_n(std::begin(input.data), rows*cols, std::begin(a.data));
+		  std::copy_n(std::begin(input.data)+rows*cols, rows2*cols2, std::begin(b.data));
+	  }
+
+
     template <typename T, int rows, int cols, int rows2, int cols2>
     inline Matrix2<T, rows, cols2> mul(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
     {
