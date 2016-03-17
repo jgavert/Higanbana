@@ -140,12 +140,182 @@ namespace faze
 
   typedef Matrix<float, 4, 4> mat4;
   typedef Matrix<float, 3, 3> mat3;
+
+  /*
+  template <typename T, int values>
+  struct Vector2
+  {
+    std::array<T, values> data;
+    inline T& operator()(unsigned x)
+    {
+      return data[x];
+    }
+  };
+  */
+#define printMat(input) input.print(#input)
+
+  template <typename T, int rowCount, int columnCount>
+  struct Matrix2 {
+    std::array<T, rowCount*columnCount> data;
+
+    inline T& operator()(unsigned x, unsigned y)
+    {
+      return data[y*rowCount + x];
+    }
+
+    inline T& operator()(unsigned x)
+    {
+      return data[x];
+    }
+
+    inline int rows()
+    {
+      return rowCount;
+    }
+    inline int cols()
+    {
+      return columnCount;
+    }
+
+    void print(const char* name)
+    {
+      F_LOG("\"%s\": matrix2<%d, %d>\n", name, rowCount, columnCount);
+      for (int y = 0; y < rowCount; ++y)
+      {
+        for (int x = 0; x < columnCount; ++x)
+        {
+          F_LOG("%4.4f  ", data[y*columnCount + x]);
+        }
+        F_LOG("\n");
+      }
+    }
+  };
+
 #if defined(PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4505 ) // unreferenced local function has been removed
 #endif
   namespace MatrixMath
   {
+    // new stuff
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline Matrix2<T, rows, cols2> mul(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
+    {
+      Matrix2<T, rows, cols2> outResult{};
+      for (int y = 0; y < cols2; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            outResult(x, y) += a(x, j) * b(j, y);
+          }
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> mulScalar(Matrix2<T, rows, cols> a, T b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) * b;
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> sub(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) - b(x,y);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> add(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) + b(x, y);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> multiplyElementWise(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(y,x) = a(y,x) * b(y,x);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    Matrix2<T, cols, rows> transpose(Matrix2<T, rows, cols> value)
+    {
+      Matrix2<T, cols, rows> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(x, y) = value(y, x);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols, typename Func>
+    inline Matrix2<T, rows, cols> transform(Matrix2<T, rows, cols> value, Func f)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(y,x) = f(value(y,x));
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline T sum(Matrix2<T, rows, cols> value)
+    {
+      T outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult += value(y,x);
+        }
+      }
+      return outResult;
+    }
+
+    // old stuff
+
+
     const float PI = 3.14159265f;
     static mat4 Translation(float x, float y, float z)
     {
@@ -250,108 +420,6 @@ namespace faze
       retur[1][3] = 2.f*quat[2] * quat[3] + 2.f*quat[0] * quat[1];
       return retur;
     }
-
-    template <typename T, int rows, int cols>
-    Matrix<T, cols, rows> transpose(Matrix<T, rows, cols> value)
-    {
-      Matrix<T, cols, rows> outResult;
-      for (int y = 0; y < rows; ++y)
-      {
-        for (int x = 0; x < cols; ++x)
-        {
-          outResult[x][y] = value[y][x];
-        }
-      }
-      return outResult;
-    }
-
-    template <typename T, int rows, int cols, typename Func>
-    inline Matrix<T, rows, cols> transform(Matrix<T, rows, cols> value, Func f)
-    {
-      Matrix<T, rows, cols> outResult;
-      for (int y = 0; y < rows; ++y)
-      {
-        for (int x = 0; x < cols; ++x)
-        {
-          outResult[y][x] = f(value[y][x]);
-        }
-      }
-      return outResult;
-    }
-
-    template <typename T, int rows, int cols, typename Func>
-    inline void transform(Matrix<T, rows, cols> value, Matrix<T, rows, cols>& outResult, Func f)
-    {
-      for (int y = 0; y < rows; ++y)
-      {
-        for (int x = 0; x < cols; ++x)
-        {
-          outResult[y][x] = f(value[y][x]);
-        }
-      }
-    }
-
-    template <typename T, int rows, int cols, int rows2, int cols2>
-    inline void mul(Matrix<T, rows, cols> a, Matrix<T, rows2, cols2> b, Matrix<T, rows, cols2>& outResult)
-    {
-      for (int y = 0; y < cols2; ++y)
-      {
-        for (int x = 0; x < rows; ++x)
-        {
-          for (int j = 0; j < rows2; ++j)
-          {
-            outResult[x][y] += a[x][j] * b[j][y];
-          }
-        }
-      }
-    }
-
-    template <typename T, int rows, int cols, int rows2, int cols2>
-    inline Matrix<T, rows, cols2> mul(Matrix<T, rows, cols> a, Matrix<T, rows2, cols2> b)
-    {
-      Matrix<T, rows, cols2> outResult;
-      for (int y = 0; y < cols2; ++y)
-      {
-        for (int x = 0; x < rows; ++x)
-        {
-          for (int j = 0; j < rows2; ++j)
-          {
-            outResult[x][y] += a[x][j] * b[j][y];
-          }
-        }
-      }
-      return outResult;
-    }
-
-    template <typename T, int rows, int cols>
-    inline Matrix<T, rows, cols> multiplyElementWise(Matrix<T, rows, cols> a, Matrix<T, rows, cols> b)
-    {
-      Matrix<T, rows, cols> outResult;
-      for (int y = 0; y < rows; ++y)
-      {
-        for (int x = 0; x < cols; ++x)
-        {
-          outResult[y][x] = a[y][x] * b[y][x];
-        }
-      }
-      return outResult;
-    }
-
-    template <typename T, int rows, int cols>
-    inline T sum(Matrix<T, rows, cols> value)
-    {
-      T outResult = {};
-      for (int y = 0; y < rows; ++y)
-      {
-        for (int x = 0; x < cols; ++x)
-        {
-          outResult += value[y][x];
-        }
-      }
-      return outResult;
-    }
-
-
   };
 
 #if defined(PLATFORM_WINDOWS)

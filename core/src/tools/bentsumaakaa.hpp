@@ -20,8 +20,8 @@ namespace faze
   public:
     Bentsumaakaa();
     ~Bentsumaakaa();
-    void start(const bool verbose);
-    int64_t stop(const bool verbose);
+    void start(const bool verbose = false);
+    int64_t stop(const bool verbose = false);
     int64_t bfunc(const int times, const bool verbose, const std::function<void()> block);
 
     template<int times>
