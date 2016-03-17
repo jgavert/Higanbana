@@ -6,8 +6,8 @@ namespace faze
 {
 	void testNetwork()
 	{
-    Bentsumaakaa b;
-    b.start();
+		Bentsumaakaa b;
+		b.start();
 		constexpr static int major = 3;
 		constexpr static int minor = 2;
 		Matrix2<double, major, minor> test;
@@ -26,20 +26,33 @@ namespace faze
 				test2(k,i) = double(i + k);
 			}
 		}
-    auto res = MatrixMath::mul(test, test2);
+		auto res = MatrixMath::mul(test, test2);
 
-    Matrix2<double, 3, 2> input { 3.0, 5.0, 5.0, 1.0, 10.0, 2.0 };
+		auto vect = MatrixMath::concatenateToSingleDimension(test, test2);
+		for (int i = 0; i < vect.data.size(); ++i)
+		{
+			vect(i) = double(i);
+		}
+		MatrixMath::extractMatrices(vect, test, test2);
+
+		Matrix2<double, 3, 2> input { 3.0, 5.0, 5.0, 1.0, 10.0, 2.0 };
 
 		NeuralNetwork<3, 2, 1, 3> ann;
 		auto result = ann.forward(input);
-    printMat(result);
-    Matrix2<double, 3, 1> expected { 0.75, 0.82, 0.93 };
-    printMat(expected);
-    auto oo = ann.costFunction(input, expected);
-    F_LOG("costFunction: %f\n", oo);
-    ann.costFunctionPrime(input, expected);
-    auto val = b.stop();
-    F_LOG("matrices took %f microseconds\n", static_cast<float>(val) / 1000.f);
+		printMat(result);
+		Matrix2<double, 3, 1> expected { 0.75, 0.82, 0.93 };
+		printMat(expected);
+		auto oo = ann.costFunction(input, expected);
+		F_LOG("costFunction: %f\n", oo);
+		ann.costFunctionPrime(input, expected);
+
+		//auto numGrad = ann.computeNumericalGradient(input, expected);
+		//auto grad = ann.computeGradients(input, expected);
+		printMat(ann.computeGradients(input, expected));
+		printMat(ann.computeNumericalGradient(input, expected));
+		auto val = b.stop();
+
+		F_LOG("matrices took %f microseconds\n", static_cast<float>(val) / 1000.f);
 	}
 
 }
