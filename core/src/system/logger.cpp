@@ -17,7 +17,11 @@ void Logger::handleFazMesg(LogMessage &mesg)
 {
   std::lock_guard<std::mutex> lk(writeLock);
   if (unhandled_buffer_size >= RINGBUFFERSIZE - 1)
+  {
+    // force flush
+    update();
     return;
+  }
   if (m_writerIndex >= RINGBUFFERSIZE)
     m_writerIndex = 0;
   int n = static_cast<int>(strlen(mesg.m_data));
