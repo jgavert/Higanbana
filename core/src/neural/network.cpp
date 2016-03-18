@@ -4,7 +4,7 @@
 
 namespace faze
 {
-	void testNetwork()
+	void testNetwork(Logger& log)
 	{
 		Bentsumaakaa b;
 		b.start();
@@ -35,30 +35,71 @@ namespace faze
 		}
 		MatrixMath::extractMatrices(vect, test, test2);
 
-		Matrix2<double, 4, 2> input { 1.0, 1.0,\
-                                  2.0, 4.0,\
-                                  6.0, 1.0,\
-                                  1.0, 5.0};
+		Matrix2<double, 1, 2> input { 1.0, 1.0};
 
-		NeuralNetwork<10, 2, 1, 4> ann;
+		NeuralNetwork<100, 2, 1, 1> ann;
 		auto result = ann.forward(input);
 		printMat(result);
-		Matrix2<double, 4, 1> expected { 2.0, 6.0, 7.0, 6.0 };
+		Matrix2<double, 1, 1> expected { 2.0};
 		printMat(expected);
-		auto oo = ann.costFunction(input, expected);
+		auto oo = ann.costFunction(expected);
 		F_LOG("costFunction: %f\n", oo);
 		//ann.costFunctionPrime(input, expected);
 
 		//auto numGrad = ann.computeNumericalGradient(input, expected);
 		//auto grad = ann.computeGradients(input, expected);
-		printMat(ann.computeGradients(input, expected));
-		printMat(ann.computeNumericalGradient(input, expected));
+		//printMat(ann.computeGradients(input, expected));
+		//printMat(ann.computeNumericalGradient(input, expected));
 
-    printMat(ann.forward(input));
-    ann.train(input, expected);
-		printMat(ann.computeGradients(input, expected));
-		printMat(ann.computeNumericalGradient(input, expected));
-    printMat(ann.forward(input));
+		//printMat(ann.forward(input));
+		auto trainNetwork = [&](auto& nn, auto input, auto output)
+		{
+			F_LOG("TRAINING A NETWORK!!!!!!!!!!!\n");
+			//printMat(input);
+			//printMat(output);
+			//printMat(nn.forward(input));
+			auto before = nn.costFunction(output);
+			auto iter = nn.train(input, output);
+			nn.forward(input);
+			auto after = nn.costFunction(output);
+			F_LOG("costFunction before: %.6f after: %.6f\n", before, after);
+			F_LOG("training took %zu iterations.\n", iter);
+			//printMat(nn.computeGradients(input, output));
+			//printMat(nn.computeNumericalGradient(input, output));
+			//printMat(nn.forward(input));
+			log.update();
+			return iter;
+		};
+		uint64_t totalIterations = 0;
+		totalIterations += trainNetwork(ann, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{ 1.0});
+		totalIterations += trainNetwork(ann, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{ 1.0});
+
+		F_LOG("Overall %zu iterations to train the network.\n", totalIterations);
+
+		printMat(ann.forward(Matrix2<double, 1, 2>{ 5, 12}));
+		printMat(ann.forward(Matrix2<double, 1, 2>{ 100, 50}));
+		printMat(ann.forward(Matrix2<double, 1, 2>{ 1, 2}));
+		printMat(ann.forward(Matrix2<double, 1, 2>{ 123456, 234567}));
+		// close perfect answers above.
+
+		// this doesnt really work.
+		NeuralNetwork<10, 2, 1, 1> ann2;
+		totalIterations = 0;
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 1.0}, Matrix2<double, 1, 1>{1.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 2.0, 4.0}, Matrix2<double, 1, 1>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 2.0}, Matrix2<double, 1, 1>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 1.0}, Matrix2<double, 1, 1>{1.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 2.0, 4.0}, Matrix2<double, 1, 1>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 2.0}, Matrix2<double, 1, 1>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 4.0}, Matrix2<double, 1, 1>{16.0});
+
+		printMat(ann2.forward(Matrix2<double, 1, 2>{ 4.0, 1.0}));
+		printMat(ann2.forward(Matrix2<double, 1, 2>{ 9.0, 2.0}));
+		printMat(ann2.forward(Matrix2<double, 1, 2>{ 9.0, 9.0}));
 
 		auto val = b.stop();
 
