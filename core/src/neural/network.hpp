@@ -17,6 +17,7 @@ namespace faze
 	  Matrix2<double, hiddenSize, outputSize> m_w2;
 	  Matrix2<double, sampleCount, outputSize> m_z3;
 
+    /*
 	  inline double sigmoid(double val) // f
 	  {
 		  return 1.0 / (1.0 + exp(-val));
@@ -25,7 +26,17 @@ namespace faze
 	  inline double sigmoidPrime(double val) // f pilkku
 	  {
 		  return exp(-val) / pow(1.0 + exp(-val), 2.0);
-	  }
+	  }*/
+
+    inline double sigmoid(double val) // f
+    {
+      return val;
+    }
+
+    inline double sigmoidPrime(double ) // f pilkku
+    {
+      return 1;
+    }
 
   public:
 
@@ -51,7 +62,7 @@ namespace faze
 		  }
 	  }
 
-	  Matrix2<double, sampleCount, outputSize> forward(Matrix2<double, sampleCount, inputSize> input)
+	  Matrix2<double, sampleCount, outputSize> forward(Matrix2<double, sampleCount, inputSize>& input)
 	  {
 		  using namespace MatrixMath;
 		  m_z2 = mul(input, m_w1);
@@ -62,14 +73,14 @@ namespace faze
 	  }
 
 
-	  double costFunction(Matrix2<double, sampleCount, inputSize> input, decltype(m_z3) expectedOutput)
+	  double costFunction(Matrix2<double, sampleCount, inputSize>& input, decltype(m_z3)& expectedOutput)
 	  {
 		  using namespace MatrixMath;
 		  auto yHat = forward(input);
 		  return 0.5 * sum(transform(sub(expectedOutput, yHat), [this](double x) {return pow(x, 2.0); }));
 	  }
 
-	  void costFunctionPrime(Matrix2<double, sampleCount, inputSize> input, decltype(m_z3) expectedOutput)
+	  void costFunctionPrime(Matrix2<double, sampleCount, inputSize>& input, decltype(m_z3)& expectedOutput)
 	  {
 		  using namespace MatrixMath;
 		  auto yHat = forward(input);
@@ -82,11 +93,13 @@ namespace faze
 		  printMat(dJdW1);
 	  }
 
-	  auto computeGradients(Matrix2<double, sampleCount, inputSize> input, decltype(m_z3) expectedOutput)
+	  auto computeGradients(Matrix2<double, sampleCount, inputSize>& input, decltype(m_z3)& expectedOutput)
 	  {
 		  using namespace MatrixMath;
 		  auto yHat = forward(input);
 
+      printMat(m_w1);
+      printMat(m_w2);
 		  auto delta3 = multiplyElementWise(mulScalar(sub(expectedOutput, yHat), { -1.0 }), transform(m_z3, [this](double x) {return sigmoidPrime(x); }));
 		  auto dJdW2 = mul(transpose(m_a2), delta3);
 		  //printMat(dJdW2);
@@ -97,7 +110,8 @@ namespace faze
 		  return concatenateToSingleDimension(dJdW1, dJdW2);
 	  }
 	  
-	  auto computeNumericalGradient(Matrix2<double, sampleCount, inputSize> input, decltype(m_z3) expectedOutput)
+    // to verify our gradients from above
+	  auto computeNumericalGradient(Matrix2<double, sampleCount, inputSize>& input, decltype(m_z3)& expectedOutput)
 	  {
 		  using namespace MatrixMath;
 		  auto paramsInitial = concatenateToSingleDimension(m_w1, m_w2);
@@ -123,5 +137,58 @@ namespace faze
 		  extractMatrices(paramsInitial, m_w1, m_w2);
 		  return numgrad;
 	  }
+
+    void train(Matrix2<double, sampleCount, inputSize>& input, decltype(m_z3)& expectedOutput)
+    {
+      using namespace MatrixMath;
+      double e = 0.0001;
+      double targetError = 0.01;
+      double prevCost = costFunction(input, expectedOutput);
+      double sanity = prevCost;
+      double checkProgress = 0.1;
+      double underError = prevCost*checkProgress;
+      uint64_t iter = 0;
+      while (prevCost > targetError && iter < 1000000)
+      {
+        for (int i = 0; i < m_w1.data.size(); ++i)
+        {
+          m_w1(i) += e;
+          double currentCost = costFunction(input, expectedOutput);
+          m_w1(i) -= e;
+
+          double apua = 0.1*(prevCost - currentCost);
+          m_w1(i) += apua;
+
+          prevCost = costFunction(input, expectedOutput);
+          //F_LOG("pc: %.17f cc: %.17f == %.17f\n", prevCost, currentCost, apua);
+
+        }
+        for (int i = 0; i < m_w2.data.size(); ++i)
+        {
+          m_w2(i) += e;
+          double currentCost = costFunction(input, expectedOutput);
+          m_w2(i) -= e;
+
+          double apua = 0.1*(prevCost - currentCost);
+          m_w2(i) += apua;
+          
+          prevCost = costFunction(input, expectedOutput);
+          //F_LOG("pc: %f cc: %f == %f\n", prevCost, currentCost, apua);
+        }
+        //prevCost = costFunction(input, expectedOutput);
+        iter++;
+        if (prevCost >= sanity)
+        {
+          F_LOG("found a upward slope: iter %zu current err: %.10f\n", iter, prevCost);
+          return;
+        }
+        sanity = prevCost;
+        if (prevCost < underError)
+        {
+          underError = prevCost*checkProgress;
+          F_LOG("got under new margin at iter %zu current err: %.10f\n", iter, prevCost);
+        }
+      }
+    }
   };
 }

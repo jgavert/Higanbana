@@ -35,24 +35,34 @@ namespace faze
 		}
 		MatrixMath::extractMatrices(vect, test, test2);
 
-		Matrix2<double, 3, 2> input { 3.0, 5.0, 5.0, 1.0, 10.0, 2.0 };
+		Matrix2<double, 4, 2> input { 1.0, 1.0,\
+                                  2.0, 4.0,\
+                                  6.0, 1.0,\
+                                  1.0, 5.0};
 
-		NeuralNetwork<3, 2, 1, 3> ann;
+		NeuralNetwork<10, 2, 1, 4> ann;
 		auto result = ann.forward(input);
 		printMat(result);
-		Matrix2<double, 3, 1> expected { 0.75, 0.82, 0.93 };
+		Matrix2<double, 4, 1> expected { 2.0, 6.0, 7.0, 6.0 };
 		printMat(expected);
 		auto oo = ann.costFunction(input, expected);
 		F_LOG("costFunction: %f\n", oo);
-		ann.costFunctionPrime(input, expected);
+		//ann.costFunctionPrime(input, expected);
 
 		//auto numGrad = ann.computeNumericalGradient(input, expected);
 		//auto grad = ann.computeGradients(input, expected);
 		printMat(ann.computeGradients(input, expected));
 		printMat(ann.computeNumericalGradient(input, expected));
+
+    printMat(ann.forward(input));
+    ann.train(input, expected);
+		printMat(ann.computeGradients(input, expected));
+		printMat(ann.computeNumericalGradient(input, expected));
+    printMat(ann.forward(input));
+
 		auto val = b.stop();
 
-		F_LOG("matrices took %f microseconds\n", static_cast<float>(val) / 1000.f);
+		F_LOG("matrices took %f milliseconds\n", static_cast<float>(val) / 1000000.f);
 	}
 
 }
