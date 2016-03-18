@@ -186,7 +186,7 @@ namespace faze
       {
         for (int x = 0; x < columnCount; ++x)
         {
-          F_LOG("%4.4f  ", data[y*columnCount + x]);
+          F_LOG("%4.10f  ", data[y*columnCount + x]);
         }
         F_LOG("\n");
       }

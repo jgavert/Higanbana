@@ -20,7 +20,7 @@ int EntryPoint::main()
   Logger log;
   auto main = [=, &log](std::string name)
   {
-	  testNetwork();
+	  testNetwork(log);
     log.update();
   };
 
