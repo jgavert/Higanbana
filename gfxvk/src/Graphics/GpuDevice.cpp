@@ -63,13 +63,13 @@ ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
   return m_device.createMemoryHeap(desc);
 }
 
-Buffer GpuDevice::createBuffer(ResourceDescriptor desc)
+Buffer GpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
 {
-  return m_device.createBuffer(desc);
+  return m_device.createBuffer(heap, desc);
 }
-Texture GpuDevice::createTexture(ResourceDescriptor desc)
+Texture GpuDevice::createTexture(ResourceHeap& heap, ResourceDescriptor desc)
 {
-  return m_device.createTexture(desc);
+  return m_device.createTexture(heap, desc);
 }
 // shader views
 TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc)

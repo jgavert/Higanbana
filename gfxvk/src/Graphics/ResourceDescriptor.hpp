@@ -58,6 +58,7 @@ class ResourceDescriptor
 {
 public:
   // keep the order
+  std::string m_name;
   FormatType m_format;
   ResourceUsage m_usage;
   FormatDimension m_dimension;
@@ -77,7 +78,8 @@ public:
   bool m_allowSimultaneousAccess;
 
   ResourceDescriptor()
-    : m_format(FormatType::Unknown)
+    : m_name("Unnamed Resource")
+    , m_format(FormatType::Unknown)
     , m_usage(ResourceUsage::GpuOnly)
     , m_dimension(FormatDimension::Unknown)
     , m_layout(TextureLayout::RowMajor)
@@ -95,6 +97,12 @@ public:
     , m_allowCrossAdapter(false)
     , m_allowSimultaneousAccess(false)
   {
+  }
+
+  ResourceDescriptor& Name(std::string name)
+  {
+    m_name = name;
+    return *this;
   }
 
   template <typename T>
@@ -117,7 +125,6 @@ public:
     m_usage = usage;
     return *this;
   }
-
 
   ResourceDescriptor& Dimension(FormatDimension dimension)
   {

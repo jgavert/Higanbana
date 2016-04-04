@@ -24,7 +24,15 @@ using namespace faze;
 int EntryPoint::main()
 {
   Logger log;
-  auto main = [=, &log](std::string name)
+  GraphicsInstance devices;
+  if (!devices.createInstance("faze"))
+  {
+    F_ILOG("System", "Failed to create Vulkan instance, exiting");
+    log.update();
+    return 1;
+  }
+
+  auto main = [&](std::string name)
   {
     //LBS lbs;
     WTime t;
@@ -32,13 +40,6 @@ int EntryPoint::main()
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     //Window window(m_params, name, ires.x(), ires.y());
     //window.open();
-    GraphicsInstance devices;
-    if (!devices.createInstance("faze"))
-    {
-      F_LOG("Failed to create Vulkan instance, exiting\n");
-      log.update();
-      return;
-    }
     
     {
       GpuDevice gpu = devices.createGpuDevice();
@@ -48,6 +49,18 @@ int EntryPoint::main()
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000)); // 32megs, should be the common size...
+        auto buffer = gpu.createBuffer(testHeap,
+          ResourceDescriptor()
+            .Name("testBuffer")
+            .Width(1000)
+            .Usage(ResourceUsage::UploadHeap)
+            .Dimension(FormatDimension::Buffer)
+            .Format<float>());
+
+        if (buffer.isValid())
+        {
+          F_LOG("yay! a buffer\n");
+        }
       }
     }
     log.update();

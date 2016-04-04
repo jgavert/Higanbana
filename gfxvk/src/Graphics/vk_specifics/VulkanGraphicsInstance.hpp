@@ -11,6 +11,8 @@
 
 #include <vulkan/vk_cpp.h>
 
+#define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
+#define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
 
 class VulkanGraphicsInstance
 {
@@ -29,18 +31,19 @@ private:
   // lunargvalidation list order
   std::vector<std::string> layerOrder = {
 #if defined(DEBUG)
-    "VK_LAYER_LUNARG_threading",
-    "VK_LAYER_LUNARG_param_checker",
-    "VK_LAYER_LUNARG_device_limits",
-    "VK_LAYER_LUNARG_object_tracker",
-    "VK_LAYER_LUNARG_image",
-    "VK_LAYER_LUNARG_mem_tracker",
-    "VK_LAYER_LUNARG_draw_state",
+    "VK_LAYER_LUNARG_standard_validation",
+    //"VK_LAYER_LUNARG_threading",
+    //"VK_LAYER_LUNARG_param_checker",
+    //"VK_LAYER_LUNARG_device_limits",
+    //"VK_LAYER_LUNARG_object_tracker",
+    //"VK_LAYER_LUNARG_image",
+    //"VK_LAYER_LUNARG_mem_tracker",
+    //"VK_LAYER_LUNARG_draw_state",
 #endif
     "VK_LAYER_LUNARG_swapchain"
 #if defined(DEBUG)
     // disable for device creation tests
-    ,"VK_LAYER_GOOGLE_unique_objects" 
+    //,"VK_LAYER_GOOGLE_unique_objects" 
     // apparently was created because the lunarg layers expect that all objects will be unique - which isn't guaranteed for non-dispatchable objects
 #endif
   };

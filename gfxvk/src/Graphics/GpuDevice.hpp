@@ -28,8 +28,8 @@ public:
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
 
   ResourceHeap createMemoryHeap(HeapDescriptor desc);
-  Buffer createBuffer(ResourceDescriptor desc);
-  Texture createTexture(ResourceDescriptor desc);
+  Buffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
+  Texture createTexture(ResourceHeap& heap, ResourceDescriptor desc);
 
   TextureSRV createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   TextureUAV createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());

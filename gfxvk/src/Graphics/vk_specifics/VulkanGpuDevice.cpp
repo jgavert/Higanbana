@@ -369,11 +369,50 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
   return VulkanMemoryHeap(ret, desc);
 }
 
-VulkanBuffer VulkanGpuDevice::createBuffer(ResourceDescriptor )
+VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
 {
-  return VulkanBuffer();
+  auto bufSize = desc.m_stride*desc.m_width;
+  F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
+  vk::BufferCreateInfo info = vk::BufferCreateInfo()
+    .sharingMode(vk::SharingMode::eExclusive);
+  vk::BufferUsageFlags usageBits = vk::BufferUsageFlagBits::eUniformBuffer;
+
+  if (desc.m_unorderedaccess)
+  {
+    usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
+  }
+
+  if (desc.m_usage == ResourceUsage::ReadbackHeap)
+  {
+    usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+  }
+  else if (desc.m_usage == ResourceUsage::UploadHeap)
+  {
+    usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+  }
+  info = info.usage(usageBits);
+  info = info.size(bufSize);
+  auto buffer = m_device->createBuffer(info, m_alloc_info);
+
+  auto pagesNeeded = bufSize / heap.desc().m_alignment + 1;
+  auto offset = heap.allocatePages(bufSize);
+  F_ASSERT(offset >= 0, "not enough space in heap");
+
+  auto reqs = m_device->getBufferMemoryRequirements(buffer);
+  if (reqs.size() > pagesNeeded*heap.desc().m_alignment || heap.desc().m_alignment % reqs.alignment() != 0)
+  {
+    F_ASSERT(false, "wtf!");
+  }
+  auto memory = heap.impl().m_resource;
+  m_device->bindBufferMemory(buffer, memory.getRef(), offset);
+  auto ret = FazPtrVk<vk::Buffer>(buffer, [&, offset, pagesNeeded, memory](vk::Buffer buffer)
+  {
+    heap.freePages(offset, pagesNeeded);
+    m_device->destroyBuffer(buffer, m_alloc_info);
+  });
+  return VulkanBuffer(ret, desc);
 }
-VulkanTexture VulkanGpuDevice::createTexture(ResourceDescriptor )
+VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor )
 {
   return VulkanTexture();
 }

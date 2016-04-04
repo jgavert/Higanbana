@@ -8,6 +8,7 @@
 #include "core/src/memory/ManagedResource.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
+#include "gfxvk/src/Graphics/Heap.hpp"
 #include <vulkan/vk_cpp.h>
 
 class VulkanGpuDevice
@@ -60,8 +61,8 @@ public:
   VulkanPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
   VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc);
   VulkanMemoryHeap createMemoryHeap(HeapDescriptor desc);
-  VulkanBuffer createBuffer(ResourceDescriptor desc);
-  VulkanTexture createTexture(ResourceDescriptor desc);
+  VulkanBuffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
+  VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);
   // shader views
   VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());

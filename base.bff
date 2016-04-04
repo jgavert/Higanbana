@@ -169,8 +169,8 @@ Compiler( 'Compiler-x64-Linux' )
   .Compiler           = 'Compiler-x64'
   .Librarian          = '$ToolsBasePath$\lib.exe'
   .Linker             = '$ToolsBasePath$\link.exe'
-  .CompilerOptions    + ' /DWIN64 /DPLATFORM_WINDOWS'
-  .PCHOptions         + ' /DWIN64 /DPLATFORM_WINDOWS'
+  .CompilerOptions    + ' /DWIN64 /DPLATFORM_WINDOWS /DPF_WINDOWS'
+  .PCHOptions         + ' /DWIN64 /DPLATFORM_WINDOWS /DPF_WINDOWS'
   .LinkerOptions      + ' /MACHINE:X64'
   .Platform           = 'x64'
   .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
@@ -219,6 +219,7 @@ Compiler( 'Compiler-x64-Linux' )
   .Config             = 'Profile'
   .CompilerOptions    + ' /DPROFILING_ENABLED'
   .PCHOptions         + ' /DPROFILING_ENABLED'
+  .LinkerOptions	  + ' /Profile'
 
   .DeoptimizeWritableFilesWithToken = false
 ]
