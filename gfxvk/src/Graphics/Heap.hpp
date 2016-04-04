@@ -9,7 +9,6 @@
 class ResourceHeap 
 {
   friend class GpuDevice;
-
   constexpr static int64_t s_pageBlockCount = 32;
   constexpr static int64_t s_pageCount = 128 * s_pageBlockCount;
   using HeapBitfield = faze::Bitfield<s_pageBlockCount>;
@@ -17,12 +16,6 @@ class ResourceHeap
   MemoryHeapImpl                m_resource;
   std::shared_ptr<HeapBitfield> m_pages; // 16*128 pages, enough? hopefully. atleast simple.
   std::shared_ptr<std::mutex>   m_mutex; // access control
-
-  ResourceHeap(MemoryHeapImpl impl)
-    : m_resource{ impl }
-    , m_pages{std::make_shared<HeapBitfield>()}
-    , m_mutex{std::make_shared<std::mutex>()}
-  {}
 
   // should be procted by the mutex outside of this function
   int64_t checkIfFreeContiguousMemory(uint64_t blockCount)
@@ -62,18 +55,13 @@ class ResourceHeap
     }
   }
 
-  // freeing is threadfree since the results doesn't have to be immideatly available.
-  void markFreePages(int64_t startIndex, int64_t size)
-  {
-    F_ASSERT(startIndex + size <= s_pageCount, "not enough pages available");
-    auto& pages = *m_pages;
-    for (int64_t i = startIndex; i < startIndex + size; ++i)
-    {
-      pages.clearIdxBit(i);
-    }
-  }
-
 public:
+
+  ResourceHeap(MemoryHeapImpl impl)
+    : m_resource{ impl }
+    , m_pages{std::make_shared<HeapBitfield>()}
+    , m_mutex{std::make_shared<std::mutex>()}
+  {}
 
   int64_t allocatePages(uint64_t sizeInBytes)
   {
@@ -91,6 +79,22 @@ public:
       return startIndex * m_resource.desc().m_alignment;
     }
     return -1;
+  }
+
+  // freeing is threadfree since the results doesn't have to be immideatly available.
+  void freePages(int64_t startIndex, int64_t size)
+  {
+    F_ASSERT(startIndex + size <= s_pageCount, "not enough pages available");
+    auto& pages = *m_pages;
+    for (int64_t i = startIndex; i < startIndex + size; ++i)
+    {
+      pages.clearIdxBit(i);
+    }
+  }
+
+  MemoryHeapImpl& impl()
+  {
+    return m_resource;
   }
 
   HeapDescriptor desc()

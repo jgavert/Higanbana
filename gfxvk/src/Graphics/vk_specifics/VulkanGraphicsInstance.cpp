@@ -24,31 +24,31 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   const char*                                 pMessage,
   void*                                       /*pUserData*/)
 {
-  std::string msgType = "[Vulkan] ";
+  std::string msgType = "";
   bool breakOn = false;
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
   {
-    msgType + "ERROR: ";
+    msgType = "ERROR:";
     breakOn = true;
   }
   else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
   {
-    msgType + "WARNING: ";
+    msgType = "WARNING:";
     breakOn = true;
   }
   else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
   {
-    msgType + "PERFORMANCE WARNING: ";
+    msgType = "PERFORMANCE WARNING:";
   }
   else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
   {
-    msgType + "INFO: ";
+    msgType = "INFO:";
   }
   else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
   {
-    msgType + "DEBUG: ";
+    msgType = "DEBUG:";
   }
-  F_LOG("%s[%s] Code %d : %s\n", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+  F_ILOG("Vulkan", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
     __debugbreak();
@@ -61,13 +61,12 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
   /////////////////////////////////
   // getting debug layers
   // TODO: These need to be saved for device creation also. which layers and extensions each use.
-  std::vector<vk::LayerProperties> layersInfos;
-  vk::enumerateInstanceLayerProperties(layersInfos);
+  auto layersInfos = vk::enumerateInstanceLayerProperties();
 
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
-    F_LOG("Enabled Vulkan debug layers:\n");
+    GFX_ILOG("Enabled Vulkan debug layers:");
     for (auto&& it : layerOrder)
     {
       auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
@@ -78,19 +77,22 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        F_LOG("%s\n", found->layerName());
+        GFX_ILOG("%s", found->layerName());
+      }
+      else
+      {
+        GFX_ILOG("not enabled %s", it.c_str());
       }
     }
   }
   /////////////////////////////////
   // Getting extensions
-  std::vector<vk::ExtensionProperties> extInfos;
-  vk::enumerateInstanceExtensionProperties("", extInfos);
+  std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
 
   std::vector<const char*> extensions;
   {
     // lunargvalidation list order
-    F_LOG("Enabled Vulkan extensions:\n");
+    GFX_ILOG("Enabled Vulkan extensions:");
 
     for (auto&& it : extOrder)
     {
@@ -102,7 +104,11 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        F_LOG("found %s\n", found->extensionName());
+        GFX_ILOG("%s", found->extensionName());
+      }
+      else
+      {
+        GFX_ILOG("not enabled %s", it.c_str());
       }
     }
   }
@@ -115,7 +121,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
     .applicationVersion(appVersion)
     .pEngineName(engineName)
     .engineVersion(engineVersion)
-    .apiVersion(VK_API_VERSION);
+    .apiVersion(VK_API_VERSION_1_0);
 
   instance_info = vk::InstanceCreateInfo()
     .sType(vk::StructureType::eInstanceCreateInfo)
@@ -130,8 +136,8 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
   if (res != vk::Result::eSuccess)
   {
     // quite hot shit baby yeah!
-    auto error = vk::getString(res);
-    F_LOG("Instance creation error: %s\n", error.c_str());
+    auto error = vk::to_string(res);
+    GFX_ILOG("Instance creation error: %s", error.c_str());
     return false;
   }
   m_devices = m_instance->enumeratePhysicalDevices();
@@ -144,7 +150,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
     (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
       *m_instance.get(), "vkCreateDebugReportCallbackEXT");
   if (!dbgCreateDebugReportCallback) {
-    F_LOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
+    GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
     return true;
   }
 
@@ -152,7 +158,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
     (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
       *m_instance.get(), "vkDestroyDebugReportCallbackEXT");
   if (!dbgDestroyDebugReportCallback) {
-    F_LOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.\n");;
+    GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");;
     return true;
   }
   // the debug things
@@ -197,12 +203,11 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
   }
   auto&& physDev = m_devices[devId]; // assuming first device is best
   // layers
-  std::vector<vk::LayerProperties> devLayers;
-  physDev.enumerateDeviceLayerProperties(devLayers);
+  auto devLayers = physDev.enumerateDeviceLayerProperties();
   std::vector<const char*> layers;
   {
     // lunargvalidation list order
-    F_LOG("Enabled Vulkan debug layers for device:\n");
+    GFX_ILOG("Enabled Vulkan debug layers for device:");
     for (auto&& it : layerOrder)
     {
       auto found = std::find_if(devLayers.begin(), devLayers.end(), [&](const vk::LayerProperties& layer)
@@ -213,23 +218,17 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        F_LOG("%s\n", found->layerName());
+        GFX_ILOG("%s", found->layerName());
       }
     }
   }
   // extensions
-  std::vector<vk::ExtensionProperties> devExts;
-  auto res = physDev.enumerateDeviceExtensionProperties("", devExts);
-  if (res != vk::Result::eSuccess)
-  {
-    auto error = vk::getString(res);
-    F_LOG("Device creation error: %s\n", error.c_str());
-  }
+  std::vector<vk::ExtensionProperties> devExts = physDev.enumerateDeviceExtensionProperties();
 
   std::vector<const char*> extensions;
   {
     // lunargvalidation list order
-    F_LOG("Enabled Vulkan extensions for device:\n");
+    GFX_ILOG("Enabled Vulkan extensions for device:");
 
     for (auto&& it : devExtOrder)
     {
@@ -241,7 +240,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        F_LOG("found %s\n", found->extensionName());
+        GFX_ILOG("found %s", found->extensionName());
       }
     }
   }

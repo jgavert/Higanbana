@@ -81,10 +81,10 @@ namespace faze
 
   struct LogMessage // possible memory leak
   {
-    LogMessage(char* data) : m_data(data) {}
+    LogMessage(const char* data) : m_data(data) {}
     LogMessage(const LogMessage&) = delete;               //deleted copy constructor
     LogMessage& operator = (const LogMessage &) = delete; //deleted copy assignment operator
-    char* m_data;
+    const char* m_data;
   };
   /*
   namespace testmessage

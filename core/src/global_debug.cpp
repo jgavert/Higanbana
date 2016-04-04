@@ -61,11 +61,76 @@ void log_def(const char* format, ...)
   sendMessage(log);
 }
 
-void log_immideate(const char *fn, int ln, const char* format, ...)
+void log_imSys(const char* prefix, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
+  _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
+  va_end(args);
+#if defined(PLATFORM_WINDOWS)
+  OutputDebugString("[");
+  OutputDebugString(prefix);
+  OutputDebugString("] ");
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr << "[" << prefix << "] ";
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
+}
+
+void log_sys(const char* prefix, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
+  _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
+  va_end(args);
+
+  std::string asd = "[";
+  asd += prefix;
+  asd += "] ";
+  asd += buf;
+  LogMessage log(asd.c_str());
+  sendMessage(log);
+}
+
+void log_immideateAssert(const char *fn, int ln, const char* format, ...)
 {
   va_list args;
   char buf[1024];
   int n = snprintf(buf, sizeof(buf), "%s(%d): ASSERT!!!\n", fn, ln);
+
+  va_start(args, format);
+#if defined(PLATFORM_WINDOWS)
+  _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#else
+  vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#endif
+  va_end(args);
+
+#if defined(PLATFORM_WINDOWS)
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
+}
+
+void log_immideate(const char *fn, int ln, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
 
   va_start(args, format);
 #if defined(PLATFORM_WINDOWS)

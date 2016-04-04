@@ -18,12 +18,14 @@
 #include <cassert>
 
 #define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
-#define F_LOG(msg, ...) log_def(msg, ##__VA_ARGS__)
+#define F_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
+#define F_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
+#define F_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
 
 #if 1 //defined(DEBUG)
 #if defined(PLATFORM_WINDOWS)
 #define F_ERROR(msg, ...) \
-  log_immideate(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+  log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
   if (IsDebuggerPresent()) \
     __debugbreak(); \
   abort();
@@ -33,7 +35,7 @@
         { \
         if (!(cond)) \
           { \
-            log_immideate(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+            log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
             if (IsDebuggerPresent()) \
               __debugbreak(); \
             abort();\
@@ -70,8 +72,11 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...);
 
 void log_adv(const char *fn, int ln, const char* format, ...);
 void log_def(const char* format, ...);
+void log_imSys(const char* prefix, const char* format, ...);
+void log_sys(const char* prefix, const char* format, ...);
 
 void log_immideate(const char *fn, int ln, const char* format, ...);
+void log_immideateAssert(const char *fn, int ln, const char* format, ...);
 
 std::string _log_getvalue(std::string type, float& value);
 std::string _log_getvalue(std::string type, int64_t& value);
