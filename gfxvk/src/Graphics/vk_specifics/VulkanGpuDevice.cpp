@@ -382,11 +382,12 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
   }
 
-  if (desc.m_usage == ResourceUsage::ReadbackHeap)
+  auto usage = desc.m_usage;
+  if (usage == ResourceUsage::ReadbackHeap)
   {
     usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
   }
-  else if (desc.m_usage == ResourceUsage::UploadHeap)
+  else if (usage == ResourceUsage::UploadHeap)
   {
     usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
   }
@@ -410,7 +411,24 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     heap.freePages(offset, pagesNeeded);
     m_device->destroyBuffer(buffer, m_alloc_info);
   });
-  return VulkanBuffer(ret, desc);
+
+  std::function<RawMapping(int64_t, int64_t)> mapper = [&, memory, usage](int64_t offsetIntoBuffer, int64_t size)
+  {
+    // insert some mapping asserts here
+    F_ASSERT(usage == ResourceUsage::UploadHeap || usage == ResourceUsage::ReadbackHeap, "cannot map device memory");
+    RawMapping mapped;
+    auto mapping = m_device->mapMemory(*memory.get(), offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
+    FazPtr<uint8_t*> target = FazPtr<uint8_t*>(reinterpret_cast<uint8_t*>(mapping), [&, memory](uint8_t*) -> void 
+    {
+      m_device->unmapMemory(*memory.get());
+    });
+    mapped.mapped = target;
+
+    return mapped;
+  };
+  auto buf = VulkanBuffer(ret, desc);
+  buf.m_mapResource = mapper;
+  return buf;
 }
 VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor )
 {

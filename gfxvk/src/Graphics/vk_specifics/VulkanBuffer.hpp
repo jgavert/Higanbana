@@ -10,8 +10,7 @@
 template<typename type>
 struct VulkanMappedBuffer
 {
-  FazPtrVk<vk::Buffer> m_mappedresource;
-  type mapped;
+  RawMapping m_mapped;
 
   size_t rangeBegin()
   {
@@ -23,19 +22,19 @@ struct VulkanMappedBuffer
     return 0;
   }
 
-  type& operator[](size_t)
+  type& operator[](size_t i)
   {
-    return mapped;
+    return reinterpret_cast<type*>(m_mapped.mapped.get())[i];
   }
 
   type* get()
   {
-    return &mapped;
+    return reinterpret_cast<type*>(m_mapped.mapped.get());
   }
 
   bool isValid()
   {
-    return mapped != nullptr;
+    return m_mapped.isValid();
   }
 };
 
@@ -61,9 +60,9 @@ class VulkanBuffer
   {}
 public:
   template<typename T>
-  VulkanMappedBuffer<T> Map()
+  VulkanMappedBuffer<T> Map(int64_t offset, int64_t size)
   {
-    return VulkanMappedBuffer<T>(nullptr);
+    return VulkanMappedBuffer<T>{m_mapResource(offset, size)};
   }
 
   ResourceDescriptor& desc()
