@@ -9,21 +9,11 @@
 
 struct RawMapping 
 {
-  char* mapped;
-
-  size_t rangeBegin()
-  {
-    return 0;
-  }
-
-  size_t rangeEnd()
-  {
-    return 0;
-  }
+  FazPtr<uint8_t*> mapped;
 
   bool isValid()
   {
-    return mapped != nullptr;
+    return mapped.isValid();
   }
 };
 
@@ -47,7 +37,7 @@ public:
   {
     return m_desc;
   }
-    
+
   bool isValid()
   {
     return true;

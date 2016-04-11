@@ -48,7 +48,7 @@ int EntryPoint::main()
       {
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
-        auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000)); // 32megs, should be the common size...
+        auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
@@ -60,6 +60,14 @@ int EntryPoint::main()
         if (buffer.isValid())
         {
           F_LOG("yay! a buffer\n");
+          {
+            auto map = buffer.Map<float>(0, 1000);
+            if (map.isValid())
+            {
+              F_LOG("yay! mapped buffer!\n");
+              map[0] = 1.f;
+            }
+          }
         }
       }
     }
