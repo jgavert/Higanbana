@@ -26,22 +26,21 @@ class DMACmdBuffer : public CmdBufferBase
 {
 private:
   friend class GpuDevice;
+  friend class ComputeCmdBuffer;
   DMACmdBuffer(CmdBufferImpl cmdBuffer) : CmdBufferBase(cmdBuffer) {}
 public:
   //void CopyResource(Buffer& dstdata, Buffer& srcdata); // this is here only temporarily, will be removed
   // copy stuff
 };
 
-
-
-class ComputeCmdBuffer : public CmdBufferBase
+class ComputeCmdBuffer : public DMACmdBuffer
 {
 private:
   friend class GpuQueue;
   friend class GpuDevice;
   friend class GraphicsCmdBuffer;
 
-  ComputeCmdBuffer(CmdBufferImpl cmdBuffer) : CmdBufferBase(cmdBuffer) {}
+  ComputeCmdBuffer(CmdBufferImpl cmdBuffer) : DMACmdBuffer(cmdBuffer) {}
 public:
   // compute stuff
 };
@@ -51,7 +50,7 @@ class GraphicsCmdBuffer : public ComputeCmdBuffer
 private:
   friend class GpuQueue;
   friend class GpuDevice;
-  GraphicsCmdBuffer(CmdBufferImpl cmdList) :ComputeCmdBuffer(cmdList){}
+  GraphicsCmdBuffer(CmdBufferImpl cmdList) : ComputeCmdBuffer(cmdList){}
 public:
   // graphics stuff
 };
