@@ -9,8 +9,8 @@ private:
   friend class VulkanGpuDevice;
 
   FazPtrVk<vk::Pipeline>    m_pipeline;
-  GraphicsPipelineDescriptor m_graphDesc;
-  ComputePipelineDescriptor m_computeDesc;
+  FazPtr<GraphicsPipelineDescriptor> m_graphDesc;
+  FazPtr<ComputePipelineDescriptor> m_computeDesc;
 
   VulkanPipeline() {}
 
@@ -18,17 +18,20 @@ private:
   VulkanPipeline(FazPtrVk<vk::Pipeline> pipeline, ComputePipelineDescriptor computeDesc);
 public:
 
-  GraphicsPipelineDescriptor graphDesc()
+  GraphicsPipelineDescriptor& graphDesc()
   {
-    return m_graphDesc;
+    return m_graphDesc.getRef();
   }
 
-  ComputePipelineDescriptor computeDesc()
+  ComputePipelineDescriptor& computeDesc()
   {
-    return m_computeDesc;
+    return m_computeDesc.getRef();
   }
 
-  bool isValid();
+  bool isValid()
+  {
+    return m_pipeline.isValid();
+  }
 };
 
 using PipelineImpl = VulkanPipeline;
