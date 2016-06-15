@@ -21,7 +21,9 @@ private:
   bool                    m_debugLayer;
   std::vector<vk::QueueFamilyProperties> m_queues;
   bool                    m_singleQueue;
-  bool                    m_onlySeparateQueues;
+  bool                    m_computeQueues;
+  bool                    m_dmaQueues;
+  bool                    m_graphicQueues;
   FazPtrVk<vk::Queue>     m_internalUniversalQueue;
   bool                    m_uma;
   struct FreeQueues

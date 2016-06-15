@@ -11,7 +11,9 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_debugLayer(debugLayer)
   , m_queues(queues)
   , m_singleQueue(false)
-  , m_onlySeparateQueues(false)
+  , m_computeQueues(false)
+  , m_dmaQueues(false)
+  , m_graphicQueues(false)
   , m_freeQueueIndexes({})
   , m_uma(false)
   , m_memoryTypes({-1, -1, -1, -1})
@@ -29,7 +31,7 @@ VulkanGpuDevice::VulkanGpuDevice(
     constexpr auto DMAQ = static_cast<uint32_t>(VK_QUEUE_TRANSFER_BIT);
     auto&& it = m_queues[k];
     auto current = static_cast<uint32_t>(it.queueFlags());
-    if (current & (GfxQ | CpQ | DMAQ))
+    if ((current & (GfxQ | CpQ | DMAQ)) == GfxQ+CpQ+DMAQ)
     {
       for (uint32_t i = 0; i < it.queueCount(); ++i)
       {
@@ -37,7 +39,7 @@ VulkanGpuDevice::VulkanGpuDevice(
       }
       m_freeQueueIndexes.universalIndex = k;
     }
-    else if (current & (GfxQ | CpQ))
+    else if ((current & (GfxQ | CpQ)) == GfxQ + CpQ)
     {
       for (uint32_t i = 0; i < it.queueCount(); ++i)
       {
@@ -45,7 +47,7 @@ VulkanGpuDevice::VulkanGpuDevice(
       }
       m_freeQueueIndexes.graphicsIndex = k;
     }
-    else if (current & CpQ)
+    else if ((current & CpQ) == CpQ)
     {
       for (uint32_t i = 0; i < it.queueCount(); ++i)
       {
@@ -53,7 +55,7 @@ VulkanGpuDevice::VulkanGpuDevice(
       }
       m_freeQueueIndexes.computeIndex = k;
     }
-    else if (current & DMAQ)
+    else if ((current & DMAQ) == DMAQ)
     {
       for (uint32_t i = 0; i < it.queueCount(); ++i)
       {
@@ -80,13 +82,10 @@ VulkanGpuDevice::VulkanGpuDevice(
   {
     F_ERROR("abort mission. Too many variations of queues.");
   }
-  if (m_freeQueueIndexes.universal.size() == 0
-    && m_freeQueueIndexes.graphics.size() > 0
-    && m_freeQueueIndexes.compute.size() > 0
-    && m_freeQueueIndexes.dma.size() > 0)
-  {
-    m_onlySeparateQueues = true; // This is ideal for design. Only on amd.
-  }
+
+  m_computeQueues = !m_freeQueueIndexes.compute.empty();
+  m_dmaQueues = !m_freeQueueIndexes.dma.empty();
+  m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
 
   // Heap infos
   auto heapCounts = memProp.memoryHeapCount();
@@ -153,7 +152,7 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (m_onlySeparateQueues && m_freeQueueIndexes.dma.size() > 0)
+  else if (m_dmaQueues && !m_freeQueueIndexes.dma.empty())
   {
     // yay, realdeal
     queueFamilyIndex = m_freeQueueIndexes.dmaIndex;
@@ -162,7 +161,7 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
     return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.dma.push_back(queueId); });
   }
-  if (m_freeQueueIndexes.universal.size() > 0)
+  if (!m_freeQueueIndexes.universal.empty())
   {
     queueFamilyIndex = m_freeQueueIndexes.universalIndex;
     queueId = m_freeQueueIndexes.universal.back();
@@ -183,7 +182,7 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (m_onlySeparateQueues && m_freeQueueIndexes.compute.size() > 0)
+  else if (m_computeQueues && !m_freeQueueIndexes.compute.empty())
   {
     // yay, realdeal
     queueFamilyIndex = m_freeQueueIndexes.computeIndex;
@@ -192,7 +191,7 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     auto que = m_device->getQueue(queueFamilyIndex, queueId);
     return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.compute.push_back(queueId); });
   }
-  if (m_freeQueueIndexes.universal.size() > 0)
+  if (!m_freeQueueIndexes.universal.empty())
   {
     queueFamilyIndex = m_freeQueueIndexes.universalIndex;
     queueId = m_freeQueueIndexes.universal.back();
@@ -213,7 +212,7 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (m_onlySeparateQueues && m_freeQueueIndexes.graphics.size() > 0)
+  else if (!m_freeQueueIndexes.graphics.empty())
   {
     // yay, realdeal
     queueFamilyIndex = m_freeQueueIndexes.graphicsIndex;
@@ -222,7 +221,7 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
     return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.graphics.push_back(queueId); });
   }
-  if (m_freeQueueIndexes.universal.size() > 0)
+  if (!m_freeQueueIndexes.universal.empty())
   {
     queueFamilyIndex = m_freeQueueIndexes.universalIndex;
     queueId = m_freeQueueIndexes.universal.back();
@@ -237,7 +236,7 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
 VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
 {
   vk::CommandPoolCreateInfo poolInfo;
-  if (m_onlySeparateQueues)
+  if (m_dmaQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
@@ -265,7 +264,7 @@ VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
 VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
 {
   vk::CommandPoolCreateInfo poolInfo;
-  if (m_onlySeparateQueues)
+  if (m_computeQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
@@ -293,7 +292,7 @@ VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
 VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
 {
   vk::CommandPoolCreateInfo poolInfo;
-  if (m_onlySeparateQueues)
+  if (m_graphicQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
