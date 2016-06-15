@@ -2,6 +2,7 @@
 #include "core/src/memory/ManagedResource.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include <vulkan/vk_cpp.h>
+#include <memory>
 
 class VulkanPipeline
 {
@@ -9,8 +10,8 @@ private:
   friend class VulkanGpuDevice;
 
   FazPtrVk<vk::Pipeline>    m_pipeline;
-  FazPtr<GraphicsPipelineDescriptor> m_graphDesc;
-  FazPtr<ComputePipelineDescriptor> m_computeDesc;
+  std::shared_ptr<GraphicsPipelineDescriptor> m_graphDesc;
+  std::shared_ptr<ComputePipelineDescriptor> m_computeDesc;
 
   VulkanPipeline() {}
 
@@ -20,18 +21,15 @@ public:
 
   GraphicsPipelineDescriptor& graphDesc()
   {
-    return m_graphDesc.getRef();
+    return *m_graphDesc;
   }
 
   ComputePipelineDescriptor& computeDesc()
   {
-    return m_computeDesc.getRef();
+    return *m_computeDesc;
   }
 
-  bool isValid()
-  {
-    return m_pipeline.isValid();
-  }
+  bool isValid();
 };
 
 using PipelineImpl = VulkanPipeline;
