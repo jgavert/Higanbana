@@ -240,21 +240,18 @@ VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.dmaIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
     .commandBufferCount(1)
     .commandPool(pool)
-    .sType(vk::StructureType::eCommandBufferAllocateInfo)
     .level(vk::CommandBufferLevel::ePrimary));
   FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
   FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
@@ -268,21 +265,18 @@ VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.computeIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
     .commandBufferCount(1)
     .commandPool(pool)
-    .sType(vk::StructureType::eCommandBufferAllocateInfo)
     .level(vk::CommandBufferLevel::ePrimary));
   FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
   FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
@@ -296,21 +290,18 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.graphicsIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .sType(vk::StructureType::eCommandPoolCreateInfo)
       .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
     .commandBufferCount(1)
     .commandPool(pool)
-    .sType(vk::StructureType::eCommandBufferAllocateInfo)
     .level(vk::CommandBufferLevel::ePrimary));
   FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
   FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
@@ -330,7 +321,6 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
     if (m_memoryTypes.deviceHostIndex != -1)
     {
       allocInfo = vk::MemoryAllocateInfo()
-        .sType(vk::StructureType::eMemoryAllocateInfo)
         .allocationSize(desc.m_sizeInBytes)
         .memoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
     }
@@ -355,7 +345,6 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
       F_ERROR("normal device but no valid memory type available");
     }
     allocInfo = vk::MemoryAllocateInfo()
-      .sType(vk::StructureType::eMemoryAllocateInfo)
       .allocationSize(desc.m_sizeInBytes)
       .memoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
   }
@@ -448,7 +437,19 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
   return VulkanPipeline();
 }
 
-VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor )
+VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
+  auto specialiInfo = vk::SpecializationInfo();
+  vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo().pSpecializationInfo(specialiInfo);
+
+  auto layoutInfo = vk::PipelineLayoutCreateInfo();
+  auto layout = m_device->createPipelineLayout(layoutInfo, m_alloc_info);
+
+  auto info = vk::ComputePipelineCreateInfo()
+    .flags(vk::PipelineCreateFlagBits::eDisableOptimization)
+    .layout(layout)
+    .stage(shaderInfo);
+  vk::PipelineCache invalidCache;
+  auto results = m_device->createComputePipelines(invalidCache, std::vector<vk::ComputePipelineCreateInfo>{info}, m_alloc_info);
   return VulkanPipeline();
 }
