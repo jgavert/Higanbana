@@ -76,7 +76,7 @@
     .LinkerOptions  + .CommonLinkerLibs
                     + .Debuglinkerlibs
                     + .oculuslibDebug
-
+                    + .shadercLibDebug
   ]
 
   .X64ProfileConfiguration =
@@ -85,6 +85,7 @@
     .LinkerOptions  + .CommonLinkerLibs
                     + .Profilelinkerlibs
                     + .oculuslibRelDeb
+                    + .shadercLibRelease
   ]
 
   .X64ReleaseConfiguration =
@@ -93,6 +94,7 @@
     .LinkerOptions  + .CommonLinkerLibs
                     + .Releaselinkerlibs
                     + .oculuslibRelease
+                    + .shadercLibRelease
   ]
 
 

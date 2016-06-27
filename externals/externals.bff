@@ -4,7 +4,7 @@
 .extBasePath              = ' -L ^"$FazEPath$/externals/'
 #endif
 .extEndBasePath           = '"'
-.extLibPrefix             = ''
+.extLibPrefix             = ' '
 .extLibPostfix            = '.lib'
 #if __LINUX__
 .extLibPrefix             = ' -l '
@@ -28,11 +28,11 @@
                       + 'OculusSDK/LibOVRKernel/Lib'
                       + .extEndBasePath
 .oculuslibDebug       = .extLibPrefix
-                      + ' LibOVRKerneld' + .extLibPostfix
+                      + 'LibOVRKerneld' + .extLibPostfix
 .oculuslibRelDeb      = .extLibPrefix
-                      + ' LibOVRKernel' + .extLibPostfix
+                      + 'LibOVRKernel' + .extLibPostfix
 .oculuslibRelease     = .extLibPrefix
-                      + ' LibOVRKernel' + .extLibPostfix
+                      + 'LibOVRKernel' + .extLibPostfix
 
 // LibOVR
 .oculusInclude  = .extIncludeDir
@@ -43,11 +43,11 @@
 
 // these need to be seperately be added for necessary projects,
 .oculuslibDebug   + .extLibPrefix
-                  + ' LibOVRd' + .extLibPostfix
+                  + 'LibOVRd' + .extLibPostfix
 .oculuslibRelDeb  + .extLibPrefix
-                  + ' LibOVR' + .extLibPostfix
+                  + 'LibOVR' + .extLibPostfix
 .oculuslibRelease + .extLibPrefix
-                  + ' LibOVR' + .extLibPostfix
+                  + 'LibOVR' + .extLibPostfix
 
 // VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
@@ -71,11 +71,43 @@
                 + .extEndBasePath
 .vulkanlibs     = ''
 #if __WINDOWS__
-                + .extLibPrefix + ' vulkan-1' + .extLibPostfix
+                + .extLibPrefix + 'vulkan-1' + .extLibPostfix
 #endif
 #if __LINUX__
-                + .extLibPrefix + ' vulkan' + .extLibPostfix
+                + .extLibPrefix + 'vulkan' + .extLibPostfix
 #endif
+
+// DIRENT.h
+.direntInclude  = .extIncludeDir
+                + "dirent/include"
+
+// google/shaderc... my god this has big libs :D
+.shadercLibPath = .extBasePath
+                + "shaderc/lib"
+                + .extEndBasePath
+.shadercInclude = .extIncludeDir
+                + "shaderc/include"
+
+.shadercLibDebug  = .extLibPrefix
+                  + 'shaderc_combined_d'
+                  + .extLibPostfix
+.shadercLibRelease  = .extLibPrefix
+                    + 'shaderc_combined'
+                    + .extLibPostfix
+
+// SPIRV-CROSS
+//.spirvxLibPath = .extBasePath
+//                + "spirvcross/lib"
+//                + .extEndBasePath
+//.spirvxInclude = .extIncludeDir
+//               + "spirvcross/include"
+
+//.spirvxLibDebug = .extLibPrefix
+//                + 'shaderc_combined_d'
+//                + .extLibPostfix
+//.spirvxLibRelease = .extLibPrefix
+//                  + 'shaderc_combined'
+//                  + .extLibPostfix
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
@@ -86,22 +118,35 @@
 .extLibPaths  + .vulkanLibPath
               + .oculuslibPath
               + .oculuskernellibPath
+              + .shadercLibPath
+//              + .spirvxLibPath
 #endif
 #if __LINUX__
 .extLibPaths  + .vulkanLibPath
+              + .shadercLibPath
+//              + .spirvxLibPath
 #endif
 .externalIncludes = ' /I^"$oculusInclude$"'
                   + ' /I^"$oculusKernelInclude$"'
                   + ' /I^"$vulkanInclude$"'
                   + ' /I^"$vulkanCppInclude$"'
+                  + ' /I^"$direntInclude$"'
+                  + ' /I^"$shadercInclude$"'
+//                  + ' /I^"$spirvxInclude$"'
 #if __LINUX__
 .externalIncludes = ''
 //                  + ' -I ^"$oculusInclude$"'
 //                  + ' -I ^"$oculusKernelInclude$"'
 //                  + ' -I ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
+                  + ' -isystem ^"$direntInclude$"'
+                  + ' -isystem ^"$shadercInclude$"'
+//                  + ' -isystem ^"$spirvxInclude$"'
 #endif
 .externalIncludesVisualStudio = '$oculusInclude$;'
                               + '$oculusKernelInclude$;'
                               + '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
+                              + '$direntInclude$;'
+                              + '$shadercInclude$;'
+//                              + '$spirvxInclude$;'
