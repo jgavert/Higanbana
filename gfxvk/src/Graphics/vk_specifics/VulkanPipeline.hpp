@@ -14,21 +14,11 @@ private:
   std::shared_ptr<ComputePipelineDescriptor> m_computeDesc;
 
   VulkanPipeline() {}
-
   VulkanPipeline(FazPtrVk<vk::Pipeline> pipeline, GraphicsPipelineDescriptor graphDesc);
   VulkanPipeline(FazPtrVk<vk::Pipeline> pipeline, ComputePipelineDescriptor computeDesc);
 public:
-
-  GraphicsPipelineDescriptor& graphDesc()
-  {
-    return *m_graphDesc;
-  }
-
-  ComputePipelineDescriptor& computeDesc()
-  {
-    return *m_computeDesc;
-  }
-
+  GraphicsPipelineDescriptor& graphDesc();
+  ComputePipelineDescriptor& computeDesc();
   bool isValid();
 };
 
