@@ -21,6 +21,7 @@
 #define F_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
 #define F_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
 #define F_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
+#define F_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
 
 #if 1 //defined(DEBUG)
 #if defined(PLATFORM_WINDOWS)
