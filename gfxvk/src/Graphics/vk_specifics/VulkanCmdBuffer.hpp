@@ -1,6 +1,6 @@
 #pragma once
-#include "core/src/memory/ManagedResource.hpp"
 
+#include <memory>
 #include <vulkan/vk_cpp.h>
 
 class VulkanCmdBuffer
@@ -8,10 +8,10 @@ class VulkanCmdBuffer
 private:
   friend class VulkanGpuDevice;
   friend class VulkanQueue;
-  FazPtrVk<vk::CommandBuffer>   m_cmdBuffer;
-  FazPtrVk<vk::CommandPool>     m_pool;
+  std::shared_ptr<vk::CommandBuffer>   m_cmdBuffer;
+  std::shared_ptr<vk::CommandPool>     m_pool;
   bool                          m_closed;
-  VulkanCmdBuffer(FazPtrVk<vk::CommandBuffer> buffer, FazPtrVk<vk::CommandPool> pool);
+  VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
   void resetList();
   bool isValid();

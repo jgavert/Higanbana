@@ -1,15 +1,15 @@
 #pragma once
-#include "core/src/memory/ManagedResource.hpp"
 #include "VulkanCmdBuffer.hpp"
 
+#include <memory>
 #include <vulkan/vk_cpp.h>
 
 class VulkanQueue
 {
 private:
   friend class VulkanGpuDevice;
-  FazPtrVk<vk::Queue>    m_queue;
-  VulkanQueue(FazPtrVk<vk::Queue> queue);
+  std::shared_ptr<vk::Queue>    m_queue;
+  VulkanQueue(std::shared_ptr<vk::Queue> queue);
 public:
   bool isValid();
   void insertFence();

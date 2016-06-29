@@ -7,9 +7,9 @@
 VulkanGraphicsInstance::VulkanGraphicsInstance()
   : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
 
-  , m_instance([=](vk::Instance ist)
+  , m_instance(new vk::Instance, [=](vk::Instance* ist)
     {
-      ist.destroy(&m_alloc_info);
+      (*ist).destroy(&m_alloc_info);
     })
 {
 }
@@ -167,9 +167,9 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
 
   auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
   auto allocInfo = m_alloc_info;
-  m_debugcallback = FazPtrVk<vk::DebugReportCallbackEXT>([lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT ist)
+  m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
   {
-    dbgDestroyDebugReportCallback(*lol.get(), ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+    dbgDestroyDebugReportCallback(*lol.get(), *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
   });
   dbgCreateDebugReportCallback(*m_instance.get(), reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
   return true;
@@ -284,10 +284,10 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     .pEnabledFeatures(&features);
 
 
-  auto dev = physDev.createDevice(device_info, m_alloc_info);
-  FazPtrVk<vk::Device> device(dev, [=](vk::Device ist)
+  vk::Device dev = physDev.createDevice(device_info, m_alloc_info);
+  std::shared_ptr<vk::Device> device(&dev, [=](vk::Device* ist)
   {
-    ist.destroy(&m_alloc_info);
+    (*ist).destroy(&m_alloc_info);
   });
 
   return VulkanGpuDevice(device, m_alloc_info, queueProperties, heapInfos, false);

@@ -2,7 +2,6 @@
 
 #include "VulkanGpuDevice.hpp"
 #include "AllocStuff.hpp"
-#include "core/src/memory/ManagedResource.hpp"
 #include "core/src/global_debug.hpp"
 #include "gfxvk/src/Graphics/GpuInfo.hpp"
 
@@ -25,8 +24,8 @@ private:
   std::vector<vk::ExtensionProperties> m_extensions;
   std::vector<vk::LayerProperties> m_layers;
   std::vector<vk::PhysicalDevice> m_devices;
-  FazPtrVk<vk::Instance> m_instance;
-  FazPtrVk<vk::DebugReportCallbackEXT> m_debugcallback;
+  std::shared_ptr<vk::Instance> m_instance;
+  std::shared_ptr<vk::DebugReportCallbackEXT> m_debugcallback;
 
   // lunargvalidation list order
   std::vector<std::string> layerOrder = {
