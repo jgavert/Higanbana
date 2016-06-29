@@ -1,6 +1,6 @@
 #include "VulkanQueue.hpp"
 
-VulkanQueue::VulkanQueue(FazPtrVk<vk::Queue> queue)
+VulkanQueue::VulkanQueue(std::shared_ptr<vk::Queue> queue)
   :m_queue(queue)
 {
   
@@ -8,7 +8,7 @@ VulkanQueue::VulkanQueue(FazPtrVk<vk::Queue> queue)
 
 bool VulkanQueue::isValid()
 {
-  return m_queue.isValid();
+  return m_queue.get() != nullptr;
 }
 
 void VulkanQueue::insertFence()

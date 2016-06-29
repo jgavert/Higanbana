@@ -1,6 +1,6 @@
 #include "VulkanCmdBuffer.hpp"
 
-VulkanCmdBuffer::VulkanCmdBuffer(FazPtrVk<vk::CommandBuffer> buffer, FazPtrVk<vk::CommandPool> pool)
+VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool)
   : m_cmdBuffer(std::forward<decltype(buffer)>(buffer)), m_pool(std::forward<decltype(pool)>(pool)), m_closed(false)
 {}
 
@@ -13,7 +13,7 @@ void VulkanCmdBuffer::resetList()
 }
 bool VulkanCmdBuffer::isValid()
 {
-  return m_cmdBuffer.isValid();
+  return m_cmdBuffer.get() != nullptr;
 }
 void VulkanCmdBuffer::closeList()
 {

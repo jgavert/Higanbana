@@ -1,7 +1,6 @@
 #pragma once
 #include "gfxvk/src/Graphics/Descriptors/ResUsage.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
-#include "core/src/memory/ManagedResource.hpp"
 #include <vector>
 #include <memory>
 #include <vulkan/vk_cpp.h>
@@ -9,7 +8,7 @@
 template<typename type>
 struct VulkanMappedTexture
 {
-  FazPtrVk<vk::Image> m_mappedresource;
+  std::shared_ptr<vk::Image> m_mappedresource;
   type mapped;
 
   size_t rangeBegin()
@@ -45,14 +44,14 @@ class VulkanTexture
 {
   friend class VulkanGpuDevice;
 
-  FazPtrVk<vk::Image> m_resource;
+  std::shared_ptr<vk::Image> m_resource;
   ResourceDescriptor m_desc;
 
   VulkanTexture()
     : m_resource(nullptr)
   {}
 
-  VulkanTexture(FazPtrVk<vk::Image> impl, ResourceDescriptor desc)
+  VulkanTexture(std::shared_ptr<vk::Image> impl, ResourceDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_desc(std::forward<decltype(desc)>(desc))
   {}
@@ -70,7 +69,7 @@ public:
 
   bool isValid()
   {
-    return m_resource.isValid();
+    return m_resource.get() != nullptr;
   }
 };
 
@@ -81,11 +80,11 @@ class VulkanTextureShaderView
 private:
   friend class VulkanGpuDevice;
   friend class TextureShaderView;
-  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
 
   VulkanTextureShaderView()
-    : indexInHeap([](size_t) {})
+    : indexInHeap(new size_t)
     , customIndex(0)
   {}
 public:

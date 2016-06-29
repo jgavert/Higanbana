@@ -1,7 +1,6 @@
 #pragma once
 #include "gfxvk/src/Graphics/Descriptors/ResUsage.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
-#include "core/src/memory/ManagedResource.hpp"
 #include "VulkanHeap.hpp"
 #include <vector>
 #include <memory>
@@ -46,7 +45,7 @@ class VulkanBuffer
 {
   friend class VulkanGpuDevice;
 
-  FazPtrVk<vk::Buffer> m_resource;
+  std::shared_ptr<vk::Buffer> m_resource;
   ResourceDescriptor m_desc;
   std::function<RawMapping(int64_t, int64_t)> m_mapResource; // on vulkan, heap is here.
 
@@ -54,7 +53,7 @@ class VulkanBuffer
     : m_resource(nullptr)
   {}
 
-  VulkanBuffer(FazPtrVk<vk::Buffer> impl, ResourceDescriptor desc)
+  VulkanBuffer(std::shared_ptr<vk::Buffer> impl, ResourceDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_desc(std::forward<decltype(desc)>(desc))
   {}
@@ -72,7 +71,7 @@ public:
 
   bool isValid()
   {
-    return m_resource.isValid();
+    return m_resource.get() != nullptr;
   }
 };
 
@@ -84,10 +83,10 @@ private:
   friend class VulkanGpuDevice;
   friend class BufferShaderView;
 
-  FazPtr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
   size_t customIndex;
   VulkanBufferShaderView()
-    : indexInHeap([](size_t) {})
+    : indexInHeap(new size_t)
     , customIndex(0)
   {}
 public:

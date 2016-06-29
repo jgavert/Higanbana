@@ -1,6 +1,5 @@
 #pragma once
 #include "gfxvk/src/Graphics/Descriptors/ResUsage.hpp"
-#include "core/src/memory/ManagedResource.hpp"
 #include "gfxvk/src/Graphics/HeapDescriptor.hpp"
 #include <vector>
 #include <memory>
@@ -9,11 +8,11 @@
 
 struct RawMapping 
 {
-  FazPtr<uint8_t*> mapped;
+	std::shared_ptr<uint8_t*> mapped;
 
   bool isValid()
   {
-    return mapped.isValid();
+    return mapped.get() != nullptr;
   }
 };
 
@@ -21,13 +20,13 @@ class VulkanMemoryHeap
 {
   friend class VulkanGpuDevice;
   friend class ResourceHeap;
-  FazPtrVk<vk::DeviceMemory> m_resource;
+  std::shared_ptr<vk::DeviceMemory> m_resource;
   HeapDescriptor m_desc;
 
   VulkanMemoryHeap()
     : m_resource(nullptr)
   {}
-  VulkanMemoryHeap(FazPtrVk<vk::DeviceMemory> impl, HeapDescriptor desc)
+  VulkanMemoryHeap(std::shared_ptr<vk::DeviceMemory> impl, HeapDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_desc(std::forward<HeapDescriptor>(desc))
   {}

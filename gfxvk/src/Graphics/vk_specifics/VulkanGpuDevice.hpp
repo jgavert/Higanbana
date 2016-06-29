@@ -5,11 +5,11 @@
 #include "VulkanTexture.hpp"
 #include "VulkanHeap.hpp"
 #include "VulkanPipeline.hpp"
-#include "core/src/memory/ManagedResource.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include "gfxvk/src/Graphics/Heap.hpp"
 #include <vulkan/vk_cpp.h>
+#include <memory>
 
 class VulkanGpuDevice
 {
@@ -17,14 +17,14 @@ private:
 
 
   vk::AllocationCallbacks m_alloc_info;
-  FazPtrVk<vk::Device>    m_device;
+  std::shared_ptr<vk::Device>    m_device;
   bool                    m_debugLayer;
   std::vector<vk::QueueFamilyProperties> m_queues;
   bool                    m_singleQueue;
   bool                    m_computeQueues;
   bool                    m_dmaQueues;
   bool                    m_graphicQueues;
-  FazPtrVk<vk::Queue>     m_internalUniversalQueue;
+  std::shared_ptr<vk::Queue>     m_internalUniversalQueue;
   bool                    m_uma;
   struct FreeQueues
   {
@@ -48,7 +48,7 @@ private:
 
 public:
   VulkanGpuDevice(
-    FazPtrVk<vk::Device> device,
+	std::shared_ptr<vk::Device> device,
     vk::AllocationCallbacks alloc_info,
     std::vector<vk::QueueFamilyProperties> queues,
     vk::PhysicalDeviceMemoryProperties memProp,

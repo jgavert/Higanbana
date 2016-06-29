@@ -1,7 +1,7 @@
 #include "VulkanGpuDevice.hpp"
 
 VulkanGpuDevice::VulkanGpuDevice(
-  FazPtrVk<vk::Device> device,
+  std::shared_ptr<vk::Device> device,
   vk::AllocationCallbacks alloc_info,
   std::vector<vk::QueueFamilyProperties> queues,
   vk::PhysicalDeviceMemoryProperties memProp,
@@ -75,7 +75,7 @@ VulkanGpuDevice::VulkanGpuDevice(
     m_singleQueue = true;
     // lets just fetch it and copy it for those who need it.
     auto que = m_device->getQueue(0, 0); // TODO: 0 index is wrong.
-    m_internalUniversalQueue = FazPtrVk<vk::Queue>(que, [](vk::Queue) {}, false);
+    m_internalUniversalQueue = std::shared_ptr<vk::Queue>(&que);
   }
   if (m_freeQueueIndexes.universal.size() > 0
     && m_freeQueueIndexes.graphics.size() > 0)
@@ -159,7 +159,7 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
     queueId = m_freeQueueIndexes.dma.back();
     m_freeQueueIndexes.dma.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.dma.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.dma.push_back(queueId); });
   }
   if (!m_freeQueueIndexes.universal.empty())
   {
@@ -167,10 +167,10 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
     queueId = m_freeQueueIndexes.universal.back();
     m_freeQueueIndexes.universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.universal.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.universal.push_back(queueId); });
   }
 
-  return FazPtrVk<vk::Queue>(nullptr, [&](vk::Queue) {}, false);
+  return std::shared_ptr<vk::Queue>(nullptr);
 }
 
 VulkanQueue VulkanGpuDevice::createComputeQueue()
@@ -189,7 +189,7 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     queueId = m_freeQueueIndexes.compute.back();
     m_freeQueueIndexes.compute.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId);
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.compute.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.compute.push_back(queueId); });
   }
   if (!m_freeQueueIndexes.universal.empty())
   {
@@ -197,10 +197,10 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     queueId = m_freeQueueIndexes.universal.back();
     m_freeQueueIndexes.universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId);
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.universal.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.universal.push_back(queueId); });
   }
 
-  return FazPtrVk<vk::Queue>(nullptr, [&](vk::Queue) {}, false);
+  return std::shared_ptr<vk::Queue>(nullptr);
 }
 
 VulkanQueue VulkanGpuDevice::createGraphicsQueue()
@@ -219,7 +219,7 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
     queueId = m_freeQueueIndexes.graphics.back();
     m_freeQueueIndexes.graphics.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.graphics.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.graphics.push_back(queueId); });
   }
   if (!m_freeQueueIndexes.universal.empty())
   {
@@ -227,10 +227,10 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
     queueId = m_freeQueueIndexes.universal.back();
     m_freeQueueIndexes.universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return FazPtrVk<vk::Queue>(que, [&](vk::Queue) { m_freeQueueIndexes.universal.push_back(queueId); });
+    return std::shared_ptr<vk::Queue>(&que, [&](vk::Queue*) { m_freeQueueIndexes.universal.push_back(queueId); });
   }
 
-  return FazPtrVk<vk::Queue>(nullptr, [&](vk::Queue) {}, false);
+  return std::shared_ptr<vk::Queue>(nullptr);
 }
 
 VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
@@ -253,8 +253,8 @@ VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
     .commandBufferCount(1)
     .commandPool(pool)
     .level(vk::CommandBufferLevel::ePrimary));
-  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
-  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  std::shared_ptr<vk::CommandBuffer> retBuf(&buffer[0]);
+  std::shared_ptr<vk::CommandPool> retPool(&pool, [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
 }
 
@@ -278,8 +278,8 @@ VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
     .commandBufferCount(1)
     .commandPool(pool)
     .level(vk::CommandBufferLevel::ePrimary));
-  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
-  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  std::shared_ptr<vk::CommandBuffer> retBuf(&buffer[0]);
+  std::shared_ptr<vk::CommandPool> retPool(&pool, [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
 }
 
@@ -303,14 +303,14 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
     .commandBufferCount(1)
     .commandPool(pool)
     .level(vk::CommandBufferLevel::ePrimary));
-  FazPtrVk<vk::CommandBuffer> retBuf = FazPtrVk<vk::CommandBuffer>(buffer[0], [](vk::CommandBuffer) {});
-  FazPtrVk<vk::CommandPool> retPool = FazPtrVk<vk::CommandPool>(pool, [&](vk::CommandPool pool) { m_device->destroyCommandPool(pool, m_alloc_info); });
+  std::shared_ptr<vk::CommandBuffer> retBuf(&buffer[0]);
+  std::shared_ptr<vk::CommandPool> retPool(&pool, [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
 }
 
 bool VulkanGpuDevice::isValid()
 {
-  return m_device.isValid();
+  return m_device.get() != nullptr;
 }
 
 VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
@@ -350,9 +350,9 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
   }
 
   auto memory = m_device->allocateMemory(allocInfo, m_alloc_info);
-  auto ret = FazPtrVk<vk::DeviceMemory>(memory, [&](vk::DeviceMemory memory)
+  auto ret = std::shared_ptr<vk::DeviceMemory>(&memory, [&](vk::DeviceMemory* memory)
   {
-    m_device->freeMemory(memory, m_alloc_info);
+    m_device->freeMemory(*memory, m_alloc_info);
   });
   return VulkanMemoryHeap(ret, desc);
 }
@@ -393,11 +393,11 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     F_ASSERT(false, "wtf!");
   }
   auto memory = heap.impl().m_resource;
-  m_device->bindBufferMemory(buffer, memory.getRef(), offset);
-  auto ret = FazPtrVk<vk::Buffer>(buffer, [&, offset, pagesNeeded, memory](vk::Buffer buffer)
+  m_device->bindBufferMemory(buffer, *memory, offset);
+  auto ret = std::shared_ptr<vk::Buffer>(&buffer, [&, offset, pagesNeeded, memory](vk::Buffer* buffer)
   {
     heap.freePages(offset, pagesNeeded);
-    m_device->destroyBuffer(buffer, m_alloc_info);
+    m_device->destroyBuffer(*buffer, m_alloc_info);
   });
 
   std::function<RawMapping(int64_t, int64_t)> mapper = [&, memory, usage](int64_t offsetIntoBuffer, int64_t size)
@@ -406,7 +406,8 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     F_ASSERT(usage == ResourceUsage::UploadHeap || usage == ResourceUsage::ReadbackHeap, "cannot map device memory");
     RawMapping mapped;
     auto mapping = m_device->mapMemory(*memory.get(), offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
-    FazPtr<uint8_t*> target = FazPtr<uint8_t*>(reinterpret_cast<uint8_t*>(mapping), [&, memory](uint8_t*) -> void 
+	std::shared_ptr<uint8_t*> target(reinterpret_cast<uint8_t**>(&mapping),
+		[&, memory](uint8_t**) -> void 
     {
       m_device->unmapMemory(*memory.get());
     });
@@ -439,6 +440,7 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
 
 VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
+  /*
   auto specialiInfo = vk::SpecializationInfo();
   vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo().pSpecializationInfo(specialiInfo);
 
@@ -451,5 +453,6 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
     .stage(shaderInfo);
   vk::PipelineCache invalidCache;
   auto results = m_device->createComputePipelines(invalidCache, std::vector<vk::ComputePipelineCreateInfo>{info}, m_alloc_info);
+  */
   return VulkanPipeline();
 }
