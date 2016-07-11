@@ -122,7 +122,7 @@ public:
     FazCPtr<ID3D12Device> device;
     if (!warpDevice)
     {
-      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
+      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed with D3D_FEATURE_LEVEL_12_0, falling back to warpdriver\n");
@@ -137,7 +137,7 @@ public:
     {
       FazCPtr<IDXGIAdapter1> pAdapter;
       pFactory->EnumWarpAdapter(__uuidof(IDXGIAdapter1), reinterpret_cast<void**>(pAdapter.addr()));
-      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
+      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed\n", 2);

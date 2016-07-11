@@ -58,5 +58,7 @@ public:
   void cursorHidden(bool enabled);
   WindowInternal& getInternalWindow() { return *m_window; }
   bool simpleReadMessages();
+  int width() { return m_width; }
+  int height() { return m_height; }
 };
 
