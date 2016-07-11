@@ -14,7 +14,6 @@
 #include "core/src/tests/bitfield_tests.hpp"
 #include "core/src/math/mat_templated.hpp"
 #include "app/Graphics/gfxApi.hpp"
-#include "app/dependency/tracker.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 #include <shaderc/shaderc.hpp> 
@@ -46,7 +45,7 @@ int EntryPoint::main()
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     //Window window(m_params, name, ires.x(), ires.y());
     //window.open();
-    /*
+    
     {
       GpuDevice gpu = devices.createGpuDevice();
       GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
@@ -77,71 +76,6 @@ int EntryPoint::main()
         }
       }
     }
-	*/
-	// dependency tricks
-
-
-	// These are aliased resources used.
-	Resource rendertarget = {0};
-	Resource intermediateTarget = {3};
-	Resource intermediateTarget2 = {4};
-	Resource someBuffer = { 5 };
-	Resource someBuffer2 = { 6 };
-	Resource someBuffer3 = { 7 };
-
-
-
-	DependencyTracker tracker;
-	// basic case
-	/*
-	tracker.addJob("Start", {}, {intermediateTarget}, []() { F_LOG("Started"); });
-	tracker.addJob("BasicDependency", {intermediateTarget}, {intermediateTarget2}, []() { F_LOG("BasicDependency\n"); });
-	tracker.addJob("Finalize", {intermediateTarget2}, {rendertarget}, []() { F_LOG("Finalize\n"); });
-	tracker.resolveGraph();
-	tracker.executeGraph();
-	tracker.printStuff([](std::string str) {F_SLOG("DependencyTracker","%s\n", str.c_str()); });
-
-	// advanced, removed one
-	tracker.addJob("Start", {}, {intermediateTarget}, []() { F_LOG("Started\n"); });
-	tracker.addJob("Finalize", {intermediateTarget}, {rendertarget}, []() { F_LOG("Finalize\n"); });
-	tracker.resolveGraph();
-	tracker.executeGraph();
-	tracker.printStuff([](std::string str) {F_SLOG("DependencyTracker", "%s\n", str.c_str()); });
-	*/
-	// has one job without any producer creating the needed 
-	/*
-	tracker.addJob("Start", {}, {intermediateTarget}, []() { F_LOG("Started\n"); });
-	tracker.addJob("InvalidJob", { intermediateTarget2 }, { }, []() { F_LOG("InvalidJob\n"); });
-	tracker.addJob("InvalidJob2", { intermediateTarget2 }, { }, []() { F_LOG("InvalidJob2\n"); });
-	tracker.addJob("Async1", {}, {someBuffer3}, []() { F_LOG("Async1\n"); });
-	tracker.addJob("Async2", {}, {someBuffer}, []() { F_LOG("Async2\n"); });
-	tracker.addJob("Async1s", {someBuffer}, {someBuffer2}, []() { F_LOG("Async1s\n"); });
-	tracker.addJob("Async3", {someBuffer2, someBuffer3}, {}, []() { F_LOG("Async3\n"); });
-	tracker.addJob("Finalize", { intermediateTarget }, { rendertarget }, []() { F_LOG("Finalize\n"); });
-	tracker.resolveGraph();
-	tracker.executeGraph();
-	tracker.printStuff([](std::string str) {F_LOG_UNFORMATTED("%s", str.c_str()); });
-    log.update();
-	*/
-	Resource specialBuffer = { 8 };
-	Resource specialBuffer2 = { 9 };
-	
-	Resource vamma = { 10 };
-	Resource vamma2 = { 11 };
-
-	tracker.addJob("Start", {}, { intermediateTarget }, []() { F_LOG("Started\n"); });
-	tracker.addJob("BasicDependency", {intermediateTarget}, {intermediateTarget2, specialBuffer}, []() { F_LOG("BasicDependency\n"); });
-	tracker.addJob("Async1", {specialBuffer2, someBuffer2}, { someBuffer3 }, []() { F_LOG("Async1\n"); });
-	tracker.addJob("Async2", {specialBuffer}, {someBuffer, specialBuffer2 }, []() { F_LOG("Async2\n"); });
-	tracker.addJob("Async_vamma", {specialBuffer2, vamma2}, {vamma}, [](){ F_LOG("Async_vamma\n"); });
-	tracker.addJob("Async_vamma2", { vamma }, { vamma2 }, []() { F_LOG("Async_vamma2\n"); });
-	tracker.addJob("Async1s", {specialBuffer, someBuffer }, { someBuffer2 }, []() { F_LOG("Async1s\n"); });
-	tracker.addJob("Async3", { someBuffer2, someBuffer3 }, {}, []() { F_LOG("Async3\n"); });
-	tracker.addJob("Finalize", { intermediateTarget2 }, { rendertarget }, []() { F_LOG("Finalize\n"); });
-	tracker.resolveGraph();
-	tracker.executeGraph();
-	tracker.printStuff([](std::string str) {F_LOG_UNFORMATTED("%s", str.c_str()); });
-    log.update();
 
 
 	FileSystem fs(".");
