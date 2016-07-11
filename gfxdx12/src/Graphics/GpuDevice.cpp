@@ -324,7 +324,9 @@ SwapChain GpuDevice::createSwapChain(GraphicsQueue queue, Window& window, unsign
   DXGI_SWAP_CHAIN_DESC swapChainDesc;
   ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
   swapChainDesc.BufferCount = bufferCount;
-  swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R8G8B8A8_UNORM];
+  swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R16G16B16A16_FLOAT];
+  swapChainDesc.BufferDesc.Height = window.height();
+  swapChainDesc.BufferDesc.Width = window.width();
   swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   swapChainDesc.OutputWindow = window.getInternalWindow().getNative();
   swapChainDesc.SampleDesc.Count = 1;

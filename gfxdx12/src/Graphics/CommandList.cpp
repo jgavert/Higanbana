@@ -246,10 +246,10 @@ void GfxCommandList::setViewPort(ViewPort& view)
 {
   m_CommandList->RSSetViewports(1, &view.getDesc());
   RECT rect;
-  rect.bottom = 600;
+  rect.bottom = static_cast<long>(view.getDesc().Height);
   rect.top = 0;
   rect.left = 0;
-  rect.right = 800;
+  rect.right = static_cast<long>(view.getDesc().Width);
   m_CommandList->RSSetScissorRects(1, &rect);
 }
 

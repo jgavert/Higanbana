@@ -27,12 +27,15 @@
 .oculuskernellibPath  = .extBasePath
                       + 'OculusSDK/LibOVRKernel/Lib'
                       + .extEndBasePath
-.oculuslibDebug       = .extLibPrefix
-                      + ' LibOVRKerneld' + .extLibPostfix
-.oculuslibRelDeb      = .extLibPrefix
-                      + ' LibOVRKernel' + .extLibPostfix
-.oculuslibRelease     = .extLibPrefix
-                      + ' LibOVRKernel' + .extLibPostfix
+.oculuslibDebug       = ''
+//                      + .extLibPrefix
+//                      + ' LibOVRKerneld' + .extLibPostfix
+.oculuslibRelDeb      = ''
+//                      + .extLibPrefix
+//                      + ' LibOVRKernel' + .extLibPostfix
+.oculuslibRelease     = ''
+//                      + .extLibPrefix
+//                      + ' LibOVRKernel' + .extLibPostfix
 
 // LibOVR
 .oculusInclude  = .extIncludeDir
@@ -42,12 +45,12 @@
                 + .extEndBasePath
 
 // these need to be seperately be added for necessary projects,
-.oculuslibDebug   + .extLibPrefix
-                  + ' LibOVRd' + .extLibPostfix
-.oculuslibRelDeb  + .extLibPrefix
-                  + ' LibOVR' + .extLibPostfix
-.oculuslibRelease + .extLibPrefix
-                  + ' LibOVR' + .extLibPostfix
+//.oculuslibDebug   + .extLibPrefix
+//                  + ' LibOVRd' + .extLibPostfix
+//.oculuslibRelDeb  + .extLibPrefix
+//                  + ' LibOVR' + .extLibPostfix
+//.oculuslibRelease + .extLibPrefix
+//                  + ' LibOVR' + .extLibPostfix
 
 // VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
@@ -71,7 +74,7 @@
                 + .extEndBasePath
 .vulkanlibs     = ''
 #if __WINDOWS__
-                + .extLibPrefix + ' vulkan-1' + .extLibPostfix
+//                + .extLibPrefix + ' vulkan-1' + .extLibPostfix
 #endif
 #if __LINUX__
                 + .extLibPrefix + ' vulkan' + .extLibPostfix
@@ -84,8 +87,8 @@
 // these 2 are automatically in right place
 #if __WINDOWS__
 .extLibPaths  + .vulkanLibPath
-              + .oculuslibPath
-              + .oculuskernellibPath
+//              + .oculuslibPath
+//              + .oculuskernellibPath
 #endif
 #if __LINUX__
 .extLibPaths  + .vulkanLibPath
@@ -101,7 +104,8 @@
 //                  + ' -I ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
 #endif
-.externalIncludesVisualStudio = '$oculusInclude$;'
-                              + '$oculusKernelInclude$;'
+.externalIncludesVisualStudio = ''
+//                              + '$oculusInclude$;'
+//                              + '$oculusKernelInclude$;'
                               + '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
