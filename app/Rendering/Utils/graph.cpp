@@ -28,7 +28,7 @@ namespace rendering
 		  .PixelShader("utils/pixel_drawGraph")
 		  .VertexShader("utils/vertex_drawGraph")
 		  .setRenderTargetCount(1)
-		  .RTVFormat(0, FormatType::R8G8B8A8_UNORM_SRGB)
+		  .RTVFormat(0, FormatType::R16G16B16A16_FLOAT)
 		  .DepthStencil(DepthStencilDescriptor().DepthEnable(false))
 		  .Blend(GraphicsBlendDescriptor()
 			  .setRenderTarget(0, RenderTargetBlendDescriptor()

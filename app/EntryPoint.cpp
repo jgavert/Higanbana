@@ -91,15 +91,15 @@ int EntryPoint::main()
 
       auto texSize = ivec2({ 400,200 });
       std::vector<Graph> graphs;
-      //float startpos = 0.9f;
-      //float heightpos = 0.3f;
-	  /*
+      float startpos = 0.9f;
+      float heightpos = 0.3f;
+	  
       for (int i = 0; i < 5; ++i)
       {
         Graph graph(gpu, -1.f, 1.f, texSize);
         graph.changeScreenPos({ -1.0f, startpos - (i*heightpos) }, { -0.5f, startpos - ((i + 1.f)*heightpos) });
         graphs.emplace_back(graph);
-      }*/
+      }
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
       // graphics
@@ -160,11 +160,11 @@ int EntryPoint::main()
         {
           GpuProfilingBracket(queue, "Frame");
           {
-			  /*
+			  
             for (auto&& it : graphs)
             {
-              it.updateGraphCompute(gfx, sinf(time/* + cpu*//*));
-            }*/
+              it.updateGraphCompute(gfx, sinf(time/* + cpu*/));
+            }
           }
 
           {
@@ -180,8 +180,8 @@ int EntryPoint::main()
           {
             GpuProfilingBracket(gfx, "Clearing&Setting RTV");
             gfx.setViewPort(port);
-            gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
             gfx.setRenderTarget(sc[backBufferIndex]);
+            gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
           }
 
           {
@@ -192,12 +192,12 @@ int EntryPoint::main()
           }
 
           { // post process
-			  /*
+			  
             for (auto&& it : graphs)
             {
               it.drawGraph(gfx);
             }
-			*/
+			
           }
           // submit all
           gfx.preparePresent(sc[backBufferIndex]);
