@@ -383,7 +383,7 @@ SwapChain GpuDevice::createSwapChain(GraphicsQueue queue, Window& window, unsign
       .Width(swapChainDesc.BufferDesc.Width)
       .Height(swapChainDesc.BufferDesc.Height)
       .Usage(ResourceUsage::GpuOnly);
-    tex.getTexture().m_state = D3D12_RESOURCE_STATE_PRESENT;
+    tex.getTexture().m_state = D3D12_RESOURCE_STATE_COMMON;
 
     hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
     auto debugName = L"mRenderTarget" + std::to_wstring(i);
