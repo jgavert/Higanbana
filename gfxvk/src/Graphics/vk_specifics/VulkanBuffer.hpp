@@ -59,9 +59,9 @@ class VulkanBuffer
   {}
 public:
   template<typename T>
-  VulkanMappedBuffer<T> Map(int64_t offset, int64_t size)
+  VulkanMappedBuffer<T> Map(int64_t offsetInBytes, int64_t sizeInBytes)
   {
-    return VulkanMappedBuffer<T>{m_mapResource(offset, size)};
+    return VulkanMappedBuffer<T>{m_mapResource(offsetInBytes, sizeInBytes)};
   }
 
   ResourceDescriptor& desc()
