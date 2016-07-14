@@ -24,7 +24,7 @@ public:
   template<typename T>
   MappedBufferImpl<T> Map(int64_t offset, int64_t size)
   {
-    return buffer->Map<T>(offset, size);
+    return buffer->Map<T>(offset*sizeof(T), size*sizeof(T));
   }
 
   ResourceDescriptor desc()

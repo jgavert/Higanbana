@@ -285,9 +285,9 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
 
 
   vk::Device dev = physDev.createDevice(device_info, m_alloc_info);
-  std::shared_ptr<vk::Device> device(&dev, [=](vk::Device* ist)
+  std::shared_ptr<vk::Device> device(new vk::Device(dev), [=](vk::Device* ist)
   {
-    (*ist).destroy(&m_alloc_info);
+    ist->destroy(&m_alloc_info);
   });
 
   return VulkanGpuDevice(device, m_alloc_info, queueProperties, heapInfos, false);
