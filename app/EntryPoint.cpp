@@ -83,7 +83,9 @@ int EntryPoint::main()
 	log.update();
 	{
 		auto blob = fs.readFile("/shaders/sampleShader.comp");
-		std::string text(reinterpret_cast<char*>(blob.data()));
+		std::string text;
+    text.resize(blob.size());
+    memcpy(reinterpret_cast<char*>(&text[0]), blob.data(), blob.size());
 		{
 			std::string asdError = "";
 			int lastEnd = 0;
