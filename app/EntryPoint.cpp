@@ -15,6 +15,9 @@
 #include "core/src/math/mat_templated.hpp"
 #include "app/Graphics/gfxApi.hpp"
 #include "core/src/filesystem/filesystem.hpp"
+
+#include "app/Graphics/CommandList.hpp"
+
 #include "core/src/spirvcross/spirv_glsl.hpp"
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
@@ -174,6 +177,12 @@ int EntryPoint::main()
 			F_SLOG("SPIRV-CROSS", "%s\n", e.what());
 		}
 	}
+
+  {
+    CommandBuffer buffer;
+    buffer.Dispatch(2, 4, 6);
+    F_LOG("buffer size %zu\n", buffer.size());
+  }
 
   };
 
