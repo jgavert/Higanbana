@@ -77,3 +77,52 @@ void Binding_::rootConstant(unsigned int index, unsigned int value)
   m_rootConstants.at(index).first = value;
 }
 
+void Binding_::barrier(Texture& tex, D3D12_RESOURCE_STATES requiredState, D3D12_RESOURCE_BARRIER_TYPE type)
+{
+	if (tex.getTexture().m_state != requiredState)
+	{
+		D3D12_RESOURCE_BARRIER barrierDesc = {};
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierDesc.Transition.pResource = tex.getTexture().m_resource.get()->p_resource;
+		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barrierDesc.Transition.StateBefore = tex.getTexture().m_state;
+		barrierDesc.Transition.StateAfter = requiredState;
+		tex.getTexture().m_state = requiredState;
+		m_resbars.push_back(barrierDesc);
+	}
+
+	if (type == D3D12_RESOURCE_BARRIER_TYPE_UAV)
+	{
+		D3D12_RESOURCE_BARRIER barrierDesc = {};
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		barrierDesc.UAV.pResource = tex.getTexture().m_resource.get()->p_resource;
+		m_resbars.push_back(barrierDesc);
+	}
+}
+
+void Binding_::barrier(Buffer& tex, D3D12_RESOURCE_STATES requiredState, D3D12_RESOURCE_BARRIER_TYPE type)
+{
+	if (tex.getBuffer().m_state != requiredState)
+	{
+		D3D12_RESOURCE_BARRIER barrierDesc = {};
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierDesc.Transition.pResource = tex.getBuffer().m_resource.get();
+		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barrierDesc.Transition.StateBefore = tex.getBuffer().m_state;
+		barrierDesc.Transition.StateAfter = requiredState;
+		tex.getBuffer().m_state = requiredState;
+		m_resbars.push_back(barrierDesc);
+	}
+	if (type == D3D12_RESOURCE_BARRIER_TYPE_UAV)
+	{
+		D3D12_RESOURCE_BARRIER barrierDesc = {};
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		barrierDesc.UAV.pResource = tex.getBuffer().m_resource.get();
+		m_resbars.push_back(barrierDesc);
+	}
+}
+

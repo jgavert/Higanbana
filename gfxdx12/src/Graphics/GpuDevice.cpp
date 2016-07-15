@@ -324,7 +324,7 @@ SwapChain GpuDevice::createSwapChain(GraphicsQueue queue, Window& window, unsign
   DXGI_SWAP_CHAIN_DESC swapChainDesc;
   ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
   swapChainDesc.BufferCount = bufferCount;
-  swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R16G16B16A16_FLOAT];
+  swapChainDesc.BufferDesc.Format = FormatToDXGIFormat[FormatType::R10G10B10A2];
   swapChainDesc.BufferDesc.Height = window.height();
   swapChainDesc.BufferDesc.Width = window.width();
   swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -383,7 +383,7 @@ SwapChain GpuDevice::createSwapChain(GraphicsQueue queue, Window& window, unsign
       .Width(swapChainDesc.BufferDesc.Width)
       .Height(swapChainDesc.BufferDesc.Height)
       .Usage(ResourceUsage::GpuOnly);
-    tex.getTexture().m_state = D3D12_RESOURCE_STATE_COMMON;
+    tex.getTexture().m_state = D3D12_RESOURCE_STATE_PRESENT;
 
     hr = mSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (LPVOID*)&mRenderTarget);
     auto debugName = L"mRenderTarget" + std::to_wstring(i);

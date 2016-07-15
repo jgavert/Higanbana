@@ -104,6 +104,8 @@ public:
   void SRV(unsigned int index, BufferSRV& buf);
   void CBV(unsigned int index, BufferCBV& buf);
   void rootConstant(unsigned int index, unsigned int value);
+  void barrier(Texture& tex, D3D12_RESOURCE_STATES requiredState, D3D12_RESOURCE_BARRIER_TYPE type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION);
+  void barrier(Buffer& tex, D3D12_RESOURCE_STATES requiredState, D3D12_RESOURCE_BARRIER_TYPE type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION);
 };
 
 class ComputeBinding : public Binding_

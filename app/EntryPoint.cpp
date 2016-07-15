@@ -75,7 +75,7 @@ int EntryPoint::main()
 	    GpuDevice gpu = devices.CreateGpuDevice(true, false);
 
       GraphicsQueue queue = gpu.createQueue();
-      SwapChain sc = gpu.createSwapChain(queue, window, 2, FormatType::R16G16B16A16_FLOAT);
+      SwapChain sc = gpu.createSwapChain(queue, window, 2, FormatType::R10G10B10A2);
       ViewPort port(ires.x(), ires.y());
 
       GfxCommandList gfx = gpu.createUniversalCommandList();
@@ -108,7 +108,7 @@ int EntryPoint::main()
         .PixelShader("pixel2")
         .VertexShader("vertex_triangle")
         .setRenderTargetCount(1)
-        .RTVFormat(0, FormatType::R16G16B16A16_FLOAT)
+        .RTVFormat(0, FormatType::R10G10B10A2)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
       struct ConstantsCustom
@@ -160,10 +160,11 @@ int EntryPoint::main()
         {
           GpuProfilingBracket(queue, "Frame");
           {
-			  
+			  float asd = 1.f;
             for (auto&& it : graphs)
             {
-              it.updateGraphCompute(gfx, sinf(time/* + cpu*/));
+				asd += 2.5f;
+              it.updateGraphCompute(gfx, sinf(time + asd/* + cpu*/));
             }
           }
 
@@ -180,8 +181,8 @@ int EntryPoint::main()
           {
             GpuProfilingBracket(gfx, "Clearing&Setting RTV");
             gfx.setViewPort(port);
-            gfx.setRenderTarget(sc[backBufferIndex]);
             gfx.ClearRenderTargetView(sc[backBufferIndex], vec);
+            gfx.setRenderTarget(sc[backBufferIndex]);
           }
 
           {
@@ -197,6 +198,7 @@ int EntryPoint::main()
             {
               it.drawGraph(gfx);
             }
+			
 			
           }
           // submit all

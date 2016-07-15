@@ -8,10 +8,7 @@ CptCommandList::CptCommandList(FazCPtr<ID3D12GraphicsCommandList> cmdList, FazCP
 {
 }
 
-void CptCommandList::setResourceBarrier()
-{
 
-}
 
 void CptCommandList::bindComputeBinding(ComputeBinding& asd)
 {

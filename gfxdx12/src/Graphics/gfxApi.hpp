@@ -104,7 +104,7 @@ public:
   {
 #ifdef DEBUG
     //debug = true;
-	  //warpDriver = true;
+	//warpDriver = false;
 #endif
     return CreateGpuDevice(betterDevice, debug, warpDriver);
   }
@@ -122,11 +122,11 @@ public:
     FazCPtr<ID3D12Device> device;
     if (!warpDevice)
     {
-      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
+      HRESULT hr = D3D12CreateDevice(vAdapters[num], D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
-        F_LOG("Device creation failed with D3D_FEATURE_LEVEL_12_0, falling back to warpdriver\n");
-		    warpDevice = true;
+        F_LOG("Device creation failed with D3D_FEATURE_LEVEL_11_0, falling back to warpdriver\n");
+		warpDevice = true;
       }
       else
       {
@@ -137,7 +137,7 @@ public:
     {
       FazCPtr<IDXGIAdapter1> pAdapter;
       pFactory->EnumWarpAdapter(__uuidof(IDXGIAdapter1), reinterpret_cast<void**>(pAdapter.addr()));
-      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
+      HRESULT hr = D3D12CreateDevice(pAdapter.get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(device.releaseAndAddr()));
       if (FAILED(hr))
       {
         F_LOG("Device creation failed\n", 2);
@@ -151,19 +151,22 @@ public:
 
     if (debug && device.get())
     {
+		/*
       FazCPtr<ID3D12DebugDevice> debugInterface;
       if (SUCCEEDED(device->QueryInterface(debugInterface.releaseAndAddr())))
       {
-        //debugInterface->ReportLiveDeviceObjects(/*D3D12_RLDO_DETAIL |*/ D3D12_RLDO_IGNORE_INTERNAL);
-      }
+        debugInterface->ReportLiveDeviceObjects(/*D3D12_RLDO_DETAIL |*//* D3D12_RLDO_IGNORE_INTERNAL);
+      }*/
 
       // configure infoqueue
+	  /*
       FazCPtr<ID3D12InfoQueue> infoQueue;
       if (SUCCEEDED(device->QueryInterface(infoQueue.releaseAndAddr())))
       {
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
       }
+	  */
     }
     return std::move(GpuDevice(device, debug));
   }

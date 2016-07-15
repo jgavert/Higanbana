@@ -31,6 +31,7 @@ namespace rendering
       BufferCBV m_graphConstantsCbv;
 	    Texture m_graphTexture;
       TextureUAV m_graphTextureUav;
+      TextureSRV m_graphTextureSrv;
 
       faze::vec2 m_topleft;
       faze::vec2 m_bottomright;
