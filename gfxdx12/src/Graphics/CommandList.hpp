@@ -46,7 +46,6 @@ public:
   {}
   void CopyResource(Buffer& dstdata, Buffer& srcdata);
   void CopyResource(Texture& dstdata, Texture& srcdata);
-  void setResourceBarrier();
   void bindComputeBinding(ComputeBinding& bind);
   void Dispatch(ComputeBinding& bind, unsigned int x, unsigned int y, unsigned int z);
   void DispatchIndirect(ComputeBinding& bind);

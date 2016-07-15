@@ -28,7 +28,7 @@ namespace rendering
 		  .PixelShader("utils/pixel_drawGraph")
 		  .VertexShader("utils/vertex_drawGraph")
 		  .setRenderTargetCount(1)
-		  .RTVFormat(0, FormatType::R16G16B16A16_FLOAT)
+		  .RTVFormat(0, FormatType::R10G10B10A2)
 		  .DepthStencil(DepthStencilDescriptor().DepthEnable(false))
 		  .Blend(GraphicsBlendDescriptor()
 			  .setRenderTarget(0, RenderTargetBlendDescriptor()
@@ -54,6 +54,7 @@ namespace rendering
 		  .Dimension(FormatDimension::Texture2D));
 
 	  m_graphTextureUav = device.createTextureUAV(m_graphTexture);
+	  m_graphTextureSrv = device.createTextureSRV(m_graphTexture);
 
     }
     void Graph::updateGraphCompute(GfxCommandList& gfx, float val)
@@ -71,6 +72,7 @@ namespace rendering
         m[0].height = height;
 		m[0].texIndex = m_graphTextureUav.getCustomIndexInHeap();
       }
+	  //F_LOG("updating graph with val %f\n", val);
       currentUvX += 1;
       currentUvX %= width;
       gfx.CopyResource(m_graphConstants, m_uploadConstants);
@@ -89,6 +91,7 @@ namespace rendering
 		  auto bind = gfx.bind(m_cmdPipeline);
 		  bind.CBV(0, m_graphConstantsCbv);
 		  bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
+		  bind.barrier(m_graphTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_BARRIER_TYPE_UAV);
 		  unsigned int shaderGroup = 32;
 		  unsigned int graphSize = height;
 		  gfx.Dispatch(bind, graphSize / shaderGroup, 1, 1);
@@ -96,7 +99,8 @@ namespace rendering
 	  {
 		  auto bind = gfx.bind(m_drawPipeline);
 		  bind.CBV(0, m_graphConstantsCbv); // has the "vertex" data
-		  bind.rootConstant(0, m_graphTextureUav.getCustomIndexInHeap());
+		  bind.rootConstant(0, m_graphTextureSrv.getCustomIndexInHeap());
+		  bind.barrier(m_graphTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		  gfx.drawInstanced(bind, 6); // box
 	  }
     }

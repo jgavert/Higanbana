@@ -375,6 +375,7 @@ private:
 
       auto tex = dev.createTexture(ResourceDescriptor()
         .Width(800).Height(600)
+		.Dimension(FormatDimension::Texture2D)
         .Format(FormatType::D32_FLOAT)
         .enableDepthStencil());
       auto depth = dev.createTextureDSV(tex);
