@@ -179,7 +179,8 @@ int EntryPoint::main()
 	}
 
   {
-    CommandBuffer buffer;
+		LinearAllocator allocator(1024);
+    CommandBuffer buffer(std::move(allocator));
     buffer.Dispatch(2, 4, 6);
     F_LOG("buffer size %zu\n", buffer.size());
   }

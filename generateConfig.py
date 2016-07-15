@@ -8,7 +8,7 @@ config = """
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/cache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.3.1'
+.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.17.0'
 #endif
 #if __LINUX__
 .FazEPath = 'CURRENT_DIRECTORY'
