@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <cstring>
 
+// sizeBytes is the amount of private data I need.
 constexpr uint32_t sizeBytes = sizeof(uint32_t) + sizeof(uint32_t);
 
 size_t calcOffset(size_t alignment)
