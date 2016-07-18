@@ -182,7 +182,14 @@ int EntryPoint::main()
 		LinearAllocator allocator(1024);
     CommandBuffer buffer(std::move(allocator));
     buffer.Dispatch(2, 4, 6);
+    buffer.Dispatch(2, 4, 6);
+    buffer.Dispatch(2, 4, 6);
+	buffer.ResourceBinding();
+    buffer.Dispatch(2, 4, 6);
+	buffer.ResourceBinding();
+	buffer.execute();
     F_LOG("buffer size %zu\n", buffer.size());
+	log.update();
   }
 
   };

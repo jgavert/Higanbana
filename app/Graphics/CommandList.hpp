@@ -1,7 +1,10 @@
 #pragma once
 #include <memory>
 
-
+bool isAligned2(intptr_t ptr, size_t alignment)
+{
+	return (ptr % static_cast<uintptr_t>(alignment)) == 0;
+}
 
 class CommandPacket
 {
@@ -32,9 +35,10 @@ public:
 		: resourceFrom(0)
 		, resourceTo(0)
 	{}
+	virtual ~CopyResourcePacket() override {}
 	virtual void execute()
 	{
-		F_LOG("super cool CopyResource");
+		F_LOG("super cool CopyResource\n");
 	}
 	int resourceFrom;
 	int resourceTo;
@@ -46,9 +50,10 @@ public:
 	DispatchPacket(int x, int y, int z)
 		: x(x), y(y), z(z)
 	{}
+	virtual ~DispatchPacket() override {}
 	virtual void execute()
 	{
-		F_LOG("super cool Dispatch");
+		F_LOG("super cool Dispatch %d %d %d \n", x, y, z);
 	}
   int x;
   int y;
@@ -66,8 +71,9 @@ public:
 	{}
 	virtual void execute()
 	{
-		F_LOG("super cool Draw");
+		F_LOG("super cool Draw\n");
 	}
+	virtual ~DrawPacket() override {}
 	int VertexCountPerInstance;
 	int InstanceCount;
 	int StartVertexLocation;
@@ -83,15 +89,21 @@ public:
 		, resourceB(0)
 		, descHeap(0)
 	{}
+	virtual ~ResourceBindingPacket() override {}
 	virtual void execute()
 	{
-		F_LOG("super cool ResourceBinding");
+		F_LOG("super cool ResourceBinding\n");
 	}
   int pipeline;
   int resourceA;
   int resourceB;
   int descHeap;
 };
+
+uintptr_t calcAlignment(uintptr_t size, size_t alignment)
+{
+	return (size / alignment) * alignment + alignment;
+}
 
 class LinearAllocator
 {
@@ -105,13 +117,19 @@ public:
 		, m_current(0)
 	{}
 
-	template <typename T>
-	T* alloc()
+	template <typename T, typename... Args>
+	T* alloc(Args&&... args)
 	{
-		// alignment
 		auto freeMemory = m_current;
 		m_current += sizeof(T);
-		return reinterpret_cast<T*>(m_data[freeMemory]);
+		uintptr_t ptrPos = reinterpret_cast<intptr_t>( &m_data[freeMemory]);
+		bool asd = isAligned2(ptrPos, 16);
+		if (!asd)
+		{
+			ptrPos = calcAlignment(ptrPos, 16);
+		}
+		T* ptr = new (reinterpret_cast<uint8_t*>(ptrPos)) T(std::forward<Args>(args)...);
+		return ptr;
 	}
 	inline void reset()
 	{
@@ -129,6 +147,9 @@ private:
 public:
 	CommandList(LinearAllocator&& allocator)
 		: m_allocator(std::forward<LinearAllocator>(allocator))
+		, m_firstPacket(nullptr)
+		, m_lastPacket(nullptr)
+		, m_size(0)
 	{}
 
 	~CommandList()
@@ -136,8 +157,9 @@ public:
 		CommandPacket* current = m_firstPacket;
 		while (current != nullptr)
 		{
-			current->~CommandPacket();
-			current = current->nextPacket();
+			CommandPacket* tmp = (*current).nextPacket();
+			(*current).~CommandPacket();
+			current = tmp;
 		}
 	}
 
@@ -146,10 +168,17 @@ public:
 	template <typename Type, typename... Args>
 	Type& insert(Args&&... args)
 	{
-		Type* ptr = m_allocator.alloc<Type>();
-		*ptr = Type(std::forward<Args>(args)...);
-		m_lastPacket->setNextPacket(ptr);
+		Type* ptr = m_allocator.alloc<Type>(std::forward<Args>(args)...);
+		if (m_lastPacket != nullptr)
+		{
+			m_lastPacket->setNextPacket(ptr);
+		}
+		if (m_firstPacket == nullptr)
+		{
+			m_firstPacket = ptr;
+		}
 		m_lastPacket = ptr;
+		m_size++;
 		return *ptr;
 	}
 
@@ -177,7 +206,11 @@ public:
 	void Dispatch(int x, int y, int z)
 	{
 		m_list.insert<DispatchPacket>(x,y,z);
-		//packet.x
+	}
+
+	void ResourceBinding()
+	{
+		m_list.insert<ResourceBindingPacket>();
 	}
 
 	size_t size()
