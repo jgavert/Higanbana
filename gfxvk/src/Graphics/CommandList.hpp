@@ -17,7 +17,7 @@ private:
   CmdBufferBase(CmdBufferImpl cmdBuffer) : m_cmdBuffer(cmdBuffer) {}
 public:
   bool isValid();
-  void closeList();
+  void close();
   bool isClosed();
   void resetList();
 };
