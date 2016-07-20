@@ -5,9 +5,9 @@ bool CmdBufferBase::isValid()
   return m_cmdBuffer.isValid();
 }
 
-void CmdBufferBase::closeList()
+void CmdBufferBase::close()
 {
-  m_cmdBuffer.closeList();
+  m_cmdBuffer.close();
 }
 
 bool CmdBufferBase::isClosed()

@@ -44,6 +44,7 @@ using MappedBufferImpl = VulkanMappedBuffer<T>;
 class VulkanBuffer
 {
   friend class VulkanGpuDevice;
+  friend class VulkanCmdBuffer;
 
   std::shared_ptr<vk::Buffer> m_resource;
   ResourceDescriptor m_desc;
@@ -83,7 +84,7 @@ private:
   friend class VulkanGpuDevice;
   friend class BufferShaderView;
 
-  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
+  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed.
   size_t customIndex;
   VulkanBufferShaderView()
     : indexInHeap(new size_t)
