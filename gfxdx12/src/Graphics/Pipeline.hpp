@@ -31,7 +31,7 @@ public:
   }
   ID3D12PipelineState* getState()
   {
-    return pipeline.get();
+    return pipeline.Get();
   }
   ShaderInterface& getShaderInterface()
   {
@@ -43,7 +43,7 @@ public:
   }
   bool valid()
   {
-    return pipeline.get() != nullptr;
+    return pipeline.Get() != nullptr;
   }
 };
 
@@ -71,7 +71,7 @@ public:
   }
   ID3D12PipelineState* getState()
   {
-    return pipeline.get();
+    return pipeline.Get();
   }
   ShaderInterface& getShaderInterface()
   {
@@ -83,6 +83,6 @@ public:
   }
   bool valid()
   {
-    return pipeline.get() != nullptr;
+    return pipeline.Get() != nullptr;
   }
 };

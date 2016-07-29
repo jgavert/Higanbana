@@ -84,7 +84,7 @@ struct BufferInternal
 
   bool isValid()
   {
-    return m_resource.get() != nullptr;
+    return m_resource.Get() != nullptr;
   }
 };
 

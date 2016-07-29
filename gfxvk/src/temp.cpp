@@ -39,7 +39,7 @@ bool yay::test()
     ist.destroy(&alloc_info);
   });
 
-  vk::Result res = vk::createInstance(&inst_info, &alloc_info, instance.get());
+  vk::Result res = vk::createInstance(&inst_info, &alloc_info, instance.Get());
 
   if (res != vk::Result::eSuccess)
   {

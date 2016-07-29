@@ -54,7 +54,7 @@ public:
 
   bool valid()
   {
-    bool arr = m_SwapChain.get() != nullptr;
+    bool arr = m_SwapChain.Get() != nullptr;
     for (auto&& it : m_resources)
     {
       if (!it.isValid())

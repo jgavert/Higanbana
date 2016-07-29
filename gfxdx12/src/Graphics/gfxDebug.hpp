@@ -54,24 +54,24 @@ private:
 public:
   static GpuBracket<ID3D12CommandQueue> createBracket(GraphicsQueue& queue, const char* name)
   {
-    return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
+    return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.Get(), name);
   }
   static GpuBracket<ID3D12GraphicsCommandList> createBracket(GfxCommandList& list, const char* name)
   {
-    return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.get(), name);
+    return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.Get(), name);
   }
   static GpuBracket<ID3D12CommandQueue> createBracket(GraphicsQueue& queue, std::string& name)
   {
-    return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.get(), name);
+    return GpuBracket<ID3D12CommandQueue>(queue.m_CommandQueue.Get(), name);
   }
   static GpuBracket<ID3D12GraphicsCommandList> createBracket(GfxCommandList& list, std::string& name)
   {
-    return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.get(), name);
+    return GpuBracket<ID3D12GraphicsCommandList>(list.m_CommandList.Get(), name);
   }
   /* There is no such bracket D:
   static GpuBracket<ID3D12CommandList> createBracket(CptCommandList& list, std::string& name)
   {
-    return GpuBracket<ID3D12CommandList>(list.m_CommandList.get(), name);
+    return GpuBracket<ID3D12CommandList>(list.m_CommandList.Get(), name);
   }*/
 };
 

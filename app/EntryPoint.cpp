@@ -23,6 +23,7 @@
 #include "Graphics/tests/advtests.hpp"
 // app
 #include "Rendering/Utils/graph.hpp"
+#include "Rendering/Utils/shaded_area.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -75,7 +76,7 @@ int EntryPoint::main()
 	    GpuDevice gpu = devices.CreateGpuDevice(true, false);
 
       GraphicsQueue queue = gpu.createQueue();
-      SwapChain sc = gpu.createSwapChain(queue, window, 2, FormatType::R10G10B10A2);
+      SwapChain sc = gpu.createSwapChain(queue, window, 2, FormatType::R8G8B8A8_UNORM);
       ViewPort port(ires.x(), ires.y());
 
       GfxCommandList gfx = gpu.createUniversalCommandList();
@@ -88,7 +89,7 @@ int EntryPoint::main()
 
 
       using namespace rendering::utils;
-
+	  /*
       auto texSize = ivec2({ 400,200 });
       std::vector<Graph> graphs;
       float startpos = 0.9f;
@@ -100,6 +101,19 @@ int EntryPoint::main()
         graph.changeScreenPos({ -1.0f, startpos - (i*heightpos) }, { -0.5f, startpos - ((i + 1.f)*heightpos) });
         graphs.emplace_back(graph);
       }
+	  */
+
+	  auto shadedSize = ivec2({ ires.x() / 2, ires.y() / 2 });
+	  ShadedArea area(gpu, shadedSize);
+	  area.changeScreenPos({ -0.9f, 0.9f }, { -.1f, .1f });
+	  ShadedArea area2(gpu, shadedSize, "_special");
+	  area2.changeScreenPos({ -0.9f, -0.1f }, { -.1f, -0.9f });
+	  ShadedArea area3(gpu, shadedSize, "_another");
+	  area3.changeScreenPos({ 0.1f, 0.9f }, { .9f, 0.1f });
+	  ShadedArea area4(gpu, shadedSize);
+	  area4.changeScreenPos({ 0.1f, -0.1f }, { 0.9f, -0.9f });
+
+
       auto vec = faze::vec4({ 0.2f, 0.2f, 0.2f, 1.0f });
 
       // graphics
@@ -108,7 +122,7 @@ int EntryPoint::main()
         .PixelShader("pixel2")
         .VertexShader("vertex_triangle")
         .setRenderTargetCount(1)
-        .RTVFormat(0, FormatType::R10G10B10A2)
+        .RTVFormat(0, FormatType::R8G8B8A8_UNORM)
         .DepthStencil(DepthStencilDescriptor().DepthEnable(false)));
 
       struct ConstantsCustom
@@ -160,12 +174,17 @@ int EntryPoint::main()
         {
           GpuProfilingBracket(queue, "Frame");
           {
-			  float asd = 1.f;
+			/*float asd = 1.f;
             for (auto&& it : graphs)
             {
 				asd += 2.5f;
-              it.updateGraphCompute(gfx, sinf(time + asd/* + cpu*/));
-            }
+              it.updateGraphCompute(gfx, sinf(time + asd/* + cpu*//*));
+            }*/
+
+			area.update(gfx);
+			area2.update(gfx);
+			area3.update(gfx);
+			area4.update(gfx);
           }
 
           {
@@ -193,12 +212,15 @@ int EntryPoint::main()
           }
 
           { // post process
-			  
+			/*
             for (auto&& it : graphs)
             {
               it.drawGraph(gfx);
-            }
-			
+            }*/
+			area.render(gfx);	
+			area2.render(gfx);	
+			area3.render(gfx);
+			area4.render(gfx);
 			
           }
           // submit all

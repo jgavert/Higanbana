@@ -59,7 +59,7 @@ namespace faze
 
     inline char* getPtr()
     {
-      return reinterpret_cast<char*>(m_array.get());
+      return reinterpret_cast<char*>(m_array.Get());
     }
   };
 }

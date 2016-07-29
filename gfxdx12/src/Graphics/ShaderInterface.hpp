@@ -249,15 +249,15 @@ public:
 
   bool operator!=(ShaderInterface& compared)
   {
-    return m_rootSig.get() != compared.m_rootSig.get();
+    return m_rootSig.Get() != compared.m_rootSig.Get();
   }
   bool operator==(ShaderInterface& compared)
   {
-    return m_rootSig.get() == compared.m_rootSig.get();
+    return m_rootSig.Get() == compared.m_rootSig.Get();
   }
   bool valid()
   {
-    return m_rootSig.get() != nullptr;
+    return m_rootSig.Get() != nullptr;
   }
 };
 

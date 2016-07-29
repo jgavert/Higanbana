@@ -51,7 +51,7 @@ void Binding_::checkResourceStateCBV(ID3D12Resource* resptr, D3D12_RESOURCE_STAT
 void Binding_::UAV(unsigned int index, BufferUAV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
-    checkResourceStateUAV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
+    checkResourceStateUAV(buf.getBuffer().m_resource.Get(), buf.getBuffer().m_state);
   auto& ptr = m_uavs.at(index).first;
   ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
@@ -59,7 +59,7 @@ void Binding_::UAV(unsigned int index, BufferUAV& buf)
 void Binding_::SRV(unsigned int index, BufferSRV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
-    checkResourceStateSRV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
+    checkResourceStateSRV(buf.getBuffer().m_resource.Get(), buf.getBuffer().m_state);
   auto& ptr = m_srvs.at(index).first;
   ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
@@ -67,7 +67,7 @@ void Binding_::SRV(unsigned int index, BufferSRV& buf)
 void Binding_::CBV(unsigned int index, BufferCBV& buf)
 {
   if (!buf.getBuffer().m_immutableState)
-    checkResourceStateCBV(buf.getBuffer().m_resource.get(), buf.getBuffer().m_state);
+    checkResourceStateCBV(buf.getBuffer().m_resource.Get(), buf.getBuffer().m_state);
   auto& ptr = m_cbvs.at(index).first;
   ptr.ptr = buf.getBuffer().m_resource->GetGPUVirtualAddress();
 }
@@ -109,7 +109,7 @@ void Binding_::barrier(Buffer& tex, D3D12_RESOURCE_STATES requiredState, D3D12_R
 		D3D12_RESOURCE_BARRIER barrierDesc = {};
 		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrierDesc.Transition.pResource = tex.getBuffer().m_resource.get();
+		barrierDesc.Transition.pResource = tex.getBuffer().m_resource.Get();
 		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		barrierDesc.Transition.StateBefore = tex.getBuffer().m_state;
 		barrierDesc.Transition.StateAfter = requiredState;
@@ -121,7 +121,7 @@ void Binding_::barrier(Buffer& tex, D3D12_RESOURCE_STATES requiredState, D3D12_R
 		D3D12_RESOURCE_BARRIER barrierDesc = {};
 		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-		barrierDesc.UAV.pResource = tex.getBuffer().m_resource.get();
+		barrierDesc.UAV.pResource = tex.getBuffer().m_resource.Get();
 		m_resbars.push_back(barrierDesc);
 	}
 }
