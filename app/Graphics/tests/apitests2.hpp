@@ -201,19 +201,19 @@ private:
       GpuDevice dev = sys.CreateGpuDevice(id);
       FazCPtr<ID3DBlob> blobCompute;
       FazCPtr<ID3DBlob> errorMsg;
-      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
+      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.GetAddressOf(), errorMsg.GetAddressOf());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
       {
-        if (errorMsg.get())
+        if (errorMsg.Get())
         {
           OutputDebugStringA((char*)errorMsg->GetBufferPointer());
-          errorMsg->Release();
+//          errorMsg->Release();
         }
         return false;
       }
       FazCPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.GetAddressOf()));
       if (FAILED(hr))
       {
         return false;
@@ -223,7 +223,7 @@ private:
       FazCPtr<ID3DBlob> errorSig;
       const D3D12_ROOT_SIGNATURE_DESC* woot = asd->GetRootSignatureDesc();
 
-      hr = D3D12SerializeRootSignature(woot, D3D_ROOT_SIGNATURE_VERSION_1, blobSig.addr(), errorSig.addr());
+      hr = D3D12SerializeRootSignature(woot, D3D_ROOT_SIGNATURE_VERSION_1, blobSig.GetAddressOf(), errorSig.GetAddressOf());
       if (FAILED(hr))
       {
         return false;
@@ -231,7 +231,7 @@ private:
 
       hr = dev.m_device->CreateRootSignature(
         1, blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(),
-        __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(g_RootSig.addr()));
+        __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(g_RootSig.GetAddressOf()));
       return !FAILED(hr);
     });
     t.addTest("shader root signature mirror structure (DISABLED)", [&]()
@@ -242,19 +242,19 @@ private:
       GpuDevice dev = sys.CreateGpuDevice(id);
       FazCPtr<ID3DBlob> blobCompute;
       FazCPtr<ID3DBlob> errorMsg;
-      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.addr(), errorMsg.addr());
+      HRESULT hr = D3DCompileFromFile(L"compute_1", nullptr, nullptr, "CSMain", "cs_5_1", 0, 0, blobCompute.GetAddressOf(), errorMsg.GetAddressOf());
       // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
       if (FAILED(hr))
       {
-        if (errorMsg.get())
+        if (errorMsg.Get())
         {
           OutputDebugStringA((char*)errorMsg->GetBufferPointer());
-          errorMsg->Release();
+//          errorMsg->Release();
         }
         return false;
       }
       FazCPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.GetAddressOf()));
       if (FAILED(hr))
       {
         return false;

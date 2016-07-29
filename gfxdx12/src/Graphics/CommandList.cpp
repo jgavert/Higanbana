@@ -62,7 +62,7 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = dstbuf.m_resource.get();
+    bD[count].Transition.pResource = dstbuf.m_resource.Get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     bD[count].Transition.StateBefore = dstbuf.m_state;
     dstbuf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -74,7 +74,7 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
     bD[count] = {};
     bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    bD[count].Transition.pResource = srcbuf.m_resource.get();
+    bD[count].Transition.pResource = srcbuf.m_resource.Get();
     bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     bD[count].Transition.StateBefore = srcbuf.m_state;
     srcbuf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -85,7 +85,7 @@ void CptCommandList::CopyResource(Buffer& dstdata, Buffer& srcdata)
   {
     m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
   }
-  m_CommandList->CopyResource(dstbuf.m_resource.get(), srcbuf.m_resource.get());
+  m_CommandList->CopyResource(dstbuf.m_resource.Get(), srcbuf.m_resource.Get());
 }
 
 void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
@@ -99,7 +99,7 @@ void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
 		bD[count] = {};
 		bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		bD[count].Transition.pResource = dstbuf.m_resource->get();
+		bD[count].Transition.pResource = dstbuf.m_resource->Get();
 		bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		bD[count].Transition.StateBefore = dstbuf.m_state;
 		dstbuf.m_state = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -111,7 +111,7 @@ void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
 		bD[count] = {};
 		bD[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		bD[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		bD[count].Transition.pResource = srcbuf.m_resource->get();
+		bD[count].Transition.pResource = srcbuf.m_resource->Get();
 		bD[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		bD[count].Transition.StateBefore = srcbuf.m_state;
 		srcbuf.m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -122,7 +122,7 @@ void CptCommandList::CopyResource(Texture& dstdata, Texture& srcdata)
 	{
 		m_CommandList->ResourceBarrier(static_cast<unsigned>(count), bD);
 	}
-	m_CommandList->CopyResource(dstbuf.m_resource->get(), srcbuf.m_resource->get());
+	m_CommandList->CopyResource(dstbuf.m_resource->Get(), srcbuf.m_resource->Get());
 }
 
 void CptCommandList::Dispatch(ComputeBinding& asd, unsigned int x, unsigned int y, unsigned int z)
@@ -144,7 +144,7 @@ ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
   if (m_boundShaderInterface != inf || m_graphicsBound)
   {
     m_boundShaderInterface = inf;
-    m_CommandList->SetComputeRootSignature(inf.m_rootSig.get());
+    m_CommandList->SetComputeRootSignature(inf.m_rootSig.Get());
 	m_graphicsBound = false;
   }
   if (m_boundCptPipeline != &pipeline)
@@ -154,14 +154,14 @@ ComputeBinding CptCommandList::bind(ComputePipeline& pipeline)
     m_boundGfxPipeline = nullptr;
   }
   {
-	m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.addr());
+	m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.GetAddressOf());
   }
   return pipeline.getBinding();
 }
 
 bool CptCommandList::isValid()
 {
-  return m_CommandList.get() != nullptr;
+  return m_CommandList.Get() != nullptr;
 }
 
 void CptCommandList::setHeaps(DescriptorHeapManager& heaps)
@@ -204,12 +204,12 @@ void CptCommandList::resetList()
 {
 	m_CommandListAllocator->Reset();
 	if (m_boundCptPipeline != nullptr)
-		m_CommandList->Reset(m_CommandListAllocator.get(), m_boundCptPipeline->getState());
+		m_CommandList->Reset(m_CommandListAllocator.Get(), m_boundCptPipeline->getState());
 	else
-		m_CommandList->Reset(m_CommandListAllocator.get(), nullptr);
+		m_CommandList->Reset(m_CommandListAllocator.Get(), nullptr);
 	closed = false;
 	if (m_boundShaderInterface.valid())
-		m_CommandList->SetComputeRootSignature(m_boundShaderInterface.m_rootSig.get());
+		m_CommandList->SetComputeRootSignature(m_boundShaderInterface.m_rootSig.Get());
 }
 
 
@@ -219,7 +219,7 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
   if (m_boundShaderInterface != inf || !m_graphicsBound)
   {
     m_boundShaderInterface = inf;
-    m_CommandList->SetGraphicsRootSignature(inf.m_rootSig.get());
+    m_CommandList->SetGraphicsRootSignature(inf.m_rootSig.Get());
 	m_graphicsBound = true;
   }
   if (m_boundGfxPipeline != &pipeline)
@@ -229,7 +229,7 @@ GraphicsBinding GfxCommandList::bind(GraphicsPipeline& pipeline)
     m_boundCptPipeline = nullptr;
   }
   {
-	  m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.addr());
+	  m_CommandList->SetDescriptorHeaps(1, pipeline.getDescHeap().m_descHeap.GetAddressOf());
   }
   return pipeline.getBinding();
 }
@@ -330,7 +330,7 @@ void GfxCommandList::preparePresent(TextureRTV& rtv)
 		D3D12_RESOURCE_BARRIER desc = {};
 		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc.Transition.pResource = rtv.texture().m_resource->get();
+		desc.Transition.pResource = rtv.texture().m_resource->Get();
 		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		desc.Transition.StateBefore = rtv.texture().m_state;
 		rtv.texture().m_state = D3D12_RESOURCE_STATE_PRESENT;
@@ -346,7 +346,7 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv)
 		D3D12_RESOURCE_BARRIER desc = {};
 		desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc.Transition.pResource = rtv.texture().m_resource->get();
+		desc.Transition.pResource = rtv.texture().m_resource->Get();
 		desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		desc.Transition.StateBefore = rtv.texture().m_state;
 		rtv.texture().m_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -365,7 +365,7 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 		desc[count] = {};
 		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc[count].Transition.pResource = rtv.texture().m_resource->get(); // uh oh
+		desc[count].Transition.pResource = rtv.texture().m_resource->Get(); // uh oh
 		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		desc[count].Transition.StateBefore = rtv.texture().m_state;
 		rtv.texture().m_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -377,7 +377,7 @@ void GfxCommandList::setRenderTarget(TextureRTV& rtv, TextureDSV& dsv)
 		desc[count] = {};
 		desc[count].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		desc[count].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		desc[count].Transition.pResource = dsv.texture().m_resource->get();
+		desc[count].Transition.pResource = dsv.texture().m_resource->Get();
 		desc[count].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		desc[count].Transition.StateBefore = dsv.texture().m_state;
 		dsv.texture().m_state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -408,7 +408,7 @@ void GfxCommandList::setUAVBindless(DescriptorHeapManager& uavDescHeap)
 void GfxCommandList::resetList()
 {
 	m_CommandListAllocator->Reset();
-	m_CommandList->Reset(m_CommandListAllocator.get(), nullptr);
+	m_CommandList->Reset(m_CommandListAllocator.Get(), nullptr);
 	closed = false;
 	m_boundCptPipeline = nullptr;
 	m_boundGfxPipeline = nullptr;

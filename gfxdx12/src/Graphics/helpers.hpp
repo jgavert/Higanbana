@@ -223,26 +223,25 @@ public:
 // IF you really need to debug shaders, uncomment.
     //compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
 
-    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), compileFlags, 0, shaderBlob.addr(), errorMsg.addr());
+    HRESULT hr = D3DCompileFromFile(woot.c_str(), nullptr, &include, p.first.c_str(), p.second.c_str(), compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
     // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
     if (FAILED(hr))
     {
-      if (errorMsg.get())
+      if (errorMsg.Get())
       {
         OutputDebugStringA((char*)errorMsg->GetBufferPointer());
-        errorMsg->Release();
       }
       abort();
     }
     {
 		FazCPtr<ID3DBlob> rootBlob;
 		// extract root
-		// D3DGetBlobPart(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.addr());
+		// D3DGetBlobPart(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.GetAddressOf());
 		// removes and returns root
-		D3DStripShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, rootBlob.addr());
+		D3DStripShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), D3D_BLOB_ROOT_SIGNATURE, rootBlob.GetAddressOf());
 
       FazCPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      hr = D3D12CreateRootSignatureDeserializer(rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.GetAddressOf()));
       if (FAILED(hr))
       {
         abort();
@@ -266,7 +265,7 @@ public:
         FazCPtr<ID3D12RootSignature> rootSig;
         hr = dev->CreateRootSignature(
           1, rootBlob->GetBufferPointer(), rootBlob->GetBufferSize(),
-          __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.addr()));
+          __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(rootSig.GetAddressOf()));
         if (FAILED(hr))
         {
           abort();

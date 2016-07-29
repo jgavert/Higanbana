@@ -26,7 +26,7 @@ struct RawResource
     return p_resource;
   }
 
-  ID3D12Resource* get()
+  ID3D12Resource* Get()
   {
     return p_resource;
   }

@@ -8,7 +8,7 @@ void GraphicsQueue::submit(GfxCommandList& list)
   {
     abort();
   }
-  m_CommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(list.m_CommandList.addr()));
+  m_CommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(list.m_CommandList.GetAddressOf()));
 }
 
 // simple case
@@ -21,10 +21,10 @@ void GraphicsQueue::insertFence(GpuFence& fence)
   mFence->SetEventOnCompletion(1, fence.m_handle);
 
   //after the command list has executed, tell the GPU to signal the fence
-  m_CommandQueue->Signal(mFence.get(), 1);
+  m_CommandQueue->Signal(mFence.Get(), 1);
 }
 
 bool GraphicsQueue::isValid()
 {
-  return m_CommandQueue.get() != nullptr;
+  return m_CommandQueue.Get() != nullptr;
 }

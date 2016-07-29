@@ -169,7 +169,16 @@
         int64_t partiallyEmpty = nextBucketWithRoom(block);
         if (partiallyEmpty == -1)
           return -1;
-        return skip_find_firstEmpty_offset(partiallyEmpty, block_offset);
+		// todo: When bucket is partially empty but thanks to offset, we won't find the room.
+		auto res = skip_find_firstEmpty_offset(partiallyEmpty, block_offset);
+		if (res == -1)
+		{
+			partiallyEmpty = nextBucketWithRoom(block+1);
+			if (partiallyEmpty == -1)
+				return -1;
+			return skip_find_firstEmpty_offset(partiallyEmpty, 0); // since this is the next block, offset is 0
+		}
+        return res;
       }
 
       inline int64_t skip_find_firstEmpty(size_t block) const

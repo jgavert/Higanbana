@@ -126,7 +126,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
     .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
     .ppEnabledExtensionNames(extensions.data());
 
-  vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, m_instance.get());
+  vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, m_instance.Get());
 
   if (res != vk::Result::eSuccess)
   {
@@ -143,7 +143,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
 
   dbgCreateDebugReportCallback =
     (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      *m_instance.get(), "vkCreateDebugReportCallbackEXT");
+      *m_instance.Get(), "vkCreateDebugReportCallbackEXT");
   if (!dbgCreateDebugReportCallback) {
     F_LOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
     return true;
@@ -151,7 +151,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
 
   dbgDestroyDebugReportCallback =
     (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      *m_instance.get(), "vkDestroyDebugReportCallbackEXT");
+      *m_instance.Get(), "vkDestroyDebugReportCallbackEXT");
   if (!dbgDestroyDebugReportCallback) {
     F_LOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.\n");;
     return true;
@@ -164,9 +164,9 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
   auto allocInfo = m_alloc_info;
   m_debugcallback = FazPtrVk<vk::DebugReportCallbackEXT>([lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT ist)
   {
-    dbgDestroyDebugReportCallback(*lol.get(), ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+    dbgDestroyDebugReportCallback(*lol.Get(), ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
   });
-  dbgCreateDebugReportCallback(*m_instance.get(), reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
+  dbgCreateDebugReportCallback(*m_instance.Get(), reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.Get()));
   return true;
 }
 

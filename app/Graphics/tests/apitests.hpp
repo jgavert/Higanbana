@@ -34,7 +34,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GraphicsQueue queue = dev.createQueue();
-      return queue.m_CommandQueue.get() != nullptr;
+      return queue.m_CommandQueue.Get() != nullptr;
     });
 
     t.addTest("CommandList creation", [&]()
@@ -43,7 +43,7 @@ private:
       sys.createInstance("test", 1, "faze_test", 1);
       GpuDevice dev = sys.CreateGpuDevice(id);
       GfxCommandList list = dev.createUniversalCommandList();
-      return list.m_CommandList.get() != nullptr;
+      return list.m_CommandList.Get() != nullptr;
     });
 
     t.addTest("CreateCommittedResource Upload", [id]()
@@ -1066,7 +1066,7 @@ private:
       ID3DBlob* blobSig;
       ID3DBlob* errorSig;
       FazCPtr<ID3D12RootSignatureDeserializer> asd;
-      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.addr()));
+      hr = D3D12CreateRootSignatureDeserializer(blobCompute->GetBufferPointer(), blobCompute->GetBufferSize(), __uuidof(ID3D12RootSignatureDeserializer), reinterpret_cast<void**>(asd.GetAddressOf()));
       if (FAILED(hr))
       {
         abort();
@@ -1274,7 +1274,7 @@ private:
           printf("CreateDXGIFactory2 failed\n");
           return false;
         }
-        hr = dxgiFactory->CreateSwapChain(queue.get().get(), &swapChainDesc, (IDXGISwapChain**)&mSwapChain);
+        hr = dxgiFactory->CreateSwapChain(queue.get().Get(), &swapChainDesc, (IDXGISwapChain**)&mSwapChain);
         dxgiFactory->Release();
         if (FAILED(hr))
         {

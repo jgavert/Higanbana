@@ -34,7 +34,7 @@ public:
   FazPtrVk() // usually owned
   {
     resource = std::make_shared<ManagedResource_<T>>();
-    resource.get()->p_resource = nullptr;
+    resource.Get()->p_resource = nullptr;
   }
 
   FazPtrVk(std::function<void(T)> destructor, bool owned = true) // usually owned
@@ -127,6 +127,6 @@ public:
 
   bool isValid()
   {
-    return resource.get() != nullptr;
+    return resource.Get() != nullptr;
   }
 };
