@@ -16,11 +16,11 @@
 #include "app/Graphics/gfxApi.hpp"
 
 #if defined(GFX_D3D12)
-#include "Graphics/tests/apitests.hpp"
-#include "Graphics/tests/stresstests.hpp"
+//#include "Graphics/tests/apitests.hpp"
+//#include "Graphics/tests/stresstests.hpp"
 #endif
-#include "Graphics/tests/apitests2.hpp"
-#include "Graphics/tests/advtests.hpp"
+//#include "Graphics/tests/apitests2.hpp"
+//#include "Graphics/tests/advtests.hpp"
 // app
 #include "Rendering/Utils/graph.hpp"
 #include "Rendering/Utils/shaded_area.hpp"
