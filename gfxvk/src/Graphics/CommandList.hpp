@@ -14,7 +14,7 @@ private:
   friend class _GpuBracket;
   friend class GpuQueue;
   CmdBufferImpl m_cmdBuffer;
-  CmdBufferBase(CmdBufferImpl cmdBuffer) : m_cmdBuffer(cmdBuffer) {}
+  CmdBufferBase(CmdBufferImpl cmdBuffer) : m_cmdBuffer(std::move(cmdBuffer)) {}
 public:
   bool isValid();
   void close();
@@ -27,7 +27,7 @@ class DMACmdBuffer : public CmdBufferBase
 private:
   friend class GpuDevice;
   friend class ComputeCmdBuffer;
-  DMACmdBuffer(CmdBufferImpl cmdBuffer) : CmdBufferBase(cmdBuffer) {}
+  DMACmdBuffer(CmdBufferImpl cmdBuffer) : CmdBufferBase(std::move(cmdBuffer)) {}
 public:
   //void CopyResource(Buffer& dstdata, Buffer& srcdata); // this is here only temporarily, will be removed
   // copy stuff
@@ -40,7 +40,7 @@ private:
   friend class GpuDevice;
   friend class GraphicsCmdBuffer;
 
-  ComputeCmdBuffer(CmdBufferImpl cmdBuffer) : DMACmdBuffer(cmdBuffer) {}
+  ComputeCmdBuffer(CmdBufferImpl cmdBuffer) : DMACmdBuffer(std::move(cmdBuffer)) {}
 public:
   // compute stuff
 };
@@ -50,7 +50,7 @@ class GraphicsCmdBuffer : public ComputeCmdBuffer
 private:
   friend class GpuQueue;
   friend class GpuDevice;
-  GraphicsCmdBuffer(CmdBufferImpl cmdList) : ComputeCmdBuffer(cmdList){}
+  GraphicsCmdBuffer(CmdBufferImpl cmdList) : ComputeCmdBuffer(std::move(cmdList)){}
 public:
   // graphics stuff
 };
