@@ -44,7 +44,6 @@ public:
   {
 
   }
-  ~CopyBufferToBuffer() override {}
 };
 
 void VulkanCmdBuffer::copy(VulkanBuffer from, VulkanBuffer to)

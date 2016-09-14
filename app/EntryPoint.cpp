@@ -16,7 +16,6 @@
 #include "app/Graphics/gfxApi.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 
-#include "app/Graphics/CommandList.hpp"
 
 #include "core/src/spirvcross/spirv_glsl.hpp"
 #include <shaderc/shaderc.hpp> 
@@ -177,20 +176,6 @@ int EntryPoint::main()
 			F_SLOG("SPIRV-CROSS", "%s\n", e.what());
 		}
 	}
-
-  {
-		LinearAllocator allocator(1024);
-    CommandBuffer buffer(std::move(allocator));
-    buffer.Dispatch(2, 4, 6);
-    buffer.Dispatch(2, 4, 6);
-    buffer.Dispatch(2, 4, 6);
-	buffer.ResourceBinding();
-    buffer.Dispatch(2, 4, 6);
-	buffer.ResourceBinding();
-	buffer.execute();
-    F_LOG("buffer size %zu\n", buffer.size());
-	log.update();
-  }
 
   };
 

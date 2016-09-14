@@ -2,10 +2,8 @@
 
 #include <memory>
 #include <vulkan/vk_cpp.h>
-bool isAligned2(intptr_t ptr, size_t alignment)
-{
-  return (ptr % static_cast<uintptr_t>(alignment)) == 0;
-}
+
+
 
 class CommandPacket
 {
@@ -30,10 +28,7 @@ public:
 };
 
 
-uintptr_t calcAlignment(uintptr_t size, size_t alignment)
-{
-  return (size / alignment) * alignment + alignment;
-}
+
 
 class LinearAllocator
 {
@@ -41,6 +36,10 @@ private:
   std::unique_ptr<uint8_t[]> m_data;
   size_t m_current;
 
+  uintptr_t calcAlignOffset(uintptr_t size, size_t alignment = 16)
+  {
+    return (alignment - (size & alignment)) % alignment;
+  }
 public:
   LinearAllocator(size_t size)
     : m_data(std::make_unique<uint8_t[]>(size))
@@ -53,11 +52,9 @@ public:
     auto freeMemory = m_current;
     m_current += sizeof(T);
     uintptr_t ptrPos = reinterpret_cast<intptr_t>(&m_data[freeMemory]);
-    bool asd = isAligned2(ptrPos, 16);
-    if (!asd)
-    {
-      ptrPos = calcAlignment(ptrPos, 16);
-    }
+    auto offset = calcAlignOffset(ptrPos);
+    m_current += offset;
+    ptrPos += offset;
     T* ptr = new (reinterpret_cast<uint8_t*>(ptrPos)) T(std::forward<Args>(args)...);
     return ptr;
   }
@@ -81,7 +78,11 @@ public:
     , m_lastPacket(nullptr)
     , m_size(0)
   {}
+  CommandList(CommandList&& obj) = default;
+  CommandList(const CommandList& obj) = delete;
 
+  CommandList& operator=(CommandList&& obj) = default;
+  CommandList& operator=(const CommandList& obj) = delete;
   ~CommandList()
   {
     CommandPacket* current = m_firstPacket;
