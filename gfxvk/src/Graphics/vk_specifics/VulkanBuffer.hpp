@@ -98,7 +98,7 @@ public:
 
   size_t getIndexInHeap()
   {
-    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
+    return *indexInHeap;
   }
 
   unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.

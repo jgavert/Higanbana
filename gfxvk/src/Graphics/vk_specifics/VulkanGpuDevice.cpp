@@ -441,9 +441,12 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
 
 VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
-  /*
-  auto specialiInfo = vk::SpecializationInfo();
-  vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo().pSpecializationInfo(specialiInfo);
+  vk::PipelineLayoutCreateInfo*
+    /*
+  auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by apis
+  vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo()
+    .pSpecializationInfo(&specialiInfo)
+    .stage(;
 
   auto layoutInfo = vk::PipelineLayoutCreateInfo();
   auto layout = m_device->createPipelineLayout(layoutInfo, m_alloc_info);
