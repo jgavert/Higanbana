@@ -1,14 +1,16 @@
 #include "VulkanPipeline.hpp"
 
 
-VulkanPipeline::VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, GraphicsPipelineDescriptor graphDesc)
+VulkanPipeline::VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, GraphicsPipelineDescriptor graphDesc)
   : m_pipeline(pipeline)
+  , m_pipelineLayout(layout)
   , m_graphDesc(std::make_shared<decltype(graphDesc)>(std::forward<decltype(graphDesc)>(graphDesc)))
 {
 
 }
-VulkanPipeline::VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, ComputePipelineDescriptor computeDesc)
+VulkanPipeline::VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, ComputePipelineDescriptor computeDesc)
   : m_pipeline(pipeline)
+  , m_pipelineLayout(layout)
   , m_computeDesc(std::make_shared<decltype(computeDesc)>(std::forward<decltype(computeDesc)>(computeDesc)))
 {
 

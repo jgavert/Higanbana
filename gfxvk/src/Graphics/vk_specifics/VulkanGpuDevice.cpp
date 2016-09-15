@@ -16,6 +16,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_graphicQueues(false)
   , m_freeQueueIndexes({})
   , m_uma(false)
+  , m_shaders("./shaders")
   , m_memoryTypes({-1, -1, -1, -1})
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
@@ -441,22 +442,80 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
 
 VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
-  vk::PipelineLayoutCreateInfo*
-    /*
-  auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by apis
+
+  // create class that can compile shaders for starters. 
+
+  vk::ShaderModule readyShader = m_shaders.shader(*m_device, desc.shader(), ShaderStorage::ShaderType::Compute);
+
+  // BindingObject primitive here
+  // so I guess I will have 
+  // few srv's of buffers/textures
+  // uav's of buffers/textures
+  // samplers
+  // lets do it dynamic for starters, maybe bindless later, when vulkan is more mature.
+
+  // one dynamic buffer for constants, big buffer bound with just offset 
+  vk::DescriptorSetLayoutBinding constantsRingBuffer = vk::DescriptorSetLayoutBinding()
+    .binding(0)
+    .descriptorCount(1)
+    .descriptorType(vk::DescriptorType::eUniformBufferDynamic)
+    .stageFlags(vk::ShaderStageFlagBits::eAll);
+
+  // 6 srvs + uav buffers 
+  vk::DescriptorSetLayoutBinding srvBuffer = vk::DescriptorSetLayoutBinding()
+    .binding(1)
+    .descriptorCount(6)
+    .descriptorType(vk::DescriptorType::eUniformBuffer)
+    .stageFlags(vk::ShaderStageFlagBits::eAll);
+
+  vk::DescriptorSetLayoutBinding uavBuffer = vk::DescriptorSetLayoutBinding()
+    .binding(2)
+    .descriptorCount(6)
+    .descriptorType(vk::DescriptorType::eStorageBuffer)
+    .stageFlags(vk::ShaderStageFlagBits::eAll);
+
+  // todo add textures
+  // TODO maybe employ some evil macro plans to have per stage freely customized inputs.
+  // How this would fit dx12, not sure. But I guess my priorities are currently vulkan first, dx12 maybe afterwards.
+  // Even vulkan as it is, is quite a beast.
+
+  vk::DescriptorSetLayoutBinding bindings[3] = { constantsRingBuffer, srvBuffer, uavBuffer };
+
+  vk::DescriptorSetLayoutCreateInfo sampleLayout = vk::DescriptorSetLayoutCreateInfo()
+    .pBindings(bindings)
+    .bindingCount(3);
+  auto descriptorSetLayout = m_device->createDescriptorSetLayout(sampleLayout);
+  auto layoutInfo = vk::PipelineLayoutCreateInfo()
+    .pSetLayouts(&descriptorSetLayout)
+    .setLayoutCount(1);
+  auto layout = m_device->createPipelineLayout(layoutInfo);
+   
+  auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by spirv apis
   vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo()
     .pSpecializationInfo(&specialiInfo)
-    .stage(;
+    .stage(vk::ShaderStageFlagBits::eAll)
+    .pName(desc.shader())
+    .module(readyShader);
 
-  auto layoutInfo = vk::PipelineLayoutCreateInfo();
-  auto layout = m_device->createPipelineLayout(layoutInfo, m_alloc_info);
 
   auto info = vk::ComputePipelineCreateInfo()
     .flags(vk::PipelineCreateFlagBits::eDisableOptimization)
     .layout(layout)
     .stage(shaderInfo);
+
   vk::PipelineCache invalidCache;
-  auto results = m_device->createComputePipelines(invalidCache, std::vector<vk::ComputePipelineCreateInfo>{info}, m_alloc_info);
-  */
-  return VulkanPipeline();
+
+  auto results = m_device->createComputePipelines(invalidCache, std::vector<vk::ComputePipelineCreateInfo>{info});
+  
+  auto pipeline = std::shared_ptr<vk::Pipeline>(new vk::Pipeline(results[0]), [&](vk::Pipeline* pipeline)
+  {
+    m_device->destroyPipeline(*pipeline);
+  });
+
+  auto pipelineLayout = std::shared_ptr<vk::PipelineLayout>(new vk::PipelineLayout(layout), [&](vk::PipelineLayout* layout)
+  {
+    m_device->destroyPipelineLayout(*layout);
+  });
+
+  return VulkanPipeline(pipeline, pipelineLayout, desc);
 }
