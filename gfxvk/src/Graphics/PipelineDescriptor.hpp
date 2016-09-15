@@ -8,17 +8,15 @@ class ComputePipelineDescriptor
 	friend class GpuDevice;
 
   std::string shaderSourcePath;
-  std::string rootDescPath;
 public:
 	ComputePipelineDescriptor()
 	{
 
 	}
 
-  ComputePipelineDescriptor& RootDesc(std::string path)
+  const char* shader() const
   {
-    rootDescPath = path;
-    return *this;
+    return shaderSourcePath.c_str();
   }
 
   ComputePipelineDescriptor& shader(std::string path)

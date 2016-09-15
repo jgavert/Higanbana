@@ -76,6 +76,8 @@ int EntryPoint::main()
             }
           }
         }
+
+        ComputePipeline test = gpu.createComputePipeline(ComputePipelineDescriptor().shader("sampleShader"));
       }
     }
 

@@ -8,6 +8,7 @@
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include "gfxvk/src/Graphics/Heap.hpp"
+#include "gfxvk/src/Graphics/vk_specifics/shader/ShaderStorage.hpp"
 #include <vulkan/vk_cpp.h>
 #include <memory>
 
@@ -26,6 +27,9 @@ private:
   bool                    m_graphicQueues;
   std::shared_ptr<vk::Queue>     m_internalUniversalQueue;
   bool                    m_uma;
+
+  ShaderStorage           m_shaders;
+
   struct FreeQueues
   {
     int universalIndex;
