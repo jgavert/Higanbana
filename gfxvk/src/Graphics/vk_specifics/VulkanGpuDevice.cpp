@@ -490,10 +490,10 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
     .setLayoutCount(1);
   auto layout = m_device->createPipelineLayout(layoutInfo);
    
-  auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by spirv apis
+  //auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by spirv apis
   vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo()
-    .pSpecializationInfo(&specialiInfo)
-    .stage(vk::ShaderStageFlagBits::eAll)
+    //.pSpecializationInfo(&specialiInfo)
+    .stage(vk::ShaderStageFlagBits::eCompute)
     .pName(desc.shader())
     .module(readyShader);
 
@@ -505,7 +505,9 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
 
   vk::PipelineCache invalidCache;
 
-  auto results = m_device->createComputePipelines(invalidCache, std::vector<vk::ComputePipelineCreateInfo>{info});
+  std::vector<vk::ComputePipelineCreateInfo> infos = {info};
+
+  auto results = m_device->createComputePipelines(invalidCache, infos);
   
   auto pipeline = std::shared_ptr<vk::Pipeline>(new vk::Pipeline(results[0]), [&](vk::Pipeline* pipeline)
   {
