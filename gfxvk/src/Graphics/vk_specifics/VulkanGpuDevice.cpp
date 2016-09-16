@@ -484,9 +484,12 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
   vk::DescriptorSetLayoutCreateInfo sampleLayout = vk::DescriptorSetLayoutCreateInfo()
     .pBindings(bindings)
     .bindingCount(3);
-  auto descriptorSetLayout = m_device->createDescriptorSetLayout(sampleLayout);
+  vk::DescriptorSetLayout descriptorSetLayout[1];
+
+  descriptorSetLayout[0] = m_device->createDescriptorSetLayout(sampleLayout);
+
   auto layoutInfo = vk::PipelineLayoutCreateInfo()
-    .pSetLayouts(&descriptorSetLayout)
+    .pSetLayouts(descriptorSetLayout)
     .setLayoutCount(1);
   auto layout = m_device->createPipelineLayout(layoutInfo);
    
@@ -499,7 +502,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
 
 
   auto info = vk::ComputePipelineCreateInfo()
-    .flags(vk::PipelineCreateFlagBits::eDisableOptimization)
+    //.flags(vk::PipelineCreateFlagBits::)
     .layout(layout)
     .stage(shaderInfo);
 
