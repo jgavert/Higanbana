@@ -103,37 +103,43 @@ VulkanGpuDevice::VulkanGpuDevice(
   {
     return (type.propertyFlags & flag) == flag;
   };
-
+  F_ILOG("MemoryTypeDebug", "memTypeCount %u", memTypeCount);
   for (int i = 0; i < static_cast<int>(memTypeCount); ++i)
   {
     // TODO probably bug here with flags.
     auto memType = memPtr[i];
     if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
     {
+      F_ILOG("MemoryTypeDebug", "type %u was eDeviceLocal", i);
       if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
       {
+        F_ILOG("MemoryTypeDebug", "type %u was eHostVisible", i);
         // weird memory only for uma... usually
         m_memoryTypes.deviceHostIndex = i;
       }
       else
       {
+        F_ILOG("MemoryTypeDebug", "type %u was not eHostVisible", i);
         m_memoryTypes.deviceLocalIndex = i;
       }
     }
     else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
     {
+      F_ILOG("MemoryTypeDebug", "type %u was eHostVisible", i);
       if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
       {
+        F_ILOG("MemoryTypeDebug", "type %u was eHostCached", i);
         m_memoryTypes.hostCachedIndex = i;
       }
       else
       {
+        F_ILOG("MemoryTypeDebug", "type %u was no nott eHostCached", i);
         m_memoryTypes.hostNormalIndex = i;
       }
     }
   }
   // validify memorytypes
-  if (m_memoryTypes.deviceHostIndex != 0 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
+  if (m_memoryTypes.deviceHostIndex == 0 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
   {
     // normal!
   }

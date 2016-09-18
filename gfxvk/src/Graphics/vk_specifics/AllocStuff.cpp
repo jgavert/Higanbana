@@ -99,6 +99,8 @@ void allocs::pfnFree(
   void*                                       pUserData,
   void*                                       pMemory)
 {
+  if (pMemory == nullptr)
+    return;
   allocs* info = reinterpret_cast<allocs*>(pUserData);
 #if defined(PLATFORM_WINDOWS)
   info->normalUse.fetch_sub(1, std::memory_order_relaxed);
