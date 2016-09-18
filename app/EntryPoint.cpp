@@ -16,17 +16,33 @@
 #include "app/Graphics/gfxApi.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 
-
+#include "core/src/system/memview.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
 #include <iostream>
+#include <inttypes.h>
 
 using namespace faze;
 
 int EntryPoint::main()
 {
   Logger log;
+
+  std::vector<int> lol;
+  lol.push_back(1);
+  lol.push_back(2);
+  lol.push_back(3);
+  lol.push_back(4);
+
+  auto view = containerAsMemView(lol);
+  auto anotherView = containerAsBytes(view);
+
+  for (auto&& it : anotherView)
+  {
+    F_ILOG("MemViewTest", "%" SCNo8, it);
+  }
+
   GraphicsInstance devices;
   FileSystem fs;
   if (!devices.createInstance("faze"))

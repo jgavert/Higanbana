@@ -4,7 +4,7 @@
 
 VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool)
   : m_cmdBuffer(std::forward<decltype(buffer)>(buffer)), m_pool(std::forward<decltype(pool)>(pool)), m_closed(false)
-  , m_commandList(LinearAllocator(16386))
+  , m_commandList(LinearAllocator(1024*512))
 {}
 
 void VulkanCmdBuffer::resetList()
