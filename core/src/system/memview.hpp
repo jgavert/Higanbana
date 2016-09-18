@@ -1,5 +1,7 @@
 #pragma once
 
+#include <inttypes.h>
+
 namespace faze
 {
   template <typename T>
@@ -9,9 +11,16 @@ namespace faze
     T* m_ptr = nullptr;
     size_t m_size = 0;
   public:
+    MemView() {}
+
     MemView(T* ptr, size_t size)
       : m_ptr(ptr)
       , m_size(size)
+    {}
+
+    MemView(T& elem)
+      : m_ptr(&elem)
+      , m_size(1)
     {}
 
     template <template <typename, typename ...> class Container, typename ...Args>
@@ -38,7 +47,8 @@ namespace faze
       return m_ptr + m_size;
     }
 
-    T* data() const
+
+    T* data()
     {
       return begin();
     }
@@ -48,7 +58,12 @@ namespace faze
       return m_size;
     }
 
-    bool operator()() const
+    T& operator[](size_t i)
+    {
+      return m_ptr[i];
+    }
+
+    operator bool() const
     {
       return m_ptr != nullptr && m_size > 0;
     }
@@ -81,4 +96,4 @@ namespace faze
   {
     return reinterpret_memView<uint8_t>(s);
   }
-}
+};

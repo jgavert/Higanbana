@@ -1,4 +1,6 @@
 #pragma once
+
+#include "core/src/system/memview.hpp"
 #include <memory>
 
 
@@ -51,28 +53,82 @@ public:
   }
 };
 
-class CommandPacket
+template <typename T>
+class CommandListVector
 {
 private:
-  CommandPacket* m_nextPacket;
+  faze::MemView<T> m_view;
 public:
-  CommandPacket()
-    :m_nextPacket(nullptr)
-  {}
-
-  void setNextPacket(CommandPacket* packet)
+ // CommandListVector() {}
+  CommandListVector(faze::MemView<T> view)
+    : m_view(std::forward<decltype(view)>(view))
   {
-    m_nextPacket = packet;
-  }
-  CommandPacket* nextPacket()
-  {
-    return m_nextPacket;
+    if (m_view && !std::is_pod<T>::value)
+    {
+      for (size_t i = 0; i < view.size(); ++i)
+      {
+        new (view.data() + i) T();
+      }
+    }
   }
 
-  virtual void execute() = 0;
-  virtual ~CommandPacket() {}
+  CommandListVector(CommandListVector&&) = default;
+  CommandListVector(const CommandListVector&) = delete;
+  CommandListVector& operator=(CommandListVector&&) = default;
+  CommandListVector& operator=(const CommandListVector&) = delete;
+
+  ~CommandListVector()
+  {
+    if (m_view && !std::is_pod<T>::value)
+    {
+      for (size_t i = 0; i < m_view.size(); ++i)
+      {
+        m_view[i].~T();
+      }
+    }
+  }
+
+  T& operator[](size_t i)
+  {
+    return m_view.data()[i];
+  }
+
+  T* begin() const
+  {
+    return m_view.begin();
+  }
+
+  T* end() const
+  {
+    return m_view.end();
+  }
+  T* begin()
+  {
+    return m_view.begin();
+  }
+
+  T* end()
+  {
+    return m_view.end();
+  }
+
+  T* data() const
+  {
+    return m_view.data();
+  }
+
+  T* data()
+  {
+    return m_view.data();
+  }
+
+  size_t size() const
+  {
+    return m_view.size();
+  }
 };
 
+template <typename CommandPacket>
 class CommandList
 {
 private:
@@ -109,7 +165,7 @@ public:
   Type& insert(Args&&... args)
   {
     Type* ptr = m_allocator.alloc<Type>();
-    ptr = new (ptr) Type(std::forward<Args>(args)...);
+    ptr = new (ptr) Type(m_allocator, std::forward<Args>(args)...);
     if (m_lastPacket != nullptr)
     {
       m_lastPacket->setNextPacket(ptr);
@@ -121,6 +177,11 @@ public:
     m_lastPacket = ptr;
     m_size++;
     return *ptr;
+  }
+
+  LinearAllocator& allocator()
+  {
+    return m_allocator;
   }
 
   template <typename Func>

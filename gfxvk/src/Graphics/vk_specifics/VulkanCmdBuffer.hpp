@@ -4,6 +4,27 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
+class VulkanCommandPacket
+{
+private:
+  VulkanCommandPacket* m_nextPacket;
+public:
+  VulkanCommandPacket()
+    :m_nextPacket(nullptr)
+  {}
+
+  void setNextPacket(VulkanCommandPacket* packet)
+  {
+    m_nextPacket = packet;
+  }
+  VulkanCommandPacket* nextPacket()
+  {
+    return m_nextPacket;
+  }
+
+  virtual void execute(vk::CommandBuffer& buffer) = 0;
+  virtual ~VulkanCommandPacket() {}
+};
 
 class VulkanBuffer;
 class VulkanTexture;
@@ -16,7 +37,7 @@ private:
   std::shared_ptr<vk::CommandBuffer>   m_cmdBuffer;
   std::shared_ptr<vk::CommandPool>     m_pool;
   bool                                 m_closed;
-  CommandList                          m_commandList;
+  CommandList<VulkanCommandPacket>     m_commandList;
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
