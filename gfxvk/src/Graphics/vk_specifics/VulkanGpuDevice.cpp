@@ -2,6 +2,7 @@
 
 VulkanGpuDevice::VulkanGpuDevice(
   std::shared_ptr<vk::Device> device,
+  FileSystem& fs,
   vk::AllocationCallbacks alloc_info,
   std::vector<vk::QueueFamilyProperties> queues,
   vk::PhysicalDeviceMemoryProperties memProp,
@@ -16,7 +17,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_graphicQueues(false)
   , m_freeQueueIndexes({})
   , m_uma(false)
-  , m_shaders("./shaders")
+  , m_shaders(fs, "./shaders")
   , m_memoryTypes({-1, -1, -1, -1})
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
@@ -31,10 +32,10 @@ VulkanGpuDevice::VulkanGpuDevice(
     constexpr auto CpQ = static_cast<uint32_t>(VK_QUEUE_COMPUTE_BIT);
     constexpr auto DMAQ = static_cast<uint32_t>(VK_QUEUE_TRANSFER_BIT);
     auto&& it = m_queues[k];
-    auto current = static_cast<uint32_t>(it.queueFlags());
+    auto current = static_cast<uint32_t>(it.queueFlags);
     if ((current & (GfxQ | CpQ | DMAQ)) == GfxQ+CpQ+DMAQ)
     {
-      for (uint32_t i = 0; i < it.queueCount(); ++i)
+      for (uint32_t i = 0; i < it.queueCount; ++i)
       {
         m_freeQueueIndexes.universal.push_back(i);
       }
@@ -42,7 +43,7 @@ VulkanGpuDevice::VulkanGpuDevice(
     }
     else if ((current & (GfxQ | CpQ)) == GfxQ + CpQ)
     {
-      for (uint32_t i = 0; i < it.queueCount(); ++i)
+      for (uint32_t i = 0; i < it.queueCount; ++i)
       {
         m_freeQueueIndexes.graphics.push_back(i);
       }
@@ -50,7 +51,7 @@ VulkanGpuDevice::VulkanGpuDevice(
     }
     else if ((current & CpQ) == CpQ)
     {
-      for (uint32_t i = 0; i < it.queueCount(); ++i)
+      for (uint32_t i = 0; i < it.queueCount; ++i)
       {
         m_freeQueueIndexes.compute.push_back(i);
       }
@@ -58,13 +59,13 @@ VulkanGpuDevice::VulkanGpuDevice(
     }
     else if ((current & DMAQ) == DMAQ)
     {
-      for (uint32_t i = 0; i < it.queueCount(); ++i)
+      for (uint32_t i = 0; i < it.queueCount; ++i)
       {
         m_freeQueueIndexes.dma.push_back(i);
       }
       m_freeQueueIndexes.dmaIndex = k;
     }
-    totalQueues += it.queueCount();
+    totalQueues += it.queueCount;
   }
   if (totalQueues == 0)
   {
@@ -89,18 +90,18 @@ VulkanGpuDevice::VulkanGpuDevice(
   m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
 
   // Heap infos
-  auto heapCounts = memProp.memoryHeapCount();
-  if (heapCounts == 1 && memProp.memoryHeaps()[0].flags() == vk::MemoryHeapFlagBits::eDeviceLocal)
+  auto heapCounts = memProp.memoryHeapCount;
+  if (heapCounts == 1 && memProp.memoryHeaps[0].flags == vk::MemoryHeapFlagBits::eDeviceLocal)
   {
     m_uma = true;
   }
 
-  auto memTypeCount = memProp.memoryTypeCount();
-  auto memPtr = memProp.memoryTypes();
+  auto memTypeCount = memProp.memoryTypeCount;
+  auto memPtr = memProp.memoryTypes;
 
   auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
   {
-    return (type.propertyFlags() & flag) == flag;
+    return (type.propertyFlags & flag) == flag;
   };
 
   for (int i = 0; i < static_cast<int>(memTypeCount); ++i)
@@ -240,20 +241,20 @@ VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
   if (m_dmaQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.dmaIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.dmaIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-    .commandBufferCount(1)
-    .commandPool(pool)
-    .level(vk::CommandBufferLevel::ePrimary));
+    .setCommandBufferCount(1)
+    .setCommandPool(pool)
+    .setLevel(vk::CommandBufferLevel::ePrimary));
   std::shared_ptr<vk::CommandBuffer> retBuf(new vk::CommandBuffer(buffer[0]));
   std::shared_ptr<vk::CommandPool> retPool(new vk::CommandPool(pool), [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
@@ -265,20 +266,20 @@ VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
   if (m_computeQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.computeIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.computeIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-    .commandBufferCount(1)
-    .commandPool(pool)
-    .level(vk::CommandBufferLevel::ePrimary));
+    .setCommandBufferCount(1)
+    .setCommandPool(pool)
+    .setLevel(vk::CommandBufferLevel::ePrimary));
   std::shared_ptr<vk::CommandBuffer> retBuf(new vk::CommandBuffer(buffer[0]));
   std::shared_ptr<vk::CommandPool> retPool(new vk::CommandPool(pool), [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
@@ -290,20 +291,20 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
   if (m_graphicQueues)
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.graphicsIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.graphicsIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
-      .flags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .queueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-    .commandBufferCount(1)
-    .commandPool(pool)
-    .level(vk::CommandBufferLevel::ePrimary));
+    .setCommandBufferCount(1)
+    .setCommandPool(pool)
+    .setLevel(vk::CommandBufferLevel::ePrimary));
   std::shared_ptr<vk::CommandBuffer> retBuf(new vk::CommandBuffer(buffer[0]));
   std::shared_ptr<vk::CommandPool> retPool(new vk::CommandPool(pool), [&](vk::CommandPool* pool) { m_device->destroyCommandPool(*pool, m_alloc_info); });
   return VulkanCmdBuffer(retBuf, retPool);
@@ -322,8 +323,8 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
     if (m_memoryTypes.deviceHostIndex != -1)
     {
       allocInfo = vk::MemoryAllocateInfo()
-        .allocationSize(desc.m_sizeInBytes)
-        .memoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
+        .setAllocationSize(desc.m_sizeInBytes)
+        .setMemoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
     }
     else
     {
@@ -346,8 +347,8 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
       F_ERROR("normal device but no valid memory type available");
     }
     allocInfo = vk::MemoryAllocateInfo()
-      .allocationSize(desc.m_sizeInBytes)
-      .memoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
+      .setAllocationSize(desc.m_sizeInBytes)
+      .setMemoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
   }
 
   auto memory = m_device->allocateMemory(allocInfo, m_alloc_info);
@@ -364,7 +365,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   auto bufSize = desc.m_stride*desc.m_width;
   F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
   vk::BufferCreateInfo info = vk::BufferCreateInfo()
-    .sharingMode(vk::SharingMode::eExclusive);
+    .setSharingMode(vk::SharingMode::eExclusive);
   vk::BufferUsageFlags usageBits = vk::BufferUsageFlagBits::eUniformBuffer;
 
   if (desc.m_unorderedaccess)
@@ -381,8 +382,8 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   {
     usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
   }
-  info = info.usage(usageBits);
-  info = info.size(bufSize);
+  info = info.setUsage(usageBits);
+  info = info.setSize(bufSize);
   auto buffer = m_device->createBuffer(info, m_alloc_info);
 
   auto pagesNeeded = bufSize / heap.desc().m_alignment + 1;
@@ -390,7 +391,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   F_ASSERT(offset >= 0, "not enough space in heap");
 
   auto reqs = m_device->getBufferMemoryRequirements(buffer);
-  if (reqs.size() > pagesNeeded*heap.desc().m_alignment || heap.desc().m_alignment % reqs.alignment() != 0)
+  if (reqs.size > pagesNeeded*heap.desc().m_alignment || heap.desc().m_alignment % reqs.alignment != 0)
   {
     F_ASSERT(false, "wtf!");
   }
@@ -456,55 +457,57 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
 
   // one dynamic buffer for constants, big buffer bound with just offset 
   vk::DescriptorSetLayoutBinding constantsRingBuffer = vk::DescriptorSetLayoutBinding()
-    .binding(0)
-    .descriptorCount(1)
-    .descriptorType(vk::DescriptorType::eUniformBufferDynamic)
-    .stageFlags(vk::ShaderStageFlagBits::eAll);
+    .setBinding(0)
+    .setDescriptorCount(4)
+    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+    .setStageFlags(vk::ShaderStageFlagBits::eAll);
 
   // 6 srvs + uav buffers 
   vk::DescriptorSetLayoutBinding srvBuffer = vk::DescriptorSetLayoutBinding()
-    .binding(1)
-    .descriptorCount(6)
-    .descriptorType(vk::DescriptorType::eUniformBuffer)
-    .stageFlags(vk::ShaderStageFlagBits::eAll);
+    .setBinding(1)
+    .setDescriptorCount(4)
+    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+    .setStageFlags(vk::ShaderStageFlagBits::eAll);
 
+  /*
   vk::DescriptorSetLayoutBinding uavBuffer = vk::DescriptorSetLayoutBinding()
-    .binding(2)
-    .descriptorCount(6)
-    .descriptorType(vk::DescriptorType::eStorageBuffer)
-    .stageFlags(vk::ShaderStageFlagBits::eAll);
-
+    .setBinding(2)
+    .setDescriptorCount(1)
+    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+    .setStageFlags(vk::ShaderStageFlagBits::eAll);
+    */
   // todo add textures
   // TODO maybe employ some evil macro plans to have per stage freely customized inputs.
   // How this would fit dx12, not sure. But I guess my priorities are currently vulkan first, dx12 maybe afterwards.
   // Even vulkan as it is, is quite a beast.
 
-  vk::DescriptorSetLayoutBinding bindings[3] = { constantsRingBuffer, srvBuffer, uavBuffer };
+  vk::DescriptorSetLayoutBinding bindings[2] = { constantsRingBuffer, srvBuffer };
 
   vk::DescriptorSetLayoutCreateInfo sampleLayout = vk::DescriptorSetLayoutCreateInfo()
-    .pBindings(bindings)
-    .bindingCount(3);
-  vk::DescriptorSetLayout descriptorSetLayout[1];
+    .setPBindings(bindings)
+    .setBindingCount(2);
 
-  descriptorSetLayout[0] = m_device->createDescriptorSetLayout(sampleLayout);
+  vk::DescriptorSetLayout descriptorSetLayout;
+
+  descriptorSetLayout = m_device->createDescriptorSetLayout(sampleLayout);
 
   auto layoutInfo = vk::PipelineLayoutCreateInfo()
-    .pSetLayouts(descriptorSetLayout)
-    .setLayoutCount(1);
+    .setPSetLayouts(&descriptorSetLayout)
+    .setSetLayoutCount(1);
   auto layout = m_device->createPipelineLayout(layoutInfo);
    
   //auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by spirv apis
   vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo()
     //.pSpecializationInfo(&specialiInfo)
-    .stage(vk::ShaderStageFlagBits::eCompute)
-    .pName(desc.shader())
-    .module(readyShader);
+    .setStage(vk::ShaderStageFlagBits::eCompute)
+    .setPName("main")
+    .setModule(readyShader);
 
 
   auto info = vk::ComputePipelineCreateInfo()
     //.flags(vk::PipelineCreateFlagBits::)
-    .layout(layout)
-    .stage(shaderInfo);
+    .setLayout(layout)
+    .setStage(shaderInfo);
 
   vk::PipelineCache invalidCache;
 
@@ -517,10 +520,13 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
     m_device->destroyPipeline(*pipeline);
   });
 
-  auto pipelineLayout = std::shared_ptr<vk::PipelineLayout>(new vk::PipelineLayout(layout), [&](vk::PipelineLayout* layout)
+  auto pipelineLayout = std::shared_ptr<vk::PipelineLayout>(new vk::PipelineLayout(layout), [&, descriptorSetLayout](vk::PipelineLayout* layout)
   {
     m_device->destroyPipelineLayout(*layout);
+    m_device->destroyDescriptorSetLayout(descriptorSetLayout);
   });
+
+  m_device->destroyShaderModule(readyShader);
 
   return VulkanPipeline(pipeline, pipelineLayout, desc);
 }

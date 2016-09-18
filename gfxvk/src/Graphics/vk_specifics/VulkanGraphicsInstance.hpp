@@ -4,11 +4,11 @@
 #include "AllocStuff.hpp"
 #include "core/src/global_debug.hpp"
 #include "gfxvk/src/Graphics/GpuInfo.hpp"
-
+#include "core/src/filesystem/filesystem.hpp"
 #include <utility>
 #include <string>
 
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 
 #define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
 #define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
@@ -64,7 +64,7 @@ private:
 public:
   VulkanGraphicsInstance();
   bool createInstance(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
-  VulkanGpuDevice createGpuDevice();
+  VulkanGpuDevice createGpuDevice(FileSystem& fs);
 };
 
 using GraphicsInstanceImpl = VulkanGraphicsInstance;

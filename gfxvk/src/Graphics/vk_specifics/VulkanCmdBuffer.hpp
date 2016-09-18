@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 
 
 

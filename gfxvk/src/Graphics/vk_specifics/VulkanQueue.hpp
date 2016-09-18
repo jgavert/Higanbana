@@ -2,7 +2,7 @@
 #include "VulkanCmdBuffer.hpp"
 
 #include <memory>
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 
 class VulkanQueue
 {

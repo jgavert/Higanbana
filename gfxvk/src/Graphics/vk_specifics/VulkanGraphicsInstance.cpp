@@ -71,13 +71,13 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
     {
       auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
       {
-        return it == layer.layerName();
+        return it == layer.layerName;
       });
       if (found != layersInfos.end())
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        GFX_ILOG("%s", found->layerName());
+        GFX_ILOG("%s", found->layerName);
       }
       else
       {
@@ -98,13 +98,13 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
     {
       auto found = std::find_if(extInfos.begin(), extInfos.end(), [&](const vk::ExtensionProperties& layer)
       {
-        return it == layer.extensionName();
+        return it == layer.extensionName;
       });
       if (found != extInfos.end())
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        GFX_ILOG("%s", found->extensionName());
+        GFX_ILOG("%s", found->extensionName);
       }
       else
       {
@@ -116,20 +116,18 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
   /////////////////////////////////
   // app instance
   app_info = vk::ApplicationInfo()
-    .sType(vk::StructureType::eApplicationInfo)
-    .pApplicationName(appName)
-    .applicationVersion(appVersion)
-    .pEngineName(engineName)
-    .engineVersion(engineVersion)
-    .apiVersion(VK_API_VERSION_1_0);
+    .setPApplicationName(appName)
+    .setApplicationVersion(appVersion)
+    .setPEngineName(engineName)
+    .setEngineVersion(engineVersion)
+    .setApiVersion(VK_API_VERSION_1_0);
 
   instance_info = vk::InstanceCreateInfo()
-    .sType(vk::StructureType::eInstanceCreateInfo)
-    .pApplicationInfo(&app_info)
-    .enabledLayerCount(static_cast<uint32_t>(layers.size()))
-    .ppEnabledLayerNames(layers.data())
-    .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
-    .ppEnabledExtensionNames(extensions.data());
+    .setPApplicationInfo(&app_info)
+    .setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
+    .setPpEnabledLayerNames(layers.data())
+    .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+    .setPpEnabledExtensionNames(extensions.data());
 
   vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, m_instance.get());
 
@@ -148,7 +146,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
 
   dbgCreateDebugReportCallback =
     (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      *m_instance.get(), "vkCreateDebugReportCallbackEXT");
+      *m_instance, "vkCreateDebugReportCallbackEXT");
   if (!dbgCreateDebugReportCallback) {
     GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
     return true;
@@ -156,7 +154,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
 
   dbgDestroyDebugReportCallback =
     (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      *m_instance.get(), "vkDestroyDebugReportCallbackEXT");
+      *m_instance, "vkDestroyDebugReportCallbackEXT");
   if (!dbgDestroyDebugReportCallback) {
     GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");;
     return true;
@@ -169,13 +167,13 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
   auto allocInfo = m_alloc_info;
   m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
   {
-    dbgDestroyDebugReportCallback(*lol.get(), *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+    dbgDestroyDebugReportCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
   });
-  dbgCreateDebugReportCallback(*m_instance.get(), reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
+  dbgCreateDebugReportCallback(*m_instance, reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
   return true;
 }
 
-VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
+VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
 {
 
   auto canPresent = [](vk::PhysicalDevice dev)
@@ -183,7 +181,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     auto queueProperties = dev.getQueueFamilyProperties();
     for (auto&& queueProp : queueProperties)
     {
-      for (uint32_t i = 0; i < queueProp.queueCount(); ++i)
+      for (uint32_t i = 0; i < queueProp.queueCount; ++i)
       {
 #if defined(PLATFORM_WINDOWS)
         if (dev.getWin32PresentationSupportKHR(i))
@@ -212,13 +210,13 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     {
       auto found = std::find_if(devLayers.begin(), devLayers.end(), [&](const vk::LayerProperties& layer)
       {
-        return it == layer.layerName();
+        return it == layer.layerName;
       });
       if (found != devLayers.end())
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        GFX_ILOG("%s", found->layerName());
+        GFX_ILOG("%s", found->layerName);
       }
     }
   }
@@ -234,13 +232,13 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     {
       auto found = std::find_if(devExts.begin(), devExts.end(), [&](const vk::ExtensionProperties& layer)
       {
-        return it == layer.extensionName();
+        return it == layer.extensionName;
       });
       if (found != devExts.end())
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        GFX_ILOG("found %s", found->extensionName());
+        GFX_ILOG("found %s", found->extensionName);
       }
     }
   }
@@ -255,15 +253,14 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
   for (auto&& queueProp : queueProperties)
   {
     priorities.push_back(std::vector<float>());
-    for (size_t k = 0; k < queueProp.queueCount(); ++k)
+    for (size_t k = 0; k < queueProp.queueCount; ++k)
     {
       priorities[i].push_back(1.f);
     }
     vk::DeviceQueueCreateInfo queueInfo = vk::DeviceQueueCreateInfo()
-      .sType(vk::StructureType::eDeviceQueueCreateInfo)
-      .queueFamilyIndex(i)
-      .queueCount(queueProp.queueCount())
-      .pQueuePriorities(priorities[i].data());
+      .setQueueFamilyIndex(i)
+      .setQueueCount(queueProp.queueCount)
+      .setPQueuePriorities(priorities[i].data());
     // queue priorities go here.
     queueInfos.push_back(queueInfo);
     ++i;
@@ -274,14 +271,13 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
   auto heapInfos = physDev.getMemoryProperties();
 
   auto device_info = vk::DeviceCreateInfo()
-    .sType(vk::StructureType::eDeviceCreateInfo)
-    .queueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
-    .pQueueCreateInfos(queueInfos.data())
-    .enabledLayerCount(static_cast<uint32_t>(layers.size()))
-    .ppEnabledLayerNames(layers.data())
-    .enabledExtensionCount(static_cast<uint32_t>(extensions.size()))
-    .ppEnabledExtensionNames(extensions.data())
-    .pEnabledFeatures(&features);
+    .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
+    .setPQueueCreateInfos(queueInfos.data())
+    .setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
+    .setPpEnabledLayerNames(layers.data())
+    .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+    .setPpEnabledExtensionNames(extensions.data())
+    .setPEnabledFeatures(&features);
 
 
   vk::Device dev = physDev.createDevice(device_info, m_alloc_info);
@@ -290,5 +286,5 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice()
     ist->destroy(&m_alloc_info);
   });
 
-  return VulkanGpuDevice(device, m_alloc_info, queueProperties, heapInfos, false);
+  return VulkanGpuDevice(device, fs, m_alloc_info, queueProperties, heapInfos, false);
 }

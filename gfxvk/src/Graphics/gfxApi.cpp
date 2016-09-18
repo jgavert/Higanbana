@@ -10,7 +10,7 @@ bool GraphicsInstance::createInstance(const char* appName, unsigned appVersion, 
   return m_instance.createInstance(appName, appVersion, engineName, engineVersion);
 }
 
-GpuDevice GraphicsInstance::createGpuDevice()
+GpuDevice GraphicsInstance::createGpuDevice(FileSystem& fs)
 {
-  return GpuDevice(m_instance.createGpuDevice());
+  return GpuDevice(m_instance.createGpuDevice(fs));
 }

@@ -3,7 +3,7 @@
 #include "gfxvk/src/Graphics/HeapDescriptor.hpp"
 #include <vector>
 #include <memory>
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 
 
 struct RawMapping 

@@ -22,13 +22,13 @@
 #include <cstdio>
 #include <iostream>
 
-
 using namespace faze;
 
 int EntryPoint::main()
 {
   Logger log;
   GraphicsInstance devices;
+  FileSystem fs;
   if (!devices.createInstance("faze"))
   {
     F_ILOG("System", "Failed to create Vulkan instance, exiting");
@@ -49,10 +49,11 @@ int EntryPoint::main()
     //window.open();
     
     {
-      GpuDevice gpu = devices.createGpuDevice();
+      GpuDevice gpu = devices.createGpuDevice(fs);
       GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
       DMAQueue dmaQueue = gpu.createDMAQueue();
       {
+        ComputePipeline test = gpu.createComputePipeline(ComputePipelineDescriptor().shader("sampleShader"));
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
@@ -76,109 +77,8 @@ int EntryPoint::main()
             }
           }
         }
-
-        ComputePipeline test = gpu.createComputePipeline(ComputePipelineDescriptor().shader("sampleShader"));
       }
     }
-
-
-	FileSystem fs(".");
-
-	log.update();
-	{
-		auto blob = fs.readFile("/shaders/sampleShader.comp");
-		std::string text;
-    text.resize(blob.size());
-    memcpy(reinterpret_cast<char*>(&text[0]), blob.data(), blob.size());
-		{
-			std::string asdError = "";
-			int lastEnd = 0;
-			int count = 1;
-			for (int i = 0; i < text.size(); ++i)
-			{
-				if (text[i] == '\r')
-				{
-					text[i] = ' ';
-				}
-				if (text[i] == '\n')
-				{
-					asdError = text.substr(lastEnd, i - lastEnd);
-					lastEnd = i + 1;
-					++i;
-					F_SLOG("SHADERC", "%d: %s\n", count++, asdError.c_str());
-				}
-			}
-		}
-		//F_LOG("%s\n", text.c_str());
-		shaderc::CompileOptions opt;
-		shaderc::Compiler compiler;
-		auto something = compiler.CompileGlslToSpv(text, shaderc_glsl_compute_shader, "main", opt);
-		if (something.GetCompilationStatus() != shaderc_compilation_status_success)
-		{
-			auto asd = something.GetErrorMessage();
-			F_SLOG("SHADERC", "Compilation failed. trying to print error...\n");
-			std::string asdError = "";
-			int lastEnd = 0;
-			for (int i = 0; i < asd.size(); ++i)
-			{
-				if (asd[i] < 0)
-				{
-					//asd[i] = ' ';
-				}
-				if (asd[i] == '\n')
-				{
-					asdError = asd.substr(lastEnd, i - lastEnd);
-					lastEnd = i + 1;
-					++i;
-					F_SLOG("SHADERC", "%s\n", asdError.c_str());
-				}
-			}
-			//F_SLOG("SHADERC", "%s\n", asd.c_str());
-		}
-		else
-		{
-			F_SLOG("SHADERC", "Compilation success\n");
-			size_t length_in_words = something.cend() - something.cbegin();
-			F_SLOG("SHADERC", "size... :o %zubytes\n", length_in_words * 4);
-			fs.writeFile("/shaders/sampleShader.comp.spv", something.cbegin(), length_in_words * 4);
-			fs.flushFiles();
-		}
-		log.update();
-	}
-	{
-		auto spirvBinary = fs.readFile("/shaders/sampleShader.comp.spv");
-		std::vector<uint32_t> data(spirvBinary.size() / 4);
-		memcpy(data.data(), spirvBinary.data(), spirvBinary.size());
-		F_SLOG("SPIRV-CROSS", "original %zu vs new %zu, 4? %zu\n", spirvBinary.size(), data.size(), data.size() * 4);
-		try
-		{
-			spirv_cross::CompilerGLSL glsl(std::move(data));
-			spirv_cross::ShaderResources resources = glsl.get_shader_resources();
-
-			auto lamda = [&](std::vector<spirv_cross::Resource>& res)
-			{
-				for (auto&& resource : res)
-				{
-					unsigned set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
-					unsigned binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-					F_SLOG("SPIRV-CROSS", "Image %s at set = %u, binding = %u\n", resource.name.c_str(), set, binding);
-				}
-			};
-			lamda(resources.uniform_buffers);
-			lamda(resources.storage_buffers);
-			lamda(resources.stage_inputs);
-			lamda(resources.stage_outputs);
-			lamda(resources.subpass_inputs);
-			lamda(resources.storage_images);
-			lamda(resources.sampled_images);
-			lamda(resources.atomic_counters);
-		}
-		catch (spirv_cross::CompilerError e)
-		{
-			F_SLOG("SPIRV-CROSS", "%s\n", e.what());
-		}
-	}
-
   };
 
   main("w1");
