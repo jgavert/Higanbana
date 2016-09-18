@@ -52,6 +52,8 @@ public:
     : m_fs(fs)
     , basePath(shaderPath.substr(1))
   {
+    // we could compile all shaders that don't have spv ahead of time
+    // requires support from filesystem
   }
 
   bool compileShader(std::string shaderName, ShaderType type)
