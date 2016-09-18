@@ -1,14 +1,11 @@
 #pragma once
-#include <fstream>
-#include <iostream>
-#include <ostream>
-#include <cstring>
-#include <deque>
+#include "core/src/global_debug.hpp"
+#include <cstdio>
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-
+#include <memory>
 
 class MemoryBlob
 {
@@ -26,28 +23,26 @@ class FileSystem
 private:
   std::unordered_map<std::string, std::vector<uint8_t>> m_files;
   std::unordered_set<std::string> m_dirs;
-  std::deque<std::string> m_writtenFiles;
 public:
-  FileSystem(std::string baseDir);
+  FileSystem();
   bool fileExists(std::string path);
   MemoryBlob readFile(std::string path);
+  size_t timeModified(std::string path);
+
+  bool writeFile(std::string path, const uint8_t* ptr, size_t size);
 
   template <typename T>
-  bool writeFile(std::string path, T* ptr, size_t size)
+  bool writeFile(std::string path, T* ptr, size_t elementCount)
   {
-    std::vector<uint8_t> data(size, 0);
-    memcpy(data.data(), reinterpret_cast<const uint8_t*>(ptr), size);
-    if (fileExists(path))
-    {
-      // replace
-      m_files[path] = std::move(data);
-      m_writtenFiles.push_back(path);
-      return true;
-    }
-    // check if there is a dir
-    // createNewFile
-    return false;
+    auto elemSize = sizeof(T);
+    auto fullLength = elemSize * elementCount;
+    return writeFile(path, reinterpret_cast<const uint8_t*>(ptr), fullLength);
   }
 
-  void flushFiles();
+  /*
+  file exists
+  open file
+  delayed write
+  get filesnames in directory
+  */
 };

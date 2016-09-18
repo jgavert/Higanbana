@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 #include <atomic>
 
 class allocs

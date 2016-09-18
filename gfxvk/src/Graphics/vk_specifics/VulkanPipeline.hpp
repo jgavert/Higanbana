@@ -1,6 +1,6 @@
 #pragma once
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 #include <memory>
 
 class VulkanPipeline

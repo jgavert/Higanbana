@@ -49,17 +49,18 @@
 .oculuslibRelease + .extLibPrefix
                   + 'LibOVR' + .extLibPostfix
 
+// C:\toki\code\Faze\externals\Vulkan-Hpp\vulkan
 // VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
-                  + 'vkcpp'
-.extVisualStudioDefines + 'VKCPP_ENHANCED_MODE;'
-                        + 'VK_USE_PLATFORM_WIN32_KHR;'
+                  + 'Vulkan-Hpp'
+.extVisualStudioDefines + 'VK_USE_PLATFORM_WIN32_KHR;'
+//                        + 'VK_USE_PLATFORM_WIN32_KHR;'
 #if __WINDOWS__
-.extDefines       + ' /DVKCPP_ENHANCED_MODE'
-                  + ' /DVK_USE_PLATFORM_WIN32_KHR'
+.extDefines       + ' /DVK_USE_PLATFORM_WIN32_KHR'
+//                  + ' /DVK_USE_PLATFORM_WIN32_KHR'
 #endif
 #if __LINUX__
-.extDefines       + ' -DVKCPP_ENHANCED_MODE'
+//.extDefines       + ' -DVKCPP_ENHANCED_MODE'
 #endif
 
 // VULKAN

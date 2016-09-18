@@ -5,11 +5,12 @@
 #include "VulkanTexture.hpp"
 #include "VulkanHeap.hpp"
 #include "VulkanPipeline.hpp"
+#include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include "gfxvk/src/Graphics/Heap.hpp"
 #include "gfxvk/src/Graphics/vk_specifics/shader/ShaderStorage.hpp"
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 #include <memory>
 
 class VulkanGpuDevice
@@ -53,6 +54,7 @@ private:
 public:
   VulkanGpuDevice(
 	std::shared_ptr<vk::Device> device,
+    FileSystem& fs,
     vk::AllocationCallbacks alloc_info,
     std::vector<vk::QueueFamilyProperties> queues,
     vk::PhysicalDeviceMemoryProperties memProp,

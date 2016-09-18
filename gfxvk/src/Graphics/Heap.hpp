@@ -1,5 +1,6 @@
 #pragma once
 #include "core/src/entity/bitfield.hpp"
+#include "core/src/global_debug.hpp"
 #include "vk_specifics/VulkanHeap.hpp"
 #include "HeapDescriptor.hpp"
 

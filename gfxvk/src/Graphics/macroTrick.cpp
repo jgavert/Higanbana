@@ -1,6 +1,6 @@
 #include "macroTrick.hpp"
 
-#include <vulkan/vk_cpp.h>
+#include <vulkan/vulkan.hpp>
 
 void _ApiDebug::dbgMsg(const char* msg, int num)
 {

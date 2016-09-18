@@ -4,11 +4,11 @@ import os
 config = """
 .VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
-.WindowsSDKSubVersion = '10.0.10586.0'
+.WindowsSDKSubVersion = '10.0.14383.0'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/cache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.17.0'
+.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.26.0'
 #endif
 #if __LINUX__
 .FazEPath = 'CURRENT_DIRECTORY'
