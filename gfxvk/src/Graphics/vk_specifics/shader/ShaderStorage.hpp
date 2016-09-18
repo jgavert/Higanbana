@@ -96,25 +96,9 @@ public:
     }
     else
     {
-      auto shader = m_fs.readFile(spvPath);
       size_t length_in_words = something.cend() - something.cbegin();
       F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
       m_fs.writeFile(spvPath, something.cbegin(), length_in_words);
-      auto shader2 = m_fs.readFile(spvPath);
-
-      uint32_t* origPtr = reinterpret_cast<uint32_t*>(shader.data());
-      uint32_t* nextPtr = reinterpret_cast<uint32_t*>(shader2.data());
-      if (shader.size() != shader2.size())
-      {
-        F_ILOG("ShaderStorage", "difference in bytes %zu vs %zu ", shader.size(), shader2.size());
-      }
-      for (size_t i = 0; i < shader.size()/4; ++i)
-      {
-        if (origPtr[i] != nextPtr[i])
-        {
-          F_ILOG("ShaderStorage", "%zu: difference in bytes %u vs %u ", i, origPtr[i], nextPtr[i]);
-        }
-      }
     }
     return true;
   }
