@@ -1,5 +1,5 @@
 #pragma once
-#include "vk_specifics\VulkanGraphicsInstance.hpp"
+#include "vk_specifics/VulkanGraphicsInstance.hpp"
 #include "GpuDevice.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 

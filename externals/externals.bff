@@ -67,7 +67,7 @@
 .vulkanInclude  = '$VulkanSDKBasePath$/include'
 .vulkanLibPath  = ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
 #if __LINUX__
-.vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
+//.vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
 #endif
                 + .extEndBasePath
 .vulkanlibs     = ''
@@ -78,9 +78,6 @@
                 + .extLibPrefix + 'vulkan' + .extLibPostfix
 #endif
 
-// DIRENT.h
-.direntInclude  = .extIncludeDir
-                + "dirent/include"
 
 // google/shaderc... my god this has big libs :D
 .shadercLibPath = .extBasePath
@@ -123,24 +120,22 @@
 //              + .spirvxLibPath
 #endif
 #if __LINUX__
-.extLibPaths  + .vulkanLibPath
-              + .shadercLibPath
+.extLibPaths  + .shadercLibPath
+              //+ .vulkanLibPath
 //              + .spirvxLibPath
 #endif
 .externalIncludes = ' /I^"$oculusInclude$"'
                   + ' /I^"$oculusKernelInclude$"'
                   + ' /I^"$vulkanInclude$"'
                   + ' /I^"$vulkanCppInclude$"'
-                  + ' /I^"$direntInclude$"'
                   + ' /I^"$shadercInclude$"'
 //                  + ' /I^"$spirvxInclude$"'
 #if __LINUX__
 .externalIncludes = ''
 //                  + ' -I ^"$oculusInclude$"'
 //                  + ' -I ^"$oculusKernelInclude$"'
-//                  + ' -I ^"$vulkanInclude$"'
+                  + ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
-                  + ' -isystem ^"$direntInclude$"'
                   + ' -isystem ^"$shadercInclude$"'
 //                  + ' -isystem ^"$spirvxInclude$"'
 #endif
@@ -148,6 +143,5 @@
                               + '$oculusKernelInclude$;'
                               + '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
-                              + '$direntInclude$;'
                               + '$shadercInclude$;'
 //                              + '$spirvxInclude$;'

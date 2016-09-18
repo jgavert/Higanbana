@@ -113,6 +113,7 @@
     Using (.X64LinuxDebugConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxDebuglinkerlibs
+                    + .shadercLibDebug
                     //+ .oculuslibDebug
 
   ]
@@ -122,6 +123,7 @@
     Using (.X64LinuxProfileConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxProfilelinkerlibs
+                    + .shadercLibRelease
                     //+ .oculuslibRelDeb
   ]
 
@@ -130,6 +132,7 @@
     Using (.X64LinuxReleaseConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxReleaselinkerlibs
+                    + .shadercLibRelease
                     //+ .oculuslibRelease
   ]
 
