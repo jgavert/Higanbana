@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef PLATFORM_LINUX
 #pragma warning( push )
 #pragma warning( disable : 4245 )
+#endif
 
 #include "spirv_glsl.hpp"
 #include "GLSL.std.450.h"
@@ -4787,4 +4789,6 @@ void CompilerGLSL::end_scope_decl(const string &decl)
 	statement("} ", decl, ";");
 }
 
-#pragma warning( pop ) 
+#ifndef PLATFORM_LINUX
+#pragma warning( pop )
+#endif

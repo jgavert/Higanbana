@@ -15,9 +15,9 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_computeQueues(false)
   , m_dmaQueues(false)
   , m_graphicQueues(false)
-  , m_freeQueueIndexes({})
   , m_uma(false)
   , m_shaders(fs, "./shaders")
+  , m_freeQueueIndexes({})
   , m_memoryTypes({-1, -1, -1, -1})
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
@@ -410,7 +410,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     RawMapping mapped;
     auto mapping = m_device->mapMemory(*memory, offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
 	std::shared_ptr<uint8_t*> target(reinterpret_cast<uint8_t**>(&mapping),
-		[&, memory](uint8_t**) -> void 
+		[&, memory](uint8_t**) -> void
     {
       m_device->unmapMemory(*memory);
     });
@@ -444,25 +444,25 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
 VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
 
-  // create class that can compile shaders for starters. 
+  // create class that can compile shaders for starters.
 
   vk::ShaderModule readyShader = m_shaders.shader(*m_device, desc.shader(), ShaderStorage::ShaderType::Compute);
 
   // BindingObject primitive here
-  // so I guess I will have 
+  // so I guess I will have
   // few srv's of buffers/textures
   // uav's of buffers/textures
   // samplers
   // lets do it dynamic for starters, maybe bindless later, when vulkan is more mature.
 
-  // one dynamic buffer for constants, big buffer bound with just offset 
+  // one dynamic buffer for constants, big buffer bound with just offset
   vk::DescriptorSetLayoutBinding constantsRingBuffer = vk::DescriptorSetLayoutBinding()
     .setBinding(0)
     .setDescriptorCount(4)
     .setDescriptorType(vk::DescriptorType::eStorageBuffer)
     .setStageFlags(vk::ShaderStageFlagBits::eAll);
 
-  // 6 srvs + uav buffers 
+  // 6 srvs + uav buffers
   vk::DescriptorSetLayoutBinding srvBuffer = vk::DescriptorSetLayoutBinding()
     .setBinding(1)
     .setDescriptorCount(4)
@@ -495,7 +495,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
     .setPSetLayouts(&descriptorSetLayout)
     .setSetLayoutCount(1);
   auto layout = m_device->createPipelineLayout(layoutInfo);
-   
+
   //auto specialiInfo = vk::SpecializationInfo(); // specialisation constant control, not exposed yet by spirv apis
   vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo()
     //.pSpecializationInfo(&specialiInfo)
@@ -514,7 +514,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor 
   std::vector<vk::ComputePipelineCreateInfo> infos = {info};
 
   auto results = m_device->createComputePipelines(invalidCache, infos);
-  
+
   auto pipeline = std::shared_ptr<vk::Pipeline>(new vk::Pipeline(results[0]), [&](vk::Pipeline* pipeline)
   {
     m_device->destroyPipeline(*pipeline);

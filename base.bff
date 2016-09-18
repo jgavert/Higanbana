@@ -142,13 +142,13 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -DPLATFORM_LINUX -D__LINUX__'
                           + .extDefines
   .BaseIncludePaths       = ' "-I" "."' // TODO: horrible
-                          + ' -isystem /usr/include'
+                          //+ ' -isystem /usr/include'
                           + '$externalIncludes$'
   .CompilerOptions        = .BaseCompilerOptions
                           + .BaseIncludePaths
   .Librarian              = '/usr/bin/ar'
   .Linker                 = '/usr/bin/clang++'
-  .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin'
+  .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin -lpthread -lstdc++fs'
   .LibrarianOptions       = 'rcs "%2" "%1"'
 
     // Optimizations
@@ -231,6 +231,7 @@ Compiler( 'Compiler-x64-Linux' )
 [
     Using( .LinuxBaseConfig )
     .Platform               = 'x64Linux'
+    .LinkerOptions          + .extLibPaths
 ]
 .X64LinuxDebugConfig =
 [
