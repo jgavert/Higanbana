@@ -6,6 +6,7 @@ workspace/
 externals/
 package/
 app/external/imgui/
+*.spv
 *.7z
 *.nvuser
 *.cmd

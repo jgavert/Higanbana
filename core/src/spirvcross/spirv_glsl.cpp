@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef PLATFORM_LINUX
+#if defined(PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4245 )
 #endif
@@ -4789,6 +4789,6 @@ void CompilerGLSL::end_scope_decl(const string &decl)
 	statement("} ", decl, ";");
 }
 
-#ifndef PLATFORM_LINUX
+#if defined(PLATFORM_WINDOWS)
 #pragma warning( pop )
 #endif
