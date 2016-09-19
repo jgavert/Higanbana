@@ -111,10 +111,10 @@ public:
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
 
     shaderc::CompileOptions opt;
-	opt.SetIncluder(std::make_unique<IncludeHelper>(m_fs, sourcePath));
-	opt.SetForcedVersionProfile(450, shaderc_profile_none);
-	opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
-	opt.AddMacroDefinition("FAZE_VULKAN");
+    opt.SetIncluder(std::make_unique<IncludeHelper>(m_fs, sourcePath));
+    opt.SetForcedVersionProfile(450, shaderc_profile_none);
+    opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
+    opt.AddMacroDefinition("FAZE_VULKAN");
     shaderc::Compiler compiler;
     auto something = compiler.CompileGlslToSpv(text, static_cast<shaderc_shader_kind>(type), "main", opt);
     if (something.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -161,10 +161,13 @@ public:
     }
     if (m_fs.fileExists(spvPath))
     {
+      auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
+
       auto shaderTime = m_fs.timeModified(shaderPath);
+      auto shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
       auto spirvTime = m_fs.timeModified(spvPath);
 
-      if (shaderTime > spirvTime)
+      if (shaderTime > spirvTime || shaderInterfaceTime > spirvTime)
       {
 //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
         F_ASSERT(compileShader(shaderName, type), "ups");

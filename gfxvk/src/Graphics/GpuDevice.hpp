@@ -25,7 +25,13 @@ public:
   ComputeCmdBuffer createComputeCommandBuffer();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-  ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
+  //ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
+
+  template <typename ShaderType>
+  ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
+  {
+    return m_device.createComputePipeline<ShaderType>(desc);
+  }
 
   ResourceHeap createMemoryHeap(HeapDescriptor desc);
   Buffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
