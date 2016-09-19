@@ -62,10 +62,10 @@ int EntryPoint::main()
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
+			.Format<float>()
             .Width(1000)
             .Usage(ResourceUsage::UploadHeap)
-            .Dimension(FormatDimension::Buffer)
-            .Format<float>());
+            .Dimension(FormatDimension::Buffer));
 
         if (buffer.isValid())
         {

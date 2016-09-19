@@ -115,7 +115,6 @@ Compiler( 'Compiler-x64-Linux' )
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
 
-  //.WindowsLibPaths  = '$WindowsSDKBasePath$/lib/winv6.3/um'
   .WindowsLibPaths10  = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/ucrt'
   .WindowsLibPaths10d = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/um/'
 
@@ -175,7 +174,6 @@ Compiler( 'Compiler-x64-Linux' )
   .Platform           = 'x64'
   .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
                       + ' /LIBPATH:"$WindowsLibPaths10d$/x64"'
-                      //+ ' /LIBPATH:"$WindowsLibPaths$/x64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/lib/amd64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/atlmfc/lib/amd64"'
                       + .extLibPaths
@@ -278,6 +276,8 @@ Compiler( 'Compiler-x64-Linux' )
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
+							+ '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
+							+ '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
                             + '$externalIncludesVisualStudio$'
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;PF_WINDOWS;PLATFORM_WINDOWS;'
               + '$extVisualStudioDefines$'

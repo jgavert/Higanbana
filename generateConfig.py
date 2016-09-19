@@ -4,7 +4,7 @@ import os
 config = """
 .VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
-.WindowsSDKSubVersion = '10.0.14383.0'
+.WindowsSDKSubVersion = '10.0.14393.0'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/cache'

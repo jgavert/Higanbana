@@ -9,6 +9,21 @@ namespace system_fs = std::experimental::filesystem;
 
 void getDirs(std::string path, std::deque<std::string>& ret)
 {
+	if (system_fs::is_directory(path))
+	{
+		auto folder = system_fs::directory_iterator(path);
+		for (auto& file : folder)
+		{
+			if (system_fs::is_directory(file.path()))
+			{
+				ret.push_back(file.path().string());
+			}
+		}
+	}
+}
+
+void getDirsRecursive(std::string path, std::deque<std::string>& ret)
+{
   if (system_fs::is_directory(path))
   {
     auto folder = system_fs::recursive_directory_iterator(path);
@@ -23,6 +38,21 @@ void getDirs(std::string path, std::deque<std::string>& ret)
 }
 
 void getFiles(std::string path, std::vector<std::string>& ret)
+{
+	if (system_fs::is_directory(path))
+	{
+		auto folder = system_fs::directory_iterator(path);
+		for (auto& file : folder)
+		{
+			if (system_fs::is_regular_file(file.path()))
+			{
+				ret.push_back(file.path().string());
+			}
+		}
+	}
+}
+
+void getFilesRecursive(std::string path, std::vector<std::string>& ret)
 {
   if (system_fs::is_directory(path))
   {
@@ -58,37 +88,7 @@ uint8_t* MemoryBlob::data()
 
 FileSystem::FileSystem()
 {
-  std::deque<std::string> dirs;
-  std::vector<std::string> files;
-  getDirs(system_fs::current_path().string().c_str(), dirs);
-  getFiles(system_fs::current_path().string().c_str(), files);
-
-  size_t allSize = 0;
-  for (auto&& it : files)
-  {
-    // files are existing so just do it
-    auto fp = fopen(it.c_str(), "rb");
-    fseek(fp, 0L, SEEK_END);
-    auto size = ftell(fp);
-    fseek(fp, 0L, SEEK_SET);
-    F_ILOG("FileSystem", "found file %s, loading %.2fMB(%ld)...", it.c_str(), static_cast<float>(size)/1000000.f, size);
-    std::vector<uint8_t> contents(size);
-    size_t leftToRead = size;
-    size_t offset = 0;
-    while (leftToRead > 0)
-    {
-      offset = fread(contents.data()+offset, sizeof(uint8_t), leftToRead, fp);
-      if (offset == 0)
-        break;
-      leftToRead -= offset;
-    }
-    fclose(fp);
-    //contents.resize(size - leftToRead);
-    m_files[it] = std::move(contents);
-    allSize += size;
-  }
-  F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1000000.f);
-  // load all files to memory
+  loadDirectoryContentsRecursive("");
 }
 
 bool FileSystem::fileExists(std::string path)
@@ -97,7 +97,44 @@ bool FileSystem::fileExists(std::string path)
   return (m_files.find(fullPath) != m_files.end());
 }
 
+bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
+{
+	auto fp = fopen(path.c_str(), "rb");
+	fseek(fp, 0L, SEEK_END);
+	auto fsize = ftell(fp);
+	fseek(fp, 0L, SEEK_SET);
+	F_ILOG("FileSystem", "found file %s, loading %.2fMB(%ld)...", path.c_str(), static_cast<float>(size) / 1000000.f, fsize);
+	std::vector<uint8_t> contents(fsize);
+	size_t leftToRead = fsize;
+	size_t offset = 0;
+	while (leftToRead > 0)
+	{
+		offset = fread(contents.data() + offset, sizeof(uint8_t), leftToRead, fp);
+		if (offset == 0)
+			break;
+		leftToRead -= offset;
+	}
+	fclose(fp);
+	//contents.resize(size - leftToRead);
+	m_files[path] = std::move(contents);
+	size = fsize;
+	return true;
+}
 
+void FileSystem::loadDirectoryContentsRecursive(std::string path)
+{
+	auto fullPath = system_fs::current_path().string() + path;
+	std::vector<std::string> files;
+	getFilesRecursive(fullPath.c_str(), files);
+	size_t allSize = 0;
+	for (auto&& it : files)
+	{
+		size_t fileSize = 0;
+		loadFileFromHDD(it, fileSize);
+		allSize += fileSize;
+	}
+	F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1000000.f);
+}
 
 MemoryBlob FileSystem::readFile(std::string path)
 {
@@ -108,6 +145,17 @@ MemoryBlob FileSystem::readFile(std::string path)
     blob = MemoryBlob(m_files[fullPath]);
   }
   return blob;
+}
+
+faze::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
+{
+	faze::MemView<const uint8_t> view;
+	if (fileExists(path))
+	{
+		auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+		view = faze::MemView<const uint8_t>(m_files[fullPath]);
+	}
+	return view;
 }
 
 size_t FileSystem::timeModified(std::string path)

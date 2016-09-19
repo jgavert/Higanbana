@@ -9,9 +9,8 @@ class ShaderStorage
 {
 private:
   FileSystem& m_fs;
-  std::string basePath;
-
-
+  std::string sourcePath;
+  std::string compiledPath;
 public:
   enum class ShaderType
   {
@@ -48,18 +47,59 @@ private:
 
 public:
 
-  ShaderStorage(FileSystem& fs, std::string shaderPath)
+
+
+  ShaderStorage(FileSystem& fs, std::string shaderPath, std::string spirvPath)
     : m_fs(fs)
-    , basePath(shaderPath.substr(1))
+    , sourcePath("/" + shaderPath + "/")
+	, compiledPath("/" + spirvPath + "/")
   {
+	  m_fs.loadDirectoryContentsRecursive(sourcePath);
     // we could compile all shaders that don't have spv ahead of time
     // requires support from filesystem
   }
 
+  class IncludeHelper : public shaderc::CompileOptions::IncluderInterface
+  {
+  private:
+	  FileSystem& m_fs;
+	  std::string sourcePath;
+  public:
+	  IncludeHelper(FileSystem& fs, std::string sourcePath)
+		  : m_fs(fs)
+		  , sourcePath(sourcePath)
+	  {}
+
+	  shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override
+	  {
+		  F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
+		  auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
+		  shaderc_include_result* result = new shaderc_include_result;
+		  result->content = reinterpret_cast<const char*>(sourceView.data());
+		  result->content_length = sourceView.size();
+		  auto reqSrcLen = strlen(requested_source);
+		  char* lol = new char[reqSrcLen];
+		  memcpy(lol, requested_source, reqSrcLen);
+		  result->source_name = lol;
+		  result->source_name_length = reqSrcLen;
+		  result->user_data = lol;
+		  
+		  return result;
+	  }
+
+	  // Handles shaderc_include_result_release_fn callbacks.
+	  void ReleaseInclude(shaderc_include_result* usedResult) override
+	  {
+		  char* lol = reinterpret_cast<char*>(usedResult->user_data);
+		  delete[] lol;
+		  delete usedResult;
+	  }
+  };
+
   bool compileShader(std::string shaderName, ShaderType type)
   {
-    auto shaderPath = basePath + "/" + shaderName + "." + shaderFileType(type);
-    auto spvPath = basePath + "/spv/" + shaderName + "." + shaderFileType(type) + ".spv";
+    auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
+    auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
 
     F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %c\n", shaderPath.c_str());
     auto blob = m_fs.readFile(shaderPath);
@@ -68,7 +108,12 @@ public:
     memcpy(reinterpret_cast<char*>(&text[0]), blob.data(), blob.size());
     //printf("%s\n", text.data());
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
+
     shaderc::CompileOptions opt;
+	opt.SetIncluder(std::make_unique<IncludeHelper>(m_fs, sourcePath));
+	opt.SetForcedVersionProfile(450, shaderc_profile_none);
+	opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
+	opt.AddMacroDefinition("FAZE_VULKAN");
     shaderc::Compiler compiler;
     auto something = compiler.CompileGlslToSpv(text, static_cast<shaderc_shader_kind>(type), "main", opt);
     if (something.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -105,8 +150,8 @@ public:
 
   vk::ShaderModule shader(vk::Device& device, std::string shaderName, ShaderType type)
   {
-    auto shaderPath = basePath + "/" + shaderName + "." + shaderFileType(type);
-    auto spvPath = basePath + "/spv/" + shaderName + "." + shaderFileType(type) + ".spv";
+    auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
+    auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
     
     if (!m_fs.fileExists(spvPath))
     {

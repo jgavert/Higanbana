@@ -1,8 +1,4 @@
-#version 450
-
-//#extension GL_ARB_compute_shader : enable
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
+#include "shader_defines.h"
 
 layout(std430, binding = 0) buffer DataIn
 {
