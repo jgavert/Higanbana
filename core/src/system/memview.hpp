@@ -8,50 +8,83 @@ namespace faze
   class MemView
   {
   private:
-    T* m_ptr = nullptr;
     size_t m_size = 0;
+    T* m_ptr = nullptr;
   public:
     MemView() {}
 
-    MemView(T* ptr, size_t size)
-      : m_ptr(ptr)
-      , m_size(size)
+	MemView(T* ptr, size_t size)
+	  : m_size(size)
+      , m_ptr(ptr)
     {}
 
     MemView(T& elem)
-      : m_ptr(&elem)
-      , m_size(1)
+      : m_size(1)
+      , m_ptr(&elem)
     {}
 
     template <template <typename, typename ...> class Container, typename ...Args>
     MemView(Container<T, Args...>& s)
-      : m_ptr(s.data())
-      , m_size(s.size())
+      : m_size(std::end(c) - std::begin(c))
+      , m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(c)))
     {
     }
+
+	template <typename RndIter>
+	MemView(RndIter first, size_t size)
+		: m_size(size)
+		, m_ptr(size == 0 ? nullptr : std::addressof(*first))
+	{
+	}
+
+	template <typename RndIter>
+	MemView(RndIter first, RndIter last)
+		: m_size(last - first)
+		, m_ptr(m_size == 0 ? nullptr : std::addressof(*first))
+	{
+	}
+
+	template <typename MemViewO>
+	MemView(MemViewO &&c)
+		: m_size(std::end(c) - std::begin(c))
+		, m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(c)))
+	{
+	}
+
+	bool empty() const
+	{
+		return m_size == 0;
+	}
+
+	T* begin()
+	{
+		return m_ptr;
+	}
+
+	T* end()
+	{
+		return m_ptr + m_size;
+	}
+
+	T* data()
+	{
+		return begin();
+	}
 
     const T* begin() const
     {
       return m_ptr;
     }
-    T* begin() 
-    {
-      return m_ptr;
-    }
-    const T* end() const
-    {
-      return m_ptr + m_size;
-    }
-    T* end() 
-    {
-      return m_ptr + m_size;
-    }
 
+	const T* end() const
+	{
+		return m_ptr + m_size;
+	}
 
-    T* data()
-    {
-      return begin();
-    }
+	const T* data() const
+	{
+		return begin();
+	}
 
     size_t size() const
     {
@@ -63,23 +96,54 @@ namespace faze
       return m_ptr[i];
     }
 
+	const T& operator[](size_t i) const
+	{
+		return m_ptr[i];
+	}
+
     operator bool() const
     {
       return m_ptr != nullptr && m_size > 0;
     }
   };
 
-  template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
-  MemView<uint8_t> containerAsBytes(Container<Elem, Args...>& s)
+
+  template <typename T>
+  MemView<T> makeMemView(T* ptr, size_t size)
   {
-    return MemView<uint8_t>(s.data(), s.size());
+	  return MemView<T>(ptr, size);
+  }
+
+  template <typename T>
+  MemView<T> makeMemView(T& obj)
+  {
+	  return MemView<T>(&obj, 1);
   }
 
   // actually quite useful
   template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
-  MemView<Elem> containerAsMemView(Container<Elem, Args...>& s)
+  MemView<Elem> makeMemView(Container<Elem, Args...>& s)
   {
-    return MemView<Elem>(s.data(), s.size());
+    return MemView<Elem>(s.begin(), s.end());
+  }
+
+  template <typename T>
+  MemView<uint8_t> makeByteView(T* ptr, size_t size)
+  {
+	  return MemView<uint8_t>(ptr, size);
+  }
+
+  template <typename T>
+  MemView<uint8_t> makeByteView(T& obj)
+  {
+	  return MemView<uint8_t(&obj, 1);
+  }
+
+  // actually quite useful
+  template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
+  MemView<uint8_t> makeByteView(Container<Elem, Args...>& s)
+  {
+	  return MemView<uint8_t>(s.begin(), s.end());
   }
 
   template <typename targetElem, typename Elem>
@@ -91,9 +155,9 @@ namespace faze
     return MemView<targetElem>(begin, size);
   }
 
-  template <typename Elem>
-  MemView<uint8_t> containerAsBytes(MemView<Elem>& s)
+  template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
+  size_t containerByteCount(Container<Elem, Args...>& s)
   {
-    return reinterpret_memView<uint8_t>(s);
+	  return makeByteView(s).size();
   }
 };

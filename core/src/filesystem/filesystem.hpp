@@ -1,4 +1,5 @@
 #pragma once
+#include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
 #include <cstdio>
 #include <vector>
@@ -27,6 +28,9 @@ public:
   FileSystem();
   bool fileExists(std::string path);
   MemoryBlob readFile(std::string path);
+  faze::MemView<const uint8_t> viewToFile(std::string path);
+  void loadDirectoryContentsRecursive(std::string path);
+  bool loadFileFromHDD(std::string path, size_t& size);
   size_t timeModified(std::string path);
 
   bool writeFile(std::string path, const uint8_t* ptr, size_t size);

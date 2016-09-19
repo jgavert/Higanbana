@@ -16,7 +16,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_dmaQueues(false)
   , m_graphicQueues(false)
   , m_uma(false)
-  , m_shaders(fs, "./shaders")
+  , m_shaders(fs, "../vkShaders", "spirv")
   , m_freeQueueIndexes({})
   , m_memoryTypes({-1, -1, -1, -1})
 {
