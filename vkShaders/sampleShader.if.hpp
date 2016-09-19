@@ -1,15 +1,21 @@
 #include "shader_defines.hpp"
 
-FAZE_BEGIN_LAYOUT(BasicLayout)
-
-FAZE_BufferSRV(buffer, DataIn, 0)
+FAZE_BEGIN_LAYOUT(SampleShader)
+struct DataFormat
 {
-  float a[];
-} dataIn;
-
-FAZE_BufferUAV(buffer, DataOut, 1)
+  float element;
+};
+struct Constants
 {
-  float a[];
-} dataOut;
-
+  float something[16];
+};
+FAZE_PushConstants(asdfg)
+{
+  int member1;
+  float member2;
+} pConstants;
+FAZE_CBUFFER(Constants);
+FAZE_BufferSRV(buffer, DataFormat, dataIn, 1, blaa);
+FAZE_BufferUAV(buffer, DataFormat, dataOut, 2, bloo);
+FAZE_DescriptorSetLayout(1, 2, 0, 0);
 FAZE_END_LAYOUT

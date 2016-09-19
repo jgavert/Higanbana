@@ -72,7 +72,7 @@ public:
 
 	  shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override
 	  {
-		  F_ASSERT(include_depth > 5, "This doesn't sound like everything is alright. Otherwise increase.");
+		  F_ASSERT(include_depth < 5, "This doesn't sound like everything is alright. Otherwise increase.");
 		  F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
 		  auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
 		  shaderc_include_result* result = new shaderc_include_result;
