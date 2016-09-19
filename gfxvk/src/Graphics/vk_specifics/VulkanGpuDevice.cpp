@@ -447,7 +447,7 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
   return VulkanPipeline();
 }
 
-VulkanPipeline VulkanGpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
+VulkanPipeline VulkanGpuDevice::createComputePipeline(PipelineLayout, ComputePipelineDescriptor desc)
 {
 
   // create class that can compile shaders for starters.

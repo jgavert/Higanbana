@@ -28,11 +28,11 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 {
   return m_device.createGraphicsPipeline(desc);
 }
-
+/*
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
   return m_device.createComputePipeline(desc);
-}
+}*/
 
 ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
 {

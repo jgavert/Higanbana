@@ -5,6 +5,7 @@
 #include "VulkanTexture.hpp"
 #include "VulkanHeap.hpp"
 #include "VulkanPipeline.hpp"
+#include "vkShaders\shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
@@ -51,6 +52,15 @@ private:
     int deviceHostIndex; // default for uma, when discrete has this... what
   } m_memoryTypes;
 
+  struct PipelineLayout
+  {
+    size_t pushConstantsSize;
+    int srvBufferStartIndex;
+    int uavBufferStartIndex;
+    int srvTextureStartIndex;
+    int uavTextureStartIndex;
+  };
+
 public:
   VulkanGpuDevice(
 	std::shared_ptr<vk::Device> device,
@@ -67,7 +77,20 @@ public:
   VulkanCmdBuffer createComputeCommandBuffer();
   VulkanCmdBuffer createGraphicsCommandBuffer();
   VulkanPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-  VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc);
+
+  template <typename ShaderType>
+  VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc)
+  {
+    PipelineLayout layout;
+    layout.pushConstantsSize = ShaderType::pushConstants;
+    layout.srvBufferStartIndex = ShaderType::srvBufferStart;
+    layout.uavBufferStartIndex = ShaderType::uavBufferStart;
+    layout.srvTextureStartIndex = ShaderType::srvTextureStart;
+    layout.uavTextureStartIndex = ShaderType::uavTextureStart;
+    return createComputePipeline(layout, desc);
+  }
+
+  VulkanPipeline createComputePipeline(PipelineLayout layout, ComputePipelineDescriptor desc);
   VulkanMemoryHeap createMemoryHeap(HeapDescriptor desc);
   VulkanBuffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
   VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);

@@ -1,3 +1,5 @@
+#ifndef FAZE_SHADER_DEFINES_HPP
+#define FAZE_SHADER_DEFINES_HPP
 #ifdef FAZE_VULKAN
 
 #extension GL_ARB_separate_shader_objects : enable
@@ -46,13 +48,14 @@ namespace faze
     template <typename T, unsigned Slot> using ShaderUAVBuffer = unsigned;
 		template <unsigned Slot> using ShaderSRVTexture = unsigned;
 		template <unsigned Slot> using ShaderUAVTexture = unsigned;
-    template <unsigned srvBufferStartIndex, unsigned uavBufferStartIndex, unsigned srvTextureStartIndex, unsigned uavTextureStartIndex> struct ShaderDescriptorSet {};
 	}
 }
 
 #define FAZE_BEGIN_LAYOUT(signatureName) \
       struct signatureName {
-#define FAZE_END_LAYOUT };
+#define FAZE_END_LAYOUT \
+          static const size_t pushConstants = sizeof(pushConstants); \
+      };
 
 #define FAZE_PushConstants(USELESS) \
     struct pushConstants : ::faze::shader::ShaderPushConstants<pushConstants>
@@ -73,7 +76,10 @@ namespace faze
     static constexpr ::faze::shader::ShaderUAVTexture<uavSlot> uavName = uavSlot;
 
 #define FAZE_DescriptorSetLayout(srvBufferStartIndex, uavBufferStartIndex, srvTextureStartIndex, uavTextureStartIndex) \
-    static constexpr ::faze::shader::ShaderDescriptorSet<srvBufferStartIndex, uavBufferStartIndex, srvTextureStartIndex, uavTextureStartIndex> shaderLayout{};
-
+      static constexpr int srvBufferStart = srvBufferStartIndex; \
+      static constexpr int uavBufferStart = uavBufferStartIndex;\
+      static constexpr int srvTextureStart = srvTextureStartIndex;\
+     static  constexpr int uavTextureStart = uavTextureStartIndex;
+#endif
 #endif
 #endif

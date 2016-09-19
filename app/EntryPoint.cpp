@@ -57,14 +57,14 @@ int EntryPoint::main()
       GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
       DMAQueue dmaQueue = gpu.createDMAQueue();
       {
-        ComputePipeline test = gpu.createComputePipeline(ComputePipelineDescriptor().shader("sampleShader"));
+        ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
         GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer();
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
-			.Format<float>()
+			      .Format<float>()
             .Width(1000)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
