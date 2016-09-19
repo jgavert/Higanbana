@@ -18,10 +18,12 @@
 
 #include "core/src/system/memview.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
+
+#include "vkShaders/sampleShader.if.hpp"
+
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
 #include <iostream>
-#include <inttypes.h>
 
 using namespace faze;
 

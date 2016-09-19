@@ -1,14 +1,4 @@
-#include "shader_defines.h"
-
-layout(std430, binding = 0) buffer DataIn
-{
-  float a[];
-} dataIn;
-
-layout(std430, binding = 1) buffer DataOut
-{
-  float a[];
-} dataOut;
+#include "sampleShader.if.hpp"
 
 layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 void main()

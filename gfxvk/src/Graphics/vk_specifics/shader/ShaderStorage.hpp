@@ -28,17 +28,17 @@ private:
     switch (type)
     {
     case ShaderType::Vertex:
-      return "vs";
+      return "vs.glsl";
     case ShaderType::Pixel:
-      return "ps";
+      return "ps.glsl";
     case ShaderType::Compute:
-      return "cs";
+      return "cs.glsl";
     case ShaderType::Geometry:
-      return "gs";
+      return "gs.glsl";
     case ShaderType::TessControl:
-      return "tc";
+      return "tc.glsl";
     case ShaderType::TessEvaluation:
-      return "te";
+      return "te.glsl";
     default:
       F_ASSERT(false, "Unknown ShaderType");
     }
@@ -72,6 +72,7 @@ public:
 
 	  shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override
 	  {
+		  F_ASSERT(include_depth > 5, "This doesn't sound like everything is alright. Otherwise increase.");
 		  F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
 		  auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
 		  shaderc_include_result* result = new shaderc_include_result;
@@ -102,10 +103,10 @@ public:
     auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
 
     F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %c\n", shaderPath.c_str());
-    auto blob = m_fs.readFile(shaderPath);
+    auto view = m_fs.viewToFile(shaderPath);
     std::string text;
-    text.resize(blob.size());
-    memcpy(reinterpret_cast<char*>(&text[0]), blob.data(), blob.size());
+    text.resize(view.size());
+    memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
     //printf("%s\n", text.data());
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
 
@@ -143,7 +144,7 @@ public:
     {
       size_t length_in_words = something.cend() - something.cbegin();
       F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
-      m_fs.writeFile(spvPath, something.cbegin(), length_in_words);
+      m_fs.writeFile(spvPath, faze::reinterpret_memView<const uint8_t>(faze::makeMemView(something.cbegin(), length_in_words)));
     }
     return true;
   }
