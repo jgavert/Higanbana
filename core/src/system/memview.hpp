@@ -147,7 +147,7 @@ namespace faze
   }
 
   template <typename targetElem, typename Elem>
-  MemView<targetElem> reinterpret_memView(MemView<Elem>& s)
+  MemView<targetElem> reinterpret_memView(MemView<Elem> s)
   {
     targetElem* begin = reinterpret_cast<targetElem*>(s.begin());
     targetElem* end = reinterpret_cast<targetElem*>(s.end());

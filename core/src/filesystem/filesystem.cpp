@@ -164,6 +164,11 @@ size_t FileSystem::timeModified(std::string path)
   return system_fs::last_write_time(fullPath).time_since_epoch().count();
 }
 
+bool FileSystem::writeFile(std::string path, faze::MemView<const uint8_t> view)
+{
+	return writeFile(path, view.data(), view.size());
+}
+
 bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 {
   auto fullPath = system_fs::path(system_fs::current_path().string() + path);

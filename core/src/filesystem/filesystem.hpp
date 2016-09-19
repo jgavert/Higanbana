@@ -34,14 +34,7 @@ public:
   size_t timeModified(std::string path);
 
   bool writeFile(std::string path, const uint8_t* ptr, size_t size);
-
-  template <typename T>
-  bool writeFile(std::string path, T* ptr, size_t elementCount)
-  {
-    auto elemSize = sizeof(T);
-    auto fullLength = elemSize * elementCount;
-    return writeFile(path, reinterpret_cast<const uint8_t*>(ptr), fullLength);
-  }
+  bool writeFile(std::string path, faze::MemView<const uint8_t> view);
 
   /*
   file exists
