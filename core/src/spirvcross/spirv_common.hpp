@@ -164,8 +164,11 @@ struct SPIRType : IVariant
 		Char,
 		Int,
 		UInt,
+		Int64,
+		UInt64,
 		AtomicCounter,
 		Float,
+		Double,
 		Struct,
 		Image,
 		SampledImage,
@@ -229,6 +232,32 @@ struct SPIRExtension : IVariant
 	Extension ext;
 };
 
+// SPIREntryPoint is not a variant since its IDs are used to decorate OpFunction,
+// so in order to avoid conflicts, we can't stick them in the ids array.
+struct SPIREntryPoint
+{
+	SPIREntryPoint(uint32_t self_, spv::ExecutionModel execution_model, std::string entry_name)
+	    : self(self_)
+	    , name(std::move(entry_name))
+	    , model(execution_model)
+	{
+	}
+	SPIREntryPoint() = default;
+
+	uint32_t self = 0;
+	std::string name;
+	std::vector<uint32_t> interface_variables;
+
+	uint64_t flags = 0;
+	struct
+	{
+		uint32_t x = 0, y = 0, z = 0;
+	} workgroup_size;
+	uint32_t invocations = 0;
+	uint32_t output_vertices = 0;
+	spv::ExecutionModel model = {};
+};
+
 struct SPIRExpression : IVariant
 {
 	enum
@@ -258,13 +287,15 @@ struct SPIRExpression : IVariant
 
 	// If this expression will never change, we can avoid lots of temporaries
 	// in high level source.
+	// An expression being immutable can be speculative,
+	// it is assumed that this is true almost always.
 	bool immutable = false;
 
 	// If this expression has been used while invalidated.
 	bool used_while_invalidated = false;
 
-	// A list of a variables for which this expression was invalidated by.
-	std::vector<uint32_t> invalidated_by;
+	// A list of expressions which this expression depends on.
+	std::vector<uint32_t> expression_dependencies;
 };
 
 struct SPIRFunctionPrototype : IVariant
@@ -408,12 +439,34 @@ struct SPIRFunction : IVariant
 		uint32_t write_count;
 	};
 
+	// When calling a function, and we're remapping separate image samplers,
+	// resolve these arguments into combined image samplers and pass them
+	// as additional arguments in this order.
+	// It gets more complicated as functions can pull in their own globals
+	// and combine them with parameters,
+	// so we need to distinguish if something is local parameter index
+	// or a global ID.
+	struct CombinedImageSamplerParameter
+	{
+		uint32_t id;
+		uint32_t image_id;
+		uint32_t sampler_id;
+		bool global_image;
+		bool global_sampler;
+	};
+
 	uint32_t return_type;
 	uint32_t function_type;
 	std::vector<Parameter> arguments;
+
+	// Can be used by backends to add magic arguments.
+	// Currently used by combined image/sampler implementation.
+
+	std::vector<Parameter> shadow_arguments;
 	std::vector<uint32_t> local_variables;
 	uint32_t entry_block = 0;
 	std::vector<uint32_t> blocks;
+	std::vector<CombinedImageSamplerParameter> combined_parameters;
 
 	void add_local_variable(uint32_t id)
 	{
@@ -428,6 +481,7 @@ struct SPIRFunction : IVariant
 
 	bool active = false;
 	bool flush_undeclared = true;
+	bool do_combined_parameters = true;
 };
 
 struct SPIRVariable : IVariant
@@ -467,6 +521,7 @@ struct SPIRVariable : IVariant
 	bool deferred_declaration = false;
 	bool phi_variable = false;
 	bool remapped_variable = false;
+	uint32_t remapped_components = 0;
 
 	SPIRFunction::Parameter *parameter = nullptr;
 };
@@ -482,6 +537,10 @@ struct SPIRConstant : IVariant
 		uint32_t u32;
 		int32_t i32;
 		float f32;
+
+		uint64_t u64;
+		int64_t i64;
+		double f64;
 	};
 
 	struct ConstantVector
@@ -506,9 +565,24 @@ struct SPIRConstant : IVariant
 		return m.c[col].r[row].f32;
 	}
 
-	inline int scalar_i32(uint32_t col = 0, uint32_t row = 0) const
+	inline int32_t scalar_i32(uint32_t col = 0, uint32_t row = 0) const
 	{
 		return m.c[col].r[row].i32;
+	}
+
+	inline double scalar_f64(uint32_t col = 0, uint32_t row = 0) const
+	{
+		return m.c[col].r[row].f64;
+	}
+
+	inline int64_t scalar_i64(uint32_t col = 0, uint32_t row = 0) const
+	{
+		return m.c[col].r[row].i64;
+	}
+
+	inline uint64_t scalar_u64(uint32_t col = 0, uint32_t row = 0) const
+	{
+		return m.c[col].r[row].u64;
 	}
 
 	inline const ConstantVector &vector() const
@@ -564,6 +638,44 @@ struct SPIRConstant : IVariant
 		m.c[0].r[1].u32 = v1;
 		m.c[0].r[2].u32 = v2;
 		m.c[0].r[3].u32 = v3;
+		m.c[0].vecsize = 4;
+		m.columns = 1;
+	}
+
+	SPIRConstant(uint32_t constant_type_, uint64_t v0)
+	    : constant_type(constant_type_)
+	{
+		m.c[0].r[0].u64 = v0;
+		m.c[0].vecsize = 1;
+		m.columns = 1;
+	}
+
+	SPIRConstant(uint32_t constant_type_, uint64_t v0, uint64_t v1)
+	    : constant_type(constant_type_)
+	{
+		m.c[0].r[0].u64 = v0;
+		m.c[0].r[1].u64 = v1;
+		m.c[0].vecsize = 2;
+		m.columns = 1;
+	}
+
+	SPIRConstant(uint32_t constant_type_, uint64_t v0, uint64_t v1, uint64_t v2)
+	    : constant_type(constant_type_)
+	{
+		m.c[0].r[0].u64 = v0;
+		m.c[0].r[1].u64 = v1;
+		m.c[0].r[2].u64 = v2;
+		m.c[0].vecsize = 3;
+		m.columns = 1;
+	}
+
+	SPIRConstant(uint32_t constant_type_, uint64_t v0, uint64_t v1, uint64_t v2, uint64_t v3)
+	    : constant_type(constant_type_)
+	{
+		m.c[0].r[0].u64 = v0;
+		m.c[0].r[1].u64 = v1;
+		m.c[0].r[2].u64 = v2;
+		m.c[0].r[3].u64 = v3;
 		m.c[0].vecsize = 4;
 		m.columns = 1;
 	}
@@ -713,6 +825,7 @@ struct Meta
 		uint32_t offset = 0;
 		uint32_t array_stride = 0;
 		uint32_t input_attachment = 0;
+		uint32_t spec_id = 0;
 		bool builtin = false;
 		bool per_instance = false;
 	};
