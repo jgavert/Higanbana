@@ -46,19 +46,19 @@ private:
 
   struct MemoryTypes
   {
-    int deviceLocalIndex;
-    int hostNormalIndex;
-    int hostCachedIndex; // probably not needed
-    int deviceHostIndex; // default for uma, when discrete has this... what
+    int deviceLocalIndex = -1;
+    int hostNormalIndex = -1;
+    int hostCachedIndex = -1; // probably not needed
+    int deviceHostIndex = -1; // default for uma, when discrete has this... what
   } m_memoryTypes;
 
-  struct PipelineLayout
+  struct ShaderInputLayout 
   {
     size_t pushConstantsSize;
-    int srvBufferStartIndex;
-    int uavBufferStartIndex;
-    int srvTextureStartIndex;
-    int uavTextureStartIndex;
+    int srvBufferCount;
+    int uavBufferCount;
+    int srvTextureCount;
+    int uavTextureCount;
   };
 
 public:
@@ -81,16 +81,16 @@ public:
   template <typename ShaderType>
   VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc)
   {
-    PipelineLayout layout;
-    layout.pushConstantsSize = ShaderType::pushConstants;
-    layout.srvBufferStartIndex = ShaderType::srvBufferStart;
-    layout.uavBufferStartIndex = ShaderType::uavBufferStart;
-    layout.srvTextureStartIndex = ShaderType::srvTextureStart;
-    layout.uavTextureStartIndex = ShaderType::uavTextureStart;
+	ShaderInputLayout layout;
+    layout.pushConstantsSize = ShaderType::pushConstantsSize;
+    layout.srvBufferCount = ShaderType::s_srvBufferCount;
+    layout.uavBufferCount = ShaderType::s_uavBufferCount;
+    layout.srvTextureCount = ShaderType::s_srvTextureCount;
+    layout.uavTextureCount = ShaderType::s_uavTextureCount;
     return createComputePipeline(layout, desc);
   }
 
-  VulkanPipeline createComputePipeline(PipelineLayout layout, ComputePipelineDescriptor desc);
+  VulkanPipeline createComputePipeline(ShaderInputLayout layout, ComputePipelineDescriptor desc);
   VulkanMemoryHeap createMemoryHeap(HeapDescriptor desc);
   VulkanBuffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
   VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);

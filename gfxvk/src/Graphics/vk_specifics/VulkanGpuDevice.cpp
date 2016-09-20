@@ -18,7 +18,6 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_uma(false)
   , m_shaders(fs, "../vkShaders", "spirv")
   , m_freeQueueIndexes({})
-  , m_memoryTypes({-1, -1, -1, -1})
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
   // universal
@@ -96,6 +95,11 @@ VulkanGpuDevice::VulkanGpuDevice(
     m_uma = true;
   }
 
+  for (unsigned i = 0; i < memProp.memoryHeapCount; ++i)
+  {
+	  F_ILOG("Graphics/Memory", "memory heap %u: %.3fGB", i, float(memProp.memoryHeaps[i].size) / 1000.f / 1000.f / 1000.f);
+  }
+
   auto memTypeCount = memProp.memoryTypeCount;
   auto memPtr = memProp.memoryTypes;
 
@@ -103,45 +107,55 @@ VulkanGpuDevice::VulkanGpuDevice(
   {
     return (type.propertyFlags & flag) == flag;
   };
-  F_ILOG("MemoryTypeDebug", "memTypeCount %u", memTypeCount);
+  F_ILOG("Graphics/Memory", "heapCount %u memTypeCount %u",memProp.memoryHeapCount, memTypeCount);
   for (int i = 0; i < static_cast<int>(memTypeCount); ++i)
   {
     // TODO probably bug here with flags.
     auto memType = memPtr[i];
     if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
     {
-      F_ILOG("MemoryTypeDebug", "type %u was eDeviceLocal", i);
+      F_ILOG("Graphics/Memory", "heap %u type %u was eDeviceLocal",memType.heapIndex, i);
       if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
       {
-        F_ILOG("MemoryTypeDebug", "type %u was eHostVisible", i);
+        F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible",memType.heapIndex, i);
+		if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
+			F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
+		if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
+			F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
         // weird memory only for uma... usually
         m_memoryTypes.deviceHostIndex = i;
       }
       else
       {
-        F_ILOG("MemoryTypeDebug", "type %u was not eHostVisible", i);
+        //F_ILOG("MemoryTypeDebug", "type %u was not eHostVisible", i);
         m_memoryTypes.deviceLocalIndex = i;
       }
     }
     else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
     {
-      F_ILOG("MemoryTypeDebug", "type %u was eHostVisible", i);
+      F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible",memType.heapIndex, i);
+	  if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
+		F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent",memType.heapIndex, i);
       if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
       {
-        F_ILOG("MemoryTypeDebug", "type %u was eHostCached", i);
+        F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached",memType.heapIndex, i);
         m_memoryTypes.hostCachedIndex = i;
       }
       else
       {
-        F_ILOG("MemoryTypeDebug", "type %u was no nott eHostCached", i);
+        //F_ILOG("MemoryTypeDebug", "type %u was not eHostCached", i);
         m_memoryTypes.hostNormalIndex = i;
       }
     }
   }
   // validify memorytypes
-  if (m_memoryTypes.deviceHostIndex == 0 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
+  if (m_memoryTypes.deviceHostIndex != -1 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
   {
     // normal!
+	F_ILOG("Graphics/Memory", "deviceHostIndex(UMA) %d", m_memoryTypes.deviceHostIndex);
+	F_ILOG("Graphics/Memory", "deviceLocalIndex %d", m_memoryTypes.deviceLocalIndex);
+	F_ILOG("Graphics/Memory", "hostNormalIndex %d", m_memoryTypes.hostNormalIndex);
+	F_ILOG("Graphics/Memory", "hostCachedIndex %d", m_memoryTypes.hostCachedIndex);
   }
   else
   {
@@ -447,7 +461,7 @@ VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescripto
   return VulkanPipeline();
 }
 
-VulkanPipeline VulkanGpuDevice::createComputePipeline(PipelineLayout, ComputePipelineDescriptor desc)
+VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLayout, ComputePipelineDescriptor desc)
 {
 
   // create class that can compile shaders for starters.
@@ -462,18 +476,60 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(PipelineLayout, ComputePip
   // lets do it dynamic for starters, maybe bindless later, when vulkan is more mature.
 
   // one dynamic buffer for constants, big buffer bound with just offset
-  vk::DescriptorSetLayoutBinding constantsRingBuffer = vk::DescriptorSetLayoutBinding()
-    .setBinding(0)
-    .setDescriptorCount(4)
-    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
-    .setStageFlags(vk::ShaderStageFlagBits::eAll);
 
-  // 6 srvs + uav buffers
-  vk::DescriptorSetLayoutBinding srvBuffer = vk::DescriptorSetLayoutBinding()
-    .setBinding(1)
-    .setDescriptorCount(4)
-    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
-    .setStageFlags(vk::ShaderStageFlagBits::eAll);
+
+  unsigned indexStart = 1;
+  // 
+  std::vector<vk::DescriptorSetLayoutBinding> bindings;
+
+  bindings.push_back(vk::DescriptorSetLayoutBinding()
+	  .setBinding(0)
+	  .setDescriptorCount(1)
+	  .setDescriptorType(vk::DescriptorType::eStorageBufferDynamic)
+	  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+
+  // read only buffers
+  for (int localIndex = 0; localIndex < shaderLayout.srvBufferCount; ++localIndex)
+  {
+	  bindings.push_back(vk::DescriptorSetLayoutBinding()
+		  .setBinding(indexStart)
+		  .setDescriptorCount(1)
+		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+	  indexStart += 1;
+  }
+
+  // read/write buffers
+  for (int localIndex = 0; localIndex < shaderLayout.uavBufferCount; ++localIndex)
+  {
+	  bindings.push_back(vk::DescriptorSetLayoutBinding()
+		  .setBinding(indexStart)
+		  .setDescriptorCount(1)
+		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+	  indexStart += 1;
+  }
+
+  for (int localIndex = 0; localIndex < shaderLayout.srvTextureCount; ++localIndex)
+  {
+	  bindings.push_back(vk::DescriptorSetLayoutBinding()
+		  .setBinding(indexStart)
+		  .setDescriptorCount(1)
+		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+	  indexStart += 1;
+  }
+
+  for (int localIndex = 0; localIndex < shaderLayout.uavTextureCount; ++localIndex)
+  {
+
+	  bindings.push_back(vk::DescriptorSetLayoutBinding()
+		  .setBinding(indexStart)
+		  .setDescriptorCount(4)
+		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+	  indexStart += 1;
+  }
 
   /*
   vk::DescriptorSetLayoutBinding uavBuffer = vk::DescriptorSetLayoutBinding()
@@ -487,11 +543,10 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(PipelineLayout, ComputePip
   // How this would fit dx12, not sure. But I guess my priorities are currently vulkan first, dx12 maybe afterwards.
   // Even vulkan as it is, is quite a beast.
 
-  vk::DescriptorSetLayoutBinding bindings[2] = { constantsRingBuffer, srvBuffer };
 
   vk::DescriptorSetLayoutCreateInfo sampleLayout = vk::DescriptorSetLayoutCreateInfo()
-    .setPBindings(bindings)
-    .setBindingCount(2);
+    .setPBindings(bindings.data())
+    .setBindingCount(static_cast<uint32_t>(bindings.size()));
 
   vk::DescriptorSetLayout descriptorSetLayout;
 

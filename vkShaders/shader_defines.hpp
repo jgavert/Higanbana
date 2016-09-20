@@ -31,7 +31,7 @@
 #define FAZE_ExtractConstants(cbufferType, variable) \
     cbufferType variable = fazeConstants[0];
 
-#define FAZE_DescriptorSetLayout(srvBufferStartIndex, uavBufferStartIndex, srvTextureStartIndex, uavTextureStartIndex)
+#define FAZE_DescriptorSetLayout(srvBufferCount, uavBufferCount, srvTextureCount, uavTextureCount)
 #define FAZE_BEGIN_LAYOUT(layoutName)
 #define FAZE_END_LAYOUT
 
@@ -40,12 +40,12 @@
 
 namespace faze
 {
-	namespace shader 
+	namespace shader
 	{
 		template <typename T> struct ShaderPushConstants {};
-    template <unsigned Slot> struct ShaderCBuffer {};
-    template <typename T, unsigned Slot> using ShaderSRVBuffer = unsigned;
-    template <typename T, unsigned Slot> using ShaderUAVBuffer = unsigned;
+		template <unsigned Slot> struct ShaderCBuffer {};
+		template <typename T, unsigned Slot> using ShaderSRVBuffer = unsigned;
+		template <typename T, unsigned Slot> using ShaderUAVBuffer = unsigned;
 		template <unsigned Slot> using ShaderSRVTexture = unsigned;
 		template <unsigned Slot> using ShaderUAVTexture = unsigned;
 	}
@@ -54,7 +54,7 @@ namespace faze
 #define FAZE_BEGIN_LAYOUT(signatureName) \
       struct signatureName {
 #define FAZE_END_LAYOUT \
-          static const size_t pushConstants = sizeof(pushConstants); \
+          static constexpr size_t pushConstantsSize = sizeof(pushConstants); \
       };
 
 #define FAZE_PushConstants(USELESS) \
@@ -75,11 +75,11 @@ namespace faze
 #define FAZE_TextureUAV(uavType, uavName, uavSlot) \
     static constexpr ::faze::shader::ShaderUAVTexture<uavSlot> uavName = uavSlot;
 
-#define FAZE_DescriptorSetLayout(srvBufferStartIndex, uavBufferStartIndex, srvTextureStartIndex, uavTextureStartIndex) \
-      static constexpr int srvBufferStart = srvBufferStartIndex; \
-      static constexpr int uavBufferStart = uavBufferStartIndex;\
-      static constexpr int srvTextureStart = srvTextureStartIndex;\
-     static  constexpr int uavTextureStart = uavTextureStartIndex;
+#define FAZE_DescriptorSetLayout(srvBufferCount, uavBufferCount, srvTextureCount, uavTextureCount) \
+      static constexpr int s_srvBufferCount = srvBufferCount; \
+      static constexpr int s_uavBufferCount = uavBufferCount;\
+      static constexpr int s_srvTextureCount = srvTextureCount;\
+     static  constexpr int s_uavTextureCount = uavTextureCount;
 #endif
 #endif
 #endif
