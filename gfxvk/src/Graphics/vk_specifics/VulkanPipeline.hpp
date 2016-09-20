@@ -10,12 +10,13 @@ private:
 
   std::shared_ptr<vk::Pipeline>    m_pipeline;
   std::shared_ptr<vk::PipelineLayout> m_pipelineLayout;
+  std::shared_ptr<vk::DescriptorSetLayout> m_descriptorSetLayout;
   std::shared_ptr<GraphicsPipelineDescriptor> m_graphDesc;
   std::shared_ptr<ComputePipelineDescriptor> m_computeDesc;
 
   VulkanPipeline() {}
-  VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, GraphicsPipelineDescriptor graphDesc);
-  VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, ComputePipelineDescriptor computeDesc);
+  VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, std::shared_ptr<vk::DescriptorSetLayout> layoutSet, GraphicsPipelineDescriptor graphDesc);
+  VulkanPipeline(std::shared_ptr<vk::Pipeline> pipeline, std::shared_ptr<vk::PipelineLayout> layout, std::shared_ptr<vk::DescriptorSetLayout> layoutSet, ComputePipelineDescriptor computeDesc);
 public:
   GraphicsPipelineDescriptor& graphDesc();
   ComputePipelineDescriptor& computeDesc();

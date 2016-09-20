@@ -12,7 +12,7 @@ struct Constants
 FAZE_PushConstants(asdfg)
 {
   int member1;
-  float member2;
+  int member2;
 } pConstants;
 FAZE_CBUFFER(Constants);
 FAZE_BufferSRV(buffer, DataFormat, dataIn, 1, blaa);
