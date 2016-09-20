@@ -114,6 +114,22 @@ public:
 	}
 	std::string compile() override;
 
+	// Adds a line to be added right after #version in GLSL backend.
+	// This is useful for enabling custom extensions which are outside the scope of SPIRV-Cross.
+	// This can be combined with variable remapping.
+	// A new-line will be added.
+	//
+	// While add_header_line() is a more generic way of adding arbitrary text to the header
+	// of a GLSL file, require_extension() should be used when adding extensions since it will
+	// avoid creating collisions with SPIRV-Cross generated extensions.
+	//
+	// Code added via add_header_line() is typically backend-specific.
+	void add_header_line(const std::string &str);
+
+	// Adds an extension which is required to run this shader, e.g.
+	// require_extension("GL_KHR_my_extension");
+	void require_extension(const std::string &ext);
+
 protected:
 	void reset();
 	void emit_function(SPIRFunction &func, uint64_t return_flags);
@@ -202,7 +218,9 @@ protected:
 	struct BackendVariations
 	{
 		bool float_literal_suffix = false;
+		bool double_literal_suffix = true;
 		bool uint32_t_literal_suffix = true;
+		bool long_long_literal_suffix = false;
 		const char *basic_int_type = "int";
 		const char *basic_uint_type = "uint";
 		bool swizzle_is_function = false;
@@ -273,8 +291,11 @@ protected:
 	std::string layout_for_member(const SPIRType &type, uint32_t index);
 	uint64_t combined_decoration_for_member(const SPIRType &type, uint32_t index);
 	std::string layout_for_variable(const SPIRVariable &variable);
+	std::string to_combined_image_sampler(uint32_t image_id, uint32_t samp_id);
+	bool skip_argument(uint32_t id) const;
 
 	bool ssbo_is_std430_packing(const SPIRType &type);
+	uint32_t type_to_std430_base_size(const SPIRType &type);
 	uint32_t type_to_std430_alignment(const SPIRType &type, uint64_t flags);
 	uint32_t type_to_std430_array_stride(const SPIRType &type, uint64_t flags);
 	uint32_t type_to_std430_size(const SPIRType &type, uint64_t flags);
@@ -288,7 +309,8 @@ protected:
 	// Can modify flags to remote readonly/writeonly if image type
 	// and force recompile.
 	bool check_atomic_image(uint32_t id);
-	void require_extension(const std::string &ext);
+
+	void replace_illegal_names();
 
 	void replace_fragment_output(SPIRVariable &var);
 	void replace_fragment_outputs();
@@ -306,12 +328,23 @@ protected:
 	void track_expression_read(uint32_t id);
 
 	std::unordered_set<std::string> forced_extensions;
+	std::vector<std::string> header_lines;
 
 	uint32_t statement_count;
 
 	inline bool is_legacy() const
 	{
 		return (options.es && options.version < 300) || (!options.es && options.version < 130);
+	}
+
+	inline bool is_legacy_es() const
+	{
+		return options.es && options.version < 300;
+	}
+
+	inline bool is_legacy_desktop() const
+	{
+		return !options.es && options.version < 130;
 	}
 
 	bool args_will_forward(uint32_t id, const uint32_t *args, uint32_t num_args, bool pure);
@@ -327,6 +360,9 @@ protected:
 	void remap_pls_variables();
 
 	void add_variable(std::unordered_set<std::string> &variables, uint32_t id);
+	void check_function_call_constraints(const uint32_t *args, uint32_t length);
+	void handle_invalid_expression(uint32_t id);
+	void find_static_extensions();
 };
 }
 

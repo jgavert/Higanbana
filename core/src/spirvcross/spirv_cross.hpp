@@ -19,6 +19,7 @@
 
 #include "spirv.hpp"
 #include <memory>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -36,15 +37,23 @@ struct Resource
 	// This is the ID of the OpVariable.
 	uint32_t id;
 
-	// The type of the declared resource.
+	// The type ID of the variable which includes arrays and all type modifications.
+	// This type ID is not suitable for parsing OpMemberDecoration of a struct and other decorations in general
+	// since these modifications typically happen on the base_type_id.
 	uint32_t type_id;
+
+	// The base type of the declared resource.
+	// This type is the base type which ignores pointers and arrays of the type_id.
+	// This is mostly useful to parse decorations of the underlying type.
+	// base_type_id can also be obtained with get_type(get_type(type_id).self).
+	uint32_t base_type_id;
 
 	// The declared name (OpName) of the resource.
 	// For Buffer blocks, the name actually reflects the externally
 	// visible Block name.
 	//
 	// This name can be retrieved again by using either
-	// get_name(id) or get_name(type_id) depending if it's a buffer block or not.
+	// get_name(id) or get_name(base_type_id) depending if it's a buffer block or not.
 	//
 	// This name can be an empty string in which case get_fallback_name(id) can be
 	// used which obtains a suitable fallback identifier for an ID.
@@ -65,6 +74,29 @@ struct ShaderResources
 	// There can only be one push constant block,
 	// but keep the vector in case this restriction is lifted in the future.
 	std::vector<Resource> push_constant_buffers;
+
+	// For Vulkan GLSL and HLSL source,
+	// these correspond to separate texture2D and samplers respectively.
+	std::vector<Resource> separate_images;
+	std::vector<Resource> separate_samplers;
+};
+
+struct CombinedImageSampler
+{
+	// The ID of the sampler2D variable.
+	uint32_t combined_id;
+	// The ID of the texture2D variable.
+	uint32_t image_id;
+	// The ID of the sampler variable.
+	uint32_t sampler_id;
+};
+
+struct SpecializationConstant
+{
+	// The ID of the specialization constant.
+	uint32_t id;
+	// The constant ID of the constant, used in Vulkan during pipeline creation.
+	uint32_t constant_id;
 };
 
 struct BufferRange
@@ -111,7 +143,7 @@ public:
 	void unset_decoration(uint32_t id, spv::Decoration decoration);
 
 	// Gets the SPIR-V associated with ID.
-	// Mostly used with Resource::type_id to parse the underlying type of a resource.
+	// Mostly used with Resource::type_id and Resource::base_type_id to parse the underlying type of a resource.
 	const SPIRType &get_type(uint32_t id) const;
 
 	// Gets the underlying storage class for an OpVariable.
@@ -168,8 +200,97 @@ public:
 	// The name of the uniform will be the same as the interface block name.
 	void flatten_interface_block(uint32_t id);
 
+	// Returns a set of all global variables which are statically accessed
+	// by the control flow graph from the current entry point.
+	// Only variables which change the interface for a shader are returned, that is,
+	// variables with storage class of Input, Output, Uniform, UniformConstant, PushConstant and AtomicCounter
+	// storage classes are returned.
+	//
+	// To use the returned set as the filter for which variables are used during compilation,
+	// this set can be moved to set_enabled_interface_variables().
+	std::unordered_set<uint32_t> get_active_interface_variables() const;
+
+	// Sets the interface variables which are used during compilation.
+	// By default, all variables are used.
+	// Once set, compile() will only consider the set in active_variables.
+	void set_enabled_interface_variables(std::unordered_set<uint32_t> active_variables);
+
 	// Query shader resources, use ids with reflection interface to modify or query binding points, etc.
 	ShaderResources get_shader_resources() const;
+
+	// Query shader resources, but only return the variables which are part of active_variables.
+	// E.g.: get_shader_resources(get_active_variables()) to only return the variables which are statically
+	// accessed.
+	ShaderResources get_shader_resources(const std::unordered_set<uint32_t> &active_variables) const;
+
+	// Remapped variables are considered built-in variables and a backend will
+	// not emit a declaration for this variable.
+	// This is mostly useful for making use of builtins which are dependent on extensions.
+	void set_remapped_variable_state(uint32_t id, bool remap_enable);
+	bool get_remapped_variable_state(uint32_t id) const;
+
+	// For subpassInput variables which are remapped to plain variables,
+	// the number of components in the remapped
+	// variable must be specified as the backing type of subpass inputs are opaque.
+	void set_subpass_input_remapped_components(uint32_t id, uint32_t components);
+	uint32_t get_subpass_input_remapped_components(uint32_t id) const;
+
+	// All operations work on the current entry point.
+	// Entry points can be swapped out with set_entry_point().
+	// Entry points should be set right after the constructor completes as some reflection functions traverse the graph from the entry point.
+	// Resource reflection also depends on the entry point.
+	// By default, the current entry point is set to the first OpEntryPoint which appears in the SPIR-V module.
+	std::vector<std::string> get_entry_points() const;
+	void set_entry_point(const std::string &name);
+
+	// Returns the internal data structure for entry points to allow poking around.
+	const SPIREntryPoint &get_entry_point(const std::string &name) const;
+	SPIREntryPoint &get_entry_point(const std::string &name);
+
+	// Query and modify OpExecutionMode.
+	uint64_t get_execution_mode_mask() const;
+	void unset_execution_mode(spv::ExecutionMode mode);
+	void set_execution_mode(spv::ExecutionMode mode, uint32_t arg0 = 0, uint32_t arg1 = 0, uint32_t arg2 = 0);
+
+	// Gets argument for an execution mode (LocalSize, Invocations, OutputVertices).
+	// For LocalSize, the index argument is used to select the dimension (X = 0, Y = 1, Z = 2).
+	// For execution modes which do not have arguments, 0 is returned.
+	uint32_t get_execution_mode_argument(spv::ExecutionMode mode, uint32_t index = 0) const;
+	spv::ExecutionModel get_execution_model() const;
+
+	// Analyzes all separate image and samplers used from the currently selected entry point,
+	// and re-routes them all to a combined image sampler instead.
+	// This is required to "support" separate image samplers in targets which do not natively support
+	// this feature, like GLSL/ESSL.
+	//
+	// This must be called before compile() if such remapping is desired.
+	// This call will add new sampled images to the SPIR-V,
+	// so it will appear in reflection if get_shader_resources() is called after build_combined_image_samplers.
+	//
+	// If any image/sampler remapping was found, no separate image/samplers will appear in the decompiled output,
+	// but will still appear in reflection.
+	//
+	// The resulting samplers will be void of any decorations like name, descriptor sets and binding points,
+	// so this can be added before compile() if desired.
+	//
+	// Combined image samplers originating from this set are always considered active variables.
+	void build_combined_image_samplers();
+
+	// Gets a remapping for the combined image samplers.
+	const std::vector<CombinedImageSampler> &get_combined_image_samplers() const
+	{
+		return combined_image_samplers;
+	}
+
+	// API for querying which specialization constants exist.
+	// To modify a specialization constant before compile(), use get_constant(constant.id),
+	// then update constants directly in the SPIRConstant data structure.
+	// For composite types, the subconstants can be iterated over and modified.
+	// constant_type is the SPIRType for the specialization constant,
+	// which can be queried to determine which fields in the unions should be poked at.
+	std::vector<SpecializationConstant> get_specialization_constants() const;
+	SPIRConstant &get_constant(uint32_t id);
+	const SPIRConstant &get_constant(uint32_t id) const;
 
 protected:
 	const uint32_t *stream(const Instruction &instr) const
@@ -194,6 +315,8 @@ protected:
 	SPIRBlock *current_block = nullptr;
 	std::vector<uint32_t> global_variables;
 	std::vector<uint32_t> aliased_variables;
+	std::unordered_set<uint32_t> active_interface_variables;
+	bool check_active_interface_variables = false;
 
 	// If our IDs are out of range here as part of opcodes, throw instead of
 	// undefined behavior.
@@ -235,20 +358,12 @@ protected:
 			return nullptr;
 	}
 
-	struct Execution
-	{
-		uint64_t flags = 0;
-		spv::ExecutionModel model;
-		uint32_t entry_point = 0;
-		struct
-		{
-			uint32_t x = 0, y = 0, z = 0;
-		} workgroup_size;
-		uint32_t invocations = 0;
-		uint32_t output_vertices = 0;
-
-		Execution() = default;
-	} execution;
+	uint32_t entry_point = 0;
+	// Normally, we'd stick SPIREntryPoint in ids array, but it conflicts with SPIRFunction.
+	// Entry points can therefore be seen as some sort of meta structure.
+	std::unordered_map<uint32_t, SPIREntryPoint> entry_points;
+	const SPIREntryPoint &get_entry_point() const;
+	SPIREntryPoint &get_entry_point();
 
 	struct Source
 	{
@@ -267,6 +382,7 @@ protected:
 
 	std::string to_name(uint32_t id, bool allow_alias = true);
 	bool is_builtin_variable(const SPIRVariable &var) const;
+	bool is_hidden_variable(const SPIRVariable &var, bool include_builtins = false) const;
 	bool is_immutable(uint32_t id) const;
 	bool is_member_builtin(const SPIRType &type, uint32_t index, spv::BuiltIn *builtin) const;
 	bool is_scalar(const SPIRType &type) const;
@@ -326,6 +442,13 @@ protected:
 	uint32_t increase_bound_by(uint32_t incr_amount);
 
 	bool types_are_logically_equivalent(const SPIRType &a, const SPIRType &b) const;
+	void inherit_expression_dependencies(uint32_t dst, uint32_t source);
+
+	// For proper multiple entry point support, allow querying if an Input or Output
+	// variable is part of that entry points interface.
+	bool interface_variable_exists_in_entry_point(uint32_t id) const;
+
+	std::vector<CombinedImageSampler> combined_image_samplers;
 
 private:
 	void parse();
@@ -339,6 +462,16 @@ private:
 		// Return true if traversal should continue.
 		// If false, traversal will end immediately.
 		virtual bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) = 0;
+
+		virtual bool begin_function_scope(const uint32_t *, uint32_t)
+		{
+			return true;
+		}
+
+		virtual bool end_function_scope(const uint32_t *, uint32_t)
+		{
+			return true;
+		}
 	};
 
 	struct BufferAccessHandler : OpcodeHandler
@@ -359,10 +492,48 @@ private:
 		std::unordered_set<uint32_t> seen;
 	};
 
+	struct InterfaceVariableAccessHandler : OpcodeHandler
+	{
+		InterfaceVariableAccessHandler(const Compiler &compiler_, std::unordered_set<uint32_t> &variables_)
+		    : compiler(compiler_)
+		    , variables(variables_)
+		{
+		}
+
+		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
+
+		const Compiler &compiler;
+		std::unordered_set<uint32_t> &variables;
+	};
+
+	struct CombinedImageSamplerHandler : OpcodeHandler
+	{
+		CombinedImageSamplerHandler(Compiler &compiler_)
+		    : compiler(compiler_)
+		{
+		}
+		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
+		bool begin_function_scope(const uint32_t *args, uint32_t length) override;
+		bool end_function_scope(const uint32_t *args, uint32_t length) override;
+
+		Compiler &compiler;
+
+		// Each function in the call stack needs its own remapping for parameters so we can deduce which global variable each texture/sampler the parameter is statically bound to.
+		std::stack<std::unordered_map<uint32_t, uint32_t>> parameter_remapping;
+		std::stack<SPIRFunction *> functions;
+
+		uint32_t remap_parameter(uint32_t id);
+		void push_remap_parameters(const SPIRFunction &func, const uint32_t *args, uint32_t length);
+		void pop_remap_parameters();
+		void register_combined_image_sampler(SPIRFunction &caller, uint32_t texture_id, uint32_t sampler_id);
+	};
+
 	bool traverse_all_reachable_opcodes(const SPIRBlock &block, OpcodeHandler &handler) const;
 	bool traverse_all_reachable_opcodes(const SPIRFunction &block, OpcodeHandler &handler) const;
 	// This must be an ordered data structure so we always pick the same type aliases.
 	std::vector<uint32_t> global_struct_cache;
+
+	ShaderResources get_shader_resources(const std::unordered_set<uint32_t> *active_variables) const;
 };
 }
 
