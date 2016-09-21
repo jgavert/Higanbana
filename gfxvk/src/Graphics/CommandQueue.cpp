@@ -16,9 +16,9 @@ bool GpuQueue::isValid()
 
 DMAQueue::DMAQueue(QueueImpl queue) : GpuQueue(queue) {};
 
-void DMAQueue::submit(DMACmdBuffer& )
+void DMAQueue::submit(DMACmdBuffer& dma)
 {
-
+  dma.close();
 }
 
 ComputeQueue::ComputeQueue(QueueImpl queue) : GpuQueue(queue) {};

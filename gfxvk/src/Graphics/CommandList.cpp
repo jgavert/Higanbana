@@ -15,7 +15,7 @@ bool CmdBufferBase::isClosed()
   return m_cmdBuffer.isClosed();
 }
 
-void CmdBufferBase::resetList()
+void DMACmdBuffer::copy(Buffer& dstdata, Buffer& srcdata)
 {
-  m_cmdBuffer.resetList();
+  m_cmdBuffer.copy(dstdata.getBuffer(), srcdata.getBuffer());
 }

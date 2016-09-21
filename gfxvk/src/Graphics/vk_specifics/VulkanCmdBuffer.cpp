@@ -8,14 +8,14 @@ using namespace faze;
 class BufferCopyPacket : public VulkanCommandPacket
 {
 private:
-  std::shared_ptr<vk::Buffer> from;
-  std::shared_ptr<vk::Buffer> to;
+  std::shared_ptr<vk::Buffer> src;
+  std::shared_ptr<vk::Buffer> dst;
   CommandListVector<vk::BufferCopy> m_copyList;
 public:
 
-  BufferCopyPacket(LinearAllocator& allocator, std::shared_ptr<vk::Buffer> from, std::shared_ptr<vk::Buffer> to, MemView<vk::BufferCopy> copyList)
-    : from(from)
-    , to(to)
+  BufferCopyPacket(LinearAllocator& allocator, std::shared_ptr<vk::Buffer> src, std::shared_ptr<vk::Buffer> dst, MemView<vk::BufferCopy> copyList)
+    : src(src)
+    , dst(dst)
     , m_copyList(std::forward<decltype(copyList)>(MemView<vk::BufferCopy>(allocator.allocList<vk::BufferCopy>(copyList.size()), copyList.size())))
   {
     F_ASSERT(copyList, "Invalid copy commands");
@@ -24,10 +24,10 @@ public:
       m_copyList[i] = copyList[i];
     }
   }
-  void execute(vk::CommandBuffer& buffer) override
+  void execute(vk::CommandBuffer& cmd) override
   {
     vk::ArrayProxy<const vk::BufferCopy> proxy(static_cast<uint32_t>(m_copyList.size()), m_copyList.data());
-    buffer.copyBuffer(*from, *to, proxy);
+    cmd.copyBuffer(*src, *dst, proxy);
   }
 };
 
@@ -37,27 +37,34 @@ VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std:
   , m_commandList(LinearAllocator(1024*512))
 {}
 
-void VulkanCmdBuffer::resetList()
-{
-  if (m_closed)
-  {
-    m_closed = false;
-  }
-}
 bool VulkanCmdBuffer::isValid()
 {
   return m_cmdBuffer.get() != nullptr;
 }
 void VulkanCmdBuffer::close()
 {
+  m_cmdBuffer->begin(vk::CommandBufferBeginInfo()
+    .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
+    .setPInheritanceInfo(nullptr));
+  m_commandList.foreach([&](VulkanCommandPacket& packet)
+  {
+    packet.execute(*m_cmdBuffer);
+  });
+  m_cmdBuffer->end();
   m_closed = true;
 }
 bool VulkanCmdBuffer::isClosed()
 {
   return m_closed;
 }
-void VulkanCmdBuffer::copy(VulkanBuffer from, VulkanBuffer to)
+void VulkanCmdBuffer::copy(VulkanBuffer src, VulkanBuffer dst)
 {
   vk::BufferCopy copy;
-  m_commandList.insert<BufferCopyPacket>(from.m_resource, to.m_resource, copy);
+  auto srcSize = src.desc().m_stride * src.desc().m_width;
+  auto dstSize = dst.desc().m_stride * dst.desc().m_width;
+  auto maxSize = min(srcSize, dstSize);
+  copy = copy.setSize(maxSize)
+    .setDstOffset(0)
+    .setSrcOffset(0);
+  m_commandList.insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
 }
