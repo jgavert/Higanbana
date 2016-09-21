@@ -98,11 +98,11 @@ int EntryPoint::main()
             }
           }
         }
-        gfx.copy(buffer, bufferTarget);
+        //gfx.copy(buffer, bufferTarget);
         //dma.copy(bufferTarget, bufferReadb);
         auto fence = gfx.fence();
         gpu.submit(gfx);
-        //gpu.waitFence(fence);
+        gpu.waitFence(fence);
         gpu.waitIdle();
       }
     }
