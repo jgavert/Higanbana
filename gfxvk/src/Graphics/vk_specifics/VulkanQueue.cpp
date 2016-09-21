@@ -11,11 +11,12 @@ bool VulkanQueue::isValid()
   return m_queue.get() != nullptr;
 }
 
-void VulkanQueue::insertFence()
+void VulkanQueue::submit(VulkanCmdBuffer& gfx, FenceImpl& fence)
 {
-
-}
-void VulkanQueue::submit(VulkanCmdBuffer& )
-{
-
+  gfx.close();
+  auto info = vk::SubmitInfo()
+    .setCommandBufferCount(1)
+    .setPCommandBuffers(gfx.m_cmdBuffer.get());
+  vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
+  m_queue->submit(proxy, *fence.m_fence);
 }

@@ -17,7 +17,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   , m_graphicQueues(false)
   , m_uma(false)
   , m_shaders(fs, "../vkShaders", "spirv")
-  , m_freeQueueIndexes({})
+  , m_freeQueueIndexes(std::make_shared<FreeQueues>())
 {
   // try to figure out unique queues, abort or something when finding unsupported count.
   // universal
@@ -36,33 +36,33 @@ VulkanGpuDevice::VulkanGpuDevice(
     {
       for (uint32_t i = 0; i < it.queueCount; ++i)
       {
-        m_freeQueueIndexes.universal.push_back(i);
+        m_freeQueueIndexes->universal.push_back(i);
       }
-      m_freeQueueIndexes.universalIndex = k;
+      m_freeQueueIndexes->universalIndex = k;
     }
     else if ((current & (GfxQ | CpQ)) == GfxQ + CpQ)
     {
       for (uint32_t i = 0; i < it.queueCount; ++i)
       {
-        m_freeQueueIndexes.graphics.push_back(i);
+        m_freeQueueIndexes->graphics.push_back(i);
       }
-      m_freeQueueIndexes.graphicsIndex = k;
+      m_freeQueueIndexes->graphicsIndex = k;
     }
     else if ((current & CpQ) == CpQ)
     {
       for (uint32_t i = 0; i < it.queueCount; ++i)
       {
-        m_freeQueueIndexes.compute.push_back(i);
+        m_freeQueueIndexes->compute.push_back(i);
       }
-      m_freeQueueIndexes.computeIndex = k;
+      m_freeQueueIndexes->computeIndex = k;
     }
     else if ((current & DMAQ) == DMAQ)
     {
       for (uint32_t i = 0; i < it.queueCount; ++i)
       {
-        m_freeQueueIndexes.dma.push_back(i);
+        m_freeQueueIndexes->dma.push_back(i);
       }
-      m_freeQueueIndexes.dmaIndex = k;
+      m_freeQueueIndexes->dmaIndex = k;
     }
     totalQueues += it.queueCount;
   }
@@ -78,15 +78,15 @@ VulkanGpuDevice::VulkanGpuDevice(
     auto que = m_device->getQueue(0, 0); // TODO: 0 index is wrong.
 	m_internalUniversalQueue = std::make_shared<vk::Queue>(m_device->getQueue(0, 0)); // std::shared_ptr<vk::Queue>(&que);
   }
-  if (m_freeQueueIndexes.universal.size() > 0
-    && m_freeQueueIndexes.graphics.size() > 0)
+  if (m_freeQueueIndexes->universal.size() > 0
+    && m_freeQueueIndexes->graphics.size() > 0)
   {
     F_ERROR("abort mission. Too many variations of queues.");
   }
 
-  m_computeQueues = !m_freeQueueIndexes.compute.empty();
-  m_dmaQueues = !m_freeQueueIndexes.dma.empty();
-  m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
+  m_computeQueues = !m_freeQueueIndexes->compute.empty();
+  m_dmaQueues = !m_freeQueueIndexes->dma.empty();
+  m_graphicQueues = !m_freeQueueIndexes->graphics.empty();
 
   // Heap infos
   auto heapCounts = memProp.memoryHeapCount;
@@ -174,22 +174,22 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (m_dmaQueues && !m_freeQueueIndexes.dma.empty())
+  else if (m_dmaQueues && !m_freeQueueIndexes->dma.empty())
   {
     // yay, realdeal
-    queueFamilyIndex = m_freeQueueIndexes.dmaIndex;
-    queueId = m_freeQueueIndexes.dma.back();
-    m_freeQueueIndexes.dma.pop_back();
+    queueFamilyIndex = m_freeQueueIndexes->dmaIndex;
+    queueId = m_freeQueueIndexes->dma.back();
+    m_freeQueueIndexes->dma.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-	return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.dma.push_back(queueId); delete cQueue; });
+	return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->dma.push_back(queueId); delete cQueue; });
   }
-  if (!m_freeQueueIndexes.universal.empty())
+  if (!m_freeQueueIndexes->universal.empty())
   {
-    queueFamilyIndex = m_freeQueueIndexes.universalIndex;
-    queueId = m_freeQueueIndexes.universal.back();
-    m_freeQueueIndexes.universal.pop_back();
+    queueFamilyIndex = m_freeQueueIndexes->universalIndex;
+    queueId = m_freeQueueIndexes->universal.back();
+    m_freeQueueIndexes->universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.universal.push_back(queueId);  delete cQueue; });
+    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->universal.push_back(queueId);  delete cQueue; });
   }
 
   return std::shared_ptr<vk::Queue>(nullptr);
@@ -204,22 +204,22 @@ VulkanQueue VulkanGpuDevice::createComputeQueue()
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (m_computeQueues && !m_freeQueueIndexes.compute.empty())
+  else if (m_computeQueues && !m_freeQueueIndexes->compute.empty())
   {
     // yay, realdeal
-    queueFamilyIndex = m_freeQueueIndexes.computeIndex;
-    queueId = m_freeQueueIndexes.compute.back();
-    m_freeQueueIndexes.compute.pop_back();
+    queueFamilyIndex = m_freeQueueIndexes->computeIndex;
+    queueId = m_freeQueueIndexes->compute.back();
+    m_freeQueueIndexes->compute.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId);
-    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.compute.push_back(queueId); delete cQueue; });
+    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->compute.push_back(queueId); delete cQueue; });
   }
-  if (!m_freeQueueIndexes.universal.empty())
+  if (!m_freeQueueIndexes->universal.empty())
   {
-    queueFamilyIndex = m_freeQueueIndexes.universalIndex;
-    queueId = m_freeQueueIndexes.universal.back();
-    m_freeQueueIndexes.universal.pop_back();
+    queueFamilyIndex = m_freeQueueIndexes->universalIndex;
+    queueId = m_freeQueueIndexes->universal.back();
+    m_freeQueueIndexes->universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId);
-    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.universal.push_back(queueId); delete cQueue; });
+    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->universal.push_back(queueId); delete cQueue; });
   }
 
   return std::shared_ptr<vk::Queue>(nullptr);
@@ -229,27 +229,32 @@ VulkanQueue VulkanGpuDevice::createGraphicsQueue()
 {
   uint32_t queueFamilyIndex = 0;
   uint32_t queueId = 0;
+  auto indexes = m_freeQueueIndexes;
   if (m_singleQueue)
   {
     // we already have queue in this case, just get a copy of it.
     return m_internalUniversalQueue;
   }
-  else if (!m_freeQueueIndexes.graphics.empty())
+  else if (!indexes->graphics.empty())
   {
     // yay, realdeal
-    queueFamilyIndex = m_freeQueueIndexes.graphicsIndex;
-    queueId = m_freeQueueIndexes.graphics.back();
-    m_freeQueueIndexes.graphics.pop_back();
+    queueFamilyIndex = indexes->graphicsIndex;
+    queueId = indexes->graphics.back();
+    indexes->graphics.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.graphics.push_back(queueId);delete cQueue;  });
+    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&, indexes](vk::Queue* cQueue) { indexes->graphics.push_back(queueId);delete cQueue;  });
   }
-  if (!m_freeQueueIndexes.universal.empty())
+  if (!indexes->universal.empty())
   {
-    queueFamilyIndex = m_freeQueueIndexes.universalIndex;
-    queueId = m_freeQueueIndexes.universal.back();
-    m_freeQueueIndexes.universal.pop_back();
+    queueFamilyIndex = indexes->universalIndex;
+    queueId = indexes->universal.back();
+    indexes->universal.pop_back();
     auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes.universal.push_back(queueId);delete cQueue;  });
+    return std::shared_ptr<vk::Queue>(new vk::Queue(que), [&, indexes](vk::Queue* cQueue)
+    {
+      indexes->universal.push_back(queueId);
+      delete cQueue;
+    });
   }
 
   return std::shared_ptr<vk::Queue>(nullptr);
@@ -262,13 +267,13 @@ VulkanCmdBuffer VulkanGpuDevice::createDMACommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.dmaIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->dmaIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
@@ -287,13 +292,13 @@ VulkanCmdBuffer VulkanGpuDevice::createComputeCommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.computeIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->computeIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
@@ -312,13 +317,13 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.graphicsIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->graphicsIndex);
   }
   else
   {
     poolInfo = vk::CommandPoolCreateInfo()
       .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
-      .setQueueFamilyIndex(m_freeQueueIndexes.universalIndex);
+      .setQueueFamilyIndex(m_freeQueueIndexes->universalIndex);
   }
   auto pool = m_device->createCommandPool(poolInfo, m_alloc_info);
   auto buffer = m_device->allocateCommandBuffers(vk::CommandBufferAllocateInfo()
@@ -579,4 +584,36 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLa
   m_device->destroyShaderModule(readyShader);
 
   return VulkanPipeline(pipeline, pipelineLayout, descriptorSetLayoutPtr, desc);
+}
+
+VulkanFence VulkanGpuDevice::createFence()
+{
+  auto createInfo = vk::FenceCreateInfo();
+  auto fence = m_device->createFence(createInfo);
+
+  auto fencePtr = std::shared_ptr<vk::Fence>(new vk::Fence(fence), [&](vk::Fence* fence)
+  {
+    m_device->destroyFence(*fence);
+    delete fence;
+  });
+  return VulkanFence(fencePtr);
+}
+
+void VulkanGpuDevice::waitFence(VulkanFence& fence)
+{
+  vk::ArrayProxy<const vk::Fence> proxy(*fence.m_fence);
+  auto res = m_device->waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
+  F_ASSERT(res == vk::Result::eSuccess, "uups");
+}
+
+bool VulkanGpuDevice::checkFence(VulkanFence& fence)
+{
+  auto status = m_device->getFenceStatus(*fence.m_fence);
+  
+  return status == vk::Result::eSuccess;
+}
+
+void VulkanGpuDevice::waitIdle()
+{
+  m_device->waitIdle();
 }

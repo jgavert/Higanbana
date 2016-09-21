@@ -1,6 +1,6 @@
 #pragma once
-#include "VulkanCmdBuffer.hpp"
-
+#include "gfxvk/src/Graphics/vk_specifics/VulkanCmdBuffer.hpp"
+#include "gfxvk/src/Graphics/vk_specifics/VulkanFence.hpp"
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
@@ -12,8 +12,7 @@ private:
   VulkanQueue(std::shared_ptr<vk::Queue> queue);
 public:
   bool isValid();
-  void insertFence();
-  void submit(VulkanCmdBuffer& buffer);
+  void submit(VulkanCmdBuffer& buffer, FenceImpl& fence);
 };
 
 using QueueImpl = VulkanQueue;

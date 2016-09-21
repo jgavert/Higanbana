@@ -1,21 +1,26 @@
 #include "CommandList.hpp"
 
-bool CmdBufferBase::isValid()
+bool GraphicsCmdBuffer::isValid()
 {
   return m_cmdBuffer.isValid();
 }
 
-void CmdBufferBase::close()
+void GraphicsCmdBuffer::close()
 {
   m_cmdBuffer.close();
 }
 
-bool CmdBufferBase::isClosed()
+bool GraphicsCmdBuffer::isClosed()
 {
   return m_cmdBuffer.isClosed();
 }
 
-void DMACmdBuffer::copy(Buffer& dstdata, Buffer& srcdata)
+void GraphicsCmdBuffer::copy(Buffer& dstdata, Buffer& srcdata)
 {
   m_cmdBuffer.copy(dstdata.getBuffer(), srcdata.getBuffer());
+}
+
+Fence GraphicsCmdBuffer::fence()
+{
+  return Fence(m_seqNum);
 }

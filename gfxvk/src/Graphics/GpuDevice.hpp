@@ -1,7 +1,7 @@
 #pragma once
 #include "vk_specifics/VulkanGpuDevice.hpp"
+#include "vk_specifics/VulkanQueue.hpp"
 #include "CommandList.hpp"
-#include "CommandQueue.hpp"
 #include "Pipeline.hpp"
 #include "PipelineDescriptor.hpp"
 #include "ResourceDescriptor.hpp"
@@ -9,23 +9,36 @@
 #include "Heap.hpp"
 #include "Buffer.hpp"
 #include "Texture.hpp"
+#include "Fence.hpp"
+
+#include "core/src/system/SequenceTracker.hpp"
+
+#include <deque>
 
 class GpuDevice
 {
 private:
   friend class GraphicsInstance;
   GpuDeviceImpl m_device;
+  faze::SequenceTracker m_tracker;
+
+  struct LiveCmdBuffer
+  {
+    FenceImpl fence;
+    GraphicsCmdBuffer cmdBuffer;
+  };
+
+  std::deque<LiveCmdBuffer> m_liveCmdBuffers;
+
+  QueueImpl m_queue;
+
   GpuDevice(GpuDeviceImpl device);
+
+  void updateCompletedSequences();
 public:
   bool isValid();
-  DMAQueue createDMAQueue();
-  ComputeQueue createComputeQueue();
-  GraphicsQueue createGraphicsQueue();
-  DMACmdBuffer createDMACommandBuffer();
-  ComputeCmdBuffer createComputeCommandBuffer();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-  //ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
 
   template <typename ShaderType>
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
@@ -47,4 +60,9 @@ public:
   BufferCBV createBufferCBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   BufferIBV createBufferIBV(Buffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
+  // all queue related
+  void submit(GraphicsCmdBuffer& gfx);
+  bool fenceDone(Fence fence);
+  void waitFence(Fence fence);
+  void waitIdle();
 };
