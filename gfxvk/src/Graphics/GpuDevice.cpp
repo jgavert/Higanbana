@@ -146,14 +146,12 @@ void GpuDevice::waitFence(Fence fence)
 {
   if (m_tracker.hasCompleted(fence.get()))
     return;
-  while (!m_liveCmdBuffers.empty())
+  for (auto&& it : m_liveCmdBuffers)
   {
+    if (it.cmdBuffer.m_seqNum == fence.get())
     {
-      auto&& livecmdBuffer = m_liveCmdBuffers.front();
-      if (livecmdBuffer.cmdBuffer.m_seqNum == fence.get())
-      {
-        m_device.waitFence(livecmdBuffer.fence);
-      }
+      m_device.waitFence(it.fence);
+      break;
     }
   }
   updateCompletedSequences();
