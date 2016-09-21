@@ -43,12 +43,11 @@ public:
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
 
   // copy
-  void copy(VulkanBuffer from, VulkanBuffer to);
+  void copy(VulkanBuffer src, VulkanBuffer dst);
   // compute
   void dispatch();
   // draw
 
-  void resetList();
   bool isValid();
   void close();
   bool isClosed();

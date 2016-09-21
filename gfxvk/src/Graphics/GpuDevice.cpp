@@ -65,10 +65,16 @@ ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
 
 Buffer GpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
 {
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
   return m_device.createBuffer(heap, desc);
 }
 Texture GpuDevice::createTexture(ResourceHeap& heap, ResourceDescriptor desc)
 {
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
+  F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
   return m_device.createTexture(heap, desc);
 }
 // shader views

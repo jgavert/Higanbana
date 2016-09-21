@@ -13,6 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef PLATFORM_LINUX
+#pragma warning( push )
+#pragma warning( disable : 4267 )
+#pragma warning( disable : 4244 )
+#endif
 
 #include "spirv_cross.hpp"
 #include "GLSL.std.450.h"
@@ -1107,7 +1112,7 @@ void Compiler::parse(const Instruction &instruction)
 		auto &e = itr.first->second;
 
 		// Strings need nul-terminator and consume the whole word.
-		uint32_t strlen_words = (e.name.size() + 1 + 3) >> 2;
+		uint32_t strlen_words = (static_cast<uint32_t>(e.name.size()) + 1 + 3) >> 2;
 		e.interface_variables.insert(end(e.interface_variables), ops + strlen_words + 2, ops + instruction.length);
 
 		// If we don't have an entry, make the first one our "default".
@@ -2442,13 +2447,13 @@ void Compiler::CombinedImageSamplerHandler::register_combined_image_sampler(SPIR
 	if (texture_itr != end(caller.arguments))
 	{
 		param.global_image = false;
-		param.image_id = texture_itr - begin(caller.arguments);
+		param.image_id = static_cast<uint32_t>(texture_itr - begin(caller.arguments));
 	}
 
 	if (sampler_itr != end(caller.arguments))
 	{
 		param.global_sampler = false;
-		param.sampler_id = sampler_itr - begin(caller.arguments);
+		param.sampler_id = static_cast<uint32_t>(sampler_itr - begin(caller.arguments));
 	}
 
 	if (param.global_image && param.global_sampler)
@@ -2667,3 +2672,6 @@ const SPIRConstant &Compiler::get_constant(uint32_t id) const
 {
 	return get<SPIRConstant>(id);
 }
+#ifndef PLATFORM_LINUX
+#pragma warning( pop )
+#endif

@@ -1909,8 +1909,8 @@ string CompilerGLSL::to_combined_image_sampler(uint32_t image_id, uint32_t samp_
 		// If any parameter originates from a parameter, we will find it in our argument list.
 		bool global_image = image_itr == end(args);
 		bool global_sampler = sampler_itr == end(args);
-		uint32_t iid = global_image ? image_id : (image_itr - begin(args));
-		uint32_t sid = global_sampler ? samp_id : (sampler_itr - begin(args));
+		uint32_t iid = global_image ? image_id : static_cast<uint32_t>((image_itr - begin(args)));
+		uint32_t sid = global_sampler ? samp_id : static_cast<uint32_t>((sampler_itr - begin(args)));
 
 		auto &combined = current_function->combined_parameters;
 		auto itr = find_if(begin(combined), end(combined), [=](const SPIRFunction::CombinedImageSamplerParameter &p) {
@@ -4815,7 +4815,7 @@ void CompilerGLSL::emit_function(SPIRFunction &func, uint64_t return_flags)
 	}
 
 	auto &entry_block = get<SPIRBlock>(func.entry_block);
-	entry_block.loop_dominator = SPIRBlock::NoDominator;
+	entry_block.loop_dominator = static_cast<uint32_t>(SPIRBlock::NoDominator);
 	emit_block_chain(entry_block);
 
 	end_scope();
@@ -5401,3 +5401,4 @@ void CompilerGLSL::check_function_call_constraints(const uint32_t *args, uint32_
 		}
 	}
 }
+

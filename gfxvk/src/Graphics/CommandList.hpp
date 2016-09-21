@@ -1,6 +1,7 @@
 #pragma once
 #include "core/src/math/vec_templated.hpp"
 #include "vk_specifics/VulkanCmdBuffer.hpp"
+#include "gfxvk/src/Graphics/Buffer.hpp"
 
 #include <memory>
 
@@ -19,7 +20,6 @@ public:
   bool isValid();
   void close();
   bool isClosed();
-  void resetList();
 };
 
 class DMACmdBuffer : public CmdBufferBase
@@ -29,7 +29,7 @@ private:
   friend class ComputeCmdBuffer;
   DMACmdBuffer(CmdBufferImpl cmdBuffer) : CmdBufferBase(std::move(cmdBuffer)) {}
 public:
-  //void CopyResource(Buffer& dstdata, Buffer& srcdata); // this is here only temporarily, will be removed
+  void copy(Buffer& src, Buffer& dst);
   // copy stuff
 };
 
