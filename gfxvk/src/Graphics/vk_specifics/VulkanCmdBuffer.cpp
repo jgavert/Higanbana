@@ -34,7 +34,7 @@ public:
 
 VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool)
   : m_cmdBuffer(std::forward<decltype(buffer)>(buffer)), m_pool(std::forward<decltype(pool)>(pool)), m_closed(false)
-  , m_commandList(LinearAllocator(1024*512))
+  , m_commandList(std::make_shared<CommandList<VulkanCommandPacket>>(LinearAllocator(1024*512)))
 {}
 
 bool VulkanCmdBuffer::isValid()
@@ -46,7 +46,7 @@ void VulkanCmdBuffer::close()
   m_cmdBuffer->begin(vk::CommandBufferBeginInfo()
     .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
     .setPInheritanceInfo(nullptr));
-  m_commandList.foreach([&](VulkanCommandPacket& packet)
+  m_commandList->foreach([&](VulkanCommandPacket& packet)
   {
     packet.execute(*m_cmdBuffer);
   });
@@ -66,5 +66,5 @@ void VulkanCmdBuffer::copy(VulkanBuffer src, VulkanBuffer dst)
   copy = copy.setSize(maxSize)
     .setDstOffset(0)
     .setSrcOffset(0);
-  m_commandList.insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
+  m_commandList->insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
 }

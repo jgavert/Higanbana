@@ -1,15 +1,14 @@
 #include "Fence.hpp"
 
-GpuFence::GpuFence(void* mFence)
-  :m_fence(mFence)
+Fence::Fence()
+{
+}
+Fence::Fence(int64_t seqNum)
+  :m_seqNum(seqNum)
 {
 }
 
-bool GpuFence::isSignaled()
+int64_t Fence::get()
 {
-  return true;
-}
-
-void GpuFence::wait()
-{
+  return m_seqNum;
 }

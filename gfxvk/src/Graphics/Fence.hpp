@@ -1,12 +1,15 @@
 #pragma once
 
-class GpuFence
+#include <inttypes.h>
+
+// common only, no need to give real fences to user.
+// checking from device and commandbuffers.
+class Fence
 {
 private:
-  void* m_fence;
-  GpuFence(void* mFence);
+  int64_t m_seqNum = -1;
 public:
-  GpuFence() {}
-  bool isSignaled();
-  void wait();
+  Fence(int64_t seqNum);
+  Fence();
+  int64_t get();
 };

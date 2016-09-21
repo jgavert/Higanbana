@@ -36,10 +36,11 @@ private:
   friend class VulkanQueue;
   std::shared_ptr<vk::CommandBuffer>   m_cmdBuffer;
   std::shared_ptr<vk::CommandPool>     m_pool;
-  bool                                 m_closed;
-  CommandList<VulkanCommandPacket>     m_commandList;
+  bool                                 m_closed = false;
+  std::shared_ptr<CommandList<VulkanCommandPacket>>     m_commandList;
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
+  VulkanCmdBuffer() {}
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
 
   // copy

@@ -2,26 +2,9 @@
 
 GpuDevice::GpuDevice(GpuDeviceImpl device)
   : m_device(device)
+  , m_queue(device.createGraphicsQueue())
 {
-}
 
-GraphicsQueue GpuDevice::createGraphicsQueue()
-{
-  return m_device.createGraphicsQueue();
-}
-
-DMAQueue GpuDevice::createDMAQueue()
-{
-  return m_device.createDMAQueue();
-}
-ComputeQueue GpuDevice::createComputeQueue()
-{
-  return m_device.createComputeQueue();
-}
-
-DMACmdBuffer GpuDevice::createDMACommandBuffer()
-{
-  return m_device.createDMACommandBuffer();
 }
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -33,15 +16,15 @@ ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {
   return m_device.createComputePipeline(desc);
 }*/
-
+/*
 ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
 {
   return m_device.createComputeCommandBuffer();
-}
+}*/
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 {
-  return m_device.createGraphicsCommandBuffer();
+  return GraphicsCmdBuffer(m_device.createGraphicsCommandBuffer(), m_tracker.next());
 }
 
 ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
@@ -139,4 +122,71 @@ BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor v
 bool GpuDevice::isValid()
 {
   return m_device.isValid();
+}
+
+void GpuDevice::submit(GraphicsCmdBuffer& gfx)
+{
+  LiveCmdBuffer element;
+  element.cmdBuffer = gfx;
+  element.fence = m_device.createFence(); // TODO: replace with ringbuffer in this device
+
+  m_queue.submit(gfx.m_cmdBuffer, element.fence);
+  m_liveCmdBuffers.emplace_back(element);
+}
+
+bool GpuDevice::fenceDone(Fence fence)
+{
+  if (m_tracker.hasCompleted(fence.get()))
+    return true;
+  updateCompletedSequences();
+  return m_tracker.hasCompleted(fence.get());
+}
+
+void GpuDevice::waitFence(Fence fence)
+{
+  if (m_tracker.hasCompleted(fence.get()))
+    return;
+  while (!m_liveCmdBuffers.empty())
+  {
+    {
+      auto&& livecmdBuffer = m_liveCmdBuffers.front();
+      if (livecmdBuffer.cmdBuffer.m_seqNum == fence.get())
+      {
+        m_device.waitFence(livecmdBuffer.fence);
+      }
+    }
+  }
+  updateCompletedSequences();
+}
+void GpuDevice::waitIdle()
+{
+  m_device.waitIdle();
+  /*
+  while (!m_liveCmdBuffers.empty())
+  {
+    {
+      auto&& livecmdBuffer = m_liveCmdBuffers.front();
+      m_device.waitFence(livecmdBuffer.fence);
+      m_tracker.complete(livecmdBuffer.cmdBuffer.m_seqNum);
+    }
+    m_liveCmdBuffers.pop_front();
+  }
+  */
+  updateCompletedSequences();
+}
+
+void GpuDevice::updateCompletedSequences()
+{
+  while (!m_liveCmdBuffers.empty())
+  {
+    {
+      auto&& livecmdBuffer = m_liveCmdBuffers.front();
+      if (!m_device.checkFence(livecmdBuffer.fence))
+      {
+        break;
+      }
+      m_tracker.complete(livecmdBuffer.cmdBuffer.m_seqNum);
+    }
+    m_liveCmdBuffers.pop_front();
+  }
 }

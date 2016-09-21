@@ -5,7 +5,8 @@
 #include "VulkanTexture.hpp"
 #include "VulkanHeap.hpp"
 #include "VulkanPipeline.hpp"
-#include "vkShaders\shader_defines.hpp"
+#include "VulkanFence.hpp"
+#include "vkShaders/shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
@@ -42,7 +43,9 @@ private:
     std::vector<uint32_t> graphics;
     std::vector<uint32_t> compute;
     std::vector<uint32_t> dma;
-  } m_freeQueueIndexes;
+  };
+
+  std::shared_ptr<FreeQueues> m_freeQueueIndexes;
 
   struct MemoryTypes
   {
@@ -98,6 +101,11 @@ public:
   VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
+  // synchro creates
+  VulkanFence createFence();
+  void waitFence(VulkanFence& fence);
+  bool checkFence(VulkanFence& fence);
+  void waitIdle();
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

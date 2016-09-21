@@ -17,6 +17,7 @@
 #include "core/src/filesystem/filesystem.hpp"
 
 #include "core/src/system/memview.hpp"
+#include "core/src/system/SequenceTracker.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 
 #include "vkShaders/sampleShader.if.hpp"
@@ -54,14 +55,12 @@ int EntryPoint::main()
     
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
-      //GraphicsQueue gfxQueue = gpu.createGraphicsQueue();
-      DMAQueue dmaQueue = gpu.createDMAQueue();
+
       {
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
-        //GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer(); // this will be lightweight, no need to track.
-        DMACmdBuffer dma = gpu.createDMACommandBuffer();
+        auto gfx = gpu.createGraphicsCommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
-        //auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
+        auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
         //auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
@@ -70,7 +69,7 @@ int EntryPoint::main()
             .Width(1000)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
-		/*
+		
         auto bufferTarget = gpu.createBuffer(testHeap2,
           ResourceDescriptor()
             .Name("testBufferTarget")
@@ -78,7 +77,7 @@ int EntryPoint::main()
             .Width(1000)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
-
+        /*
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
           .Name("testBufferTarget")
@@ -99,9 +98,12 @@ int EntryPoint::main()
             }
           }
         }
-        //dma.copy(buffer, bufferTarget);
+        gfx.copy(buffer, bufferTarget);
         //dma.copy(bufferTarget, bufferReadb);
-        dmaQueue.submit(dma);
+        auto fence = gfx.fence();
+        gpu.submit(gfx);
+        //gpu.waitFence(fence);
+        gpu.waitIdle();
       }
     }
   };
