@@ -61,8 +61,8 @@ int EntryPoint::main()
         //GraphicsCmdBuffer gfx = gpu.createGraphicsCommandBuffer(); // this will be lightweight, no need to track.
         DMACmdBuffer dma = gpu.createDMACommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
-        auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
-        auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
+        //auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
+        //auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
@@ -70,7 +70,7 @@ int EntryPoint::main()
             .Width(1000)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
-
+		/*
         auto bufferTarget = gpu.createBuffer(testHeap2,
           ResourceDescriptor()
             .Name("testBufferTarget")
@@ -86,7 +86,7 @@ int EntryPoint::main()
           .Width(1000)
           .Usage(ResourceUsage::ReadbackHeap)
           .Dimension(FormatDimension::Buffer));
-
+		  */
         if (buffer.isValid())
         {
           F_LOG("yay! a buffer\n");
