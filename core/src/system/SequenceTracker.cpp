@@ -70,4 +70,9 @@ namespace faze
 
     return m_incomplete[index].checkIdxBit(offsetIndex);
   }
+
+  SeqNum SequenceTracker::lastSequence()
+  {
+    return nextSequence - 1;
+  }
 };
