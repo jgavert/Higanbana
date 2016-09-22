@@ -20,5 +20,6 @@ namespace faze
     SeqNum next();
     void complete(SeqNum num);
     bool hasCompleted(SeqNum num);
+    SeqNum lastSequence();
   };
 }

@@ -18,6 +18,7 @@
 
 #include "core/src/system/memview.hpp"
 #include "core/src/system/SequenceTracker.hpp"
+#include "core/src/system/SequenceRingRangeAllocator.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 
 #include "vkShaders/sampleShader.if.hpp"
