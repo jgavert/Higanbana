@@ -3,8 +3,23 @@
 GpuDevice::GpuDevice(GpuDeviceImpl device)
   : m_device(device)
   , m_queue(device.createGraphicsQueue())
+  , m_cmdBufferAllocator(12)
+  , m_fenceAllocator(12)
 {
+  for (int64_t i = 0; i < m_cmdBufferAllocator.rangeSize(); i++)
+  {
+    m_rawCommandBuffers.push_back(m_device.createGraphicsCommandBuffer());
+  }
 
+  for (int64_t i = 0; i < m_fenceAllocator.rangeSize(); i++)
+  {
+    m_rawFences.push_back(m_device.createFence());
+  }
+}
+
+GpuDevice::~GpuDevice()
+{
+  waitIdle();
 }
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -24,7 +39,18 @@ ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 {
-  return GraphicsCmdBuffer(m_device.createGraphicsCommandBuffer(), m_tracker.next());
+  auto sequence = m_tracker.next();
+  auto index = m_cmdBufferAllocator.nextRange(sequence, 1);
+  while (index.count() == 0)
+  {
+    F_ASSERT(m_liveCmdBuffers.size() != 0, "No commandbuffers live but still cannot acquire free commandbuffer.");
+    updateCompletedSequences();
+    index = m_cmdBufferAllocator.nextRange(sequence, 1);
+  }
+
+  auto& cmdBuffer = m_rawCommandBuffers.at(index.start());
+  m_device.resetCmdBuffer(cmdBuffer);
+  return GraphicsCmdBuffer(cmdBuffer, sequence);
 }
 
 ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
@@ -128,7 +154,21 @@ void GpuDevice::submit(GraphicsCmdBuffer& gfx)
 {
   LiveCmdBuffer element;
   element.cmdBuffer = gfx;
-  element.fence = m_device.createFence(); // TODO: replace with ringbuffer in this device
+
+  {
+    auto sequence = gfx.m_seqNum;
+    auto index = m_fenceAllocator.nextRange(sequence, 1);
+    while (index.count() == 0)
+    {
+      F_ASSERT(m_liveCmdBuffers.size() != 0, "No commandbuffers live but still cannot acquire free Fence.");
+      updateCompletedSequences();
+      index = m_fenceAllocator.nextRange(sequence, 1);
+    }
+
+    element.fence = m_rawFences.at(index.start());
+    m_device.resetFence(element.fence);
+  }
+
 
   m_queue.submit(gfx.m_cmdBuffer, element.fence);
   m_liveCmdBuffers.emplace_back(element);
@@ -184,7 +224,20 @@ void GpuDevice::updateCompletedSequences()
         break;
       }
       m_tracker.complete(livecmdBuffer.cmdBuffer.m_seqNum);
+      // TODO: mark cmdbuffer as "reset before using"
     }
     m_liveCmdBuffers.pop_front();
   }
+
+  // update various managers
+
+  m_cmdBufferAllocator.sequenceCompleted([&](faze::SeqNum num)
+  {
+    return m_tracker.hasCompleted(num);
+  });
+
+  m_fenceAllocator.sequenceCompleted([&](faze::SeqNum num)
+  {
+    return m_tracker.hasCompleted(num);
+  });
 }

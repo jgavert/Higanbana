@@ -46,6 +46,8 @@ namespace faze
 		  }
 	  }
 
+    int64_t rangeSize();
+
   private:
 	  int64_t rangeLength = 0;
 

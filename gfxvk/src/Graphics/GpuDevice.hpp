@@ -12,8 +12,10 @@
 #include "Fence.hpp"
 
 #include "core/src/system/SequenceTracker.hpp"
+#include "core/src/system/SequenceRingRangeAllocator.hpp"
 
 #include <deque>
+#include <vector>
 
 class GpuDevice
 {
@@ -27,15 +29,21 @@ private:
     FenceImpl fence;
     GraphicsCmdBuffer cmdBuffer;
   };
-
   std::deque<LiveCmdBuffer> m_liveCmdBuffers;
 
   QueueImpl m_queue;
+  std::vector<CmdBufferImpl> m_rawCommandBuffers;
+  faze::SequenceRingRangeAllocator m_cmdBufferAllocator;
+
+
+  std::vector<FenceImpl> m_rawFences;
+  faze::SequenceRingRangeAllocator m_fenceAllocator;
 
   GpuDevice(GpuDeviceImpl device);
-
   void updateCompletedSequences();
 public:
+  ~GpuDevice();
+
   bool isValid();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);

@@ -59,7 +59,6 @@ int EntryPoint::main()
 
       {
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
-        auto gfx = gpu.createGraphicsCommandBuffer();
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
         auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
         //auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
@@ -102,9 +101,11 @@ int EntryPoint::main()
         }
         //gfx.copy(buffer, bufferTarget);
         //dma.copy(bufferTarget, bufferReadb);
-        auto fence = gfx.fence();
-        gpu.submit(gfx);
-        gpu.waitFence(fence);
+        for (int i = 0; i < 20; ++i)
+        {
+          auto gfx = gpu.createGraphicsCommandBuffer();
+          gpu.submit(gfx);
+        }
         //gpu.waitIdle();
       }
     }

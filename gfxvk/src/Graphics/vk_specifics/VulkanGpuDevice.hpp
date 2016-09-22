@@ -106,6 +106,10 @@ public:
   void waitFence(VulkanFence& fence);
   bool checkFence(VulkanFence& fence);
   void waitIdle();
+
+  // resets
+  void resetCmdBuffer(VulkanCmdBuffer& buffer);
+  void resetFence(VulkanFence& fence);
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;
