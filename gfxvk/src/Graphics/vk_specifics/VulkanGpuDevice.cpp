@@ -97,7 +97,7 @@ VulkanGpuDevice::VulkanGpuDevice(
 
   for (unsigned i = 0; i < memProp.memoryHeapCount; ++i)
   {
-	  F_ILOG("Graphics/Memory", "memory heap %u: %.3fGB", i, float(memProp.memoryHeaps[i].size) / 1000.f / 1000.f / 1000.f);
+	  F_ILOG("Graphics/Memory", "memory heap %u: %.3fGB", i, float(memProp.memoryHeaps[i].size) / 1024.f / 1024.f / 1024.f);
   }
 
   auto memTypeCount = memProp.memoryTypeCount;

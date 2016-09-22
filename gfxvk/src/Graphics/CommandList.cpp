@@ -15,9 +15,9 @@ bool GraphicsCmdBuffer::isClosed()
   return m_cmdBuffer.isClosed();
 }
 
-void GraphicsCmdBuffer::copy(Buffer& dstdata, Buffer& srcdata)
+void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
 {
-  m_cmdBuffer.copy(dstdata.getBuffer(), srcdata.getBuffer());
+  m_cmdBuffer.copy(srcdata.getBuffer(), dstdata.getBuffer());
 }
 
 Fence GraphicsCmdBuffer::fence()

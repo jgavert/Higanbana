@@ -69,14 +69,15 @@ int EntryPoint::main()
             .Width(1000)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
-		
-        auto bufferTarget = gpu.createBuffer(testHeap2,
+		/*
+        auto bufferTarget = gpu.createBuffer(testHeap2, // bind memory fails?
           ResourceDescriptor()
             .Name("testBufferTarget")
 			      .Format<float>()
             .Width(1000)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
+			*/
         /*
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
@@ -103,7 +104,7 @@ int EntryPoint::main()
         auto fence = gfx.fence();
         gpu.submit(gfx);
         gpu.waitFence(fence);
-        gpu.waitIdle();
+        //gpu.waitIdle();
       }
     }
   };
