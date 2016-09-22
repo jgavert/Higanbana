@@ -40,6 +40,11 @@ namespace faze
 		  return ValueRange(pos, size);
 	  }
 
+    int64_t SequenceRingRangeAllocator::rangeSize()
+    {
+      return rangeLength;
+    }
+
 	  int64_t SequenceRingRangeAllocator::availableSpace()
 	  {
 		  if (usedEnd <= currentPosition)

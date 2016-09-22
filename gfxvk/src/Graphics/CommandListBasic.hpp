@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/src/system/memview.hpp"
+#include "core/src/global_debug.hpp"
 #include <memory>
 
 
@@ -10,6 +11,7 @@ class LinearAllocator
 private:
   std::unique_ptr<uint8_t[]> m_data;
   size_t m_current;
+  size_t m_size;
 
   uintptr_t calcAlignOffset(uintptr_t size, size_t alignment = 16)
   {
@@ -18,6 +20,7 @@ private:
 
   uintptr_t privateAlloc(size_t size)
   {
+    F_ASSERT(m_current + size < m_size, "No space in allocator");
     if (size == 0)
       return 0;
     auto freeMemory = m_current;
@@ -33,6 +36,7 @@ public:
   LinearAllocator(size_t size)
     : m_data(std::make_unique<uint8_t[]>(size))
     , m_current(0)
+    , m_size(size)
   {}
 
   template <typename T>
@@ -148,7 +152,8 @@ public:
 
   CommandList& operator=(CommandList&& obj) = default;
   CommandList& operator=(const CommandList& obj) = delete;
-  ~CommandList()
+
+  void hardClear()
   {
     CommandPacket* current = m_firstPacket;
     while (current != nullptr)
@@ -157,6 +162,15 @@ public:
       (*current).~CommandPacket();
       current = tmp;
     }
+    m_allocator.reset();
+    m_firstPacket = nullptr;
+    m_lastPacket = nullptr;
+    m_size = 0; 
+  }
+
+  ~CommandList()
+  {
+    hardClear();
   }
 
   size_t size() { return m_size; }

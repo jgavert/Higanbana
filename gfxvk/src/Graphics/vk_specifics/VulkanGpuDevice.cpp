@@ -588,7 +588,8 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLa
 
 VulkanFence VulkanGpuDevice::createFence()
 {
-  auto createInfo = vk::FenceCreateInfo();
+  auto createInfo = vk::FenceCreateInfo()
+    .setFlags(vk::FenceCreateFlagBits::eSignaled);
   auto fence = m_device->createFence(createInfo);
 
   auto fencePtr = std::shared_ptr<vk::Fence>(new vk::Fence(fence), [&](vk::Fence* fence)
@@ -616,4 +617,19 @@ bool VulkanGpuDevice::checkFence(VulkanFence& fence)
 void VulkanGpuDevice::waitIdle()
 {
   m_device->waitIdle();
+}
+
+
+// resets
+
+void VulkanGpuDevice::resetCmdBuffer(VulkanCmdBuffer& buffer)
+{
+  buffer.m_commandList->hardClear();
+  m_device->resetCommandPool(*buffer.m_pool, vk::CommandPoolResetFlagBits::eReleaseResources);
+}
+
+void VulkanGpuDevice::resetFence(VulkanFence& fence)
+{
+  vk::ArrayProxy<const vk::Fence> proxy(*fence.m_fence);
+  m_device->resetFences(proxy);
 }
