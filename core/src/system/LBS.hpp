@@ -37,6 +37,12 @@ namespace faze
 
     }
 
+	Requirements(std::vector<std::string>&& args)
+		: m_regs(std::forward<std::vector<std::string>>(args))
+	{
+
+	}
+
   };
 
   struct TaskInfo
@@ -150,13 +156,21 @@ namespace faze
   class ThreadData
   {
   public:
-    ThreadData() :m_ID(0), m_task(Task()) { }
-    ThreadData(int id) :m_ID(id), m_task(Task()) {  }
+    ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0))  { }
+    ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)) {  }
+
+	ThreadData(const ThreadData&) = delete;
+	ThreadData(ThreadData&&) = default;
+
+	ThreadData& operator=(const ThreadData&) = delete;
+	ThreadData& operator=(ThreadData&&) = default;
 
     //void setGlobalID() { G_ID = m_ID;}
-    int m_ID;
+    int m_ID = 0;
     Task m_task;
+	std::shared_ptr<std::atomic<int64_t>> m_localQueueSize;
     std::deque< Task > m_localDeque;
+
   };
 
   namespace desc
@@ -236,8 +250,7 @@ namespace faze
       //procs = 1;
       for (int i = 0; i < procs; i++)
       {
-        ThreadData wtf(i);
-        m_allThreads.push_back(std::move(wtf));
+        m_allThreads.emplace_back(i);
         ThreadStatus.push_back(std::make_pair(RUNNINGLOGIC, i));
       }
       for (int i = 0; i < static_cast<int>(m_allThreads.size()); i++)
@@ -266,8 +279,8 @@ namespace faze
       //procs = 1;
       for (int i = 0; i < procs; ++i)
       {
-        ThreadData wtf(i);
-        m_allThreads.push_back(std::move(wtf));
+        //ThreadData wtf(i);
+        m_allThreads.emplace_back(i);
         ThreadStatus.push_back(std::make_pair(RUNNINGLOGIC, i));
       }
       for (size_t i = 0; i < procs; ++i)
@@ -406,6 +419,7 @@ namespace faze
         std::unique_lock<std::mutex> u2(*m_mutexes[ThreadID], std::adopt_lock);
 
         worker.m_localDeque.push_front(std::move(newTask));
+		worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
         TaskInfo asd(name, {});
         m_taskInfos.insert({ newId, std::move(asd) });
         u1.unlock();
@@ -437,6 +451,7 @@ namespace faze
           m_taskInfos.insert({ newId, std::move(asd) });
           ThreadData& worker = m_allThreads.at(ThreadID);
           worker.m_localDeque.push_front(std::move(newTask));
+		  worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
         }
         else  // wtf add to WAITING FOR REQUIREMENTS
         {
@@ -566,6 +581,7 @@ namespace faze
         for (auto& it : addable)
         {
           worker.m_localDeque.push_front(std::move(it));
+		  worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
           notifyAll();
         }
       }
@@ -582,11 +598,12 @@ namespace faze
         // can we split work?
         if (p.m_task.canSplit())
         {
-          if (p.m_localDeque.empty())
+          if (p.m_localQueueSize->load() == 0)
           { // Queue didn't have anything, adding.
             {
               std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
               p.m_localDeque.push_back(p.m_task.split()); // push back
+			  p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
             }
             notifyAll();
             continue;
@@ -625,7 +642,7 @@ namespace faze
       while (id == p.m_task.m_id)
       {
         // check my own deque
-        if (!p.m_localDeque.empty())
+        if (p.m_localQueueSize->load() != 0)
         {
           // try to take work from own deque, backside.
           std::shared_ptr<std::mutex>& woot = m_mutexes.at(p.m_ID);
@@ -634,6 +651,7 @@ namespace faze
           {
             p.m_task = std::move(p.m_localDeque.back());
             p.m_localDeque.pop_back();
+			p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
             return;
           }
         }
@@ -642,13 +660,14 @@ namespace faze
         {
           if (it.m_ID == p.m_ID) // skip itself
             continue;
-          if (!it.m_localDeque.empty()) // this should reduce unnecessary lock_guards, and cheap.
+          if (it.m_localQueueSize->load() != 0) // this should reduce unnecessary lock_guards, and cheap.
           {
             std::lock_guard<std::mutex> guard(*m_mutexes.at(it.m_ID));
             if (!it.m_localDeque.empty()) // double check as it might be empty now.
             {
               p.m_task = it.m_localDeque.front();
               it.m_localDeque.pop_front();
+			  it.m_localQueueSize->store(it.m_localDeque.size(), std::memory_order::memory_order_relaxed);
               return;
             }
           }
@@ -657,7 +676,7 @@ namespace faze
         ThreadStatus[p.m_ID].first = WAITINGFORWORK;
         if (!StopCondition) // this probably doesn't fix the random deadlock
         {
-          if (!p.m_localDeque.empty())
+          if (p.m_localQueueSize->load() != 0)
           {
             continue;
           }
