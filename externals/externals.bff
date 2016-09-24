@@ -15,60 +15,31 @@
 .extDefines               = ''
 .extLibPaths              = ''
 
+.extRelLibs               = ''
+.extDebLibs               = ''
+
 /////////////////////////////////
 // ADD DEPENDENCIES AFTER THIS //
 /////////////////////////////////
 
-// OCULUS DEPENDENCIES
 
-// libOVRkernel probably deprecated soon
-.oculusKernelInclude  = .extIncludeDir
-                      + 'OculusSDK/LibOVRKernel/src'
-.oculuskernellibPath  = .extBasePath
-                      + 'OculusSDK/LibOVRKernel/Lib'
-                      + .extEndBasePath
-.oculuslibDebug       = .extLibPrefix
-                      + 'LibOVRKerneld' + .extLibPostfix
-.oculuslibRelDeb      = .extLibPrefix
-                      + 'LibOVRKernel' + .extLibPostfix
-.oculuslibRelease     = .extLibPrefix
-                      + 'LibOVRKernel' + .extLibPostfix
+// vkhpp (vulkan cpp bindings)
 
-// LibOVR
-.oculusInclude  = .extIncludeDir
-                + 'OculusSDK/LibOVR/Include'
-.oculuslibPath  = .extBasePath
-                + 'OculusSDK/LibOVR/Lib'
-                + .extEndBasePath
-
-// these need to be seperately be added for necessary projects,
-.oculuslibDebug   + .extLibPrefix
-                  + 'LibOVRd' + .extLibPostfix
-.oculuslibRelDeb  + .extLibPrefix
-                  + 'LibOVR' + .extLibPostfix
-.oculuslibRelease + .extLibPrefix
-                  + 'LibOVR' + .extLibPostfix
-
-// C:\toki\code\Faze\externals\Vulkan-Hpp\vulkan
-// VULKAN cpp
 .vulkanCppInclude = .extIncludeDir
                   + 'Vulkan-Hpp'
+
 .extVisualStudioDefines + 'VK_USE_PLATFORM_WIN32_KHR;'
-//                        + 'VK_USE_PLATFORM_WIN32_KHR;'
+
 #if __WINDOWS__
 .extDefines       + ' /DVK_USE_PLATFORM_WIN32_KHR'
-//                  + ' /DVK_USE_PLATFORM_WIN32_KHR'
-#endif
-#if __LINUX__
-//.extDefines       + ' -DVKCPP_ENHANCED_MODE'
 #endif
 
-// VULKAN
+//////////////////////////////////////////////
+
+// vulkan
+
 .vulkanInclude  = '$VulkanSDKBasePath$/include'
 .vulkanLibPath  = ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
-#if __LINUX__
-//.vulkanLibPath  = ' -L ^"$VulkanSDKBasePath$/bin/'
-#endif
                 + .extEndBasePath
 .vulkanlibs     = ''
 #if __WINDOWS__
@@ -79,7 +50,10 @@
 #endif
 
 
+//////////////////////////////////////////////
+
 // google/shaderc... my god this has big libs :D
+
 .shadercLibPath = .extBasePath
                 + "shaderc/lib"
                 + .extEndBasePath
@@ -93,55 +67,55 @@
                     + 'shaderc_combined'
                     + .extLibPostfix
 
-// SPIRV-CROSS
-//.spirvxLibPath = .extBasePath
-//                + "spirvcross/lib"
-//                + .extEndBasePath
-//.spirvxInclude = .extIncludeDir
-//               + "spirvcross/include"
 
-//.spirvxLibDebug = .extLibPrefix
-//                + 'shaderc_combined_d'
-//                + .extLibPostfix
-//.spirvxLibRelease = .extLibPrefix
-//                  + 'shaderc_combined'
-//                  + .extLibPostfix
+// AMDCompress
+
+#if __WINDOWS__
+.compressLibPath = .extBasePath
+                + "AMDCompressor/lib"
+                + .extEndBasePath
+.compressInclude = .extIncludeDir
+                + "AMDCompressor/include"
+.compressLibDebug  = .extLibPrefix
+                  + 'Compressonator_MTd'
+                  + .extLibPostfix
+.compressLibRelease  = .extLibPrefix
+                    + 'Compressonator_MT'
+                    + .extLibPostfix
+#endif
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////
+.extRelLibs   + .vulkanlibs
+              + .shadercLibRelease
+.extDebLibs   + .vulkanlibs
+              + .shadercLibDebug
+
+#if __WINDOWS__
+.extRelLibs   + .compressLibRelease
+.extDebLibs   + .compressLibDebug
+#endif
 
 // these 2 are automatically in right place
 #if __WINDOWS__
 .extLibPaths  + .vulkanLibPath
-              + .oculuslibPath
-              + .oculuskernellibPath
               + .shadercLibPath
-//              + .spirvxLibPath
+              + .compressLibPath
 #endif
 #if __LINUX__
 .extLibPaths  + .shadercLibPath
-              //+ .vulkanLibPath
-//              + .spirvxLibPath
 #endif
-.externalIncludes = ' /I^"$oculusInclude$"'
-                  + ' /I^"$oculusKernelInclude$"'
-                  + ' /I^"$vulkanInclude$"'
+.externalIncludes = ' /I^"$vulkanInclude$"'
                   + ' /I^"$vulkanCppInclude$"'
                   + ' /I^"$shadercInclude$"'
-//                  + ' /I^"$spirvxInclude$"'
+                  + ' /I^"$compressInclude$"'
 #if __LINUX__
-.externalIncludes = ''
-//                  + ' -I ^"$oculusInclude$"'
-//                  + ' -I ^"$oculusKernelInclude$"'
-                  + ' -isystem ^"$vulkanInclude$"'
+.externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
                   + ' -isystem ^"$shadercInclude$"'
-//                  + ' -isystem ^"$spirvxInclude$"'
 #endif
-.externalIncludesVisualStudio = '$oculusInclude$;'
-                              + '$oculusKernelInclude$;'
-                              + '$vulkanInclude$;'
+.externalIncludesVisualStudio = '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
                               + '$shadercInclude$;'
-//                              + '$spirvxInclude$;'
+                              + '$compressInclude$;'
