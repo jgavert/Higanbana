@@ -70,7 +70,12 @@ public:
 };
 
 
-void VulkanCmdBuffer::copy(VulkanBuffer src, VulkanBuffer dst)
+void checkState()
+{
+  vk::BufferMemoryBarrier barrier;
+}
+
+void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
 {
   vk::BufferCopy copy;
   auto srcSize = src.desc().m_stride * src.desc().m_width;

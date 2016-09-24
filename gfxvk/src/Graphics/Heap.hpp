@@ -103,7 +103,7 @@ public:
     return m_resource.desc();
   }
 
-  bool isValid()
+  bool isValid() const
   {
     return true;
   }

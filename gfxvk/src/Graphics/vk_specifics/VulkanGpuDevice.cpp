@@ -363,9 +363,13 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
     {
       memoryTypeIndex = m_memoryTypes.deviceLocalIndex;
     }
-    else if ((desc.m_heapType == HeapType::Readback || desc.m_heapType == HeapType::Upload) && m_memoryTypes.hostNormalIndex != -1)
+    else if (desc.m_heapType == HeapType::Readback && m_memoryTypes.hostNormalIndex != -1)
     {
       memoryTypeIndex = m_memoryTypes.hostNormalIndex;
+    }
+    else if (desc.m_heapType == HeapType::Upload && m_memoryTypes.hostCachedIndex != -1)
+    {
+      memoryTypeIndex = m_memoryTypes.hostCachedIndex;
     }
     else
     {
@@ -379,8 +383,8 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
   auto memory = m_device->allocateMemory(allocInfo, m_alloc_info);
   auto ret = std::shared_ptr<vk::DeviceMemory>(new vk::DeviceMemory, [&](vk::DeviceMemory* memory)
   {
-    m_device->freeMemory(*memory, m_alloc_info);
-	delete memory;
+    m_device->freeMemory(*memory);
+	  delete memory;
   });
   *ret = memory;
   return VulkanMemoryHeap(ret, desc);
@@ -408,6 +412,11 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   {
     usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
   }
+  else
+  {
+    usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+    usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+  }
   info = info.setUsage(usageBits);
   info = info.setSize(bufSize);
   auto buffer = m_device->createBuffer(info, m_alloc_info);
@@ -422,22 +431,26 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     F_ASSERT(false, "wtf!");
   }
   auto memory = heap.impl().m_resource;
-  m_device->bindBufferMemory(buffer, *memory, offset);
-  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, offset, pagesNeeded, memory](vk::Buffer* buffer)
+  m_device->bindBufferMemory(buffer, *heap.impl().m_resource, offset);
+  auto heapCopy = heap;
+  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, offset, pagesNeeded, heapCopy](vk::Buffer* buffer)
   {
-    heap.freePages(offset, pagesNeeded);
-    m_device->destroyBuffer(*buffer, m_alloc_info);
-	delete buffer;
+    if (heapCopy.isValid() && buffer)
+    {
+      heap.freePages(offset, pagesNeeded);
+      m_device->destroyBuffer(*buffer, m_alloc_info);
+      delete buffer;
+    }
   });
 
-  std::function<RawMapping(int64_t, int64_t)> mapper = [&, memory, usage, offset](int64_t offsetIntoBuffer, int64_t size)
+  std::function<RawMapping(int64_t, int64_t)> mapper = [&, usage, offset, memory](int64_t offsetIntoBuffer, int64_t size)
   {
     // insert some mapping asserts here
     F_ASSERT(usage == ResourceUsage::UploadHeap || usage == ResourceUsage::ReadbackHeap, "cannot map device memory");
     RawMapping mapped;
     auto mapping = m_device->mapMemory(*memory, offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
-	std::shared_ptr<uint8_t*> target(reinterpret_cast<uint8_t**>(&mapping),
-		[&, memory](uint8_t**) -> void
+    std::shared_ptr<void> target(mapping,
+      [&, memory](void*) -> void
     {
       m_device->unmapMemory(*memory);
     });
@@ -445,7 +458,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
 
     return mapped;
   };
-  auto buf = VulkanBuffer(ret, desc);
+  auto buf = VulkanBuffer(ret, vk::AccessFlagBits::eShaderRead, desc);
   buf.m_mapResource = mapper;
   return buf;
 }

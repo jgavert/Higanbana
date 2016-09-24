@@ -8,7 +8,7 @@
 
 struct RawMapping 
 {
-	std::shared_ptr<uint8_t*> mapped;
+	std::shared_ptr<void> mapped;
 
   bool isValid()
   {

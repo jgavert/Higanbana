@@ -48,6 +48,7 @@ class VulkanBuffer
   friend class VulkanCmdBuffer;
 
   std::shared_ptr<vk::Buffer> m_resource;
+  vk::AccessFlags m_flags;
   ResourceDescriptor m_desc;
   std::function<RawMapping(int64_t, int64_t)> m_mapResource; // on vulkan, heap is here.
 
@@ -55,8 +56,9 @@ class VulkanBuffer
     : m_resource(nullptr)
   {}
 
-  VulkanBuffer(std::shared_ptr<vk::Buffer> impl, ResourceDescriptor desc)
+  VulkanBuffer(std::shared_ptr<vk::Buffer> impl, vk::AccessFlags flags, ResourceDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
+    , m_flags(flags)
     , m_desc(std::forward<decltype(desc)>(desc))
   {}
 public:
