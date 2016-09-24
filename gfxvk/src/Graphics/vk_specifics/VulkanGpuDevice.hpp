@@ -49,10 +49,10 @@ private:
 
   struct MemoryTypes
   {
-    int deviceLocalIndex = -1;
-    int hostNormalIndex = -1;
-    int hostCachedIndex = -1; // probably not needed
-    int deviceHostIndex = -1; // default for uma, when discrete has this... what
+    int deviceLocalIndex = -1; // device local
+    int hostNormalIndex = -1; // upload
+    int hostCachedIndex = -1; // readback 
+    int deviceHostIndex = -1; // default for uma. If this is also existing, you can copy things to gpu directly instead of upload.
   } m_memoryTypes;
 
   struct ShaderInputLayout 

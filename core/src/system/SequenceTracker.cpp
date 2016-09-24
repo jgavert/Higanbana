@@ -25,9 +25,9 @@ namespace faze
 
     // first check if we have enough space to record the completed sequence
     // always done to a bitfield.
-    if (offset > static_cast<decltype(offset)>(m_incomplete.size()) * blockSize)
+    if (offset >= static_cast<decltype(offset)>(m_incomplete.size()) * blockSize)
     {
-      auto missingIncompletes = offset / blockSize + 1 - m_incomplete.size();
+      auto missingIncompletes = (offset) / blockSize + 1 - m_incomplete.size();
       for (auto i = 0; i < missingIncompletes; ++i)
       {
         m_incomplete.push_back(Bitfield<1>());
@@ -61,13 +61,12 @@ namespace faze
       return true;
     }
     auto offset = num - fullCompletedSeq;
-    if (offset > static_cast<decltype(offset)>(m_incomplete.size())  * blockSize)
+    if (offset >= static_cast<decltype(offset)>(m_incomplete.size())  * blockSize)
     {
       return false;
     }
     auto index = offset / 128;
     auto offsetIndex = offset % 128;
-
     return m_incomplete[index].checkIdxBit(offsetIndex);
   }
 

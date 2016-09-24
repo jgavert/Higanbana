@@ -59,24 +59,24 @@ int EntryPoint::main()
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
         auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
-        //auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
+        auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
 			      .Format<float>()
-            .Width(1000)
+            .Width(5000000)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
-		/*
+		
         auto bufferTarget = gpu.createBuffer(testHeap2, // bind memory fails?
           ResourceDescriptor()
             .Name("testBufferTarget")
 			      .Format<float>()
-            .Width(1000)
+            .Width(5000000)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
-			*/
-        /*
+			
+        
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
           .Name("testBufferTarget")
@@ -84,27 +84,43 @@ int EntryPoint::main()
           .Width(1000)
           .Usage(ResourceUsage::ReadbackHeap)
           .Dimension(FormatDimension::Buffer));
-		  */
+		  
         if (buffer.isValid())
         {
           F_LOG("yay! a buffer\n");
           {
-            auto map = buffer.Map<float>(0, 1000);
+            auto map = buffer.Map<float>(0, 100000);
             if (map.isValid())
             {
               F_LOG("yay! mapped buffer!\n");
-              map[0] = 1.f;
+              for (auto i = 0; i < 100000; ++i)
+              {
+                map[i] = 1.f;
+              }
             }
           }
         }
-        //gfx.copy(buffer, bufferTarget);
-        //dma.copy(bufferTarget, bufferReadb);
-        for (int i = 0; i < 20; ++i)
+        for (int i = 0; i < 100; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
+          gfx.copy(buffer, bufferTarget);
+          gfx.copy(bufferTarget, bufferReadb);
           gpu.submit(gfx);
         }
-        //gpu.waitIdle();
+        gpu.waitIdle();
+
+        if (bufferReadb.isValid())
+        {
+          F_LOG("yay! a buffer\n");
+          {
+            auto map = bufferReadb.Map<float>(0, 100000);
+            if (map.isValid())
+            {
+              F_LOG("yay! mapped buffer! %f\n", map[0]);
+            }
+          }
+        }
+
       }
     }
   };

@@ -20,6 +20,7 @@ GpuDevice::GpuDevice(GpuDeviceImpl device)
 GpuDevice::~GpuDevice()
 {
   waitIdle();
+  updateCompletedSequences();
 }
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -199,7 +200,7 @@ void GpuDevice::waitFence(Fence fence)
 void GpuDevice::waitIdle()
 {
   m_device.waitIdle();
-  /*
+  
   while (!m_liveCmdBuffers.empty())
   {
     {
@@ -209,7 +210,7 @@ void GpuDevice::waitIdle()
     }
     m_liveCmdBuffers.pop_front();
   }
-  */
+  
   updateCompletedSequences();
 }
 

@@ -41,10 +41,16 @@ private:
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
   VulkanCmdBuffer() {}
+  ~VulkanCmdBuffer()
+  {
+    m_cmdBuffer.reset();
+    m_pool.reset();
+    m_commandList->hardClear();
+  }
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
 
   // copy
-  void copy(VulkanBuffer src, VulkanBuffer dst);
+  void copy(VulkanBuffer& src, VulkanBuffer& dst);
   // compute
   void dispatch();
   // draw
