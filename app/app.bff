@@ -61,13 +61,14 @@
                       + ' Dxgi.lib'
                       + ' atls.lib'
                       + ' D3DCompiler.lib'
-                      + .vulkanlibs
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
                       + ' libucrtd.lib'
                       + ' libvcruntimed.lib'
+                      + .extDebLibs
   .Releaselinkerlibs  = ' libcpmt.lib'
                       + ' libucrt.lib'
                       + ' libvcruntime.lib'
+                      + .extRelLibs
   .Profilelinkerlibs  = .Releaselinkerlibs
 
   .X64DebugConfiguration =
@@ -75,8 +76,6 @@
     Using (.X64DebugConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Debuglinkerlibs
-                    + .oculuslibDebug
-                    + .shadercLibDebug
   ]
 
   .X64ProfileConfiguration =
@@ -84,8 +83,6 @@
     Using (.X64ProfileConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Profilelinkerlibs
-                    + .oculuslibRelDeb
-                    + .shadercLibRelease
   ]
 
   .X64ReleaseConfiguration =
@@ -93,8 +90,6 @@
     Using (.X64ReleaseConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Releaselinkerlibs
-                    + .oculuslibRelease
-                    + .shadercLibRelease
   ]
 
 
@@ -103,9 +98,10 @@
 
 // linux
   .LinuxCommonLinkerLibs   = ' '
-                      + .vulkanlibs
   .LinuxDebuglinkerlibs    = ' ' // brings thread support
+                           + .extDebLibs
   .LinuxReleaselinkerlibs  = ' '
+                           + .extRelLibs
   .LinuxProfilelinkerlibs  = .LinuxReleaselinkerlibs
 
   .X64LinuxDebugConfiguration =
@@ -113,9 +109,6 @@
     Using (.X64LinuxDebugConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxDebuglinkerlibs
-                    + .shadercLibDebug
-                    //+ .oculuslibDebug
-
   ]
 
   .X64LinuxProfileConfiguration =
@@ -123,8 +116,6 @@
     Using (.X64LinuxProfileConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxProfilelinkerlibs
-                    + .shadercLibRelease
-                    //+ .oculuslibRelDeb
   ]
 
   .X64LinuxReleaseConfiguration =
@@ -132,8 +123,6 @@
     Using (.X64LinuxReleaseConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxReleaselinkerlibs
-                    + .shadercLibRelease
-                    //+ .oculuslibRelease
   ]
 
 
