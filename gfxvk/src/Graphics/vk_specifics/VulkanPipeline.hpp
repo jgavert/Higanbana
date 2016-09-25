@@ -7,6 +7,7 @@ class VulkanPipeline
 {
 private:
   friend class VulkanGpuDevice;
+  friend class VulkanCmdBuffer;
 
   std::shared_ptr<vk::Pipeline>    m_pipeline;
   std::shared_ptr<vk::PipelineLayout> m_pipelineLayout;

@@ -56,15 +56,17 @@ int EntryPoint::main()
       GpuDevice gpu = devices.createGpuDevice(fs);
 
       {
-        ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
-        auto testHeap = gpu.createMemoryHeap(HeapDescriptor().setName("ebin").sizeInBytes(32000000).setHeapType(HeapType::Upload)); // 32megs, should be the common size...
+        auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
+          .setName("ebin")
+          .sizeInBytes(32000000)
+          .setHeapType(HeapType::Upload)); // 32megs, should be the common size...
         auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
         auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
             .Name("testBuffer")
 			      .Format<float>()
-            .Width(5000000)
+            .Width(100)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
 		
@@ -72,16 +74,23 @@ int EntryPoint::main()
           ResourceDescriptor()
             .Name("testBufferTarget")
 			      .Format<float>()
-            .Width(5000000)
+            .Width(100)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
 			
+        auto computeTarget = gpu.createBuffer(testHeap2, // bind memory fails?
+          ResourceDescriptor()
+            .Name("testBufferTarget")
+			      .Format<float>()
+            .Width(100)
+            .Usage(ResourceUsage::GpuOnly)
+            .Dimension(FormatDimension::Buffer));
         
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
           .Name("testBufferTarget")
           .Format<float>()
-          .Width(1000)
+          .Width(100)
           .Usage(ResourceUsage::ReadbackHeap)
           .Dimension(FormatDimension::Buffer));
 		  
@@ -89,21 +98,26 @@ int EntryPoint::main()
         {
           F_LOG("yay! a buffer\n");
           {
-            auto map = buffer.Map<float>(0, 100000);
+            auto map = buffer.Map<float>(0, 100);
             if (map.isValid())
             {
               F_LOG("yay! mapped buffer!\n");
-              for (auto i = 0; i < 100000; ++i)
+              for (auto i = 0; i < 100; ++i)
               {
                 map[i] = 1.f;
               }
             }
           }
         }
+        ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
         for (int i = 0; i < 100; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           gfx.copy(buffer, bufferTarget);
+          {
+            // binding
+            
+          }
           gfx.copy(bufferTarget, bufferReadb);
           gpu.submit(gfx);
         }
@@ -113,7 +127,7 @@ int EntryPoint::main()
         {
           F_LOG("yay! a buffer\n");
           {
-            auto map = bufferReadb.Map<float>(0, 100000);
+            auto map = bufferReadb.Map<float>(0, 100);
             if (map.isValid())
             {
               F_LOG("yay! mapped buffer! %f\n", map[0]);
