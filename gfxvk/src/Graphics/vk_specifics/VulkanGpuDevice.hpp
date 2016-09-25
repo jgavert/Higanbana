@@ -6,6 +6,7 @@
 #include "VulkanHeap.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanFence.hpp"
+#include "VulkanDescriptorPool.hpp"
 #include "vkShaders/shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
@@ -79,6 +80,9 @@ public:
   VulkanCmdBuffer createDMACommandBuffer();
   VulkanCmdBuffer createComputeCommandBuffer();
   VulkanCmdBuffer createGraphicsCommandBuffer();
+
+  VulkanDescriptorPool createDescriptorPool();
+
   VulkanPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
   template <typename ShaderType>

@@ -3,6 +3,7 @@
 #include "vk_specifics/VulkanCmdBuffer.hpp"
 #include "gfxvk/src/Graphics/Buffer.hpp"
 #include "gfxvk/src/Graphics/Fence.hpp"
+#include "gfxvk/src/Graphics/Pipeline.hpp"
 #include "core/src/system/SequenceTracker.hpp"
 
 #include <memory>
@@ -21,6 +22,9 @@ private:
 public:
   GraphicsCmdBuffer() {}
   void copy(Buffer& src, Buffer& dst);
+  void bindPipeline(ComputePipeline& pipeline);
+  //void bindPipeline(GraphicsPipeline& pipeline);
+  void dispatch(unsigned x, unsigned y, unsigned z);
   Fence fence();
   bool isValid();
   void close();

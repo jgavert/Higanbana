@@ -335,6 +335,16 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
   return VulkanCmdBuffer(retBuf, retPool);
 }
 
+VulkanDescriptorPool VulkanGpuDevice::createDescriptorPool()
+{
+  vk::DescriptorPoolCreateInfo info = vk::DescriptorPoolCreateInfo()
+    ;//  .
+
+  auto pool = m_device->createDescriptorPool(info);
+
+  return VulkanDescriptorPool(pool);
+}
+
 bool VulkanGpuDevice::isValid()
 {
   return m_device.get() != nullptr;

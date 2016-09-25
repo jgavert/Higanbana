@@ -1,6 +1,9 @@
 #pragma once
 #include "gfxvk/src/Graphics/CommandListBasic.hpp"
 
+#include "VulkanBuffer.hpp"
+#include "VulkanPipeline.hpp"
+
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
@@ -48,11 +51,12 @@ public:
     m_commandList->hardClear();
   }
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
+  void bindComputePipeline(VulkanPipeline& pipeline);
 
   // copy
   void copy(VulkanBuffer& src, VulkanBuffer& dst);
   // compute
-  void dispatch();
+  void dispatch(unsigned x, unsigned y, unsigned z);
   // draw
 
   bool isValid();
