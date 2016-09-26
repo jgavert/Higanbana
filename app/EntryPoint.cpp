@@ -116,7 +116,10 @@ int EntryPoint::main()
           gfx.copy(buffer, bufferTarget);
           {
             // binding
-            
+            auto shif = gfx.bind<SampleShader>(test);
+            shif.bind(SampleShader::dataIn, bufferTarget);
+            shif.bind(SampleShader::dataOut, computeTarget);
+            gfx.dispatch(shif, 1, 1, 1);
           }
           gfx.copy(bufferTarget, bufferReadb);
           gpu.submit(gfx);
