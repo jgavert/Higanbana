@@ -15,9 +15,11 @@ private:
   friend class _GpuBracket;
   friend class GpuQueue;
   CmdBufferImpl m_cmdBuffer;
+  GpuDeviceImpl m_device;
   faze::SeqNum m_seqNum;
-  GraphicsCmdBuffer(CmdBufferImpl cmdBuffer, faze::SeqNum num)
+  GraphicsCmdBuffer(GpuDeviceImpl& device, CmdBufferImpl cmdBuffer, faze::SeqNum num)
     : m_cmdBuffer(std::move(cmdBuffer))
+    . m_device(device)
     , m_seqNum(num){}
 public:
   GraphicsCmdBuffer() {}
@@ -29,4 +31,12 @@ public:
   bool isValid();
   void close();
   bool isClosed();
+
+  // shader
+
+  template <typename ShaderInterface>
+  ShaderInputs bind(ComputePipeline& pipeline)
+  {
+    m_cmdBuffer.bindComputePipeline(pipeline);
+  }
 };

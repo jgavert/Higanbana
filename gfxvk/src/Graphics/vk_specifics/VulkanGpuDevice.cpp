@@ -337,8 +337,24 @@ VulkanCmdBuffer VulkanGpuDevice::createGraphicsCommandBuffer()
 
 VulkanDescriptorPool VulkanGpuDevice::createDescriptorPool()
 {
+  std::vector<vk::DescriptorPoolSize> poolSizes;
+  poolSizes.emplace_back(vk::DescriptorPoolSize()
+    .setType(vk::DescriptorType::eStorageBufferDynamic)
+    .setDescriptorCount(10));
+  poolSizes.emplace_back(vk::DescriptorPoolSize()
+    .setType(vk::DescriptorType::eStorageBuffer)
+    .setDescriptorCount(10));
+  poolSizes.emplace_back(vk::DescriptorPoolSize()
+    .setType(vk::DescriptorType::eSampledImage)
+    .setDescriptorCount(10));
+  poolSizes.emplace_back(vk::DescriptorPoolSize()
+    .setType(vk::DescriptorType::eStorageImage)
+    .setDescriptorCount(10));
+  
   vk::DescriptorPoolCreateInfo info = vk::DescriptorPoolCreateInfo()
-    ;//  .
+    .setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
+    .setPPoolSizes(poolSizes.data())
+    .setMaxSets(1);
 
   auto pool = m_device->createDescriptorPool(info);
 
@@ -533,7 +549,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLa
 	  bindings.push_back(vk::DescriptorSetLayoutBinding()
 		  .setBinding(indexStart)
 		  .setDescriptorCount(1)
-		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setDescriptorType(vk::DescriptorType::eSampledImage)
 		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
 	  indexStart += 1;
   }
@@ -544,7 +560,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLa
 	  bindings.push_back(vk::DescriptorSetLayoutBinding()
 		  .setBinding(indexStart)
 		  .setDescriptorCount(4)
-		  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		  .setDescriptorType(vk::DescriptorType::eStorageImage)
 		  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
 	  indexStart += 1;
   }
