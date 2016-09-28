@@ -5,6 +5,7 @@
 class VulkanDescriptorPool
 {
 private:
+  friend class VulkanGpuDevice;
   vk::DescriptorPool pool;
 public:
   VulkanDescriptorPool(vk::DescriptorPool pool)
@@ -13,3 +14,5 @@ public:
 
   }
 };
+
+using DescriptorPoolImpl = VulkanDescriptorPool;

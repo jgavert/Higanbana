@@ -1,19 +1,26 @@
 #include "GpuDevice.hpp"
 
+#define COMMANDLISTCOUNT 12
+
 GpuDevice::GpuDevice(GpuDeviceImpl device)
-  : m_device(device)
+  : m_device(std::make_shared<GpuDeviceImpl>(device))
   , m_queue(device.createGraphicsQueue())
-  , m_cmdBufferAllocator(12)
-  , m_fenceAllocator(12)
+  , m_cmdBufferAllocator(COMMANDLISTCOUNT)
+  , m_fenceAllocator(COMMANDLISTCOUNT)
 {
-  for (int64_t i = 0; i < m_cmdBufferAllocator.rangeSize(); i++)
+  for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
   {
-    m_rawCommandBuffers.push_back(m_device.createGraphicsCommandBuffer());
+    m_rawCommandBuffers.push_back(m_device->createGraphicsCommandBuffer());
   }
 
-  for (int64_t i = 0; i < m_fenceAllocator.rangeSize(); i++)
+  for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
   {
-    m_rawFences.push_back(m_device.createFence());
+    m_rawFences.push_back(m_device->createFence());
+  }
+
+  for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
+  {
+	  m_descriptorPools.push_back(DescriptorPool(std::make_shared<DescriptorPoolImpl>(m_device->createDescriptorPool())));
   }
 }
 
@@ -25,7 +32,7 @@ GpuDevice::~GpuDevice()
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
 {
-  return m_device.createGraphicsPipeline(desc);
+  return m_device->createGraphicsPipeline(desc);
 }
 /*
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
@@ -48,10 +55,10 @@ GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
     updateCompletedSequences();
     index = m_cmdBufferAllocator.nextRange(sequence, 1);
   }
-
+  auto& descPool = m_descriptorPools.at(index.start());
   auto& cmdBuffer = m_rawCommandBuffers.at(index.start());
-  m_device.resetCmdBuffer(cmdBuffer);
-  return GraphicsCmdBuffer(cmdBuffer, sequence);
+  m_device->resetCmdBuffer(cmdBuffer);
+  return GraphicsCmdBuffer(m_device, cmdBuffer, sequence, descPool);
 }
 
 ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
@@ -70,7 +77,7 @@ ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
 
   desc.m_sizeInBytes = ensureAlignment(desc.m_sizeInBytes, desc.m_alignment);
   F_ASSERT(desc.m_sizeInBytes < ResourceHeap::s_pageCount * desc.m_alignment, "Trying to create heap that is too large for the heap page count, count was %u < %u", desc.m_sizeInBytes, ResourceHeap::s_pageCount * desc.m_alignment);
-  return m_device.createMemoryHeap(desc);
+  return m_device->createMemoryHeap(desc);
 }
 
 Buffer GpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
@@ -78,42 +85,42 @@ Buffer GpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
-  return m_device.createBuffer(heap, desc);
+  return m_device->createBuffer(heap, desc);
 }
 Texture GpuDevice::createTexture(ResourceHeap& heap, ResourceDescriptor desc)
 {
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
-  return m_device.createTexture(heap, desc);
+  return m_device->createTexture(heap, desc);
 }
 // shader views
 TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureSRV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
   return view;
 }
 TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureUAV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
   return view;
 }
 TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureRTV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
   return view;
 }
 TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureDSV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device.createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
   return view;
 }
 
@@ -121,34 +128,34 @@ BufferSRV GpuDevice::createBufferSRV(Buffer targetBuffer, ShaderViewDescriptor v
 {
   BufferSRV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
   return view;
 }
 BufferUAV GpuDevice::createBufferUAV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferUAV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
   return view;
 }
 BufferCBV GpuDevice::createBufferCBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferCBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
   return view;
 }
 BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferIBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device.createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
   return view;
 }
 
 bool GpuDevice::isValid()
 {
-  return m_device.isValid();
+  return m_device->isValid();
 }
 
 void GpuDevice::submit(GraphicsCmdBuffer& gfx)
@@ -167,7 +174,7 @@ void GpuDevice::submit(GraphicsCmdBuffer& gfx)
     }
 
     element.fence = m_rawFences.at(index.start());
-    m_device.resetFence(element.fence);
+    m_device->resetFence(element.fence);
   }
 
 
@@ -191,7 +198,7 @@ void GpuDevice::waitFence(Fence fence)
   {
     if (it.cmdBuffer.m_seqNum == fence.get())
     {
-      m_device.waitFence(it.fence);
+      m_device->waitFence(it.fence);
       break;
     }
   }
@@ -199,13 +206,13 @@ void GpuDevice::waitFence(Fence fence)
 }
 void GpuDevice::waitIdle()
 {
-  m_device.waitIdle();
+  m_device->waitIdle();
   
   while (!m_liveCmdBuffers.empty())
   {
     {
       auto&& livecmdBuffer = m_liveCmdBuffers.front();
-      m_device.waitFence(livecmdBuffer.fence);
+      m_device->waitFence(livecmdBuffer.fence);
       m_tracker.complete(livecmdBuffer.cmdBuffer.m_seqNum);
     }
     m_liveCmdBuffers.pop_front();
@@ -220,7 +227,7 @@ void GpuDevice::updateCompletedSequences()
   {
     {
       auto&& livecmdBuffer = m_liveCmdBuffers.front();
-      if (!m_device.checkFence(livecmdBuffer.fence))
+      if (!m_device->checkFence(livecmdBuffer.fence))
       {
         break;
       }

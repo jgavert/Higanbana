@@ -67,17 +67,12 @@ public:
 
   bool isValid()
   {
-    return m_texture.isValid() && m_view.isValid();
+    return m_texture.isValid();
   }
 
-  size_t getIndexInHeap()
+  TextureShaderViewImpl& getView()
   {
-    return m_view.getIndexInHeap(); // This is really confusing getter, for completely wrong reasons.
-  }
-
-  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
-  {
-    return m_view.getCustomIndexInHeap();
+	  return m_view;
   }
 };
 

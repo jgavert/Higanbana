@@ -86,27 +86,15 @@ class VulkanBufferShaderView
 private:
   friend class VulkanGpuDevice;
   friend class BufferShaderView;
-
-  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed.
-  size_t customIndex;
-  VulkanBufferShaderView()
-    : indexInHeap(new size_t)
-    , customIndex(0)
+  vk::DescriptorBufferInfo info;
+  VulkanBufferShaderView(vk::DescriptorBufferInfo info)
+    : info(info)
   {}
 public:
-  bool isValid()
+	VulkanBufferShaderView() {}
+  vk::DescriptorBufferInfo& getImpl()
   {
-    return true;
-  }
-
-  size_t getIndexInHeap()
-  {
-    return *indexInHeap;
-  }
-
-  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
-  {
-    return static_cast<unsigned>(customIndex);
+	  return info;
   }
 };
 

@@ -65,17 +65,12 @@ public:
 
   bool isValid()
   {
-    return m_buffer.isValid() && m_view.isValid();
+    return m_buffer.isValid();
   }
 
-  size_t getIndexInHeap()
+  BufferShaderViewImpl& getView()
   {
-    return m_view.getIndexInHeap(); // This is really confusing getter, for completely wrong reasons.
-  }
-
-  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
-  {
-    return m_view.getCustomIndexInHeap();
+	  return m_view;
   }
 };
 
