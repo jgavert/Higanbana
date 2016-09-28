@@ -103,8 +103,8 @@ public:
   VulkanBuffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
   VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);
   // shader views
-  VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
   // synchro creates
   VulkanFence createFence();

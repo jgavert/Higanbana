@@ -11,5 +11,6 @@ void VulkanDescriptorSet::bind(unsigned slot, VulkanTextureShaderView& texture)
 vk::WriteDescriptorSet VulkanDescriptorSet::compile()
 {
 	vk::WriteDescriptorSet write = vk::WriteDescriptorSet();
+
 	return write;
 }

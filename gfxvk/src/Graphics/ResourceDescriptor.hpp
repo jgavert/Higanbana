@@ -4,6 +4,12 @@
 #include <string>
 #include <array>
 
+enum class ResourceShaderType
+{
+	ShaderView,
+	UnorderedAccess
+};
+
 class ShaderViewDescriptor
 {
 public:
