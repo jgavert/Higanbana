@@ -7,19 +7,14 @@
 class ShaderViewDescriptor
 {
 public:
-  unsigned m_mostDetailedMip;
-  unsigned m_arraySlice;
-  unsigned m_planeSlice;
-  unsigned m_first2DArrayFace;
-  unsigned m_firstElement;
-  float m_resourceMinLODClamp;
+  unsigned m_mostDetailedMip = 0;
+  unsigned m_arraySlice = 0;
+  unsigned m_planeSlice = 0;
+  unsigned m_first2DArrayFace = 0;
+  unsigned m_firstElement = 0;
+  int m_elementCount = -1;
+  float m_resourceMinLODClamp = 0.f;
   ShaderViewDescriptor()
-    : m_mostDetailedMip(0)
-    , m_arraySlice(0)
-    , m_planeSlice(0)
-    , m_first2DArrayFace(0)
-    , m_firstElement(0)
-    , m_resourceMinLODClamp(0.f)
   {}
   ShaderViewDescriptor& MostDetailedMip(unsigned index)
   {
@@ -45,6 +40,11 @@ public:
   {
     m_firstElement = index;
     return *this;
+  }
+  ShaderViewDescriptor& ElementCount(int value)
+  {
+	m_elementCount = value;
+	return *this;
   }
   ShaderViewDescriptor& ResourceMinLODClamp(float clamp)
   {

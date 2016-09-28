@@ -72,15 +72,15 @@
 
 #if __WINDOWS__
 .compressLibPath = .extBasePath
-                + "AMDCompressor/lib"
+                + "Compressonator/lib"
                 + .extEndBasePath
 .compressInclude = .extIncludeDir
-                + "AMDCompressor/include"
+                + "Compressonator/include"
 .compressLibDebug  = .extLibPrefix
-                  + 'Compressonator_MTd'
+                  + 'Compressonator_MDd'
                   + .extLibPostfix
 .compressLibRelease  = .extLibPrefix
-                    + 'Compressonator_MT'
+                    + 'Compressonator_MD'
                     + .extLibPostfix
 #endif
 

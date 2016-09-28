@@ -1,5 +1,6 @@
 #include "CommandList.hpp"
 
+
 bool GraphicsCmdBuffer::isValid()
 {
   return m_cmdBuffer.isValid();
@@ -27,8 +28,9 @@ void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 }
 // compute
 
-void GraphicsCmdBuffer::dispatch(unsigned x, unsigned y, unsigned z)
+void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
 {
+  doDescriptorSets(inputs);
   m_cmdBuffer.dispatch(x, y, z);
 }
 
@@ -39,4 +41,9 @@ void GraphicsCmdBuffer::dispatch(unsigned x, unsigned y, unsigned z)
 void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
 {
   m_cmdBuffer.copy(srcdata.getBuffer(), dstdata.getBuffer());
+}
+
+void GraphicsCmdBuffer::doDescriptorSets(DescriptorSet& inputs)
+{
+	m_device->writeDescriptorSet(inputs.set);
 }

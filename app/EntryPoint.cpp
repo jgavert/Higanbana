@@ -77,7 +77,7 @@ int EntryPoint::main()
             .Width(100)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
-			
+		auto bufferTargetUav = gpu.createBufferUAV(bufferTarget);
         auto computeTarget = gpu.createBuffer(testHeap2, // bind memory fails?
           ResourceDescriptor()
             .Name("testBufferTarget")
@@ -85,7 +85,7 @@ int EntryPoint::main()
             .Width(100)
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
-        
+		auto computeTargetUav = gpu.createBufferUAV(computeTarget); 
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
           .Name("testBufferTarget")
@@ -117,8 +117,8 @@ int EntryPoint::main()
           {
             // binding
             auto shif = gfx.bind<SampleShader>(test);
-            shif.bind(SampleShader::dataIn, bufferTarget);
-            shif.bind(SampleShader::dataOut, computeTarget);
+            shif.bind(SampleShader::dataIn, bufferTargetUav);
+            shif.bind(SampleShader::dataOut, computeTargetUav);
             gfx.dispatch(shif, 1, 1, 1);
           }
           gfx.copy(bufferTarget, bufferReadb);

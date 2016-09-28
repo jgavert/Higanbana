@@ -17,6 +17,11 @@ public:
   {
     return true;
   }
+
+  PipelineImpl& impl()
+  {
+	  return m_pipeline;
+  }
 };
 
 class ComputePipeline : public GpuPipeline

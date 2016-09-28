@@ -7,6 +7,7 @@
 #include "VulkanPipeline.hpp"
 #include "VulkanFence.hpp"
 #include "VulkanDescriptorPool.hpp"
+#include "VulkanDescriptorSet.hpp"
 #include "vkShaders/shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
@@ -114,6 +115,10 @@ public:
   // resets
   void resetCmdBuffer(VulkanCmdBuffer& buffer);
   void resetFence(VulkanFence& fence);
+
+  // descriptor sheit
+  VulkanDescriptorSet allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline);
+  void writeDescriptorSet(VulkanDescriptorSet& set);
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

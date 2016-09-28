@@ -78,30 +78,20 @@ using TextureImpl = VulkanTexture;
 class VulkanTextureShaderView
 {
 private:
-  friend class VulkanGpuDevice;
-  friend class TextureShaderView;
-  std::shared_ptr<size_t> indexInHeap; // will handle removing references from heaps when destructed. ref counted.
-  size_t customIndex;
+	friend class VulkanGpuDevice;
+	friend class TextureShaderView;
+	vk::DescriptorImageInfo info;
 
-  VulkanTextureShaderView()
-    : indexInHeap(new size_t)
-    , customIndex(0)
-  {}
+	VulkanTextureShaderView(vk::DescriptorImageInfo info)
+		: info(info)
+	{}
 public:
-  bool isValid()
-  {
-    return true;
-  }
-
-  size_t getIndexInHeap()
-  {
-    return *indexInHeap.get(); // This is really confusing getter, for completely wrong reasons.
-  }
-
-  unsigned getCustomIndexInHeap() // this returns implementation specific index. There might be better ways to do this.
-  {
-    return static_cast<unsigned>(customIndex);
-  }
+	VulkanTextureShaderView()
+	{}
+	vk::DescriptorImageInfo& getImpl()
+	{
+		return info;
+	}
 };
 
 using TextureShaderViewImpl = VulkanTextureShaderView;

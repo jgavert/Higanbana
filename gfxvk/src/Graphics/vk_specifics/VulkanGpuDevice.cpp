@@ -123,12 +123,14 @@ VulkanGpuDevice::VulkanGpuDevice(
 		if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
 			F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
         // weird memory only for uma... usually
-        m_memoryTypes.deviceHostIndex = i;
+		if (m_memoryTypes.deviceHostIndex == -1)
+			m_memoryTypes.deviceHostIndex = i;
       }
       else
       {
         //F_ILOG("MemoryTypeDebug", "type %u was not eHostVisible", i);
-        m_memoryTypes.deviceLocalIndex = i;
+		if (m_memoryTypes.deviceLocalIndex == -1) // always first legit index, otherwise errors.
+			m_memoryTypes.deviceLocalIndex = i;
       }
     }
     else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
@@ -139,12 +141,14 @@ VulkanGpuDevice::VulkanGpuDevice(
       if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
       {
         F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached",memType.heapIndex, i);
-        m_memoryTypes.hostCachedIndex = i;
+		if (m_memoryTypes.hostCachedIndex == -1)
+			m_memoryTypes.hostCachedIndex = i;
       }
       else
       {
         //F_ILOG("MemoryTypeDebug", "type %u was not eHostCached", i);
-        m_memoryTypes.hostNormalIndex = i;
+		  if (m_memoryTypes.hostNormalIndex == -1)
+			  m_memoryTypes.hostNormalIndex = i;
       }
     }
   }
@@ -493,13 +497,23 @@ VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor 
   return VulkanTexture();
 }
 // shader views
-VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer , ShaderViewDescriptor )
+VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer, ShaderViewDescriptor descriptor)
 {
-  return VulkanBufferShaderView();
+  auto elementSize = buffer.desc().m_stride;
+  auto sizeInElements = buffer.desc().m_width;
+  auto firstElement = descriptor.m_firstElement*elementSize;
+  auto maxRange = descriptor.m_elementCount*elementSize;
+  if (descriptor.m_elementCount <= 0)
+	  maxRange = elementSize*sizeInElements; // VK_WHOLE_SIZE
+  return VulkanBufferShaderView(vk::DescriptorBufferInfo()
+	  .setBuffer(*buffer.m_resource)
+	  .setOffset(firstElement)
+	  .setRange(maxRange));
 }
+
 VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture , ShaderViewDescriptor)
 {
-  return VulkanTextureShaderView();
+  return VulkanTextureShaderView(vk::DescriptorImageInfo());
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
@@ -671,4 +685,20 @@ void VulkanGpuDevice::resetFence(VulkanFence& fence)
 {
   vk::ArrayProxy<const vk::Fence> proxy(*fence.m_fence);
   m_device->resetFences(proxy);
+}
+
+VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline)
+{
+	auto result = m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
+		.setDescriptorPool(pool.pool)
+		.setDescriptorSetCount(1)
+		.setPSetLayouts(pipeline.m_descriptorSetLayout.get()));
+
+	return VulkanDescriptorSet(result[0]);
+}
+
+void VulkanGpuDevice::writeDescriptorSet(VulkanDescriptorSet& set)
+{
+	vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(set.compile());
+	m_device->updateDescriptorSets(proxy, {});
 }
