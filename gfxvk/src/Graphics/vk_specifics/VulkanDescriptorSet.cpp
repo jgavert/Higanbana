@@ -8,9 +8,18 @@ void VulkanDescriptorSet::bind(unsigned slot, VulkanTextureShaderView& texture)
 {
 	textures.push_back(std::make_pair(slot, texture));
 }
-vk::WriteDescriptorSet VulkanDescriptorSet::compile()
+std::vector<vk::WriteDescriptorSet> VulkanDescriptorSet::compile()
 {
-	vk::WriteDescriptorSet write = vk::WriteDescriptorSet();
+	std::vector<vk::WriteDescriptorSet> allSets;
+	for (auto&& it : buffers)
+	{
+		allSets.push_back(vk::WriteDescriptorSet()
+			.setDescriptorCount(1)
+			.setDescriptorType(it.second.type())
+			.setDstBinding(it.first)
+			.setDstSet(set)
+			.setPBufferInfo(&it.second.info()));
+	}
 
-	return write;
+	return allSets;
 }
