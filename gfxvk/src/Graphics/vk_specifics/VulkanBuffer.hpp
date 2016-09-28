@@ -86,21 +86,21 @@ class VulkanBufferShaderView
 private:
   friend class VulkanGpuDevice;
   friend class BufferShaderView;
-  vk::DescriptorBufferInfo info;
-  vk::DescriptorType viewType;
+  vk::DescriptorBufferInfo m_info;
+  vk::DescriptorType m_viewType;
   VulkanBufferShaderView(vk::DescriptorBufferInfo info, vk::DescriptorType viewType)
-    : info(info)
-	  , viewType(viewType)
+    : m_info(info)
+	  , m_viewType(viewType)
   {}
 public:
 	VulkanBufferShaderView() {}
-	vk::DescriptorImageInfo& info()
+	vk::DescriptorBufferInfo& info()
 	{
-		return info;
+		return m_info;
 	}
 	vk::DescriptorType& type()
 	{
-		return viewType;
+		return m_viewType;
 	}
 };
 

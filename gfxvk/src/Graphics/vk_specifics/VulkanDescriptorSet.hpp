@@ -18,7 +18,7 @@ public:
 
 	void bind(unsigned slot, VulkanBufferShaderView& buffer);
 	void bind(unsigned slot, VulkanTextureShaderView& texture);
-	vk::WriteDescriptorSet compile();
+	std::vector<vk::WriteDescriptorSet> compile();
 };
 
 using DescriptorSetImpl = VulkanDescriptorSet;

@@ -99,28 +99,28 @@ TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescript
 {
   TextureSRV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::ShaderView, viewDesc);
   return view;
 }
 TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureUAV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::UnorderedAccess, viewDesc);
   return view;
 }
 TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureRTV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::RenderTarget, viewDesc);
   return view;
 }
 TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureDSV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::DepthStencil, viewDesc);
   return view;
 }
 
@@ -128,28 +128,28 @@ BufferSRV GpuDevice::createBufferSRV(Buffer targetBuffer, ShaderViewDescriptor v
 {
   BufferSRV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::ShaderView, viewDesc);
   return view;
 }
 BufferUAV GpuDevice::createBufferUAV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferUAV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::UnorderedAccess, viewDesc);
   return view;
 }
 BufferCBV GpuDevice::createBufferCBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferCBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::Unknown, viewDesc);
   return view;
 }
 BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferIBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::Unknown, viewDesc);
   return view;
 }
 

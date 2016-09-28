@@ -6,8 +6,11 @@
 
 enum class ResourceShaderType
 {
+	Unknown,
 	ShaderView,
-	UnorderedAccess
+	UnorderedAccess,
+	RenderTarget,
+	DepthStencil
 };
 
 class ShaderViewDescriptor
