@@ -81,16 +81,21 @@ private:
 	friend class VulkanGpuDevice;
 	friend class TextureShaderView;
 	vk::DescriptorImageInfo info;
-
-	VulkanTextureShaderView(vk::DescriptorImageInfo info)
+	vk::DescriptorType viewType;
+	VulkanTextureShaderView(vk::DescriptorImageInfo info, vk::DescriptorType viewType)
 		: info(info)
+		, viewType(viewType)
 	{}
 public:
 	VulkanTextureShaderView()
 	{}
-	vk::DescriptorImageInfo& getImpl()
+	vk::DescriptorImageInfo& info()
 	{
 		return info;
+	}
+	vk::DescriptorType& type()
+	{
+		return viewType;
 	}
 };
 

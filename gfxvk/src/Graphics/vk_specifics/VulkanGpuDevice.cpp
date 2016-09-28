@@ -497,7 +497,7 @@ VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor 
   return VulkanTexture();
 }
 // shader views
-VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer, ShaderViewDescriptor descriptor)
+VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer,ResourceShaderType shaderType,  ShaderViewDescriptor descriptor)
 {
   auto elementSize = buffer.desc().m_stride;
   auto sizeInElements = buffer.desc().m_width;
@@ -505,15 +505,26 @@ VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer, Sh
   auto maxRange = descriptor.m_elementCount*elementSize;
   if (descriptor.m_elementCount <= 0)
 	  maxRange = elementSize*sizeInElements; // VK_WHOLE_SIZE
+
+  vk::DescriptorType type = vk::DescriptorType::eStorageBuffer;
+  if (shaderType == ResourceShaderType::ShaderView)
+  {
+	  type = vk::DescriptorType::eStorageBuffer;
+  }
+  else if (shaderType == ResourceShaderType::UnorderedAccess)
+  {
+	  type = vk::DescriptorType::eStorageBuffer;
+  }
   return VulkanBufferShaderView(vk::DescriptorBufferInfo()
 	  .setBuffer(*buffer.m_resource)
 	  .setOffset(firstElement)
-	  .setRange(maxRange));
+	  .setRange(maxRange)
+  , type);
 }
 
-VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture , ShaderViewDescriptor)
+VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture ,ResourceShaderType ,  ShaderViewDescriptor)
 {
-  return VulkanTextureShaderView(vk::DescriptorImageInfo());
+  return VulkanTextureShaderView(vk::DescriptorImageInfo(), vk::DescriptorType::eSampledImage);
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
