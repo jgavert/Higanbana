@@ -115,10 +115,14 @@ public:
   // resets
   void resetCmdBuffer(VulkanCmdBuffer& buffer);
   void resetFence(VulkanFence& fence);
+  void reset(VulkanDescriptorPool& pool);
 
   // descriptor sheit
   VulkanDescriptorSet allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline);
   void writeDescriptorSet(VulkanDescriptorSet& set);
+
+  // destroys
+  void destroy(VulkanDescriptorPool& pool);
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

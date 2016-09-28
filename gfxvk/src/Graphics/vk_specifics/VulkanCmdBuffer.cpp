@@ -109,12 +109,12 @@ class BindDescriptorSetPacket : public VulkanCommandPacket
 {
 private:
   vk::PipelineBindPoint point;
-  std::shared_ptr<vk::PipelineLayout> layout;
+  vk::PipelineLayout layout;
   CommandListVector<vk::DescriptorSet> descriptors;
   CommandListVector<uint32_t> dynOffsets;
 public:
-  BindDescriptorSetPacket(LinearAllocator& allocator, vk::PipelineBindPoint point, std::shared_ptr<vk::PipelineLayout> layout
-    , MemView<vk::DescriptorSet> sets, MemView<uint32_t> dynamicOffsets)
+  BindDescriptorSetPacket(LinearAllocator& allocator, vk::PipelineBindPoint point, vk::PipelineLayout layout
+                        , MemView<vk::DescriptorSet> sets, MemView<uint32_t> dynamicOffsets)
     : point(point)
     , layout(layout)
     , descriptors(MemView<vk::DescriptorSet>(allocator.allocList<vk::DescriptorSet>(sets.size()), sets.size()))
@@ -135,7 +135,7 @@ public:
     constexpr uint32_t firstSet = 0;
     vk::ArrayProxy<const vk::DescriptorSet> sets(static_cast<uint32_t>(descriptors.size()), descriptors.data());
     vk::ArrayProxy<const uint32_t> setOffsets(static_cast<uint32_t>(dynOffsets.size()), dynOffsets.data());
-    cmd.bindDescriptorSets(point, *layout, firstSet, sets, setOffsets);
+    cmd.bindDescriptorSets(point, layout, firstSet, sets, setOffsets);
   }
 };
 
@@ -150,6 +150,11 @@ void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
     .setDstOffset(0)
     .setSrcOffset(0);
   m_commandList->insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
+}
+
+void VulkanCmdBuffer::bindComputeDescriptorSet(VulkanPipeline& pipeline, VulkanDescriptorSet& set)
+{
+  m_commandList->insert<BindDescriptorSetPacket>(vk::PipelineBindPoint::eCompute, *pipeline.m_pipelineLayout, set.set, MemView<uint32_t>());
 }
 
 void VulkanCmdBuffer::dispatch(unsigned x, unsigned y, unsigned z)
