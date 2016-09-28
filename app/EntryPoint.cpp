@@ -110,19 +110,35 @@ int EntryPoint::main()
           }
         }
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
-        for (int i = 0; i < 100; ++i)
+        for (int i = 0; i < 1; ++i)
         {
-          auto gfx = gpu.createGraphicsCommandBuffer();
-          gfx.copy(buffer, bufferTarget);
           {
-            // binding
-            auto shif = gfx.bind<SampleShader>(test);
-            shif.bind(SampleShader::dataIn, bufferTargetUav);
-            shif.bind(SampleShader::dataOut, computeTargetUav);
-            gfx.dispatch(shif, 1, 1, 1);
+            auto gfx = gpu.createGraphicsCommandBuffer();
+            gfx.copy(buffer, bufferTarget);
+            gpu.submit(gfx);
+            auto fence = gfx.fence();
+            gpu.waitFence(fence);
           }
-          gfx.copy(bufferTarget, bufferReadb);
-          gpu.submit(gfx);
+          {
+            auto gfx = gpu.createGraphicsCommandBuffer();
+            // binding
+            {
+              auto shif = gfx.bind<SampleShader>(test);
+              shif.bind(SampleShader::dataIn, bufferTargetUav);
+              shif.bind(SampleShader::dataOut, computeTargetUav);
+              gfx.dispatch(shif, 1, 1, 1);
+            }
+            gpu.submit(gfx);
+            auto fence = gfx.fence();
+            gpu.waitFence(fence);
+          }
+          {
+            auto gfx = gpu.createGraphicsCommandBuffer();
+            gfx.copy(computeTarget, bufferReadb);
+            gpu.submit(gfx);
+            auto fence = gfx.fence();
+            gpu.waitFence(fence);
+          }
         }
         gpu.waitIdle();
 

@@ -43,6 +43,7 @@ private:
 
   GpuDevice(GpuDeviceImpl device);
   void updateCompletedSequences();
+  void destroyResources();
 public:
   ~GpuDevice();
 

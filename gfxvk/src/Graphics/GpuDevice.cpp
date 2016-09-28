@@ -28,6 +28,7 @@ GpuDevice::~GpuDevice()
 {
   waitIdle();
   updateCompletedSequences();
+  destroyResources();
 }
 
 GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -58,6 +59,7 @@ GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
   auto& descPool = m_descriptorPools.at(index.start());
   auto& cmdBuffer = m_rawCommandBuffers.at(index.start());
   m_device->resetCmdBuffer(cmdBuffer);
+  m_device->reset(descPool.impl());
   return GraphicsCmdBuffer(m_device, cmdBuffer, sequence, descPool);
 }
 
@@ -248,4 +250,12 @@ void GpuDevice::updateCompletedSequences()
   {
     return m_tracker.hasCompleted(num);
   });
+}
+
+void GpuDevice::destroyResources()
+{
+  for (auto&& it : m_descriptorPools)
+  {
+    m_device->destroy(it.impl());
+  }
 }

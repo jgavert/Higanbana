@@ -82,7 +82,6 @@ public:
     return -1;
   }
 
-  // freeing is threadfree since the results doesn't have to be immideatly available.
   void freePages(int64_t startIndex, int64_t size)
   {
     F_ASSERT(startIndex + size <= s_pageCount, "not enough pages available");

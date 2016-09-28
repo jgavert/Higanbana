@@ -3,6 +3,7 @@
 
 #include "VulkanBuffer.hpp"
 #include "VulkanPipeline.hpp"
+#include "VulkanDescriptorSet.hpp"
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -52,7 +53,7 @@ public:
   }
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
   void bindComputePipeline(VulkanPipeline& pipeline);
-
+  void bindComputeDescriptorSet(VulkanPipeline& pipeline, VulkanDescriptorSet& set);
   // copy
   void copy(VulkanBuffer& src, VulkanBuffer& dst);
   // compute

@@ -462,12 +462,13 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   }
   auto memory = heap.impl().m_resource;
   m_device->bindBufferMemory(buffer, *heap.impl().m_resource, offset);
+  auto offsetPage = offset / heap.desc().m_alignment;
   auto heapCopy = heap;
-  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, offset, pagesNeeded, heapCopy](vk::Buffer* buffer)
+  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, offsetPage, pagesNeeded, heapCopy](vk::Buffer* buffer)
   {
     if (heapCopy.isValid() && buffer)
     {
-      heap.freePages(offset, pagesNeeded);
+      heap.freePages(offsetPage, pagesNeeded);
       m_device->destroyBuffer(*buffer, m_alloc_info);
       delete buffer;
     }
@@ -698,6 +699,13 @@ void VulkanGpuDevice::resetFence(VulkanFence& fence)
   m_device->resetFences(proxy);
 }
 
+void VulkanGpuDevice::reset(VulkanDescriptorPool& pool)
+{
+  m_device->resetDescriptorPool(pool.pool);
+}
+
+// descriptor sheit
+
 VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline)
 {
 	auto result = m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
@@ -710,6 +718,12 @@ VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool&
 
 void VulkanGpuDevice::writeDescriptorSet(VulkanDescriptorSet& set)
 {
-	vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(set.compile());
+  auto thing = set.compile();
+	vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(thing);
 	m_device->updateDescriptorSets(proxy, {});
+}
+
+void VulkanGpuDevice::destroy(VulkanDescriptorPool& pool)
+{
+  m_device->destroyDescriptorPool(pool.pool);
 }
