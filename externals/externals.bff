@@ -68,7 +68,7 @@
                     + .extLibPostfix
 
 
-// AMDCompress
+// Compressonator
 
 #if __WINDOWS__
 .compressLibPath = .extBasePath
@@ -83,6 +83,11 @@
                     + 'Compressonator_MD'
                     + .extLibPostfix
 #endif
+
+// Renderdoc
+
+.renderdocInclude = .extIncludeDir
+                  + "renderdoc/include"
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
@@ -110,12 +115,15 @@
                   + ' /I^"$vulkanCppInclude$"'
                   + ' /I^"$shadercInclude$"'
                   + ' /I^"$compressInclude$"'
+                  + ' /I^"$renderdocInclude$"'
 #if __LINUX__
 .externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
                   + ' -isystem ^"$shadercInclude$"'
+                  + ' -isystem ^"$renderdocInclude$"'
 #endif
 .externalIncludesVisualStudio = '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
                               + '$shadercInclude$;'
                               + '$compressInclude$;'
+                              + '$renderdocInclude$;'

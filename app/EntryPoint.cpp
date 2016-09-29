@@ -21,6 +21,7 @@
 
 #include "vkShaders/sampleShader.if.hpp"
 
+#include <renderdoc_app.h>
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
 #include <iostream>
@@ -42,7 +43,24 @@ int EntryPoint::main()
   {
 	  //SchedulerTests::Run();
   }
+  RENDERDOC_API_1_0_0 *rdoc_api = nullptr;
+#ifdef PLATFORM_WINDOWS
+  if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
+  {
+    pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
 
+    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc_api);
+
+    F_ASSERT(ret == 1,"");
+    F_ASSERT(rdoc_api->StartFrameCapture != nullptr && rdoc_api->EndFrameCapture != nullptr, "");
+
+    int major = 999, minor = 999, patch = 999;
+
+    rdoc_api->GetAPIVersion(&major, &minor, &patch);
+
+    F_ASSERT(major == 1 && minor >= 0 && patch >= 0, "");
+  }
+#endif
   auto main = [&](std::string name)
   {
     //LBS lbs;
@@ -54,7 +72,10 @@ int EntryPoint::main()
     
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
-
+      if (rdoc_api)
+      {
+        rdoc_api->StartFrameCapture(nullptr, nullptr);
+      }
       {
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")
@@ -112,33 +133,18 @@ int EntryPoint::main()
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
         for (int i = 0; i < 1; ++i)
         {
+          auto gfx = gpu.createGraphicsCommandBuffer();
+          gfx.copy(buffer, bufferTarget);
           {
-            auto gfx = gpu.createGraphicsCommandBuffer();
-            gfx.copy(buffer, bufferTarget);
-            gpu.submit(gfx);
-            auto fence = gfx.fence();
-            gpu.waitFence(fence);
-          }
-          {
-            auto gfx = gpu.createGraphicsCommandBuffer();
-            // binding
-            {
               auto shif = gfx.bind<SampleShader>(test);
               shif.bind(SampleShader::dataIn, bufferTargetUav);
               shif.bind(SampleShader::dataOut, computeTargetUav);
               gfx.dispatch(shif, 1, 1, 1);
-            }
-            gpu.submit(gfx);
-            auto fence = gfx.fence();
-            gpu.waitFence(fence);
           }
-          {
-            auto gfx = gpu.createGraphicsCommandBuffer();
-            gfx.copy(computeTarget, bufferReadb);
-            gpu.submit(gfx);
-            auto fence = gfx.fence();
-            gpu.waitFence(fence);
-          }
+          gfx.copy(computeTarget, bufferReadb);
+          gpu.submit(gfx);
+          auto fence = gfx.fence();
+          gpu.waitFence(fence);
         }
         gpu.waitIdle();
 
@@ -154,7 +160,10 @@ int EntryPoint::main()
             }
           }
         }
-
+        if (rdoc_api)
+        {
+          rdoc_api->EndFrameCapture(nullptr, nullptr);
+        }
       }
     }
   };

@@ -545,7 +545,7 @@ VulkanPipeline VulkanGpuDevice::createComputePipeline(ShaderInputLayout shaderLa
   bindings.push_back(vk::DescriptorSetLayoutBinding()
 	  .setBinding(0)
 	  .setDescriptorCount(1)
-	  .setDescriptorType(vk::DescriptorType::eStorageBufferDynamic)
+	  .setDescriptorType(vk::DescriptorType::eStorageBuffer)
 	  .setStageFlags(vk::ShaderStageFlagBits::eCompute));
 
   // read only buffers
@@ -713,7 +713,7 @@ VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool&
 		.setDescriptorSetCount(1)
 		.setPSetLayouts(pipeline.m_descriptorSetLayout.get()));
 
-	return VulkanDescriptorSet(result[0]);
+	return VulkanDescriptorSet(result[0], *pipeline.m_pipelineLayout);
 }
 
 void VulkanGpuDevice::writeDescriptorSet(VulkanDescriptorSet& set)

@@ -53,7 +53,7 @@ public:
   }
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
   void bindComputePipeline(VulkanPipeline& pipeline);
-  void bindComputeDescriptorSet(VulkanPipeline& pipeline, VulkanDescriptorSet& set);
+  void bindComputeDescriptorSet(VulkanDescriptorSet& set);
   // copy
   void copy(VulkanBuffer& src, VulkanBuffer& dst);
   // compute
