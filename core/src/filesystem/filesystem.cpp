@@ -191,7 +191,7 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
   {
     F_ASSERT(system_fs::is_regular_file(fullPath), "Tried to overwrite somethign that wasn't a regular file.");
   }
-  auto freeSpace = system_fs::space(fullPath);
+  auto freeSpace = system_fs::space(fullPath.parent_path());
   if (freeSpace.available < size)
   {
     F_ASSERT(false, "no disk space !?!?!?!?");

@@ -1,4 +1,3 @@
-#pragma once
 #include "core/src/system/SequenceRingRangeAllocator.hpp"
 
 #include <deque>

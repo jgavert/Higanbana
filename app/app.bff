@@ -160,8 +160,8 @@
       {
         .Libraries = {
           '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-          'core-Lib-$Platform$-$Config$',
-          '$GfxName$-Lib-$Platform$-$Config$'
+          '$GfxName$-Lib-$Platform$-$Config$',
+          'core-Lib-$Platform$-$Config$'
         }
         .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$.exe'
       }
@@ -192,8 +192,8 @@
       {
         .Libraries = {
           '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-          'core-Lib-$Platform$-$Config$',
           '$GfxName$-Lib-$Platform$-$Config$'
+          'core-Lib-$Platform$-$Config$',
         }
         .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$'
       }
