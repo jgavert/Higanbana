@@ -40,7 +40,7 @@ int EntryPoint::main()
     return 1;
   }
   {
-	  SchedulerTests::Run();
+	  //SchedulerTests::Run();
   }
 
   auto main = [&](std::string name)
@@ -150,6 +150,7 @@ int EntryPoint::main()
             if (map.isValid())
             {
               F_LOG("yay! mapped buffer! %f\n", map[0]);
+              log.update();
             }
           }
         }
