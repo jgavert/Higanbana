@@ -5,8 +5,8 @@ void main()
 {
   uint gid = gl_GlobalInvocationID.x;
   if (gid >= 100)
-  	return;
+return;
   float a = dataIn[gid].element;
-  dataOut[gid].element = 5.5;
+  dataOut[gid].element = a + 0.5;
 }
 
