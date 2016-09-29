@@ -9,3 +9,4 @@ void main()
   float a = dataIn[gid].element;
   dataOut[gid].element = 5.5;
 }
+
