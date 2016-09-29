@@ -120,7 +120,6 @@
 .externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
                   + ' -isystem ^"$shadercInclude$"'
-                  + ' -isystem ^"$renderdocInclude$"'
 #endif
 .externalIncludesVisualStudio = '$vulkanInclude$;'
                               + '$vulkanCppInclude$;'
