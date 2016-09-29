@@ -13,7 +13,7 @@ namespace faze
     static constexpr int64_t blockSize = 128;
     SeqNum nextSequence = InvalidSeqNum;
     SeqNum fullCompletedSeq = InvalidSeqNum;
-    std::deque<faze::Bitfield<1>> m_incomplete;
+    std::deque<Bitfield<1>> m_incomplete;
 
   public:
     SequenceTracker();

@@ -1,6 +1,7 @@
 #pragma once
-
+#include <stddef.h>
 #include <inttypes.h>
+#include <iterator>
 
 namespace faze
 {
@@ -25,8 +26,8 @@ namespace faze
 
     template <template <typename, typename ...> class Container, typename ...Args>
     MemView(Container<T, Args...>& s)
-      : m_size(std::end(c) - std::begin(c))
-      , m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(c)))
+      : m_size(std::end(s) - std::begin(s))
+      , m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(s)))
     {
     }
 
@@ -136,7 +137,7 @@ namespace faze
   template <typename T>
   MemView<uint8_t> makeByteView(T& obj)
   {
-	  return MemView<uint8_t(&obj, 1);
+	  return MemView<uint8_t>(&obj, 1);
   }
 
   // actually quite useful

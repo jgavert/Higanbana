@@ -2,7 +2,7 @@
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/global_debug.hpp"
 #include <vulkan/vulkan.hpp>
-#include <shaderc/shaderc.hpp> 
+#include <shaderc/shaderc.hpp>
 
 
 class ShaderStorage
@@ -84,7 +84,7 @@ public:
 		  result->source_name = lol;
 		  result->source_name_length = reqSrcLen;
 		  result->user_data = lol;
-		  
+
 		  return result;
 	  }
 
@@ -153,7 +153,7 @@ public:
   {
     auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
     auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
-    
+
     if (!m_fs.fileExists(spvPath))
     {
 //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
