@@ -152,9 +152,9 @@ void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
   m_commandList->insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
 }
 
-void VulkanCmdBuffer::bindComputeDescriptorSet(VulkanPipeline& pipeline, VulkanDescriptorSet& set)
+void VulkanCmdBuffer::bindComputeDescriptorSet(VulkanDescriptorSet& set)
 {
-  m_commandList->insert<BindDescriptorSetPacket>(vk::PipelineBindPoint::eCompute, *pipeline.m_pipelineLayout, set.set, MemView<uint32_t>());
+  m_commandList->insert<BindDescriptorSetPacket>(vk::PipelineBindPoint::eCompute, set.layout, set.set, MemView<uint32_t>());
 }
 
 void VulkanCmdBuffer::dispatch(unsigned x, unsigned y, unsigned z)

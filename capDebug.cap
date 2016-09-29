@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CaptureSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Options>
+    <AllowVSync>true</AllowVSync>
+    <AllowFullscreen>true</AllowFullscreen>
+    <APIValidation>true</APIValidation>
+    <CaptureCallstacks>true</CaptureCallstacks>
+    <CaptureCallstacksOnlyDraws>false</CaptureCallstacksOnlyDraws>
+    <DelayForDebugger>0</DelayForDebugger>
+    <VerifyMapWrites>true</VerifyMapWrites>
+    <HookIntoChildren>false</HookIntoChildren>
+    <RefAllResources>true</RefAllResources>
+    <SaveAllInitials>true</SaveAllInitials>
+    <CaptureAllCmdLists>true</CaptureAllCmdLists>
+    <DebugOutputMute>true</DebugOutputMute>
+  </Options>
+  <Inject>false</Inject>
+  <AutoStart>true</AutoStart>
+  <Executable>C:\toki\code\Faze\bin\x64-Vulkan-Debug\App\App.exe</Executable>
+  <WorkingDir>C:\toki\code\Faze\appspace</WorkingDir>
+  <CmdLine />
+  <Environment />
+</CaptureSettings>

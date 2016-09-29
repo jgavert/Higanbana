@@ -31,6 +31,7 @@ void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
 {
   doDescriptorSets(inputs);
+  m_cmdBuffer.bindComputeDescriptorSet(inputs.set);
   m_cmdBuffer.dispatch(x, y, z);
 }
 
