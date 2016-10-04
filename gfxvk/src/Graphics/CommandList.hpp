@@ -39,14 +39,15 @@ public:
   bool isValid();
   void close();
   bool isClosed();
-
+  void prepareForSubmit(GpuDeviceImpl& device);
   // shader
 
   template <typename ShaderInterface>
   DescriptorSet bind(ComputePipeline& pipeline)
   {
+    // TODO: deprecated. Needs rewriting.
     m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
-	auto set = m_device->allocateDescriptorSet(m_pool.impl(), pipeline.impl());
-	return DescriptorSet(set);
+	  auto set = m_device->allocateDescriptorSet(m_pool.impl(), pipeline.impl());
+	  return DescriptorSet(set);
   }
 };

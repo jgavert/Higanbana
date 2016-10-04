@@ -1,13 +1,23 @@
 #include "VulkanDescriptorSet.hpp"
 
-void VulkanDescriptorSet::bind(unsigned slot, VulkanBufferShaderView& buffer)
+void VulkanDescriptorSet::read(unsigned slot, VulkanBufferShaderView& buffer)
+{
+  buffers.push_back(std::make_pair(slot, buffer));
+}
+void VulkanDescriptorSet::read(unsigned slot, VulkanTextureShaderView& texture)
+{
+  textures.push_back(std::make_pair(slot, texture));
+}
+
+void VulkanDescriptorSet::modify(unsigned slot, VulkanBufferShaderView& buffer)
 {
 	buffers.push_back(std::make_pair(slot, buffer));
 }
-void VulkanDescriptorSet::bind(unsigned slot, VulkanTextureShaderView& texture)
+void VulkanDescriptorSet::modify(unsigned slot, VulkanTextureShaderView& texture)
 {
 	textures.push_back(std::make_pair(slot, texture));
 }
+/*
 std::vector<vk::WriteDescriptorSet> VulkanDescriptorSet::compile()
 {
 	std::vector<vk::WriteDescriptorSet> allSets;
@@ -23,3 +33,4 @@ std::vector<vk::WriteDescriptorSet> VulkanDescriptorSet::compile()
 
 	return allSets;
 }
+*/

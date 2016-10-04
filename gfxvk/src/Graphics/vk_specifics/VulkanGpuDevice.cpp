@@ -489,7 +489,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
 
     return mapped;
   };
-  auto buf = VulkanBuffer(ret, vk::AccessFlagBits::eShaderRead, desc);
+  auto buf = VulkanBuffer(ret, desc);
   buf.m_mapResource = mapper;
   return buf;
 }
@@ -520,7 +520,7 @@ VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer,Res
 	  .setBuffer(*buffer.m_resource)
 	  .setOffset(firstElement)
 	  .setRange(maxRange)
-  , type);
+  , type, buffer.m_state);
 }
 
 VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture ,ResourceShaderType ,  ShaderViewDescriptor)
@@ -706,22 +706,24 @@ void VulkanGpuDevice::reset(VulkanDescriptorPool& pool)
 
 // descriptor sheit
 
-VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline)
+VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool& , VulkanPipeline& pipeline)
 {
+  /*
 	auto result = m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
 		.setDescriptorPool(pool.pool)
 		.setDescriptorSetCount(1)
 		.setPSetLayouts(pipeline.m_descriptorSetLayout.get()));
-
-	return VulkanDescriptorSet(result[0], *pipeline.m_pipelineLayout);
+  */
+	return VulkanDescriptorSet(*pipeline.m_pipelineLayout);
 }
-
+/*
 void VulkanGpuDevice::writeDescriptorSet(VulkanDescriptorSet& set)
 {
   auto thing = set.compile();
 	vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(thing);
 	m_device->updateDescriptorSets(proxy, {});
 }
+*/
 
 void VulkanGpuDevice::destroy(VulkanDescriptorPool& pool)
 {

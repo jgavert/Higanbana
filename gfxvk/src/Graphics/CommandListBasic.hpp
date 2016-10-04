@@ -204,7 +204,7 @@ public:
     CommandPacket* current = m_firstPacket;
     while (current != nullptr)
     {
-      f(*current);
+      f(current);
       current = current->nextPacket();
     }
   }

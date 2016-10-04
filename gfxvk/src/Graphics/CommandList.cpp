@@ -30,9 +30,9 @@ void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 
 void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
 {
-  doDescriptorSets(inputs);
-  m_cmdBuffer.bindComputeDescriptorSet(inputs.set);
-  m_cmdBuffer.dispatch(x, y, z);
+  //doDescriptorSets(inputs);
+//  m_cmdBuffer.bindComputeDescriptorSet(inputs.set);
+  m_cmdBuffer.dispatch(inputs.set, x, y, z);
 }
 
 // draw
@@ -44,7 +44,12 @@ void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
   m_cmdBuffer.copy(srcdata.getBuffer(), dstdata.getBuffer());
 }
 
-void GraphicsCmdBuffer::doDescriptorSets(DescriptorSet& inputs)
+void GraphicsCmdBuffer::doDescriptorSets(DescriptorSet& )
 {
-	m_device->writeDescriptorSet(inputs.set);
+	//m_device->writeDescriptorSet(inputs.set);
+}
+
+void GraphicsCmdBuffer::prepareForSubmit(GpuDeviceImpl& device)
+{
+  m_cmdBuffer.prepareForSubmit(device);
 }

@@ -9,18 +9,20 @@ class VulkanDescriptorSet
 private:
 	friend class VulkanGpuDevice;
 	friend class VulkanCmdBuffer;
-	vk::DescriptorSet set; // this goes to Commandlist
+  friend class VulkanBindingInformation;
+	//vk::DescriptorSet set; // this goes to Commandlist
   vk::PipelineLayout layout;
 	std::vector<std::pair< unsigned, VulkanBufferShaderView >> buffers;
 	std::vector<std::pair< unsigned, VulkanTextureShaderView>> textures;
 public:
-	VulkanDescriptorSet(vk::DescriptorSet set, vk::PipelineLayout layout)
-		:set(set), layout(layout)
+	VulkanDescriptorSet(vk::PipelineLayout layout)
+		:layout(layout)
 	{}
 
-	void bind(unsigned slot, VulkanBufferShaderView& buffer);
-	void bind(unsigned slot, VulkanTextureShaderView& texture);
-	std::vector<vk::WriteDescriptorSet> compile();
+	void read(unsigned slot, VulkanBufferShaderView& buffer);
+	void read(unsigned slot, VulkanTextureShaderView& texture);
+	void modify(unsigned slot, VulkanBufferShaderView& buffer);
+	void modify(unsigned slot, VulkanTextureShaderView& texture);
 };
 
 using DescriptorSetImpl = VulkanDescriptorSet;
