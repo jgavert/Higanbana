@@ -2,7 +2,9 @@
 
 #include "core/src/global_debug.hpp"
 
+#include <utility>
 
+#define COMMANDBUFFERSIZE 500*1024
 using namespace faze;
 
 //#undef MemoryBarrier 
@@ -67,6 +69,11 @@ public:
     vk::ArrayProxy<const vk::BufferCopy> proxy(static_cast<uint32_t>(m_copyList.size()), m_copyList.data());
     cmd.copyBuffer(*src, *dst, proxy);
   }
+
+  PacketType type() override
+  {
+    return PacketType::BufferCopy;
+  }
 };
 
 class BindPipelinePacket : public VulkanCommandPacket
@@ -84,17 +91,87 @@ public:
   {
     cmd.bindPipeline(point, *pipeline);
   }
+
+  PacketType type() override
+  {
+    return PacketType::BindPipeline;
+  }
 };
+/*
+struct InputDescriptorSetContents
+{
+  vk::PipelineBindPoint point;
+  vk::PipelineLayout layout;
+  MemView<vk::DescriptorSet> sets;
+  MemView<uint32_t> dynamicOffsets;
+};*/
+
+class VulkanBindingInformation
+{
+public:
+  CommandListVector<std::pair< unsigned, VulkanBufferShaderView >> buffers;
+  CommandListVector<std::pair< unsigned, VulkanTextureShaderView>> textures;
+
+  VulkanBindingInformation(LinearAllocator& allocator, VulkanDescriptorSet& set)
+    : buffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.buffers.size()), set.buffers.size()))
+    , textures(MemView<std::pair<unsigned, VulkanTextureShaderView>>(allocator.allocList<std::pair<unsigned, VulkanTextureShaderView>>(set.textures.size()), set.textures.size()))
+  {
+    for (size_t i = 0; i < set.buffers.size(); i++)
+    {
+      buffers[i] = set.buffers[i];
+    }
+    for (size_t i = 0; i < set.textures.size(); i++)
+    {
+      textures[i] = set.textures[i];
+    }
+  }
+};
+/*
+class DescriptorSetContents
+{
+  vk::PipelineBindPoint point;
+  vk::PipelineLayout layout;
+  CommandListVector<vk::DescriptorSet> descriptors;
+  CommandListVector<uint32_t> dynOffsets;
+public:
+  DescriptorSetContents(LinearAllocator& allocator, InputDescriptorSetContents input)
+    : point(input.point)
+    , layout(input.layout)
+    , descriptors(MemView<vk::DescriptorSet>(allocator.allocList<vk::DescriptorSet>(input.sets.size()), input.sets.size()))
+    , dynOffsets(MemView<uint32_t>(allocator.allocList<uint32_t>(input.dynamicOffsets.size()), input.dynamicOffsets.size()))
+  {
+    for (size_t i = 0; i < input.sets.size(); i++)
+    {
+      descriptors[i] = input.sets[i];
+    }
+    for (size_t i = 0; i < input.dynamicOffsets.size(); i++)
+    {
+      dynOffsets[i] = input.dynamicOffsets[i];
+    }
+  }
+
+  void bind(vk::CommandBuffer& cmd)
+  {
+    constexpr uint32_t firstSet = 0;
+    vk::ArrayProxy<const vk::DescriptorSet> sets(static_cast<uint32_t>(descriptors.size()), descriptors.data());
+    vk::ArrayProxy<const uint32_t> setOffsets(static_cast<uint32_t>(dynOffsets.size()), dynOffsets.data());
+    cmd.bindDescriptorSets(point, layout, firstSet, sets, setOffsets);
+  }
+};
+*/
+
 
 class DispatchPacket : public VulkanCommandPacket
 {
 private:
+  VulkanBindingInformation descriptors;
   unsigned dx = 0;
   unsigned dy = 0;
   unsigned dz = 0;
 public:
-  DispatchPacket(LinearAllocator& , unsigned x, unsigned y, unsigned z)
-    : dx(x)
+  DispatchPacket(LinearAllocator& allocator, VulkanDescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
+    : descriptors(allocator, std::forward<decltype(inputs)>(inputs))
+    , dx(x)
     , dy(y)
     , dz(z)
   {
@@ -103,39 +180,10 @@ public:
   {
     cmd.dispatch(dx, dy, dz);
   }
-};
 
-class BindDescriptorSetPacket : public VulkanCommandPacket
-{
-private:
-  vk::PipelineBindPoint point;
-  vk::PipelineLayout layout;
-  CommandListVector<vk::DescriptorSet> descriptors;
-  CommandListVector<uint32_t> dynOffsets;
-public:
-  BindDescriptorSetPacket(LinearAllocator& allocator, vk::PipelineBindPoint point, vk::PipelineLayout layout
-                        , MemView<vk::DescriptorSet> sets, MemView<uint32_t> dynamicOffsets)
-    : point(point)
-    , layout(layout)
-    , descriptors(MemView<vk::DescriptorSet>(allocator.allocList<vk::DescriptorSet>(sets.size()), sets.size()))
-    , dynOffsets(MemView<uint32_t>(allocator.allocList<uint32_t>(dynamicOffsets.size()), dynamicOffsets.size()))
+  PacketType type() override
   {
-    for (size_t i = 0; i < sets.size(); i++)
-    {
-      descriptors[i] = sets[i];
-    }
-    for (size_t i = 0; i < dynamicOffsets.size(); i++)
-    {
-      dynOffsets[i] = dynamicOffsets[i];
-    }
-  }
-  void execute(vk::CommandBuffer& cmd) override
-  {
-    // using only 1 set
-    constexpr uint32_t firstSet = 0;
-    vk::ArrayProxy<const vk::DescriptorSet> sets(static_cast<uint32_t>(descriptors.size()), descriptors.data());
-    vk::ArrayProxy<const uint32_t> setOffsets(static_cast<uint32_t>(dynOffsets.size()), dynOffsets.data());
-    cmd.bindDescriptorSets(point, layout, firstSet, sets, setOffsets);
+    return PacketType::Dispatch;
   }
 };
 
@@ -152,14 +200,10 @@ void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
   m_commandList->insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
 }
 
-void VulkanCmdBuffer::bindComputeDescriptorSet(VulkanDescriptorSet& set)
-{
-  m_commandList->insert<BindDescriptorSetPacket>(vk::PipelineBindPoint::eCompute, set.layout, set.set, MemView<uint32_t>());
-}
 
-void VulkanCmdBuffer::dispatch(unsigned x, unsigned y, unsigned z)
+void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z)
 {
-  m_commandList->insert<DispatchPacket>(x, y, z);
+  m_commandList->insert<DispatchPacket>(set, x, y, z);
 }
 
 void VulkanCmdBuffer::bindComputePipeline(VulkanPipeline& pipeline)
@@ -169,7 +213,7 @@ void VulkanCmdBuffer::bindComputePipeline(VulkanPipeline& pipeline)
 
 VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool)
   : m_cmdBuffer(std::forward<decltype(buffer)>(buffer)), m_pool(std::forward<decltype(pool)>(pool)), m_closed(false)
-  , m_commandList(std::make_shared<CommandList<VulkanCommandPacket>>(LinearAllocator(1024*512)))
+  , m_commandList(std::make_shared<CommandList<VulkanCommandPacket>>(LinearAllocator(COMMANDBUFFERSIZE)))
 {}
 
 bool VulkanCmdBuffer::isValid()
@@ -181,9 +225,9 @@ void VulkanCmdBuffer::close()
   m_cmdBuffer->begin(vk::CommandBufferBeginInfo()
     .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
     .setPInheritanceInfo(nullptr));
-  m_commandList->foreach([&](VulkanCommandPacket& packet)
+  m_commandList->foreach([&](VulkanCommandPacket* packet)
   {
-    packet.execute(*m_cmdBuffer);
+    packet->execute(*m_cmdBuffer);
   });
   m_cmdBuffer->end();
   m_closed = true;
@@ -192,4 +236,30 @@ void VulkanCmdBuffer::close()
 bool VulkanCmdBuffer::isClosed()
 {
   return m_closed;
+}
+
+void VulkanCmdBuffer::dependencyFuckup()
+{
+}
+
+void VulkanCmdBuffer::prepareForSubmit(VulkanGpuDevice& device)
+{
+  processBindings(device);
+}
+
+void VulkanCmdBuffer::processBindings(VulkanGpuDevice& )
+{
+  m_commandList->foreach([&](VulkanCommandPacket* packet)
+  {
+    switch (packet->type())
+    {
+    case VulkanCommandPacket::PacketType::Dispatch:
+    {
+      // handle binding here, create function that does it generically.
+      break;
+    }
+    default:
+      break;
+    }
+  });
 }

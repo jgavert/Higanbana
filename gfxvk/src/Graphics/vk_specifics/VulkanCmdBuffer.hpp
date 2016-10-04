@@ -8,11 +8,28 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
+struct DependencyInfoBuffer
+{
+  vk::Buffer buffer;
+  vk::DeviceSize offset;
+  vk::DeviceSize size;
+  vk::AccessFlags access;
+};
+
 class VulkanCommandPacket
 {
 private:
   VulkanCommandPacket* m_nextPacket;
 public:
+
+  enum class PacketType
+  {
+    PipelineBarrier,
+    BindPipeline,
+    BufferCopy,
+    Dispatch
+  };
+
   VulkanCommandPacket()
     :m_nextPacket(nullptr)
   {}
@@ -27,6 +44,7 @@ public:
   }
 
   virtual void execute(vk::CommandBuffer& buffer) = 0;
+  virtual PacketType type() = 0;
   virtual ~VulkanCommandPacket() {}
 };
 
@@ -53,16 +71,25 @@ public:
   }
   // Binding!?!?!?!?, hau, needs pipeline, needs binding.
   void bindComputePipeline(VulkanPipeline& pipeline);
-  void bindComputeDescriptorSet(VulkanDescriptorSet& set);
   // copy
   void copy(VulkanBuffer& src, VulkanBuffer& dst);
   // compute
-  void dispatch(unsigned x, unsigned y, unsigned z);
+  void dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z);
   // draw
 
   bool isValid();
   void close();
   bool isClosed();
+
+  // Call before submit
+  void prepareForSubmit(VulkanGpuDevice& device);
+
+  // process packets
+  void processBindings(VulkanGpuDevice& device);
+
+  // dependency
+
+  void dependencyFuckup();
 };
 
 using CmdBufferImpl = VulkanCmdBuffer;

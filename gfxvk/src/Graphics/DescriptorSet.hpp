@@ -18,20 +18,31 @@ public:
 
 	// could change slot to a compile time.
 
-	void bind(unsigned slot, BufferSRV& srv)
+	void read(unsigned slot, BufferSRV& srv)
 	{
-		set.bind(slot, srv.getView());
+		set.read(slot, srv.getView());
 	}
-	void bind(unsigned slot, BufferUAV& uav)
+	void read(unsigned slot, BufferUAV& uav)
 	{
-		set.bind(slot, uav.getView());
+		set.read(slot, uav.getView());
 	}
-	void bind(unsigned slot, TextureSRV& srv)
+	void read(unsigned slot, TextureSRV& srv)
 	{
-		set.bind(slot, srv.getView());
+		set.read(slot, srv.getView());
 	}
-	void bind(unsigned slot, TextureUAV& uav)
+	void read(unsigned slot, TextureUAV& uav)
 	{
-		set.bind(slot, uav.getView());
+		set.read(slot, uav.getView());
 	}
+
+
+  void modify(unsigned slot, BufferUAV& uav)
+  {
+    set.modify(slot, uav.getView());
+  }
+
+  void modify(unsigned slot, TextureUAV& uav)
+  {
+    set.modify(slot, uav.getView());
+  }
 };

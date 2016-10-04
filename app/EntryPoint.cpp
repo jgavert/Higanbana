@@ -141,8 +141,8 @@ int EntryPoint::main()
           gfx.copy(buffer, bufferTarget);
           {
               auto shif = gfx.bind<SampleShader>(test);
-              shif.bind(SampleShader::dataIn, bufferTargetUav);
-              shif.bind(SampleShader::dataOut, computeTargetUav);
+              shif.read(SampleShader::dataIn, bufferTargetUav);
+              shif.modify(SampleShader::dataOut, computeTargetUav);
               gfx.dispatch(shif, 1, 1, 1);
           }
           gfx.copy(computeTarget, bufferReadb);

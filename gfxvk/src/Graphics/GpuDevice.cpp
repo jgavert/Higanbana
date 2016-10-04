@@ -179,7 +179,7 @@ void GpuDevice::submit(GraphicsCmdBuffer& gfx)
     m_device->resetFence(element.fence);
   }
 
-
+  gfx.prepareForSubmit(*m_device);
   m_queue.submit(gfx.m_cmdBuffer, element.fence);
   m_liveCmdBuffers.emplace_back(element);
 }
