@@ -100,6 +100,7 @@ int EntryPoint::main()
             .Name("testBufferTarget")
 			      .Format<float>()
             .Width(100)
+			.enableUnorderedAccess()
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
 		auto bufferTargetUav = gpu.createBufferUAV(bufferTarget);
@@ -109,6 +110,7 @@ int EntryPoint::main()
 			      .Format<float>()
             .Width(100)
             .Usage(ResourceUsage::GpuOnly)
+			.enableUnorderedAccess()
             .Dimension(FormatDimension::Buffer));
 		auto computeTargetUav = gpu.createBufferUAV(computeTarget); 
         auto bufferReadb = gpu.createBuffer(testHeap3,
