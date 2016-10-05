@@ -1,10 +1,7 @@
 #pragma once
-
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
 #include <memory>
-
-
 
 class LinearAllocator
 {
@@ -63,7 +60,6 @@ class CommandListVector
 private:
   faze::MemView<T> m_view;
 public:
- // CommandListVector() {}
   CommandListVector(faze::MemView<T> view)
     : m_view(std::forward<decltype(view)>(view))
   {

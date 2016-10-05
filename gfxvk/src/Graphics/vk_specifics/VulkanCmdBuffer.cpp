@@ -83,11 +83,11 @@ public:
 class BufferCopyPacket : public VulkanCommandPacket
 {
 public:
-  std::shared_ptr<vk::Buffer> src;
-  std::shared_ptr<vk::Buffer> dst;
+  VulkanBuffer src;
+  VulkanBuffer dst;
   CommandListVector<vk::BufferCopy> m_copyList;
 
-  BufferCopyPacket(LinearAllocator& allocator, std::shared_ptr<vk::Buffer> src, std::shared_ptr<vk::Buffer> dst, MemView<vk::BufferCopy> copyList)
+  BufferCopyPacket(LinearAllocator& allocator, VulkanBuffer src, VulkanBuffer dst, MemView<vk::BufferCopy> copyList)
     : src(src)
     , dst(dst)
     , m_copyList(MemView<vk::BufferCopy>(allocator.allocList<vk::BufferCopy>(copyList.size()), copyList.size()))
@@ -101,7 +101,7 @@ public:
   void execute(vk::CommandBuffer& cmd) override
   {
     vk::ArrayProxy<const vk::BufferCopy> proxy(static_cast<uint32_t>(m_copyList.size()), m_copyList.data());
-    cmd.copyBuffer(*src, *dst, proxy);
+    cmd.copyBuffer(src.impl(), dst.impl(), proxy);
   }
 
   PacketType type() override
@@ -177,7 +177,7 @@ void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
   copy = copy.setSize(maxSize)
     .setDstOffset(0)
     .setSrcOffset(0);
-  m_commandList->insert<BufferCopyPacket>(src.m_resource, dst.m_resource, copy);
+  m_commandList->insert<BufferCopyPacket>(src, dst, copy);
 }
 
 void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z)
@@ -212,6 +212,7 @@ bool VulkanCmdBuffer::isClosed()
 void VulkanCmdBuffer::prepareForSubmit(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
 {
   processBindings(device, pool);
+  dependencyFuckup();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -311,8 +312,247 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
     }
   });
 }
+/////////////////////////////////////////////////////////////////////////
+///////////////////      DependencyTracker     //////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+struct BufferDependency
+{
+  int64_t uniqueId;
+  vk::Buffer buffer;
+  vk::DeviceSize offset;
+  vk::DeviceSize range;
+  std::shared_ptr<VulkanBufferState> state;
+};
+
+class DependencyTracker
+{
+private:
+  using DrawCallIndex = int;
+  using ResourceUniqueId = int64_t;
+
+  enum class UsageHint
+  {
+    read,
+    write
+  };
+
+  struct DependencyPacket
+  {
+    DrawCallIndex drawIndex;
+    ResourceUniqueId resource;
+    UsageHint hint;
+    vk::AccessFlags access;
+  };
+
+  // general info needed
+  std::unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
+  std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes;
+  std::unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
+  size_t drawCallsAdded = 0;
+
+  // actual jobs used to generate DAG
+  std::vector<DependencyPacket> m_jobs;
+
+
+  // results
+  struct ScheduleNode
+  {
+    DrawCallIndex jobID;
+    std::unordered_set<size_t> dependencies;
+  };
+  std::vector<ScheduleNode> m_schedulingResult;
+public:
+  void addDrawCall(int drawCallIndex, std::string name)
+  {
+    m_drawCallInfo[drawCallIndex] = name;
+    drawCallsAdded++;
+  }
+
+  void addReadBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags)
+  {
+    auto uniqueID = buffer.uniqueId;
+    m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, UsageHint::read, flags });
+    if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
+    {
+      BufferDependency d;
+      d.uniqueId = buffer.uniqueId;
+      d.buffer = buffer.m_info.buffer;
+      d.offset = buffer.m_info.offset;
+      d.range = buffer.m_info.range;
+      d.state = buffer.m_state;
+      m_bufferStates[uniqueID] = std::move(d);
+    }
+  }
+  void addModifyBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags)
+  {
+    auto uniqueID = buffer.uniqueId;
+    m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, UsageHint::write, flags });
+    if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
+    {
+      BufferDependency d;
+      d.uniqueId = buffer.uniqueId;
+      d.buffer = buffer.m_info.buffer;
+      d.offset = buffer.m_info.offset;
+      d.range = buffer.m_info.range;
+      d.state = buffer.m_state;
+      m_bufferStates[uniqueID] = std::move(d);
+    }
+    m_writeRes[uniqueID] = drawCallIndex;
+  }
+
+  void addReadBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags)
+  {
+    auto uniqueID = buffer.uniqueId;
+    m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, UsageHint::read, flags });
+    if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
+    {
+      BufferDependency d;
+      d.uniqueId = buffer.uniqueId;
+      d.buffer = *buffer.m_resource;
+      d.offset = offset;
+      d.range = range;
+      d.state = buffer.m_state;
+      m_bufferStates[uniqueID] = std::move(d);
+    }
+  }
+  void addModifyBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags)
+  {
+    auto uniqueID = buffer.uniqueId;
+    m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, UsageHint::write, flags });
+    if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
+    {
+      BufferDependency d;
+      d.uniqueId = buffer.uniqueId;
+      d.buffer = *buffer.m_resource;
+      d.offset = offset;
+      d.range = range;
+      d.state = buffer.m_state;
+      m_bufferStates[uniqueID] = std::move(d);
+    }
+    m_writeRes[uniqueID] = drawCallIndex;
+  }
+
+  // only builds the graph of dependencies.
+  void resolveGraph()
+  {
+    auto currentSize = m_jobs.size();
+    // create DAG(directed acyclic graph) from scratch
+    m_schedulingResult.clear();
+    m_schedulingResult.reserve(m_jobs.size());
+
+    int currentJobId = 0;
+    for (int i = 0; i < static_cast<int>(currentSize); ++i)
+    {
+      auto& obj = m_jobs[i];
+      currentJobId = obj.drawIndex;
+      // find all resources?
+      std::vector<int> readRes;
+
+      // move 'i' to next object.
+      for (; i < static_cast<int>(currentSize); ++i)
+      {
+        if (m_jobs[i].drawIndex != currentJobId)
+          break;
+        if (m_jobs[i].hint == UsageHint::read)
+        {
+          readRes.push_back(i);
+        }
+      }
+      --i; // backoff one, loop exits with extra appended value;
+
+      ScheduleNode n;
+      n.jobID = currentJobId;
+      if (readRes.empty()) // doesn't read any results of other jobs in this graph.
+      {
+        // which means its fine to be run
+        m_schedulingResult.emplace_back(std::move(n));
+      }
+      else
+      {
+        // has read dependencies;
+        // need to search which jobs produce our dependency
+        // assert if finding more than 1 that produce our target.
+        n.dependencies.reserve(readRes.size());
+        bool allDependenciesFulfilled = true;
+        for (auto&& it : readRes)
+        {
+          bool foundOne = false;
+          auto& readr = m_jobs[it].resource;
+          auto found = m_writeRes.find(readr);
+          if (found != m_writeRes.end())
+          {
+            n.dependencies.insert(found->second);
+            foundOne = true;
+          }
+
+          if (!foundOne)
+          {
+            allDependenciesFulfilled = false;
+          }
+        }
+        if (allDependenciesFulfilled)
+          m_schedulingResult.emplace_back(std::move(n));
+        else
+        {
+          // again, assert here since its invalid job
+        }
+      }
+    }
+
+    // order is based on insert order
+    drawCallsAdded = 0;
+  }
+};
+
+/////////////////////////////////////////////////////////////////////////
+///////////////////      DependencyTracker     //////////////////////////
+/////////////////////////////////////////////////////////////////////////
 
 void VulkanCmdBuffer::dependencyFuckup()
 {
+  DependencyTracker tracker;
+
+  int drawCallIndex = 0;
+  m_commandList->foreach([&](VulkanCommandPacket* packet)
+  {
+    switch (packet->type())
+    {
+    case VulkanCommandPacket::PacketType::BufferCopy:
+    {
+      BufferCopyPacket* p = static_cast<BufferCopyPacket*>(packet);
+      F_ASSERT(p->m_copyList.size() == 1, "Dependency tracker doesn't support more than 1 copy.");
+      auto first = p->m_copyList[0];
+
+      tracker.addDrawCall(drawCallIndex, "BufferCopy");
+      tracker.addReadBuffer(drawCallIndex, p->src, first.srcOffset, first.size, vk::AccessFlagBits::eTransferRead);
+      tracker.addModifyBuffer(drawCallIndex, p->dst, first.dstOffset, first.size, vk::AccessFlagBits::eTransferWrite);
+
+      drawCallIndex++;
+      break;
+    }
+    case VulkanCommandPacket::PacketType::Dispatch:
+    {
+      DispatchPacket* p = static_cast<DispatchPacket*>(packet);
+      auto& bind = p->descriptors;
+
+      tracker.addDrawCall(drawCallIndex, "Dispatch");
+      for (auto&& it : bind.readBuffers)
+      {
+        tracker.addReadBuffer(drawCallIndex, it.second, vk::AccessFlagBits::eShaderRead);
+      }
+      for (auto&& it : bind.modifyBuffers)
+      {
+        tracker.addModifyBuffer(drawCallIndex, it.second, vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead);
+      }
+      drawCallIndex++;
+      break;
+    }
+    default:
+      break;
+    }
+  });
+
+  tracker.resolveGraph();
 }
 

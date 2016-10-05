@@ -489,7 +489,7 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
 
     return mapped;
   };
-  auto buf = VulkanBuffer(ret, desc);
+  auto buf = VulkanBuffer(m_resourceID++, ret, desc);
   buf.m_mapResource = mapper;
   return buf;
 }
@@ -520,7 +520,7 @@ VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer,Res
 	  .setBuffer(*buffer.m_resource)
 	  .setOffset(firstElement)
 	  .setRange(maxRange)
-  , type, buffer.m_state);
+  , type, buffer.m_state, buffer.uniqueId);
 }
 
 VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture ,ResourceShaderType ,  ShaderViewDescriptor)

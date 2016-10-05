@@ -51,21 +51,25 @@ class VulkanBuffer
 {
   friend class VulkanGpuDevice;
   friend class VulkanCmdBuffer;
+  friend class DependencyTracker;
 
   std::shared_ptr<vk::Buffer> m_resource;
   std::shared_ptr<VulkanBufferState> m_state;
   ResourceDescriptor m_desc;
+  int64_t uniqueId = -1;
   std::function<RawMapping(int64_t, int64_t)> m_mapResource; // on vulkan, heap is here.
 
   VulkanBuffer()
     : m_resource(nullptr)
   {}
 
-  VulkanBuffer(std::shared_ptr<vk::Buffer> impl, ResourceDescriptor desc)
+  VulkanBuffer(int64_t uniqueId, std::shared_ptr<vk::Buffer> impl, ResourceDescriptor desc)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_state(std::make_shared<VulkanBufferState>())
     , m_desc(std::forward<decltype(desc)>(desc))
-  {}
+    , uniqueId(uniqueId)
+  {
+  }
 public:
   template<typename T>
   VulkanMappedBuffer<T> Map(int64_t offsetInBytes, int64_t sizeInBytes)
@@ -82,6 +86,20 @@ public:
   {
     return m_resource.get() != nullptr;
   }
+
+  vk::Buffer& impl()
+  {
+    return *m_resource;
+  }
+
+  bool operator<(const VulkanBuffer& other) const
+  {
+    return uniqueId < other.uniqueId;
+  }
+  bool operator==(const VulkanBuffer& other) const
+  {
+    return uniqueId == other.uniqueId;
+  }
 };
 
 using BufferImpl = VulkanBuffer;
@@ -91,13 +109,17 @@ class VulkanBufferShaderView
 private:
   friend class VulkanGpuDevice;
   friend class BufferShaderView;
+  friend class DependencyTracker;
   vk::DescriptorBufferInfo m_info;
   vk::DescriptorType m_viewType;
   std::shared_ptr<VulkanBufferState> m_state;
-  VulkanBufferShaderView(vk::DescriptorBufferInfo info, vk::DescriptorType viewType, std::shared_ptr<VulkanBufferState> state)
+
+  int64_t uniqueId = -1;
+  VulkanBufferShaderView(vk::DescriptorBufferInfo info, vk::DescriptorType viewType, std::shared_ptr<VulkanBufferState> state, int64_t uniqueId)
     : m_info(info)
 	  , m_viewType(viewType)
     , m_state(state)
+    , uniqueId(uniqueId)
   {}
 public:
 	VulkanBufferShaderView() {}
@@ -109,6 +131,14 @@ public:
 	{
 		return m_viewType;
 	}
+  bool operator<(const VulkanBufferShaderView& other) const
+  {
+    return uniqueId < other.uniqueId;
+  }
+  bool operator==(const VulkanBufferShaderView& other) const
+  {
+    return uniqueId == other.uniqueId;
+  }
 };
 
 using BufferShaderViewImpl = VulkanBufferShaderView;
