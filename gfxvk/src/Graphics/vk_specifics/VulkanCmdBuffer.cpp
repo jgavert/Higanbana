@@ -10,20 +10,32 @@ using namespace faze;
 class VulkanBindingInformation
 {
 public:
-  CommandListVector<std::pair< unsigned, VulkanBufferShaderView >> buffers;
-  CommandListVector<std::pair< unsigned, VulkanTextureShaderView>> textures;
+  CommandListVector<std::pair< unsigned, VulkanBufferShaderView >> readBuffers;
+  CommandListVector<std::pair< unsigned, VulkanTextureShaderView>> readTextures;
+  CommandListVector<std::pair< unsigned, VulkanBufferShaderView >> modifyBuffers;
+  CommandListVector<std::pair< unsigned, VulkanTextureShaderView>> modifyTextures;
 
   VulkanBindingInformation(LinearAllocator& allocator, VulkanDescriptorSet& set)
-    : buffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.buffers.size()), set.buffers.size()))
-    , textures(MemView<std::pair<unsigned, VulkanTextureShaderView>>(allocator.allocList<std::pair<unsigned, VulkanTextureShaderView>>(set.textures.size()), set.textures.size()))
+    : readBuffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.readBuffers.size()), set.readBuffers.size()))
+    , readTextures(MemView<std::pair<unsigned, VulkanTextureShaderView>>(allocator.allocList<std::pair<unsigned, VulkanTextureShaderView>>(set.readTextures.size()), set.readTextures.size()))
+    , modifyBuffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.modifyBuffers.size()), set.modifyBuffers.size()))
+    , modifyTextures(MemView<std::pair<unsigned, VulkanTextureShaderView>>(allocator.allocList<std::pair<unsigned, VulkanTextureShaderView>>(set.modifyTextures.size()), set.modifyTextures.size()))
   {
-    for (size_t i = 0; i < set.buffers.size(); i++)
+    for (size_t i = 0; i < set.readBuffers.size(); i++)
     {
-      buffers[i] = set.buffers[i];
+      readBuffers[i] = set.readBuffers[i];
     }
-    for (size_t i = 0; i < set.textures.size(); i++)
+    for (size_t i = 0; i < set.readTextures.size(); i++)
     {
-      textures[i] = set.textures[i];
+      readTextures[i] = set.readTextures[i];
+    }
+    for (size_t i = 0; i < set.modifyBuffers.size(); i++)
+    {
+      modifyBuffers[i] = set.modifyBuffers[i];
+    }
+    for (size_t i = 0; i < set.modifyTextures.size(); i++)
+    {
+      modifyTextures[i] = set.modifyTextures[i];
     }
   }
 };
@@ -260,7 +272,7 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
     }
     case VulkanCommandPacket::PacketType::Dispatch:
       {
-        // handle binding here, create function that does it generically.
+        // handle binding here, create function that does it in a generic way.
         DispatchPacket* dis = static_cast<DispatchPacket*>(packet);
         auto& bind = dis->descriptors;
 
@@ -270,7 +282,16 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
           .setPSetLayouts(descriptorLayout));
 
         std::vector<vk::WriteDescriptorSet> allSets;
-        for (auto&& it : bind.buffers)
+        for (auto&& it : bind.readBuffers)
+        {
+          allSets.push_back(vk::WriteDescriptorSet()
+            .setDescriptorCount(1)
+            .setDescriptorType(it.second.type())
+            .setDstBinding(it.first)
+            .setDstSet(result[0])
+            .setPBufferInfo(&it.second.info()));
+        }
+        for (auto&& it : bind.modifyBuffers)
         {
           allSets.push_back(vk::WriteDescriptorSet()
             .setDescriptorCount(1)
