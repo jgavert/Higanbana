@@ -360,7 +360,7 @@ private:
   struct ScheduleNode
   {
     DrawCallIndex jobID;
-    std::unordered_set<size_t> dependencies;
+    DrawCallIndex dependency;
   };
   std::vector<ScheduleNode> m_schedulingResult;
 
@@ -465,10 +465,11 @@ public:
 
       ScheduleNode n;
       n.jobID = currentJobId;
+      n.dependency = -1;
       if (readRes.empty()) // doesn't read any results of other jobs in this graph.
       {
         // which means its fine to be run
-        m_schedulingResult.emplace_back(std::move(n));
+        m_schedulingResult.emplace_back(n);
       }
       else
       {
@@ -476,17 +477,20 @@ public:
         // need to search which jobs produce our dependency
         // this is purely optional
         // reading resources is valid even if nobody produces them
-        n.dependencies.reserve(readRes.size());
+        bool foundEvenOne = false;
         for (auto&& it : readRes)
         {
           auto& readr = m_jobs[it].resource;
           auto found = m_writeRes.find(readr);
           if (found != m_writeRes.end())
           {
-            n.dependencies.insert(found->second);
+            foundEvenOne = true;
+            n.dependency = found->second;
+            m_schedulingResult.emplace_back(n);
           }
         }
-        m_schedulingResult.emplace_back(std::move(n));
+        if (!foundEvenOne)
+          m_schedulingResult.emplace_back(n);
       }
     }
 
@@ -499,21 +503,6 @@ public:
     // print graph in some way
     func("// Dependency Graph\n");
 
-    auto getName = [&](size_t hash)
-    {
-      return m_drawCallInfo[m_jobs[hash].drawIndex];
-    };
-    /*
-    for (auto&& it : m_schedulingResult)
-    {
-    std::string tmp;
-    tmp += "Start task ";
-    tmp += getName(it.jobID);
-    func(tmp + "\n");
-    }
-
-    func("Creating dot");
-    */
     // create dot format output
     std::string tmp = "\n";
 
@@ -543,14 +532,13 @@ public:
     func(tmp); tmp.clear();
     for (auto&& it : m_schedulingResult)
     {
-      for (auto&& it2 : it.dependencies)
-      {
-        tmp += std::to_string(it2);
-        tmp += " -> ";
-        tmp += std::to_string(it.jobID);
-        tmp += ";\n";
-        func(tmp); tmp.clear();
-      }
+      if (it.dependency == -1) // didn't have any dependencies 
+        continue;
+      tmp += std::to_string(it.dependency);
+      tmp += " -> ";
+      tmp += std::to_string(it.jobID);
+      tmp += ";\n";
+      func(tmp); tmp.clear();
     }
     ++i;
     tmp += "// Execution order...\n";
