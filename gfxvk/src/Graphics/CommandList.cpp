@@ -21,7 +21,7 @@ Fence GraphicsCmdBuffer::fence()
   return Fence(m_seqNum);
 }
 
-// binding
+// Pipeline
 void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 {
   m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
@@ -30,8 +30,6 @@ void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 
 void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
 {
-  //doDescriptorSets(inputs);
-//  m_cmdBuffer.bindComputeDescriptorSet(inputs.set);
   m_cmdBuffer.dispatch(inputs.set, x, y, z);
 }
 
@@ -44,12 +42,7 @@ void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
   m_cmdBuffer.copy(srcdata.getBuffer(), dstdata.getBuffer());
 }
 
-void GraphicsCmdBuffer::doDescriptorSets(DescriptorSet& )
-{
-	//m_device->writeDescriptorSet(inputs.set);
-}
-
 void GraphicsCmdBuffer::prepareForSubmit(GpuDeviceImpl& device)
 {
-  m_cmdBuffer.prepareForSubmit(device);
+  m_cmdBuffer.prepareForSubmit(device, m_pool.impl());
 }

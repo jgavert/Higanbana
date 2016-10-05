@@ -684,7 +684,6 @@ void VulkanGpuDevice::waitIdle()
   m_device->waitIdle();
 }
 
-
 // resets
 
 void VulkanGpuDevice::resetCmdBuffer(VulkanCmdBuffer& buffer)
@@ -703,27 +702,6 @@ void VulkanGpuDevice::reset(VulkanDescriptorPool& pool)
 {
   m_device->resetDescriptorPool(pool.pool);
 }
-
-// descriptor sheit
-
-VulkanDescriptorSet VulkanGpuDevice::allocateDescriptorSet(VulkanDescriptorPool& , VulkanPipeline& pipeline)
-{
-  /*
-	auto result = m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
-		.setDescriptorPool(pool.pool)
-		.setDescriptorSetCount(1)
-		.setPSetLayouts(pipeline.m_descriptorSetLayout.get()));
-  */
-	return VulkanDescriptorSet(*pipeline.m_pipelineLayout);
-}
-/*
-void VulkanGpuDevice::writeDescriptorSet(VulkanDescriptorSet& set)
-{
-  auto thing = set.compile();
-	vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(thing);
-	m_device->updateDescriptorSets(proxy, {});
-}
-*/
 
 void VulkanGpuDevice::destroy(VulkanDescriptorPool& pool)
 {

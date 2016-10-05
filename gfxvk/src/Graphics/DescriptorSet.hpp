@@ -35,7 +35,6 @@ public:
 		set.read(slot, uav.getView());
 	}
 
-
   void modify(unsigned slot, BufferUAV& uav)
   {
     set.modify(slot, uav.getView());
