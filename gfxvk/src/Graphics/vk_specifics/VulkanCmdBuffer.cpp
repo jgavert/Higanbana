@@ -3,6 +3,7 @@
 #include "core/src/global_debug.hpp"
 
 #include <utility>
+#include <deque>
 
 #define COMMANDBUFFERSIZE 500*1024
 using namespace faze;
@@ -362,6 +363,7 @@ private:
     std::unordered_set<size_t> dependencies;
   };
   std::vector<ScheduleNode> m_schedulingResult;
+
 public:
   void addDrawCall(int drawCallIndex, std::string name)
   {
@@ -472,37 +474,122 @@ public:
       {
         // has read dependencies;
         // need to search which jobs produce our dependency
-        // assert if finding more than 1 that produce our target.
+        // this is purely optional
+        // reading resources is valid even if nobody produces them
         n.dependencies.reserve(readRes.size());
-        bool allDependenciesFulfilled = true;
         for (auto&& it : readRes)
         {
-          bool foundOne = false;
           auto& readr = m_jobs[it].resource;
           auto found = m_writeRes.find(readr);
           if (found != m_writeRes.end())
           {
             n.dependencies.insert(found->second);
-            foundOne = true;
-          }
-
-          if (!foundOne)
-          {
-            allDependenciesFulfilled = false;
           }
         }
-        if (allDependenciesFulfilled)
-          m_schedulingResult.emplace_back(std::move(n));
-        else
-        {
-          // again, assert here since its invalid job
-        }
+        m_schedulingResult.emplace_back(std::move(n));
       }
     }
 
     // order is based on insert order
     drawCallsAdded = 0;
   }
+
+  void DependencyTracker::printStuff(std::function<void(std::string)> func)
+  {
+    // print graph in some way
+    func("// Dependency Graph\n");
+
+    auto getName = [&](size_t hash)
+    {
+      return m_drawCallInfo[m_jobs[hash].drawIndex];
+    };
+    /*
+    for (auto&& it : m_schedulingResult)
+    {
+    std::string tmp;
+    tmp += "Start task ";
+    tmp += getName(it.jobID);
+    func(tmp + "\n");
+    }
+
+    func("Creating dot");
+    */
+    // create dot format output
+    std::string tmp = "\n";
+
+    tmp += "\ndigraph{\nrankdir = LR;\ncompound = true;\nnode[shape = record];\n";
+
+    // all resources one by one
+    int i = 0;
+
+    // the graph, should be on top
+    tmp += "// Dependency Graph...\n";
+    tmp += "subgraph cluster_";
+    tmp += std::to_string(i);
+    tmp += " {\nlabel = \"Dependency Graph (DAG)\";\n";
+    func(tmp); tmp.clear();
+    for (auto&& it : m_schedulingResult)
+    {
+      tmp += std::to_string(it.jobID);
+      tmp += "[label=\"";
+      tmp += std::to_string(it.jobID);
+      tmp += ". ";
+      tmp += m_drawCallInfo[it.jobID];
+      tmp += "\"];\n";
+      func(tmp); tmp.clear();
+    }
+    tmp += "}\n";
+    tmp += "// edges\n";
+    func(tmp); tmp.clear();
+    for (auto&& it : m_schedulingResult)
+    {
+      for (auto&& it2 : it.dependencies)
+      {
+        tmp += std::to_string(it2);
+        tmp += " -> ";
+        tmp += std::to_string(it.jobID);
+        tmp += ";\n";
+        func(tmp); tmp.clear();
+      }
+    }
+    ++i;
+    tmp += "// Execution order...\n";
+    tmp += "subgraph cluster_";
+    tmp += std::to_string(i);
+    tmp += "{\nlabel = \"Execution order\";\n";
+    func(tmp); tmp.clear();
+    int fb = 0;
+    for (auto&& it : m_schedulingResult)
+    {
+      tmp += std::to_string(it.jobID + m_jobs.size());
+      tmp += "[label=\"";
+      tmp += std::to_string(fb);
+      tmp += ". ";
+      tmp += m_drawCallInfo[it.jobID];
+      tmp += "\"];\n";
+      func(tmp); tmp.clear();
+      fb++;
+    }
+    tmp += "}\n";
+    tmp += "// edges\n";
+    func(tmp); tmp.clear();
+
+    auto lastOne = m_schedulingResult[0].jobID;
+
+    for (size_t k = 1; k < m_schedulingResult.size(); ++k)
+    {
+      tmp += std::to_string(lastOne + m_jobs.size());
+      tmp += " -> ";
+      tmp += std::to_string(m_schedulingResult[k].jobID + m_jobs.size());
+      tmp += ";\n";
+      lastOne = m_schedulingResult[k].jobID;
+      func(tmp); tmp.clear();
+    }
+
+    tmp += "}\n";
+    func(tmp);
+  }
+
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -554,5 +641,9 @@ void VulkanCmdBuffer::dependencyFuckup()
   });
 
   tracker.resolveGraph();
+  tracker.printStuff([](std::string data)
+  {
+    F_LOG_UNFORMATTED("%s", data.c_str());
+  });
 }
 
