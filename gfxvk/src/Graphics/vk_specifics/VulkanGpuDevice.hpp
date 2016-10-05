@@ -35,6 +35,8 @@ private:
 
   ShaderStorage           m_shaders;
 
+  int64_t                 m_resourceID;
+
   struct FreeQueues
   {
     int universalIndex;
