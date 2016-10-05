@@ -20,7 +20,7 @@
 class VulkanGpuDevice
 {
 private:
-
+  friend class VulkanCmdBuffer;
 
   vk::AllocationCallbacks m_alloc_info;
   std::shared_ptr<vk::Device>    m_device;
@@ -116,10 +116,6 @@ public:
   void resetCmdBuffer(VulkanCmdBuffer& buffer);
   void resetFence(VulkanFence& fence);
   void reset(VulkanDescriptorPool& pool);
-
-  // descriptor sheit
-  VulkanDescriptorSet allocateDescriptorSet(VulkanDescriptorPool& pool, VulkanPipeline& pipeline);
-  void writeDescriptorSet(VulkanDescriptorSet& set);
 
   // destroys
   void destroy(VulkanDescriptorPool& pool);

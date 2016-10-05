@@ -28,7 +28,6 @@ private:
     , m_pool(pool)
   {}
 
-  void doDescriptorSets(DescriptorSet& inputs);
 public:
   GraphicsCmdBuffer() {}
   void copy(Buffer& src, Buffer& dst);
@@ -45,9 +44,8 @@ public:
   template <typename ShaderInterface>
   DescriptorSet bind(ComputePipeline& pipeline)
   {
-    // TODO: deprecated. Needs rewriting.
     m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
-	  auto set = m_device->allocateDescriptorSet(m_pool.impl(), pipeline.impl());
-	  return DescriptorSet(set);
+    auto descriptorImpl = DescriptorSetImpl(pipeline.impl());
+	  return DescriptorSet(descriptorImpl);
   }
 };

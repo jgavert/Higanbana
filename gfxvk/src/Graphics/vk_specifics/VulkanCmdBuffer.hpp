@@ -4,6 +4,7 @@
 #include "VulkanBuffer.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanDescriptorSet.hpp"
+#include "VulkanDescriptorPool.hpp"
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -50,6 +51,7 @@ public:
 
 class VulkanBuffer;
 class VulkanTexture;
+class VulkanGpuDevice;
 
 class VulkanCmdBuffer
 {
@@ -60,6 +62,8 @@ private:
   std::shared_ptr<vk::CommandPool>     m_pool;
   bool                                 m_closed = false;
   std::shared_ptr<CommandList<VulkanCommandPacket>>     m_commandList;
+  std::vector<vk::DescriptorSet>      m_updatedSetsPerDraw;
+
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
   VulkanCmdBuffer() {}
@@ -69,26 +73,20 @@ public:
     m_pool.reset();
     m_commandList->hardClear();
   }
-  // Binding!?!?!?!?, hau, needs pipeline, needs binding.
+  // supported commands
   void bindComputePipeline(VulkanPipeline& pipeline);
-  // copy
   void copy(VulkanBuffer& src, VulkanBuffer& dst);
-  // compute
   void dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z);
-  // draw
 
+  // misc
   bool isValid();
   void close();
   bool isClosed();
 
   // Call before submit
-  void prepareForSubmit(VulkanGpuDevice& device);
-
-  // process packets
-  void processBindings(VulkanGpuDevice& device);
-
-  // dependency
-
+  void prepareForSubmit(VulkanGpuDevice& device, VulkanDescriptorPool& pool);
+private:
+  void processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool);
   void dependencyFuckup();
 };
 
