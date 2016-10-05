@@ -14,8 +14,10 @@ private:
 	//vk::DescriptorSet set; // this goes to Commandlist
   vk::PipelineLayout layout;
   vk::DescriptorSetLayout descriptorLayout;
-	std::vector<std::pair< unsigned, VulkanBufferShaderView >> buffers;
-	std::vector<std::pair< unsigned, VulkanTextureShaderView>> textures;
+	std::vector<std::pair< unsigned, VulkanBufferShaderView >> readBuffers;
+	std::vector<std::pair< unsigned, VulkanTextureShaderView>> readTextures;
+	std::vector<std::pair< unsigned, VulkanBufferShaderView >> modifyBuffers;
+	std::vector<std::pair< unsigned, VulkanTextureShaderView>> modifyTextures;
 public:
 
 	VulkanDescriptorSet(VulkanPipeline& pipeline)
