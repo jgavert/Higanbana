@@ -28,7 +28,7 @@ namespace faze
     if (offset >= static_cast<decltype(offset)>(m_incomplete.size()) * blockSize)
     {
       auto missingIncompletes = (offset) / blockSize + 1 - m_incomplete.size();
-      for (auto i = 0; i < missingIncompletes; ++i)
+      for (decltype(missingIncompletes) i = 0; i < missingIncompletes; ++i)
       {
         m_incomplete.push_back(Bitfield<1>());
       }
