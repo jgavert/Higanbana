@@ -7,6 +7,6 @@ void main()
   if (gid >= 100)
 return;
   float a = dataIn[gid].element;
-  dataOut[gid].element = a + 0.5;
+  dataOut[gid].element = a + 0.5 + gid;
 }
 

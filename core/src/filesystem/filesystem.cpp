@@ -103,7 +103,7 @@ bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
 	fseek(fp, 0L, SEEK_END);
 	auto fsize = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
-	F_ILOG("FileSystem", "found file %s, loading %.2fMB(%ld)...", path.c_str(), static_cast<float>(size) / 1000000.f, fsize);
+	F_ILOG("FileSystem", "found file %s, loading %.2fMB(%ld)...", path.c_str(), static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
 	std::vector<uint8_t> contents(fsize);
 	size_t leftToRead = fsize;
 	size_t offset = 0;
@@ -133,7 +133,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
 		loadFileFromHDD(it, fileSize);
 		allSize += fileSize;
 	}
-	F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1000000.f);
+	F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
 }
 
 MemoryBlob FileSystem::readFile(std::string path)
