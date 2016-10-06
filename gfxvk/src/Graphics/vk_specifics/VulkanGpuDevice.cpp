@@ -358,7 +358,7 @@ VulkanDescriptorPool VulkanGpuDevice::createDescriptorPool()
   vk::DescriptorPoolCreateInfo info = vk::DescriptorPoolCreateInfo()
     .setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
     .setPPoolSizes(poolSizes.data())
-    .setMaxSets(1);
+    .setMaxSets(3);
 
   auto pool = m_device->createDescriptorPool(info);
 
