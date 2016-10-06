@@ -5,6 +5,7 @@
 #include "VulkanPipeline.hpp"
 #include "VulkanDescriptorSet.hpp"
 #include "VulkanDescriptorPool.hpp"
+#include "VulkanDependency.hpp"
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -63,6 +64,7 @@ private:
   bool                                 m_closed = false;
   std::shared_ptr<CommandList<VulkanCommandPacket>>     m_commandList;
   std::vector<vk::DescriptorSet>      m_updatedSetsPerDraw;
+  DependencyTracker					tracker;
 
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
