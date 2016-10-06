@@ -43,7 +43,7 @@ Compiler( 'Compiler-x64' )
 
 Compiler( 'Compiler-x64-Linux' )
 {
-  .Executable = '/usr/bin/clang++'
+  .Executable = '/usr/bin/g++'
 }
 
 // Resource Compiler
@@ -135,6 +135,7 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Wno-unused-private-field'
                           + ' -Wno-unused-variable'
                           + ' -Wno-unused-function'
+                          + ' -Wno-ignored-attributes'
                           + ' -m64'         // x86-64
                           + ' -std=c++14'   // allow C++14 features
                           + ' -msse4.2'     // SSE4.2
