@@ -348,6 +348,7 @@ private:
 
   // general info needed
   std::unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
+  std::unordered_map<DrawCallIndex, vk::PipelineStageFlags> m_drawCallStage;
   std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes;
   std::unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
   size_t drawCallsAdded = 0;
@@ -365,9 +366,10 @@ private:
   std::vector<ScheduleNode> m_schedulingResult;
 
 public:
-  void addDrawCall(int drawCallIndex, std::string name)
+  void addDrawCall(int drawCallIndex, std::string name, vk::PipelineStageFlags baseFlags)
   {
     m_drawCallInfo[drawCallIndex] = name;
+    m_drawCallStage[drawCallIndex] = baseFlags;
     drawCallsAdded++;
   }
 
@@ -599,7 +601,7 @@ void VulkanCmdBuffer::dependencyFuckup()
       F_ASSERT(p->m_copyList.size() == 1, "Dependency tracker doesn't support more than 1 copy.");
       auto first = p->m_copyList[0];
 
-      tracker.addDrawCall(drawCallIndex, "BufferCopy");
+      tracker.addDrawCall(drawCallIndex, "BufferCopy", vk::PipelineStageFlagBits::eTransfer);
       tracker.addReadBuffer(drawCallIndex, p->src, first.srcOffset, first.size, vk::AccessFlagBits::eTransferRead);
       tracker.addModifyBuffer(drawCallIndex, p->dst, first.dstOffset, first.size, vk::AccessFlagBits::eTransferWrite);
 
@@ -611,7 +613,7 @@ void VulkanCmdBuffer::dependencyFuckup()
       DispatchPacket* p = static_cast<DispatchPacket*>(packet);
       auto& bind = p->descriptors;
 
-      tracker.addDrawCall(drawCallIndex, "Dispatch");
+      tracker.addDrawCall(drawCallIndex, "Dispatch", vk::PipelineStageFlagBits::eComputeShader);
       for (auto&& it : bind.readBuffers)
       {
         tracker.addReadBuffer(drawCallIndex, it.second, vk::AccessFlagBits::eShaderRead);
