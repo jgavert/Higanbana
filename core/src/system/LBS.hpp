@@ -138,7 +138,7 @@ namespace faze
 
     inline bool canSplit()
     {
-      return (m_iterations > m_ppt);
+      return (m_iterations > static_cast<size_t>(m_ppt));
     }
 
     // It is decided to split, this accomplishes that part.
