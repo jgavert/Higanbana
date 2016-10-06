@@ -175,7 +175,8 @@ int EntryPoint::main()
       }
     }
   };
-
   main("w1");
+  F_LOG("yay! mapped buffer!\n");
+  log.update();
   return 0;
 }
