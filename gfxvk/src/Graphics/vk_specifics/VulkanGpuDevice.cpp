@@ -25,7 +25,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   // compute
   // dma
   size_t totalQueues = 0;
-  for (int k = 0; k < m_queues.size(); ++k)
+  for (int k = 0; k < static_cast<int>(m_queues.size()); ++k)
   {
     constexpr auto GfxQ = static_cast<uint32_t>(VK_QUEUE_GRAPHICS_BIT);
     constexpr auto CpQ = static_cast<uint32_t>(VK_QUEUE_COMPUTE_BIT);
@@ -75,8 +75,8 @@ VulkanGpuDevice::VulkanGpuDevice(
     // single queue =_=, IIIINNNTTTEEEELLL
     m_singleQueue = true;
     // lets just fetch it and copy it for those who need it.
-    auto que = m_device->getQueue(0, 0); // TODO: 0 index is wrong.
-	m_internalUniversalQueue = std::make_shared<vk::Queue>(m_device->getQueue(0, 0)); // std::shared_ptr<vk::Queue>(&que);
+    //auto que = m_device->getQueue(0, 0); // TODO: 0 index is wrong.
+	  m_internalUniversalQueue = std::make_shared<vk::Queue>(m_device->getQueue(0, 0));
   }
   if (m_freeQueueIndexes->universal.size() > 0
     && m_freeQueueIndexes->graphics.size() > 0)

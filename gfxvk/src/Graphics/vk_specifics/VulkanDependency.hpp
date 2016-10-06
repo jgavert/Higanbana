@@ -279,7 +279,7 @@ public:
 
 	void makeAllBarriers()
 	{
-		auto jobsSize = m_jobs.size();
+		int jobsSize = static_cast<int>(m_jobs.size());
 		int executeSize = static_cast<int>(m_schedulingResult.size());
 
 		// this function should figure out transitions within a commandbuffer

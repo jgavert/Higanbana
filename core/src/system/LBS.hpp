@@ -283,7 +283,7 @@ namespace faze
         m_allThreads.emplace_back(i);
         ThreadStatus.push_back(std::make_pair(RUNNINGLOGIC, i));
       }
-      for (size_t i = 0; i < procs; ++i)
+      for (size_t i = 0; i < static_cast<size_t>(procs); ++i)
       {
         std::shared_ptr<std::mutex> temp(new std::mutex());
         m_mutexes.push_back(std::move(temp));

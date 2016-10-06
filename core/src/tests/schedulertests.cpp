@@ -31,7 +31,7 @@ bool SchedulerTests::Run()
 	t.addTest("ParallelFor<32>", [&]()
 	{
 		std::vector<int> v;
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		v.reserve(testSize);
 		for (int i = 0; i < testSize; i++)
 		{
@@ -53,7 +53,7 @@ bool SchedulerTests::Run()
 	t.addTest("ParallelFor<1024>", [&]()
 	{
 		std::vector<int> v;
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		v.reserve(testSize);
 		for (int i = 0; i < testSize; i++)
 		{
@@ -75,7 +75,7 @@ bool SchedulerTests::Run()
 	t.addTest("ParallelFor<8192>", [&]()
 	{
 		std::vector<int> v;
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		v.reserve(testSize);
 		for (int i = 0; i < testSize; i++)
 		{
@@ -96,7 +96,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor2", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		std::unique_ptr<size_t[]> v = std::unique_ptr<size_t[]>(new size_t[testSize]);
 		std::atomic<bool> b(true);
 
@@ -115,7 +115,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("reference", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();
@@ -126,7 +126,7 @@ bool SchedulerTests::Run()
 		};
 		for (int i = 0; i < testSize; i++)
 		{
-			if (v[i] != i)
+			if (v[i] != static_cast<size_t>(i))
 				b = false;
 		};
 		//s.sleepTillKeywords({ "task2" });
@@ -160,7 +160,7 @@ bool SchedulerTests::Run()
 
   t.addTest("ParallelFor3<8>", [&]()
   {
-    constexpr size_t testSize = 1000000;
+    constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -179,7 +179,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor3<32>", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -199,7 +199,7 @@ bool SchedulerTests::Run()
 
   t.addTest("ParallelFor3<64>", [&]()
   {
-    constexpr size_t testSize = 1000000;
+    constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -219,7 +219,7 @@ bool SchedulerTests::Run()
 
   t.addTest("ParallelFor3<128>", [&]()
   {
-    constexpr size_t testSize = 1000000;
+    constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -238,7 +238,7 @@ bool SchedulerTests::Run()
 
   t.addTest("ParallelFor3<256>", [&]()
   {
-    constexpr size_t testSize = 1000000;
+    constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -258,7 +258,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor3<1024>", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -278,7 +278,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor3<2048>", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
@@ -298,7 +298,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor3<8192>", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();
@@ -318,7 +318,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("ParallelFor3<65536>", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();
@@ -338,7 +338,7 @@ bool SchedulerTests::Run()
 
 	t.addTest("handTailored(pipelined)", [&]()
 	{
-		constexpr size_t testSize = 1000000;
+		constexpr int testSize = 1000000;
 		std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();

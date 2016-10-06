@@ -123,7 +123,7 @@ public:
       F_ILOG("ShaderStorage", "Compilation failed. trying to print error...\n");
       std::string asdError = "";
       int lastEnd = 0;
-      for (int i = 0; i < asd.size(); ++i)
+      for (int i = 0; i < static_cast<int>(asd.size()); ++i)
       {
         if (asd[i] < 0)
         {
