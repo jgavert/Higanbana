@@ -5,7 +5,7 @@ using namespace faze;
 
 InputBuffer::InputBuffer(): m_tail(0), m_head(0),m_frame(0), f_translator([](int i){return i;})
 {
-  for (int i = 0; i < m_inputs.size(); i++)
+  for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
   {
     m_inputs[i] = Input();
   }
@@ -22,7 +22,7 @@ void InputBuffer::insert(int key, int action, int64_t frame)
   }*/
   m_inputs[m_tail] = Input(key, action, frame);
   ++m_tail;
-  if (m_tail >= m_inputs.size())
+  if (m_tail >= static_cast<int>(m_inputs.size()))
   {
     m_tail = m_tail%m_inputs.size();
   }

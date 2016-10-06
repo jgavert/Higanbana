@@ -25,16 +25,22 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   void*                                       /*pUserData*/)
 {
   std::string msgType = "";
+  #if defined(PLATFORM_WINDOWS)
   bool breakOn = false;
+  #endif
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
   {
     msgType = "ERROR:";
+    #if defined(PLATFORM_WINDOWS)
     breakOn = true;
+      #endif
   }
   else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
   {
     msgType = "WARNING:";
+    #if defined(PLATFORM_WINDOWS)
     breakOn = true;
+      #endif
   }
   else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
   {
@@ -194,7 +200,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
     return false;
   };
   int devId = 0;
-  for (devId = 0; devId < m_devices.size(); ++devId)
+  for (devId = 0; devId < static_cast<int>(m_devices.size()); ++devId)
   {
     if (canPresent(m_devices[devId]))
       break;

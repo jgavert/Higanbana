@@ -120,22 +120,22 @@ public:
     ,colorWriteEnable(ColorWriteEnable::All)
   {}
 
-  RenderTargetBlendDescriptor& BlendEnable(bool value)
+  RenderTargetBlendDescriptor& setBlendEnable(bool value)
   {
     blendEnable = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& LogicOpEnable(bool value)
+  RenderTargetBlendDescriptor& setLogicOpEnable(bool value)
   {
     logicOpEnable = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& SrcBlend(Blend value)
+  RenderTargetBlendDescriptor& setSrcBlend(Blend value)
   {
     srcBlend = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& DestBlend(Blend value)
+  RenderTargetBlendDescriptor& setDestBlend(Blend value)
   {
     destBlend = value;
     return *this;
@@ -145,27 +145,27 @@ public:
     blendOp = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& SrcBlendAlpha(Blend value)
+  RenderTargetBlendDescriptor& setSrcBlendAlpha(Blend value)
   {
     srcBlendAlpha = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& DestBlendAlpha(Blend value)
+  RenderTargetBlendDescriptor& setDestBlendAlpha(Blend value)
   {
     destBlendAlpha = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& BlendOpAlpha(BlendOp value)
+  RenderTargetBlendDescriptor& setBlendOpAlpha(BlendOp value)
   {
     blendOpAlpha = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& LogicOp(LogicOp value)
+  RenderTargetBlendDescriptor& setLogicOp(LogicOp value)
   {
     logicOp = value;
     return *this;
   }
-  RenderTargetBlendDescriptor& ColorWriteEnable(ColorWriteEnable value)
+  RenderTargetBlendDescriptor& setColorWriteEnable(ColorWriteEnable value)
   {
     colorWriteEnable = value;
     return *this;
@@ -227,57 +227,57 @@ public:
     , forcedSampleCount(0)
     , conservativeRaster(ConvervativeRasterization::Off)
   {}
-  RasterizerDescriptor& FillMode(FillMode value)
+  RasterizerDescriptor& setFillMode(FillMode value)
   {
     fill = value;
     return *this;
   }
-  RasterizerDescriptor& CullMode(CullMode value)
+  RasterizerDescriptor& setCullMode(CullMode value)
   {
     cull = value;
     return *this;
   }
-  RasterizerDescriptor& FrontCounterClockwise(bool value)
+  RasterizerDescriptor& setFrontCounterClockwise(bool value)
   {
     frontCounterClockwise = value;
     return *this;
   }
-  RasterizerDescriptor& DepthBias(int value)
+  RasterizerDescriptor& setDepthBias(int value)
   {
     depthBias = value;
     return *this;
   }
-  RasterizerDescriptor& DepthBiasClamp(float value)
+  RasterizerDescriptor& setDepthBiasClamp(float value)
   {
     depthBiasClamp = value;
     return *this;
   }
-  RasterizerDescriptor& SlopeScaledDepthBias(float value)
+  RasterizerDescriptor& setSlopeScaledDepthBias(float value)
   {
     slopeScaledDepthBias = value;
     return *this;
   }
-  RasterizerDescriptor& DepthClipEnable(bool value)
+  RasterizerDescriptor& setDepthClipEnable(bool value)
   {
     depthClipEnable = value;
     return *this;
   }
-  RasterizerDescriptor& MultisampleEnable(bool value)
+  RasterizerDescriptor& setMultisampleEnable(bool value)
   {
     multisampleEnable = value;
     return *this;
   }
-  RasterizerDescriptor& AntialiasedLineEnable(bool value)
+  RasterizerDescriptor& setAntialiasedLineEnable(bool value)
   {
     antialiasedLineEnable = value;
     return *this;
   }
-  RasterizerDescriptor& ForcedSampleCount(unsigned int value)
+  RasterizerDescriptor& setForcedSampleCount(unsigned int value)
   {
     forcedSampleCount = value;
     return *this;
   }
-  RasterizerDescriptor& ConservativeRaster(ConvervativeRasterization value)
+  RasterizerDescriptor& setConservativeRaster(ConvervativeRasterization value)
   {
     conservativeRaster = value;
     return *this;
@@ -331,22 +331,22 @@ private:
 
 public:
   DepthStencilOpDesc():failOp(StencilOp::Keep), depthFailOp(StencilOp::Keep), passOp(StencilOp::Keep), stencilFunc(ComparisonFunc::Always)  {}
-  DepthStencilOpDesc& FailOp(StencilOp value)
+  DepthStencilOpDesc& setFailOp(StencilOp value)
   {
     failOp = value;
     return *this;
   }
-  DepthStencilOpDesc& DepthFailOp(StencilOp value)
+  DepthStencilOpDesc& setDepthFailOp(StencilOp value)
   {
     depthFailOp = value;
     return *this;
   }
-  DepthStencilOpDesc& PassOp(StencilOp value)
+  DepthStencilOpDesc& setPassOp(StencilOp value)
   {
     passOp = value;
     return *this;
   }
-  DepthStencilOpDesc& StencilFunc(ComparisonFunc value)
+  DepthStencilOpDesc& setStencilFunc(ComparisonFunc value)
   {
     stencilFunc = value;
     return *this;
@@ -378,42 +378,42 @@ public:
   }
 
 
-  DepthStencilDescriptor& DepthEnable(bool value)
+  DepthStencilDescriptor& setDepthEnable(bool value)
   {
     depthEnable = value;
     return *this;
   }
-  DepthStencilDescriptor& DepthWriteMask(DepthWriteMask value)
+  DepthStencilDescriptor& setDepthWriteMask(DepthWriteMask value)
   {
     depthWriteMask = value;
     return *this;
   }
-  DepthStencilDescriptor& DepthFunc(ComparisonFunc value)
+  DepthStencilDescriptor& setDepthFunc(ComparisonFunc value)
   {
     depthFunc = value;
     return *this;
   }
-  DepthStencilDescriptor& StencilEnable(bool value)
+  DepthStencilDescriptor& setStencilEnable(bool value)
   {
     stencilEnable = value;
     return *this;
   }
-  DepthStencilDescriptor& StencilReadMask(uint8_t value)
+  DepthStencilDescriptor& setStencilReadMask(uint8_t value)
   {
     stencilReadMask = value;
     return *this;
   }
-  DepthStencilDescriptor& StencilWriteMask(uint8_t value)
+  DepthStencilDescriptor& setStencilWriteMask(uint8_t value)
   {
     stencilWriteMask = value;
     return *this;
   }
-  DepthStencilDescriptor& FrontFace(DepthStencilOpDesc value)
+  DepthStencilDescriptor& setFrontFace(DepthStencilOpDesc value)
   {
     frontFace = value;
     return *this;
   }
-  DepthStencilDescriptor& BackFace(DepthStencilOpDesc value)
+  DepthStencilDescriptor& setBackFace(DepthStencilOpDesc value)
   {
     backFace = value;
     return *this;
@@ -449,12 +449,12 @@ public:
   {
     renderTarget.at(0) = RenderTargetBlendDescriptor();
   }
-  GraphicsBlendDescriptor& AlphaToCoverageEnable(bool value)
+  GraphicsBlendDescriptor& setAlphaToCoverageEnable(bool value)
   {
     alphaToCoverageEnable = value;
     return *this;
   }
-  GraphicsBlendDescriptor& IndependentBlendEnable(bool value)
+  GraphicsBlendDescriptor& setIndependentBlendEnable(bool value)
   {
     independentBlendEnable = value;
     return *this;
@@ -505,52 +505,52 @@ public:
     }
   }
 
-  GraphicsPipelineDescriptor& RootDesc(std::string path)
+  GraphicsPipelineDescriptor& setRootDesc(std::string path)
   {
     rootDescPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& VertexShader(std::string path)
+  GraphicsPipelineDescriptor& setVertexShader(std::string path)
   {
     vertexShaderPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& PixelShader(std::string path)
+  GraphicsPipelineDescriptor& setPixelShader(std::string path)
   {
     pixelShaderPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& DomainShader(std::string path)
+  GraphicsPipelineDescriptor& setDomainShader(std::string path)
   {
     domainShaderPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& HullShader(std::string path)
+  GraphicsPipelineDescriptor& setHullShader(std::string path)
   {
     hullShaderPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& GeometryShader(std::string path)
+  GraphicsPipelineDescriptor& setGeometryShader(std::string path)
   {
     geometryShaderPath = path;
     return *this;
   }
-  GraphicsPipelineDescriptor& Blend(GraphicsBlendDescriptor desc)
+  GraphicsPipelineDescriptor& setBlend(GraphicsBlendDescriptor desc)
   {
     blendDesc = desc;
     return *this;
   }
-  GraphicsPipelineDescriptor& Rasterizer(RasterizerDescriptor desc)
+  GraphicsPipelineDescriptor& setRasterizer(RasterizerDescriptor desc)
   {
     rasterDesc = desc;
     return *this;
   }
-  GraphicsPipelineDescriptor& DepthStencil(DepthStencilDescriptor desc)
+  GraphicsPipelineDescriptor& setDepthStencil(DepthStencilDescriptor desc)
   {
     dsdesc = desc;
     return *this;
   }
-  GraphicsPipelineDescriptor& PrimitiveTopology(PrimitiveTopology value)
+  GraphicsPipelineDescriptor& setPrimitiveTopology(PrimitiveTopology value)
   {
     primitiveTopology = value;
     return *this;
@@ -560,17 +560,17 @@ public:
     numRenderTargets = value;
     return *this;
   }
-  GraphicsPipelineDescriptor& RTVFormat(unsigned int index, FormatType value)
+  GraphicsPipelineDescriptor& setRTVFormat(unsigned int index, FormatType value)
   {
     rtvFormats.at(index) = value;
     return *this;
   }
-  GraphicsPipelineDescriptor& DSVFormat(FormatType value)
+  GraphicsPipelineDescriptor& setDSVFormat(FormatType value)
   {
     dsvFormat = value;
     return *this;
   }
-  GraphicsPipelineDescriptor& MultiSampling(unsigned int SampleCount, unsigned int SampleQuality)
+  GraphicsPipelineDescriptor& setMultiSampling(unsigned int SampleCount, unsigned int SampleQuality)
   {
     sampleCount = SampleCount;
     sampleQuality = SampleQuality;
