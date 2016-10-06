@@ -197,7 +197,7 @@ public:
 		drawCallsAdded = 0;
 	}
 
-	void DependencyTracker::printStuff(std::function<void(std::string)> func)
+	void printStuff(std::function<void(std::string)> func)
 	{
 		// print graph in some way
 		func("// Dependency Graph\n");
@@ -231,7 +231,7 @@ public:
 		func(tmp); tmp.clear();
 		for (auto&& it : m_schedulingResult)
 		{
-			if (it.dependency == -1) // didn't have any dependencies 
+			if (it.dependency == -1) // didn't have any dependencies
 				continue;
 			tmp += std::to_string(it.dependency);
 			tmp += " -> ";
