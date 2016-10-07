@@ -97,7 +97,6 @@ public:
 			d.state = buffer.m_state;
 			m_bufferStates[uniqueID] = std::move(d);
 		}
-		m_writeRes[uniqueID] = drawCallIndex;
 	}
 
 	void addReadBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags)
@@ -131,7 +130,6 @@ public:
 			d.state = buffer.m_state;
 			m_bufferStates[uniqueID] = std::move(d);
 		}
-		m_writeRes[uniqueID] = drawCallIndex;
 	}
 
 	// only builds the graph of dependencies.
@@ -142,22 +140,64 @@ public:
 		m_schedulingResult.clear();
 		m_schedulingResult.reserve(m_jobs.size());
 
+		struct WriteCall
+		{
+			ResourceUniqueId resource;
+			DrawCallIndex draw;
+		};
+
+		std::vector<WriteCall> m_cacheWrites; // resource producer list
+
+		auto cacheContains = [&](ResourceUniqueId id) -> DrawCallIndex
+		{
+			auto found = std::find_if(m_cacheWrites.begin(), m_cacheWrites.end(), [&](const WriteCall& obj)
+			{
+				return obj.resource == id;
+			});
+			if (found != m_cacheWrites.end())
+			{
+				return found->draw;
+			}
+			return -1;
+		};
+
+		auto cacheInsertOrReplace = [&](ResourceUniqueId id, DrawCallIndex draw)
+		{
+			auto found = std::find_if(m_cacheWrites.begin(), m_cacheWrites.end(), [&](const WriteCall& obj)
+			{
+				return obj.resource == id;
+			});
+			if (found != m_cacheWrites.end())
+			{
+				found->draw = draw;
+			}
+			else
+			{
+				m_cacheWrites.emplace_back(WriteCall{ id, draw });
+			}
+		};
+
+		std::vector<int> readRes;
 		int currentJobId = 0;
 		for (int i = 0; i < static_cast<int>(currentSize); ++i)
 		{
 			auto& obj = m_jobs[i];
 			currentJobId = obj.drawIndex;
 			// find all resources?
-			std::vector<int> readRes;
-
+			readRes.clear();
 			// move 'i' to next object.
 			for (; i < static_cast<int>(currentSize); ++i)
 			{
-				if (m_jobs[i].drawIndex != currentJobId)
+				auto& job = m_jobs[i];
+				if (job.drawIndex != currentJobId)
 					break;
-				if (m_jobs[i].hint == UsageHint::read)
+				if (job.hint == UsageHint::read)
 				{
 					readRes.push_back(i);
+				}
+				if (job.hint == UsageHint::write)
+				{
+					cacheInsertOrReplace(job.resource, job.drawIndex);
 				}
 			}
 			--i; // backoff one, loop exits with extra appended value;
@@ -180,11 +220,11 @@ public:
 				for (auto&& it : readRes)
 				{
 					auto& readr = m_jobs[it].resource;
-					auto found = m_writeRes.find(readr);
-					if (found != m_writeRes.end())
+					auto found = cacheContains(readr);
+					if (found != -1)
 					{
 						foundEvenOne = true;
-						n.dependency = found->second;
+						n.dependency = found;
 						m_schedulingResult.emplace_back(n);
 					}
 				}
