@@ -143,26 +143,30 @@ int EntryPoint::main()
           gfx.copy(buffer, bufferTarget);
           gpu.submit(gfx);
         }
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 1; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           {
-              auto shif = gfx.bind<SampleShader>(test);
-              shif.read(SampleShader::dataIn, bufferTargetUav);
-              shif.modify(SampleShader::dataOut, computeTargetUav);
-              gfx.dispatch(shif, 1, 1, 1);
+            auto shif = gfx.bind<SampleShader>(test);
+            shif.read(SampleShader::dataIn, bufferTargetUav);
+            shif.modify(SampleShader::dataOut, computeTargetUav);
+            gfx.dispatch(shif, 1, 1, 1);
           }
+
+          for (int k = 0; k < 4; k++)
           {
+            {
               auto shif = gfx.bind<SampleShader>(test);
               shif.read(SampleShader::dataIn, computeTargetUav);
               shif.modify(SampleShader::dataOut, bufferTargetUav);
               gfx.dispatch(shif, 1, 1, 1);
-          }
-          {
+            }
+            {
               auto shif = gfx.bind<SampleShader>(test);
               shif.read(SampleShader::dataIn, bufferTargetUav);
               shif.modify(SampleShader::dataOut, computeTargetUav);
               gfx.dispatch(shif, 1, 1, 1);
+            }
           }
           gfx.copy(computeTarget, bufferReadb);
           gpu.submit(gfx);
