@@ -324,6 +324,7 @@
 							.setBuffer(resource->second.buffer)
 							.setOffset(0)
 							.setSize(VK_WHOLE_SIZE));
+            resource->second.flags = m_jobs[i].access;
 						++barrierOffsets;
 					}
 				}
@@ -335,6 +336,13 @@
 			}
 		}
 		m_barrierOffsets.emplace_back(static_cast<int>(aaargh.size()));
+
+    // update global state
+    for (auto&& obj : m_cache)
+    {
+      m_bufferStates[obj.first].state->flags = obj.second.flags;
+    }
+
 	}
 
 	void DependencyTracker::runBarrier(vk::CommandBuffer gfx, int nextDrawCall)
