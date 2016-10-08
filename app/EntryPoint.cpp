@@ -32,6 +32,8 @@ using namespace faze;
 
 int EntryPoint::main()
 {
+  WTime t;
+  t.firstTick();
   Logger log;
 
   GraphicsInstance devices;
@@ -66,7 +68,6 @@ int EntryPoint::main()
   auto main = [&](std::string name)
   {
     //LBS lbs;
-    WTime t;
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     //Window window(m_params, name, ires.x(), ires.y());
@@ -190,7 +191,8 @@ int EntryPoint::main()
     }
   };
   main("w1");
-  F_LOG("yay! mapped buffer!\n");
+  t.tick();
+  t.printStatistics();
   log.update();
   return 0;
 }
