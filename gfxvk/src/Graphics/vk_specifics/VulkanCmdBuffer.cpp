@@ -323,6 +323,7 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
 
 void VulkanCmdBuffer::dependencyFuckup()
 {
+  tracker.reset();
   int drawCallIndex = 0;
   m_commandList->foreach([&](VulkanCommandPacket* packet)
   {
