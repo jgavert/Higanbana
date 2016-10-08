@@ -344,21 +344,21 @@ VulkanDescriptorPool VulkanGpuDevice::createDescriptorPool()
   std::vector<vk::DescriptorPoolSize> poolSizes;
   poolSizes.emplace_back(vk::DescriptorPoolSize()
     .setType(vk::DescriptorType::eStorageBufferDynamic)
-    .setDescriptorCount(10));
+    .setDescriptorCount(2));
   poolSizes.emplace_back(vk::DescriptorPoolSize()
     .setType(vk::DescriptorType::eStorageBuffer)
-    .setDescriptorCount(10));
+    .setDescriptorCount(200));
   poolSizes.emplace_back(vk::DescriptorPoolSize()
     .setType(vk::DescriptorType::eSampledImage)
-    .setDescriptorCount(10));
+    .setDescriptorCount(200));
   poolSizes.emplace_back(vk::DescriptorPoolSize()
     .setType(vk::DescriptorType::eStorageImage)
-    .setDescriptorCount(10));
+    .setDescriptorCount(200));
   
   vk::DescriptorPoolCreateInfo info = vk::DescriptorPoolCreateInfo()
     .setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
     .setPPoolSizes(poolSizes.data())
-    .setMaxSets(3);
+    .setMaxSets(100);
 
   auto pool = m_device->createDescriptorPool(info);
 
