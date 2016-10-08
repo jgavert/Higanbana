@@ -38,7 +38,7 @@ private:
 	std::unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
 	std::unordered_map<DrawCallIndex, vk::PipelineStageFlags> m_drawCallStage;
 	std::unordered_map<ResourceUniqueId, DrawCallIndex> m_lastReferenceToResource;
-	std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes;
+	// std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes; // This could be vector of all writes
 	std::unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
 	size_t drawCallsAdded = 0;
 
@@ -322,6 +322,7 @@ public:
 		int jobsSize = static_cast<int>(m_jobs.size());
 		int executeSize = static_cast<int>(m_schedulingResult.size());
 
+
 		// this function should figure out transitions within a commandbuffer
 		// We should use a small cache of currently "live" resouces that will be referenced in future
 		// those that won't be, they should be evicted.
@@ -400,4 +401,14 @@ public:
 		gfx.pipelineBarrier(last, next, vk::DependencyFlags(), memory, buffer, image);
 	}
 
+  void reset()
+  {
+    m_drawCallInfo.clear();
+    m_drawCallStage.clear();
+    m_jobs.clear();
+    m_lastReferenceToResource.clear();
+    m_schedulingResult.clear();
+    m_barrierOffsets.clear();
+    aaargh.clear();
+  }
 };
