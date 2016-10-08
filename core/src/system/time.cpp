@@ -94,12 +94,12 @@ float WTime::getframetime_low() {
 }
 
 void WTime::printStatistics() {
-  F_LOG("Time running: %.3f seconds, ", std::chrono::duration_cast<std::chrono::milliseconds>(timepoint_last - start).count()/1000.f);
-  F_LOG("frames: %zu\n", frames);
-  F_LOG("Fps(min, aveg, high): %f", interpolateFpsFromNanoseconds(frametime_high));
-  F_LOG(" / %f / %f\n", getAverageFps(), interpolateFpsFromNanoseconds(frametime_low));
-  F_LOG("frametimes(min, aveg, high): %fms / %f", getframetime_low(), getAverageFrametime());
-  F_LOG("ms / %fms \n", getframetime_high());
+  F_SLOG("WTime", "Time running: %.3f seconds, ", std::chrono::duration_cast<std::chrono::milliseconds>(timepoint_last - start).count()/1000.f);
+  F_LOG_UNFORMATTED("frames: %zu\n", frames);
+  F_SLOG("WTime", "Fps(min, aveg, high): %f", interpolateFpsFromNanoseconds(frametime_high));
+  F_LOG_UNFORMATTED(" / %f / %f\n", getAverageFps(), interpolateFpsFromNanoseconds(frametime_low));
+  F_SLOG("WTime", "frametimes(min, aveg, high): %fms / %f", getframetime_low(), getAverageFrametime());
+  F_LOG_UNFORMATTED("ms / %fms \n", getframetime_high());
 }
 
 int64_t WTime::getCurrentNano()
