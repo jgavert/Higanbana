@@ -137,10 +137,14 @@ int EntryPoint::main()
           }
         }
         ComputePipeline test = gpu.createComputePipeline<SampleShader>(ComputePipelineDescriptor().shader("sampleShader"));
-        for (int i = 0; i < 1; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           gfx.copy(buffer, bufferTarget);
+          gpu.submit(gfx);
+        }
+        for (int i = 0; i < 10; ++i)
+        {
+          auto gfx = gpu.createGraphicsCommandBuffer();
           {
               auto shif = gfx.bind<SampleShader>(test);
               shif.read(SampleShader::dataIn, bufferTargetUav);
@@ -161,8 +165,6 @@ int EntryPoint::main()
           }
           gfx.copy(computeTarget, bufferReadb);
           gpu.submit(gfx);
-          auto fence = gfx.fence();
-          gpu.waitFence(fence);
         }
         gpu.waitIdle();
 

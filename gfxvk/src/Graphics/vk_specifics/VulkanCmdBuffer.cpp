@@ -365,9 +365,11 @@ void VulkanCmdBuffer::dependencyFuckup()
 
   tracker.resolveGraph();
   tracker.makeAllBarriers();
+  /*
   tracker.printStuff([](std::string data)
   {
     F_LOG_UNFORMATTED("%s", data.c_str());
   });
+  */
 }
 

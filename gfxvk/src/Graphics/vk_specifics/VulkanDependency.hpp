@@ -339,7 +339,7 @@ public:
 		int firstCall = m_schedulingResult[0].jobID;
 
 		int i = 0;
-		while (m_jobs[i].drawIndex == firstCall)
+		while (i < jobsSize && m_jobs[i].drawIndex == firstCall)
 		{
 			m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, m_jobs[i].access };
 			++i;
@@ -379,7 +379,6 @@ public:
 			}
 		}
 		m_barrierOffsets.emplace_back(static_cast<int>(aaargh.size()));
-		F_ILOG("dingdong", "yay");
 	}
 
 	void runBarrier(vk::CommandBuffer gfx, int nextDrawCall)
