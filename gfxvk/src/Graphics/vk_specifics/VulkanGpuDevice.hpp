@@ -35,7 +35,7 @@ private:
 
   ShaderStorage           m_shaders;
 
-  int64_t                 m_resourceID;
+  int64_t                 m_resourceID = 1;
 
   struct FreeQueues
   {

@@ -24,6 +24,7 @@ private:
 
 	enum class UsageHint
 	{
+    unknown,
 		read,
 		write
 	};
