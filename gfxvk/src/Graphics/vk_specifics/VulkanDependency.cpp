@@ -362,8 +362,8 @@
 
 		// after first and second, nextDrawCall == 1
 		// so we need barriers from offset 0
-    int barrierOffset = m_barrierOffsets[nextDrawCall - 1];
-    int barrierSize = m_barrierOffsets[nextDrawCall] - barrierOffset;
+    int barrierOffset = m_barrierOffsets[nextDrawCall];
+    int barrierSize = m_barrierOffsets[nextDrawCall + 1] - barrierOffset;
     if (barrierSize == 0)
     {
       return;
