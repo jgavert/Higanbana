@@ -70,6 +70,7 @@ Compiler( 'Compiler-x64-Linux' )
                   //   + ' /we4905' // wide string literal cast to 'LPSTR'
                   //   + ' /we4906' // string literal cast to 'LPWSTR'
 					   + ' /wd4996' // sparsepp on debug
+					   + ' /wd4127' // conditional expression is constant (so what)
                        + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
                        + ' /wd4065' // switch statement contains 'default' but no 'case' labels
 

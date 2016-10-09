@@ -19,11 +19,11 @@
 #include "core/src/system/memview.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 
+#include "core/src/tools/renderdoc.hpp"
+
 #include "vkShaders/sampleShader.if.hpp"
 
-#ifdef PLATFORM_WINDOWS
-#include <renderdoc_app.h>
-#endif
+
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
 #include <iostream>
@@ -48,40 +48,18 @@ int EntryPoint::main()
   {
 	  //SchedulerTests::Run();
   }
-#ifdef PLATFORM_WINDOWS
-  RENDERDOC_API_1_0_0 *rdoc_api = nullptr;
-  if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
-  {
-    pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-
-    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc_api);
-
-    F_ASSERT(ret == 1,"");
-    F_ASSERT(rdoc_api->StartFrameCapture != nullptr && rdoc_api->EndFrameCapture != nullptr, "");
-
-    int major = 999, minor = 999, patch = 999;
-
-    rdoc_api->GetAPIVersion(&major, &minor, &patch);
-
-    F_ASSERT(major == 1 && minor >= 0 && patch >= 0, "");
-  }
-#endif
+  RenderDocApi renderdoc;
   auto main = [&](std::string name)
   {
     //LBS lbs;
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
-    //Window window(m_params, name, ires.x(), ires.y());
-    //window.open();
+    Window window(m_params, name, ires.x(), ires.y());
+    window.open();
     
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
-#ifdef PLATFORM_WINDOWS
-      if (rdoc_api)
-      {
-        rdoc_api->StartFrameCapture(nullptr, nullptr);
-      }
-#endif
+      renderdoc.startCapture();
       {
         constexpr int TestBufferSize = 1*128;
 
@@ -191,12 +169,7 @@ int EntryPoint::main()
             }
           }
         }
-#ifdef PLATFORM_WINDOWS
-        if (rdoc_api)
-        {
-          rdoc_api->EndFrameCapture(nullptr, nullptr);
-        }
-#endif
+        renderdoc.endCapture();
       }
     }
   };
