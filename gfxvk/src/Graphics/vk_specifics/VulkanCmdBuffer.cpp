@@ -5,6 +5,7 @@
 #include <utility>
 #include <deque>
 
+
 #define COMMANDBUFFERSIZE 500*1024
 using namespace faze;
 
@@ -267,9 +268,14 @@ void VulkanCmdBuffer::close()
 
 void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
 {
+  m_layouts.clear();
+  m_allSets.clear();
+  m_updatedSetsPerDraw.clear();
+  m_layouts.reserve(m_commandList->size()/2);
+  m_allSets.reserve(m_commandList->size()*10);
+  m_updatedSetsPerDraw.reserve(m_layouts.size());
   // count layouts
   vk::DescriptorSetLayout* descriptorLayout;
-  std::vector<vk::DescriptorSetLayout> m_layouts;
   m_commandList->foreach([&](VulkanCommandPacket* packet)
   {
     switch (packet->type())
@@ -290,14 +296,12 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
     }
   });
 
-  std::vector<vk::DescriptorSet> allocatedSets;
   if (!m_layouts.empty())
   {
-    auto result = device.m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
+    m_updatedSetsPerDraw = device.m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
       .setDescriptorPool(pool.pool)
       .setDescriptorSetCount(static_cast<uint32_t>(m_layouts.size()))
       .setPSetLayouts(m_layouts.data()));
-    allocatedSets.insert(allocatedSets.end(), result.begin(), result.end());
   }
 
   // make sets
@@ -315,29 +319,24 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
         // handle binding here, create function that does it in a generic way.
         DispatchPacket* dis = static_cast<DispatchPacket*>(packet);
         auto& bind = dis->descriptors;
-        std::vector<vk::WriteDescriptorSet> allSets;
         for (auto&& it : bind.readBuffers)
         {
-          allSets.push_back(vk::WriteDescriptorSet()
+          m_allSets.emplace_back(vk::WriteDescriptorSet()
             .setDescriptorCount(1)
             .setDescriptorType(it.second.type())
             .setDstBinding(it.first)
-            .setDstSet(allocatedSets[setCount])
+            .setDstSet(m_updatedSetsPerDraw[setCount])
             .setPBufferInfo(&it.second.info()));
         }
         for (auto&& it : bind.modifyBuffers)
         {
-          allSets.push_back(vk::WriteDescriptorSet()
+          m_allSets.emplace_back(vk::WriteDescriptorSet()
             .setDescriptorCount(1)
             .setDescriptorType(it.second.type())
             .setDstBinding(it.first)
-            .setDstSet(allocatedSets[setCount])
+            .setDstSet(m_updatedSetsPerDraw[setCount])
             .setPBufferInfo(&it.second.info()));
         }
-        vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(allSets);
-        device.m_device->updateDescriptorSets(proxy, {});
-        
-        m_updatedSetsPerDraw.push_back(allocatedSets[setCount]);
         ++setCount;
         break;
       }
@@ -345,6 +344,8 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
       break;
     }
   });
+  vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(m_allSets);
+  device.m_device->updateDescriptorSets(proxy, {});
 }
 
 void VulkanCmdBuffer::dependencyFuckup()
@@ -361,7 +362,7 @@ void VulkanCmdBuffer::dependencyFuckup()
       F_ASSERT(p->m_copyList.size() == 1, "Dependency tracker doesn't support more than 1 copy.");
       auto first = p->m_copyList[0];
 
-      tracker.addDrawCall(drawCallIndex, "BufferCopy", vk::PipelineStageFlagBits::eTransfer);
+      tracker.addDrawCall(drawCallIndex, DependencyTracker::DrawType::BufferCopy, vk::PipelineStageFlagBits::eTransfer);
       tracker.addReadBuffer(drawCallIndex, p->src, first.srcOffset, first.size, vk::AccessFlagBits::eTransferRead);
       tracker.addModifyBuffer(drawCallIndex, p->dst, first.dstOffset, first.size, vk::AccessFlagBits::eTransferWrite);
 
@@ -373,7 +374,7 @@ void VulkanCmdBuffer::dependencyFuckup()
       DispatchPacket* p = static_cast<DispatchPacket*>(packet);
       auto& bind = p->descriptors;
 
-      tracker.addDrawCall(drawCallIndex, "Dispatch", vk::PipelineStageFlagBits::eComputeShader);
+      tracker.addDrawCall(drawCallIndex, DependencyTracker::DrawType::Dispatch, vk::PipelineStageFlagBits::eComputeShader);
       for (auto&& it : bind.readBuffers)
       {
         tracker.addReadBuffer(drawCallIndex, it.second, vk::AccessFlagBits::eShaderRead);

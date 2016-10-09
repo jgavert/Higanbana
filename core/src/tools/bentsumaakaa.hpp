@@ -1,4 +1,5 @@
 #pragma once
+#include "core/src/global_debug.hpp"
 #include <iostream>
 #include <chrono>
 #include <functional>
@@ -28,7 +29,7 @@ namespace faze
     int64_t bfunc2(const bool verbose, const std::function<void()> block)
     {
       if (verbose)
-        std::cout << "Bentsumaakaa: Benchmarking function for " << times << " times." << std::endl;
+        F_SLOG("Bentsumaakaa", "Benchmarking function for %d times.\n", times);
       auto point1 = std::chrono::high_resolution_clock::now();
       for (int i = 0; i < times; i++)
       {
@@ -37,7 +38,7 @@ namespace faze
       auto point2 = std::chrono::high_resolution_clock::now();
       int64_t time = std::chrono::duration_cast<std::chrono::nanoseconds>(point2 - point1).count();
       if (verbose)
-        std::cout << "Bentsumaakaa: Benchmarking finished, average time was " << static_cast<float>((time / static_cast<int64_t>(times))) / 1000000.f << "ms." << std::endl;
+        F_SLOG("Bentsumaakaa", "Benchmarking finished, average time was %.3f ms.\n", static_cast<float>((time / static_cast<int64_t>(times))) / 1000000.f);
       return time / static_cast<int64_t>(times);
     }
 
