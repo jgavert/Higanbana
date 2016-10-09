@@ -280,7 +280,6 @@
 		{
 			vk::Buffer buffer;
 			vk::AccessFlags flags;
-      UsageHint hint;
 		};
 		std::unordered_map<ResourceUniqueId, SmallResource> m_cache;
 
@@ -289,7 +288,7 @@
     {
       auto flags = m_bufferStates[id].state->flags;
       if (flags != vk::AccessFlags(vk::AccessFlagBits(0)))
-        m_cache[id] = SmallResource{ m_bufferStates[id].buffer, flags, UsageHint::unknown};
+        m_cache[id] = SmallResource{ m_bufferStates[id].buffer, flags};
     }
 
     int i = 0;
@@ -303,13 +302,11 @@
 			while (i < jobsSize && m_jobs[i].drawIndex == secondCall)
 			{
         auto jobResAccess = m_jobs[i].access;
-        auto hint = m_jobs[i].hint;
 				auto resource = m_cache.find(m_jobs[i].resource);
 				if (resource != m_cache.end())
 				{
           auto lastAccess = resource->second.flags;
-          auto lastHint = resource->second.hint;
-					if (jobResAccess != lastAccess || hint != lastHint)
+					if (jobResAccess != lastAccess)
 					{
 						aaargh.emplace_back(vk::BufferMemoryBarrier()
 							.setSrcAccessMask(lastAccess)
@@ -320,13 +317,12 @@
 							.setOffset(0)
 							.setSize(VK_WHOLE_SIZE));
             resource->second.flags = jobResAccess;
-            resource->second.hint = hint;
 						++barrierOffsets;
 					}
 				}
 				else // resource that we hadn't seen before
 				{
-					m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, jobResAccess, hint };
+					m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, jobResAccess};
 				}
 				++i;
 			}
