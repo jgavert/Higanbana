@@ -7,6 +7,3 @@
 [submodule "externals/zstd"]
 	path = externals/zstd
 	url = https://github.com/facebook/zstd.git
-[submodule "externals/rabbit"]
-	path = externals/rabbit
-	url = https://github.com/tjizep/rabbit.git
