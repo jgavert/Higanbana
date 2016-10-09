@@ -24,5 +24,8 @@ FAZE_PushConstants(asdfg)
 
 FAZE_BufferSRV(buffer, DataFormat, dataIn, 1, blaa);
 FAZE_BufferUAV(buffer, DataFormat, dataOut, 2, bloo);
+
+FAZE_COMPUTEWORKGROUPS(128, 1, 1)
+
 FAZE_DescriptorSetLayout(1, 1, 0, 0)
 FAZE_END_LAYOUT

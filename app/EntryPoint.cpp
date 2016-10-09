@@ -82,6 +82,8 @@ int EntryPoint::main()
       }
 #endif
       {
+        constexpr int TestBufferSize = 100*128;
+
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")
           .sizeInBytes(32000000)
@@ -92,7 +94,7 @@ int EntryPoint::main()
           ResourceDescriptor()
             .Name("testBuffer")
 			      .Format<float>()
-            .Width(100)
+            .Width(TestBufferSize)
             .Usage(ResourceUsage::UploadHeap)
             .Dimension(FormatDimension::Buffer));
 		
@@ -100,7 +102,7 @@ int EntryPoint::main()
           ResourceDescriptor()
             .Name("testBufferTarget")
 			      .Format<float>()
-            .Width(100)
+            .Width(TestBufferSize)
 			.enableUnorderedAccess()
             .Usage(ResourceUsage::GpuOnly)
             .Dimension(FormatDimension::Buffer));
@@ -109,7 +111,7 @@ int EntryPoint::main()
           ResourceDescriptor()
             .Name("testBufferTarget")
 			      .Format<float>()
-            .Width(100)
+            .Width(TestBufferSize)
             .Usage(ResourceUsage::GpuOnly)
 			.enableUnorderedAccess()
             .Dimension(FormatDimension::Buffer));
@@ -118,7 +120,7 @@ int EntryPoint::main()
           ResourceDescriptor()
           .Name("testBufferTarget")
           .Format<float>()
-          .Width(100)
+          .Width(TestBufferSize)
           .Usage(ResourceUsage::ReadbackHeap)
           .Dimension(FormatDimension::Buffer));
 		  
@@ -126,11 +128,11 @@ int EntryPoint::main()
         {
           F_LOG("yay! a buffer\n");
           {
-            auto map = buffer.Map<float>(0, 100);
+            auto map = buffer.Map<float>(0, TestBufferSize);
             if (map.isValid())
             {
               F_LOG("yay! mapped buffer!\n");
-              for (auto i = 0; i < 100; ++i)
+              for (auto i = 0; i < TestBufferSize; ++i)
               {
                 map[i] = 1.f;
               }
@@ -145,26 +147,23 @@ int EntryPoint::main()
             auto shif = gfx.bind<SampleShader>(test);
             shif.read(SampleShader::dataIn, bufferTargetUav);
             shif.modify(SampleShader::dataOut, computeTargetUav);
-            gfx.dispatch(shif, 1, 1, 1);
+            gfx.dispatchThreads(shif, TestBufferSize);
           }
           gpu.submit(gfx);
         }
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 1; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           auto shif = gfx.bind<SampleShader>(test);
-          for (int k = 0; k < 4; k++)
+          for (int k = 0; k < 20; k++)
           {
-            {
-              shif.read(SampleShader::dataIn, computeTargetUav);
-              shif.modify(SampleShader::dataOut, bufferTargetUav);
-              gfx.dispatch(shif, 1, 1, 1);
-            }
-            {
-              shif.read(SampleShader::dataIn, bufferTargetUav);
-              shif.modify(SampleShader::dataOut, computeTargetUav);
-              gfx.dispatch(shif, 1, 1, 1);
-            }
+            shif.read(SampleShader::dataIn, computeTargetUav);
+            shif.modify(SampleShader::dataOut, bufferTargetUav);
+            gfx.dispatchThreads(shif, TestBufferSize);
+
+            shif.read(SampleShader::dataIn, bufferTargetUav);
+            shif.modify(SampleShader::dataOut, computeTargetUav);
+            gfx.dispatchThreads(shif, TestBufferSize );
           }
           gfx.copy(computeTarget, bufferReadb);
           gpu.submit(gfx);
@@ -175,10 +174,10 @@ int EntryPoint::main()
         {
           F_LOG("yay! a buffer\n");
           {
-            auto map = bufferReadb.Map<float>(0, 100);
+            auto map = bufferReadb.Map<float>(0, TestBufferSize);
             if (map.isValid())
             {
-              F_LOG("yay! mapped buffer! %f\n", map[0]);
+              F_LOG("yay! mapped buffer! %f\n", map[12799]);
               log.update();
             }
           }

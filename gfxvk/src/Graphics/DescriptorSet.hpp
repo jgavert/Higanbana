@@ -11,9 +11,15 @@ class DescriptorSet
 private:
 	friend class GraphicsCmdBuffer;
 	DescriptorSetImpl set;
+  int workGroupX;
+  int workGroupY;
+  int workGroupZ;
 public:
-	DescriptorSet(DescriptorSetImpl& set)
+	DescriptorSet(DescriptorSetImpl& set, int x, int y, int z)
 	: set(set)
+  , workGroupX(x)
+  , workGroupY(y)
+  , workGroupZ(z)
 	{}
 
 	// could change slot to a compile time.
