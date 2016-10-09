@@ -33,7 +33,8 @@ public:
   void copy(Buffer& src, Buffer& dst);
   void bindPipeline(ComputePipeline& pipeline);
   //void bindPipeline(GraphicsPipeline& pipeline);
-  void dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z);
+  void dispatch(DescriptorSet& inputs, unsigned x, unsigned y = 1, unsigned z = 1);
+  void dispatchThreads(DescriptorSet& inputs, unsigned x, unsigned y = 1, unsigned z = 1);
   Fence fence();
   bool isValid();
   void close();
@@ -46,6 +47,9 @@ public:
   {
     m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
     auto descriptorImpl = DescriptorSetImpl(pipeline.impl());
-	  return DescriptorSet(descriptorImpl);
+    auto workGroupX = ShaderInterface::s_workGroupSizeX;
+    auto workGroupY = ShaderInterface::s_workGroupSizeY;
+    auto workGroupZ = ShaderInterface::s_workGroupSizeZ;
+	  return DescriptorSet(descriptorImpl, workGroupX, workGroupY, workGroupZ);
   }
 };

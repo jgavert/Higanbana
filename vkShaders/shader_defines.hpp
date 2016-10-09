@@ -31,6 +31,9 @@
 #define FAZE_ExtractConstants(cbufferType, variable) \
     cbufferType variable = fazeConstants[0];
 
+#define FAZE_COMPUTEWORKGROUPS(x, y, z) \
+    layout (local_size_x = x, local_size_y = y, local_size_z = z) in; 
+
 #define FAZE_DescriptorSetLayout(srvBufferCount, uavBufferCount, srvTextureCount, uavTextureCount)
 #define FAZE_BEGIN_LAYOUT(layoutName)
 #define FAZE_END_LAYOUT
@@ -74,6 +77,11 @@ namespace faze
     static constexpr ::faze::shader::ShaderSRVTexture<srvSlot> srvName = srvSlot;
 #define FAZE_TextureUAV(uavType, uavName, uavSlot) \
     static constexpr ::faze::shader::ShaderUAVTexture<uavSlot> uavName = uavSlot;
+
+#define FAZE_COMPUTEWORKGROUPS(x, y, z) \
+    static constexpr int s_workGroupSizeX = x; \
+    static constexpr int s_workGroupSizeY = y; \
+    static constexpr int s_workGroupSizeZ = z;
 
 #define FAZE_DescriptorSetLayout(srvBufferCount, uavBufferCount, srvTextureCount, uavTextureCount) \
       static constexpr int s_srvBufferCount = srvBufferCount; \

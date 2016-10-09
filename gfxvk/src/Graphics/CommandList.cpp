@@ -33,6 +33,18 @@ void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, 
   m_cmdBuffer.dispatch(inputs.set, x, y, z);
 }
 
+void GraphicsCmdBuffer::dispatchThreads(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
+{
+  const auto roundUpMultiple = [](int value, int multiple)
+  {
+    return (value + multiple - 1) / multiple * multiple;
+  };
+  auto xThreads = roundUpMultiple(x, inputs.workGroupX);
+  auto yThreads = roundUpMultiple(y, inputs.workGroupY);
+  auto zThreads = roundUpMultiple(z, inputs.workGroupZ);
+  m_cmdBuffer.dispatch(inputs.set, xThreads, yThreads, zThreads);
+}
+
 // draw
 
 // copy
