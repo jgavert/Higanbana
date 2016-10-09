@@ -280,28 +280,19 @@
 		{
 			vk::Buffer buffer;
 			vk::AccessFlags flags;
+      UsageHint hint;
 		};
 		std::unordered_map<ResourceUniqueId, SmallResource> m_cache;
 
-    // fill cache with all resources
+    // fill cache with all resources seen.
     for (auto&& id : m_uniqueResourcesThisChain)
     {
       auto flags = m_bufferStates[id].state->flags;
       if (flags != vk::AccessFlags(vk::AccessFlagBits(0)))
-        m_cache[id] = SmallResource{ m_bufferStates[id].buffer, flags };
+        m_cache[id] = SmallResource{ m_bufferStates[id].buffer, flags, UsageHint::unknown};
     }
 
-		//int firstCall = m_schedulingResult[0].jobID;
-
-    /*
-		int i = 0;
-		while (i < jobsSize && m_jobs[i].drawIndex == firstCall)
-		{
-			m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, m_jobs[i].access };
-			++i;
-		}*/
     int i = 0;
-		// now we have states caused by first call
 
 		int barrierOffsets = 0;
 		for (int drawId = 0; drawId < executeSize; ++drawId)
@@ -311,26 +302,31 @@
 			m_barrierOffsets.emplace_back(barrierOffsets);
 			while (i < jobsSize && m_jobs[i].drawIndex == secondCall)
 			{
+        auto jobResAccess = m_jobs[i].access;
+        auto hint = m_jobs[i].hint;
 				auto resource = m_cache.find(m_jobs[i].resource);
 				if (resource != m_cache.end())
 				{
-					if (m_jobs[i].access != resource->second.flags)
+          auto lastAccess = resource->second.flags;
+          auto lastHint = resource->second.hint;
+					if (jobResAccess != lastAccess || hint != lastHint)
 					{
 						aaargh.emplace_back(vk::BufferMemoryBarrier()
-							.setSrcAccessMask(resource->second.flags)
-							.setDstAccessMask(m_jobs[i].access)
+							.setSrcAccessMask(lastAccess)
+							.setDstAccessMask(jobResAccess)
 							.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
 							.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
 							.setBuffer(resource->second.buffer)
 							.setOffset(0)
 							.setSize(VK_WHOLE_SIZE));
-            resource->second.flags = m_jobs[i].access;
+            resource->second.flags = jobResAccess;
+            resource->second.hint = hint;
 						++barrierOffsets;
 					}
 				}
 				else // resource that we hadn't seen before
 				{
-					m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, m_jobs[i].access };
+					m_cache[m_jobs[i].resource] = SmallResource{ m_bufferStates[m_jobs[i].resource].buffer, jobResAccess, hint };
 				}
 				++i;
 			}

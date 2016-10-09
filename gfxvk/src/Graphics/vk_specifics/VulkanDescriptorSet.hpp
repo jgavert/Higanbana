@@ -34,6 +34,14 @@ public:
 	void read(unsigned slot, VulkanTextureShaderView& texture);
 	void modify(unsigned slot, VulkanBufferShaderView& buffer);
 	void modify(unsigned slot, VulkanTextureShaderView& texture);
+
+  void clear()
+  {
+    readBuffers.clear();
+    readTextures.clear();
+    modifyBuffers.clear();
+    modifyTextures.clear();
+  }
 };
 
 using DescriptorSetImpl = VulkanDescriptorSet;

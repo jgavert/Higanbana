@@ -151,7 +151,7 @@ int EntryPoint::main()
           }
           gpu.submit(gfx);
         }
-        for (int i = 0; i < 1; ++i)
+        for (int i = 0; i < 2; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           auto shif = gfx.bind<SampleShader>(test);
