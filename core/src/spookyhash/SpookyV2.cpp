@@ -12,10 +12,11 @@
 #include <memory.h>
 #include "SpookyV2.h"
 
+#ifndef PLATFORM_LINUX
 #pragma warning( push )
 #pragma warning( disable : 4127 )
 #pragma warning( disable : 4267 )
-
+#endif
 
 #define ALLOW_UNALIGNED_READS 1
 
@@ -356,4 +357,6 @@ void SpookyHash::Final(uint64 *hash1, uint64 *hash2)
 
 
 // Some code
+#ifndef PLATFORM_LINUX
 #pragma warning( pop ) 
+#endif
