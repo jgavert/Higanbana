@@ -1,11 +1,50 @@
 #pragma once
+#include "VulkanBuffer.hpp"
+
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include "VulkanBuffer.hpp"
 #include <vulkan/vulkan.hpp>
+#include <sparsepp.h>
+#include "core/src/spookyhash/SpookyV2.h"
+
+#define USING_SPARSEPP
+
+inline size_t HashMemory(const void * p, size_t sizeBytes)
+{
+  return size_t(SpookyHash::Hash64(p, sizeBytes, 0));
+}
+template <typename K>
+inline size_t HashKey(const K* key, size_t size)
+{
+  return HashMemory(key, size);
+}
+
+template<typename TKey>
+struct Hasher 
+{
+  std::size_t operator()(const TKey& key) const
+  {
+    return HashKey(&key, sizeof(TKey));
+  }
+};
+
+
+#if defined(USING_SPARSEPP) && defined(_DEBUG)
+template <typename key, typename val>
+using unordered_map = spp::sparse_hash_map<key, val, Hasher<key>>;
+
+template <typename key>
+using unordered_set = spp::sparse_hash_set<key, Hasher<key>>;
+#else
+template <typename key, typename val>
+using unordered_map = std::unordered_map<key, val, Hasher<key>>;
+
+template <typename key>
+using unordered_set = std::unordered_set<key, Hasher<key>>;
+#endif
+
 
 struct BufferDependency
 {
@@ -38,12 +77,12 @@ private:
 	};
 
 	// general info needed
-	std::unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
-	std::unordered_map<DrawCallIndex, vk::PipelineStageFlags> m_drawCallStage;
-	std::unordered_map<ResourceUniqueId, DrawCallIndex> m_lastReferenceToResource;
+  unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
+  unordered_map<DrawCallIndex, vk::PipelineStageFlags> m_drawCallStage;
+  unordered_map<ResourceUniqueId, DrawCallIndex> m_lastReferenceToResource;
 	// std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes; // This could be vector of all writes
-  std::unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
-	std::unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
+  unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
+	unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
 	size_t drawCallsAdded = 0;
 
 	// actual jobs used to generate DAG
