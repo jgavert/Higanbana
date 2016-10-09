@@ -27,6 +27,7 @@
 #include <shaderc/shaderc.hpp> 
 #include <cstdio>
 #include <iostream>
+#include <sparsepp.h>
 
 using namespace faze;
 
@@ -82,7 +83,7 @@ int EntryPoint::main()
       }
 #endif
       {
-        constexpr int TestBufferSize = 100*128;
+        constexpr int TestBufferSize = 1*128;
 
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")
@@ -151,11 +152,11 @@ int EntryPoint::main()
           }
           gpu.submit(gfx);
         }
-        for (int i = 0; i < 4; ++i)
+        for (int i = 0; i < 10000; ++i)
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           auto shif = gfx.bind<SampleShader>(test);
-          for (int k = 0; k < 20; k++)
+          for (int k = 0; k < 2; k++)
           {
             shif.read(SampleShader::dataIn, computeTargetUav);
             shif.modify(SampleShader::dataOut, bufferTargetUav);
@@ -165,6 +166,10 @@ int EntryPoint::main()
             shif.modify(SampleShader::dataOut, computeTargetUav);
             gfx.dispatchThreads(shif, TestBufferSize );
           }
+          gpu.submit(gfx);
+        }
+        {
+          auto gfx = gpu.createGraphicsCommandBuffer();
           gfx.copy(computeTarget, bufferReadb);
           gpu.submit(gfx);
         }
@@ -177,7 +182,7 @@ int EntryPoint::main()
             auto map = bufferReadb.Map<float>(0, TestBufferSize);
             if (map.isValid())
             {
-              F_LOG("yay! mapped buffer! %f\n", map[12799]);
+              F_LOG("yay! mapped buffer! %f\n", map[TestBufferSize-1]);
               log.update();
             }
           }

@@ -1,6 +1,6 @@
 #include "GpuDevice.hpp"
 
-#define COMMANDLISTCOUNT 12
+#define COMMANDLISTCOUNT 30
 
 GpuDevice::GpuDevice(GpuDeviceImpl device)
   : m_device(std::make_shared<GpuDeviceImpl>(device))
