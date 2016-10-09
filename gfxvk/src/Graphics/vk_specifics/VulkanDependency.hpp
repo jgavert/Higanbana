@@ -19,6 +19,25 @@ struct BufferDependency
 
 class DependencyTracker
 {
+public:
+  enum class DrawType
+  {
+    BufferCopy,
+    Dispatch
+  };
+
+  std::string drawTypeToString(DrawType type)
+  {
+    switch (type)
+    {
+    case DrawType::BufferCopy:
+      return "BufferCopy";
+    case DrawType::Dispatch:
+      return "Dispatch";
+    default:
+      return "Unknown";
+    }
+  }
 private:
 	using DrawCallIndex = int;
 	using ResourceUniqueId = int64_t;
@@ -30,6 +49,8 @@ private:
 		write
 	};
 
+
+
 	struct DependencyPacket
 	{
 		DrawCallIndex drawIndex;
@@ -39,8 +60,8 @@ private:
 	};
 
 	// general info needed
-  faze::unordered_map<DrawCallIndex, std::string> m_drawCallInfo;
-  faze::unordered_map<DrawCallIndex, vk::PipelineStageFlags> m_drawCallStage;
+  std::vector<DrawType> m_drawCallInfo;
+  std::vector<vk::PipelineStageFlags> m_drawCallStage;
   faze::unordered_map<ResourceUniqueId, DrawCallIndex> m_lastReferenceToResource;
 	// std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes; // This could be vector of all writes
   faze::unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
@@ -64,7 +85,9 @@ private:
 	std::vector<vk::BufferMemoryBarrier> aaargh;
 	std::vector<int> m_barrierOffsets;
 public:
-  void addDrawCall(int drawCallIndex, std::string name, vk::PipelineStageFlags baseFlags);
+
+
+  void addDrawCall(int drawCallIndex, DrawType name, vk::PipelineStageFlags baseFlags);
 
   void addReadBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags);
   void addModifyBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags);

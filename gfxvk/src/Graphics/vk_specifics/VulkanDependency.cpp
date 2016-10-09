@@ -1,9 +1,9 @@
 #include "VulkanDependency.hpp"
 
-	void DependencyTracker::addDrawCall(int drawCallIndex, std::string name, vk::PipelineStageFlags baseFlags)
+	void DependencyTracker::addDrawCall(int , DrawType name, vk::PipelineStageFlags baseFlags)
 	{
-		m_drawCallInfo[drawCallIndex] = name;
-		m_drawCallStage[drawCallIndex] = baseFlags;
+		m_drawCallInfo.emplace_back(name);
+		m_drawCallStage.emplace_back(baseFlags);
 		drawCallsAdded++;
 	}
 
@@ -208,7 +208,7 @@
 			tmp += "[label=\"";
 			tmp += std::to_string(it.jobID);
 			tmp += ". ";
-			tmp += m_drawCallInfo[it.jobID];
+			tmp += drawTypeToString(m_drawCallInfo[it.jobID]);
 			tmp += "\"];\n";
 			func(tmp); tmp.clear();
 		}
@@ -238,7 +238,7 @@
 			tmp += "[label=\"";
 			tmp += std::to_string(fb);
 			tmp += ". ";
-			tmp += m_drawCallInfo[it.jobID];
+			tmp += drawTypeToString(m_drawCallInfo[it.jobID]);
 			tmp += "\"];\n";
 			func(tmp); tmp.clear();
 			fb++;

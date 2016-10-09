@@ -66,6 +66,11 @@ private:
   std::vector<vk::DescriptorSet>      m_updatedSetsPerDraw;
   DependencyTracker					tracker;
 
+  // tempdata
+
+  std::vector<vk::WriteDescriptorSet> m_allSets;
+  std::vector<vk::DescriptorSetLayout> m_layouts;
+
   VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std::shared_ptr<vk::CommandPool> pool);
 public:
   VulkanCmdBuffer() {}
