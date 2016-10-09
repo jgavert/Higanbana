@@ -12,12 +12,6 @@
 #include <memory.h>
 #include "SpookyV2.h"
 
-#ifndef PLATFORM_LINUX
-#pragma warning( push )
-#pragma warning( disable : 4127 )
-#pragma warning( disable : 4267 )
-#endif
-
 #define ALLOW_UNALIGNED_READS 1
 
 //
@@ -183,7 +177,7 @@ void SpookyHash::Hash128(
     remainder = (length - ((const uint8 *)end-(const uint8 *)message));
     memcpy(buf, end, remainder);
     memset(((uint8 *)buf)+remainder, 0, sc_blockSize-remainder);
-    ((uint8 *)buf)[sc_blockSize-1] = remainder;
+    ((uint8 *)buf)[sc_blockSize-1] = static_cast<uint8>(remainder);
     
     // do some final mixing 
     End(buf, h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11);
@@ -355,8 +349,3 @@ void SpookyHash::Final(uint64 *hash1, uint64 *hash2)
     *hash2 = h1;
 }
 
-
-// Some code
-#ifndef PLATFORM_LINUX
-#pragma warning( pop ) 
-#endif

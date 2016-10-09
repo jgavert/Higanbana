@@ -26,11 +26,6 @@
 // slower than MD5.
 //
 
-#ifndef PLATFORM_LINUX
-#pragma warning( push )
-#pragma warning( disable : 4245 )
-#endif
-
 #include <stddef.h>
 
 #ifdef _MSC_VER
@@ -292,7 +287,7 @@ private:
     //  * is a not-very-regular mix of 1's and 0's
     //  * does not need any other special mathematical properties
     //
-    static const uint64 sc_const = 0xdeadbeefdeadbeefLL;
+    static const uint64 sc_const = static_cast<uint64>(0xdeadbeefdeadbeefLL);
 
     uint64 m_data[2*sc_numVars];   // unhashed data, for partial messages
     uint64 m_state[sc_numVars];  // internal state of the hash
@@ -300,8 +295,3 @@ private:
     uint8  m_remainder;          // length of unhashed data stashed in m_data
 };
 
-
-
-#ifndef PLATFORM_LINUX
-#pragma warning( pop )
-#endif
