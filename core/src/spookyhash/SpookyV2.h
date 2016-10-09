@@ -26,8 +26,10 @@
 // slower than MD5.
 //
 
+#ifndef PLATFORM_LINUX
 #pragma warning( push )
 #pragma warning( disable : 4245 )
+#endif
 
 #include <stddef.h>
 
@@ -300,6 +302,6 @@ private:
 
 
 
-
-// Some code
+#ifndef PLATFORM_LINUX
 #pragma warning( pop )
+#endif
