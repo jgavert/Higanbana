@@ -267,8 +267,9 @@ void VulkanCmdBuffer::close()
 
 void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
 {
+  // count layouts
   vk::DescriptorSetLayout* descriptorLayout;
-
+  std::vector<vk::DescriptorSetLayout> m_layouts;
   m_commandList->foreach([&](VulkanCommandPacket* packet)
   {
     switch (packet->type())
@@ -280,16 +281,40 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
       break;
     }
     case VulkanCommandPacket::PacketType::Dispatch:
+    {
+      m_layouts.emplace_back(*descriptorLayout);
+      break;
+    }
+    default:
+      break;
+    }
+  });
+
+  std::vector<vk::DescriptorSet> allocatedSets;
+  if (!m_layouts.empty())
+  {
+    auto result = device.m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
+      .setDescriptorPool(pool.pool)
+      .setDescriptorSetCount(static_cast<uint32_t>(m_layouts.size()))
+      .setPSetLayouts(m_layouts.data()));
+    allocatedSets.insert(allocatedSets.end(), result.begin(), result.end());
+  }
+
+  // make sets
+  int setCount = 0;
+  m_commandList->foreach([&](VulkanCommandPacket* packet)
+  {
+    switch (packet->type())
+    {
+    case VulkanCommandPacket::PacketType::BindPipeline:
+    {
+      break;
+    }
+    case VulkanCommandPacket::PacketType::Dispatch:
       {
         // handle binding here, create function that does it in a generic way.
         DispatchPacket* dis = static_cast<DispatchPacket*>(packet);
         auto& bind = dis->descriptors;
-
-        auto result = device.m_device->allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
-          .setDescriptorPool(pool.pool)
-          .setDescriptorSetCount(1)
-          .setPSetLayouts(descriptorLayout));
-
         std::vector<vk::WriteDescriptorSet> allSets;
         for (auto&& it : bind.readBuffers)
         {
@@ -297,7 +322,7 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
             .setDescriptorCount(1)
             .setDescriptorType(it.second.type())
             .setDstBinding(it.first)
-            .setDstSet(result[0])
+            .setDstSet(allocatedSets[setCount])
             .setPBufferInfo(&it.second.info()));
         }
         for (auto&& it : bind.modifyBuffers)
@@ -306,13 +331,14 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
             .setDescriptorCount(1)
             .setDescriptorType(it.second.type())
             .setDstBinding(it.first)
-            .setDstSet(result[0])
+            .setDstSet(allocatedSets[setCount])
             .setPBufferInfo(&it.second.info()));
         }
         vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(allSets);
         device.m_device->updateDescriptorSets(proxy, {});
         
-        m_updatedSetsPerDraw.push_back(result[0]);
+        m_updatedSetsPerDraw.push_back(allocatedSets[setCount]);
+        ++setCount;
         break;
       }
     default:

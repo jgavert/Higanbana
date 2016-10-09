@@ -281,7 +281,7 @@
 			vk::Buffer buffer;
 			vk::AccessFlags flags;
 		};
-    unordered_map<ResourceUniqueId, SmallResource> m_cache;
+    faze::unordered_map<ResourceUniqueId, SmallResource> m_cache;
 
     // fill cache with all resources seen.
     for (auto&& id : m_uniqueResourcesThisChain)

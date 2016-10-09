@@ -2,13 +2,12 @@
 #include "sparsetable.hpp"
 #include "tagtable.hpp"
 #include "query.hpp"
+#include "core/src/datastructures/proxy.hpp"
 #include <stdint.h>
 #include <cstdint>
 #include <array>
 #include <random>
 #include <memory>
-#include <unordered_set>
-#include <unordered_map>
 #include <cassert>
 
 namespace faze
@@ -39,8 +38,8 @@ namespace faze
     using Indexfield = Bitfield<INDEX_TABLE>;
 
     // data
-    std::unordered_map<std::string, std::shared_ptr<void>> m_components;
-    std::unordered_map<std::string, std::shared_ptr<void>> m_tags;
+    faze::unordered_map<std::string, std::shared_ptr<void>> m_components;
+    faze::unordered_map<std::string, std::shared_ptr<void>> m_tags;
     std::vector<Indexfield*> m_indextables;
     Indexfield m_entities;
 

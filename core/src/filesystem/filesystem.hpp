@@ -1,11 +1,10 @@
 #pragma once
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
+#include "core/src/datastructures/proxy.hpp"
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <memory>
 
 class MemoryBlob
@@ -22,8 +21,8 @@ public:
 class FileSystem
 {
 private:
-  std::unordered_map<std::string, std::vector<uint8_t>> m_files;
-  std::unordered_set<std::string> m_dirs;
+  faze::unordered_map<std::string, std::vector<uint8_t>> m_files;
+  faze::unordered_set<std::string> m_dirs;
 public:
   FileSystem();
   bool fileExists(std::string path);

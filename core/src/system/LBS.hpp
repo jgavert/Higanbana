@@ -13,6 +13,8 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "core/src/datastructures/proxy.hpp"
+
 // optional include, just dont enable "debug"
 #include "../global_debug.hpp"
 
@@ -209,8 +211,8 @@ namespace faze
 
     // Requirements data
     std::mutex                                            m_wfrMutex;                // only one mutex :D to rule them all
-    std::unordered_map< std::string, bool >               m_fullfilled;              // fulfilled Tasks
-    std::unordered_map< size_t, TaskInfo >                m_taskInfos;               // take infos from here when task finished
+    faze::unordered_map< std::string, bool >               m_fullfilled;              // fulfilled Tasks
+    faze::unordered_map< size_t, TaskInfo >                m_taskInfos;               // take infos from here when task finished
     std::vector< std::pair< Requirements, std::string > > m_waitingPostRequirements; // When requirement is filled -> move string to m_fulfilled
     std::vector< std::pair< Requirements, Task > >         m_waitingPreRequirements;  // Put task in here if preR isn't fulfilled
     //END
