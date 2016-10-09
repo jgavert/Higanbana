@@ -355,7 +355,7 @@
       {
         return;
       }
-      vk::PipelineStageFlags last = vk::PipelineStageFlagBits(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+      vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eAllCommands;
       vk::PipelineStageFlags next = m_drawCallStage[0];
       vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
       vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), aaargh.data() + barrierOffset);
