@@ -59,7 +59,7 @@ int EntryPoint::main()
     
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
-      renderdoc.startCapture();
+      //renderdoc.startCapture();
       {
         constexpr int TestBufferSize = 1*128;
 
@@ -131,8 +131,11 @@ int EntryPoint::main()
           gpu.submit(gfx);
         }
 
-        for (int i = 0; i < 1; ++i)
+        //for (int i = 0; i < 1; ++i)
+        t.firstTick();
+        while(!window.simpleReadMessages())
         {
+          log.update();
           auto gfx = gpu.createGraphicsCommandBuffer();
           auto shif = gfx.bind<SampleShader>(test);
           for (int k = 0; k < 1; k++)
@@ -149,6 +152,7 @@ int EntryPoint::main()
             }
           }
           gpu.submit(gfx);
+          t.tick();
         }
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
@@ -169,12 +173,11 @@ int EntryPoint::main()
             }
           }
         }
-        renderdoc.endCapture();
+        //renderdoc.endCapture();
       }
     }
   };
   main("w1");
-  t.tick();
   t.printStatistics();
   log.update();
   return 0;

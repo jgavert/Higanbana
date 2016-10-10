@@ -51,6 +51,14 @@ private:
   std::shared_ptr<WindowInternal> m_window;
   int m_width;
   int m_height;
+  bool needToResize = false;
+  bool resizing = false;
+  int m_resizeWidth = 0;
+  int m_resizeHeight = 0;
+  unsigned m_dpi = 96;
+
+  void resizeEvent(const char*  eventName);
+  void setDpi(unsigned scale);
 public:
 	Window(ProgramParams params, std::string windowName, int width, int height);
   bool open();
@@ -58,5 +66,7 @@ public:
   void cursorHidden(bool enabled);
   WindowInternal& getInternalWindow() { return *m_window; }
   bool simpleReadMessages();
+
+  static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
 
