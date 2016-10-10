@@ -17,12 +17,12 @@ private:
   friend class GpuDevice;
   friend class _GpuBracket;
   friend class GpuQueue;
-  CmdBufferImpl m_cmdBuffer;
+  std::shared_ptr<CmdBufferImpl> m_cmdBuffer;
   std::shared_ptr<GpuDeviceImpl> m_device;
   faze::SeqNum m_seqNum;
   DescriptorPool m_pool;
-  GraphicsCmdBuffer(std::shared_ptr<GpuDeviceImpl>& device, CmdBufferImpl cmdBuffer, faze::SeqNum num, DescriptorPool pool)
-    : m_cmdBuffer(std::move(cmdBuffer))
+  GraphicsCmdBuffer(std::shared_ptr<GpuDeviceImpl>& device, std::shared_ptr<CmdBufferImpl> cmdBuffer, faze::SeqNum num, DescriptorPool pool)
+    : m_cmdBuffer(cmdBuffer)
     , m_device(device)
     , m_seqNum(num)
     , m_pool(pool)
@@ -45,7 +45,7 @@ public:
   template <typename ShaderInterface>
   DescriptorSet bind(ComputePipeline& pipeline)
   {
-    m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
+    m_cmdBuffer->bindComputePipeline(pipeline.m_pipeline);
     auto descriptorImpl = DescriptorSetImpl(pipeline.impl());
     auto workGroupX = ShaderInterface::s_workGroupSizeX;
     auto workGroupY = ShaderInterface::s_workGroupSizeY;

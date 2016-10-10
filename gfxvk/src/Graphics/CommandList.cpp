@@ -3,17 +3,17 @@
 
 bool GraphicsCmdBuffer::isValid()
 {
-  return m_cmdBuffer.isValid();
+  return m_cmdBuffer->isValid();
 }
 
 void GraphicsCmdBuffer::close()
 {
-  m_cmdBuffer.close();
+  m_cmdBuffer->close();
 }
 
 bool GraphicsCmdBuffer::isClosed()
 {
-  return m_cmdBuffer.isClosed();
+  return m_cmdBuffer->isClosed();
 }
 
 Fence GraphicsCmdBuffer::fence()
@@ -24,13 +24,13 @@ Fence GraphicsCmdBuffer::fence()
 // Pipeline
 void GraphicsCmdBuffer::bindPipeline(ComputePipeline& pipeline)
 {
-  m_cmdBuffer.bindComputePipeline(pipeline.m_pipeline);
+  m_cmdBuffer->bindComputePipeline(pipeline.m_pipeline);
 }
 // compute
 
 void GraphicsCmdBuffer::dispatch(DescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
 {
-  m_cmdBuffer.dispatch(inputs.set, x, y, z);
+  m_cmdBuffer->dispatch(inputs.set, x, y, z);
   inputs.set.clear(); // TODO: .. annoying
 }
 
@@ -43,7 +43,7 @@ void GraphicsCmdBuffer::dispatchThreads(DescriptorSet& inputs, unsigned x, unsig
   auto xThreads = roundUpMultiple(x, inputs.workGroupX);
   auto yThreads = roundUpMultiple(y, inputs.workGroupY);
   auto zThreads = roundUpMultiple(z, inputs.workGroupZ);
-  m_cmdBuffer.dispatch(inputs.set, xThreads, yThreads, zThreads);
+  m_cmdBuffer->dispatch(inputs.set, xThreads, yThreads, zThreads);
   inputs.set.clear(); // TODO: .. annoying
 }
 
@@ -53,10 +53,10 @@ void GraphicsCmdBuffer::dispatchThreads(DescriptorSet& inputs, unsigned x, unsig
 
 void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
 {
-  m_cmdBuffer.copy(srcdata.getBuffer(), dstdata.getBuffer());
+  m_cmdBuffer->copy(srcdata.getBuffer(), dstdata.getBuffer());
 }
 
 void GraphicsCmdBuffer::prepareForSubmit(GpuDeviceImpl& device)
 {
-  m_cmdBuffer.prepareForSubmit(device, m_pool.impl());
+  m_cmdBuffer->prepareForSubmit(device, m_pool.impl());
 }

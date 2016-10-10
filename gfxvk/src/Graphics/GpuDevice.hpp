@@ -32,7 +32,7 @@ private:
   std::deque<LiveCmdBuffer> m_liveCmdBuffers;
 
   QueueImpl m_queue;
-  std::vector<CmdBufferImpl> m_rawCommandBuffers;
+  std::vector<std::shared_ptr<CmdBufferImpl>> m_rawCommandBuffers;
   std::vector<DescriptorPool> m_descriptorPools;
   faze::SequenceRingRangeAllocator m_cmdBufferAllocator;
 

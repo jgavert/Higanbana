@@ -10,17 +10,17 @@ GpuDevice::GpuDevice(GpuDeviceImpl device)
 {
   for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
   {
-    m_rawCommandBuffers.push_back(m_device->createGraphicsCommandBuffer());
+    m_rawCommandBuffers.emplace_back(std::make_shared<CmdBufferImpl>(m_device->createGraphicsCommandBuffer()));
   }
 
   for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
   {
-    m_rawFences.push_back(m_device->createFence());
+    m_rawFences.emplace_back(m_device->createFence());
   }
 
   for (int64_t i = 0; i < COMMANDLISTCOUNT; i++)
   {
-	  m_descriptorPools.push_back(DescriptorPool(std::make_shared<DescriptorPoolImpl>(m_device->createDescriptorPool())));
+	  m_descriptorPools.emplace_back(DescriptorPool(std::make_shared<DescriptorPoolImpl>(m_device->createDescriptorPool())));
   }
 }
 
@@ -58,7 +58,7 @@ GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
   }
   auto& descPool = m_descriptorPools.at(index.start());
   auto& cmdBuffer = m_rawCommandBuffers.at(index.start());
-  m_device->resetCmdBuffer(cmdBuffer);
+  m_device->resetCmdBuffer(*cmdBuffer);
   m_device->reset(descPool.impl());
   return GraphicsCmdBuffer(m_device, cmdBuffer, sequence, descPool);
 }
@@ -180,7 +180,7 @@ void GpuDevice::submit(GraphicsCmdBuffer& gfx)
   }
 
   gfx.prepareForSubmit(*m_device);
-  m_queue.submit(gfx.m_cmdBuffer, element.fence);
+  m_queue.submit(*gfx.m_cmdBuffer, element.fence);
   m_liveCmdBuffers.emplace_back(element);
 }
 
