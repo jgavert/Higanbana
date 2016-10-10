@@ -76,9 +76,9 @@ public:
   VulkanCmdBuffer() {}
   ~VulkanCmdBuffer()
   {
+    m_commandList->hardClear();
     m_cmdBuffer.reset();
     m_pool.reset();
-    m_commandList->hardClear();
   }
   // supported commands
   void bindComputePipeline(VulkanPipeline& pipeline);

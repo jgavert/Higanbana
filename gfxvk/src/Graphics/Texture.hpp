@@ -12,11 +12,13 @@ class Texture
   friend class GpuDevice;
   friend class TextureShaderView;
   std::shared_ptr<TextureImpl> texture;
+  std::shared_ptr<ResourceDescriptor> m_desc;
 
   Texture()
   {}
-  Texture(TextureImpl impl)
+  Texture(TextureImpl impl, ResourceDescriptor desc)
     : texture(std::make_shared<TextureImpl>(std::forward<decltype(impl)>(impl)))
+    , m_desc(std::make_shared<ResourceDescriptor>(std::forward<ResourceDescriptor>(desc)))
   {}
 
 public:
@@ -27,9 +29,9 @@ public:
     return texture->Map<type>();
   }
 
-  ResourceDescriptor desc()
+  ResourceDescriptor& desc()
   {
-    return texture->desc();
+    return *m_desc;
   }
 
   TextureImpl& getTexture()
@@ -53,7 +55,7 @@ private:
   friend class TextureRTV;
   friend class TextureDSV;
 
-  Texture m_texture; // keep texture alive here, if copying is issue like it could be. TODO: REFACTOR
+  Texture m_texture;
   TextureShaderViewImpl m_view;
 
   TextureShaderView()

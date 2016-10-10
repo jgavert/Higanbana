@@ -72,19 +72,20 @@ public:
   ResourceUsage m_usage;
   FormatDimension m_dimension;
   TextureLayout m_layout;
-  unsigned m_stride;
-  unsigned m_miplevels;
-  unsigned m_width;
-  unsigned m_height;
-  unsigned m_arraySize;
-  unsigned m_msCount;
-  unsigned m_msQuality;
-  bool m_rendertarget;
-  bool m_depthstencil;
-  bool m_unorderedaccess;
-  bool m_denysrv;
-  bool m_allowCrossAdapter;
-  bool m_allowSimultaneousAccess;
+  unsigned m_stride = 0;
+  unsigned m_miplevels = 1;
+  unsigned m_width = 1;
+  unsigned m_height = 1;
+  unsigned m_depth = 1;
+  unsigned m_arraySize = 1;
+  unsigned m_msCount = 1;
+  unsigned m_msQuality = 0;
+  bool m_rendertarget = false;
+  bool m_depthstencil = false;
+  bool m_unorderedaccess = false;
+  bool m_denysrv = false;
+  bool m_allowCrossAdapter = false;
+  bool m_allowSimultaneousAccess = false;
 
   ResourceDescriptor()
     : m_name("Unnamed Resource")
@@ -92,86 +93,79 @@ public:
     , m_usage(ResourceUsage::GpuOnly)
     , m_dimension(FormatDimension::Unknown)
     , m_layout(TextureLayout::RowMajor)
-    , m_stride(0)
-    , m_miplevels(1)
-    , m_width(1)
-    , m_height(1)
-    , m_arraySize(1)
-    , m_msCount(1)
-    , m_msQuality(0)
-    , m_rendertarget(false)
-    , m_depthstencil(false)
-    , m_unorderedaccess(false)
-    , m_denysrv(false)
-    , m_allowCrossAdapter(false)
-    , m_allowSimultaneousAccess(false)
   {
   }
 
-  ResourceDescriptor& Name(std::string name)
+  ResourceDescriptor& setName(std::string name)
   {
     m_name = name;
     return *this;
   }
 
   template <typename T>
-  ResourceDescriptor& Format()
+  ResourceDescriptor& setFormat()
   {
     m_stride = sizeof(T);
     m_format = FormatType::Unknown;
     return *this;
   }
 
-  ResourceDescriptor& Format(FormatType type)
+  ResourceDescriptor& setFormat(FormatType type)
   {
     m_stride = 0; // ??
     m_format = type;
     return *this;
   }
 
-  ResourceDescriptor& Usage(ResourceUsage usage)
+  ResourceDescriptor& setUsage(ResourceUsage usage)
   {
     m_usage = usage;
     return *this;
   }
 
-  ResourceDescriptor& Dimension(FormatDimension dimension)
+  ResourceDescriptor& setDimension(FormatDimension dimension)
   {
     m_dimension = dimension;
     return *this;
   }
 
-  ResourceDescriptor& Layout(TextureLayout layout)
+  ResourceDescriptor& setLayout(TextureLayout layout)
   {
     m_layout = layout;
     return *this;
   }
 
-  ResourceDescriptor& Width(unsigned size)
+  ResourceDescriptor& setWidth(unsigned size)
   {
     m_width = size;
     return *this;
   }
 
-  ResourceDescriptor& Height(unsigned size)
+  ResourceDescriptor& setHeight(unsigned size)
   {
     m_height = size;
     return *this;
   }
 
-  ResourceDescriptor& Miplevels(unsigned levels)
+  ResourceDescriptor& setDepth(unsigned size)
+  {
+    m_depth = size;
+    return *this;
+  }
+
+  ResourceDescriptor& setMiplevels(unsigned levels)
   {
     m_miplevels = levels;
     return *this;
   }
 
-  ResourceDescriptor& ArraySize(unsigned size = 1)
+  ResourceDescriptor& setArraySize(unsigned size = 1)
   {
     m_arraySize = size;
     return *this;
   }
 
-  ResourceDescriptor& Multisample(unsigned count = 1, unsigned quality = 0)
+  ResourceDescriptor& setMultisample(unsigned count = 1, unsigned quality = 0)
   {
     m_msCount = count;
     m_msQuality = quality;

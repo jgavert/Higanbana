@@ -46,7 +46,7 @@ int EntryPoint::main()
     return 1;
   }
   {
-	  //SchedulerTests::Run();
+    //SchedulerTests::Run();
   }
   RenderDocApi renderdoc;
   auto main = [&](std::string name)
@@ -56,24 +56,24 @@ int EntryPoint::main()
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     Window window(m_params, name, ires.x(), ires.y());
     window.open();
-    
+
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
-	  WindowSurface surface = devices.createSurface(window);
-	  gpu.querySwapChainInfo(surface);
-	  auto swapchain = gpu.createSwapchain(surface, PresentMode::Mailbox);
+      WindowSurface surface = devices.createSurface(window);
+      gpu.querySwapChainInfo(surface);
+      auto swapchain = gpu.createSwapchain(surface, PresentMode::Mailbox);
 
-	  // TODO1: general, advance towards usable images
-	  // TODO2: do what is needed to get images out of swapchain
-	  // TODO3: implement synchornization to query free swapchain images
-	  // TODO4: have color changing window
+      // TODO1: general, advance towards usable images
+      // TODO2: do what is needed to get images out of swapchain
+      // TODO3: implement synchornization to query free swapchain images
+      // TODO4: have color changing window
 
-	  // optional: get all data from "querySwapchainInfo" to choosable data structures
-	  // optional: cleanup texture format
+      // optional: get all data from "querySwapchainInfo" to choosable data structures
+      // optional: cleanup texture format
 
-      //renderdoc.startCapture();
+        //renderdoc.startCapture();
       {
-        constexpr int TestBufferSize = 1*128;
+        constexpr int TestBufferSize = 1 * 128;
 
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")
@@ -83,38 +83,48 @@ int EntryPoint::main()
         auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
-            .Name("testBuffer")
-			      .Format<float>()
-            .Width(TestBufferSize)
-            .Usage(ResourceUsage::UploadHeap)
-            .Dimension(FormatDimension::Buffer));
-		
+          .setName("testBuffer")
+          .setFormat<float>()
+          .setWidth(TestBufferSize)
+          .setUsage(ResourceUsage::UploadHeap)
+          .setDimension(FormatDimension::Buffer));
+
         auto bufferTarget = gpu.createBuffer(testHeap2, // bind memory fails?
           ResourceDescriptor()
-            .Name("testBufferTarget")
-			      .Format<float>()
-            .Width(TestBufferSize)
-			.enableUnorderedAccess()
-            .Usage(ResourceUsage::GpuOnly)
-            .Dimension(FormatDimension::Buffer));
-		auto bufferTargetUav = gpu.createBufferUAV(bufferTarget);
+          .setName("testBufferTarget")
+          .setFormat<float>()
+          .setWidth(TestBufferSize)
+          .enableUnorderedAccess()
+          .setUsage(ResourceUsage::GpuOnly)
+          .setDimension(FormatDimension::Buffer));
+        auto bufferTargetUav = gpu.createBufferUAV(bufferTarget);
         auto computeTarget = gpu.createBuffer(testHeap2, // bind memory fails?
           ResourceDescriptor()
-            .Name("testBufferTarget")
-			      .Format<float>()
-            .Width(TestBufferSize)
-            .Usage(ResourceUsage::GpuOnly)
-			.enableUnorderedAccess()
-            .Dimension(FormatDimension::Buffer));
-		auto computeTargetUav = gpu.createBufferUAV(computeTarget); 
+          .setName("testBufferTarget")
+          .setFormat<float>()
+          .setWidth(TestBufferSize)
+          .setUsage(ResourceUsage::GpuOnly)
+          .enableUnorderedAccess()
+          .setDimension(FormatDimension::Buffer));
+        auto computeTargetUav = gpu.createBufferUAV(computeTarget);
         auto bufferReadb = gpu.createBuffer(testHeap3,
           ResourceDescriptor()
-          .Name("testBufferTarget")
-          .Format<float>()
-          .Width(TestBufferSize)
-          .Usage(ResourceUsage::ReadbackHeap)
-          .Dimension(FormatDimension::Buffer));
-		  
+          .setName("testBufferTarget")
+          .setFormat<float>()
+          .setWidth(TestBufferSize)
+          .setUsage(ResourceUsage::ReadbackHeap)
+          .setDimension(FormatDimension::Buffer));
+
+
+        auto testTexture = gpu.createTexture(testHeap2, ResourceDescriptor()
+          .setName("TestTexture")
+          .setWidth(800)
+          .setHeight(600)
+          .setFormat(FormatType::R8G8B8A8_Uint)
+          .setDimension(FormatDimension::Texture2D)
+          .setUsage(ResourceUsage::GpuOnly)
+          .setLayout(TextureLayout::StandardSwizzle64kb));
+
         if (buffer.isValid())
         {
           F_LOG("yay! a buffer\n");
@@ -145,7 +155,7 @@ int EntryPoint::main()
 
         //for (int i = 0; i < 1; ++i)
         t.firstTick();
-        while(!window.simpleReadMessages())
+        while (!window.simpleReadMessages())
         {
           log.update();
           auto gfx = gpu.createGraphicsCommandBuffer();
@@ -180,7 +190,7 @@ int EntryPoint::main()
             auto map = bufferReadb.Map<float>(0, TestBufferSize);
             if (map.isValid())
             {
-              F_LOG("yay! mapped buffer! %f\n", map[TestBufferSize-1]);
+              F_LOG("yay! mapped buffer! %f\n", map[TestBufferSize - 1]);
               log.update();
             }
           }

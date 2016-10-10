@@ -12,12 +12,14 @@ class Buffer
   friend class GpuDevice;
   friend class BufferShaderView;
   std::shared_ptr<BufferImpl> buffer;
+  std::shared_ptr<ResourceDescriptor> m_desc;
 
   Buffer()
   {}
 
-  Buffer(BufferImpl impl)
+  Buffer(BufferImpl impl, ResourceDescriptor desc)
     : buffer(std::make_shared<BufferImpl>(std::forward<decltype(impl)>(impl)))
+    , m_desc(std::make_shared<ResourceDescriptor>(std::forward<ResourceDescriptor>(desc)))
   {}
 public:
 
@@ -27,9 +29,9 @@ public:
     return buffer->Map<T>(offset*sizeof(T), size*sizeof(T));
   }
 
-  ResourceDescriptor desc()
+  ResourceDescriptor& desc()
   {
-    return buffer->desc();
+    return *m_desc;
   }
 
   BufferImpl& getBuffer()
@@ -53,7 +55,7 @@ private:
   friend class BufferIBV;
   friend class BufferCBV;
 
-  Buffer m_buffer; // TODO: m_state needs to be synchronized
+  Buffer m_buffer;
   BufferShaderViewImpl m_view;
   BufferShaderView()
   {}
