@@ -4,6 +4,7 @@
 #ifdef WIN64
 #define NOMINMAX
 #include <windows.h>
+#include <ShellScalingAPI.h>
 #include <iostream>
 
 class ProgramParams

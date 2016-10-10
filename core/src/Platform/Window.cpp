@@ -1,19 +1,88 @@
 #include "Window.hpp"
 
+#include "core/src/global_debug.hpp"
+
 #if defined(PLATFORM_WINDOWS)
-LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+  Window* me = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
   switch (message)
   {
   case WM_DESTROY:
+    {
+      PostQuitMessage(0);
+      return 0;
+    }
+  case WM_ENTERSIZEMOVE:
   {
-    PostQuitMessage(0);
-    return 0;
-  } break;
+    if (me)
+    {
+      me->resizing = true;
+    }
+    break;
+  }
+  case WM_EXITSIZEMOVE:
+  {
+    if (me)
+    {
+      me->resizeEvent("Resized");
+      me->resizing = false;
+    }
+    break;
+  }
+  case WM_SIZE:
+  {
+    if (me)
+    {
+      me->m_resizeWidth = static_cast<int>(LOWORD(lParam));
+      me->m_resizeHeight = static_cast<int>(HIWORD(lParam));
+      auto evnt = static_cast<int>(wParam);
+      if (SIZE_MAXIMIZED == evnt)
+      {
+        me->resizeEvent("Maximized");
+      }
+      else if (SIZE_MINIMIZED == evnt)
+      {
+        me->resizeEvent("Minimized");
+      }
+      else if (SIZE_RESTORED == evnt && !me->resizing)
+      {
+        me->resizeEvent("Restored");
+      }
+    }
+  }
+  case WM_DPICHANGED:
+  {
+    if (me)
+    {
+      auto dpi = LOWORD(wParam);
+      if (dpi == 0)
+        break;
+      me->setDpi(dpi);
+      RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
+    }
+  }
+  default:
+    break;
   }
 
   return DefWindowProc(hWnd, message, wParam, lParam);
 }
+
+void Window::resizeEvent(const char* eventName)
+{
+  if (m_width != m_resizeWidth || m_height != m_resizeHeight)
+  {
+    F_SLOG("Window", "%s %dx%d\n",eventName, m_resizeWidth, m_resizeHeight);
+    needToResize = true;
+  }
+}
+
+void Window::setDpi(unsigned scale)
+{
+  m_dpi = scale;
+}
+
 #endif
 
 // Initializes the window and shows it
@@ -41,11 +110,18 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   RECT wr = { 0, 0, width, height };
   AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
+  auto result = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+  if (result != S_OK)
+  {
+    F_SLOG("Window", "Couldn't set dpi awareness.");
+  }
+
   hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), WS_OVERLAPPEDWINDOW, 100, 300, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
   if (hWnd == NULL)
   {
     printf("wtf window null\n");
   }
+  SetWindowLongPtr(hWnd, GWLP_USERDATA, (size_t)this);
 
   std::string lol = (windowname + "class");
   m_window = std::make_shared<WindowInternal>(hWnd, wc, params, lol);
@@ -87,6 +163,21 @@ bool Window::simpleReadMessages()
   {
     if (msg.message == WM_QUIT)
       return true;
+    else if (msg.message == WM_DISPLAYCHANGE)
+    {
+      F_SLOG("Window", "Resize event\n");
+    }
+    else if (msg.message == WM_EXITSIZEMOVE)
+    {
+      F_SLOG("Window", "window resized: %dx%d\n", m_width, m_height);
+      break;
+    }
+    else if (msg.message == WM_SIZE)
+    {
+      m_width = static_cast<int>(LOWORD(msg.lParam));
+      m_height = static_cast<int>(HIWORD(msg.lParam));
+    }
+
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }

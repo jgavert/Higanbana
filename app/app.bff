@@ -60,6 +60,7 @@
                       + ' D3d12.lib'
                       + ' Dxgi.lib'
                       + ' atls.lib'
+					  + ' Shcore.lib'
                       + ' D3DCompiler.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
                       + ' libucrtd.lib'
