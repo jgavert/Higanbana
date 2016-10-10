@@ -10,18 +10,21 @@ class WindowInternal
 private:
   friend class Window;
   HWND hWnd;
+  HINSTANCE hInstance;
   WNDCLASSEX wc;
   ProgramParams m_params;
   std::string m_className;
 
 public:
-  WindowInternal(HWND hWnd, WNDCLASSEX wc, ProgramParams params, std::string className) :
-    hWnd(hWnd), wc(wc), m_params(params), m_className(className) {}
+  WindowInternal(HWND hWnd,HINSTANCE hInstance, WNDCLASSEX wc, ProgramParams params, std::string className) :
+    hWnd(hWnd), hInstance(hInstance), wc(wc), m_params(params), m_className(className) {}
   ~WindowInternal()
   {
     DestroyWindow(hWnd);
   }
-  HWND& getNative() { return hWnd; }
+  HWND& getHWND() { return hWnd; }
+  HINSTANCE& getHInstance() { return hInstance; }
+
 };
 #else
 class WindowInternal

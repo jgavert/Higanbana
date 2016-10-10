@@ -1,4 +1,6 @@
 #pragma once
+#include "VulkanSurface.hpp"
+#include "VulkanSwapchain.hpp"
 #include "VulkanQueue.hpp"
 #include "VulkanCmdBuffer.hpp"
 #include "VulkanBuffer.hpp"
@@ -8,6 +10,7 @@
 #include "VulkanFence.hpp"
 #include "VulkanDescriptorPool.hpp"
 #include "VulkanDescriptorSet.hpp"
+#include "gfxvk/src/Graphics/SwapChain.hpp"
 #include "vkShaders/shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
@@ -77,17 +80,17 @@ public:
     vk::PhysicalDeviceMemoryProperties memProp,
     bool debugLayer);
   bool isValid();
+
+  // create
+  VulkanSwapchain createSwapchain(VulkanSurface& surface, PresentMode mode);
   VulkanQueue createDMAQueue();
   VulkanQueue createComputeQueue();
   VulkanQueue createGraphicsQueue();
   VulkanCmdBuffer createDMACommandBuffer();
   VulkanCmdBuffer createComputeCommandBuffer();
   VulkanCmdBuffer createGraphicsCommandBuffer();
-
   VulkanDescriptorPool createDescriptorPool();
-
   VulkanPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
-
   template <typename ShaderType>
   VulkanPipeline createComputePipeline(ComputePipelineDescriptor desc)
   {
@@ -99,11 +102,11 @@ public:
     layout.uavTextureCount = ShaderType::s_uavTextureCount;
     return createComputePipeline(layout, desc);
   }
-
   VulkanPipeline createComputePipeline(ShaderInputLayout layout, ComputePipelineDescriptor desc);
   VulkanMemoryHeap createMemoryHeap(HeapDescriptor desc);
   VulkanBuffer createBuffer(ResourceHeap& heap, ResourceDescriptor desc);
   VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);
+
   // shader views
   VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
   VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
@@ -121,6 +124,7 @@ public:
 
   // destroys
   void destroy(VulkanDescriptorPool& pool);
+
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

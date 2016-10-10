@@ -59,6 +59,8 @@ int EntryPoint::main()
     
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
+	  WindowSurface surface = devices.createSurface(window);
+
       //renderdoc.startCapture();
       {
         constexpr int TestBufferSize = 1*128;

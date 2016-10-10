@@ -10,6 +10,8 @@
 #include "Buffer.hpp"
 #include "Texture.hpp"
 #include "Fence.hpp"
+#include "Swapchain.hpp"
+#include "WindowSurface.hpp"
 
 #include "core/src/system/SequenceTracker.hpp"
 #include "core/src/system/SequenceRingRangeAllocator.hpp"
@@ -50,6 +52,8 @@ public:
   bool isValid();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
+
+  Swapchain createSwapchain(WindowSurface& surface, PresentMode mode);
 
   template <typename ShaderType>
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)

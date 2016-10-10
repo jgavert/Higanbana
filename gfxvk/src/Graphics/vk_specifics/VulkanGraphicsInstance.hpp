@@ -65,6 +65,13 @@ public:
   VulkanGraphicsInstance();
   bool createInstance(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
   VulkanGpuDevice createGpuDevice(FileSystem& fs);
+
+
+#if defined(PLATFORM_WINDOWS)
+  VulkanSurface createSurface(HWND hWnd, HINSTANCE instance);
+#else
+  VulkanSurface createSurface();
+#endif
 };
 
 using GraphicsInstanceImpl = VulkanGraphicsInstance;

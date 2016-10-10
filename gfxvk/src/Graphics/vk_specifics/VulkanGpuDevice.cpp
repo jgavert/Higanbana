@@ -169,6 +169,7 @@ VulkanGpuDevice::VulkanGpuDevice(
   // figure out indexes for default, upload, readback...
 }
 
+
 VulkanQueue VulkanGpuDevice::createDMAQueue()
 {
   uint32_t queueFamilyIndex = 0;
@@ -368,6 +369,33 @@ VulkanDescriptorPool VulkanGpuDevice::createDescriptorPool()
 bool VulkanGpuDevice::isValid()
 {
   return m_device.get() != nullptr;
+}
+
+VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, PresentMode mode)
+{
+	vk::PresentModeKHR khrmode;
+	switch (mode)
+	{
+	case PresentMode::Mailbox:
+		khrmode = vk::PresentModeKHR::eMailbox;
+		break;
+	case PresentMode::Fifo:
+		khrmode = vk::PresentModeKHR::eFifo;
+		break;
+	case PresentMode::FifoRelaxed:
+		khrmode = vk::PresentModeKHR::eFifoRelaxed;
+		break;
+	case PresentMode::Immediate:
+	default:
+		khrmode = vk::PresentModeKHR::eImmediate;
+		break;
+	}
+
+	vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
+		.setSurface(*surface.surface)
+		.setPresentMode(khrmode);
+
+	return VulkanSwapchain();
 }
 
 VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
