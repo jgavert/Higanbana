@@ -40,20 +40,29 @@ struct VulkanMappedTexture
 template <typename T>
 using MappedTextureImpl = VulkanMappedTexture<T>;
 
+struct VulkanImageState
+{
+  vk::AccessFlags flags = vk::AccessFlagBits(0);
+  vk::ImageLayout layout = vk::ImageLayout::eUndefined;
+  int queueIndex = 0;
+};
+
 class VulkanTexture
 {
   friend class VulkanGpuDevice;
 
   std::shared_ptr<vk::Image> m_resource;
-  ResourceDescriptor m_desc;
+  std::shared_ptr<VulkanImageState> m_state;
+  int64_t uniqueId = -1;
 
   VulkanTexture()
     : m_resource(nullptr)
   {}
 
-  VulkanTexture(std::shared_ptr<vk::Image> impl, ResourceDescriptor desc)
+  VulkanTexture(int64_t uniqueId, std::shared_ptr<vk::Image> impl)
     : m_resource(std::forward<decltype(impl)>(impl))
-    , m_desc(std::forward<decltype(desc)>(desc))
+    , m_state(std::make_shared<VulkanImageState>())
+    , uniqueId(uniqueId)
   {}
 public:
   template<typename T>
@@ -62,14 +71,23 @@ public:
     return VulkanMappedTexture<T>(nullptr);
   }
 
-  ResourceDescriptor& desc()
+  vk::Image& impl()
   {
-    return m_desc;
+    return *m_resource;
   }
 
   bool isValid()
   {
     return m_resource.get() != nullptr;
+  }
+
+  bool operator<(const VulkanTexture& other) const
+  {
+    return uniqueId < other.uniqueId;
+  }
+  bool operator==(const VulkanTexture& other) const
+  {
+    return uniqueId == other.uniqueId;
   }
 };
 
@@ -82,13 +100,18 @@ private:
 	friend class TextureShaderView;
 	vk::DescriptorImageInfo m_info;
 	vk::DescriptorType m_viewType;
-	VulkanTextureShaderView(vk::DescriptorImageInfo info, vk::DescriptorType viewType)
+  std::shared_ptr<VulkanImageState> m_state;
+
+  int64_t uniqueId = -1;
+
+	VulkanTextureShaderView(vk::DescriptorImageInfo info, vk::DescriptorType viewType, std::shared_ptr<VulkanImageState> state, int64_t uniqueId)
 		: m_info(info)
 		, m_viewType(viewType)
+    , m_state(state)
+    , uniqueId(uniqueId)
 	{}
 public:
-	VulkanTextureShaderView()
-	{}
+	VulkanTextureShaderView()	{}
 	vk::DescriptorImageInfo& info()
 	{
 		return m_info;
@@ -97,6 +120,14 @@ public:
 	{
 		return m_viewType;
 	}
+  bool operator<(const VulkanTextureShaderView& other) const
+  {
+    return uniqueId < other.uniqueId;
+  }
+  bool operator==(const VulkanTextureShaderView& other) const
+  {
+    return uniqueId == other.uniqueId;
+  }
 };
 
 using TextureShaderViewImpl = VulkanTextureShaderView;

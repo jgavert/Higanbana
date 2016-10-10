@@ -38,14 +38,14 @@ struct VulkanMappedBuffer
   }
 };
 
+template <typename T>
+using MappedBufferImpl = VulkanMappedBuffer<T>;
+
 struct VulkanBufferState
 {
   vk::AccessFlags flags = vk::AccessFlagBits(0);
   int queueIndex = 0;
 };
-
-template <typename T>
-using MappedBufferImpl = VulkanMappedBuffer<T>;
 
 class VulkanBuffer
 {
@@ -55,19 +55,19 @@ class VulkanBuffer
 
   std::shared_ptr<vk::Buffer> m_resource;
   std::shared_ptr<VulkanBufferState> m_state;
-  ResourceDescriptor m_desc;
   int64_t uniqueId = -1;
+  unsigned int resourceSize = 0;
   std::function<RawMapping(int64_t, int64_t)> m_mapResource; // on vulkan, heap is here.
 
   VulkanBuffer()
     : m_resource(nullptr)
   {}
 
-  VulkanBuffer(int64_t uniqueId, std::shared_ptr<vk::Buffer> impl, ResourceDescriptor desc)
+  VulkanBuffer(int64_t uniqueId, std::shared_ptr<vk::Buffer> impl, unsigned resourceSize)
     : m_resource(std::forward<decltype(impl)>(impl))
     , m_state(std::make_shared<VulkanBufferState>())
-    , m_desc(std::forward<decltype(desc)>(desc))
     , uniqueId(uniqueId)
+    , resourceSize(resourceSize)
   {
   }
 public:
@@ -75,11 +75,6 @@ public:
   VulkanMappedBuffer<T> Map(int64_t offsetInBytes, int64_t sizeInBytes)
   {
     return VulkanMappedBuffer<T>{m_mapResource(offsetInBytes, sizeInBytes)};
-  }
-
-  ResourceDescriptor& desc()
-  {
-    return m_desc;
   }
 
   bool isValid()

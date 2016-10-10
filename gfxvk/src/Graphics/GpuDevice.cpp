@@ -46,18 +46,44 @@ ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
   return m_device.createComputeCommandBuffer();
 }*/
 
-void GpuDevice::querySwapChainInfo(WindowSurface& surface)
+std::vector<ResourceDescriptor> GpuDevice::querySwapChainInfo(WindowSurface& surface)
 {
-	m_device->querySwapChainInfo(surface.impl);
+	return m_device->querySwapChainInfo(surface.impl);
 }
 
-Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode)
+Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen)
 {
-	auto impl = m_device->createSwapchain(surface.impl,m_queue, mode);
+  ResourceDescriptor usedAsBase = chosen;
+  if (chosen.m_format == FormatType::Unknown)
+  {
+    // figure out ourselves
+    auto toChooseFrom = querySwapChainInfo(surface);
+    for (auto&& obj : toChooseFrom)
+    {
+      if (obj.m_format == FormatType::B8G8R8A8)
+      {
+        usedAsBase = obj;
+        break;
+      }
+    }
+    F_ASSERT(usedAsBase.m_format != FormatType::Unknown, "we didn't find proper swapchain format.");
+  }
 
-	Swapchain s;
-	s.m_SwapChain = impl;
-	return s;
+	auto impl = m_device->createSwapchain(surface.impl,m_queue, mode);
+  auto scImages = m_device->getSwapchainTextures(impl);
+
+  std::vector<TextureRTV> finalImages;
+
+
+  for (auto&& image : scImages)
+  {
+    TextureRTV rtv;
+    rtv.m_view = m_device->createTextureView(image, usedAsBase, ResourceShaderType::RenderTarget);
+    rtv.m_texture = Texture(image, usedAsBase);
+    finalImages.emplace_back(rtv);
+  }
+
+	return Swapchain(impl, finalImages);
 }
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
@@ -101,42 +127,42 @@ Buffer GpuDevice::createBuffer(ResourceHeap& heap, ResourceDescriptor desc)
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
-  return m_device->createBuffer(heap, desc);
+  return Buffer(m_device->createBuffer(heap, desc), desc);
 }
 Texture GpuDevice::createTexture(ResourceHeap& heap, ResourceDescriptor desc)
 {
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Default && desc.m_usage != ResourceUsage::GpuOnly), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Readback && desc.m_usage != ResourceUsage::ReadbackHeap), "");
   F_ASSERT(!(heap.desc().m_heapType == HeapType::Upload && desc.m_usage != ResourceUsage::UploadHeap), "");
-  return m_device->createTexture(heap, desc);
+  return Texture(m_device->createTexture(heap, desc), desc);
 }
 // shader views
 TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureSRV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::ShaderView, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::ShaderView, viewDesc);
   return view;
 }
 TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureUAV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::UnorderedAccess, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::UnorderedAccess, viewDesc);
   return view;
 }
 TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureRTV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::RenderTarget, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::RenderTarget, viewDesc);
   return view;
 }
 TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureDSV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), ResourceShaderType::DepthStencil, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::DepthStencil, viewDesc);
   return view;
 }
 
@@ -144,28 +170,28 @@ BufferSRV GpuDevice::createBufferSRV(Buffer targetBuffer, ShaderViewDescriptor v
 {
   BufferSRV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::ShaderView, viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), targetBuffer.desc(), ResourceShaderType::ShaderView, viewDesc);
   return view;
 }
 BufferUAV GpuDevice::createBufferUAV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferUAV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::UnorderedAccess, viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), targetBuffer.desc(), ResourceShaderType::UnorderedAccess, viewDesc);
   return view;
 }
 BufferCBV GpuDevice::createBufferCBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferCBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::Unknown, viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), targetBuffer.desc(), ResourceShaderType::Unknown, viewDesc);
   return view;
 }
 BufferIBV GpuDevice::createBufferIBV(Buffer targetBuffer, ShaderViewDescriptor viewDesc)
 {
   BufferIBV view;
   view.m_buffer = targetBuffer;
-  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), ResourceShaderType::Unknown, viewDesc);
+  view.m_view = m_device->createBufferView(targetBuffer.getBuffer(), targetBuffer.desc(), ResourceShaderType::Unknown, viewDesc);
   return view;
 }
 

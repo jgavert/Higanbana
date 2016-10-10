@@ -45,12 +45,11 @@ enum FormatType
   R32G32B32_Uint,
   R32G32B32_Float,
   R8G8B8A8_Uint,
-  R8G8B8A8_Unorm,
   R8G8B8A8_Srgb,
+  B8G8R8A8,
   R32_Float,
-  D32_Float,
-  R8_Uint,
-  R8_Unorm
+  D32,
+  R8_Uint
 };
 
 static size_t sizeOfFormat[] =

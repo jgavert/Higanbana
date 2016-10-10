@@ -174,7 +174,7 @@ VulkanGpuDevice::VulkanGpuDevice(
 }
 
 
-void VulkanGpuDevice::querySwapChainInfo(VulkanSurface& surface)
+std::vector<ResourceDescriptor> VulkanGpuDevice::querySwapChainInfo(VulkanSurface& surface)
 {
 	auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(*surface.surface);
 	F_SLOG("Graphics/Surface", "surface details\n");
@@ -202,6 +202,21 @@ void VulkanGpuDevice::querySwapChainInfo(VulkanSurface& surface)
 		if (fmt == vk::PresentModeKHR::eFifoRelaxed)
 			F_SLOG("Graphics/AvailablePresentModes", "FifoRelaxed\n");
 	}
+
+  std::vector<ResourceDescriptor> descs;
+
+  for (auto&& format : formats)
+  {
+    descs.emplace_back(ResourceDescriptor()
+      .setArraySize(1)
+      .setWidth(surfaceCap.currentExtent.width)
+      .setHeight(surfaceCap.currentExtent.height)
+      .setFormat(formatToFazeFormat(format.format))
+      .setLayout(TextureLayout::Unknown)
+      .setDepth(1)
+      .setMiplevels(1));
+  }
+  return descs;
 }
 
 VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQueue& queue, PresentMode mode)
@@ -266,6 +281,19 @@ VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQ
 		dev->destroySwapchainKHR(*sc);
 	});
 	return ret;
+}
+
+std::vector<VulkanTexture> VulkanGpuDevice::getSwapchainTextures(VulkanSwapchain& sc)
+{
+  auto images = m_device->getSwapchainImagesKHR(*sc.m_swapchain);
+
+  std::vector<VulkanTexture> texture;
+  for (auto&& image : images)
+  {
+    texture.push_back(VulkanTexture(m_resourceID++, std::make_shared<vk::Image>(image)));
+  }
+
+  return texture;
 }
 
 VulkanQueue VulkanGpuDevice::createDMAQueue()
@@ -575,19 +603,44 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
 
     return mapped;
   };
-  auto buf = VulkanBuffer(m_resourceID++, ret, desc);
+  auto buf = VulkanBuffer(m_resourceID++, ret, bufSize);
   buf.m_mapResource = mapper;
   return buf;
 }
-VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor )
+VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor descriptor)
 {
+
+  vk::ImageType imageType = vk::ImageType::e2D;
+
+  vk::ImageCreateInfo info = vk::ImageCreateInfo()
+    .setArrayLayers(descriptor.m_arraySize)
+    .setExtent(vk::Extent3D()
+      .setWidth(descriptor.m_width)
+      .setHeight(descriptor.m_height)
+      .setDepth(descriptor.m_depth))
+    .setFormat(formatToVkFormat[descriptor.m_format].view)
+    .setImageType(imageType)
+    .setInitialLayout(vk::ImageLayout::eUndefined)
+    .setMipLevels(descriptor.m_miplevels)
+    .setSamples(vk::SampleCountFlagBits::e1)
+    .setTiling(vk::ImageTiling::eOptimal)
+    .setUsage(vk::ImageUsageFlagBits::eSampled)
+    .setSharingMode(vk::SharingMode::eExclusive);
+  auto image = m_device->createImage(info);
+
+  auto reqs = m_device->getImageMemoryRequirements(image);
+
+  F_SLOG("Graphics", "lol %zu %zu %u\n", reqs.size, reqs.alignment, reqs.memoryTypeBits);
+
+  m_device->destroyImage(image);
+
   return VulkanTexture();
 }
 // shader views
-VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer,ResourceShaderType shaderType,  ShaderViewDescriptor descriptor)
+VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer& buffer, ResourceDescriptor& desc, ResourceShaderType shaderType,  ShaderViewDescriptor descriptor)
 {
-  auto elementSize = buffer.desc().m_stride;
-  auto sizeInElements = buffer.desc().m_width;
+  auto elementSize = desc.m_stride;
+  auto sizeInElements = desc.m_width;
   auto firstElement = descriptor.m_firstElement*elementSize;
   auto maxRange = descriptor.m_elementCount*elementSize;
   if (descriptor.m_elementCount <= 0)
@@ -609,9 +662,9 @@ VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer buffer,Res
   , type, buffer.m_state, buffer.uniqueId);
 }
 
-VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture ,ResourceShaderType ,  ShaderViewDescriptor)
+VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& texture, ResourceDescriptor& , ResourceShaderType ,  ShaderViewDescriptor)
 {
-  return VulkanTextureShaderView(vk::DescriptorImageInfo(), vk::DescriptorType::eSampledImage);
+  return VulkanTextureShaderView(vk::DescriptorImageInfo(), vk::DescriptorType::eSampledImage, texture.m_state, texture.uniqueId);
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )

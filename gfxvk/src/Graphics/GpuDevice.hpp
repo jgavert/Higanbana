@@ -53,8 +53,8 @@ public:
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
-  void querySwapChainInfo(WindowSurface& surface);
-  Swapchain createSwapchain(WindowSurface& surface, PresentMode mode);
+  std::vector<ResourceDescriptor> querySwapChainInfo(WindowSurface& surface);
+  Swapchain createSwapchain(WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen = ResourceDescriptor().setFormat(FormatType::Unknown));
 
   template <typename ShaderType>
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)

@@ -84,8 +84,9 @@ public:
   bool isValid();
 
   // create
-  void querySwapChainInfo(VulkanSurface& surface);
+  std::vector<ResourceDescriptor> querySwapChainInfo(VulkanSurface& surface);
   VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, PresentMode mode);
+  std::vector<VulkanTexture> getSwapchainTextures(VulkanSwapchain& sc);
   VulkanQueue createDMAQueue();
   VulkanQueue createComputeQueue();
   VulkanQueue createGraphicsQueue();
@@ -111,8 +112,8 @@ public:
   VulkanTexture createTexture(ResourceHeap& heap, ResourceDescriptor desc);
 
   // shader views
-  VulkanBufferShaderView createBufferView(VulkanBuffer targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
-  VulkanTextureShaderView createTextureView(VulkanTexture targetTexture, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  VulkanBufferShaderView createBufferView(VulkanBuffer& targetTexture, ResourceDescriptor& desc, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
+  VulkanTextureShaderView createTextureView(VulkanTexture& targetTexture, ResourceDescriptor& desc, ResourceShaderType shaderType, ShaderViewDescriptor viewDesc = ShaderViewDescriptor());
 
   // synchro creates
   VulkanFence createFence();
