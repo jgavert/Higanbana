@@ -59,7 +59,7 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
       if (dpi == 0)
         break;
       me->setDpi(dpi);
-      RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
+      //RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
     }
   }
   default:
@@ -163,20 +163,6 @@ bool Window::simpleReadMessages()
   {
     if (msg.message == WM_QUIT)
       return true;
-    else if (msg.message == WM_DISPLAYCHANGE)
-    {
-      F_SLOG("Window", "Resize event\n");
-    }
-    else if (msg.message == WM_EXITSIZEMOVE)
-    {
-      F_SLOG("Window", "window resized: %dx%d\n", m_width, m_height);
-      break;
-    }
-    else if (msg.message == WM_SIZE)
-    {
-      m_width = static_cast<int>(LOWORD(msg.lParam));
-      m_height = static_cast<int>(HIWORD(msg.lParam));
-    }
 
     TranslateMessage(&msg);
     DispatchMessage(&msg);
