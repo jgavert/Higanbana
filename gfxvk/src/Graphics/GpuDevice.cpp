@@ -46,9 +46,14 @@ ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
   return m_device.createComputeCommandBuffer();
 }*/
 
+void GpuDevice::querySwapChainInfo(WindowSurface& surface)
+{
+	m_device->querySwapChainInfo(surface.impl);
+}
+
 Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode)
 {
-	auto impl = m_device->createSwapchain(surface.impl, mode);
+	auto impl = m_device->createSwapchain(surface.impl,m_queue, mode);
 
 	Swapchain s;
 	s.m_SwapChain = impl;

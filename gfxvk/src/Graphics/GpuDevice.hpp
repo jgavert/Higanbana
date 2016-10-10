@@ -53,6 +53,7 @@ public:
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
+  void querySwapChainInfo(WindowSurface& surface);
   Swapchain createSwapchain(WindowSurface& surface, PresentMode mode);
 
   template <typename ShaderType>

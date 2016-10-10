@@ -40,17 +40,17 @@ enum FormatDimensionBase
 enum FormatType
 {
   Unknown = 0,
-  R32G32B32A32,
-  R32G32B32A32_FLOAT,
-  R32G32B32,
-  R32G32B32_FLOAT,
-  R8G8B8A8,
-  R8G8B8A8_UNORM,
-  R8G8B8A8_UNORM_SRGB,
-  R32,
-  D32_FLOAT,
-  R8,
-  R8_UNORM
+  R32G32B32A32_Uint,
+  R32G32B32A32_Float,
+  R32G32B32_Uint,
+  R32G32B32_Float,
+  R8G8B8A8_Uint,
+  R8G8B8A8_Unorm,
+  R8G8B8A8_Srgb,
+  R32_Float,
+  D32_Float,
+  R8_Uint,
+  R8_Unorm
 };
 
 static size_t sizeOfFormat[] =
