@@ -689,6 +689,7 @@ void VulkanGpuDevice::waitIdle()
 void VulkanGpuDevice::resetCmdBuffer(VulkanCmdBuffer& buffer)
 {
   buffer.m_commandList->hardClear();
+  buffer.tracker.reset();
   m_device->resetCommandPool(*buffer.m_pool, vk::CommandPoolResetFlagBits::eReleaseResources);
 }
 

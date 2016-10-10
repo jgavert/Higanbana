@@ -271,9 +271,9 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
   m_layouts.clear();
   m_allSets.clear();
   m_updatedSetsPerDraw.clear();
-  m_layouts.reserve(m_commandList->size()/2);
-  m_allSets.reserve(m_commandList->size()*10);
-  m_updatedSetsPerDraw.reserve(m_layouts.size());
+  //m_layouts.reserve(m_commandList->size()/2);
+  //m_allSets.reserve(m_commandList->size()*10);
+  //m_updatedSetsPerDraw.reserve(m_layouts.size());
   // count layouts
   vk::DescriptorSetLayout* descriptorLayout;
   m_commandList->foreach([&](VulkanCommandPacket* packet)
