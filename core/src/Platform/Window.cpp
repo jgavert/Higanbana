@@ -124,7 +124,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   SetWindowLongPtr(hWnd, GWLP_USERDATA, (size_t)this);
 
   std::string lol = (windowname + "class");
-  m_window = std::make_shared<WindowInternal>(hWnd, wc, params, lol);
+  m_window = std::make_shared<WindowInternal>(hWnd,params.m_hInstance, wc, params, lol);
 
 
   // clean messages away

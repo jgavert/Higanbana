@@ -1,32 +1,41 @@
 #pragma once
+
+#include "vk_specifics/VulkanSwapchain.hpp"
+
 #include "Texture.hpp"
+
+enum class PresentMode
+{
+	Immediate,
+	Mailbox,
+	Fifo,
+	FifoRelaxed
+};
 
 #include <vector>
 
-class SwapChain
+class Swapchain
 {
 private:
   friend class GpuDevice;
 
-  void* m_SwapChain;
+  SwapchainImpl m_SwapChain;
   std::vector<TextureRTV> m_resources;
 
-  SwapChain(void* SwapChain)
-    : m_SwapChain(std::move(SwapChain))
+
+public:
+  Swapchain() {}
+  Swapchain(SwapchainImpl swapchain)
+    : m_SwapChain(swapchain)
   {}
 
-  SwapChain(void* SwapChain, std::vector<TextureRTV> resources)
-    : m_SwapChain(std::move(SwapChain))
+  Swapchain(SwapchainImpl swapchain, std::vector<TextureRTV> resources)
+    : m_SwapChain(swapchain)
     , m_resources(resources)
   {
   }
 
-  SwapChain():m_SwapChain(nullptr)
-  {
-  }
-public:
-
-  ~SwapChain()
+  ~Swapchain()
   {
   }
 

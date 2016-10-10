@@ -287,10 +287,42 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
 
 
   vk::Device dev = physDev.createDevice(device_info, m_alloc_info);
+
   std::shared_ptr<vk::Device> device(new vk::Device(dev), [=](vk::Device* ist)
   {
     ist->destroy(&m_alloc_info);
+	delete ist;
   });
 
   return VulkanGpuDevice(device, fs, m_alloc_info, queueProperties, heapInfos, false);
 }
+
+#if defined(PLATFORM_WINDOWS)
+VulkanSurface VulkanGraphicsInstance::createSurface(HWND hWnd, HINSTANCE instance)
+{
+	vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()
+		.setHwnd(hWnd)
+		.setHinstance(instance);
+
+	VulkanSurface surface;
+
+	vk::SurfaceKHR surfacekhr = m_instance->createWin32SurfaceKHR(createInfo);
+
+	auto inst = m_instance;
+
+	std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(surfacekhr), [inst](vk::SurfaceKHR* ist)
+	{
+		inst->destroySurfaceKHR(*ist);
+		delete ist;
+	});
+
+	surface.surface = khrSur;
+
+	return surface;
+}
+#else
+VulkanSurface VulkanGraphicsInstance::createSurface()
+{
+	return VulkanSurface();
+}
+#endif

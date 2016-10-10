@@ -46,6 +46,15 @@ ComputeCmdBuffer GpuDevice::createComputeCommandBuffer()
   return m_device.createComputeCommandBuffer();
 }*/
 
+Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode)
+{
+	auto impl = m_device->createSwapchain(surface.impl, mode);
+
+	Swapchain s;
+	s.m_SwapChain = impl;
+	return s;
+}
+
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
 {
   auto sequence = m_tracker.next();
