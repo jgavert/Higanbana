@@ -1,7 +1,8 @@
 #include "VulkanQueue.hpp"
 
-VulkanQueue::VulkanQueue(std::shared_ptr<vk::Queue> queue)
+VulkanQueue::VulkanQueue(std::shared_ptr<vk::Queue> queue, int familyIndex)
   :m_queue(queue)
+	, m_index(familyIndex)
 {
   
 }

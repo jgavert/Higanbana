@@ -27,6 +27,7 @@ private:
 
   vk::AllocationCallbacks m_alloc_info;
   std::shared_ptr<vk::Device>    m_device;
+  vk::PhysicalDevice		m_physDevice;
   bool                    m_debugLayer;
   std::vector<vk::QueueFamilyProperties> m_queues;
   bool                    m_singleQueue;
@@ -74,6 +75,7 @@ private:
 public:
   VulkanGpuDevice(
 	std::shared_ptr<vk::Device> device,
+	  vk::PhysicalDevice physDev,
     FileSystem& fs,
     vk::AllocationCallbacks alloc_info,
     std::vector<vk::QueueFamilyProperties> queues,
@@ -82,7 +84,8 @@ public:
   bool isValid();
 
   // create
-  VulkanSwapchain createSwapchain(VulkanSurface& surface, PresentMode mode);
+  void querySwapChainInfo(VulkanSurface& surface);
+  VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, PresentMode mode);
   VulkanQueue createDMAQueue();
   VulkanQueue createComputeQueue();
   VulkanQueue createGraphicsQueue();

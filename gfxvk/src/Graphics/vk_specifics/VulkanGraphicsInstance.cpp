@@ -24,6 +24,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   const char*                                 pMessage,
   void*                                       /*pUserData*/)
 {
+	// Supressing unnecessary log messages.
+	if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
+		return false;
+
   std::string msgType = "";
   #if defined(PLATFORM_WINDOWS)
   bool breakOn = false;
@@ -54,7 +58,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   {
     msgType = "DEBUG:";
   }
-  F_ILOG("Vulkan", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+  F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
     __debugbreak();
@@ -294,7 +298,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
 	delete ist;
   });
 
-  return VulkanGpuDevice(device, fs, m_alloc_info, queueProperties, heapInfos, false);
+  return VulkanGpuDevice(device,physDev, fs, m_alloc_info, queueProperties, heapInfos, false);
 }
 
 #if defined(PLATFORM_WINDOWS)
