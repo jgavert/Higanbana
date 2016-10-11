@@ -34,7 +34,7 @@ public:
     return *m_desc;
   }
 
-  TextureImpl& getTexture()
+  TextureImpl& impl()
   {
     return *texture;
   }

@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanBuffer.hpp"
+#include "VulkanTexture.hpp"
 #include "core/src/datastructures/proxy.hpp"
 
 #include <deque>
@@ -23,7 +24,8 @@ public:
 	enum class DrawType
 	{
 		BufferCopy,
-		Dispatch
+		Dispatch,
+		PrepareForPresent
 	};
 
 	std::string drawTypeToString(DrawType type)
@@ -48,8 +50,6 @@ private:
 		read,
 		write
 	};
-
-
 
 	struct DependencyPacket
 	{
@@ -109,11 +109,15 @@ public:
 
 	void addDrawCall(int drawCallIndex, DrawType name, vk::PipelineStageFlags baseFlags);
 
+	// buffers
 	void addReadBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags);
 	void addModifyBuffer(int drawCallIndex, VulkanBufferShaderView& buffer, vk::AccessFlags flags);
 
 	void addReadBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags);
 	void addModifyBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags);
+	// textures
+
+	void addReadTexture(int drawCallIndex, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout targetLayout);
 
 	// only builds the graph of dependencies.
 	void resolveGraph();

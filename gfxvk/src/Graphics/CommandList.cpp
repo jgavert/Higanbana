@@ -56,6 +56,16 @@ void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)
   m_cmdBuffer->copy(srcdata.getBuffer(), dstdata.getBuffer());
 }
 
+void GraphicsCmdBuffer::clearRTV(TextureRTV& texture, float r, float g, float b, float a)
+{
+  m_cmdBuffer->clearRTV(texture.texture().impl(), r, g, b, a);
+}
+
+void GraphicsCmdBuffer::prepareForPresent(Texture& texture)
+{
+	m_cmdBuffer->prepareForPresent(texture.impl());
+}
+
 void GraphicsCmdBuffer::prepareForSubmit(GpuDeviceImpl& device)
 {
   m_cmdBuffer->prepareForSubmit(device, m_pool.impl());
