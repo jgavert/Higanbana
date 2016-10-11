@@ -63,9 +63,6 @@ int EntryPoint::main()
       auto swapchain = gpu.createSwapchain(surface, PresentMode::Mailbox);
 
       // TODO1: general, advance towards usable images
-      // TODO3: implement synchornization to query free swapchain images
-      // TODO4: have color changing window
-
       // optional: cleanup texture format
 
       //renderdoc.startCapture();
@@ -156,6 +153,13 @@ int EntryPoint::main()
 
 		while (!window.simpleReadMessages())
 		{
+      if (window.hasResized())
+      {
+        gpu.reCreateSwapchain(swapchain, surface);
+        window.resizeHandled();
+      }
+
+
 			log.update();
 			{
 				auto gfx = gpu.createGraphicsCommandBuffer();

@@ -70,6 +70,9 @@ public:
   WindowInternal& getInternalWindow() { return *m_window; }
   bool simpleReadMessages();
 
+  bool hasResized();
+  void resizeHandled();
+
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
 

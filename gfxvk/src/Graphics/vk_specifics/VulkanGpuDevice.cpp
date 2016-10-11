@@ -312,6 +312,67 @@ VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQ
 	return ret;
 }
 
+void VulkanGpuDevice::reCreateSwapchain(VulkanSwapchain& sc, VulkanSurface& surface, VulkanQueue& queue, ResourceDescriptor& descriptor, PresentMode mode)
+{
+  auto oldSwapchain = *sc.m_swapchain;
+ 
+  auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(*surface.surface);
+
+
+  auto extent = surfaceCap.currentExtent;
+  if (extent.height < 8)
+  {
+    extent.height = 8;
+  }
+  if (extent.width < 8)
+  {
+    extent.width = 8;
+  }
+
+  descriptor.m_width = extent.width;
+  descriptor.m_height = extent.height;
+
+  if (!m_physDevice.getSurfaceSupportKHR(queue.m_index, *surface.surface))
+  {
+    F_ASSERT(false, "Was not supported.");
+  }
+  vk::PresentModeKHR khrmode;
+  switch (mode)
+  {
+  case PresentMode::Mailbox:
+    khrmode = vk::PresentModeKHR::eMailbox;
+    break;
+  case PresentMode::Fifo:
+    khrmode = vk::PresentModeKHR::eFifo;
+    break;
+  case PresentMode::FifoRelaxed:
+    khrmode = vk::PresentModeKHR::eFifoRelaxed;
+    break;
+  case PresentMode::Immediate:
+  default:
+    khrmode = vk::PresentModeKHR::eImmediate;
+    break;
+  }
+
+  vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
+    .setSurface(*surface.surface)
+    .setMinImageCount(surfaceCap.minImageCount)
+    .setImageFormat(formatToVkFormat[descriptor.m_format].view)
+    .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
+    .setImageExtent(surfaceCap.currentExtent)
+    .setImageArrayLayers(1)
+    .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)  // linear to here
+    .setImageSharingMode(vk::SharingMode::eExclusive)
+    //	.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eInherit)
+    //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
+    .setPresentMode(khrmode)
+    .setClipped(false)
+    .setOldSwapchain(oldSwapchain);
+
+  auto swapchain = m_device->createSwapchainKHR(info);
+  *sc.m_swapchain = swapchain;
+}
+
 std::vector<VulkanTexture> VulkanGpuDevice::getSwapchainTextures(VulkanSwapchain& sc)
 {
   auto images = m_device->getSwapchainImagesKHR(*sc.m_swapchain);

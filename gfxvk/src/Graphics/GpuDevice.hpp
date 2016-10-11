@@ -56,6 +56,7 @@ public:
   std::vector<ResourceDescriptor> querySwapChainInfo(WindowSurface& surface);
   std::vector<PresentMode> queryPresentModes(WindowSurface& surface);
   Swapchain createSwapchain(WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen = ResourceDescriptor().setFormat(FormatType::Unknown));
+  void reCreateSwapchain(Swapchain& sc, WindowSurface& surface, PresentMode mode = PresentMode::Unknown, ResourceDescriptor chosen = ResourceDescriptor().setFormat(FormatType::Unknown));
 
   template <typename ShaderType>
   ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
