@@ -104,7 +104,39 @@ Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, R
   SemaphoreImpl pre = m_device->createSemaphore();
   SemaphoreImpl post = m_device->createSemaphore();
 
-	return Swapchain(impl, finalImages, pre, post);
+	return Swapchain(impl, finalImages, pre, post, usedAsBase, chosenMode);
+}
+
+void GpuDevice::reCreateSwapchain(Swapchain& sc, WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen)
+{
+  waitIdle();
+
+  if (mode == PresentMode::Unknown)
+  {
+    mode = sc.m_mode;
+  }
+
+  if (chosen.m_format == FormatType::Unknown)
+  {
+    chosen = sc.m_descriptor;
+  }
+
+  m_device->reCreateSwapchain(sc.m_swapchain, surface.impl, m_queue, chosen, mode);
+  auto scImages = m_device->getSwapchainTextures(sc.m_swapchain);
+
+  std::vector<TextureRTV> finalImages;
+
+  for (auto&& image : scImages)
+  {
+    TextureRTV rtv;
+    rtv.m_view = m_device->createTextureView(image, chosen, ResourceShaderType::RenderTarget);
+    rtv.m_texture = Texture(image, chosen);
+    finalImages.emplace_back(rtv);
+  }
+
+  sc.m_descriptor = chosen;
+  sc.m_mode = mode;
+  sc.m_resources = finalImages;
 }
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()

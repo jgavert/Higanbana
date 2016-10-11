@@ -83,6 +83,16 @@ void Window::setDpi(unsigned scale)
   m_dpi = scale;
 }
 
+bool Window::hasResized()
+{
+  return needToResize;
+}
+
+void Window::resizeHandled()
+{
+  needToResize = false;
+}
+
 #endif
 
 // Initializes the window and shows it

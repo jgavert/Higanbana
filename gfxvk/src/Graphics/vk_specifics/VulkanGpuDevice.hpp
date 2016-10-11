@@ -88,6 +88,7 @@ public:
   std::vector<ResourceDescriptor> querySwapChainInfo(VulkanSurface& surface);
   std::vector<PresentMode> queryPresentModes(VulkanSurface& surface);
   VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, FormatType format, PresentMode mode);
+  void reCreateSwapchain(VulkanSwapchain& sc, VulkanSurface& surface, VulkanQueue& queue, ResourceDescriptor& descriptor, PresentMode mode);
   std::vector<VulkanTexture> getSwapchainTextures(VulkanSwapchain& sc);
 
   int acquireNextImage(VulkanSwapchain& sc, VulkanSemaphore& image);

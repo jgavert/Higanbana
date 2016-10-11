@@ -7,6 +7,7 @@
 
 enum class PresentMode
 {
+  Unknown,
 	Immediate,
 	Mailbox,
 	Fifo,
@@ -24,18 +25,22 @@ private:
   std::vector<TextureRTV> m_resources;
   SemaphoreImpl m_pre;
   SemaphoreImpl m_post;
-  int m_currentIndex;
+  ResourceDescriptor m_descriptor;
+  PresentMode m_mode;
+  int m_currentIndex = 0;
 public:
   Swapchain() {}
   Swapchain(SwapchainImpl swapchain)
     : m_swapchain(swapchain)
   {}
 
-  Swapchain(SwapchainImpl swapchain, std::vector<TextureRTV> resources, SemaphoreImpl waitImage, SemaphoreImpl renderDone)
+  Swapchain(SwapchainImpl swapchain, std::vector<TextureRTV> resources, SemaphoreImpl waitImage, SemaphoreImpl renderDone, ResourceDescriptor descriptor, PresentMode mode)
     : m_swapchain(swapchain)
-    , m_resources(resources)
-	, m_pre(waitImage)
-	, m_post(renderDone)
+    , m_resources(std::forward<decltype(resources)>(resources))
+    , m_pre(waitImage)
+    , m_post(renderDone)
+    , m_descriptor(std::forward<decltype(descriptor)>(descriptor))
+    , m_mode(mode)
   {
   }
 
