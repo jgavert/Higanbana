@@ -16,7 +16,8 @@ private:
 public:
   bool isValid();
   void submit(VulkanCmdBuffer& buffer, FenceImpl& fence);
-  void present(VulkanSwapchain& sc, VulkanSemaphore& wait, VulkanSemaphore& after);
+  void submitWithSemaphore(VulkanCmdBuffer& gfx, FenceImpl& fence, VulkanSemaphore& waitImage, VulkanSemaphore& signalFinished);
+  void present(VulkanSwapchain& sc, VulkanSemaphore& renderingFinished, unsigned currentImageIndice);
 };
 
 using QueueImpl = VulkanQueue;

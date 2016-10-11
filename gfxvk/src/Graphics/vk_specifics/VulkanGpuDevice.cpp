@@ -2,6 +2,8 @@
 
 #include "VulkanFormat.hpp"
 
+#include <limits>
+
 VulkanGpuDevice::VulkanGpuDevice(
   std::shared_ptr<vk::Device> device
   , vk::PhysicalDevice physDev
@@ -321,6 +323,19 @@ std::vector<VulkanTexture> VulkanGpuDevice::getSwapchainTextures(VulkanSwapchain
   }
 
   return texture;
+}
+
+int VulkanGpuDevice::acquireNextImage(VulkanSwapchain& sc, VulkanSemaphore& image)
+{
+	auto res = m_device->acquireNextImageKHR(*sc.m_swapchain, (std::numeric_limits<uint64_t>::max)(), *image.semaphore, vk::Fence());
+
+	if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
+	{
+		F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+		//return -1;
+	}
+
+	return res.value;
 }
 
 VulkanSemaphore VulkanGpuDevice::createSemaphore()

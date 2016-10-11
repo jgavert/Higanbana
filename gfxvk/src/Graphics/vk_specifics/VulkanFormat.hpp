@@ -20,7 +20,7 @@ static FormatVulkanConversion formatToVkFormat[] =
 	{vk::Format::eR32G32B32Sfloat, FormatType::R32G32B32_Float },
 	{vk::Format::eR8G8B8A8Uint, FormatType::R8G8B8A8_Uint },
 	{vk::Format::eR8G8B8A8Srgb, FormatType::R8G8B8A8_Srgb },
-  {vk::Format::eB8G8R8A8Unorm, FormatType::B8G8R8A8 },
+    {vk::Format::eB8G8R8A8Unorm, FormatType::B8G8R8A8 },
 	{vk::Format::eR32Sfloat, FormatType::R32_Float },
 	{vk::Format::eD32Sfloat, FormatType::D32 },
 	{vk::Format::eR8Uint, FormatType::R8_Uint },
