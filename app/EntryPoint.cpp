@@ -60,18 +60,15 @@ int EntryPoint::main()
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
       WindowSurface surface = devices.createSurface(window);
-      gpu.querySwapChainInfo(surface);
       auto swapchain = gpu.createSwapchain(surface, PresentMode::Mailbox);
 
       // TODO1: general, advance towards usable images
-      // TODO2: do what is needed to get images out of swapchain
       // TODO3: implement synchornization to query free swapchain images
       // TODO4: have color changing window
 
-      // optional: get all data from "querySwapchainInfo" to choosable data structures
       // optional: cleanup texture format
 
-        //renderdoc.startCapture();
+      //renderdoc.startCapture();
       {
         constexpr int TestBufferSize = 1 * 128;
 
@@ -153,7 +150,6 @@ int EntryPoint::main()
           gpu.submit(gfx);
         }
 
-        //for (int i = 0; i < 1; ++i)
         t.firstTick();
         while (!window.simpleReadMessages())
         {
@@ -175,6 +171,11 @@ int EntryPoint::main()
           }
           gpu.submit(gfx);
           t.tick();
+          {
+            gpu.acquirePresentableImage(swapchain);
+
+            gpu.present(swapchain);
+          }
         }
         {
           auto gfx = gpu.createGraphicsCommandBuffer();

@@ -51,6 +51,11 @@ std::vector<ResourceDescriptor> GpuDevice::querySwapChainInfo(WindowSurface& sur
 	return m_device->querySwapChainInfo(surface.impl);
 }
 
+std::vector<PresentMode> GpuDevice::queryPresentModes(WindowSurface& surface)
+{
+  return m_device->queryPresentModes(surface.impl);
+}
+
 Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen)
 {
   ResourceDescriptor usedAsBase = chosen;
@@ -69,7 +74,20 @@ Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, R
     F_ASSERT(usedAsBase.m_format != FormatType::Unknown, "we didn't find proper swapchain format.");
   }
 
-	auto impl = m_device->createSwapchain(surface.impl,m_queue, mode);
+  // check mode given
+  auto modes = m_device->queryPresentModes(surface.impl);
+  F_ASSERT(!modes.empty(), "no modes available!?");
+  PresentMode chosenMode = modes[0];
+  for (auto&& validMode : modes)
+  {
+    if (validMode == mode)
+    {
+      chosenMode = mode;
+    }
+  }
+
+
+	auto impl = m_device->createSwapchain(surface.impl,m_queue, usedAsBase.m_format, chosenMode);
   auto scImages = m_device->getSwapchainTextures(impl);
 
   std::vector<TextureRTV> finalImages;
@@ -82,6 +100,8 @@ Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, R
     rtv.m_texture = Texture(image, usedAsBase);
     finalImages.emplace_back(rtv);
   }
+
+  //std::vector<SemaphoreImpl>
 
 	return Swapchain(impl, finalImages);
 }
@@ -298,4 +318,14 @@ void GpuDevice::destroyResources()
   {
     m_device->destroy(it.impl());
   }
+}
+
+TextureRTV GpuDevice::acquirePresentableImage(Swapchain )
+{
+  return TextureRTV();
+}
+
+void GpuDevice::present(Swapchain )
+{
+
 }
