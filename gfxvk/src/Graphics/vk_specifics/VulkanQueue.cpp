@@ -21,3 +21,8 @@ void VulkanQueue::submit(VulkanCmdBuffer& gfx, FenceImpl& fence)
   vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
   m_queue->submit(proxy, *fence.m_fence);
 }
+
+void VulkanQueue::present(VulkanSwapchain& sc, VulkanSemaphore& wait, VulkanSemaphore& after)
+{
+  m_queue->presentKHR(vk::PresentInfoKHR());
+}

@@ -1,6 +1,8 @@
 #pragma once
 #include "gfxvk/src/Graphics/vk_specifics/VulkanCmdBuffer.hpp"
 #include "gfxvk/src/Graphics/vk_specifics/VulkanFence.hpp"
+#include "gfxvk/src/Graphics/vk_specifics/VulkanSemaphore.hpp"
+#include "gfxvk/src/Graphics/vk_specifics/VulkanSwapchain.hpp"
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
@@ -14,6 +16,7 @@ private:
 public:
   bool isValid();
   void submit(VulkanCmdBuffer& buffer, FenceImpl& fence);
+  void present(VulkanSwapchain& sc, VulkanSemaphore& wait, VulkanSemaphore& after);
 };
 
 using QueueImpl = VulkanQueue;
