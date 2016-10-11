@@ -54,6 +54,7 @@ public:
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
   std::vector<ResourceDescriptor> querySwapChainInfo(WindowSurface& surface);
+  std::vector<PresentMode> queryPresentModes(WindowSurface& surface);
   Swapchain createSwapchain(WindowSurface& surface, PresentMode mode, ResourceDescriptor chosen = ResourceDescriptor().setFormat(FormatType::Unknown));
 
   template <typename ShaderType>
@@ -81,4 +82,9 @@ public:
   bool fenceDone(Fence fence);
   void waitFence(Fence fence);
   void waitIdle();
+
+  // present
+
+  TextureRTV acquirePresentableImage(Swapchain swapchain);
+  void present(Swapchain swapchain);
 };

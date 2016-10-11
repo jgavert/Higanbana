@@ -219,7 +219,33 @@ std::vector<ResourceDescriptor> VulkanGpuDevice::querySwapChainInfo(VulkanSurfac
   return descs;
 }
 
-VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQueue& queue, PresentMode mode)
+std::vector<PresentMode> VulkanGpuDevice::queryPresentModes(VulkanSurface& surface)
+{
+  auto asd = m_physDevice.getSurfacePresentModesKHR(*surface.surface);
+  std::vector<PresentMode> modes;
+  for (auto&& fmt : asd)
+  {
+    if (fmt == vk::PresentModeKHR::eImmediate)
+    {
+      modes.emplace_back(PresentMode::Immediate);
+    }
+    if (fmt == vk::PresentModeKHR::eMailbox)
+    {
+      modes.emplace_back(PresentMode::Mailbox);
+    }
+    if (fmt == vk::PresentModeKHR::eFifo)
+    {
+      modes.emplace_back(PresentMode::Fifo);
+    }
+    if (fmt == vk::PresentModeKHR::eFifoRelaxed)
+    {
+      modes.emplace_back(PresentMode::FifoRelaxed);
+    }
+  }
+  return modes;
+}
+
+VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQueue& queue, FormatType format, PresentMode mode)
 {
 	vk::PresentModeKHR khrmode;
 	switch (mode)
@@ -260,7 +286,7 @@ VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQ
 	vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
 		.setSurface(*surface.surface)
 		.setMinImageCount(surfaceCap.minImageCount)
-		.setImageFormat(vk::Format::eB8G8R8A8Unorm)
+		.setImageFormat(formatToVkFormat[format].view)
 		.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
 		.setImageExtent(surfaceCap.currentExtent)
 		.setImageArrayLayers(1)
@@ -279,6 +305,7 @@ VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQ
 	ret.m_swapchain = std::shared_ptr<vk::SwapchainKHR>(new vk::SwapchainKHR(swapchain), [dev](vk::SwapchainKHR* sc)
 	{
 		dev->destroySwapchainKHR(*sc);
+    delete sc;
 	});
 	return ret;
 }
@@ -294,6 +321,21 @@ std::vector<VulkanTexture> VulkanGpuDevice::getSwapchainTextures(VulkanSwapchain
   }
 
   return texture;
+}
+
+VulkanSemaphore VulkanGpuDevice::createSemaphore()
+{
+  VulkanSemaphore sema;
+  auto semaphore = m_device->createSemaphore(vk::SemaphoreCreateInfo());
+
+  auto dev = m_device;
+
+  sema.semaphore = std::shared_ptr<vk::Semaphore>(new vk::Semaphore(semaphore), [dev](vk::Semaphore* semap)
+  {
+    dev->destroySemaphore(*semap);
+    delete semap;
+  });
+  return sema;
 }
 
 VulkanQueue VulkanGpuDevice::createDMAQueue()
@@ -312,7 +354,11 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
 		queueId = m_freeQueueIndexes->dma.back();
 		m_freeQueueIndexes->dma.pop_back();
 		auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-		return VulkanQueue(std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->dma.push_back(queueId); delete cQueue; }), queueFamilyIndex);
+		return VulkanQueue(std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue)
+    {
+      m_freeQueueIndexes->dma.push_back(queueId);
+      delete cQueue;
+    }), queueFamilyIndex);
 	}
 	if (!m_freeQueueIndexes->universal.empty())
 	{
@@ -320,7 +366,11 @@ VulkanQueue VulkanGpuDevice::createDMAQueue()
 		queueId = m_freeQueueIndexes->universal.back();
 		m_freeQueueIndexes->universal.pop_back();
 		auto que = m_device->getQueue(queueFamilyIndex, queueId); // TODO: 0 index is wrong.
-		return VulkanQueue(std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue) { m_freeQueueIndexes->universal.push_back(queueId);  delete cQueue; }), queueFamilyIndex);
+		return VulkanQueue(std::shared_ptr<vk::Queue>(new vk::Queue(que), [&](vk::Queue* cQueue)
+    {
+      m_freeQueueIndexes->universal.push_back(queueId); 
+      delete cQueue;
+    }), queueFamilyIndex);
 	}
 
 	return VulkanQueue(std::shared_ptr<vk::Queue>(nullptr), -1);

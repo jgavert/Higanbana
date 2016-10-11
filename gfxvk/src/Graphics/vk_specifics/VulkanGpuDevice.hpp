@@ -10,6 +10,7 @@
 #include "VulkanFence.hpp"
 #include "VulkanDescriptorPool.hpp"
 #include "VulkanDescriptorSet.hpp"
+#include "VulkanSemaphore.hpp"
 #include "gfxvk/src/Graphics/SwapChain.hpp"
 #include "vkShaders/shader_defines.hpp"
 #include "core/src/filesystem/filesystem.hpp"
@@ -85,8 +86,12 @@ public:
 
   // create
   std::vector<ResourceDescriptor> querySwapChainInfo(VulkanSurface& surface);
-  VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, PresentMode mode);
+  std::vector<PresentMode> queryPresentModes(VulkanSurface& surface);
+  VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, FormatType format, PresentMode mode);
   std::vector<VulkanTexture> getSwapchainTextures(VulkanSwapchain& sc);
+
+  VulkanSemaphore createSemaphore();
+
   VulkanQueue createDMAQueue();
   VulkanQueue createComputeQueue();
   VulkanQueue createGraphicsQueue();
