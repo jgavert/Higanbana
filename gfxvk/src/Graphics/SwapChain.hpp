@@ -21,7 +21,8 @@ private:
 
   SwapchainImpl m_SwapChain;
   std::vector<TextureRTV> m_resources;
-
+  SemaphoreImpl m_pre;
+  SemaphoreImpl m_post;
 
 public:
   Swapchain() {}

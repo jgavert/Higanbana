@@ -101,9 +101,10 @@ Swapchain GpuDevice::createSwapchain(WindowSurface& surface, PresentMode mode, R
     finalImages.emplace_back(rtv);
   }
 
-  //std::vector<SemaphoreImpl>
+  SemaphoreImpl pre = m_device->createSemaphore();
+  SemaphoreImpl post = m_device->createSemaphore();
 
-	return Swapchain(impl, finalImages);
+	return Swapchain(impl, finalImages, pre, post);
 }
 
 GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
@@ -325,7 +326,7 @@ TextureRTV GpuDevice::acquirePresentableImage(Swapchain )
   return TextureRTV();
 }
 
-void GpuDevice::present(Swapchain )
+void GpuDevice::present(Swapchain sc)
 {
-
+  m_queue.present(sc.m_SwapChain, sc.m_pre, sc.m_post);
 }
