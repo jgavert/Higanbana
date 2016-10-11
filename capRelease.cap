@@ -16,7 +16,7 @@
   </Options>
   <Inject>false</Inject>
   <AutoStart>true</AutoStart>
-  <Executable>C:\toki\code\Faze\bin\x64-Vulkan-Debug\App\App.exe</Executable>
+  <Executable>C:\toki\code\Faze\bin\x64-Vulkan-Release\App\App.exe</Executable>
   <WorkingDir>C:\toki\code\Faze\appspace</WorkingDir>
   <CmdLine />
   <Environment />
