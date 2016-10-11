@@ -151,32 +151,40 @@ int EntryPoint::main()
         }
 
         t.firstTick();
-        while (!window.simpleReadMessages())
-        {
-          log.update();
-          auto gfx = gpu.createGraphicsCommandBuffer();
-          auto shif = gfx.bind<SampleShader>(test);
-          for (int k = 0; k < 1; k++)
-          {
-            {
-              shif.read(SampleShader::dataIn, computeTargetUav);
-              shif.modify(SampleShader::dataOut, bufferTargetUav);
-              gfx.dispatchThreads(shif, TestBufferSize);
-            }
-            {
-              shif.read(SampleShader::dataIn, bufferTargetUav);
-              shif.modify(SampleShader::dataOut, computeTargetUav);
-              gfx.dispatchThreads(shif, TestBufferSize);
-            }
-          }
-          gpu.submit(gfx);
-          t.tick();
-          {
-            gpu.acquirePresentableImage(swapchain);
 
-            gpu.present(swapchain);
-          }
-        }
+		while (!window.simpleReadMessages())
+		{
+			log.update();
+			{
+				auto gfx = gpu.createGraphicsCommandBuffer();
+				auto shif = gfx.bind<SampleShader>(test);
+				for (int k = 0; k < 1; k++)
+				{
+					{
+						shif.read(SampleShader::dataIn, computeTargetUav);
+						shif.modify(SampleShader::dataOut, bufferTargetUav);
+						gfx.dispatchThreads(shif, TestBufferSize);
+					}
+					{
+						shif.read(SampleShader::dataIn, bufferTargetUav);
+						shif.modify(SampleShader::dataOut, computeTargetUav);
+						gfx.dispatchThreads(shif, TestBufferSize);
+					}
+				}
+				gpu.submit(gfx);
+			}
+			{
+				gpu.acquirePresentableImage(swapchain);
+				{
+					auto gfx = gpu.createGraphicsCommandBuffer();
+					gpu.submitSwapchain(gfx, swapchain);
+				}
+				gpu.present(swapchain);
+				t.tick();
+			}
+		}
+
+		// outside windowloop
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           gfx.copy(computeTarget, bufferReadb);

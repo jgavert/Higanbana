@@ -85,6 +85,7 @@ public:
 
   // present
 
-  TextureRTV acquirePresentableImage(Swapchain swapchain);
-  void present(Swapchain swapchain);
+  TextureRTV acquirePresentableImage(Swapchain& swapchain);
+  void submitSwapchain(GraphicsCmdBuffer& gfx, Swapchain& sc);
+  void present(Swapchain& swapchain);
 };

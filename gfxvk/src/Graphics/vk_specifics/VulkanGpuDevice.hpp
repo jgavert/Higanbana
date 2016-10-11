@@ -90,6 +90,8 @@ public:
   VulkanSwapchain createSwapchain(VulkanSurface& surface, VulkanQueue& queue, FormatType format, PresentMode mode);
   std::vector<VulkanTexture> getSwapchainTextures(VulkanSwapchain& sc);
 
+  int acquireNextImage(VulkanSwapchain& sc, VulkanSemaphore& image);
+
   VulkanSemaphore createSemaphore();
 
   VulkanQueue createDMAQueue();

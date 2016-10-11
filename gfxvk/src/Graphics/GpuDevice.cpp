@@ -221,29 +221,7 @@ bool GpuDevice::isValid()
   return m_device->isValid();
 }
 
-void GpuDevice::submit(GraphicsCmdBuffer& gfx)
-{
-  LiveCmdBuffer element;
-  element.cmdBuffer = gfx;
 
-  {
-    auto sequence = gfx.m_seqNum;
-    auto index = m_fenceAllocator.nextRange(sequence, 1);
-    while (index.count() == 0)
-    {
-      F_ASSERT(m_liveCmdBuffers.size() != 0, "No commandbuffers live but still cannot acquire free Fence.");
-      updateCompletedSequences();
-      index = m_fenceAllocator.nextRange(sequence, 1);
-    }
-
-    element.fence = m_rawFences.at(index.start());
-    m_device->resetFence(element.fence);
-  }
-
-  gfx.prepareForSubmit(*m_device);
-  m_queue.submit(*gfx.m_cmdBuffer, element.fence);
-  m_liveCmdBuffers.emplace_back(element);
-}
 
 bool GpuDevice::fenceDone(Fence fence)
 {
@@ -321,12 +299,62 @@ void GpuDevice::destroyResources()
   }
 }
 
-TextureRTV GpuDevice::acquirePresentableImage(Swapchain )
+TextureRTV GpuDevice::acquirePresentableImage(Swapchain& sc)
 {
-  return TextureRTV();
+  int index = m_device->acquireNextImage(sc.m_swapchain, sc.m_pre);
+  sc.m_currentIndex = index;
+  return sc[index];
 }
 
-void GpuDevice::present(Swapchain sc)
+void GpuDevice::submit(GraphicsCmdBuffer& gfx)
 {
-  m_queue.present(sc.m_SwapChain, sc.m_pre, sc.m_post);
+	LiveCmdBuffer element;
+	element.cmdBuffer = gfx;
+
+	{
+		auto sequence = gfx.m_seqNum;
+		auto index = m_fenceAllocator.nextRange(sequence, 1);
+		while (index.count() == 0)
+		{
+			F_ASSERT(m_liveCmdBuffers.size() != 0, "No commandbuffers live but still cannot acquire free Fence.");
+			updateCompletedSequences();
+			index = m_fenceAllocator.nextRange(sequence, 1);
+		}
+
+		element.fence = m_rawFences.at(index.start());
+		m_device->resetFence(element.fence);
+	}
+
+	gfx.prepareForSubmit(*m_device);
+	m_queue.submit(*gfx.m_cmdBuffer, element.fence);
+	m_liveCmdBuffers.emplace_back(element);
+}
+
+void GpuDevice::submitSwapchain(GraphicsCmdBuffer& gfx, Swapchain& sc)
+{
+	LiveCmdBuffer element;
+	element.cmdBuffer = gfx;
+
+	{
+		auto sequence = gfx.m_seqNum;
+		auto index = m_fenceAllocator.nextRange(sequence, 1);
+		while (index.count() == 0)
+		{
+			F_ASSERT(m_liveCmdBuffers.size() != 0, "No commandbuffers live but still cannot acquire free Fence.");
+			updateCompletedSequences();
+			index = m_fenceAllocator.nextRange(sequence, 1);
+		}
+
+		element.fence = m_rawFences.at(index.start());
+		m_device->resetFence(element.fence);
+	}
+
+	gfx.prepareForSubmit(*m_device);
+	m_queue.submitWithSemaphore(*gfx.m_cmdBuffer, element.fence, sc.m_pre, sc.m_post);
+	m_liveCmdBuffers.emplace_back(element);
+}
+
+void GpuDevice::present(Swapchain& sc)
+{
+  m_queue.present(sc.m_swapchain, sc.m_post, sc.lastAcquiredIndex());
 }
