@@ -59,6 +59,7 @@ private:
   int m_resizeWidth = 0;
   int m_resizeHeight = 0;
   unsigned m_dpi = 96;
+  bool m_minimized = false;
 
   void resizeEvent(const char*  eventName);
   void setDpi(unsigned scale);

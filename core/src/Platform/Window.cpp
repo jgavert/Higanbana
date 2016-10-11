@@ -34,19 +34,27 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
   {
     if (me)
     {
-      me->m_resizeWidth = static_cast<int>(LOWORD(lParam));
-      me->m_resizeHeight = static_cast<int>(HIWORD(lParam));
       auto evnt = static_cast<int>(wParam);
+      if (SIZE_MINIMIZED == evnt)
+      {
+        me->m_minimized = true;
+        me->resizeEvent("Minimized");
+      }
+
+      if (!me->m_minimized)
+      {
+        me->m_resizeWidth = static_cast<int>(LOWORD(lParam));
+        me->m_resizeHeight = static_cast<int>(HIWORD(lParam));
+      }
+
       if (SIZE_MAXIMIZED == evnt)
       {
+        me->m_minimized = false;
         me->resizeEvent("Maximized");
-      }
-      else if (SIZE_MINIMIZED == evnt)
-      {
-        me->resizeEvent("Minimized");
       }
       else if (SIZE_RESTORED == evnt && !me->resizing)
       {
+        me->m_minimized = false;
         me->resizeEvent("Restored");
       }
     }
@@ -71,7 +79,7 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 void Window::resizeEvent(const char* eventName)
 {
-  if (m_width != m_resizeWidth || m_height != m_resizeHeight)
+  if ((m_width != m_resizeWidth || m_height != m_resizeHeight) && !m_minimized)
   {
     F_SLOG("Window", "%s %dx%d\n",eventName, m_resizeWidth, m_resizeHeight);
     needToResize = true;
@@ -85,12 +93,14 @@ void Window::setDpi(unsigned scale)
 
 bool Window::hasResized()
 {
-  return needToResize;
+  return needToResize && !m_minimized;
 }
 
 void Window::resizeHandled()
 {
   needToResize = false;
+  m_width = m_resizeWidth;
+  m_height = m_resizeHeight;
 }
 
 #endif
