@@ -31,6 +31,7 @@ private:
 public:
   GraphicsCmdBuffer() {}
   void copy(Buffer& src, Buffer& dst);
+  void clearRTV(TextureRTV& texture, float r = 0.f, float g = 0.f, float b = 0.f, float a = 0.0f);
   void bindPipeline(ComputePipeline& pipeline);
   //void bindPipeline(GraphicsPipeline& pipeline);
   void dispatch(DescriptorSet& inputs, unsigned x, unsigned y = 1, unsigned z = 1);
@@ -40,6 +41,8 @@ public:
   void close();
   bool isClosed();
   void prepareForSubmit(GpuDeviceImpl& device);
+
+  void prepareForPresent(Texture& texture);
   // shader
 
   template <typename ShaderInterface>

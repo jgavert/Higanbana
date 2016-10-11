@@ -162,28 +162,28 @@ TextureSRV GpuDevice::createTextureSRV(Texture targetTexture, ShaderViewDescript
 {
   TextureSRV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::ShaderView, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.impl(), targetTexture.desc(), ResourceShaderType::ShaderView, viewDesc);
   return view;
 }
 TextureUAV GpuDevice::createTextureUAV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureUAV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::UnorderedAccess, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.impl(), targetTexture.desc(), ResourceShaderType::UnorderedAccess, viewDesc);
   return view;
 }
 TextureRTV GpuDevice::createTextureRTV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureRTV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::RenderTarget, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.impl(), targetTexture.desc(), ResourceShaderType::RenderTarget, viewDesc);
   return view;
 }
 TextureDSV GpuDevice::createTextureDSV(Texture targetTexture, ShaderViewDescriptor viewDesc)
 {
   TextureDSV view;
   view.m_texture = targetTexture;
-  view.m_view = m_device->createTextureView(targetTexture.getTexture(), targetTexture.desc(), ResourceShaderType::DepthStencil, viewDesc);
+  view.m_view = m_device->createTextureView(targetTexture.impl(), targetTexture.desc(), ResourceShaderType::DepthStencil, viewDesc);
   return view;
 }
 
@@ -332,6 +332,8 @@ void GpuDevice::submit(GraphicsCmdBuffer& gfx)
 
 void GpuDevice::submitSwapchain(GraphicsCmdBuffer& gfx, Swapchain& sc)
 {
+	gfx.prepareForPresent(sc[sc.lastAcquiredIndex()].texture());
+
 	LiveCmdBuffer element;
 	element.cmdBuffer = gfx;
 

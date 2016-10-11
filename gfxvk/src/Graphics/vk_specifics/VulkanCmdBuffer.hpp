@@ -29,7 +29,9 @@ public:
     PipelineBarrier,
     BindPipeline,
     BufferCopy,
-    Dispatch
+	ClearRTV,
+    Dispatch,
+	PrepareForPresent
   };
 
   VulkanCommandPacket()
@@ -82,8 +84,10 @@ public:
   }
   // supported commands
   void bindComputePipeline(VulkanPipeline& pipeline);
-  void copy(VulkanBuffer& src, VulkanBuffer& dst);
   void dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z);
+  void copy(VulkanBuffer& src, VulkanBuffer& dst);
+  void clearRTV(VulkanTexture& texture, float r, float g, float b, float a);
+  void prepareForPresent(VulkanTexture& texture);
 
   // misc
   bool isValid();

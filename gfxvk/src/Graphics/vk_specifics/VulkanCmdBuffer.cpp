@@ -165,21 +165,63 @@ public:
   }
 };
 
+class PrepareForPresentPacket : public VulkanCommandPacket
+{
+public:
+	VulkanTexture texture;
+
+	PrepareForPresentPacket(LinearAllocator&, VulkanTexture& texture)
+		:texture(texture)
+	{
+	}
+
+	void execute(vk::CommandBuffer& ) override
+	{
+	}
+
+	PacketType type() override
+	{
+		return PacketType::PrepareForPresent;
+	}
+};
+
+class ClearRTVPacket : public VulkanCommandPacket
+{
+public:
+	VulkanTexture texture;
+	vk::ClearColorValue clearValue;
+
+	ClearRTVPacket(LinearAllocator&, VulkanTexture& texture, vk::ClearColorValue clearValue)
+		:texture(texture)
+		, clearValue(clearValue)
+	{
+	}
+
+	void execute(vk::CommandBuffer& cmd) override
+	{
+		vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
+			.setBaseMipLevel(0)
+			.setAspectMask(vk::ImageAspectFlagBits::eColor)
+			.setBaseArrayLayer(0)
+			.setLayerCount(1)
+			.setLevelCount(1);
+		cmd.clearColorImage(texture.impl(), vk::ImageLayout::eGeneral, clearValue, range);
+	}
+
+	PacketType type() override
+	{
+		return PacketType::ClearRTV;
+	}
+};
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// PACKETS END ///////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 
-void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
+void VulkanCmdBuffer::bindComputePipeline(VulkanPipeline& pipeline)
 {
-  vk::BufferCopy copy;
-  auto srcSize = src.resourceSize;
-  auto dstSize = dst.resourceSize;
-  auto maxSize = std::min(srcSize, dstSize);
-  copy = copy.setSize(maxSize)
-    .setDstOffset(0)
-    .setSrcOffset(0);
-  m_commandList->insert<BufferCopyPacket>(src, dst, copy);
+	m_commandList->insert<BindPipelinePacket>(vk::PipelineBindPoint::eCompute, pipeline.m_pipeline, pipeline.m_pipelineLayout, pipeline.m_descriptorSetLayout);
 }
 
 void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z)
@@ -187,9 +229,27 @@ void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y,
   m_commandList->insert<DispatchPacket>(set, x, y, z);
 }
 
-void VulkanCmdBuffer::bindComputePipeline(VulkanPipeline& pipeline)
+void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
 {
-  m_commandList->insert<BindPipelinePacket>(vk::PipelineBindPoint::eCompute, pipeline.m_pipeline, pipeline.m_pipelineLayout, pipeline.m_descriptorSetLayout);
+	vk::BufferCopy copy;
+	auto srcSize = src.resourceSize;
+	auto dstSize = dst.resourceSize;
+	auto maxSize = std::min(srcSize, dstSize);
+	copy = copy.setSize(maxSize)
+		.setDstOffset(0)
+		.setSrcOffset(0);
+	m_commandList->insert<BufferCopyPacket>(src, dst, copy);
+}
+
+void VulkanCmdBuffer::clearRTV(VulkanTexture& texture, float r, float g, float b, float a)
+{
+	m_commandList->insert<ClearRTVPacket>(texture, vk::ClearColorValue().setFloat32({ r, g, b, a }));
+
+}
+
+void VulkanCmdBuffer::prepareForPresent(VulkanTexture& texture)
+{
+	m_commandList->insert<PrepareForPresentPacket>(texture);
 }
 
 // MISC
@@ -386,6 +446,13 @@ void VulkanCmdBuffer::dependencyFuckup()
       drawCallIndex++;
       break;
     }
+	case VulkanCommandPacket::PacketType::PrepareForPresent:
+	{
+		PrepareForPresentPacket* p = static_cast<PrepareForPresentPacket*>(packet);
+		tracker.addDrawCall(drawCallIndex, DependencyTracker::DrawType::PrepareForPresent, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+		tracker.addReadTexture(drawCallIndex, p->texture, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::ePresentSrcKHR);
+		drawCallIndex++;
+	}
     default:
       break;
     }

@@ -152,6 +152,8 @@ int EntryPoint::main()
 
         t.firstTick();
 
+		float value = 0.f;
+
 		while (!window.simpleReadMessages())
 		{
 			log.update();
@@ -174,13 +176,15 @@ int EntryPoint::main()
 				gpu.submit(gfx);
 			}
 			{
-				gpu.acquirePresentableImage(swapchain);
+				auto rtv = gpu.acquirePresentableImage(swapchain);
 				{
 					auto gfx = gpu.createGraphicsCommandBuffer();
+					gfx.clearRTV(rtv, std::sinf(value));
 					gpu.submitSwapchain(gfx, swapchain);
 				}
 				gpu.present(swapchain);
 				t.tick();
+				value += t.getFrameTimeDelta();
 			}
 		}
 
