@@ -371,6 +371,8 @@ void VulkanGpuDevice::reCreateSwapchain(VulkanSwapchain& sc, VulkanSurface& surf
 
   auto swapchain = m_device->createSwapchainKHR(info);
   *sc.m_swapchain = swapchain;
+
+  m_device->destroySwapchainKHR(oldSwapchain);
 }
 
 std::vector<VulkanTexture> VulkanGpuDevice::getSwapchainTextures(VulkanSwapchain& sc)
@@ -947,7 +949,7 @@ VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& textur
     .setImageLayout(vk::ImageLayout::eGeneral) // TODO: layouts
     .setImageView(view);
 
-  vk::DescriptorType imageType;
+  vk::DescriptorType imageType = vk::DescriptorType::eInputAttachment;
   if (viewType == ResourceShaderType::ShaderView)
   {
     imageType = vk::DescriptorType::eSampledImage;
@@ -958,14 +960,14 @@ VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& textur
   }
   else if (viewType == ResourceShaderType::DepthStencil)
   {
-    imageType = vk::DescriptorType::eSampledImage; // TODO: ???
+    imageType = vk::DescriptorType::eInputAttachment; // TODO: ???, probably invalid to create a depthstencil view, should ignore
   }
   else if (viewType == ResourceShaderType::RenderTarget)
   {
-    imageType = vk::DescriptorType::eStorageImage; // TODO: ???
+    imageType = vk::DescriptorType::eInputAttachment; // TODO: ???, probably invalid to create a rendertarget view, should ignore
   }
 
-  return VulkanTextureShaderView(viewptr, info, imageType, texture.m_state, texture.uniqueId);
+  return VulkanTextureShaderView(texture.m_resource, viewptr, info, imageType, subResourceRange, texture.m_state, texture.uniqueId);
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
