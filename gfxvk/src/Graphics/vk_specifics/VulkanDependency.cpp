@@ -423,6 +423,10 @@ void DependencyTracker::reset()
 	m_barrierOffsets.clear();
 	aaargh.clear();
   m_uniqueBuffersThisChain.clear();
+
+  m_imageBarrierOffsets.clear();
+  imageBarriers.clear();
+  m_uniqueTexturesThisChain.clear();
 }
 
 
