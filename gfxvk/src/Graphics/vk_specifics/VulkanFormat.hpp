@@ -11,7 +11,7 @@ struct FormatVulkanConversion
 	FormatType enm;
 };
 
-static FormatVulkanConversion formatToVkFormat[] =
+static FormatVulkanConversion formatTransformTable[] =
 {
 	{vk::Format::eUndefined, FormatType::Unknown },
 	{vk::Format::eR32G32B32A32Uint, FormatType::R32G32B32A32_Uint },
@@ -27,3 +27,4 @@ static FormatVulkanConversion formatToVkFormat[] =
 };
 
 FormatType formatToFazeFormat(vk::Format format);
+vk::Format formatToVkFormat(FormatType format);

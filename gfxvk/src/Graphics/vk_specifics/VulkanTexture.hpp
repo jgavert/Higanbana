@@ -50,6 +50,7 @@ struct VulkanImageState
 class VulkanTexture
 {
   friend class VulkanGpuDevice;
+  friend class DependencyTracker;
 
   std::shared_ptr<vk::Image> m_resource;
   std::shared_ptr<VulkanImageState> m_state;
@@ -98,14 +99,16 @@ class VulkanTextureShaderView
 private:
 	friend class VulkanGpuDevice;
 	friend class TextureShaderView;
+  std::shared_ptr<vk::ImageView> m_view;
 	vk::DescriptorImageInfo m_info;
 	vk::DescriptorType m_viewType;
   std::shared_ptr<VulkanImageState> m_state;
 
   int64_t uniqueId = -1;
 
-	VulkanTextureShaderView(vk::DescriptorImageInfo info, vk::DescriptorType viewType, std::shared_ptr<VulkanImageState> state, int64_t uniqueId)
-		: m_info(info)
+	VulkanTextureShaderView(std::shared_ptr<vk::ImageView> view, vk::DescriptorImageInfo info, vk::DescriptorType viewType, std::shared_ptr<VulkanImageState> state, int64_t uniqueId)
+		: m_view(view)
+    , m_info(info)
 		, m_viewType(viewType)
     , m_state(state)
     , uniqueId(uniqueId)

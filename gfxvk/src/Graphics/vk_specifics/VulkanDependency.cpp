@@ -78,9 +78,12 @@ void DependencyTracker::addModifyBuffer(int drawCallIndex, VulkanBuffer& buffer,
 	m_uniqueResourcesThisChain.insert(uniqueID);
 }
 
-void DependencyTracker::addReadTexture(int , VulkanTexture& , vk::AccessFlags , vk::ImageLayout )
+void DependencyTracker::addReadTexture(int , VulkanTexture& texture, vk::AccessFlags , vk::ImageLayout )
 {
 	// TODO: implement texture tracking and dependencies
+
+  auto uniqueID = texture.uniqueId;
+
 }
 
 // only builds the graph of dependencies.

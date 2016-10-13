@@ -288,7 +288,7 @@ VulkanSwapchain VulkanGpuDevice::createSwapchain(VulkanSurface& surface, VulkanQ
 	vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
 		.setSurface(*surface.surface)
 		.setMinImageCount(surfaceCap.minImageCount)
-		.setImageFormat(formatToVkFormat[format].view)
+		.setImageFormat(formatToVkFormat(format))
 		.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
 		.setImageExtent(surfaceCap.currentExtent)
 		.setImageArrayLayers(1)
@@ -357,7 +357,7 @@ void VulkanGpuDevice::reCreateSwapchain(VulkanSwapchain& sc, VulkanSurface& surf
   vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
     .setSurface(*surface.surface)
     .setMinImageCount(surfaceCap.minImageCount)
-    .setImageFormat(formatToVkFormat[descriptor.m_format].view)
+    .setImageFormat(formatToVkFormat(descriptor.m_format))
     .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
     .setImageExtent(surfaceCap.currentExtent)
     .setImageArrayLayers(1)
@@ -733,10 +733,81 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   buf.m_mapResource = mapper;
   return buf;
 }
-VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor descriptor)
+VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& heap, ResourceDescriptor descriptor)
 {
+  vk::ImageType ivt;
+  vk::ImageCreateFlags flags;
+  switch (descriptor.m_dimension)
+  {
+  case FormatDimension::Texture1D:
+    ivt = vk::ImageType::e1D;
+    break;
+  case FormatDimension::Texture1DArray:
+    ivt = vk::ImageType::e1D;
+    break;
+  case FormatDimension::Texture2DArray:
+    ivt = vk::ImageType::e2D;
+    break;
+  case FormatDimension::Texture3D:
+    ivt = vk::ImageType::e3D;
+    break;
+  case FormatDimension::TextureCube:
+    ivt = vk::ImageType::e2D;
+    flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+    break;
+  case FormatDimension::TextureCubeArray:
+    ivt = vk::ImageType::e2D;
+    flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+    break;
+  case FormatDimension::Texture2D:
+  default:
+    ivt = vk::ImageType::e2D;
+    break;
+  }
 
-  vk::ImageType imageType = vk::ImageType::e2D;
+  vk::ImageUsageFlags usage;
+  usage |= vk::ImageUsageFlagBits::eTransferDst;
+  usage |= vk::ImageUsageFlagBits::eTransferSrc;
+  usage |= vk::ImageUsageFlagBits::eSampled;
+
+  if (descriptor.m_unorderedaccess)
+  {
+    usage |= vk::ImageUsageFlagBits::eStorage;
+  }
+  else if (descriptor.m_depthstencil)
+  {
+    usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+  }
+  else if (descriptor.m_rendertarget)
+  {
+    usage |= vk::ImageUsageFlagBits::eColorAttachment;
+  }
+
+
+  if (descriptor.m_usage == ResourceUsage::UploadHeap)
+  {
+    usage = vk::ImageUsageFlagBits::eTransferSrc;
+  }
+
+  if (descriptor.m_usage == ResourceUsage::ReadbackHeap)
+  {
+    usage = vk::ImageUsageFlagBits::eTransferDst;
+  }
+
+  vk::SampleCountFlagBits sampleFlags = vk::SampleCountFlagBits::e1;
+
+  if (descriptor.m_msCount == 2)
+  {
+    sampleFlags = vk::SampleCountFlagBits::e2;
+  }
+  else if (descriptor.m_msCount == 4)
+  {
+    sampleFlags = vk::SampleCountFlagBits::e4;
+  }
+  else if (descriptor.m_msCount == 8)
+  {
+    sampleFlags = vk::SampleCountFlagBits::e8;
+  }
 
   vk::ImageCreateInfo info = vk::ImageCreateInfo()
     .setArrayLayers(descriptor.m_arraySize)
@@ -744,23 +815,32 @@ VulkanTexture VulkanGpuDevice::createTexture(ResourceHeap& , ResourceDescriptor 
       .setWidth(descriptor.m_width)
       .setHeight(descriptor.m_height)
       .setDepth(descriptor.m_depth))
-    .setFormat(formatToVkFormat[descriptor.m_format].view)
-    .setImageType(imageType)
+    .setFlags(flags)
+    .setFormat(formatToVkFormat(descriptor.m_format))
+    .setImageType(ivt)
     .setInitialLayout(vk::ImageLayout::eUndefined)
     .setMipLevels(descriptor.m_miplevels)
-    .setSamples(vk::SampleCountFlagBits::e1)
+    .setSamples(sampleFlags)
     .setTiling(vk::ImageTiling::eOptimal)
-    .setUsage(vk::ImageUsageFlagBits::eSampled)
+    .setUsage(usage)
     .setSharingMode(vk::SharingMode::eExclusive);
+
   auto image = m_device->createImage(info);
+
+  auto dev = m_device;
+
+  std::shared_ptr<vk::Image> imageptr = std::shared_ptr<vk::Image>(new vk::Image(image), [dev, heap](vk::Image* imageptr)
+  {
+    dev->destroyImage(*imageptr);
+    delete imageptr;
+  });
 
   auto reqs = m_device->getImageMemoryRequirements(image);
 
   F_SLOG("Graphics", "lol %zu %zu %u\n", reqs.size, reqs.alignment, reqs.memoryTypeBits);
 
-  m_device->destroyImage(image);
 
-  return VulkanTexture();
+  return VulkanTexture(m_resourceID++, imageptr);
 }
 // shader views
 VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer& buffer, ResourceDescriptor& desc, ResourceShaderType shaderType,  ShaderViewDescriptor descriptor)
@@ -788,9 +868,104 @@ VulkanBufferShaderView VulkanGpuDevice::createBufferView(VulkanBuffer& buffer, R
   , type, buffer.m_state, buffer.uniqueId);
 }
 
-VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& texture, ResourceDescriptor& , ResourceShaderType ,  ShaderViewDescriptor)
+VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& texture, ResourceDescriptor& descriptor, ResourceShaderType viewType,  ShaderViewDescriptor viewDescriptor)
 {
-  return VulkanTextureShaderView(vk::DescriptorImageInfo(), vk::DescriptorType::eSampledImage, texture.m_state, texture.uniqueId);
+  vk::ImageViewType ivt;
+  switch (descriptor.m_dimension)
+  {
+  case FormatDimension::Texture1D:
+    ivt = vk::ImageViewType::e1D;
+    break;
+  case FormatDimension::Texture1DArray:
+    ivt = vk::ImageViewType::e1DArray;
+    break;
+  case FormatDimension::Texture2DArray:
+    ivt = vk::ImageViewType::e2DArray;
+    break;
+  case FormatDimension::Texture3D:
+    ivt = vk::ImageViewType::e3D;
+    break;
+  case FormatDimension::TextureCube:
+    ivt = vk::ImageViewType::eCube;
+    break;
+  case FormatDimension::TextureCubeArray:
+    ivt = vk::ImageViewType::eCubeArray;
+    break;
+  case FormatDimension::Texture2D:
+  default:
+    ivt = vk::ImageViewType::e2D;
+    break;
+  }
+
+  vk::ComponentMapping cm = vk::ComponentMapping()
+    .setA(vk::ComponentSwizzle::eA)
+    .setR(vk::ComponentSwizzle::eR)
+    .setG(vk::ComponentSwizzle::eG)
+    .setB(vk::ComponentSwizzle::eB);
+
+  vk::ImageAspectFlags imgFlags;
+
+  if (viewType == ResourceShaderType::DepthStencil)
+  {
+    imgFlags |= vk::ImageAspectFlagBits::eDepth;
+    imgFlags |= vk::ImageAspectFlagBits::eStencil;
+  }
+  else
+  {
+    imgFlags |= vk::ImageAspectFlagBits::eColor;
+  }
+
+
+  vk::ImageSubresourceRange subResourceRange = vk::ImageSubresourceRange()
+    .setAspectMask(imgFlags)
+    .setBaseArrayLayer(viewDescriptor.m_arraySlice)
+    .setBaseMipLevel(viewDescriptor.m_mostDetailedMip)
+    .setLevelCount(VK_REMAINING_MIP_LEVELS)
+    .setLayerCount(VK_REMAINING_ARRAY_LAYERS);
+
+
+  vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo()
+    .setViewType(ivt)
+    .setFormat(formatToVkFormat(descriptor.m_format))
+    .setImage(*texture.m_resource)
+    .setComponents(cm)
+    .setSubresourceRange(subResourceRange);
+
+  auto view = m_device->createImageView(viewInfo);
+
+  auto dev = m_device;
+  auto tex = texture.m_resource;
+
+
+  std::shared_ptr<vk::ImageView> viewptr = std::shared_ptr<vk::ImageView>(new vk::ImageView(view), [dev, tex](vk::ImageView* viewptr)
+  {
+    dev->destroyImageView(*viewptr);
+    delete viewptr;
+  });
+
+  vk::DescriptorImageInfo info = vk::DescriptorImageInfo()
+    .setImageLayout(vk::ImageLayout::eGeneral) // TODO: layouts
+    .setImageView(view);
+
+  vk::DescriptorType imageType;
+  if (viewType == ResourceShaderType::ShaderView)
+  {
+    imageType = vk::DescriptorType::eSampledImage;
+  }
+  else if (viewType == ResourceShaderType::UnorderedAccess)
+  {
+    imageType = vk::DescriptorType::eStorageImage;
+  }
+  else if (viewType == ResourceShaderType::DepthStencil)
+  {
+    imageType = vk::DescriptorType::eSampledImage; // TODO: ???
+  }
+  else if (viewType == ResourceShaderType::RenderTarget)
+  {
+    imageType = vk::DescriptorType::eStorageImage; // TODO: ???
+  }
+
+  return VulkanTextureShaderView(viewptr, info, imageType, texture.m_state, texture.uniqueId);
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
