@@ -13,9 +13,17 @@ struct BufferDependency
 {
 	int64_t uniqueId;
 	vk::Buffer buffer;
-	vk::DeviceSize offset;
-	vk::DeviceSize range;
+	//vk::DeviceSize offset;
+	//vk::DeviceSize range;
 	std::shared_ptr<VulkanBufferState> state;
+};
+
+struct TextureDependency
+{
+  int64_t uniqueId;
+  vk::Image texture;
+  //vk::ImageSubresourceRange range; // these should be per resource
+  std::shared_ptr<VulkanImageState> state;
 };
 
 class DependencyTracker
@@ -51,12 +59,22 @@ private:
 		write
 	};
 
+  enum class ResourceType
+  {
+    buffer,
+    texture
+  };
+
 	struct DependencyPacket
 	{
 		DrawCallIndex drawIndex;
 		ResourceUniqueId resource;
 		UsageHint hint;
+    ResourceType type;
 		vk::AccessFlags access;
+    vk::ImageLayout layout;
+    uint64_t custom1; // for buffer, "offset". for texture, "miplevel"
+    uint64_t custom2; // for buffer, "range" . for texture, "arraylevel"
 	};
 
 	// general info needed
@@ -64,9 +82,15 @@ private:
 	std::vector<vk::PipelineStageFlags> m_drawCallStage;
 	faze::unordered_map<ResourceUniqueId, DrawCallIndex> m_lastReferenceToResource;
 	// std::unordered_map<ResourceUniqueId, DrawCallIndex> m_writeRes; // This could be vector of all writes
-	faze::unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
+	faze::unordered_set<ResourceUniqueId> m_uniqueBuffersThisChain;
 	faze::unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
 	size_t drawCallsAdded = 0;
+
+  //needed for textures
+	faze::unordered_set<ResourceUniqueId> m_uniqueTexturesThisChain;
+	faze::unordered_map<ResourceUniqueId, TextureDependency> m_textureStates;
+
+
 
 	// actual jobs used to generate DAG
 	std::vector<DependencyPacket> m_jobs;
@@ -85,6 +109,9 @@ private:
 	std::vector<vk::BufferMemoryBarrier> aaargh;
 	std::vector<int> m_barrierOffsets;
 
+	std::vector<vk::ImageMemoryBarrier> imageBarriers;
+	std::vector<int> m_imageBarrierOffsets;
+
 	// caches
 	struct WriteCall
 	{
@@ -94,12 +121,21 @@ private:
 	std::vector<WriteCall> m_cacheWrites;
 	std::vector<int> m_readRes;
 
-	struct SmallResource
+	struct SmallBuffer
 	{
 		vk::Buffer buffer;
 		vk::AccessFlags flags;
 	};
-	faze::unordered_map<ResourceUniqueId, SmallResource> m_cache;
+
+  struct SmallTexture
+  {
+    vk::Image image;
+    vk::AccessFlags flags;
+    vk::ImageLayout layout;
+  };
+
+	faze::unordered_map<ResourceUniqueId, SmallBuffer> m_bufferCache;
+	faze::unordered_map<ResourceUniqueId, SmallTexture> m_imageCache;
 public:
 	DependencyTracker() {}
 	~DependencyTracker()
@@ -116,8 +152,11 @@ public:
 	void addReadBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags);
 	void addModifyBuffer(int drawCallIndex, VulkanBuffer& buffer, vk::DeviceSize offset, vk::DeviceSize range, vk::AccessFlags flags);
 	// textures
+  void addReadBuffer(int drawCallIndex, VulkanTextureShaderView& texture, vk::AccessFlags flags);
+  void addModifyBuffer(int drawCallIndex, VulkanTextureShaderView& texture, vk::AccessFlags flags);
 
-	void addReadTexture(int drawCallIndex, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout targetLayout);
+	void addReadTexture(int drawCallIndex, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout targetLayout, uint64_t miplevel = 0, uint64_t arraylevel = 0);
+  void addWriteTexture(int drawCallIndex, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout layoutUsedInView, uint64_t miplevel = 0, uint64_t arraylevel = 0);
 
 	// only builds the graph of dependencies.
 	void resolveGraph();

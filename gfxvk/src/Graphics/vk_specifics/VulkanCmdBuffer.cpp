@@ -315,6 +315,12 @@ void VulkanCmdBuffer::close()
       drawOrDispatch++;
       break;
     }
+
+    case VulkanCommandPacket::PacketType::PrepareForPresent:
+    {
+      tracker.runBarrier(*m_cmdBuffer, barrierCall++);
+      break;
+    }
     default:
       break;
     }

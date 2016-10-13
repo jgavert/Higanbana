@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <string>
 
-#define USING_SPARSEPP
+//#define USING_SPARSEPP
 
 inline size_t HashMemory(const void * p, size_t sizeBytes)
 {
