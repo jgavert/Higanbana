@@ -183,12 +183,14 @@ int EntryPoint::main()
 				auto rtv = gpu.acquirePresentableImage(swapchain);
 				{
 					auto gfx = gpu.createGraphicsCommandBuffer();
-					gfx.clearRTV(rtv, std::sinf(value));
+					gfx.clearRTV(rtv, value);
 					gpu.submitSwapchain(gfx, swapchain);
 				}
 				gpu.present(swapchain);
 				t.tick();
 				value += t.getFrameTimeDelta();
+        if (value > 1.f)
+          value = 0.f;
 			}
 		}
 
