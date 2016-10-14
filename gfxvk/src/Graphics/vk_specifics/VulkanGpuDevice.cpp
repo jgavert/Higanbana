@@ -901,10 +901,10 @@ VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& textur
   }
 
   vk::ComponentMapping cm = vk::ComponentMapping()
-    .setA(vk::ComponentSwizzle::eA)
-    .setR(vk::ComponentSwizzle::eR)
-    .setG(vk::ComponentSwizzle::eG)
-    .setB(vk::ComponentSwizzle::eB);
+    .setA(vk::ComponentSwizzle::eIdentity)
+    .setR(vk::ComponentSwizzle::eIdentity)
+    .setG(vk::ComponentSwizzle::eIdentity)
+    .setB(vk::ComponentSwizzle::eIdentity);
 
   vk::ImageAspectFlags imgFlags;
 
@@ -973,6 +973,33 @@ VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& textur
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )
 {
+
+  // these states need to be created :p
+  vk::PipelineShaderStageCreateInfo shaderInfo = vk::PipelineShaderStageCreateInfo();
+  vk::PipelineVertexInputStateCreateInfo vertexInput = vk::PipelineVertexInputStateCreateInfo();
+  vk::PipelineInputAssemblyStateCreateInfo inputAssembly = vk::PipelineInputAssemblyStateCreateInfo();
+  vk::PipelineTessellationStateCreateInfo tesselation = vk::PipelineTessellationStateCreateInfo();
+  vk::PipelineViewportStateCreateInfo viewportState = vk::PipelineViewportStateCreateInfo();
+  vk::PipelineRasterizationStateCreateInfo rasterizer = vk::PipelineRasterizationStateCreateInfo();
+  vk::PipelineMultisampleStateCreateInfo multisample = vk::PipelineMultisampleStateCreateInfo();
+  vk::PipelineDepthStencilStateCreateInfo depthStencil = vk::PipelineDepthStencilStateCreateInfo();
+  vk::PipelineColorBlendStateCreateInfo colorBlend = vk::PipelineColorBlendStateCreateInfo();
+  vk::PipelineDynamicStateCreateInfo dynamicState = vk::PipelineDynamicStateCreateInfo();
+
+  vk::GraphicsPipelineCreateInfo ginfo = vk::GraphicsPipelineCreateInfo()
+    .setPStages(&shaderInfo)
+    .setPVertexInputState(&vertexInput)
+    .setPInputAssemblyState(&inputAssembly)
+    .setPTessellationState(&tesselation)
+    .setPViewportState(&viewportState)
+    .setPRasterizationState(&rasterizer)
+    .setPMultisampleState(&multisample)
+    .setPDepthStencilState(&depthStencil)
+    .setPColorBlendState(&colorBlend)
+    .setPDynamicState(&dynamicState);
+
+  m_device->createGraphicsPipeline(vk::PipelineCache(), ginfo);
+
   return VulkanPipeline();
 }
 
