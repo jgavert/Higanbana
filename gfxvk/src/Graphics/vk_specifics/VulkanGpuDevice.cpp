@@ -183,6 +183,7 @@ std::vector<ResourceDescriptor> VulkanGpuDevice::querySwapChainInfo(VulkanSurfac
 	F_SLOG("Graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
 	F_SLOG("Graphics/Surface", "current res %dx%d\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
 	F_SLOG("Graphics/Surface", "min res %dx%d\n", surfaceCap.minImageExtent.width, surfaceCap.minImageExtent.height);
+	F_SLOG("Graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
 
 	auto formats = m_physDevice.getSurfaceFormatsKHR(*surface.surface);
 
