@@ -30,6 +30,22 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     }
     break;
   }
+  case WM_KEYDOWN:
+  {
+    if (me)
+    {
+      me->keyDown(static_cast<int>(wParam));
+    }
+    break;
+  }
+  case WM_KEYUP:
+  {
+    if (me)
+    {
+      me->keyUp(static_cast<int>(wParam));
+    }
+    break;
+  }
   case WM_SIZE:
   {
     if (me)
@@ -103,6 +119,15 @@ void Window::resizeHandled()
   m_height = m_resizeHeight;
 }
 
+void Window::keyDown(int key)
+{
+  m_inputs.insert(key, 1, m_frame);
+}
+void Window::keyUp(int key)
+{
+  m_inputs.insert(key, 0, m_frame);
+}
+
 #endif
 
 // Initializes the window and shows it
@@ -148,7 +173,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
 
 
   // clean messages away
-  simpleReadMessages();
+  simpleReadMessages(-1);
 #endif
 }
 
@@ -174,8 +199,10 @@ void Window::cursorHidden(bool enabled)
 #endif
 }
 
-bool Window::simpleReadMessages()
+bool Window::simpleReadMessages(int64_t frame)
 {
+  m_frame = frame;
+  m_inputs.setFrame(frame);
 #if defined(PLATFORM_WINDOWS)
   MSG msg;
 

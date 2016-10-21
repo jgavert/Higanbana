@@ -56,7 +56,7 @@ int EntryPoint::main()
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     Window window(m_params, name, ires.x(), ires.y());
     window.open();
-
+    int64_t frame = 1;
     {
       GpuDevice gpu = devices.createGpuDevice(fs);
       WindowSurface surface = devices.createSurface(window);
@@ -151,12 +151,20 @@ int EntryPoint::main()
 
 		float value = 0.f;
 
-		while (!window.simpleReadMessages())
+		while (!window.simpleReadMessages(frame++))
 		{
       if (window.hasResized())
       {
         gpu.reCreateSwapchain(swapchain, surface);
         window.resizeHandled();
+      }
+
+      auto& inputs = window.inputs();
+      if (inputs.isPressedThisFrame(VK_ESCAPE, 1))
+      {
+        // \o/ is work
+        // mouse next, input capture in window?
+        break;
       }
 
 

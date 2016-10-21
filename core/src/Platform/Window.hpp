@@ -1,5 +1,6 @@
 #pragma once
 #include "ProgramParams.hpp"
+#include "core/src/input/InputBuffer.hpp"
 #include <string>
 #include <memory>
 
@@ -61,6 +62,12 @@ private:
   unsigned m_dpi = 96;
   bool m_minimized = false;
 
+  int64_t m_frame = 0;
+  faze::InputBuffer m_inputs;
+
+  void keyDown(int key);
+  void keyUp(int key);
+
   void resizeEvent(const char*  eventName);
   void setDpi(unsigned scale);
 public:
@@ -69,10 +76,15 @@ public:
   void close();
   void cursorHidden(bool enabled);
   WindowInternal& getInternalWindow() { return *m_window; }
-  bool simpleReadMessages();
+  bool simpleReadMessages(int64_t frame);
 
   bool hasResized();
   void resizeHandled();
+
+  faze::InputBuffer& inputs()
+  {
+    return m_inputs;
+  }
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
