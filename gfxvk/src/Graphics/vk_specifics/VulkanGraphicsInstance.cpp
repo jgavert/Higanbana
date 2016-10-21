@@ -25,8 +25,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   void*                                       /*pUserData*/)
 {
 	// Supressing unnecessary log messages.
-	if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
-		return false;
 
   std::string msgType = "";
   #if defined(PLATFORM_WINDOWS)
@@ -58,6 +56,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   {
     msgType = "DEBUG:";
   }
+	if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
+		return false;
   F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
@@ -210,31 +210,17 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
       break;
   }
   auto&& physDev = m_devices[devId]; // assuming first device is best
-  // layers
-  auto devLayers = physDev.enumerateDeviceLayerProperties();
-  std::vector<const char*> layers;
-  {
-    // lunargvalidation list order
-    GFX_ILOG("Enabled Vulkan debug layers for device:");
-    for (auto&& it : layerOrder)
-    {
-      auto found = std::find_if(devLayers.begin(), devLayers.end(), [&](const vk::LayerProperties& layer)
-      {
-        return it == layer.layerName;
-      });
-      if (found != devLayers.end())
-      {
-        layers.push_back(it.c_str());
-        m_layers.push_back(*found);
-        GFX_ILOG("%s", found->layerName);
-      }
-    }
-  }
+ 
   // extensions
   std::vector<vk::ExtensionProperties> devExts = physDev.enumerateDeviceExtensionProperties();
 
   std::vector<const char*> extensions;
   {
+    GFX_ILOG("Available extensions for device:");
+    for (auto&& it : devExts)
+    {
+      GFX_ILOG("%s", it.extensionName);
+    }
     // lunargvalidation list order
     GFX_ILOG("Enabled Vulkan extensions for device:");
 
@@ -248,7 +234,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        GFX_ILOG("found %s", found->extensionName);
+        GFX_ILOG("%s", found->extensionName);
       }
     }
   }
@@ -283,8 +269,6 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
   auto device_info = vk::DeviceCreateInfo()
     .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
     .setPQueueCreateInfos(queueInfos.data())
-    .setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
-    .setPpEnabledLayerNames(layers.data())
     .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
     .setPpEnabledExtensionNames(extensions.data())
     .setPEnabledFeatures(&features);
