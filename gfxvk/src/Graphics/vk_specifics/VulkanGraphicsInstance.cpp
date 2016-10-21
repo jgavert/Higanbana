@@ -87,7 +87,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
       {
         layers.push_back(it.c_str());
         m_layers.push_back(*found);
-        GFX_ILOG("%s", found->layerName);
+        GFX_ILOG("\t\t%s", found->layerName);
       }
       else
       {
@@ -114,7 +114,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        GFX_ILOG("%s", found->extensionName);
+        GFX_ILOG("\t\t%s", found->extensionName);
       }
       else
       {
@@ -210,6 +210,16 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
       break;
   }
   auto&& physDev = m_devices[devId]; // assuming first device is best
+
+  // some info
+  auto stuff = physDev.getProperties();
+  GFX_ILOG("Creating gpu device:");
+  GFX_ILOG("\t\tID: %u", stuff.deviceID);
+  GFX_ILOG("\t\tVendor: %u", stuff.vendorID);
+  GFX_ILOG("\t\tDevice: %s", stuff.deviceName);
+  GFX_ILOG("\t\tApi: %u", stuff.apiVersion);
+  GFX_ILOG("\t\tDriver: %u", stuff.driverVersion);
+  GFX_ILOG("\t\tType: %s", vk::to_string(stuff.deviceType).c_str());
  
   // extensions
   std::vector<vk::ExtensionProperties> devExts = physDev.enumerateDeviceExtensionProperties();
@@ -219,7 +229,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
     GFX_ILOG("Available extensions for device:");
     for (auto&& it : devExts)
     {
-      GFX_ILOG("%s", it.extensionName);
+      GFX_ILOG("\t\t%s", it.extensionName);
     }
     // lunargvalidation list order
     GFX_ILOG("Enabled Vulkan extensions for device:");
@@ -234,14 +244,12 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
       {
         extensions.push_back(it.c_str());
         m_extensions.push_back(*found);
-        GFX_ILOG("%s", found->extensionName);
+        GFX_ILOG("\t\t%s", found->extensionName);
       }
     }
   }
+
   // queue
-
-
-  //auto queueProperties = vk::getPhysicalDeviceQueueFamilyProperties(physDev);
   auto queueProperties = physDev.getQueueFamilyProperties();
   std::vector<vk::DeviceQueueCreateInfo> queueInfos;
   uint32_t i = 0;
@@ -272,7 +280,6 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
     .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
     .setPpEnabledExtensionNames(extensions.data())
     .setPEnabledFeatures(&features);
-
 
   vk::Device dev = physDev.createDevice(device_info, m_alloc_info);
 
