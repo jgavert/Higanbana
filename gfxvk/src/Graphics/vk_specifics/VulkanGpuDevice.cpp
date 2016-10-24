@@ -653,7 +653,7 @@ VulkanMemoryHeap VulkanGpuDevice::createMemoryHeap(HeapDescriptor desc)
       .setMemoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
   }
 
-  auto memory = m_device->allocateMemory(allocInfo, m_alloc_info);
+  auto memory = m_device->allocateMemory(allocInfo);
   auto ret = std::shared_ptr<vk::DeviceMemory>(new vk::DeviceMemory, [&](vk::DeviceMemory* memory)
   {
     m_device->freeMemory(*memory);

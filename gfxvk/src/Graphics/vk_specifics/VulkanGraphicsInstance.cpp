@@ -204,12 +204,19 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
     return false;
   };
   int devId = 0;
+  std::vector<int> presentableDevices;
   for (devId = 0; devId < static_cast<int>(m_devices.size()); ++devId)
   {
-    if (canPresent(m_devices[devId]))
-      break;
+	if (canPresent(m_devices[devId]))
+	{
+		presentableDevices.push_back(devId);
+	}
   }
-  auto&& physDev = m_devices[devId]; // assuming first device is best
+
+  F_ASSERT(!presentableDevices.empty(), "No usable devices, or they cannot present.");
+
+  //auto&& physDev = m_devices[presentableDevices[presentableDevices.size()-1]]; // assuming last device best
+  auto&& physDev = m_devices[presentableDevices[0]]; // assuming last device best
 
   // some info
   auto stuff = physDev.getProperties();
