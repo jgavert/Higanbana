@@ -23,8 +23,7 @@
 
 #include "vkShaders/sampleShader.if.hpp"
 
-
-#include <shaderc/shaderc.hpp> 
+#include <shaderc/shaderc.hpp>
 #include <cstdio>
 #include <iostream>
 #include <sparsepp.h>
@@ -109,7 +108,6 @@ int EntryPoint::main()
           .setUsage(ResourceUsage::ReadbackHeap)
           .setDimension(FormatDimension::Buffer));
 
-
         auto testTexture = gpu.createTexture(testHeap2, ResourceDescriptor()
           .setName("TestTexture")
           .setWidth(800)
@@ -149,60 +147,59 @@ int EntryPoint::main()
 
         t.firstTick();
 
-		float value = 0.f;
+        float value = 0.f;
 
-		while (!window.simpleReadMessages(frame++))
-		{
-      if (window.hasResized())
-      {
-        gpu.reCreateSwapchain(swapchain, surface);
-        window.resizeHandled();
-      }
+        while (!window.simpleReadMessages(frame++))
+        {
+          if (window.hasResized())
+          {
+            gpu.reCreateSwapchain(swapchain, surface);
+            window.resizeHandled();
+          }
 
-      auto& inputs = window.inputs();
-      if (inputs.isPressedThisFrame(VK_ESCAPE, 1))
-      {
-        // \o/ is work
-        // mouse next, input capture in window?
-        break;
-      }
+          auto& inputs = window.inputs();
+          if (inputs.isPressedThisFrame(VK_ESCAPE, 1))
+          {
+            // \o/ is work
+            // mouse next, input capture in window?
+            break;
+          }
 
+          log.update();
+          {
+            auto gfx = gpu.createGraphicsCommandBuffer();
+            auto shif = gfx.bind<SampleShader>(test);
+            for (int k = 0; k < 1; k++)
+            {
+              {
+                shif.read(SampleShader::dataIn, computeTargetUav);
+                shif.modify(SampleShader::dataOut, bufferTargetUav);
+                gfx.dispatchThreads(shif, TestBufferSize);
+              }
+              {
+                shif.read(SampleShader::dataIn, bufferTargetUav);
+                shif.modify(SampleShader::dataOut, computeTargetUav);
+                gfx.dispatchThreads(shif, TestBufferSize);
+              }
+            }
+            gpu.submit(gfx);
+          }
+          {
+            auto rtv = gpu.acquirePresentableImage(swapchain);
+            {
+              auto gfx = gpu.createGraphicsCommandBuffer();
+              gfx.clearRTV(rtv, value);
+              gpu.submitSwapchain(gfx, swapchain);
+            }
+            gpu.present(swapchain);
+            t.tick();
+            value += t.getFrameTimeDelta();
+            if (value > 1.f)
+              value = 0.f;
+          }
+        }
 
-			log.update();
-			{
-				auto gfx = gpu.createGraphicsCommandBuffer();
-				auto shif = gfx.bind<SampleShader>(test);
-				for (int k = 0; k < 1; k++)
-				{
-					{
-						shif.read(SampleShader::dataIn, computeTargetUav);
-						shif.modify(SampleShader::dataOut, bufferTargetUav);
-						gfx.dispatchThreads(shif, TestBufferSize);
-					}
-					{
-						shif.read(SampleShader::dataIn, bufferTargetUav);
-						shif.modify(SampleShader::dataOut, computeTargetUav);
-						gfx.dispatchThreads(shif, TestBufferSize);
-					}
-				}
-				gpu.submit(gfx);
-			}
-			{
-				auto rtv = gpu.acquirePresentableImage(swapchain);
-				{
-					auto gfx = gpu.createGraphicsCommandBuffer();
-					gfx.clearRTV(rtv, value);
-					gpu.submitSwapchain(gfx, swapchain);
-				}
-				gpu.present(swapchain);
-				t.tick();
-				value += t.getFrameTimeDelta();
-        if (value > 1.f)
-          value = 0.f;
-			}
-		}
-
-		// outside windowloop
+        // outside windowloop
         {
           auto gfx = gpu.createGraphicsCommandBuffer();
           gfx.copy(computeTarget, bufferReadb);
