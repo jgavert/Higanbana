@@ -46,6 +46,16 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     }
     break;
   }
+  case WM_MOUSEMOVE:
+  {
+    int xPos = GET_X_LPARAM(lParam);
+    int yPos = GET_Y_LPARAM(lParam);
+    if (me)
+    {
+      me->m_mouse.m_pos = faze::ivec2{ xPos, yPos };
+    }
+    break;
+  }
   case WM_SIZE:
   {
     if (me)

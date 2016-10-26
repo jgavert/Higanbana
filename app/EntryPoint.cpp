@@ -158,6 +158,13 @@ int EntryPoint::main()
           }
 
           auto& inputs = window.inputs();
+
+          if (inputs.isPressedThisFrame(VK_SPACE, 1))
+          {
+            auto& mouse = window.mouse();
+            F_LOG("mouse %d %d\n", mouse.m_pos.x(), mouse.m_pos.y());
+          }
+
           if (inputs.isPressedThisFrame(VK_ESCAPE, 1))
           {
             // \o/ is work

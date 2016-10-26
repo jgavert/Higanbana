@@ -1,10 +1,14 @@
 #pragma once
 #include "ProgramParams.hpp"
 #include "core/src/input/InputBuffer.hpp"
+#include "core/src/math/vec_templated.hpp"
+
 #include <string>
 #include <memory>
 
+
 #ifdef WIN64
+#include <Windowsx.h>
 
 class WindowInternal
 {
@@ -49,6 +53,13 @@ public:
 };
 #endif
 
+class MouseState
+{
+public:
+  faze::ivec2 m_pos;
+  bool captured;
+};
+
 class Window
 {
 private:
@@ -64,6 +75,7 @@ private:
 
   int64_t m_frame = 0;
   faze::InputBuffer m_inputs;
+  MouseState m_mouse;
 
   void keyDown(int key);
   void keyUp(int key);
@@ -84,6 +96,11 @@ public:
   faze::InputBuffer& inputs()
   {
     return m_inputs;
+  }
+
+  MouseState& mouse()
+  {
+    return m_mouse;
   }
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
