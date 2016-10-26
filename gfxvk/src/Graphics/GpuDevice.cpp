@@ -156,7 +156,7 @@ GraphicsCmdBuffer GpuDevice::createGraphicsCommandBuffer()
   return GraphicsCmdBuffer(m_device, cmdBuffer, sequence, descPool);
 }
 
-ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc)
+ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc) // This is questionable in terms of future.
 {
   F_ASSERT(desc.m_sizeInBytes != 0, "Not valid to create memory heap of size 0");
 
