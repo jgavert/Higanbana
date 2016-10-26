@@ -61,8 +61,8 @@ int EntryPoint::main()
       WindowSurface surface = devices.createSurface(window);
       auto swapchain = gpu.createSwapchain(surface, PresentMode::Mailbox);
 
-      // TODO1: general, advance towards usable images
-      // optional: cleanup texture format
+      // TODO1: advance towards usable images, somewhat done
+      // TODO2: cleanup texture format, need formats, bytes per pixel, compressed information. for only the formats that are used.
 
       //renderdoc.startCapture();
       {
