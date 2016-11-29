@@ -215,8 +215,8 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
 
   F_ASSERT(!presentableDevices.empty(), "No usable devices, or they cannot present.");
 
-  //auto&& physDev = m_devices[presentableDevices[presentableDevices.size()-1]]; // assuming last device best
-  auto&& physDev = m_devices[presentableDevices[0]]; // assuming last device best
+  auto&& physDev = m_devices[presentableDevices[presentableDevices.size()-1]]; // assuming last device best
+  //auto&& physDev = m_devices[presentableDevices[0]]; // assuming last device best
 
   // some info
   auto stuff = physDev.getProperties();

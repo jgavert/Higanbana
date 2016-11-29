@@ -214,6 +214,81 @@ public:
 	}
 };
 
+class RenderpassBeginPacket : public VulkanCommandPacket
+{
+public:
+
+	RenderpassBeginPacket(LinearAllocator&)
+	{
+	}
+
+	void execute(vk::CommandBuffer& ) override
+	{
+	
+	}
+
+	PacketType type() override
+	{
+		return PacketType::RenderpassBegin;
+	}
+};
+
+class RenderpassEndPacket : public VulkanCommandPacket
+{
+public:
+
+	RenderpassEndPacket(LinearAllocator&)
+	{
+	}
+
+	void execute(vk::CommandBuffer&) override
+	{
+
+	}
+
+	PacketType type() override
+	{
+		return PacketType::RenderpassEnd;
+	}
+};
+
+class SubpassBeginPacket : public VulkanCommandPacket
+{
+public:
+
+	SubpassBeginPacket(LinearAllocator&)
+	{
+	}
+
+	void execute(vk::CommandBuffer&) override
+	{
+
+	}
+
+	PacketType type() override
+	{
+		return PacketType::SubpassBegin;
+	}
+};
+
+class SubpassEndPacket : public VulkanCommandPacket
+{
+public:
+
+	SubpassEndPacket(LinearAllocator&)
+	{
+	}
+
+	void execute(vk::CommandBuffer&) override
+	{
+
+	}
+
+	PacketType type() override
+	{
+		return PacketType::SubpassEnd;
+	}
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// PACKETS END ///////////////////////////////////////////////////////
@@ -273,8 +348,31 @@ bool VulkanCmdBuffer::isClosed()
 
 void VulkanCmdBuffer::prepareForSubmit(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
 {
+  processRenderpasses(device);
   processBindings(device, pool);
   dependencyFuckup();
+}
+////////////////////////////////////////////////////////////////////////////////////////
+//////////////////// Renderpass ////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+void VulkanCmdBuffer::beginRenderpass()
+{
+  m_commandList->insert<RenderpassBeginPacket>();
+}
+
+void VulkanCmdBuffer::endRenderpass()
+{
+  m_commandList->insert<RenderpassEndPacket>();
+}
+
+void VulkanCmdBuffer::beginSubpass()
+{
+	m_commandList->insert<SubpassBeginPacket>();
+}
+
+void VulkanCmdBuffer::endSubpass()
+{
+	m_commandList->insert<SubpassEndPacket>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -330,6 +428,29 @@ void VulkanCmdBuffer::close()
 
   m_cmdBuffer->end();
   m_closed = true;
+}
+
+void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& )
+{
+	int unhandledRenderpasses = 0;
+	bool insideRenderpass = false;
+	m_commandList->foreach([&](VulkanCommandPacket* packet)
+	{
+		switch (packet->type())
+		{
+		case VulkanCommandPacket::PacketType::RenderpassBegin:
+			insideRenderpass = true;
+			break;
+		case VulkanCommandPacket::PacketType::RenderpassEnd:
+			if (insideRenderpass)
+				unhandledRenderpasses++;
+			insideRenderpass = false;
+			break;
+		default:
+			break;
+		}
+	});
+	F_LOG("Renderpasses to compile: %d\n", unhandledRenderpasses);
 }
 
 void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
