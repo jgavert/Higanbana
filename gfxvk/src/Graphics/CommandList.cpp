@@ -49,6 +49,26 @@ void GraphicsCmdBuffer::dispatchThreads(DescriptorSet& inputs, unsigned x, unsig
 
 // draw
 
+void GraphicsCmdBuffer::beginRenderpass()
+{
+  m_cmdBuffer->beginRenderpass();
+}
+
+void GraphicsCmdBuffer::endRenderpass()
+{
+  m_cmdBuffer->endRenderpass();
+}
+
+void GraphicsCmdBuffer::beginSubpass()
+{
+  m_cmdBuffer->beginSubpass();
+}
+
+void GraphicsCmdBuffer::endSubpass()
+{
+  m_cmdBuffer->endSubpass();
+}
+
 // copy
 
 void GraphicsCmdBuffer::copy(Buffer& srcdata, Buffer& dstdata)

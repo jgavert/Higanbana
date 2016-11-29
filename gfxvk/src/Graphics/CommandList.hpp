@@ -30,6 +30,13 @@ private:
 
 public:
   GraphicsCmdBuffer() {}
+
+  // renderpass
+  void beginRenderpass();
+  void endRenderpass();
+  void beginSubpass();
+  void endSubpass();
+
   void copy(Buffer& src, Buffer& dst);
   void clearRTV(TextureRTV& texture, float r = 0.f, float g = 0.f, float b = 0.f, float a = 0.0f);
   void bindPipeline(ComputePipeline& pipeline);
