@@ -585,7 +585,7 @@ void VulkanCmdBuffer::dependencyFuckup()
     }
   });
 
-  tracker.resolveGraph();
+  //tracker.resolveGraph();
   tracker.makeAllBarriers();
   /*
   tracker.printStuff([](std::string data)
