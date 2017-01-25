@@ -87,7 +87,7 @@ Compiler( 'Compiler-x64-Linux' )
                       //+ ' /showIncludes'
                       + ' /Gd'
                       + '$extDefines$'
-                      + ' /DPLATFORM_LINUX'
+                      + ' /DPLATFORM_WINDOWS'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
