@@ -31,7 +31,11 @@ public:
     BufferCopy,
 	ClearRTV,
     Dispatch,
-	PrepareForPresent
+	PrepareForPresent,
+	RenderpassBegin,
+	RenderpassEnd,
+	SubpassBegin,
+	SubpassEnd
   };
 
   VulkanCommandPacket()
@@ -94,9 +98,16 @@ public:
   void close();
   bool isClosed();
 
+  // renderpass
+  void beginRenderpass();
+  void endRenderpass();
+  void beginSubpass();
+  void endSubpass();
+
   // Call before submit
   void prepareForSubmit(VulkanGpuDevice& device, VulkanDescriptorPool& pool);
 private:
+  void processRenderpasses(VulkanGpuDevice& device);
   void processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool);
   void dependencyFuckup();
 };

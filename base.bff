@@ -274,7 +274,7 @@ Compiler( 'Compiler-x64-Linux' )
   .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
-  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(onfiguration)\^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
   .Platform                 = 'x64'
   .PlatformToolset          = 'v140'
   .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
