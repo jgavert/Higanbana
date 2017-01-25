@@ -252,8 +252,6 @@ void DependencyTracker::resolveGraph()
 void DependencyTracker::makeAllBarriers()
 {
 	int jobsSize = static_cast<int>(m_jobs.size());
-	int executeSize = static_cast<int>(m_schedulingResult.size());
-
 
 	// this function should figure out transitions within a commandbuffer
 	// We should use a small cache of currently "live" resouces that will be referenced in future
@@ -285,13 +283,13 @@ void DependencyTracker::makeAllBarriers()
 
 	int bufferBarrierOffsets = 0;
 	int imageBarrierOffsets = 0;
-	for (int drawId = 0; drawId < executeSize; ++drawId)
+	while (i < jobsSize)
 	{
-		int secondCall = m_schedulingResult[drawId].jobID;
+		int draw = m_jobs[i].drawIndex;
 
 		m_barrierOffsets.emplace_back(bufferBarrierOffsets);
     m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
-		while (i < jobsSize && m_jobs[i].drawIndex == secondCall)
+		while (i < jobsSize && m_jobs[i].drawIndex == draw)
 		{
       auto& job = m_jobs[i];
 			auto jobResAccess = job.access;
