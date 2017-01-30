@@ -49,14 +49,11 @@ void GraphicsCmdBuffer::dispatchThreads(DescriptorSet& inputs, unsigned x, unsig
 
 // draw
 
-void GraphicsCmdBuffer::beginRenderpass()
+LiveRenderpass GraphicsCmdBuffer::renderpass(Renderpass& rp, TextureRTV& rtv)
 {
-  m_cmdBuffer->beginRenderpass();
-}
+  m_cmdBuffer->beginRenderpass(rp.impl(), rtv.view());
 
-void GraphicsCmdBuffer::endRenderpass()
-{
-  m_cmdBuffer->endRenderpass();
+  return LiveRenderpass(m_cmdBuffer);
 }
 
 void GraphicsCmdBuffer::beginSubpass()

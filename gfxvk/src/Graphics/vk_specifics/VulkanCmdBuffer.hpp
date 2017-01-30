@@ -6,6 +6,7 @@
 #include "VulkanDescriptorSet.hpp"
 #include "VulkanDescriptorPool.hpp"
 #include "VulkanDependency.hpp"
+#include "Renderpass.hpp"
 
 #include <memory>
 #include <vulkan/vulkan.hpp>
@@ -29,13 +30,13 @@ public:
     PipelineBarrier,
     BindPipeline,
     BufferCopy,
-	ClearRTV,
+    ClearRTV,
     Dispatch,
-	PrepareForPresent,
-	RenderpassBegin,
-	RenderpassEnd,
-	SubpassBegin,
-	SubpassEnd
+    PrepareForPresent,
+    RenderpassBegin,
+    RenderpassEnd,
+    SubpassBegin,
+    SubpassEnd
   };
 
   VulkanCommandPacket()
@@ -99,7 +100,7 @@ public:
   bool isClosed();
 
   // renderpass
-  void beginRenderpass();
+  void beginRenderpass(VulkanRenderpass& rp, VulkanTextureShaderView rtv);
   void endRenderpass();
   void beginSubpass();
   void endSubpass();

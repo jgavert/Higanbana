@@ -12,6 +12,7 @@
 #include "Fence.hpp"
 #include "Swapchain.hpp"
 #include "WindowSurface.hpp"
+#include "Renderpass.hpp"
 
 #include "core/src/system/SequenceTracker.hpp"
 #include "core/src/system/SequenceRingRangeAllocator.hpp"
@@ -26,6 +27,7 @@ private:
   std::shared_ptr<GpuDeviceImpl> m_device;
   faze::SequenceTracker m_tracker;
 
+  // finished commandbuffers
   struct LiveCmdBuffer
   {
     FenceImpl fence;
@@ -34,11 +36,13 @@ private:
   std::deque<LiveCmdBuffer> m_liveCmdBuffers;
 
   QueueImpl m_queue;
+
+  // commandbuffer allocator
   std::vector<std::shared_ptr<CmdBufferImpl>> m_rawCommandBuffers;
   std::vector<DescriptorPool> m_descriptorPools;
   faze::SequenceRingRangeAllocator m_cmdBufferAllocator;
 
-
+  // fences
   std::vector<FenceImpl> m_rawFences;
   faze::SequenceRingRangeAllocator m_fenceAllocator;
 
@@ -52,6 +56,8 @@ public:
   bool isValid();
   GraphicsCmdBuffer createGraphicsCommandBuffer();
   GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
+
+  Renderpass createRenderpass();
 
   std::vector<ResourceDescriptor> querySwapChainInfo(WindowSurface& surface);
   std::vector<PresentMode> queryPresentModes(WindowSurface& surface);

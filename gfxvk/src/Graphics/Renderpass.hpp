@@ -5,15 +5,15 @@
 class Renderpass
 {
 private:
-  RenderpassImpl impl;
+  RenderpassImpl m_impl;
 public:
-
+  RenderpassImpl& impl() { return m_impl; }
 };
 
 class Subpass
 {
 private:
-  SubpassImpl impl;
+  SubpassImpl m_impl;
 public:
-
+  SubpassImpl& impl() { return m_impl; }
 };

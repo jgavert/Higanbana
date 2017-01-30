@@ -6,10 +6,31 @@
 #include "gfxvk/src/Graphics/Fence.hpp"
 #include "gfxvk/src/Graphics/Pipeline.hpp"
 #include "gfxvk/src/Graphics/DescriptorPool.hpp"
+#include "gfxvk/src/Graphics/Renderpass.hpp"
 #include "core/src/system/SequenceTracker.hpp"
 #include "DescriptorSet.hpp"
 
 #include <memory>
+
+class LiveRenderpass
+{
+  std::shared_ptr<CmdBufferImpl> m_inner;
+public:
+  LiveRenderpass(std::shared_ptr<CmdBufferImpl> list)
+    : m_inner(list)
+  {}
+
+  LiveRenderpass(const LiveRenderpass& other) = delete;
+  LiveRenderpass(LiveRenderpass&& other) = default;
+
+  LiveRenderpass& operator=(const LiveRenderpass& other) = delete;
+  LiveRenderpass& operator=(LiveRenderpass&& other) = default;
+
+  ~LiveRenderpass()
+  {
+    m_inner->endRenderpass();
+  }
+};
 
 class GraphicsCmdBuffer 
 {
@@ -31,9 +52,8 @@ private:
 public:
   GraphicsCmdBuffer() {}
 
+  LiveRenderpass renderpass(Renderpass& rp, TextureRTV& rtv);
   // renderpass
-  void beginRenderpass();
-  void endRenderpass();
   void beginSubpass();
   void endSubpass();
 

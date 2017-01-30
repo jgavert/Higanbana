@@ -26,28 +26,28 @@ public:
 
 	void read(unsigned slot, BufferSRV& srv)
 	{
-		set.read(slot, srv.getView());
+		set.read(slot, srv.view());
 	}
 	void read(unsigned slot, BufferUAV& uav)
 	{
-		set.read(slot, uav.getView());
+		set.read(slot, uav.view());
 	}
 	void read(unsigned slot, TextureSRV& srv)
 	{
-		set.read(slot, srv.getView());
+		set.read(slot, srv.view());
 	}
 	void read(unsigned slot, TextureUAV& uav)
 	{
-		set.read(slot, uav.getView());
+		set.read(slot, uav.view());
 	}
 
   void modify(unsigned slot, BufferUAV& uav)
   {
-    set.modify(slot, uav.getView());
+    set.modify(slot, uav.view());
   }
 
   void modify(unsigned slot, TextureUAV& uav)
   {
-    set.modify(slot, uav.getView());
+    set.modify(slot, uav.view());
   }
 };
