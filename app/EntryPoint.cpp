@@ -149,6 +149,8 @@ int EntryPoint::main()
 
         float value = 0.f;
 
+        Renderpass rp = gpu.createRenderpass();
+
         while (!window.simpleReadMessages(frame++))
         {
           if (window.hasResized())
@@ -180,10 +182,9 @@ int EntryPoint::main()
             {
               auto gfx = gpu.createGraphicsCommandBuffer();
               gfx.clearRTV(rtv, value);
-              gfx.beginRenderpass();
-              gfx.beginSubpass();
-              gfx.endSubpass();
-              gfx.endRenderpass();
+              {
+                auto insiderp = gfx.renderpass(rp, rtv);
+              }
               gpu.submitSwapchain(gfx, swapchain);
             }
             gpu.present(swapchain);

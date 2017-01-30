@@ -72,7 +72,7 @@ public:
     return m_texture.isValid();
   }
 
-  TextureShaderViewImpl& getView()
+  TextureShaderViewImpl& view()
   {
 	  return m_view;
   }

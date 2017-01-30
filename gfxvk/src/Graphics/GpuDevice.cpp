@@ -35,6 +35,11 @@ GraphicsPipeline GpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor de
 {
   return m_device->createGraphicsPipeline(desc);
 }
+
+Renderpass GpuDevice::createRenderpass()
+{
+  return Renderpass();
+}
 /*
 ComputePipeline GpuDevice::createComputePipeline(ComputePipelineDescriptor desc)
 {

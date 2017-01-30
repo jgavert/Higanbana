@@ -70,7 +70,7 @@ public:
     return m_buffer.isValid();
   }
 
-  BufferShaderViewImpl& getView()
+  BufferShaderViewImpl& view()
   {
 	  return m_view;
   }

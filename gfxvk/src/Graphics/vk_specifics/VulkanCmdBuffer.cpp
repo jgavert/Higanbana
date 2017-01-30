@@ -217,8 +217,13 @@ public:
 class RenderpassBeginPacket : public VulkanCommandPacket
 {
 public:
+  VulkanRenderpass rp;
 
-	RenderpassBeginPacket(LinearAllocator&)
+  VulkanTextureShaderView rtv;
+
+	RenderpassBeginPacket(LinearAllocator&, VulkanRenderpass rp, VulkanTextureShaderView rtv)
+    : rp(rp)
+    , rtv(rtv)
 	{
 	}
 
@@ -355,9 +360,9 @@ void VulkanCmdBuffer::prepareForSubmit(VulkanGpuDevice& device, VulkanDescriptor
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// Renderpass ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
-void VulkanCmdBuffer::beginRenderpass()
+void VulkanCmdBuffer::beginRenderpass(VulkanRenderpass& rp, VulkanTextureShaderView rtv)
 {
-  m_commandList->insert<RenderpassBeginPacket>();
+  m_commandList->insert<RenderpassBeginPacket>(rp, rtv);
 }
 
 void VulkanCmdBuffer::endRenderpass()
@@ -434,16 +439,22 @@ void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& )
 {
 	int unhandledRenderpasses = 0;
 	bool insideRenderpass = false;
+  RenderpassBeginPacket* active = nullptr;
+
 	m_commandList->foreach([&](VulkanCommandPacket* packet)
 	{
 		switch (packet->type())
 		{
 		case VulkanCommandPacket::PacketType::RenderpassBegin:
+      active = static_cast<RenderpassBeginPacket*>(packet);
 			insideRenderpass = true;
 			break;
 		case VulkanCommandPacket::PacketType::RenderpassEnd:
-			if (insideRenderpass)
-				unhandledRenderpasses++;
+      if (insideRenderpass)
+      {
+        if (!active->rp.created())
+          unhandledRenderpasses++;
+      }
 			insideRenderpass = false;
 			break;
 		default:
