@@ -73,6 +73,8 @@ private:
     int uavTextureCount;
   };
 
+
+
 public:
   VulkanGpuDevice(
 	std::shared_ptr<vk::Device> device,
@@ -137,6 +139,10 @@ public:
   // destroys
   void destroy(VulkanDescriptorPool& pool);
 
+  vk::Device& native()
+  {
+    return *m_device;
+  }
 };
 
 using GpuDeviceImpl = VulkanGpuDevice;

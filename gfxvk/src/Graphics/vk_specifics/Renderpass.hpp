@@ -15,26 +15,28 @@ using SubpassImpl = VulkanSubpass;
 class VulkanRenderpass
 {
 private:
-  struct privates
-  {
 
-    vk::RenderPass renderpass;
-    bool created = false;
-  };
-  std::shared_ptr<privates> m_priv;
+  std::shared_ptr<std::shared_ptr<vk::RenderPass>> m_renderpass;
+
+
 public:
   VulkanRenderpass()
-    : m_priv(std::make_shared<privates>())
+    : m_renderpass(std::make_shared<std::shared_ptr<vk::RenderPass>>(nullptr))
   {}
+
+  void create(std::shared_ptr<vk::RenderPass> rp)
+  {
+    *m_renderpass = rp;
+  }
 
   vk::RenderPass& native()
   {
-    return m_priv->renderpass;
+    return *(*m_renderpass);
   }
 
   bool created()
   {
-    return m_priv->created;
+    return (*m_renderpass).get() != nullptr;
   }
 };
 
