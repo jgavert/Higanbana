@@ -967,7 +967,7 @@ VulkanTextureShaderView VulkanGpuDevice::createTextureView(VulkanTexture& textur
     imageType = vk::DescriptorType::eInputAttachment; // TODO: ???, probably invalid to create a rendertarget view, should ignore
   }
 
-  return VulkanTextureShaderView(texture.m_resource, viewptr, info, imageType, subResourceRange, texture.m_state, texture.uniqueId);
+  return VulkanTextureShaderView(texture.m_resource, viewptr, info, viewInfo.format, imageType, subResourceRange, texture.m_state, texture.uniqueId);
 }
 
 VulkanPipeline VulkanGpuDevice::createGraphicsPipeline(GraphicsPipelineDescriptor )

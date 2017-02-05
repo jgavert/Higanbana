@@ -15,3 +15,13 @@ vk::Format formatToVkFormat(FormatType format)
 {
   return formatTransformTable[format].view;
 }
+
+vk::Format formatToViewVkFormat(FormatType format)
+{
+  return formatTransformTable[format].view;
+}
+
+vk::Format formatToStorageVkFormat(FormatType format)
+{
+  return formatTransformTable[format].view;
+}

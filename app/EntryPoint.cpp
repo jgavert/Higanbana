@@ -99,7 +99,7 @@ int EntryPoint::main()
       {
         constexpr int TestBufferSize = 1 * 128;
 
-        constexpr size_t Memsize = 64 * 1024 * 64 * 3;
+        constexpr size_t Memsize = 64 * 1024 * 64;
 
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")

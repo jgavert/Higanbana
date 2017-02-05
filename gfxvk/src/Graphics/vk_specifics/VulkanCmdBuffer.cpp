@@ -435,7 +435,7 @@ void VulkanCmdBuffer::close()
   m_closed = true;
 }
 
-void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& )
+void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& device)
 {
 	int unhandledRenderpasses = 0;
 	bool insideRenderpass = false;
@@ -453,7 +453,56 @@ void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& )
       if (insideRenderpass)
       {
         if (!active->rp.created())
+        {
           unhandledRenderpasses++;
+
+          // todo: these attachments should be defined from usercode, not hardcoded.
+          vk::AttachmentDescription attachment = vk::AttachmentDescription()
+            .setInitialLayout(active->rtv.info().imageLayout)
+            .setFinalLayout(active->rtv.info().imageLayout)
+            .setFormat(active->rtv.format())
+            .setLoadOp(vk::AttachmentLoadOp::eDontCare)
+            .setStoreOp(vk::AttachmentStoreOp::eStore)
+            .setSamples(vk::SampleCountFlagBits::e1)
+            .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+            .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+
+          vk::ArrayProxy<const vk::AttachmentDescription> attachments(attachment);
+
+          vk::AttachmentReference refRtv = vk::AttachmentReference()
+            .setAttachment(0) // hardcoded.
+            .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+ 
+          vk::ArrayProxy<const vk::AttachmentReference> colorAttachments(refRtv);
+
+          uint32_t preservedAttachments[1] = { 0 };
+
+          vk::SubpassDescription subpass = vk::SubpassDescription()
+            .setColorAttachmentCount(1)
+            .setPColorAttachments(colorAttachments.data())
+            .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+            .setPreserveAttachmentCount(1)
+            .setPPreserveAttachments(preservedAttachments);
+
+          vk::ArrayProxy<const vk::SubpassDescription> subpasses(subpass);
+
+          vk::RenderPassCreateInfo info = vk::RenderPassCreateInfo()
+            .setAttachmentCount(1)
+            .setPAttachments(attachments.data())
+            .setDependencyCount(0)
+            .setSubpassCount(1)
+            .setPSubpasses(subpasses.data());
+
+          auto rp = device.native().createRenderPass(info);
+
+          auto dev = device.native();
+
+          active->rp.create(std::shared_ptr<vk::RenderPass>(new vk::RenderPass(rp), [dev](vk::RenderPass* ptr)
+          {
+            dev.destroyRenderPass(*ptr);
+            delete ptr;
+          }));
+        }
       }
 			insideRenderpass = false;
 			break;
@@ -461,7 +510,8 @@ void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& )
 			break;
 		}
 	});
-	F_LOG("Renderpasses to compile: %d\n", unhandledRenderpasses);
+  if (unhandledRenderpasses > 0)
+	  F_LOG("Renderpasses to compile: %d\n", unhandledRenderpasses);
 }
 
 void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
