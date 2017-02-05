@@ -176,7 +176,6 @@ ResourceHeap GpuDevice::createMemoryHeap(HeapDescriptor desc) // This is questio
   };
 
   desc.m_sizeInBytes = ensureAlignment(desc.m_sizeInBytes, desc.m_alignment);
-  F_ASSERT(desc.m_sizeInBytes < ResourceHeap::s_pageCount * desc.m_alignment, "Trying to create heap that is too large for the heap page count, count was %u < %u", desc.m_sizeInBytes, ResourceHeap::s_pageCount * desc.m_alignment);
   return m_device->createMemoryHeap(desc);
 }
 

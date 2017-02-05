@@ -16,7 +16,7 @@
 #include "app/Graphics/gfxApi.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 
-#include "core/src/system/RangeBlockAllocator.hpp"
+#include "core/src/system/PageAllocator.hpp"
 
 #include "core/src/system/memview.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
@@ -36,48 +36,7 @@ using namespace faze;
 // wait... this works by (I cannot allocate 64kb -> allocate 64^2...? otherwise 64->128?
 // this split can also be done up right. 
 
-struct PageBlock
-{
-  int64_t offset;
-  int64_t size;
-};
 
-class PageAllocator
-{
-  int m_pageSize = 0;
-  size_t m_sizeInPages = 0;
-  faze::RangeBlockAllocator m_allocator;
-public:
-  PageAllocator(int pageSize, size_t sizeInPages)
-    : m_pageSize(pageSize)
-    , m_sizeInPages(sizeInPages)
-    , m_allocator(sizeInPages)
-  {
-
-  }
-
-  PageBlock allocate(size_t bytes)
-  {
-    auto sizeInBlocks = sizeInPages(bytes);
-    auto block = m_allocator.allocate(sizeInBlocks);
-    if (block.offset == -1)
-      return PageBlock{-1, -1};
-    return PageBlock{ block.offset*m_pageSize, static_cast<int64_t>(sizeInBlocks)*m_pageSize };
-  }
-
-  void release(PageBlock b)
-  {
-    F_ASSERT(b.offset >= 0, "Invalid block released.");
-    m_allocator.release(faze::RangeBlock{ b.offset / m_pageSize, b.size / m_pageSize });
-  }
-private:
-  size_t sizeInPages(size_t count)
-  {
-    auto pages = count / m_pageSize;
-    pages += ((count % m_pageSize != 0) ? 1 : 0);
-    return pages;
-  }
-};
 
 void testAlloca()
 {
@@ -140,12 +99,14 @@ int EntryPoint::main()
       {
         constexpr int TestBufferSize = 1 * 128;
 
+        constexpr size_t Memsize = 64 * 1024 * 64 * 3;
+
         auto testHeap = gpu.createMemoryHeap(HeapDescriptor()
           .setName("ebin")
-          .sizeInBytes(32000000)
+          .sizeInBytes(Memsize)
           .setHeapType(HeapType::Upload)); // 32megs, should be the common size...
-        auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(32000000).setHeapType(HeapType::Default)); // 32megs, should be the common size...
-        auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(32000000).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
+        auto testHeap2 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinTarget").sizeInBytes(Memsize).setHeapType(HeapType::Default)); // 32megs, should be the common size...
+        auto testHeap3 = gpu.createMemoryHeap(HeapDescriptor().setName("ebinReadback").sizeInBytes(Memsize).setHeapType(HeapType::Readback)); // 32megs, should be the common size...
         auto buffer = gpu.createBuffer(testHeap,
           ResourceDescriptor()
           .setName("testBuffer")
@@ -310,7 +271,7 @@ int EntryPoint::main()
       }
     }
   };
-  //main("w1");
+  main("w1");
   t.printStatistics();
   log.update();
   return 0;

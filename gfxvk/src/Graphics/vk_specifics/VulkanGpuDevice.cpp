@@ -695,8 +695,8 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
   auto buffer = m_device->createBuffer(info, m_alloc_info);
 
   auto pagesNeeded = bufSize / heap.desc().m_alignment + 1;
-  auto offset = heap.allocatePages(bufSize);
-  F_ASSERT(offset >= 0, "not enough space in heap");
+  auto pageblock = heap.allocate(bufSize);
+  F_ASSERT(pageblock.offset >= 0, "not enough space in heap");
 
   auto reqs = m_device->getBufferMemoryRequirements(buffer);
   if (reqs.size > pagesNeeded*heap.desc().m_alignment || heap.desc().m_alignment % reqs.alignment != 0)
@@ -704,25 +704,24 @@ VulkanBuffer VulkanGpuDevice::createBuffer(ResourceHeap& heap, ResourceDescripto
     F_ASSERT(false, "wtf!");
   }
   auto memory = heap.impl().m_resource;
-  m_device->bindBufferMemory(buffer, *heap.impl().m_resource, offset);
-  auto offsetPage = offset / heap.desc().m_alignment;
+  m_device->bindBufferMemory(buffer, *heap.impl().m_resource, pageblock.offset);
   auto heapCopy = heap;
-  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, offsetPage, pagesNeeded, heapCopy](vk::Buffer* buffer)
+  auto ret = std::shared_ptr<vk::Buffer>(new vk::Buffer(buffer), [&, heapCopy, pageblock](vk::Buffer* buffer)
   {
     if (heapCopy.isValid() && buffer)
     {
-      heap.freePages(offsetPage, pagesNeeded);
+      heap.release(pageblock);
       m_device->destroyBuffer(*buffer, m_alloc_info);
       delete buffer;
     }
   });
 
-  std::function<RawMapping(int64_t, int64_t)> mapper = [&, usage, offset, memory](int64_t offsetIntoBuffer, int64_t size)
+  std::function<RawMapping(int64_t, int64_t)> mapper = [&, usage, pageblock, memory](int64_t offsetIntoBuffer, int64_t size)
   {
     // insert some mapping asserts here
     F_ASSERT(usage == ResourceUsage::UploadHeap || usage == ResourceUsage::ReadbackHeap, "cannot map device memory");
     RawMapping mapped;
-    auto mapping = m_device->mapMemory(*memory, offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
+    auto mapping = m_device->mapMemory(*memory, pageblock.offset + offsetIntoBuffer, size, vk::MemoryMapFlags());
     std::shared_ptr<void> target(mapping,
       [&, memory](void*) -> void
     {

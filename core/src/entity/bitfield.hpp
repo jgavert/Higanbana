@@ -394,6 +394,8 @@
         return bitOps::clearbit(m_data[index / 128], index % 128);
       }
 
+      // this is bullshit, Containts the structure but needs rewriting.
+      // __builtin_ctzll counts the leading zeros, think about this
       size_t countClearedBitsInBucket(size_t startIndex)
       {
         size_t table = startIndex / 128;
