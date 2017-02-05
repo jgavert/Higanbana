@@ -16,6 +16,8 @@
 #include "app/Graphics/gfxApi.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 
+#include "core/src/system/RangeBlockAllocator.hpp"
+
 #include "core/src/system/memview.hpp"
 #include "core/src/spirvcross/spirv_glsl.hpp"
 
@@ -30,12 +32,82 @@
 
 using namespace faze;
 
+// thinking of gpu, 1024*64 is the minimum size
+// wait... this works by (I cannot allocate 64kb -> allocate 64^2...? otherwise 64->128?
+// this split can also be done up right. 
+
+struct PageBlock
+{
+  int64_t offset;
+  int64_t size;
+};
+
+class PageAllocator
+{
+  int m_pageSize = 0;
+  size_t m_sizeInPages = 0;
+  faze::RangeBlockAllocator m_allocator;
+public:
+  PageAllocator(int pageSize, size_t sizeInPages)
+    : m_pageSize(pageSize)
+    , m_sizeInPages(sizeInPages)
+    , m_allocator(sizeInPages)
+  {
+
+  }
+
+  PageBlock allocate(size_t bytes)
+  {
+    auto sizeInBlocks = sizeInPages(bytes);
+    auto block = m_allocator.allocate(sizeInBlocks);
+    if (block.offset == -1)
+      return PageBlock{-1, -1};
+    return PageBlock{ block.offset*m_pageSize, static_cast<int64_t>(sizeInBlocks)*m_pageSize };
+  }
+
+  void release(PageBlock b)
+  {
+    F_ASSERT(b.offset >= 0, "Invalid block released.");
+    m_allocator.release(faze::RangeBlock{ b.offset / m_pageSize, b.size / m_pageSize });
+  }
+private:
+  size_t sizeInPages(size_t count)
+  {
+    auto pages = count / m_pageSize;
+    pages += ((count % m_pageSize != 0) ? 1 : 0);
+    return pages;
+  }
+};
+
+void testAlloca()
+{
+  //SegregatedBlockAllocator a(6, 12, 8);
+  PageAllocator a(64, 8*64);
+
+  auto block = a.allocate(64 * 64 * 7);
+  a.release(block);
+  auto block2a = a.allocate(64 * 64 * 4);
+  auto block2b = a.allocate(64 * 64 * 2); // somewhere in middle
+  auto block3 = a.allocate(64 * 64 * 7);
+  F_ASSERT(block3.offset == -1, "Should fail. Not succeed.");
+  a.release(block2a);
+  auto block3a = a.allocate(64 * 64 * 7);
+  F_ASSERT(block3a.offset == -1, "Should fail. Not succeed.");
+  a.release(block2b);
+  auto block3b = a.allocate(64 * 64 * 7);
+  F_ASSERT(block3b.offset != -1, "Should succeed.");
+  F_LOG("test %d\n", block3b.size);
+  a.release(block3b);
+}
+
 int EntryPoint::main()
 {
+
   WTime t;
   t.firstTick();
   Logger log;
-
+  testAlloca();
+  log.update();
   GraphicsInstance devices;
   FileSystem fs;
   if (!devices.createInstance("faze"))
@@ -238,7 +310,7 @@ int EntryPoint::main()
       }
     }
   };
-  main("w1");
+  //main("w1");
   t.printStatistics();
   log.update();
   return 0;
