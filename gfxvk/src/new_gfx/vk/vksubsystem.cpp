@@ -1,0 +1,243 @@
+#include "vkresources.hpp"
+
+#include "core/src/global_debug.hpp"
+
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+  VkDebugReportFlagsEXT                       flags,
+  VkDebugReportObjectTypeEXT                  /*objectType*/,
+  uint64_t                                    /*object*/,
+  size_t                                      /*Location*/,
+  int32_t                                     messageCode,
+  const char*                                 pLayerPrefix,
+  const char*                                 pMessage,
+  void*                                       /*pUserData*/)
+{
+  // Supressing unnecessary log messages.
+
+  std::string msgType = "";
+#if defined(PLATFORM_WINDOWS)
+  bool breakOn = false;
+#endif
+  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+  {
+    msgType = "ERROR:";
+#if defined(PLATFORM_WINDOWS)
+    breakOn = true;
+#endif
+  }
+  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+  {
+    msgType = "WARNING:";
+#if defined(PLATFORM_WINDOWS)
+    breakOn = true;
+#endif
+  }
+  else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+  {
+    msgType = "PERFORMANCE WARNING:";
+  }
+  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+  {
+    msgType = "INFO:";
+  }
+  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+  {
+    msgType = "DEBUG:";
+  }
+  if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
+    return false;
+  F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+#if defined(PLATFORM_WINDOWS)
+  if (breakOn && IsDebuggerPresent())
+    __debugbreak();
+#endif
+  return false;
+}
+
+namespace faze
+{
+  namespace backend
+  {
+    SubsystemImpl::SubsystemImpl(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
+      : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
+      , m_instance(new vk::Instance, [=](vk::Instance* ist)
+    {
+      (*ist).destroy(&m_alloc_info);
+    })
+    {
+      /////////////////////////////////
+      // getting debug layers
+      // TODO: These need to be saved for device creation also. which layers and extensions each use.
+      auto layersInfos = vk::enumerateInstanceLayerProperties();
+
+      std::vector<const char*> layers;
+      {
+        // lunargvalidation list order
+        GFX_ILOG("Enabled Vulkan debug layers:");
+        for (auto&& it : layerOrder)
+        {
+          auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
+          {
+            return it == layer.layerName;
+          });
+          if (found != layersInfos.end())
+          {
+            layers.push_back(it.c_str());
+            m_layers.push_back(*found);
+            GFX_ILOG("\t\t%s", found->layerName);
+          }
+          else
+          {
+            GFX_ILOG("not enabled %s", it.c_str());
+          }
+        }
+      }
+      /////////////////////////////////
+      // Getting extensions
+      std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
+
+      std::vector<const char*> extensions;
+      {
+        // lunargvalidation list order
+        GFX_ILOG("Enabled Vulkan extensions:");
+
+        for (auto&& it : extOrder)
+        {
+          auto found = std::find_if(extInfos.begin(), extInfos.end(), [&](const vk::ExtensionProperties& layer)
+          {
+            return it == layer.extensionName;
+          });
+          if (found != extInfos.end())
+          {
+            extensions.push_back(it.c_str());
+            m_extensions.push_back(*found);
+            GFX_ILOG("\t\t%s", found->extensionName);
+          }
+          else
+          {
+            GFX_ILOG("not enabled %s", it.c_str());
+          }
+        }
+      }
+
+      /////////////////////////////////
+      // app instance
+      app_info = vk::ApplicationInfo()
+        .setPApplicationName(appName)
+        .setApplicationVersion(appVersion)
+        .setPEngineName(engineName)
+        .setEngineVersion(engineVersion)
+        .setApiVersion(VK_API_VERSION_1_0);
+
+      instance_info = vk::InstanceCreateInfo()
+        .setPApplicationInfo(&app_info)
+        .setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
+        .setPpEnabledLayerNames(layers.data())
+        .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+        .setPpEnabledExtensionNames(extensions.data());
+
+      vk::Result res = vk::createInstance(&instance_info, &m_alloc_info, m_instance.get());
+
+      if (res != vk::Result::eSuccess)
+      {
+        // quite hot shit baby yeah!
+        auto error = vk::to_string(res);
+        GFX_ILOG("Instance creation error: %s", error.c_str());
+        F_ASSERT(false, "");
+      }
+      m_devices = m_instance->enumeratePhysicalDevices();
+
+      // get addresses for few functions
+      PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
+      PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback;
+
+      dbgCreateDebugReportCallback =
+        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
+          *m_instance, "vkCreateDebugReportCallbackEXT");
+      if (!dbgCreateDebugReportCallback)
+      {
+        GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
+      }
+
+      dbgDestroyDebugReportCallback =
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
+          *m_instance, "vkDestroyDebugReportCallbackEXT");
+      if (!dbgDestroyDebugReportCallback)
+      {
+        GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");
+      }
+      // the debug things
+      auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug;
+      vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallback, nullptr);
+
+      auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
+      auto allocInfo = m_alloc_info;
+      m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
+      {
+        dbgDestroyDebugReportCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+      });
+      dbgCreateDebugReportCallback(*m_instance, reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
+    }
+
+    std::string SubsystemImpl::gfxApi()
+    {
+      return "Vulkan";
+    }
+
+    vector<GpuInfo> SubsystemImpl::availableGpus()
+    {
+      auto canPresent = [](vk::PhysicalDevice dev)
+      {
+        auto queueProperties = dev.getQueueFamilyProperties();
+        for (auto&& queueProp : queueProperties)
+        {
+          for (uint32_t i = 0; i < queueProp.queueCount; ++i)
+          {
+#if defined(PLATFORM_WINDOWS)
+            if (dev.getWin32PresentationSupportKHR(i))
+#endif
+            {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+      int devId = 0;
+      for (devId = 0; devId < static_cast<int>(m_devices.size()); ++devId)
+      {
+        GpuInfo info{};
+        auto stuff = m_devices[devId].getProperties();
+        if (canPresent(m_devices[devId]))
+        {
+          info.canPresent = true;
+        }
+        info.id = devId;
+        info.name = std::string(stuff.deviceName);
+        info.vendor = stuff.vendorID;
+        switch (stuff.deviceType)
+        {
+        case vk::PhysicalDeviceType::eIntegratedGpu:
+          info.type = DeviceType::IntegratedGpu;
+          break;
+        case vk::PhysicalDeviceType::eDiscreteGpu:
+          info.type = DeviceType::DiscreteGpu;
+          break;
+        case vk::PhysicalDeviceType::eVirtualGpu:
+          info.type = DeviceType::VirtualGpu;
+          break;
+        case vk::PhysicalDeviceType::eCpu:
+          info.type = DeviceType::Cpu;
+          break;
+        default:
+          info.type = DeviceType::Unknown;
+          break;
+        }
+        infos.emplace_back(info);
+      }
+
+      return infos;
+    }
+  }
+}
