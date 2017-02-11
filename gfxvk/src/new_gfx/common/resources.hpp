@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "core/src/filesystem/filesystem.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include <string>
 namespace faze
@@ -24,10 +25,20 @@ namespace faze
     bool canPresent;
   };
 
-
   namespace backend
   {
-    struct SubsystemImpl;
+    class DeviceImpl;
+    class SubsystemImpl;
+
+    struct DeviceData : std::enable_shared_from_this<DeviceData>
+    {
+      std::shared_ptr<DeviceImpl> impl;
+
+      DeviceData(std::shared_ptr<DeviceImpl> impl)
+        : impl(impl)
+      {
+      }
+    };
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>
     {
@@ -40,68 +51,7 @@ namespace faze
       SubsystemData(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
       std::string gfxApi();
       vector<GpuInfo> availableGpus();
+      GpuDevice createDevice(FileSystem& fs, int id);
     };
   }
-
-  struct DeviceData
-  {
-
-  };
-
-  struct CommandListData
-  {
-
-  };
-
-  struct BufferShaderViewData
-  {
-
-  };
-
-  class BufferShaderView 
-  {
-  private:
-    /*
-    Buffer m_buffer;
-    BufferShaderViewData m_view;
-    BufferShaderView()
-    {}
-    */
-  public:
-    /*
-    Buffer& buffer()
-    {
-      return m_buffer;
-    }
-
-    bool isValid()
-    {
-      return m_buffer.isValid();
-    }
-
-    BufferShaderViewImpl& view()
-    {
-      return m_view;
-    }*/
-  };
-
-  class BufferSRV : public BufferShaderView
-  {
-
-  };
-
-  class BufferUAV : public BufferShaderView
-  {
-
-  };
-
-  class BufferIBV : public BufferShaderView
-  {
-
-  };
-
-  class BufferCBV : public BufferShaderView
-  {
-
-  };
 }

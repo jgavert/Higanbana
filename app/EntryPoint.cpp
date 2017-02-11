@@ -6,6 +6,7 @@
 
 #include "core/src/Platform/EntryPoint.hpp"
 #include "core/src/system/logger.hpp"
+#include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/new_gfx/GraphicsCore.hpp"
 #include "core/src/global_debug.hpp"
 
@@ -18,10 +19,15 @@ int EntryPoint::main()
   GraphicsSubsystem graphics("test");
   F_LOG("Using api %s\n", graphics.gfxApi().c_str());
   F_LOG("Have gpu's\n");
-  for (auto&& it : graphics.availableGpus())
+  auto gpus = graphics.availableGpus();
+  for (auto&& it : gpus)
   {
     F_LOG("\t%d. %s (memory: %d)\n", it.id, it.name.c_str(), it.memory);
   }
+  F_ASSERT(!gpus.empty(), "Well, no gpu :(");
+  FileSystem fs;
+  auto dev = graphics.createDevice(fs, gpus[0].id); // hardcoded 0
+
   return 1;
 }
 /*
