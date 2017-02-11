@@ -5,6 +5,26 @@
 #endif
 
 #include "core/src/Platform/EntryPoint.hpp"
+#include "core/src/system/logger.hpp"
+#include "gfxvk/src/new_gfx/GraphicsCore.hpp"
+#include "core/src/global_debug.hpp"
+
+using namespace faze;
+
+int EntryPoint::main()
+{
+  Logger log;
+
+  GraphicsSubsystem graphics("test");
+  F_LOG("Using api %s\n", graphics.gfxApi().c_str());
+  F_LOG("Have gpu's\n");
+  for (auto&& it : graphics.availableGpus())
+  {
+    F_LOG("\t%d. %s (memory: %d)\n", it.id, it.name.c_str(), it.memory);
+  }
+  return 1;
+}
+/*
 #include "core/src/Platform/Window.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/logger.hpp"
@@ -275,4 +295,4 @@ int EntryPoint::main()
   t.printStatistics();
   log.update();
   return 0;
-}
+}*/

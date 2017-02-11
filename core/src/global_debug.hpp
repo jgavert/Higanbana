@@ -85,3 +85,6 @@ std::string _log_str(const char* s);
 
 
 
+#define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
+#define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
+

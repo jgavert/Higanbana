@@ -592,6 +592,7 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
       break;
     }
   });
+
   vk::ArrayProxy<const vk::WriteDescriptorSet> proxy(m_allSets);
   device.m_device->updateDescriptorSets(proxy, {});
 }
