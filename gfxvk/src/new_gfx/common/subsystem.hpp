@@ -16,7 +16,8 @@ namespace faze
     {
       makeState(appName, appVersion, engineName, engineVersion);
     }
-    std::string gfxApi() { return S().gfxApi(); };
-    vector<GpuInfo> availableGpus() { return S().availableGpus(); };
+    std::string gfxApi() { return S().gfxApi(); }
+    vector<GpuInfo> availableGpus() { return S().availableGpus(); }
+    GpuDevice createDevice(FileSystem& fs, int id) { return GpuDevice(S().createDevice(fs, id)); }
   };
 }

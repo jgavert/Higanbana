@@ -1,4 +1,5 @@
 #include "resources.hpp"
+#include "gpudevice.hpp"
 #include "implementation.hpp"
 
 namespace faze
@@ -15,6 +16,7 @@ namespace faze
     }
     std::string SubsystemData::gfxApi() { return impl->gfxApi(); }
     vector<GpuInfo> SubsystemData::availableGpus() { return impl->availableGpus(); }
+    GpuDevice SubsystemData::createDevice(FileSystem& fs, int id) { return impl->createGpuDevice(fs, id); }
   }
 }
 

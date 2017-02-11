@@ -1,5 +1,5 @@
 #include "vkresources.hpp"
-
+#include "gfxvk/src/new_gfx/common/gpudevice.hpp"
 #include "core/src/global_debug.hpp"
 
 
@@ -238,6 +238,81 @@ namespace faze
       }
 
       return infos;
+    }
+
+    GpuDevice SubsystemImpl::createGpuDevice(FileSystem& fs, int id)
+    {
+      auto&& physDev = m_devices[id];
+
+      std::vector<vk::ExtensionProperties> devExts = physDev.enumerateDeviceExtensionProperties();
+
+      std::vector<const char*> extensions;
+      {
+        GFX_ILOG("Available extensions for device:");
+        for (auto&& it : devExts)
+        {
+          GFX_ILOG("\t\t%s", it.extensionName);
+        }
+        // lunargvalidation list order
+        GFX_ILOG("Enabled Vulkan extensions for device:");
+
+        for (auto&& it : devExtOrder)
+        {
+          auto found = std::find_if(devExts.begin(), devExts.end(), [&](const vk::ExtensionProperties& layer)
+          {
+            return it == layer.extensionName;
+          });
+          if (found != devExts.end())
+          {
+            extensions.push_back(it.c_str());
+            m_extensions.push_back(*found);
+            GFX_ILOG("\t\t%s", found->extensionName);
+          }
+        }
+      }
+
+      // queue
+      auto queueProperties = physDev.getQueueFamilyProperties();
+      std::vector<vk::DeviceQueueCreateInfo> queueInfos;
+      uint32_t i = 0;
+      std::vector<std::vector<float>> priorities;
+      for (auto&& queueProp : queueProperties)
+      {
+        priorities.push_back(std::vector<float>());
+        for (size_t k = 0; k < queueProp.queueCount; ++k)
+        {
+          priorities[i].push_back(1.f);
+        }
+        vk::DeviceQueueCreateInfo queueInfo = vk::DeviceQueueCreateInfo()
+          .setQueueFamilyIndex(i)
+          .setQueueCount(queueProp.queueCount)
+          .setPQueuePriorities(priorities[i].data());
+        // queue priorities go here.
+        queueInfos.push_back(queueInfo);
+        ++i;
+      }
+
+      auto features = physDev.getFeatures(); // ALL OF THEM FEATURES.
+
+      auto heapInfos = physDev.getMemoryProperties();
+
+      auto device_info = vk::DeviceCreateInfo()
+        .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
+        .setPQueueCreateInfos(queueInfos.data())
+        .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+        .setPpEnabledExtensionNames(extensions.data())
+        .setPEnabledFeatures(&features);
+
+      vk::Device dev = physDev.createDevice(device_info);
+
+      std::shared_ptr<DeviceImpl> impl = std::shared_ptr<DeviceImpl>(new DeviceImpl(dev, physDev, fs, queueProperties, heapInfos, infos[id], false),
+        [dev](DeviceImpl* ptr)
+      {
+        dev.destroy();
+        delete ptr;
+      });
+
+      return GpuDevice(DeviceData(impl));
     }
   }
 }
