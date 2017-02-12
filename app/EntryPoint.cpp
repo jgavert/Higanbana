@@ -17,13 +17,13 @@ int EntryPoint::main()
 {
   Logger log;
   const char* name = "test";
-  GraphicsSubsystem graphics(GraphicsApi::Vulkan, name);
+  GraphicsSubsystem graphics(GraphicsApi::DX12, name);
   F_LOG("Using api %s\n", graphics.gfxApi().c_str());
   F_LOG("Have gpu's\n");
   auto gpus = graphics.availableGpus();
   for (auto&& it : gpus)
   {
-    F_LOG("\t%d. %s (memory: %d)\n", it.id, it.name.c_str(), it.memory);
+    F_LOG("\t%d. %s (memory: %zd)\n", it.id, it.name.c_str(), it.memory);
   }
   if (gpus.empty())
     return 1;
