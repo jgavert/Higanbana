@@ -16,7 +16,7 @@ config = """
 .VulkanSDKBasePath = '/usr/lib'
 #endif"""
 
-curDir = os.getcwd()
+curDir = os.getcwd().replace("\\", "/")
 print("current directory: " + curDir)
 
 config = config.replace("CURRENT_DIRECTORY", curDir)
