@@ -26,73 +26,68 @@ enum class MemoryPoolHint
 
 class HeapDescriptor
 {
-  std::string     m_name;
-  CPUPageProperty m_cpuPage;
-  HeapType        m_heapType;
-  MemoryPoolHint  m_memPool;
-  uint64_t        m_sizeInBytes;
-  uint64_t        m_alignment;
-  bool            m_onlyBuffers;
-  bool            m_onlyNonRtDsTextures;
-  bool            m_onlyRtDsTextures;
 public:
+  struct descriptor
+  {
+    std::string     name = "UnnamedHeap";
+    CPUPageProperty cpuPage = CPUPageProperty::Unknown;
+    HeapType        heapType = HeapType::Default;
+    MemoryPoolHint  memPool = MemoryPoolHint::Device;
+    uint64_t        sizeInBytes = 0;
+    uint64_t        alignment = 64*1024;
+    bool            onlyBuffers = false;
+    bool            onlyNonRtDsTextures = false;
+    bool            onlyRtDsTextures = false;
+  } desc;
+
   HeapDescriptor()
-    : m_name("UnnamedHeap")
-    , m_cpuPage(CPUPageProperty::Unknown)
-    , m_heapType(HeapType::Default)
-    , m_memPool(MemoryPoolHint::Device)
-    , m_sizeInBytes(0)
-    , m_alignment(64000)
-    , m_onlyBuffers(false)
-    , m_onlyNonRtDsTextures(false)
-    , m_onlyRtDsTextures(false)
 	{
 
 	}
 
   HeapDescriptor& setName(std::string name)
   {
-    m_name = name;
+    desc.name = name;
     return *this;
   }
   HeapDescriptor& setCPUPageProperty(CPUPageProperty prop)
   {
-    m_cpuPage = prop;
+    desc.cpuPage = prop;
     return *this;
   }
   HeapDescriptor& setHeapType(HeapType type)
   {
-    m_heapType = type;
+    desc.heapType = type;
     return *this;
   }
   HeapDescriptor& setMemoryPoolHint(MemoryPoolHint pool)
   {
-    m_memPool = pool;
+    desc.memPool = pool;
     return *this;
   }
   HeapDescriptor& sizeInBytes(uint64_t size)
   {
-    m_sizeInBytes = size;
+    desc.sizeInBytes = size;
     return *this;
   }
   HeapDescriptor& setHeapAlignment(int64_t alignment)
   {
-    m_alignment = alignment;
+    desc.alignment = alignment;
     return *this;
   }
   HeapDescriptor& restrictOnlyBuffers()
   {
-    m_onlyBuffers = true;
+    desc.onlyBuffers = true;
     return *this;
   }
   HeapDescriptor& restrictOnlyNonRtDsTextures()
   {
-    m_onlyNonRtDsTextures = true;
+    desc.onlyNonRtDsTextures = true;
     return *this;
   }
   HeapDescriptor& restrictOnlyRtDsTextures()
   {
-    m_onlyRtDsTextures = true;
+    desc.onlyRtDsTextures = true;
     return *this;
   }
 };

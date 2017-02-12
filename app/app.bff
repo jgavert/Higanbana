@@ -138,9 +138,9 @@
     Library( '$ProjectName$-Lib-$Platform$-$Config$' )
     {
       // Unity build
-      //.CompilerInputUnity   = '$ProjectName$-Unity-Windows'
+      .CompilerInputUnity   = '$ProjectName$-Unity-Windows'
       // Normal build
-      .CompilerInputPath  = '$ProjectPath$/'
+      //.CompilerInputPath  = '$ProjectPath$/'
 
         // Output
       .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'

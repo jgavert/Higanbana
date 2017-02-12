@@ -305,12 +305,7 @@ namespace faze
 
       vk::Device dev = physDev.createDevice(device_info);
 
-      std::shared_ptr<VulkanDevice> impl = std::shared_ptr<VulkanDevice>(new VulkanDevice(dev, physDev, fs, queueProperties, heapInfos, gpu, false),
-        [dev](VulkanDevice* ptr)
-      {
-        dev.destroy();
-        delete ptr;
-      });
+      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, heapInfos, gpu, false);
 
       return GpuDevice(DeviceData(impl));
     }

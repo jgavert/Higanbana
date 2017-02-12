@@ -16,55 +16,60 @@ using namespace faze;
 int EntryPoint::main()
 {
   Logger log;
-  const char* name = "test";
-  GraphicsSubsystem graphics(GraphicsApi::DX12, name);
-  F_LOG("Using api %s\n", graphics.gfxApi().c_str());
-  F_LOG("Have gpu's\n");
-  auto gpus = graphics.availableGpus();
-  for (auto&& it : gpus)
+  auto main = [&](GraphicsApi api)
   {
-    F_LOG("\t%d. %s (memory: %zd)\n", it.id, it.name.c_str(), it.memory);
-  }
-  if (gpus.empty())
-    return 1;
-  FileSystem fs;
-  auto dev = graphics.createDevice(fs, gpus[0]); // hardcoded 0
-
-  auto bufferdesc = ResourceDescriptor()
-    .setName("testBufferTarget")
-    .setFormat<float>()
-    .setWidth(100)
-    .setDimension(FormatDimension::Buffer);
-
-  //dev.createBufferSRV(bufferdesc);
-
-  ivec2 ires = { 800, 600 };
-  vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
-  Window window(m_params, name, ires.x(), ires.y());
-  window.open();
-  int64_t frame = 1;
-  bool closeAnyway = true;
-  while (!window.simpleReadMessages(frame++))
-  {
-    if (window.hasResized())
+    const char* name = "test";
+    GraphicsSubsystem graphics(api, name);
+    F_LOG("Using api %s\n", graphics.gfxApi().c_str());
+    F_LOG("Have gpu's\n");
+    auto gpus = graphics.availableGpus();
+    for (auto&& it : gpus)
     {
-      //gpu.reCreateSwapchain(swapchain, surface);
-      window.resizeHandled();
+      F_LOG("\t%d. %s (memory: %zd)\n", it.id, it.name.c_str(), it.memory);
     }
-    auto& inputs = window.inputs();
+    if (gpus.empty())
+      return;
+    FileSystem fs;
+    auto dev = graphics.createDevice(fs, gpus[0]); // hardcoded 0
 
-    if (inputs.isPressedThisFrame(VK_SPACE, 1))
-    {
-      auto& mouse = window.mouse();
-      F_LOG("mouse %d %d\n", mouse.m_pos.x(), mouse.m_pos.y());
-    }
+    auto bufferdesc = ResourceDescriptor()
+      .setName("testBufferTarget")
+      .setFormat<float>()
+      .setWidth(100)
+      .setDimension(FormatDimension::Buffer);
 
-    if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+    dev.createBuffer(bufferdesc);
+
+    ivec2 ires = { 800, 600 };
+    vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
+    Window window(m_params, name, ires.x(), ires.y());
+    window.open();
+    int64_t frame = 1;
+    bool closeAnyway = true;
+    while (!window.simpleReadMessages(frame++))
     {
-      break;
+      if (window.hasResized())
+      {
+        //gpu.reCreateSwapchain(swapchain, surface);
+        window.resizeHandled();
+      }
+      auto& inputs = window.inputs();
+
+      if (inputs.isPressedThisFrame(VK_SPACE, 1))
+      {
+        auto& mouse = window.mouse();
+        F_LOG("mouse %d %d\n", mouse.m_pos.x(), mouse.m_pos.y());
+      }
+
+      if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+      {
+        break;
+      }
+      log.update();
     }
-    log.update();
-  }
+  };
+  main(GraphicsApi::Vulkan);
+  main(GraphicsApi::DX12);
   return 1;
 }
 /*

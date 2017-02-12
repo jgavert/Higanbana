@@ -74,6 +74,16 @@ namespace faze
         vk::PhysicalDeviceMemoryProperties memProp,
         GpuInfo info,
         bool debugLayer);
+      ~VulkanDevice();
+
+      void waitGpuIdle() override;
+
+
+      GpuHeap createHeap(HeapDescriptor desc) override;
+      void destroyHeap(GpuHeap heap) override;
+
+      void createBuffer(ResourceDescriptor desc) override;
+      void createBufferView(ShaderViewDescriptor desc) override;
     };
 
     class VulkanSubsystem : public prototypes::SubsystemImpl
