@@ -271,8 +271,8 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .ProjectCommon =
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -ide -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -ide -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
   .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
   .Platform                 = 'x64'
@@ -283,7 +283,7 @@ Compiler( 'Compiler-x64-Linux' )
 							+ '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
                             + '$externalIncludesVisualStudio$'
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;PF_WINDOWS;PLATFORM_WINDOWS;'
-              + '$extVisualStudioDefines$'
+							+ '$extVisualStudioDefines$'
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
