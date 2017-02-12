@@ -17,7 +17,7 @@
 #include "gfxvk/src/Graphics/ResourceDescriptor.hpp"
 #include "gfxvk/src/Graphics/PipelineDescriptor.hpp"
 #include "gfxvk/src/Graphics/Heap.hpp"
-#include "gfxvk/src/Graphics/vk_specifics/shader/ShaderStorage.hpp"
+#include "gfxvk/src/new_gfx/vk/util/ShaderStorage.hpp"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 

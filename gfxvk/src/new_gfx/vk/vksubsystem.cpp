@@ -3,7 +3,7 @@
 #include "core/src/global_debug.hpp"
 
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   VkDebugReportFlagsEXT                       flags,
   VkDebugReportObjectTypeEXT                  /*objectType*/,
   uint64_t                                    /*object*/,
@@ -168,8 +168,8 @@ namespace faze
         GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");
       }
       // the debug things
-      auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug;
-      vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallback, nullptr);
+      auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug | vk::DebugReportFlagBitsEXT::ePerformanceWarning;
+      vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallbackNew, nullptr);
 
       auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
       auto allocInfo = m_alloc_info;

@@ -9,27 +9,28 @@
   //--------------------------------------------------------------------------
   VCXProject( '$ProjectName$-proj' )
   {
-    .ProjectOutput        = '$ProjectPath$\$ProjectName$.vcxproj'
-    .ProjectInputPaths      = '$ProjectPath$\'
-    .ProjectBasePath      = '$ProjectPath$\'
+    .ProjectOutput        = '$ProjectPath$/$ProjectName$.vcxproj'
+    .ProjectInputPaths    = '$ProjectPath$/'
+    .ProjectBasePath      = '$ProjectPath$/'
   }
 
   // Unity
   //--------------------------------------------------------------------------
     {
         // Common options
-        .UnityInputPath             = '$ProjectPath$\'
-        .UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$\'
+        .UnityInputPath     = '$ProjectPath$/'
+        .UnityOutputPath    = '$OutputBase$/Unity/$ProjectPath$/'
+        .UnityOutputPattern	= 'Unity_$ProjectName$.cpp'
 
         // Windows
         Unity( '$ProjectName$-Unity-Windows' )
         {
-            //.UnityPCH               = '$ProjectPath$\$PCHName$.h'
+
         }
         // Windows
         Unity( '$ProjectName$-Unity-Linux' )
         {
-            //.UnityPCH               = '$ProjectPath$\$PCHName$.h'
+
         }
     }
 
@@ -38,16 +39,16 @@
   ForEach( .Config in .Configs_Windows_MSVC )
   {
     Using( .Config )
-    .OutputBase + '\$Platform$-$Config$'
+    .OutputBase + '/$Platform$-$Config$'
 
     // Static Library
     Library( '$ProjectName$-Lib-$Platform$-$Config$' )
     {
       // Precompiled Header Creation/Use
-      //.PCHInputFile       = '$ProjectPath$\$PCHName$.cpp'
-      //.PCHOutputFile        = '$OutputBase$\$ProjectName$\$PCHName$.pch'
-      //.PCHOptions         + ' /Yc"$ProjectPath$\$PCHName$.h"'
-      //.CompilerOptions      + ' /Yu"$ProjectPath$\$PCHName$.h" /Fp"$PCHOutputFile$"'
+      //.PCHInputFile       = '$ProjectPath$/$PCHName$.cpp'
+      //.PCHOutputFile        = '$OutputBase$/$ProjectName$/$PCHName$.pch'
+      //.PCHOptions         + ' /Yc"$ProjectPath$/$PCHName$.h"'
+      //.CompilerOptions      + ' /Yu"$ProjectPath$/$PCHName$.h" /Fp"$PCHOutputFile$"'
 
       // Extra Include paths
       //.CompilerOptions      + .LZ4IncludePaths
@@ -56,8 +57,8 @@
       .CompilerInputUnity     = '$ProjectName$-Unity-Windows'
 
       // Output
-      .CompilerOutputPath     = '$OutputBase$\$ProjectName$\'
-      .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+      .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
     }
     Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
   }
@@ -66,14 +67,14 @@
   ForEach( .Config in .Configs_Linux )
   {
     Using( .Config )
-    .OutputBase + '\$Platform$-$Config$'
+    .OutputBase + '/$Platform$-$Config$'
 
     // Static Library
     Library( '$ProjectName$-Lib-$Platform$-$Config$' )
     {
       .CompilerInputUnity     = '$ProjectName$-Unity-Linux'
-      .CompilerOutputPath     = '$OutputBase$\$ProjectName$\'
-      .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.a'
+      .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.a'
     }
     Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
   }

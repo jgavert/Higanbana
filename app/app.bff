@@ -11,12 +11,12 @@
 
   VCXProject( '$ProjectName$-proj' )
   {
-    .ProjectOutput          = '$ProjectPath$\$ProjectName$.vcxproj'
-    .ProjectInputPaths      = '$ProjectPath$\'
-    .ProjectBasePath        = '$ProjectPath$\'
-    .OutputDirectory        = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
-    .LocalDebuggerCommand   = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)\^$(ProjectName).exe'
-    .LocalDebuggerWorkingDirectory = '^$(SolutionDir)\appspace\'
+    .ProjectOutput          = '$ProjectPath$/$ProjectName$.vcxproj'
+    .ProjectInputPaths      = '$ProjectPath$/'
+    .ProjectBasePath        = '$ProjectPath$/'
+    .OutputDirectory        = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+    .LocalDebuggerCommand   = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)/^$(ProjectName).exe'
+    .LocalDebuggerWorkingDirectory = '^$(SolutionDir)/appspace/'
     .ProjectConfigs         = .ProjectGfxConfigs
   }
 
@@ -27,8 +27,9 @@
     Using( .gfxApi )
     {
       // Common options
-      .UnityInputPath             = '$ProjectPath$\'
-      .UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$-$GraphicsApi$\'
+      .UnityInputPath     = '$ProjectPath$/'
+      .UnityOutputPath    = '$OutputBase$/Unity/$ProjectPath$/'
+      .UnityOutputPattern = 'Unity_$ProjectName$.cpp'
 
       // Windows
       Unity( '$ProjectName$-$GraphicsApi$-Unity-Windows' )

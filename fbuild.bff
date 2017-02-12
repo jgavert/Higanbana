@@ -118,7 +118,7 @@ Alias( 'proj' )
 //VSSolution( 'solution' )
 //{
 //  // Basic options
-//  .SolutionOutput                    = '.\faze_debug.sln' // Path to Solution file to be generated
+//  .SolutionOutput                    = './faze_debug.sln' // Path to Solution file to be generated
 //  .SolutionProjects =
 //	{
 //	  'App-proj' // Previously defined with VCXProject

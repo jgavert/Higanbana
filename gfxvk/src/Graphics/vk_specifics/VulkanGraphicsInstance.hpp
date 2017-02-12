@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanGpuDevice.hpp"
-#include "AllocStuff.hpp"
+#include "gfxvk/src/new_gfx/vk/util/AllocStuff.hpp"
 #include "core/src/global_debug.hpp"
 #include "gfxvk/src/Graphics/GpuInfo.hpp"
 #include "core/src/filesystem/filesystem.hpp"
