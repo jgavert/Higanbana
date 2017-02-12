@@ -6,9 +6,6 @@
 
   // Visual Studio Project Generation
   //--------------------------------------------------------------------------
-
-
-
   VCXProject( '$ProjectName$-proj' )
   {
     .ProjectOutput          = '$ProjectPath$/$ProjectName$.vcxproj'
@@ -61,7 +58,7 @@
                       + ' D3d12.lib'
                       + ' Dxgi.lib'
                       + ' atls.lib'
-					  + ' Shcore.lib'
+                      + ' Shcore.lib'
                       + ' D3DCompiler.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
                       + ' libucrtd.lib'
@@ -143,18 +140,20 @@
       .CompilerOptions    + .gfxDefines
       .PCHOptions         + .gfxDefines
 
-      .OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
+      .OutputBase + '/$Platform$-$GraphicsApi$-$Config$'
       //Print('$LinkerOptions$')
       //Print('$BaseIncludePaths$')
       // Static Library
       Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
       {
-        // Input (Unity)
+        // Unity build
         .CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Windows'
+        // Normal build
+        //.CompilerInputPath  = '$ProjectPath$/'
 
           // Output
-        .CompilerOutputPath   = '$OutputBase$\$ProjectName$\'
-        .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.lib'
+        .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'
+        .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
       }
 
       // Executable
@@ -165,7 +164,7 @@
           '$GfxName$-Lib-$Platform$-$Config$',
           'core-Lib-$Platform$-$Config$'
         }
-        .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$.exe'
+        .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$.exe'
       }
       Alias( '$ProjectName$-$Platform$-$GraphicsApi$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' }
     }
@@ -175,7 +174,7 @@
 
       .CompilerOptions    + .gfxDefines
 
-      .OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
+      .OutputBase + '/$Platform$-$GraphicsApi$-$Config$'
       //Print('$LinkerOptions$')
       //Print('$BaseIncludePaths$')
       // Static Library
@@ -185,8 +184,8 @@
         .CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Linux'
 
           // Output
-        .CompilerOutputPath   = '$OutputBase$\$ProjectName$\'
-        .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.a'
+        .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'
+        .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.a'
       }
 
       // Executable
@@ -197,7 +196,7 @@
           '$GfxName$-Lib-$Platform$-$Config$'
           'core-Lib-$Platform$-$Config$',
         }
-        .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$'
+        .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$'
       }
       Alias( '$ProjectName$-$Platform$-$GraphicsApi$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' }
     }
