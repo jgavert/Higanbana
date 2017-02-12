@@ -118,7 +118,6 @@ namespace faze
   class RangeBlockAllocatorInternal2
   {
     DynamicBitfield m_blocks; // uses this invertly, setBit means that it's free for taking.
-    std::mutex   m_mutex;
     int64_t m_size = 0;
     int64_t m_freespace = 0;
   public:
@@ -139,7 +138,6 @@ namespace faze
       {
         return RangeBlock{ -1, -1 };
       }
-      std::lock_guard<std::mutex> guard(m_mutex);
       auto startIndex = checkIfFreeContiguousMemory(inputBlocks);
       if (startIndex != -1 && startIndex + static_cast<int64_t>(inputBlocks) < m_size)
       {
@@ -153,7 +151,6 @@ namespace faze
     void release(RangeBlock range)
     {
       F_ASSERT(range.offset + range.size <= m_size, "not enough pages available");
-      std::lock_guard<std::mutex> guard(m_mutex);
       for (int64_t i = range.offset; i < range.offset + range.size; ++i)
       {
         m_blocks.setBit(i);

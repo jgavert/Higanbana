@@ -202,7 +202,30 @@ namespace faze
       auto desc = heapDesc.desc;
       D3D12_HEAP_DESC dxdesc{};
 
-
+      dxdesc.Alignment = heapDesc.desc.alignment;
+      dxdesc.SizeInBytes = heapDesc.desc.sizeInBytes;
+      dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+      dxdesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+      if (desc.onlyBuffers)
+      {
+        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+      }
+      else if (desc.onlyNonRtDsTextures)
+      {
+        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+      }
+      else if (desc.onlyRtDsTextures)
+      {
+        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+      }
+      if (desc.heapType == HeapType::Upload)
+      {
+        dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+      }
+      else if (desc.heapType == HeapType::Readback)
+      {
+        dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+      }
 
       ID3D12Heap* heap;
       m_device->CreateHeap(&dxdesc, IID_PPV_ARGS(&heap));
@@ -215,9 +238,31 @@ namespace faze
       native->native()->Release();
     }
 
-    void DX12Device::createBuffer(GpuHeap, size_t , ResourceDescriptor )
+    void DX12Device::createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc)
     {
+      auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
+      auto dxDesc = fillBufferInfo(desc);
+      D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+      switch (desc.desc.usage)
+      {
+      case ResourceUsage::Upload:
+      {
+        startState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        startState = D3D12_RESOURCE_STATE_COPY_DEST;
+        break;
+      }
+      default:
+        break;
+      }
 
+      ID3D12Resource* buffer;
+      m_device->CreatePlacedResource(native->native(), offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+      buffer->Release();
+      // requires stuff...
     }
 
     void DX12Device::createBufferView(ShaderViewDescriptor )

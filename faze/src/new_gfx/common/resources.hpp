@@ -3,8 +3,8 @@
 #include "backend.hpp"
 
 #include "heap_descriptor.hpp"
-
 #include "core/src/filesystem/filesystem.hpp"
+#include "core/src/system/PageAllocator.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include <string>
 
@@ -41,6 +41,15 @@ namespace faze
     size_t bytes;
   };
 
+  struct GpuHeapAllocation
+  {
+    int alignment;
+    int index;
+    PageBlock block;
+
+    bool valid() { return alignment != -1 && index != -1; }
+  };
+
   namespace backend
   {
     namespace prototypes
@@ -62,9 +71,31 @@ namespace faze
       }
     };
 
+    class HeapManager
+    {
+      struct HeapBlock
+      {
+        int index;
+        PageAllocator allocator;
+        GpuHeap heap;
+      };
+
+      struct HeapVector
+      {
+        int alignment;
+        vector<HeapBlock> heaps;
+      };
+
+      vector<HeapVector> m_heaps;
+    public:
+      GpuHeapAllocation allocate(MemoryRequirements requirements);
+      void release(GpuHeapAllocation allocation);
+    };
+
     struct DeviceData : std::enable_shared_from_this<DeviceData>
     {
       std::shared_ptr<prototypes::DeviceImpl> impl;
+      HeapManager heaps;
 
       DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
         : impl(impl)
