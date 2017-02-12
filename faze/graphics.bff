@@ -1,7 +1,6 @@
 // FBuildCore
 //------------------------------------------------------------------------------
 {
-  Using(.GfxVulkan)
   .ProjectName    = 'graphics'
   .ProjectPath    = 'faze'
   //.PCHName      = 'PrecompiledHeader'

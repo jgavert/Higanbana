@@ -295,44 +295,6 @@ Compiler( 'Compiler-x64-Linux' )
 
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
-#if __WINDOWS__
-.D3D12Define  = 'FAZE_D3D12'
-#endif
-.VulkanDefine = 'FAZE_VULKAN'
-
-// global gfx backend config
-#if __WINDOWS__
-.GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
-.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
-#endif
-#if __LINUX__
-.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' -D$VulkanDefine$']
-#endif
-
-#if __WINDOWS__
-.GraphicsBackends = {.GfxDX12, .GfxVulkan}
-#endif
-#if __LINUX__
-.GraphicsBackends = {.GfxVulkan}
-#endif
-
-// Solution targets
-#if __WINDOWS__
-.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug'   .PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile' .PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release' .PreprocessorDefinitions + ';$D3D12Define$']
-#endif
-.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'  .PreprocessorDefinitions + ';$VulkanDefine$']
-
-.ProjectGfxConfigs = {
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease}
-#if __WINDOWS__
-.ProjectGfxConfigs = {
-  .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release,
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease}
-#endif
 
 VCXProject( 'All-proj' )
 {

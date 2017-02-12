@@ -11,57 +11,34 @@
 
 // Aliases : All-$Platform$-$Config$
 //------------------------------------------------------------------------------
-ForEach( .gfxApi in .GraphicsBackends)
+
+ForEach( .Config in .Configs )
 {
-	Using( .gfxApi )
-	ForEach( .Config in .Configs )
+	Using( .Config )
+
+	Alias( 'All-$Platform$-$Config$' )
 	{
-		Using( .Config )
+		.Targets    = { // tests
+					  // executables
+					  'App-Exe-$Platform$-$Config$'
 
-		Alias( 'All-$Platform$-$GraphicsApi$-$Config$' )
-		{
-			.Targets    = { // tests
-						  // executables
-						  'App-Exe-$Platform$-$GraphicsApi$-$Config$'
-
-						  // Clang(windows) doesn't link at the moment, so we need list all the libs manually
-						  //'Core-$Platform$-$Config$'
-						  }
-		}
+					  // Clang(windows) doesn't link at the moment, so we need list all the libs manually
+					  //'Core-$Platform$-$Config$'
+					  }
 	}
 }
 
 .Platforms = { 'x64', 'x64Linux' }
 ForEach( .Platform in .Platforms )
 {
-	ForEach( .gfxApi in .GraphicsBackends)
+	Alias( 'All-$Platform$' )
 	{
-		Using( .gfxApi )
-		Alias( 'All-$Platform$-$GraphicsApi$' )
-		{
-			.Targets	= {
-							'All-$Platform$-$GraphicsApi$-Debug',
-							'All-$Platform$-$GraphicsApi$-Profile',
-							'All-$Platform$-$GraphicsApi$-Release'
-						  }
-		}
+		.Targets	= {
+						'All-$Platform$-Debug',
+						'All-$Platform$-Profile',
+						'All-$Platform$-Release'
+					  }
 	}
-}
-
-ForEach( .Platform in .Platforms )
-{
-  Alias( 'All-$Platform$' )
-  {
-    .Targets = {
-      'All-$Platform$-Vulkan'
-    }
-#if __WINDOWS__
-    .Targets = {
-      'All-$Platform$-D3D12',
-      'All-$Platform$-Vulkan'
-    }
-#endif
-  }
 }
 
 // Aliases : All
