@@ -35,6 +35,12 @@ namespace faze
     bool canPresent;
   };
 
+  struct MemoryRequirements
+  {
+    size_t alignment;
+    size_t bytes;
+  };
+
   namespace backend
   {
     namespace prototypes

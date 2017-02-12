@@ -1,5 +1,5 @@
 #include "vkresources.hpp"
-
+#include "util/formats.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -175,10 +175,217 @@ namespace faze
       m_device.destroy();
     }
 
+    vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)
+    {
+      auto desc = descriptor.desc;
+      auto bufSize = desc.stride*desc.width;
+      F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
+      vk::BufferCreateInfo info = vk::BufferCreateInfo()
+        .setSharingMode(vk::SharingMode::eExclusive);
+
+      vk::BufferUsageFlags usageBits;
+      if (desc.usage == ResourceUsage::GpuRW)
+      {
+        if (desc.format != FormatType::Unknown)
+        {
+          usageBits = vk::BufferUsageFlagBits::eStorageTexelBuffer;
+        }
+        else
+        {
+          usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
+        }
+      }
+
+      if (desc.indirect)
+      {
+        usageBits |= vk::BufferUsageFlagBits::eIndirectBuffer;
+      }
+
+      if (desc.index)
+      {
+        usageBits |= vk::BufferUsageFlagBits::eIndexBuffer;
+      }
+
+      auto usage = desc.usage;
+      if (usage == ResourceUsage::Readback)
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+      }
+      else if (usage == ResourceUsage::Upload)
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+      }
+      else
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+      }
+      info = info.setUsage(usageBits);
+      info = info.setSize(bufSize);
+      return info;
+    }
+
+    vk::ImageCreateInfo VulkanDevice::fillImageInfo(ResourceDescriptor descriptor)
+    {
+      auto desc = descriptor.desc;
+
+      vk::ImageType ivt;
+      vk::ImageCreateFlags flags;
+      flags |= vk::ImageCreateFlagBits::eMutableFormat; //???
+      switch (desc.dimension)
+      {
+      case FormatDimension::Texture1D:
+        ivt = vk::ImageType::e1D;
+        break;
+      case FormatDimension::Texture2D:
+        ivt = vk::ImageType::e2D;
+        break;
+      case FormatDimension::Texture3D:
+        ivt = vk::ImageType::e3D;
+        break;
+      case FormatDimension::TextureCube:
+        ivt = vk::ImageType::e2D;
+        flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+        break;
+      default:
+        ivt = vk::ImageType::e2D;
+        break;
+      }
+
+      int mipLevels = desc.miplevels;
+
+      vk::ImageUsageFlags usage;
+      usage |= vk::ImageUsageFlagBits::eTransferDst;
+      usage |= vk::ImageUsageFlagBits::eTransferSrc;
+      usage |= vk::ImageUsageFlagBits::eSampled;
+
+      switch (desc.usage)
+      {
+      case ResourceUsage::GpuReadOnly:
+      {
+        break;
+      }
+      case ResourceUsage::GpuRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        break;
+      }
+      case ResourceUsage::RenderTarget:
+      {
+        usage |= vk::ImageUsageFlagBits::eColorAttachment;
+        break;
+      }
+      case ResourceUsage::RenderTargetRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eColorAttachment;
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        break;
+      }
+      case ResourceUsage::DepthStencil:
+      {
+        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      case ResourceUsage::DepthStencilRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      case ResourceUsage::Upload:
+      {
+        usage = vk::ImageUsageFlagBits::eTransferSrc;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        usage = vk::ImageUsageFlagBits::eTransferDst;
+        break;
+      }
+      default:
+        break;
+      }
+
+      vk::SampleCountFlagBits sampleFlags = vk::SampleCountFlagBits::e1;
+
+      if (desc.msCount > 32)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e64;
+      }
+      else if (desc.msCount > 16)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e32;
+      }
+      else if (desc.msCount > 8)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e16;
+      }
+      else if (desc.msCount > 4)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e8;
+      }
+      else if (desc.msCount > 2)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e4;
+      }
+      else if (desc.msCount > 1)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e2;
+      }
+
+      vk::ImageCreateInfo info = vk::ImageCreateInfo()
+        .setArrayLayers(desc.arraySize)
+        .setExtent(vk::Extent3D()
+          .setWidth(desc.width)
+          .setHeight(desc.height)
+          .setDepth(desc.depth))
+        .setFlags(flags)
+        .setFormat(formatToVkFormat(desc.format).storage)
+        .setImageType(ivt)
+        .setInitialLayout(vk::ImageLayout::eUndefined)
+        .setMipLevels(desc.miplevels)
+        .setSamples(sampleFlags)
+        .setTiling(vk::ImageTiling::eOptimal) // TODO: hmm
+        .setUsage(usage)
+        .setSharingMode(vk::SharingMode::eExclusive); // TODO: hmm
+
+      if (desc.dimension == FormatDimension::TextureCube)
+      {
+        info = info.setArrayLayers(desc.arraySize * 6);
+      }
+
+      return info;
+    }
+
 
     void VulkanDevice::waitGpuIdle()
     {
       m_device.waitIdle();
+    }
+
+    MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
+    {
+      MemoryRequirements reqs{};
+      if (desc.desc.dimension == FormatDimension::Buffer)
+      {
+        auto buffer = m_device.createBuffer(fillBufferInfo(desc));
+        auto requirements = m_device.getBufferMemoryRequirements(buffer);
+        m_device.destroyBuffer(buffer);
+        reqs.alignment = requirements.alignment;
+        reqs.bytes = requirements.size;
+      }
+      else
+      {
+        auto image = m_device.createImage(fillImageInfo(desc));
+        auto requirements = m_device.getImageMemoryRequirements(image);
+        m_device.destroyImage(image);
+        reqs.alignment = requirements.alignment;
+        reqs.bytes = requirements.size;
+      }
+
+      return reqs;
     }
 
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
@@ -234,7 +441,7 @@ namespace faze
       m_device.freeMemory(native->native());
     }
 
-    void VulkanDevice::createBuffer(ResourceDescriptor )
+    void VulkanDevice::createBuffer(GpuHeap, size_t , ResourceDescriptor )
     {
 
     }

@@ -18,10 +18,11 @@ namespace faze
   {
     Unknown = 0,
     Uint32x4,
-    Float32x4,
+    Float16x4,
     Uint8x4,
     Uint8x4_Srgb,
-    Uint8x4_bgr,
+    Uint8x4_Bgr,
+    Uint8x4_Sbgr,
     R32,
     Depth32,
     Uint8,
@@ -49,10 +50,11 @@ namespace faze
     Upload,
     Readback,
     GpuReadOnly,
-    GpuReadWrite,
-    GpuRenderTarget,
-    GpuDepthStencil,
-    GpuIndirect,
+    GpuRW,
+    RenderTarget,
+    DepthStencil,
+    RenderTargetRW,
+    DepthStencilRW,
     Count
   };
 }

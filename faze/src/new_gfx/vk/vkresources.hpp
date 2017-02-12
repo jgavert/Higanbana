@@ -75,14 +75,18 @@ namespace faze
         GpuInfo info,
         bool debugLayer);
       ~VulkanDevice();
+      
+      vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
+      vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
+      // implementation
       void waitGpuIdle() override;
-
+      MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
 
-      void createBuffer(ResourceDescriptor desc) override;
+      void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) override;
       void createBufferView(ShaderViewDescriptor desc) override;
     };
 

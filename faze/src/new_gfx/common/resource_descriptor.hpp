@@ -68,131 +68,119 @@ namespace faze
   {
   public:
     // keep the order
-    std::string m_name;
-    FormatType m_format;
-    ResourceUsage m_usage;
-    FormatDimension m_dimension;
-    unsigned m_stride = 0;
-    unsigned m_miplevels = 1;
-    unsigned m_width = 1;
-    unsigned m_height = 1;
-    unsigned m_depth = 1;
-    unsigned m_arraySize = 1;
-    unsigned m_msCount = 1;
-    unsigned m_msQuality = 0;
-    bool m_rendertarget = false;
-    bool m_depthstencil = false;
-    bool m_unorderedaccess = false;
-    bool m_denysrv = false;
-    bool m_allowCrossAdapter = false;
-    bool m_allowSimultaneousAccess = false;
+    struct descriptor
+    {
+      std::string     name = "Unnamed Resource";
+      FormatType      format = FormatType::Unknown;
+      ResourceUsage   usage = ResourceUsage::GpuReadOnly;
+      FormatDimension dimension = FormatDimension::Unknown;
+      unsigned        stride = 0;
+      unsigned        miplevels = 1;
+      unsigned        width = 1;
+      unsigned        height = 1;
+      unsigned        depth = 1;
+      unsigned        arraySize = 1;
+      unsigned        msCount = 1;
+      unsigned        msQuality = 0;
+      bool            index = false;
+      bool            indirect = false;
+      bool            allowCrossAdapter = false;
+      bool            allowSimultaneousAccess = false;
+    } desc;
 
     ResourceDescriptor()
-      : m_name("Unnamed Resource")
-      , m_format(FormatType::Unknown)
-      , m_usage(ResourceUsage::GpuReadOnly)
-      , m_dimension(FormatDimension::Unknown)
     {
     }
 
     ResourceDescriptor& setName(std::string name)
     {
-      m_name = name;
+      desc.name = name;
       return *this;
     }
 
     template <typename T>
     ResourceDescriptor& setFormat()
     {
-      m_stride = sizeof(T);
-      m_format = FormatType::Unknown;
+      desc.stride = sizeof(T);
+      desc.format = FormatType::Unknown;
       return *this;
     }
 
     ResourceDescriptor& setFormat(FormatType type)
     {
-      m_stride = 0; // ??
-      m_format = type;
+      desc.stride = 0; // ??
+      desc.format = type;
       return *this;
     }
 
     ResourceDescriptor& setUsage(ResourceUsage usage)
     {
-      m_usage = usage;
+      desc.usage = usage;
       return *this;
     }
 
     ResourceDescriptor& setDimension(FormatDimension dimension)
     {
-      m_dimension = dimension;
+      desc.dimension = dimension;
       return *this;
     }
 
     ResourceDescriptor& setWidth(unsigned size)
     {
-      m_width = size;
+      desc.width = size;
       return *this;
     }
 
     ResourceDescriptor& setHeight(unsigned size)
     {
-      m_height = size;
+      desc.height = size;
       return *this;
     }
 
     ResourceDescriptor& setDepth(unsigned size)
     {
-      m_depth = size;
+      desc.depth = size;
       return *this;
     }
 
     ResourceDescriptor& setMiplevels(unsigned levels)
     {
-      m_miplevels = levels;
+      desc.miplevels = levels;
       return *this;
     }
 
     ResourceDescriptor& setArraySize(unsigned size = 1)
     {
-      m_arraySize = size;
+      desc.arraySize = size;
       return *this;
     }
 
     ResourceDescriptor& setMultisample(unsigned count = 1, unsigned quality = 0)
     {
-      m_msCount = count;
-      m_msQuality = quality;
+      desc.msCount = count;
+      desc.msQuality = quality;
       return *this;
     }
 
-    ResourceDescriptor& enableRendertarget()
+    ResourceDescriptor& setIndexBuffer()
     {
-      m_rendertarget = true;
+      desc.index = true;
       return *this;
     }
-    ResourceDescriptor& enableDepthStencil()
+
+    ResourceDescriptor& setIndirect()
     {
-      m_depthstencil = true;
-      return *this;
-    }
-    ResourceDescriptor& enableUnorderedAccess()
-    {
-      m_unorderedaccess = true;
-      return *this;
-    }
-    ResourceDescriptor& denyShaderAccess()
-    {
-      m_denysrv = true;
+      desc.indirect = true;
       return *this;
     }
     ResourceDescriptor& allowCrossAdapter()
     {
-      m_allowCrossAdapter = true;
+      desc.allowCrossAdapter = true;
       return *this;
     }
     ResourceDescriptor& allowSimultaneousAccess()
     {
-      m_allowSimultaneousAccess = true;
+      desc.allowSimultaneousAccess = true;
       return *this;
     }
   };
