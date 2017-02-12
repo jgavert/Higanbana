@@ -81,11 +81,17 @@ namespace faze
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
       ~DX12Device();
+
+      D3D12_RESOURCE_DESC fillBufferInfo(ResourceDescriptor descriptor);
+      D3D12_RESOURCE_DESC fillTextureInfo(ResourceDescriptor descriptor);
+
+      // impl
       void waitGpuIdle() override;
+      MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
-      void createBuffer(ResourceDescriptor desc) override;
+      void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) override;
       void createBufferView(ShaderViewDescriptor desc) override;
     };
 

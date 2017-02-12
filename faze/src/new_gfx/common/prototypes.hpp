@@ -26,11 +26,13 @@ namespace faze
 
         // utility
         virtual void waitGpuIdle() = 0;
+        virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
+
         //create/destroy pairs 
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
         virtual void destroyHeap(GpuHeap heap) = 0;
 
-        virtual void createBuffer(ResourceDescriptor desc) = 0;
+        virtual void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) = 0;
         virtual void createBufferView(ShaderViewDescriptor desc) = 0;
       };
 

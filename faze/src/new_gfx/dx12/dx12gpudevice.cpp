@@ -1,6 +1,6 @@
 #if defined(PLATFORM_WINDOWS)
 #include "dx12resources.hpp"
-
+#include "util/formats.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -32,6 +32,20 @@ namespace faze
       ComPtr<ID3D12Fence> fence;
       m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
       m_deviceFence = DX12Fence(fence);
+      /*
+      D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS data{};
+      for (int i = 0; i < 64; ++i)
+      {
+        data.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        data.NumQualityLevels = 1;
+        data.SampleCount = i;
+        data.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+        HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
+        if (hr == S_OK)
+        {
+          F_SLOG("DX12", "Supported msaa mode with SampleCount %d\n", i);
+        }
+      }*/
     }
 
     DX12Device::~DX12Device()
@@ -44,10 +58,143 @@ namespace faze
       */
     }
 
+    D3D12_RESOURCE_DESC DX12Device::fillBufferInfo(ResourceDescriptor descriptor)
+    {
+      auto& desc = descriptor.desc;
+      D3D12_RESOURCE_DESC dxdesc{};
+
+      dxdesc.Width = desc.width*desc.stride;
+      dxdesc.Height = 1;
+      dxdesc.DepthOrArraySize = 1;
+      dxdesc.MipLevels = 1;
+      dxdesc.Alignment = 0;
+      dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      dxdesc.Format = DXGI_FORMAT_UNKNOWN;
+      dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      dxdesc.SampleDesc.Count = 1;
+      dxdesc.SampleDesc.Quality = 0;
+      dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+      switch (desc.usage)
+      {
+      case ResourceUsage::GpuReadOnly:
+      {
+        break;
+      }
+      case ResourceUsage::GpuRW:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        break;
+      }
+      default:
+        break;
+      }
+
+      return dxdesc;
+    }
+
+    D3D12_RESOURCE_DESC DX12Device::fillTextureInfo(ResourceDescriptor descriptor)
+    {
+      auto& desc = descriptor.desc;
+      D3D12_RESOURCE_DESC dxdesc{};
+
+      dxdesc.Width = desc.width;
+      dxdesc.Height = desc.height;
+      dxdesc.DepthOrArraySize = static_cast<uint16_t>(desc.arraySize);
+      dxdesc.MipLevels = static_cast<uint16_t>(desc.miplevels);
+      dxdesc.Alignment = 0;
+      dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      dxdesc.Format = formatTodxFormat(desc.format).raw;
+      dxdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+      dxdesc.SampleDesc.Count = desc.msCount;
+      dxdesc.SampleDesc.Quality = desc.msQuality;
+      dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+      switch (desc.dimension)
+      {
+      case FormatDimension::Texture1D:
+        dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+        break;
+      case FormatDimension::Texture2D:
+        dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        break;
+      case FormatDimension::Texture3D:
+        dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+        dxdesc.DepthOrArraySize = static_cast<uint16_t>(desc.depth);
+        break;
+      case FormatDimension::TextureCube:
+        dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        dxdesc.DepthOrArraySize = static_cast<uint16_t>(desc.arraySize * 6);
+      default:
+        break;
+      }
+
+      switch (desc.usage)
+      {
+      case ResourceUsage::GpuReadOnly:
+      {
+        break;
+      }
+      case ResourceUsage::GpuRW:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        break;
+      }
+      case ResourceUsage::RenderTarget:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        break;
+      }
+      case ResourceUsage::RenderTargetRW:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        break;
+      }
+      case ResourceUsage::DepthStencil:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        F_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      case ResourceUsage::DepthStencilRW:
+      {
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        F_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      default:
+        break;
+      }
+
+
+      return dxdesc;
+    }
+
     void DX12Device::waitGpuIdle()
     {
       m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
       m_deviceFence.waitTillReady();
+    }
+
+    MemoryRequirements DX12Device::getReqs(ResourceDescriptor desc)
+    {
+      MemoryRequirements reqs{};
+      D3D12_RESOURCE_ALLOCATION_INFO requirements;
+      D3D12_RESOURCE_DESC resDesc;
+      if (desc.desc.dimension == FormatDimension::Buffer)
+      {
+        resDesc = fillBufferInfo(desc);
+      }
+      else
+      {
+        resDesc = fillTextureInfo(desc);
+      }
+      requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
+      reqs.alignment = requirements.Alignment;
+      reqs.bytes = requirements.SizeInBytes;
+      return reqs;
     }
 
     GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)
@@ -68,7 +215,7 @@ namespace faze
       native->native()->Release();
     }
 
-    void DX12Device::createBuffer(ResourceDescriptor )
+    void DX12Device::createBuffer(GpuHeap, size_t , ResourceDescriptor )
     {
 
     }
