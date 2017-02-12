@@ -2,7 +2,8 @@
 #if defined(PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
-//#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
+
+#include "dx12.hpp"
 
 namespace faze
 {
@@ -22,13 +23,16 @@ namespace faze
     {
     private:
       GpuInfo m_info;
+      ID3D12Device* m_device;
     public:
-      DX12Device(GpuInfo info);
+      DX12Device(GpuInfo info, ID3D12Device* device);
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl
     {
       vector<GpuInfo> infos;
+      ComPtr<IDXGIFactory5> pFactory;
+      std::vector<IDXGIAdapter3*> vAdapters;
     public:
       DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
       std::string gfxApi() override;

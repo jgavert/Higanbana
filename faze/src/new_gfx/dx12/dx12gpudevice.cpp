@@ -7,9 +7,9 @@ namespace faze
 {
   namespace backend
   {
-    DX12Device::DX12Device(
-      GpuInfo info)
+    DX12Device::DX12Device(GpuInfo info, ID3D12Device* device)
       : m_info(info)
+      , m_device(device)
     {
   
     }

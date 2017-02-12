@@ -5,6 +5,8 @@
 #include "faze/src/new_gfx/vk/util/AllocStuff.hpp" // refactor
 #include "faze/src/new_gfx/vk/util/ShaderStorage.hpp"
 
+#include "faze/src/new_gfx/definitions.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 namespace faze
@@ -90,7 +92,7 @@ namespace faze
 
       // lunargvalidation list order
       std::vector<std::string> layerOrder = {
-#if defined(DEBUG)
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
         "VK_LAYER_LUNARG_standard_validation",
 #endif
         "VK_LAYER_LUNARG_swapchain"
@@ -101,7 +103,7 @@ namespace faze
 #if defined(PF_WINDOWS)
         , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
-#if defined(DEBUG)
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
         , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 #endif
       };
