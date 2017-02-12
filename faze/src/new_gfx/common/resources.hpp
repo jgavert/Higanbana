@@ -1,6 +1,9 @@
 #pragma once
 
 #include "backend.hpp"
+
+#include "heap_descriptor.hpp"
+
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include <string>
@@ -40,6 +43,18 @@ namespace faze
       class SubsystemImpl;
       class HeapImpl;
     }
+
+    struct GpuHeap
+    {
+      std::shared_ptr<prototypes::HeapImpl> impl;
+      HeapDescriptor desc;
+
+      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
+        : impl(impl)
+        , desc(std::move(desc))
+      {
+      }
+    };
 
     struct DeviceData : std::enable_shared_from_this<DeviceData>
     {

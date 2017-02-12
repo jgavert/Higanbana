@@ -168,5 +168,80 @@ namespace faze
 
       // figure out indexes for default, upload, readback...
     }
+
+    VulkanDevice::~VulkanDevice()
+    {
+      m_device.waitIdle();
+      m_device.destroy();
+    }
+
+
+    void VulkanDevice::waitGpuIdle()
+    {
+      m_device.waitIdle();
+    }
+
+    GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
+    {
+      auto&& desc = heapDesc.desc;
+
+      vk::MemoryAllocateInfo allocInfo;
+      if (m_info.type == DeviceType::IntegratedGpu)
+      {
+        if (m_memoryTypes.deviceHostIndex != -1)
+        {
+          allocInfo = vk::MemoryAllocateInfo()
+            .setAllocationSize(desc.sizeInBytes)
+            .setMemoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
+        }
+        else
+        {
+          F_ERROR("uma but no memory type can be used");
+        }
+      }
+      else
+      {
+        uint32_t memoryTypeIndex = 0;
+        if ((desc.heapType == HeapType::Default) && m_memoryTypes.deviceLocalIndex != -1)
+        {
+          memoryTypeIndex = m_memoryTypes.deviceLocalIndex;
+        }
+        else if (desc.heapType == HeapType::Readback && m_memoryTypes.hostNormalIndex != -1)
+        {
+          memoryTypeIndex = m_memoryTypes.hostNormalIndex;
+        }
+        else if (desc.heapType == HeapType::Upload && m_memoryTypes.hostCachedIndex != -1)
+        {
+          memoryTypeIndex = m_memoryTypes.hostCachedIndex;
+        }
+        else
+        {
+          F_ERROR("normal device but no valid memory type available");
+        }
+        allocInfo = vk::MemoryAllocateInfo()
+          .setAllocationSize(desc.sizeInBytes)
+          .setMemoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
+      }
+
+      auto memory = m_device.allocateMemory(allocInfo);
+
+      return GpuHeap(std::make_shared<VulkanHeap>(memory), std::move(heapDesc));
+    }
+
+    void VulkanDevice::destroyHeap(GpuHeap heap)
+    {
+      auto native = std::static_pointer_cast<VulkanHeap>(heap.impl);
+      m_device.freeMemory(native->native());
+    }
+
+    void VulkanDevice::createBuffer(ResourceDescriptor )
+    {
+
+    }
+
+    void VulkanDevice::createBufferView(ShaderViewDescriptor )
+    {
+
+    }
   }
 }

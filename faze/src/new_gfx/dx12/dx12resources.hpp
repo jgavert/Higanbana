@@ -9,23 +9,84 @@ namespace faze
 {
   namespace backend
   {
+    class DX12Fence
+    {
+    public:
+      ComPtr<ID3D12Fence> fence = nullptr;
+      std::shared_ptr<HANDLE> handle = nullptr;
+      uint64_t value = 0;
+
+      DX12Fence()
+      {}
+
+      DX12Fence(ComPtr<ID3D12Fence> fence)
+        : fence(fence)
+        , handle(std::shared_ptr<HANDLE>(new HANDLE(CreateEventExA(nullptr, nullptr, 0, EVENT_ALL_ACCESS)), [](HANDLE* ptr)
+            {
+              CloseHandle(*ptr);
+              delete ptr;
+            }))
+      {
+      }
+      
+      uint64_t start()
+      {
+        return ++value;
+      }
+
+      bool hasCompleted()
+      {
+        auto val = fence->GetCompletedValue();
+        return val == value;
+      }
+
+      void waitTillReady(DWORD dwMilliseconds = INFINITE)
+      {
+        if (hasCompleted())
+          return;
+        fence->SetEventOnCompletion(value, *handle);
+        DWORD result = WaitForSingleObject(*handle, dwMilliseconds);
+        F_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
+      }
+    };
+
+    // implementations
     class DX12Heap : public prototypes::HeapImpl
     {
     private:
-      
+      ID3D12Heap* heap;
 
     public:
       DX12Heap()
       {}
+      DX12Heap(ID3D12Heap* heap)
+        : heap(heap)
+      {}
+      ID3D12Heap* native()
+      {
+        return heap;
+      }
     };
 
     class DX12Device : public prototypes::DeviceImpl
     {
     private:
       GpuInfo m_info;
-      ID3D12Device* m_device;
+      ComPtr<ID3D12Device> m_device;
+      UINT m_nodeMask;
+      ComPtr<ID3D12CommandQueue> m_graphicsQueue;
+      ComPtr<ID3D12CommandQueue> m_dmaQueue;
+      ComPtr<ID3D12CommandQueue> m_computeQueue;
+      DX12Fence m_deviceFence;
     public:
-      DX12Device(GpuInfo info, ID3D12Device* device);
+      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
+      ~DX12Device();
+      void waitGpuIdle() override;
+
+      GpuHeap createHeap(HeapDescriptor desc) override;
+      void destroyHeap(GpuHeap heap) override;
+      void createBuffer(ResourceDescriptor desc) override;
+      void createBufferView(ShaderViewDescriptor desc) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl
@@ -39,7 +100,6 @@ namespace faze
       vector<GpuInfo> availableGpus() override;
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
     };
-
   }
 }
 #endif
