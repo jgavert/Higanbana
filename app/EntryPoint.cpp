@@ -4,10 +4,11 @@
 #include <crtdbg.h>
 #endif
 
-#include "core/src/Platform/EntryPoint.hpp"
-#include "core/src/system/logger.hpp"
-#include "core/src/filesystem/filesystem.hpp"
 #include "gfxvk/src/new_gfx/GraphicsCore.hpp"
+#include "core/src/filesystem/filesystem.hpp"
+#include "core/src/Platform/Window.hpp"
+#include "core/src/system/logger.hpp"
+#include "core/src/Platform/EntryPoint.hpp"
 #include "core/src/global_debug.hpp"
 
 using namespace faze;
@@ -15,8 +16,8 @@ using namespace faze;
 int EntryPoint::main()
 {
   Logger log;
-
-  GraphicsSubsystem graphics("test");
+  const char* name = "test";
+  GraphicsSubsystem graphics(name);
   F_LOG("Using api %s\n", graphics.gfxApi().c_str());
   F_LOG("Have gpu's\n");
   auto gpus = graphics.availableGpus();
@@ -28,6 +29,41 @@ int EntryPoint::main()
   FileSystem fs;
   auto dev = graphics.createDevice(fs, gpus[0].id); // hardcoded 0
 
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat<float>()
+    .setWidth(100)
+    .setDimension(FormatDimension::Buffer);
+
+  //dev.createBufferSRV(bufferdesc);
+
+  ivec2 ires = { 800, 600 };
+  vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
+  Window window(m_params, name, ires.x(), ires.y());
+  window.open();
+  int64_t frame = 1;
+  bool closeAnyway = true;
+  while (!window.simpleReadMessages(frame++))
+  {
+    if (window.hasResized())
+    {
+      //gpu.reCreateSwapchain(swapchain, surface);
+      window.resizeHandled();
+    }
+    auto& inputs = window.inputs();
+
+    if (inputs.isPressedThisFrame(VK_SPACE, 1))
+    {
+      auto& mouse = window.mouse();
+      F_LOG("mouse %d %d\n", mouse.m_pos.x(), mouse.m_pos.y());
+    }
+
+    if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+    {
+      break;
+    }
+    log.update();
+  }
   return 1;
 }
 /*

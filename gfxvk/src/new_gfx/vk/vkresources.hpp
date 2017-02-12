@@ -4,17 +4,33 @@
 
 #include "gfxvk/src/new_gfx/vk/util/AllocStuff.hpp" // refactor
 #include "gfxvk/src/new_gfx/vk/util/ShaderStorage.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 namespace faze
 {
   namespace backend
   {
+    class HeapImpl
+    {
+    private:
+      vk::DeviceMemory m_resource;
+
+    public:
+      HeapImpl(vk::DeviceMemory memory)
+        : m_resource(memory)
+      {}
+
+      vk::DeviceMemory native()
+      {
+        return m_resource;
+      }
+    };
 
     class DeviceImpl
     {
     private:
-      vk::Device m_device;
+      vk::Device                  m_device;
       vk::PhysicalDevice		      m_physDevice;
       bool                        m_debugLayer;
       std::vector<vk::QueueFamilyProperties> m_queues;
@@ -22,11 +38,9 @@ namespace faze
       bool                        m_computeQueues;
       bool                        m_dmaQueues;
       bool                        m_graphicQueues;
-      vk::Queue  m_internalUniversalQueue;
+      vk::Queue                   m_internalUniversalQueue;
       GpuInfo                     m_info;
-
       ShaderStorage               m_shaders;
-
       int64_t                     m_resourceID = 1;
 
       struct FreeQueues
@@ -43,10 +57,10 @@ namespace faze
 
       struct MemoryTypes
       {
-        int deviceLocalIndex = -1; // device local
-        int hostNormalIndex = -1; // upload
-        int hostCachedIndex = -1; // readback 
-        int deviceHostIndex = -1; // default for uma. If this is also existing, you can copy things to gpu directly instead of upload.
+        int deviceLocalIndex = -1;
+        int hostNormalIndex = -1;
+        int hostCachedIndex = -1; 
+        int deviceHostIndex = -1;
       } m_memoryTypes;
 
     public:

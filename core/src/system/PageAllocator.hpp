@@ -13,11 +13,11 @@ namespace faze
 
   class PageAllocator
   {
-    int m_pageSize = 0;
+    int64_t m_pageSize = 0;
     size_t m_sizeInPages = 0;
     RangeBlockAllocator m_allocator;
   public:
-    PageAllocator(int pageSize, size_t sizeInPages)
+    PageAllocator(int64_t pageSize, size_t sizeInPages)
       : m_pageSize(pageSize)
       , m_sizeInPages(sizeInPages)
       , m_allocator(sizeInPages)
@@ -39,6 +39,22 @@ namespace faze
       F_ASSERT(b.offset >= 0, "Invalid block released.");
       m_allocator.release(faze::RangeBlock{ b.offset / m_pageSize, b.size / m_pageSize });
     }
+
+    size_t pageSize()
+    {
+      return static_cast<size_t>(m_pageSize);
+    }
+
+    size_t freesize()
+    {
+      return m_allocator.freespace() * static_cast<size_t>(m_pageSize);
+    }
+
+    size_t freeContinuosSize()
+    {
+      return m_allocator.largestFreeBlockSize() * static_cast<size_t>(m_pageSize);
+    }
+
   private:
     size_t sizeInPages(size_t count)
     {
