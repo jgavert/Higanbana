@@ -296,27 +296,24 @@ Compiler( 'Compiler-x64-Linux' )
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
 #if __WINDOWS__
-.D3D12Define  = 'GFX_D3D12'
+.D3D12Define  = 'FAZE_D3D12'
 #endif
-.VulkanDefine = 'GFX_VULKAN'
-.NullDefine   = 'GFX_NULL'
+.VulkanDefine = 'FAZE_VULKAN'
 
 // global gfx backend config
 #if __WINDOWS__
 .GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
 .GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
-.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' /D$NullDefine$']
 #endif
 #if __LINUX__
 .GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' -D$VulkanDefine$']
-.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' -D$NullDefine$']
 #endif
 
 #if __WINDOWS__
-.GraphicsBackends = {.GfxDX12, .GfxVulkan, .GfxNull }
+.GraphicsBackends = {.GfxDX12, .GfxVulkan}
 #endif
 #if __LINUX__
-.GraphicsBackends = {.GfxVulkan, .GfxNull }
+.GraphicsBackends = {.GfxVulkan}
 #endif
 
 // Solution targets
@@ -328,18 +325,13 @@ Compiler( 'Compiler-x64-Linux' )
 .ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'  .PreprocessorDefinitions + ';$VulkanDefine$']
 .ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'  .PreprocessorDefinitions + ';$VulkanDefine$']
 .ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug'    .PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile'  .PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release'  .PreprocessorDefinitions + ';$NullDefine$']
 
 .ProjectGfxConfigs = {
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
-  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease}
 #if __WINDOWS__
 .ProjectGfxConfigs = {
   .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release,
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
-  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
+  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease}
 #endif
 
 VCXProject( 'All-proj' )

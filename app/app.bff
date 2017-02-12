@@ -139,17 +139,15 @@
 
       .CompilerOptions    + .gfxDefines
       .PCHOptions         + .gfxDefines
-
       .OutputBase + '/$Platform$-$GraphicsApi$-$Config$'
-      //Print('$LinkerOptions$')
-      //Print('$BaseIncludePaths$')
+
       // Static Library
       Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
       {
         // Unity build
-        .CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Windows'
+        //.CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Windows'
         // Normal build
-        //.CompilerInputPath  = '$ProjectPath$/'
+        .CompilerInputPath  = '$ProjectPath$/'
 
           // Output
         .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'
@@ -161,7 +159,7 @@
       {
         .Libraries = {
           '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-          '$GfxName$-Lib-$Platform$-$Config$',
+          'graphics-Lib-$Platform$-$Config$',
           'core-Lib-$Platform$-$Config$'
         }
         .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$.exe'
@@ -173,10 +171,8 @@
       Using( .Config )
 
       .CompilerOptions    + .gfxDefines
-
       .OutputBase + '/$Platform$-$GraphicsApi$-$Config$'
-      //Print('$LinkerOptions$')
-      //Print('$BaseIncludePaths$')
+
       // Static Library
       Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
       {
@@ -223,6 +219,6 @@
 
   Alias( '$ProjectName$' )
   {
-    .Targets = {'$ProjectName$-D3D12', '$ProjectName$-Vulkan', '$ProjectName$-Null'}
+    .Targets = {'$ProjectName$-D3D12', '$ProjectName$-Vulkan'}
   }
 }

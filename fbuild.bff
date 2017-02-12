@@ -3,13 +3,9 @@
 // Core
 
 #include "core/core.bff"
-// Add graphics here
-#if __WINDOWS__
-#include "gfxdx12/dx12.bff"
-#endif
 
-#include "gfxvk/vulkan.bff"
-#include "gfxnull/gfxnull.bff"
+#include "faze/graphics.bff"
+
 // App
 #include "app/app.bff"
 
@@ -57,14 +53,12 @@ ForEach( .Platform in .Platforms )
   Alias( 'All-$Platform$' )
   {
     .Targets = {
-      'All-$Platform$-Vulkan',
-      'All-$Platform$-Null'
+      'All-$Platform$-Vulkan'
     }
 #if __WINDOWS__
     .Targets = {
       'All-$Platform$-D3D12',
-      'All-$Platform$-Vulkan',
-      'All-$Platform$-Null'
+      'All-$Platform$-Vulkan'
     }
 #endif
   }
@@ -108,9 +102,7 @@ Alias( 'proj' )
 				  'All-proj',
 				  'Core-proj',
 				  'App-proj',
-				  'GfxDx12-proj',
-				  'GfxVk-proj',
-				  'GfxNull-proj'
+				  'Graphics-proj'
 				}
 }
 

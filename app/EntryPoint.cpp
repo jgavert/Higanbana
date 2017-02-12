@@ -4,7 +4,7 @@
 #include <crtdbg.h>
 #endif
 
-#include "gfxvk/src/new_gfx/GraphicsCore.hpp"
+#include "faze/src/new_gfx/GraphicsCore.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/Platform/Window.hpp"
 #include "core/src/system/logger.hpp"
@@ -17,7 +17,7 @@ int EntryPoint::main()
 {
   Logger log;
   const char* name = "test";
-  GraphicsSubsystem graphics(name);
+  GraphicsSubsystem graphics(GraphicsApi::DX12, name);
   F_LOG("Using api %s\n", graphics.gfxApi().c_str());
   F_LOG("Have gpu's\n");
   auto gpus = graphics.availableGpus();
@@ -25,9 +25,10 @@ int EntryPoint::main()
   {
     F_LOG("\t%d. %s (memory: %d)\n", it.id, it.name.c_str(), it.memory);
   }
-  F_ASSERT(!gpus.empty(), "Well, no gpu :(");
+  if (gpus.empty())
+    return 1;
   FileSystem fs;
-  auto dev = graphics.createDevice(fs, gpus[0].id); // hardcoded 0
+  auto dev = graphics.createDevice(fs, gpus[0]); // hardcoded 0
 
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
