@@ -1,14 +1,15 @@
 #pragma once
 
+#include "resource_descriptor.hpp"
 #include <memory>
 
 namespace faze
 {
-  struct GpuDeviceData;
   class GpuDevice;
-
   namespace backend
   {
+    struct DeviceData;
+
     template <typename T>
     class SharedState
     {
@@ -34,10 +35,10 @@ namespace faze
 
     class GpuDeviceChild
     {
-      std::weak_ptr<GpuDeviceData> m_parentDevice;
+      std::weak_ptr<DeviceData> m_parentDevice;
     public:
       GpuDeviceChild() = default;
-      GpuDeviceChild(std::weak_ptr<GpuDeviceData> device)
+      GpuDeviceChild(std::weak_ptr<DeviceData> device)
         : m_parentDevice(device)
       {}
 

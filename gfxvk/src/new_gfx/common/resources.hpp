@@ -29,6 +29,7 @@ namespace faze
   {
     class DeviceImpl;
     class SubsystemImpl;
+    class HeapImpl;
 
     struct DeviceData : std::enable_shared_from_this<DeviceData>
     {

@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <memory>
+#include <algorithm>
 
 namespace faze
 {
@@ -119,12 +120,14 @@ namespace faze
     DynamicBitfield m_blocks; // uses this invertly, setBit means that it's free for taking.
     std::mutex   m_mutex;
     int64_t m_size = 0;
+    int64_t m_freespace = 0;
   public:
     RangeBlockAllocatorInternal2()
     {}
     RangeBlockAllocatorInternal2(size_t size)
       : m_blocks(size)
       , m_size(size)
+      , m_freespace(size)
     {
       m_blocks.initFull();
     }
@@ -140,6 +143,7 @@ namespace faze
       auto startIndex = checkIfFreeContiguousMemory(inputBlocks);
       if (startIndex != -1 && startIndex + static_cast<int64_t>(inputBlocks) < m_size)
       {
+        m_freespace -= inputBlocks;
         markUsedPages(startIndex, inputBlocks);
         return RangeBlock{ startIndex , inputBlocks };
       }
@@ -154,6 +158,51 @@ namespace faze
       {
         m_blocks.setBit(i);
       }
+      m_freespace += range.size;
+    }
+
+    size_t freespace()
+    {
+      return static_cast<size_t>(m_freespace);
+    }
+
+    size_t largestFreeBlockSize()
+    {
+      int64_t largestSize = 0;
+      int64_t continuosPages = 0;
+      for (int64_t i = 0; i < m_size; ++i)
+      {
+        if (!m_blocks.checkBit(i))
+        {
+          largestSize = (std::max)(largestSize, continuosPages);
+          continuosPages = 0;
+        }
+        else
+        {
+          ++continuosPages;
+        }
+      }
+      return largestSize;
+    }
+
+    size_t countContinuosFreeBlocks()
+    {
+      int64_t blocks = 0;
+      int64_t continuosPages = 0;
+      for (int64_t i = 0; i < m_size; ++i)
+      {
+        if (!m_blocks.checkBit(i))
+        {
+          if (continuosPages > 0)
+            blocks++;
+          continuosPages = 0;
+        }
+        else
+        {
+          ++continuosPages;
+        }
+      }
+      return blocks;
     }
 
   private:

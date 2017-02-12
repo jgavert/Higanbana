@@ -2,6 +2,8 @@
 
 #include "resources.hpp"
 
+#include "resource_descriptor.hpp"
+
 namespace faze
 {
   class GpuDevice : private backend::SharedState<backend::DeviceData>
@@ -15,6 +17,15 @@ namespace faze
     GpuDevice(StatePtr state)
     {
       m_state = std::move(state);
+    }
+
+    StatePtr state()
+    {
+      return m_state;
+    }
+    void createBuffer(ResourceDescriptor descriptor)
+    {
+      //S().impl->createBuffer(descriptor)
     }
   };
 };
