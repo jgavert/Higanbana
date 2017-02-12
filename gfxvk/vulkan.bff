@@ -50,8 +50,10 @@
       // Extra Include paths
       //.CompilerOptions      + .LZ4IncludePaths
 
-      // Input (Unity)
+      // Unity build
       .CompilerInputUnity     = '$ProjectName$-Unity-Windows'
+      // Normal build
+      //.CompilerInputPath  = '$ProjectPath$/'
 
       // Output
       .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
