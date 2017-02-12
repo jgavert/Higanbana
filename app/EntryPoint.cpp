@@ -17,7 +17,7 @@ int EntryPoint::main()
 {
   Logger log;
   const char* name = "test";
-  GraphicsSubsystem graphics(GraphicsApi::DX12, name);
+  GraphicsSubsystem graphics(GraphicsApi::Vulkan, name);
   F_LOG("Using api %s\n", graphics.gfxApi().c_str());
   F_LOG("Have gpu's\n");
   auto gpus = graphics.availableGpus();
