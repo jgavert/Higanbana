@@ -39,16 +39,20 @@ namespace faze
   {
     size_t alignment;
     size_t bytes;
+    HeapType type;
   };
 
   struct GpuHeapAllocation
   {
-    int alignment;
     int index;
+    int alignment;
+    HeapType type;
     PageBlock block;
 
     bool valid() { return alignment != -1 && index != -1; }
   };
+
+  class Buffer;
 
   namespace backend
   {
@@ -57,18 +61,43 @@ namespace faze
       class DeviceImpl;
       class SubsystemImpl;
       class HeapImpl;
+      class BufferImpl;
     }
 
-    struct GpuHeap
+    struct BufferData
     {
-      std::shared_ptr<prototypes::HeapImpl> impl;
-      HeapDescriptor desc;
+      std::shared_ptr<prototypes::BufferImpl> impl;
+      ResourceDescriptor desc;
+      GpuHeapAllocation allocation;
 
-      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
+      BufferData(std::shared_ptr<prototypes::BufferImpl> impl, ResourceDescriptor desc)
         : impl(impl)
         , desc(std::move(desc))
       {
       }
+
+      void setAllocation(GpuHeapAllocation allo)
+      {
+        allocation = allo;
+      }
+    };
+
+    struct GpuHeap
+    {
+      std::shared_ptr<prototypes::HeapImpl> impl;
+      std::shared_ptr<HeapDescriptor> desc;
+
+      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
+        : impl(impl)
+        , desc(std::make_shared<HeapDescriptor>(desc))
+      {
+      }
+    };
+
+    struct HeapAllocation
+    {
+      GpuHeapAllocation allocation;
+      GpuHeap heap;
     };
 
     class HeapManager
@@ -83,12 +112,15 @@ namespace faze
       struct HeapVector
       {
         int alignment;
+        HeapType type;
         vector<HeapBlock> heaps;
       };
 
       vector<HeapVector> m_heaps;
+      const int64_t m_minimumHeapSize = 32 * 1024 * 1024;
     public:
-      GpuHeapAllocation allocate(MemoryRequirements requirements);
+
+      HeapAllocation allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements);
       void release(GpuHeapAllocation allocation);
     };
 
@@ -101,6 +133,9 @@ namespace faze
         : impl(impl)
       {
       }
+      void waitGpuIdle();
+      Buffer createBuffer(ResourceDescriptor desc);
+      void createBufferView(ShaderViewDescriptor desc);
     };
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>

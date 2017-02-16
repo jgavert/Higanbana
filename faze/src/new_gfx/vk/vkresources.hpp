@@ -13,6 +13,23 @@ namespace faze
 {
   namespace backend
   {
+    class VulkanBuffer : public prototypes::BufferImpl
+    {
+    private:
+      vk::Buffer resource;
+
+    public:
+      VulkanBuffer()
+      {}
+      VulkanBuffer(vk::Buffer resource)
+        : resource(resource)
+      {}
+      vk::Buffer native()
+      {
+        return resource;
+      }
+    };
+
     class VulkanHeap : public prototypes::HeapImpl
     {
     private:
@@ -86,7 +103,8 @@ namespace faze
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
 
-      void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) override;
+      backend::BufferData createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
+      void destroyBuffer(Buffer buffer) override;
       void createBufferView(ShaderViewDescriptor desc) override;
     };
 

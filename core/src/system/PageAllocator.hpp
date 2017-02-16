@@ -9,6 +9,11 @@ namespace faze
   {
     int64_t offset;
     int64_t size;
+
+    bool valid()
+    {
+      return offset != -1 && size != -1;
+    }
   };
 
   class PageAllocator

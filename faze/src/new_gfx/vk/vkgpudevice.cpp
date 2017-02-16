@@ -1,5 +1,6 @@
 #include "vkresources.hpp"
 #include "util/formats.hpp"
+#include "faze/src/new_gfx/common/buffer.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -441,9 +442,20 @@ namespace faze
       m_device.freeMemory(native->native());
     }
 
-    void VulkanDevice::createBuffer(GpuHeap, size_t , ResourceDescriptor )
+    backend::BufferData VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
     {
+      auto vkdesc = fillBufferInfo(desc);
+      auto buffer = m_device.createBuffer(vkdesc);
+      auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
+      vk::DeviceSize size = allocation.allocation.block.offset;
+      m_device.bindBufferMemory(buffer, native->native(), size);
+      return backend::BufferData(std::make_shared<VulkanBuffer>(buffer), desc);
+    }
 
+    void VulkanDevice::destroyBuffer(Buffer buffer)
+    {
+      auto native = std::static_pointer_cast<VulkanBuffer>(buffer.state()->impl);
+      m_device.destroyBuffer(native->native());
     }
 
     void VulkanDevice::createBufferView(ShaderViewDescriptor )

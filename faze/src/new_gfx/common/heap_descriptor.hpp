@@ -65,7 +65,7 @@ public:
     desc.memPool = pool;
     return *this;
   }
-  HeapDescriptor& sizeInBytes(uint64_t size)
+  HeapDescriptor& setSizeInBytes(uint64_t size)
   {
     desc.sizeInBytes = size;
     return *this;

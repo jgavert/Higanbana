@@ -51,6 +51,23 @@ namespace faze
     };
 
     // implementations
+    class DX12Buffer : public prototypes::BufferImpl
+    {
+    private:
+      ID3D12Resource* resource;
+
+    public:
+      DX12Buffer()
+      {}
+      DX12Buffer(ID3D12Resource* resource)
+        : resource(resource)
+      {}
+      ID3D12Resource* native()
+      {
+        return resource;
+      }
+    };
+
     class DX12Heap : public prototypes::HeapImpl
     {
     private:
@@ -91,7 +108,8 @@ namespace faze
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
-      void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) override;
+      backend::BufferData createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
+      void destroyBuffer(Buffer buffer) override;
       void createBufferView(ShaderViewDescriptor desc) override;
     };
 

@@ -8,6 +8,7 @@ namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
+  class Buffer;
 
   namespace backend
   {
@@ -15,6 +16,11 @@ namespace faze
 
     namespace prototypes
     {
+      class BufferImpl
+      {
+      public:
+      };
+
       class HeapImpl
       {
       public:
@@ -32,7 +38,8 @@ namespace faze
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
         virtual void destroyHeap(GpuHeap heap) = 0;
 
-        virtual void createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc) = 0;
+        virtual backend::BufferData createBuffer(HeapAllocation allocation, ResourceDescriptor desc) = 0;
+        virtual void destroyBuffer(Buffer buffer) = 0;
         virtual void createBufferView(ShaderViewDescriptor desc) = 0;
       };
 

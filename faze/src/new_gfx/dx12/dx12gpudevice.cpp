@@ -1,6 +1,7 @@
 #if defined(PLATFORM_WINDOWS)
 #include "dx12resources.hpp"
 #include "util/formats.hpp"
+#include "faze/src/new_gfx/common/buffer.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -238,9 +239,9 @@ namespace faze
       native->native()->Release();
     }
 
-    void DX12Device::createBuffer(GpuHeap heap, size_t offset, ResourceDescriptor desc)
+    backend::BufferData DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
     {
-      auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
+      auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillBufferInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
       switch (desc.desc.usage)
@@ -260,9 +261,16 @@ namespace faze
       }
 
       ID3D12Resource* buffer;
-      m_device->CreatePlacedResource(native->native(), offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
-      buffer->Release();
+      m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
       // requires stuff...
+
+      return backend::BufferData{ std::make_shared<DX12Buffer>(buffer), std::move(desc) };
+    }
+
+    void DX12Device::destroyBuffer(Buffer buffer)
+    {
+      auto native = std::static_pointer_cast<DX12Buffer>(buffer.state()->impl);
+      native->native()->Release();
     }
 
     void DX12Device::createBufferView(ShaderViewDescriptor )
