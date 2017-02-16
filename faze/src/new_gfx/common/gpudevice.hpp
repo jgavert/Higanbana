@@ -1,8 +1,8 @@
 #pragma once
 
 #include "resources.hpp"
-
 #include "resource_descriptor.hpp"
+#include "buffer.hpp"
 
 namespace faze
 {
@@ -23,9 +23,11 @@ namespace faze
     {
       return m_state;
     }
-    void createBuffer(ResourceDescriptor descriptor)
+    Buffer createBuffer(ResourceDescriptor descriptor)
     {
-      //S().impl->createBuffer(descriptor)
+      auto buf = S().createBuffer(descriptor);
+      buf.setParent(this);
+      return buf;
     }
   };
 };
