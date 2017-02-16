@@ -386,6 +386,12 @@ namespace faze
         reqs.bytes = requirements.size;
       }
 
+      reqs.type = HeapType::Default;
+      if (desc.desc.usage == ResourceUsage::Upload)
+        reqs.type = HeapType::Upload;
+      else if (desc.desc.usage == ResourceUsage::Readback)
+        reqs.type = HeapType::Readback;
+
       return reqs;
     }
 

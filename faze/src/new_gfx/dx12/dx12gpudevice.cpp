@@ -195,6 +195,12 @@ namespace faze
       requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
       reqs.alignment = requirements.Alignment;
       reqs.bytes = requirements.SizeInBytes;
+
+      reqs.type = HeapType::Default;
+      if (desc.desc.usage == ResourceUsage::Upload)
+        reqs.type = HeapType::Upload;
+      else if (desc.desc.usage == ResourceUsage::Readback)
+        reqs.type = HeapType::Readback;
       return reqs;
     }
 
