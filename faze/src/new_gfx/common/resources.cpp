@@ -77,6 +77,7 @@ namespace faze
           .setHeapType(requirements.type)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
+        F_SLOG("Graphics","Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
         return HeapBlock{ index, PageAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
