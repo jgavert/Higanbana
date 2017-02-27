@@ -7,6 +7,7 @@
 #include "core/src/system/PageAllocator.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include <string>
+#include <atomic>
 
 namespace faze
 {
@@ -64,24 +65,6 @@ namespace faze
       class BufferImpl;
     }
 
-    struct BufferData
-    {
-      std::shared_ptr<prototypes::BufferImpl> impl;
-      ResourceDescriptor desc;
-      GpuHeapAllocation allocation;
-
-      BufferData(std::shared_ptr<prototypes::BufferImpl> impl, ResourceDescriptor desc)
-        : impl(impl)
-        , desc(std::move(desc))
-      {
-      }
-
-      void setAllocation(GpuHeapAllocation allo)
-      {
-        allocation = allo;
-      }
-    };
-
     struct GpuHeap
     {
       std::shared_ptr<prototypes::HeapImpl> impl;
@@ -122,17 +105,23 @@ namespace faze
 
       HeapAllocation allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements);
       void release(GpuHeapAllocation allocation);
+
+      vector<GpuHeap> emptyHeaps();
     };
 
     struct DeviceData : std::enable_shared_from_this<DeviceData>
     {
-      std::shared_ptr<prototypes::DeviceImpl> impl;
-      HeapManager heaps;
+      std::shared_ptr<prototypes::DeviceImpl> m_impl;
+      HeapManager m_heaps;
 
-      DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
-        : impl(impl)
-      {
-      }
+      std::shared_ptr<ResourceTracker<prototypes::BufferImpl>> m_bufferTracker;
+
+      std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
+
+      int64_t newId() { return (*m_idGenerator)++; }
+
+      DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl);
+      ~DeviceData();
       void waitGpuIdle();
       Buffer createBuffer(ResourceDescriptor desc);
       void createBufferView(ShaderViewDescriptor desc);
