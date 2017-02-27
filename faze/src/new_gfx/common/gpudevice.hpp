@@ -4,6 +4,7 @@
 #include "resource_descriptor.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "commandlist.hpp"
 
 namespace faze
 {
@@ -36,6 +37,19 @@ namespace faze
       auto tex = S().createTexture(descriptor);
       tex.setParent(this);
       return tex;
+    }
+
+    DmaList createDmaList()
+    {
+      return DmaList();
+    }
+    ComputeList createComputeList()
+    {
+      return ComputeList();
+    }
+    GraphicsList createGraphicsList()
+    {
+      return GraphicsList();
     }
   };
 };

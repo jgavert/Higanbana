@@ -47,6 +47,7 @@ int EntryPoint::main()
       .setDimension(FormatDimension::Texture2D);
 
     auto texture = dev.createTexture(texturedesc);
+    auto texture2 = dev.createTexture(texturedesc);
 
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
