@@ -50,6 +50,16 @@ namespace faze
       return static_cast<size_t>(m_pageSize);
     }
 
+    bool empty()
+    {
+      return freesize() == size();
+    }
+
+    size_t size()
+    {
+      return m_sizeInPages * static_cast<size_t>(m_pageSize);
+    }
+
     size_t freesize()
     {
       return m_allocator.freespace() * static_cast<size_t>(m_pageSize);

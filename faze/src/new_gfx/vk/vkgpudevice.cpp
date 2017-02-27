@@ -448,19 +448,19 @@ namespace faze
       m_device.freeMemory(native->native());
     }
 
-    backend::BufferData VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
+    std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
     {
       auto vkdesc = fillBufferInfo(desc);
       auto buffer = m_device.createBuffer(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
       m_device.bindBufferMemory(buffer, native->native(), size);
-      return backend::BufferData(std::make_shared<VulkanBuffer>(buffer), desc);
+      return std::make_shared<VulkanBuffer>(buffer);
     }
 
-    void VulkanDevice::destroyBuffer(Buffer buffer)
+    void VulkanDevice::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
     {
-      auto native = std::static_pointer_cast<VulkanBuffer>(buffer.state()->impl);
+      auto native = std::static_pointer_cast<VulkanBuffer>(buffer);
       m_device.destroyBuffer(native->native());
     }
 

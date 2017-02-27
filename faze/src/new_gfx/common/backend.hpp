@@ -2,10 +2,15 @@
 
 #include "resource_descriptor.hpp"
 #include <memory>
+#include <vector>
+#include <mutex>
 
 namespace faze
 {
   class GpuDevice;
+
+  struct GpuHeapAllocation;
+
   namespace backend
   {
     struct DeviceData;
@@ -31,6 +36,46 @@ namespace faze
       T &S() { return *m_state; }
 
       bool valid() const { return !!m_state; }
+    };
+
+    template <typename TrackedResource>
+    class ResourceTracker : public std::enable_shared_from_this<ResourceTracker<TrackedResource>>
+    {
+      std::vector<std::shared_ptr<TrackedResource>> m_disposableObjects;
+      std::vector<GpuHeapAllocation>                m_disposableMemory;
+      std::mutex                                    m_lock;
+    public:
+      ResourceTracker()
+      {
+      }
+
+      std::shared_ptr<int64_t> makeTracker(int64_t id, GpuHeapAllocation allocation, std::shared_ptr<TrackedResource> resourceToTrack)
+      {
+        auto dest = shared_from_this();
+        return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, allocation, dest](int64_t* t)
+        {
+          std::lock_guard<std::mutex> lock(dest->m_lock);
+          dest->m_disposableObjects.emplace_back(resourceToTrack);
+          dest->m_disposableMemory.emplace_back(allocation);
+          delete t;
+        });
+      }
+
+      std::vector<std::shared_ptr<TrackedResource>> getResources()
+      {
+        std::lock_guard<std::mutex> lock(m_lock);
+        auto vec = m_disposableObjects;
+        m_disposableObjects.clear();
+        return vec;
+      }
+
+      std::vector<GpuHeapAllocation> getAllocations()
+      {
+        std::lock_guard<std::mutex> lock(m_lock);
+        auto vec = m_disposableMemory;
+        m_disposableMemory.clear();
+        return vec;
+      }
     };
 
     class GpuDeviceChild

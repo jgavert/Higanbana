@@ -103,8 +103,8 @@ namespace faze
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
 
-      backend::BufferData createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
-      void destroyBuffer(Buffer buffer) override;
+      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
+      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
       void createBufferView(ShaderViewDescriptor desc) override;
     };
 

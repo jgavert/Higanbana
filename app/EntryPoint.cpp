@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
-
+#include "core/src/system/LBS.hpp"
 #include "faze/src/new_gfx/GraphicsCore.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/Platform/Window.hpp"
@@ -16,9 +16,8 @@ using namespace faze;
 int EntryPoint::main()
 {
   Logger log;
-  auto main = [&](GraphicsApi api)
+  auto main = [&](GraphicsApi api, const char* name, bool updateLog)
   {
-    const char* name = "test";
     GraphicsSubsystem graphics(api, name);
     F_LOG("Using api %s\n", graphics.gfxApi().c_str());
     F_LOG("Have gpu's\n");
@@ -38,7 +37,7 @@ int EntryPoint::main()
       .setWidth(100)
       .setDimension(FormatDimension::Buffer);
 
-    dev.createBuffer(bufferdesc);
+    auto buffer = dev.createBuffer(bufferdesc);
 
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
@@ -58,18 +57,22 @@ int EntryPoint::main()
       if (inputs.isPressedThisFrame(VK_SPACE, 1))
       {
         auto& mouse = window.mouse();
-        F_LOG("mouse %d %d\n", mouse.m_pos.x(), mouse.m_pos.y());
+        F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
       }
 
       if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
       {
         break;
       }
-      log.update();
+      if (updateLog)
+        log.update();
     }
   };
-  main(GraphicsApi::Vulkan);
-  main(GraphicsApi::DX12);
+  LBS lbs;
+  lbs.addTask("vulkan", [&](size_t, size_t) {main(GraphicsApi::Vulkan, "Vulkan", true); });
+  lbs.addTask("DX12", [&](size_t, size_t) {main(GraphicsApi::DX12, "DX12", false); });
+  lbs.sleepTillKeywords({"vulkan", "DX12"});
+  log.update();
   return 1;
 }
 /*

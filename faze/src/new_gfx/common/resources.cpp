@@ -29,13 +29,44 @@ namespace faze
     vector<GpuInfo> SubsystemData::availableGpus() { return impl->availableGpus(); }
     GpuDevice SubsystemData::createDevice(FileSystem& fs, GpuInfo gpu) { return impl->createGpuDevice(fs, gpu); }
 
-    void DeviceData::waitGpuIdle() { impl->waitGpuIdle(); }
+    // device
+    DeviceData::DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
+      : m_impl(impl)
+      , m_bufferTracker(std::make_shared<ResourceTracker<prototypes::BufferImpl>>())
+      , m_idGenerator(std::make_shared<std::atomic<int64_t>>())
+    {
+    }
+
+    DeviceData::~DeviceData()
+    {
+      waitGpuIdle();
+      auto buffers = m_bufferTracker->getResources();
+      for (auto&& buffer : buffers)
+      {
+        m_impl->destroyBuffer(buffer);
+      }
+
+      auto bufferAllocations = m_bufferTracker->getAllocations();
+      for (auto&& allocation : bufferAllocations)
+      {
+        m_heaps.release(allocation);
+      }
+
+      auto heaps = m_heaps.emptyHeaps();
+      for (auto&& heap : heaps)
+      {
+        m_impl->destroyHeap(heap); 
+      }
+    }
+
+    void DeviceData::waitGpuIdle() { m_impl->waitGpuIdle(); }
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
     {
-      auto memRes = impl->getReqs(desc);
-      auto allo = heaps.allocate(impl.get(), memRes);
-      auto data = impl->createBuffer(allo, desc); // When do we trash collect this object???
-      return data;
+      auto memRes = m_impl->getReqs(desc);
+      auto allo = m_heaps.allocate(m_impl.get(), memRes);
+      auto data = m_impl->createBuffer(allo, desc);
+      auto tracker = m_bufferTracker->makeTracker(newId(), allo.allocation, data);
+      return Buffer(data, tracker, desc);
     }
     void DeviceData::createBufferView(ShaderViewDescriptor )
     {
@@ -135,6 +166,22 @@ namespace faze
       {
         vectorPtr->heaps[object.index].allocator.release(object.block);
       }
+    }
+
+    vector<GpuHeap> HeapManager::emptyHeaps()
+    {
+      vector<GpuHeap> emptyHeaps;
+      for (auto&& it : m_heaps)
+      {
+        for (auto&& heap : it.heaps)
+        {
+          if (heap.allocator.empty())
+          {
+            emptyHeaps.emplace_back(heap.heap);
+          }
+        }
+      }
+      return emptyHeaps;
     }
   }
 }

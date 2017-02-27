@@ -245,7 +245,7 @@ namespace faze
       native->native()->Release();
     }
 
-    backend::BufferData DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
+    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillBufferInfo(desc);
@@ -268,14 +268,13 @@ namespace faze
 
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
-      // requires stuff...
 
-      return backend::BufferData{ std::make_shared<DX12Buffer>(buffer), std::move(desc) };
+      return std::make_shared<DX12Buffer>(buffer);
     }
 
-    void DX12Device::destroyBuffer(Buffer buffer)
+    void DX12Device::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
     {
-      auto native = std::static_pointer_cast<DX12Buffer>(buffer.state()->impl);
+      auto native = std::static_pointer_cast<DX12Buffer>(buffer);
       native->native()->Release();
     }
 
