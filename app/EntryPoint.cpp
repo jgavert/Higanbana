@@ -39,6 +39,15 @@ int EntryPoint::main()
 
     auto buffer = dev.createBuffer(bufferdesc);
 
+    auto texturedesc = ResourceDescriptor()
+      .setName("testTexture")
+      .setFormat(FormatType::Uint8x4_Srgb)
+      .setWidth(1280)
+      .setHeight(720)
+      .setDimension(FormatDimension::Texture2D);
+
+    auto texture = dev.createTexture(texturedesc);
+
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     Window window(m_params, name, ires.x(), ires.y());

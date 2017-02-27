@@ -13,6 +13,23 @@ namespace faze
 {
   namespace backend
   {
+    class VulkanTexture : public prototypes::TextureImpl
+    {
+    private:
+      vk::Image resource;
+
+    public:
+      VulkanTexture()
+      {}
+      VulkanTexture(vk::Image resource)
+        : resource(resource)
+      {}
+      vk::Image native()
+      {
+        return resource;
+      }
+    };
+
     class VulkanBuffer : public prototypes::BufferImpl
     {
     private:
@@ -106,6 +123,9 @@ namespace faze
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
       void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
       void createBufferView(ShaderViewDescriptor desc) override;
+
+      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc);
+      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer);
     };
 
     class VulkanSubsystem : public prototypes::SubsystemImpl

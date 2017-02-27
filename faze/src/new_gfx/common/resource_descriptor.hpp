@@ -81,7 +81,6 @@ namespace faze
       unsigned        depth = 1;
       unsigned        arraySize = 1;
       unsigned        msCount = 1;
-      unsigned        msQuality = 0;
       bool            index = false;
       bool            indirect = false;
       bool            allowCrossAdapter = false;
@@ -155,10 +154,9 @@ namespace faze
       return *this;
     }
 
-    ResourceDescriptor& setMultisample(unsigned count = 1, unsigned quality = 0)
+    ResourceDescriptor& setMultisample(unsigned count = 1)
     {
       desc.msCount = count;
-      desc.msQuality = quality;
       return *this;
     }
 

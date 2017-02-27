@@ -51,6 +51,23 @@ namespace faze
     };
 
     // implementations
+    class DX12Texture : public prototypes::TextureImpl
+    {
+    private:
+      ID3D12Resource* resource;
+
+    public:
+      DX12Texture()
+      {}
+      DX12Texture(ID3D12Resource* resource)
+        : resource(resource)
+      {}
+      ID3D12Resource* native()
+      {
+        return resource;
+      }
+    };
+
     class DX12Buffer : public prototypes::BufferImpl
     {
     private:
@@ -99,8 +116,8 @@ namespace faze
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
       ~DX12Device();
 
-      D3D12_RESOURCE_DESC fillBufferInfo(ResourceDescriptor descriptor);
-      D3D12_RESOURCE_DESC fillTextureInfo(ResourceDescriptor descriptor);
+      D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
+      D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
 
       // impl
       void waitGpuIdle() override;
@@ -111,6 +128,9 @@ namespace faze
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
       void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
       void createBufferView(ShaderViewDescriptor desc) override;
+
+      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc);
+      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer);
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl

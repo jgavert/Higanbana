@@ -51,24 +51,18 @@ namespace faze
 
     DX12Device::~DX12Device()
     {
-      waitGpuIdle();
-      /*
-      ComPtr<ID3D12DebugDevice> debugInterface;
-      m_device.As(&debugInterface);
-      debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
-      */
     }
 
-    D3D12_RESOURCE_DESC DX12Device::fillBufferInfo(ResourceDescriptor descriptor)
+    D3D12_RESOURCE_DESC DX12Device::fillPlacedBufferInfo(ResourceDescriptor descriptor)
     {
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
 
       dxdesc.Width = desc.width*desc.stride;
+      dxdesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
       dxdesc.Height = 1;
       dxdesc.DepthOrArraySize = 1;
       dxdesc.MipLevels = 1;
-      dxdesc.Alignment = 0;
       dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
       dxdesc.Format = DXGI_FORMAT_UNKNOWN;
       dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -94,7 +88,7 @@ namespace faze
       return dxdesc;
     }
 
-    D3D12_RESOURCE_DESC DX12Device::fillTextureInfo(ResourceDescriptor descriptor)
+    D3D12_RESOURCE_DESC DX12Device::fillPlacedTextureInfo(ResourceDescriptor descriptor)
     {
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
@@ -103,12 +97,17 @@ namespace faze
       dxdesc.Height = desc.height;
       dxdesc.DepthOrArraySize = static_cast<uint16_t>(desc.arraySize);
       dxdesc.MipLevels = static_cast<uint16_t>(desc.miplevels);
-      dxdesc.Alignment = 0;
+      dxdesc.Alignment = 0; // D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
       dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
       dxdesc.Format = formatTodxFormat(desc.format).raw;
       dxdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
       dxdesc.SampleDesc.Count = desc.msCount;
-      dxdesc.SampleDesc.Quality = desc.msQuality;
+      dxdesc.SampleDesc.Quality = 0;
+      if (desc.msCount > 1)
+      {
+        dxdesc.Alignment = 0; // D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+        dxdesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
+      }
       dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
       switch (desc.dimension)
@@ -186,12 +185,13 @@ namespace faze
       D3D12_RESOURCE_DESC resDesc;
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
-        resDesc = fillBufferInfo(desc);
+        resDesc = fillPlacedBufferInfo(desc);
       }
       else
       {
-        resDesc = fillTextureInfo(desc);
+        resDesc = fillPlacedTextureInfo(desc);
       }
+
       requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
       reqs.alignment = requirements.Alignment;
       reqs.bytes = requirements.SizeInBytes;
@@ -208,6 +208,15 @@ namespace faze
     {
       auto desc = heapDesc.desc;
       D3D12_HEAP_DESC dxdesc{};
+      bool smallResource = false;
+      if (heapDesc.desc.alignment == D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
+      {
+        smallResource = true;
+        heapDesc.desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+      }
+      // TODO: properly implement small resources, need to pass these flags around. 
+      // textures support small and the same heap cannot contain buffers or rt/ds textures.
+      // disabled for now.
 
       dxdesc.Alignment = heapDesc.desc.alignment;
       dxdesc.SizeInBytes = heapDesc.desc.sizeInBytes;
@@ -225,6 +234,12 @@ namespace faze
       {
         dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
       }
+
+      if (smallResource)
+      {
+        dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+      }
+
       if (desc.heapType == HeapType::Upload)
       {
         dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -248,7 +263,7 @@ namespace faze
     std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
-      auto dxDesc = fillBufferInfo(desc);
+      auto dxDesc = fillPlacedBufferInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
       switch (desc.desc.usage)
       {
@@ -281,6 +296,40 @@ namespace faze
     void DX12Device::createBufferView(ShaderViewDescriptor )
     {
 
+    }
+
+
+    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor desc)
+    {
+      auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
+      auto dxDesc = fillPlacedTextureInfo(desc);
+      D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+      switch (desc.desc.usage)
+      {
+      case ResourceUsage::Upload:
+      {
+        startState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        startState = D3D12_RESOURCE_STATE_COPY_DEST;
+        break;
+      }
+      default:
+        break;
+      }
+
+      ID3D12Resource* texture;
+      m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
+
+      return std::make_shared<DX12Texture>(texture);
+    }
+
+    void DX12Device::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
+    {
+      auto native = std::static_pointer_cast<DX12Texture>(texture);
+      native->native()->Release();
     }
   }
 }

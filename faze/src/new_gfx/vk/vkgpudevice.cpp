@@ -468,5 +468,20 @@ namespace faze
     {
 
     }
+
+    std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(HeapAllocation allocation, ResourceDescriptor desc)
+    {
+      auto vkdesc = fillImageInfo(desc);
+      auto image = m_device.createImage(vkdesc);
+      auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
+      vk::DeviceSize size = allocation.allocation.block.offset;
+      m_device.bindImageMemory(image, native->native(), size);
+      return std::make_shared<VulkanTexture>(image);
+    }
+    void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
+    {
+      auto native = std::static_pointer_cast<VulkanTexture>(texture);
+      m_device.destroyImage(native->native());
+    }
   }
 }

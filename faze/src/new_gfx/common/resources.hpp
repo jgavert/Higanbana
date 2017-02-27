@@ -54,6 +54,7 @@ namespace faze
   };
 
   class Buffer;
+  class Texture;
 
   namespace backend
   {
@@ -63,6 +64,7 @@ namespace faze
       class SubsystemImpl;
       class HeapImpl;
       class BufferImpl;
+      class TextureImpl;
     }
 
     struct GpuHeap
@@ -115,6 +117,7 @@ namespace faze
       HeapManager m_heaps;
 
       std::shared_ptr<ResourceTracker<prototypes::BufferImpl>> m_bufferTracker;
+      std::shared_ptr<ResourceTracker<prototypes::TextureImpl>> m_textureTracker;
 
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
 
@@ -125,6 +128,7 @@ namespace faze
       void waitGpuIdle();
       Buffer createBuffer(ResourceDescriptor desc);
       void createBufferView(ShaderViewDescriptor desc);
+      Texture createTexture(ResourceDescriptor desc);
     };
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>

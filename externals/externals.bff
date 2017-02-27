@@ -39,7 +39,7 @@
 // vulkan
 
 .vulkanInclude  = '$VulkanSDKBasePath$/include'
-.vulkanLibPath  = ' /LIBPATH:^"$VulkanSDKBasePath$/bin'
+.vulkanLibPath  = ' /LIBPATH:^"$VulkanSDKBasePath$/Lib'
                 + .extEndBasePath
 .vulkanlibs     = ''
 #if __WINDOWS__
