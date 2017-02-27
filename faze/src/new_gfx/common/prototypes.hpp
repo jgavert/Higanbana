@@ -8,7 +8,6 @@ namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
-  class Buffer;
 
   namespace backend
   {
@@ -16,6 +15,10 @@ namespace faze
 
     namespace prototypes
     {
+      class TextureImpl
+      {
+      public:
+      };
       class BufferImpl
       {
       public:
@@ -41,6 +44,9 @@ namespace faze
         virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) = 0;
         virtual void destroyBuffer(std::shared_ptr<BufferImpl> buffer) = 0;
         virtual void createBufferView(ShaderViewDescriptor desc) = 0;
+
+        virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc) = 0;
+        virtual void destroyTexture(std::shared_ptr<TextureImpl> buffer) = 0;
       };
 
       class SubsystemImpl

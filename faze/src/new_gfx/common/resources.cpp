@@ -33,6 +33,7 @@ namespace faze
     DeviceData::DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
       : m_impl(impl)
       , m_bufferTracker(std::make_shared<ResourceTracker<prototypes::BufferImpl>>())
+      , m_textureTracker(std::make_shared<ResourceTracker<prototypes::TextureImpl>>())
       , m_idGenerator(std::make_shared<std::atomic<int64_t>>())
     {
     }
@@ -48,6 +49,18 @@ namespace faze
 
       auto bufferAllocations = m_bufferTracker->getAllocations();
       for (auto&& allocation : bufferAllocations)
+      {
+        m_heaps.release(allocation);
+      }
+
+      auto textures = m_textureTracker->getResources();
+      for (auto&& texture : textures)
+      {
+        m_impl->destroyTexture(texture);
+      }
+
+      auto textureAllocations = m_textureTracker->getAllocations();
+      for (auto&& allocation : textureAllocations)
       {
         m_heaps.release(allocation);
       }
@@ -68,6 +81,16 @@ namespace faze
       auto tracker = m_bufferTracker->makeTracker(newId(), allo.allocation, data);
       return Buffer(data, tracker, desc);
     }
+
+    Texture DeviceData::createTexture(ResourceDescriptor desc)
+    {
+      auto memRes = m_impl->getReqs(desc);
+      auto allo = m_heaps.allocate(m_impl.get(), memRes);
+      auto data = m_impl->createTexture(allo, desc);
+      auto tracker = m_textureTracker->makeTracker(newId(), allo.allocation, data);
+      return Texture(data, tracker, desc);
+    }
+
     void DeviceData::createBufferView(ShaderViewDescriptor )
     {
 
