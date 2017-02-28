@@ -7,12 +7,49 @@ namespace faze
 {
   namespace backend
   {
+
+    void printMemoryTypeInfos(vk::PhysicalDeviceMemoryProperties prop)
+    {
+      auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
+      {
+        return (type.propertyFlags & flag) == flag;
+      };
+      F_ILOG("Graphics/Memory", "heapCount %u memTypeCount %u", prop.memoryHeapCount, prop.memoryTypeCount);
+      for (int i = 0; i < static_cast<int>(prop.memoryTypeCount); ++i)
+      {
+        // TODO probably bug here with flags.
+        auto memType = prop.memoryTypes[i];
+        F_ILOG("Graphics/Memory", "propertyFlags %u", memType.propertyFlags);
+        if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
+        {
+          F_ILOG("Graphics/Memory", "heap %u type %u was eDeviceLocal", memType.heapIndex, i);
+          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
+          {
+            F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
+            if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
+              F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
+            if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
+              F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
+          }
+        }
+        else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
+        {
+          F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
+          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
+            F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
+          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
+          {
+            F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
+          }
+        }
+      }
+    }
+
     VulkanDevice::VulkanDevice(
       vk::Device device,
       vk::PhysicalDevice physDev,
       FileSystem& fs,
       std::vector<vk::QueueFamilyProperties> queues,
-      vk::PhysicalDeviceMemoryProperties memProp,
       GpuInfo info,
       bool debugLayer)
       : m_device(device)
@@ -96,81 +133,8 @@ namespace faze
       m_dmaQueues = !m_freeQueueIndexes.dma.empty();
       m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
 
-      for (unsigned i = 0; i < memProp.memoryHeapCount; ++i)
-      {
-        F_ILOG("Graphics/Memory", "memory heap %u: %.3fGB", i, float(memProp.memoryHeaps[i].size) / 1024.f / 1024.f / 1024.f);
-      }
-
-      auto memTypeCount = memProp.memoryTypeCount;
-      auto memPtr = memProp.memoryTypes;
-
-      // this whole mapping thing fails, should just expose another way to tag heaps, easier. Let the api tell us where it belongs. Same for DX12.
-      // device local index is different between 2 nvidia cards so better to make correct fix.
-
-      auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
-      {
-        return (type.propertyFlags & flag) == flag;
-      };
-      F_ILOG("Graphics/Memory", "heapCount %u memTypeCount %u", memProp.memoryHeapCount, memTypeCount);
-      for (int i = 0; i < static_cast<int>(memTypeCount); ++i)
-      {
-        // TODO probably bug here with flags.
-        auto memType = memPtr[i];
-        if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
-        {
-          F_ILOG("Graphics/Memory", "heap %u type %u was eDeviceLocal", memType.heapIndex, i);
-          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
-          {
-            F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
-            if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
-              F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
-            if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
-              F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
-            // weird memory only for uma... usually
-            if (m_memoryTypes.deviceHostIndex == -1)
-              m_memoryTypes.deviceHostIndex = i;
-          }
-          else
-          {
-            //F_ILOG("MemoryTypeDebug", "type %u was not eHostVisible", i);
-            if (m_memoryTypes.deviceLocalIndex == -1) // always first legit index, otherwise errors.
-              m_memoryTypes.deviceLocalIndex = i;
-          }
-        }
-        else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
-        {
-          F_ILOG("Graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
-          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
-            F_ILOG("Graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
-          if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
-          {
-            F_ILOG("Graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
-            if (m_memoryTypes.hostCachedIndex == -1)
-              m_memoryTypes.hostCachedIndex = i;
-          }
-          else
-          {
-            //F_ILOG("MemoryTypeDebug", "type %u was not eHostCached", i);
-            if (m_memoryTypes.hostNormalIndex == -1)
-              m_memoryTypes.hostNormalIndex = i;
-          }
-        }
-      }
-      // validify memorytypes
-      if (m_memoryTypes.deviceHostIndex != -1 || ((m_memoryTypes.deviceLocalIndex != -1) || (m_memoryTypes.hostNormalIndex != -1)))
-      {
-        // normal!
-        F_ILOG("Graphics/Memory", "deviceHostIndex(UMA) %d", m_memoryTypes.deviceHostIndex);
-        F_ILOG("Graphics/Memory", "deviceLocalIndex %d", m_memoryTypes.deviceLocalIndex);
-        F_ILOG("Graphics/Memory", "hostNormalIndex %d", m_memoryTypes.hostNormalIndex);
-        F_ILOG("Graphics/Memory", "hostCachedIndex %d", m_memoryTypes.hostCachedIndex);
-      }
-      else
-      {
-        F_ERROR("not a sane situation."); // not a sane situation.
-      }
-
-      // figure out indexes for default, upload, readback...
+      //auto memProp = m_physDevice.getMemoryProperties();
+      //printMemoryTypeInfos(memProp);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -369,32 +333,97 @@ namespace faze
       m_device.waitIdle();
     }
 
+    int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties)
+    {
+      for (int32_t i = 0; i < static_cast<int32_t>(memprop.memoryTypeCount); ++i)
+      {
+        if ((memoryTypeBits & (1 << i)) &&
+          ((memprop.memoryTypes[i].propertyFlags & properties) == properties))
+          return i;
+      }
+      return -1;
+    }
+
+    struct MemoryPropertySearch
+    {
+      vk::MemoryPropertyFlags optimal;
+      vk::MemoryPropertyFlags def;
+    };
+
+    MemoryPropertySearch getMemoryProperties(ResourceUsage usage)
+    {
+      MemoryPropertySearch ret{};
+      switch (usage)
+      {
+      case ResourceUsage::Upload:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostCached;
+        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
+        break;
+      }
+      case ResourceUsage::GpuReadOnly:
+      case ResourceUsage::GpuRW:
+      case ResourceUsage::RenderTarget:
+      case ResourceUsage::DepthStencil:
+      case ResourceUsage::RenderTargetRW:
+      case ResourceUsage::DepthStencilRW:
+      default:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        ret.def = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        break;
+      }
+      }
+      return ret;
+    }
+
+    int64_t packInt64(int32_t first, int32_t second)
+    {
+      int64_t val = first;
+      val = val << 32;
+      val += second;
+      return val;
+    }
+
+    void unpackInt64(int64_t val, int32_t& first, int32_t& second)
+    {
+      first = static_cast<int32_t>(val >> 32);
+      second = static_cast<int32_t>(val);
+    }
+
     MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
     {
       MemoryRequirements reqs{};
+      vk::MemoryRequirements requirements;
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
         auto buffer = m_device.createBuffer(fillBufferInfo(desc));
-        auto requirements = m_device.getBufferMemoryRequirements(buffer);
+        requirements = m_device.getBufferMemoryRequirements(buffer);
         m_device.destroyBuffer(buffer);
-        reqs.alignment = requirements.alignment;
-        reqs.bytes = requirements.size;
       }
       else
       {
         auto image = m_device.createImage(fillImageInfo(desc));
-        auto requirements = m_device.getImageMemoryRequirements(image);
+        requirements = m_device.getImageMemoryRequirements(image);
         m_device.destroyImage(image);
-        reqs.alignment = requirements.alignment;
-        reqs.bytes = requirements.size;
       }
-
-      reqs.type = HeapType::Default;
-      if (desc.desc.usage == ResourceUsage::Upload)
-        reqs.type = HeapType::Upload;
-      else if (desc.desc.usage == ResourceUsage::Readback)
-        reqs.type = HeapType::Readback;
-
+      auto memProp = m_physDevice.getMemoryProperties();
+      auto searchProperties = getMemoryProperties(desc.desc.usage);
+      auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+      F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.def
+      auto packed = packInt64(index, 0);
+      //int32_t v1, v2;
+      //unpackInt64(packed, v1, v2);
+      //F_ILOG("Vulkan", "Did (unnecessary) packing tricks, packed %d -> %zd -> %d", index, packed, v1);
+      reqs.heapType = packed;
+      reqs.alignment = requirements.alignment;
+      reqs.bytes = requirements.size;
       return reqs;
     }
 
@@ -402,43 +431,14 @@ namespace faze
     {
       auto&& desc = heapDesc.desc;
 
+      int32_t index, bits;
+      unpackInt64(desc.customType, index, bits);
+
       vk::MemoryAllocateInfo allocInfo;
-      if (m_info.type == DeviceType::IntegratedGpu)
-      {
-        if (m_memoryTypes.deviceHostIndex != -1)
-        {
-          allocInfo = vk::MemoryAllocateInfo()
-            .setAllocationSize(desc.sizeInBytes)
-            .setMemoryTypeIndex(static_cast<uint32_t>(m_memoryTypes.deviceHostIndex));
-        }
-        else
-        {
-          F_ERROR("uma but no memory type can be used");
-        }
-      }
-      else
-      {
-        uint32_t memoryTypeIndex = 0;
-        if ((desc.heapType == HeapType::Default) && m_memoryTypes.deviceLocalIndex != -1)
-        {
-          memoryTypeIndex = m_memoryTypes.deviceLocalIndex;
-        }
-        else if (desc.heapType == HeapType::Readback && m_memoryTypes.hostNormalIndex != -1)
-        {
-          memoryTypeIndex = m_memoryTypes.hostNormalIndex;
-        }
-        else if (desc.heapType == HeapType::Upload && m_memoryTypes.hostCachedIndex != -1)
-        {
-          memoryTypeIndex = m_memoryTypes.hostCachedIndex;
-        }
-        else
-        {
-          F_ERROR("normal device but no valid memory type available");
-        }
-        allocInfo = vk::MemoryAllocateInfo()
-          .setAllocationSize(desc.sizeInBytes)
-          .setMemoryTypeIndex(static_cast<uint32_t>(memoryTypeIndex));
-      }
+
+      allocInfo = vk::MemoryAllocateInfo()
+        .setAllocationSize(desc.sizeInBytes)
+        .setMemoryTypeIndex(index);
 
       auto memory = m_device.allocateMemory(allocInfo);
 
@@ -457,7 +457,7 @@ namespace faze
       auto buffer = m_device.createBuffer(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getBufferMemoryRequirements(buffer);
+      m_device.getBufferMemoryRequirements(buffer); // Only to silence the debug layers
       m_device.bindBufferMemory(buffer, native->native(), size);
       return std::make_shared<VulkanBuffer>(buffer);
     }
@@ -479,7 +479,7 @@ namespace faze
       auto image = m_device.createImage(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
-      auto req = m_device.getImageMemoryRequirements(image);
+      auto req = m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
       m_device.bindImageMemory(image, native->native(), size);
       return std::make_shared<VulkanTexture>(image);
     }

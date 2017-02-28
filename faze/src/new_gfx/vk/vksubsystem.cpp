@@ -45,7 +45,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   {
     msgType = "DEBUG:";
   }
-  if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
+  if (!breakOn && ( std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport"))
     return false;
   F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(PLATFORM_WINDOWS)
@@ -128,7 +128,7 @@ namespace faze
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_API_VERSION_1_0);
+        .setApiVersion(VK_MAKE_VERSION(1, 0, 42));
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)
@@ -246,6 +246,21 @@ namespace faze
           info.type = DeviceType::Unknown;
           break;
         }
+
+        if (info.type == DeviceType::DiscreteGpu)
+        {
+          auto memProp = m_devices[devId].getMemoryProperties();
+          auto filter = vk::MemoryPropertyFlagBits::eDeviceLocal;
+          for (unsigned i = 0; i < memProp.memoryTypeCount; ++i)
+          {
+            if ((memProp.memoryTypes[i].propertyFlags & filter) == filter)
+            {
+              info.memory = memProp.memoryHeaps[memProp.memoryTypes[i].heapIndex].size;
+              break;
+            }
+          }
+        }
+
         infos.emplace_back(info);
       }
 
@@ -306,8 +321,6 @@ namespace faze
 
       auto features = physDev.getFeatures(); // ALL OF THEM FEATURES.
 
-      auto heapInfos = physDev.getMemoryProperties();
-
       auto device_info = vk::DeviceCreateInfo()
         .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
         .setPQueueCreateInfos(queueInfos.data())
@@ -317,7 +330,7 @@ namespace faze
 
       vk::Device dev = physDev.createDevice(device_info);
 
-      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, heapInfos, gpu, false);
+      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, gpu, false);
 
       return GpuDevice(DeviceData(impl));
     }

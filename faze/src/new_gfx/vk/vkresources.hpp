@@ -90,7 +90,7 @@ namespace faze
         std::vector<uint32_t> compute;
         std::vector<uint32_t> dma;
       } m_freeQueueIndexes;
-
+      /*
       struct MemoryTypes
       {
         int deviceLocalIndex = -1;
@@ -98,14 +98,13 @@ namespace faze
         int hostCachedIndex = -1; 
         int deviceHostIndex = -1;
       } m_memoryTypes;
-
+      */
     public:
       VulkanDevice(
         vk::Device device,
         vk::PhysicalDevice physDev,
         FileSystem& fs,
         std::vector<vk::QueueFamilyProperties> queues,
-        vk::PhysicalDeviceMemoryProperties memProp,
         GpuInfo info,
         bool debugLayer);
       ~VulkanDevice();

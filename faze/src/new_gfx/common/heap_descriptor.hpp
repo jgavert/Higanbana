@@ -32,6 +32,7 @@ public:
     std::string     name = "UnnamedHeap";
     CPUPageProperty cpuPage = CPUPageProperty::Unknown;
     HeapType        heapType = HeapType::Default;
+    int64_t         customType = 0;
     MemoryPoolHint  memPool = MemoryPoolHint::Device;
     uint64_t        sizeInBytes = 0;
     uint64_t        alignment = 64*1024;
@@ -58,6 +59,11 @@ public:
   HeapDescriptor& setHeapType(HeapType type)
   {
     desc.heapType = type;
+    return *this;
+  }
+  HeapDescriptor& setHeapTypeSpecific(int64_t type)
+  {
+    desc.customType = type;
     return *this;
   }
   HeapDescriptor& setMemoryPoolHint(MemoryPoolHint pool)

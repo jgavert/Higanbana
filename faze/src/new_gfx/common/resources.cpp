@@ -112,7 +112,7 @@ namespace faze
     {
       GpuHeapAllocation alloc{};
       alloc.alignment = static_cast<int>(requirements.alignment);
-      alloc.type = requirements.type;
+      alloc.heapType = requirements.heapType;
       auto createHeapBlock = [&](prototypes::DeviceImpl* dev, int index, MemoryRequirements& requirements)
       {
         auto sizeToCreate = roundUpMultiple2(m_minimumHeapSize, requirements.alignment);
@@ -123,12 +123,13 @@ namespace faze
         std::string name;
         name += std::to_string(index);
         name += "Heap";
-        name += std::to_string(static_cast<int>(requirements.type));
+        name += std::to_string(static_cast<int>(requirements.heapType));
         name += "a";
         name += std::to_string(requirements.alignment);
         HeapDescriptor desc = HeapDescriptor()
           .setSizeInBytes(sizeToCreate)
-          .setHeapType(requirements.type)
+          .setHeapType(HeapType::Custom)
+          .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
         F_SLOG("Graphics","Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
@@ -138,7 +139,7 @@ namespace faze
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
         return vec.alignment == requirements.alignment
-            && vec.type      == requirements.type;
+            && vec.type      == requirements.heapType;
       });
       if (vectorPtr != m_heaps.end()) // found alignment
       {
@@ -167,7 +168,7 @@ namespace faze
           return HeapAllocation{ alloc, heap };
         }
       }
-      HeapVector vec{ static_cast<int>(requirements.alignment), requirements.type, vector<HeapBlock>()};
+      HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>()};
       auto newHeap = createHeapBlock(device, 0, requirements);
       alloc.block = newHeap.allocator.allocate(requirements.bytes);
       alloc.index = newHeap.index;
@@ -183,7 +184,7 @@ namespace faze
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
         return vec.alignment == object.alignment
-          && vec.type == object.type;
+            && vec.type == object.heapType;
       });
       if (vectorPtr != m_heaps.end())
       {
