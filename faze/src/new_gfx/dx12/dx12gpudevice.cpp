@@ -196,11 +196,11 @@ namespace faze
       reqs.alignment = requirements.Alignment;
       reqs.bytes = requirements.SizeInBytes;
 
-      reqs.type = HeapType::Default;
+      reqs.heapType = static_cast<int64_t>(HeapType::Default);
       if (desc.desc.usage == ResourceUsage::Upload)
-        reqs.type = HeapType::Upload;
+        reqs.heapType = static_cast<int64_t>(HeapType::Upload);
       else if (desc.desc.usage == ResourceUsage::Readback)
-        reqs.type = HeapType::Readback;
+        reqs.heapType = static_cast<int64_t>(HeapType::Readback);
       return reqs;
     }
 
@@ -239,8 +239,19 @@ namespace faze
       {
         dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
       }
-
-      if (desc.heapType == HeapType::Upload)
+      
+      if (desc.heapType == HeapType::Custom)
+      {
+        if (desc.customType == static_cast<int64_t>(HeapType::Upload))
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        }
+        else if (desc.customType == static_cast<int64_t>(HeapType::Readback))
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        }
+      }
+      else if (desc.heapType == HeapType::Upload)
       {
         dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
       }

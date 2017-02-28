@@ -48,14 +48,14 @@ namespace faze
   {
     size_t alignment;
     size_t bytes;
-    HeapType type;
+    int64_t heapType;
   };
 
   struct GpuHeapAllocation
   {
     int index;
     int alignment;
-    HeapType type;
+    int64_t heapType;
     PageBlock block;
 
     bool valid() { return alignment != -1 && index != -1; }
@@ -105,7 +105,7 @@ namespace faze
       struct HeapVector
       {
         int alignment;
-        HeapType type;
+        int64_t type;
         vector<HeapBlock> heaps;
       };
 
