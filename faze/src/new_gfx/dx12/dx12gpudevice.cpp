@@ -11,7 +11,7 @@ namespace faze
     DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device)
       : m_info(info)
       , m_device(device)
-      , m_nodeMask(1 << m_info.id)
+      , m_nodeMask(0) // sli/crossfire index
     {
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;

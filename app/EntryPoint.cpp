@@ -16,20 +16,26 @@ using namespace faze;
 int EntryPoint::main()
 {
   Logger log;
-  auto main = [&](GraphicsApi api, const char* name, bool updateLog)
+  auto main = [&](GraphicsApi api, VendorID preferredVendor, const char* name, bool updateLog)
   {
     GraphicsSubsystem graphics(api, name);
     F_LOG("Using api %s\n", graphics.gfxApi().c_str());
     F_LOG("Have gpu's\n");
     auto gpus = graphics.availableGpus();
+    int chosenGpu = 0;
     for (auto&& it : gpus)
     {
+      if (it.vendor == preferredVendor)
+      {
+        chosenGpu = it.id;
+      }
       F_LOG("\t%d. %s (memory: %zd)\n", it.id, it.name.c_str(), it.memory);
     }
+    if (updateLog) log.update();
     if (gpus.empty())
       return;
     FileSystem fs;
-    auto dev = graphics.createDevice(fs, gpus[0]); // hardcoded 0
+    auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
 
     auto bufferdesc = ResourceDescriptor()
       .setName("testBufferTarget")
@@ -74,14 +80,17 @@ int EntryPoint::main()
       {
         break;
       }
-      if (updateLog)
-        log.update();
+      if (updateLog) log.update();
+        
     }
   };
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
+  /*
   LBS lbs;
   lbs.addTask("vulkan", [&](size_t, size_t) {main(GraphicsApi::Vulkan, "Vulkan", true); });
   lbs.addTask("DX12", [&](size_t, size_t) {main(GraphicsApi::DX12, "DX12", false); });
   lbs.sleepTillKeywords({"vulkan", "DX12"});
+  */
   log.update();
   return 1;
 }
