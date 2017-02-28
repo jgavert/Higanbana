@@ -104,6 +104,9 @@ namespace faze
       auto memTypeCount = memProp.memoryTypeCount;
       auto memPtr = memProp.memoryTypes;
 
+      // this whole mapping thing fails, should just expose another way to tag heaps, easier. Let the api tell us where it belongs. Same for DX12.
+      // device local index is different between 2 nvidia cards so better to make correct fix.
+
       auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
       {
         return (type.propertyFlags & flag) == flag;
@@ -454,6 +457,7 @@ namespace faze
       auto buffer = m_device.createBuffer(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
+      m_device.getBufferMemoryRequirements(buffer);
       m_device.bindBufferMemory(buffer, native->native(), size);
       return std::make_shared<VulkanBuffer>(buffer);
     }
@@ -475,6 +479,7 @@ namespace faze
       auto image = m_device.createImage(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
+      auto req = m_device.getImageMemoryRequirements(image);
       m_device.bindImageMemory(image, native->native(), size);
       return std::make_shared<VulkanTexture>(image);
     }

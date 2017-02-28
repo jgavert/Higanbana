@@ -40,7 +40,19 @@ namespace faze
 
         GpuInfo info{};
         info.name = std::string(ch);
-        info.vendor = desc.VendorId;
+        info.vendor = VendorID::Unknown;
+        if (desc.VendorId == 4098)
+        {
+            info.vendor = VendorID::Amd;
+        }
+        else if (desc.VendorId == 4318)
+        {
+            info.vendor = VendorID::Nvidia;
+        }
+        else if (desc.VendorId == 32902)
+        {
+            info.vendor = VendorID::Intel;
+        }
         info.id = i;
         info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
         info.type = DeviceType::Unknown;

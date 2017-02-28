@@ -215,7 +215,19 @@ namespace faze
         }
         info.id = devId;
         info.name = std::string(stuff.deviceName);
-        info.vendor = stuff.vendorID;
+        info.vendor = VendorID::Unknown;
+        if (stuff.vendorID == 4098)
+        {
+            info.vendor = VendorID::Amd;
+        }
+        else if (stuff.vendorID == 4318)
+        {
+            info.vendor = VendorID::Nvidia;
+        }
+        else if (stuff.vendorID == 32902)
+        {
+            info.vendor = VendorID::Intel;
+        }
         switch (stuff.deviceType)
         {
         case vk::PhysicalDeviceType::eIntegratedGpu:

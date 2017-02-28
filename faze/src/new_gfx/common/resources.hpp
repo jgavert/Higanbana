@@ -26,12 +26,20 @@ namespace faze
     Cpu
   };
 
+  enum class VendorID
+  {
+      Amd, // = 4098,
+      Nvidia, // = 4318,
+      Intel, // dunno lol
+      Unknown
+  };
+
   struct GpuInfo
   {
     int id;
     std::string name;
     int64_t memory;
-    int vendor;
+    VendorID vendor;
     DeviceType type;
     bool canPresent;
   };
