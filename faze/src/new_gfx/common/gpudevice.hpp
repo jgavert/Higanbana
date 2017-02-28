@@ -4,6 +4,7 @@
 #include "resource_descriptor.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "swapchain.hpp"
 #include "commandlist.hpp"
 
 namespace faze
@@ -50,6 +51,13 @@ namespace faze
     GraphicsList createGraphicsList()
     {
       return GraphicsList();
+    }
+
+    Swapchain createSwapchain(PresentMode mode, ResourceDescriptor descriptor)
+    {
+      auto sc = S().createSwapchain(mode, descriptor);
+      sc.setParent(this);
+      return sc;
     }
   };
 };

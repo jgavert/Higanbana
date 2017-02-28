@@ -1,6 +1,8 @@
 #if defined(PLATFORM_WINDOWS)
 #include "dx12resources.hpp"
 #include "faze/src/new_gfx/common/gpudevice.hpp"
+#include "faze/src/new_gfx/common/graphicssurface.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "faze/src/new_gfx/definitions.hpp"
 
 #include "core/src/global_debug.hpp"
@@ -153,6 +155,11 @@ namespace faze
       });
       
       return GpuDevice(DeviceData(impl));
+    }
+
+    GraphicsSurface DX12Subsystem::createSurface(Window& window)
+    {
+      return GraphicsSurface(std::make_shared<DX12GraphicsSurface>(window.getInternalWindow().getHWND(), window.getInternalWindow().getHInstance()));
     }
   }
 }

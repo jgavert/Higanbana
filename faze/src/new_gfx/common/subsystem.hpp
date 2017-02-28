@@ -1,7 +1,8 @@
 #pragma once
 #include "backend.hpp"
 #include "resources.hpp"
-
+#include "graphicssurface.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include <string>
 
@@ -19,5 +20,6 @@ namespace faze
     std::string gfxApi() { return S().gfxApi(); }
     vector<GpuInfo> availableGpus() { return S().availableGpus(); }
     GpuDevice createDevice(FileSystem& fs, GpuInfo gpu) { return GpuDevice(S().createDevice(fs, gpu)); }
+    GraphicsSurface createSurface(Window& window) { return S().createSurface(window); }
   };
 }

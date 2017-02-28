@@ -8,25 +8,40 @@ namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
-
+  class GraphicsSurface;
   namespace backend
   {
     struct GpuHeap;
 
     namespace prototypes
     {
+      class GraphicsSurfaceImpl
+      {
+      public:
+        virtual ~GraphicsSurfaceImpl() {}
+      };
+
+      class SwapchainImpl
+      {
+      public:
+        virtual ~SwapchainImpl() {}
+      };
+
       class TextureImpl
       {
       public:
+        virtual ~TextureImpl() {}
       };
       class BufferImpl
       {
       public:
+        virtual ~BufferImpl() {}
       };
 
       class HeapImpl
       {
       public:
+        virtual ~HeapImpl() {}
       };
 
       class DeviceImpl
@@ -36,6 +51,11 @@ namespace faze
         // utility
         virtual void waitGpuIdle() = 0;
         virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
+
+        // swapchain
+        virtual std::shared_ptr<SwapchainImpl> createSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+        //virtual Swapchain reCreateSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+        virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
 
         //create/destroy pairs 
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
@@ -55,6 +75,7 @@ namespace faze
         virtual std::string gfxApi() = 0;
         virtual vector<GpuInfo> availableGpus() = 0;
         virtual GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu) = 0;
+        virtual GraphicsSurface createSurface(Window& window) = 0;
         virtual ~SubsystemImpl() {}
       };
     }

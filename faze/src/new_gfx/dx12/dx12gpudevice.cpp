@@ -172,6 +172,46 @@ namespace faze
       return dxdesc;
     }
 
+    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(PresentMode, ResourceDescriptor)
+    {
+      /*
+      DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+      ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+      swapChainDesc.Width = window.width();
+      swapChainDesc.Height = window.height();
+      swapChainDesc.Format = FormatToDXGIFormat[FormatType::R16G16B16A16_FLOAT];
+      swapChainDesc.Stereo = FALSE;
+      swapChainDesc.SampleDesc.Count = 1;
+      swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+      swapChainDesc.BufferCount = bufferCount;
+      swapChainDesc.Scaling = DXGI_SCALING_NONE;
+      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullDesc;
+      ZeroMemory(&fullDesc, sizeof(fullDesc));
+      fullDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+      fullDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;
+      fullDesc.RefreshRate.Numerator = 60000;
+      fullDesc.RefreshRate.Denominator = 1001;
+      fullDesc.Windowed = false;
+
+
+      FazCPtr<IDXGIFactory5> dxgiFactory = nullptr;
+      HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory5), (void**)dxgiFactory.GetAddressOf());
+      assert(!FAILED(hr));
+
+      FazCPtr<IDXGISwapChain4> mSwapChain = nullptr;
+      hr = dxgiFactory->CreateSwapChainForHwnd(queue.get().Get(), window.getInternalWindow().getNative(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)mSwapChain.GetAddressOf());
+      assert(!FAILED(hr));
+      */
+      return nullptr;
+    }
+    void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl>)
+    {
+
+    }
+
     void DX12Device::waitGpuIdle()
     {
       m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());

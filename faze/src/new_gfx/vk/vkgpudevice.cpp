@@ -17,7 +17,6 @@ namespace faze
       F_ILOG("Graphics/Memory", "heapCount %u memTypeCount %u", prop.memoryHeapCount, prop.memoryTypeCount);
       for (int i = 0; i < static_cast<int>(prop.memoryTypeCount); ++i)
       {
-        // TODO probably bug here with flags.
         auto memType = prop.memoryTypes[i];
         F_ILOG("Graphics/Memory", "propertyFlags %u", memType.propertyFlags);
         if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
@@ -141,6 +140,15 @@ namespace faze
     {
       m_device.waitIdle();
       m_device.destroy();
+    }
+
+    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(PresentMode, ResourceDescriptor)
+    {
+      return nullptr;
+    }
+    void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl>)
+    {
+
     }
 
     vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)

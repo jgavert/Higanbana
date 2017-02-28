@@ -1,5 +1,7 @@
 #include "vkresources.hpp"
 #include "faze/src/new_gfx/common/gpudevice.hpp"
+#include "faze/src/new_gfx/common/graphicssurface.hpp"
+#include "core/src/Platform/Window.hpp"
 #include "core/src/global_debug.hpp"
 
 
@@ -333,6 +335,26 @@ namespace faze
       std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, gpu, false);
 
       return GpuDevice(DeviceData(impl));
+    }
+
+    GraphicsSurface VulkanSubsystem::createSurface(Window& window)
+    {
+      vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()
+        .setHwnd(window.getInternalWindow().getHWND())
+        .setHinstance(window.getInternalWindow().getHInstance());
+
+
+      vk::SurfaceKHR surfacekhr = m_instance->createWin32SurfaceKHR(createInfo);
+
+      auto inst = m_instance;
+
+      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(surfacekhr), [inst](vk::SurfaceKHR* ist)
+      {
+        inst->destroySurfaceKHR(*ist);
+        delete ist;
+      });
+
+      return GraphicsSurface(std::make_shared<VulkanGraphicsSurface>(khrSur));
     }
   }
 }

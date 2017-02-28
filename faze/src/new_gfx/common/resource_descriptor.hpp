@@ -5,6 +5,15 @@
 
 namespace faze
 {
+  enum class PresentMode
+  {
+    Unknown,
+    Immediate,
+    Mailbox,
+    Fifo,
+    FifoRelaxed
+  };
+
   enum class ResourceShaderType
   {
     Unknown,

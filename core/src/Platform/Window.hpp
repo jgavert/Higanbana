@@ -9,28 +9,29 @@
 
 #ifdef WIN64
 #include <Windowsx.h>
-
-class WindowInternal
+namespace faze
 {
-private:
-  friend class Window;
-  HWND hWnd;
-  HINSTANCE hInstance;
-  WNDCLASSEX wc;
-  ProgramParams m_params;
-  std::string m_className;
-
-public:
-  WindowInternal(HWND hWnd,HINSTANCE hInstance, WNDCLASSEX wc, ProgramParams params, std::string className) :
-    hWnd(hWnd), hInstance(hInstance), wc(wc), m_params(params), m_className(className) {}
-  ~WindowInternal()
+  class WindowInternal
   {
-    DestroyWindow(hWnd);
-  }
-  HWND& getHWND() { return hWnd; }
-  HINSTANCE& getHInstance() { return hInstance; }
+  private:
+    friend class Window;
+    HWND hWnd;
+    HINSTANCE hInstance;
+    WNDCLASSEX wc;
+    ProgramParams m_params;
+    std::string m_className;
 
-};
+  public:
+    WindowInternal(HWND hWnd, HINSTANCE hInstance, WNDCLASSEX wc, ProgramParams params, std::string className) :
+      hWnd(hWnd), hInstance(hInstance), wc(wc), m_params(params), m_className(className) {}
+    ~WindowInternal()
+    {
+      DestroyWindow(hWnd);
+    }
+    HWND& getHWND() { return hWnd; }
+    HINSTANCE& getHInstance() { return hInstance; }
+
+  };
 #else
 class WindowInternal
 {
@@ -83,7 +84,7 @@ private:
   void resizeEvent(const char*  eventName);
   void setDpi(unsigned scale);
 public:
-	Window(ProgramParams params, std::string windowName, int width, int height);
+  Window(ProgramParams params, std::string windowName, int width, int height);
   bool open();
   void close();
   void cursorHidden(bool enabled);
@@ -105,4 +106,4 @@ public:
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
-
+}

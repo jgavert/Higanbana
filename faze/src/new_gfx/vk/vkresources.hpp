@@ -13,6 +13,38 @@ namespace faze
 {
   namespace backend
   {
+    class VulkanGraphicsSurface : public prototypes::GraphicsSurfaceImpl
+    {
+    private:
+      std::shared_ptr<vk::SurfaceKHR> surface;
+
+    public:
+      VulkanGraphicsSurface()
+      {}
+      VulkanGraphicsSurface(std::shared_ptr<vk::SurfaceKHR> surface)
+        : surface(surface)
+      {}
+      vk::SurfaceKHR native()
+      {
+        return *surface;
+      }
+    };
+
+    class VulkanSwapchain : public prototypes::SwapchainImpl
+    {
+      vk::SwapchainKHR m_swapchain;
+    public:
+      VulkanSwapchain()
+      {}
+      VulkanSwapchain(vk::SwapchainKHR resource)
+        : m_swapchain(resource)
+      {}
+      vk::SwapchainKHR native()
+      {
+        return m_swapchain;
+      }
+    };
+
     class VulkanTexture : public prototypes::TextureImpl
     {
     private:
@@ -113,6 +145,10 @@ namespace faze
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
       // implementation
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(PresentMode mode, ResourceDescriptor descriptor);
+      //virtual Swapchain reCreateSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
+
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
@@ -167,6 +203,7 @@ namespace faze
       std::string gfxApi();
       vector<GpuInfo> availableGpus();
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu);
+      GraphicsSurface createSurface(Window& window) override;
     };
 
   }
