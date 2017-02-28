@@ -63,6 +63,9 @@ namespace faze
 
   class Buffer;
   class Texture;
+  class Swapchain;
+  class GraphicsSurface;
+  class Window;
 
   namespace backend
   {
@@ -73,6 +76,8 @@ namespace faze
       class HeapImpl;
       class BufferImpl;
       class TextureImpl;
+      class SwapchainImpl;
+      class GraphicsSurfaceImpl;
     }
 
     struct GpuHeap
@@ -126,6 +131,7 @@ namespace faze
 
       std::shared_ptr<ResourceTracker<prototypes::BufferImpl>> m_bufferTracker;
       std::shared_ptr<ResourceTracker<prototypes::TextureImpl>> m_textureTracker;
+      std::shared_ptr<ResourceTracker<prototypes::SwapchainImpl>> m_swapchainTracker;
 
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
 
@@ -134,6 +140,7 @@ namespace faze
       DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl);
       ~DeviceData();
       void waitGpuIdle();
+      Swapchain createSwapchain(PresentMode mode, ResourceDescriptor descriptor);
       Buffer createBuffer(ResourceDescriptor desc);
       void createBufferView(ShaderViewDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
@@ -151,6 +158,7 @@ namespace faze
       std::string gfxApi();
       vector<GpuInfo> availableGpus();
       GpuDevice createDevice(FileSystem& fs, GpuInfo gpu);
+      GraphicsSurface createSurface(Window& window);
     };
   }
 }

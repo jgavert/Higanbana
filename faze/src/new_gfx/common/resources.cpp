@@ -1,5 +1,6 @@
 #include "resources.hpp"
 #include "gpudevice.hpp"
+#include "graphicssurface.hpp"
 #include "implementation.hpp"
 
 namespace faze
@@ -28,6 +29,7 @@ namespace faze
     std::string SubsystemData::gfxApi() { return impl->gfxApi(); }
     vector<GpuInfo> SubsystemData::availableGpus() { return impl->availableGpus(); }
     GpuDevice SubsystemData::createDevice(FileSystem& fs, GpuInfo gpu) { return impl->createGpuDevice(fs, gpu); }
+    GraphicsSurface SubsystemData::createSurface(Window& window) { return impl->createSurface(window); }
 
     // device
     DeviceData::DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
@@ -73,6 +75,14 @@ namespace faze
     }
 
     void DeviceData::waitGpuIdle() { m_impl->waitGpuIdle(); }
+
+    Swapchain DeviceData::createSwapchain(PresentMode mode, ResourceDescriptor descriptor)
+    {
+      auto sc = m_impl->createSwapchain(mode, descriptor);
+      auto tracker = m_swapchainTracker->makeTracker(newId(), sc);
+      return Swapchain(sc, tracker);
+    }
+
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
     {
       auto memRes = m_impl->getReqs(desc);

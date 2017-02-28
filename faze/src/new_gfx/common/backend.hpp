@@ -61,6 +61,17 @@ namespace faze
         });
       }
 
+      std::shared_ptr<int64_t> makeTracker(int64_t id, std::shared_ptr<TrackedResource> resourceToTrack)
+      {
+        auto dest = shared_from_this();
+        return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, dest](int64_t* t)
+        {
+          std::lock_guard<std::mutex> lock(dest->m_lock);
+          dest->m_disposableObjects.emplace_back(resourceToTrack);
+          delete t;
+        });
+      }
+
       std::vector<std::shared_ptr<TrackedResource>> getResources()
       {
         std::lock_guard<std::mutex> lock(m_lock);

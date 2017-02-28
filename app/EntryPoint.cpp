@@ -58,6 +58,9 @@ int EntryPoint::main()
     ivec2 ires = { 800, 600 };
     vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
     Window window(m_params, name, ires.x(), ires.y());
+
+    auto surface = graphics.createSurface(window);
+
     window.open();
     int64_t frame = 1;
     bool closeAnyway = true;
@@ -84,13 +87,13 @@ int EntryPoint::main()
         
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
-  /*
+  //main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
+  
   LBS lbs;
-  lbs.addTask("vulkan", [&](size_t, size_t) {main(GraphicsApi::Vulkan, "Vulkan", true); });
-  lbs.addTask("DX12", [&](size_t, size_t) {main(GraphicsApi::DX12, "DX12", false); });
+  lbs.addTask("vulkan", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
+  lbs.addTask("DX12", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", false); });
   lbs.sleepTillKeywords({"vulkan", "DX12"});
-  */
+  
   log.update();
   return 1;
 }

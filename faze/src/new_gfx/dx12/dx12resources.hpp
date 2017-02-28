@@ -51,6 +51,42 @@ namespace faze
     };
 
     // implementations
+    class DX12GraphicsSurface : public prototypes::GraphicsSurfaceImpl
+    {
+    private:
+      HWND hwnd;
+      HINSTANCE instance;
+
+    public:
+      DX12GraphicsSurface()
+      {}
+      DX12GraphicsSurface(HWND hwnd, HINSTANCE instance)
+        : hwnd(hwnd)
+        , instance(instance)
+      {}
+      HWND native()
+      {
+        return hwnd;
+      }
+    };
+
+    class DX12Swapchain : public prototypes::SwapchainImpl
+    {
+    private:
+      D3D12Swapchain* resource;
+
+    public:
+      DX12Swapchain()
+      {}
+      DX12Swapchain(D3D12Swapchain* resource)
+        : resource(resource)
+      {}
+      D3D12Swapchain* native()
+      {
+        return resource;
+      }
+    };
+
     class DX12Texture : public prototypes::TextureImpl
     {
     private:
@@ -120,6 +156,10 @@ namespace faze
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
 
       // impl
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(PresentMode mode, ResourceDescriptor descriptor);
+      //virtual Swapchain reCreateSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
+
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
@@ -143,6 +183,7 @@ namespace faze
       std::string gfxApi() override;
       vector<GpuInfo> availableGpus() override;
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
+      GraphicsSurface createSurface(Window& window) override;
     };
   }
 }
