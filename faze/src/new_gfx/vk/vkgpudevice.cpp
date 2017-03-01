@@ -1,6 +1,6 @@
 #include "vkresources.hpp"
 #include "util/formats.hpp"
-#include "faze/src/new_gfx/common/buffer.hpp"
+#include "faze/src/new_gfx/common/graphicssurface.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -120,7 +120,7 @@ namespace faze
         m_singleQueue = true;
         // lets just fetch it and copy it for those who need it.
         //auto que = m_device->getQueue(0, 0); // TODO: 0 index is wrong.
-        m_internalUniversalQueue = m_device.getQueue(0, 0);
+        //m_internalUniversalQueue = m_device.getQueue(0, 0);
       }
       if (m_freeQueueIndexes.universal.size() > 0
         && m_freeQueueIndexes.graphics.size() > 0)
@@ -132,6 +132,30 @@ namespace faze
       m_dmaQueues = !m_freeQueueIndexes.dma.empty();
       m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
 
+      if (m_singleQueue)
+      {
+        m_mainQueue = m_device.getQueue(0, 0);
+        m_mainQueueIndex = 0;
+      }
+      else
+      {
+        if (!m_freeQueueIndexes.universal.empty())
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.universalIndex;
+          uint32_t queueId = m_freeQueueIndexes.universal.back();
+          m_freeQueueIndexes.universal.pop_back();
+          m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_mainQueueIndex = queueFamilyIndex;
+        }
+        else
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.graphicsIndex;
+          uint32_t queueId = m_freeQueueIndexes.graphics.back();
+          m_freeQueueIndexes.graphics.pop_back();
+          m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_mainQueueIndex = queueFamilyIndex;
+        }
+      }
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
     }
@@ -142,19 +166,181 @@ namespace faze
       m_device.destroy();
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface&, PresentMode , FormatType , int )
+    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int buffers)
     {
-      return nullptr;
+      auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
+      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+      F_SLOG("Graphics/Surface", "surface details\n");
+      F_SLOG("Graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
+      F_SLOG("Graphics/Surface", "current res %dx%d\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
+      F_SLOG("Graphics/Surface", "min res %dx%d\n", surfaceCap.minImageExtent.width, surfaceCap.minImageExtent.height);
+      F_SLOG("Graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
+
+      auto formats = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
+
+      auto wantedFormat = formatToVkFormat(format).storage;
+      auto backupFormat = vk::Format::eB8G8R8A8Unorm;
+      bool found = false;
+      bool hadBackup = false;
+      for (auto&& fmt : formats)
+      {
+        if (wantedFormat == fmt.format)
+        {
+          found = true;
+        }
+        if (backupFormat == fmt.format)
+        {
+          hadBackup = true;
+        }
+        F_SLOG("Graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
+      }
+
+      if (!found)
+      {
+        F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
+        wantedFormat = backupFormat;
+      }
+
+      auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native());
+
+      vk::PresentModeKHR khrmode;
+      switch (mode)
+      {
+      case PresentMode::Mailbox:
+        khrmode = vk::PresentModeKHR::eMailbox;
+        break;
+      case PresentMode::Fifo:
+        khrmode = vk::PresentModeKHR::eFifo;
+        break;
+      case PresentMode::FifoRelaxed:
+        khrmode = vk::PresentModeKHR::eFifoRelaxed;
+        break;
+      case PresentMode::Immediate:
+      default:
+        khrmode = vk::PresentModeKHR::eImmediate;
+        break;
+      }
+
+      bool hadChosenMode = false;
+      for (auto&& fmt : asd)
+      {
+        if (fmt == vk::PresentModeKHR::eImmediate)
+          F_SLOG("Graphics/AvailablePresentModes", "Immediate\n");
+        if (fmt == vk::PresentModeKHR::eMailbox)
+          F_SLOG("Graphics/AvailablePresentModes", "Mailbox\n");
+        if (fmt == vk::PresentModeKHR::eFifo)
+          F_SLOG("Graphics/AvailablePresentModes", "Fifo\n");
+        if (fmt == vk::PresentModeKHR::eFifoRelaxed)
+          F_SLOG("Graphics/AvailablePresentModes", "FifoRelaxed\n");
+        if (fmt == khrmode)
+          hadChosenMode = true;
+      }
+      if (!hadChosenMode)
+      {
+        khrmode = vk::PresentModeKHR::eMailbox; // guaranteed by spec
+      }
+
+      auto extent = surfaceCap.currentExtent;
+      if (extent.height == 0)
+      {
+        extent.height = surfaceCap.minImageExtent.height;
+      }
+      if (extent.width == 0)
+      {
+        extent.width = surfaceCap.minImageExtent.width;
+      }
+
+      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()))
+      {
+        F_ASSERT(false, "Was not supported.");
+      }
+      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), buffers);
+      F_SLOG("Vulkan", "creating swapchain to %ux%u, buffers %d\n", extent.width, extent.height, minImageCount);
+
+      vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
+        .setSurface(natSurface->native())
+        .setMinImageCount(minImageCount)
+        .setImageFormat(wantedFormat)
+        .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
+        .setImageExtent(surfaceCap.currentExtent)
+        .setImageArrayLayers(1)
+        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)  // linear to here
+        .setImageSharingMode(vk::SharingMode::eExclusive)
+        //	.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eInherit)
+        //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
+        .setPresentMode(khrmode)
+        .setClipped(false);
+
+      auto swapchain = m_device.createSwapchainKHR(info);
+      return std::make_shared<VulkanSwapchain>(swapchain);
     }
 
-    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl>, GraphicsSurface& , PresentMode , FormatType , int )
+    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int buffers)
     {
+      auto natSwapchain = std::static_pointer_cast<VulkanSwapchain>(swapchain);
+      auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
+      auto oldSwapchain = natSwapchain->native();
 
+      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+
+      auto& extent = surfaceCap.currentExtent;
+      if (extent.height < 8)
+      {
+        extent.height = 8;
+      }
+      if (extent.width < 8)
+      {
+        extent.width = 8;
+      }
+
+      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), buffers);
+
+      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()))
+      {
+        F_ASSERT(false, "Was not supported.");
+      }
+      vk::PresentModeKHR khrmode;
+      switch (mode)
+      {
+      case PresentMode::Mailbox:
+        khrmode = vk::PresentModeKHR::eMailbox;
+        break;
+      case PresentMode::Fifo:
+        khrmode = vk::PresentModeKHR::eFifo;
+        break;
+      case PresentMode::FifoRelaxed:
+        khrmode = vk::PresentModeKHR::eFifoRelaxed;
+        break;
+      case PresentMode::Immediate:
+      default:
+        khrmode = vk::PresentModeKHR::eImmediate;
+        break;
+      }
+
+      vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
+        .setSurface(natSurface->native())
+        .setMinImageCount(minImageCount)
+        .setImageFormat(formatToVkFormat(format).storage)
+        .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
+        .setImageExtent(surfaceCap.currentExtent)
+        .setImageArrayLayers(1)
+        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)  // linear to here
+        .setImageSharingMode(vk::SharingMode::eExclusive)
+        //	.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eInherit)
+        //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
+        .setPresentMode(khrmode)
+        .setClipped(false)
+        .setOldSwapchain(oldSwapchain);
+
+      natSwapchain->setSwapchain(m_device.createSwapchainKHR(info));
+
+      m_device.destroySwapchainKHR(oldSwapchain);
     }
 
-    void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl>)
+    void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-
+      auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
+      m_device.destroySwapchainKHR(native->native());
     }
 
     vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)

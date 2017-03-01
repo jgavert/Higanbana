@@ -39,6 +39,12 @@ namespace faze
       VulkanSwapchain(vk::SwapchainKHR resource)
         : m_swapchain(resource)
       {}
+
+      void setSwapchain(vk::SwapchainKHR chain)
+      {
+        m_swapchain = chain;
+      }
+
       vk::SwapchainKHR native()
       {
         return m_swapchain;
@@ -106,10 +112,12 @@ namespace faze
       bool                        m_computeQueues;
       bool                        m_dmaQueues;
       bool                        m_graphicQueues;
-      vk::Queue                   m_internalUniversalQueue;
       GpuInfo                     m_info;
       ShaderStorage               m_shaders;
       int64_t                     m_resourceID = 1;
+
+      int                         m_mainQueueIndex;
+      vk::Queue                   m_mainQueue;
 
       struct FreeQueues
       {

@@ -224,7 +224,6 @@ namespace faze
       UINT bufferLocations[] = { 0 };
       IUnknown* queues[] = { m_graphicsQueue.Get() };
       natSwapchain->native()->ResizeBuffers1(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, bufferLocations, queues);
-
     }
 
     void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)

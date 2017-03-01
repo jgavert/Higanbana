@@ -39,9 +39,8 @@ int EntryPoint::main()
     window.open();
 
     FileSystem fs;
-    auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
-
     auto surface = graphics.createSurface(window);
+    auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
     {
       auto swapchain = dev.createSwapchain(surface);
 
@@ -94,13 +93,13 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", true);
- /* 
+  //main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
+ 
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
-  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "vulkan2", false); });
+  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", false); });
   lbs.sleepTillKeywords({"test1", "test2"});
-  */
+  
   log.update();
   return 1;
 }
