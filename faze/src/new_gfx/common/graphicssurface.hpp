@@ -15,5 +15,10 @@ namespace faze
       : impl(impl)
     {
     }
+
+    std::shared_ptr<backend::prototypes::GraphicsSurfaceImpl> native()
+    {
+      return impl;
+    }
   };
 }

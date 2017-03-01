@@ -1,7 +1,7 @@
 #if defined(PLATFORM_WINDOWS)
 #include "dx12resources.hpp"
 #include "util/formats.hpp"
-#include "faze/src/new_gfx/common/buffer.hpp"
+#include "faze/src/new_gfx/common/graphicssurface.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -18,20 +18,20 @@ namespace faze
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
       desc.NodeMask = m_nodeMask;
-      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_graphicsQueue.GetAddressOf()));
+      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_graphicsQueue.ReleaseAndGetAddressOf()));
 
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_dmaQueue.GetAddressOf()));
+      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_dmaQueue.ReleaseAndGetAddressOf()));
 
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_computeQueue.GetAddressOf()));
+      m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_computeQueue.ReleaseAndGetAddressOf()));
 
       ComPtr<ID3D12Fence> fence;
-      m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
+      m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf()));
       m_deviceFence = DX12Fence(fence);
       /*
       D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS data{};
@@ -172,44 +172,65 @@ namespace faze
       return dxdesc;
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(PresentMode, ResourceDescriptor)
+    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, PresentMode, FormatType format, int bufferCount)
     {
-      /*
-      DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
-      ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-      swapChainDesc.Width = window.width();
-      swapChainDesc.Height = window.height();
-      swapChainDesc.Format = FormatToDXGIFormat[FormatType::R16G16B16A16_FLOAT];
+      auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
+      RECT rect{};
+      BOOL lol = GetClientRect(natSurface->native(), &rect);
+      F_ASSERT(lol, "window rect failed ....?");
+      auto width = rect.right - rect.left;
+      auto height = rect.bottom - rect.top;
+      F_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
+      DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+      swapChainDesc.Width = width; // I wonder how to get sane sizes in beginning...
+      swapChainDesc.Height = height;
+      swapChainDesc.Format = formatTodxFormat(format).storage;
       swapChainDesc.Stereo = FALSE;
       swapChainDesc.SampleDesc.Count = 1;
       swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-      swapChainDesc.BufferCount = bufferCount;
-      swapChainDesc.Scaling = DXGI_SCALING_NONE;
-      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+      swapChainDesc.BufferCount = static_cast<UINT>(bufferCount); // conviently array can be used to describe bufferCount
+      swapChainDesc.Scaling = DXGI_SCALING_NONE; // scaling.. hmm ignore for now
+      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
+      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
+                                                                    // also DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
 
-      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullDesc;
-      ZeroMemory(&fullDesc, sizeof(fullDesc));
-      fullDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-      fullDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;
-      fullDesc.RefreshRate.Numerator = 60000;
-      fullDesc.RefreshRate.Denominator = 1001;
-      fullDesc.Windowed = false;
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullDesc{};
+      fullDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED; // could be something else, like DXGI_MODE_SCALING_STRETCHED
+      fullDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE; // no questions about this.
+      fullDesc.RefreshRate.Numerator = 60000; // lol 1
+      fullDesc.RefreshRate.Denominator = 1001; // lol 2
+      fullDesc.Windowed = TRUE; // oh boy, need to toggle this in flight only. fullscreen + breakpoint + single screen == pain.
 
+      ComPtr<IDXGIFactory5> dxgiFactory = nullptr;
+      FAZE_CHECK_HR(CreateDXGIFactory2(0, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
 
-      FazCPtr<IDXGIFactory5> dxgiFactory = nullptr;
-      HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory5), (void**)dxgiFactory.GetAddressOf());
-      assert(!FAILED(hr));
-
-      FazCPtr<IDXGISwapChain4> mSwapChain = nullptr;
-      hr = dxgiFactory->CreateSwapChainForHwnd(queue.get().Get(), window.getInternalWindow().getNative(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)mSwapChain.GetAddressOf());
-      assert(!FAILED(hr));
-      */
-      return nullptr;
+      D3D12Swapchain* swapChain = nullptr;
+      FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
+      return std::make_shared<DX12Swapchain>(swapChain);
     }
-    void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl>)
-    {
 
+    void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, GraphicsSurface& surface, PresentMode , FormatType format, int bufferCount)
+    {
+      auto natSwapchain = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
+
+      RECT rect{};
+      BOOL lol = GetClientRect(natSurface->native(), &rect);
+      F_ASSERT(lol, "window rect failed ....?");
+      auto width = rect.right - rect.left;
+      auto height = rect.bottom - rect.top;
+      F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
+
+      UINT bufferLocations[] = { 0 };
+      IUnknown* queues[] = { m_graphicsQueue.Get() };
+      natSwapchain->native()->ResizeBuffers1(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, bufferLocations, queues);
+
+    }
+
+    void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    {
+      auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      native->native()->Release();
     }
 
     void DX12Device::waitGpuIdle()
