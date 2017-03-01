@@ -5,6 +5,7 @@
 #if defined(PLATFORM_WINDOWS)
 #define NOMINMAX
 #include <Windows.h>
+#include <comdef.h>
 #endif
 
 #include <string.h>
@@ -37,6 +38,20 @@
         if (!(cond)) \
           { \
             log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+            if (IsDebuggerPresent()) \
+              __debugbreak(); \
+            abort();\
+          } \
+      } while (0)
+
+#define FAZE_CHECK_HR(hr) \
+        do \
+        { \
+        if (FAILED(hr)) \
+          { \
+            _com_error err(hr); \
+            LPCTSTR errMsg = err.ErrorMessage(); \
+            log_immideateAssert(__FILE__, __LINE__, "[SYSTEM/fail]: HRESULT: \"%s\"", errMsg); \
             if (IsDebuggerPresent()) \
               __debugbreak(); \
             abort();\

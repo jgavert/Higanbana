@@ -34,64 +34,67 @@ int EntryPoint::main()
     if (updateLog) log.update();
     if (gpus.empty())
       return;
+    ivec2 ires = { 800, 600 };
+    Window window(m_params, name, ires.x(), ires.y());
+    window.open();
+
     FileSystem fs;
     auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
-    F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
-
-    auto bufferdesc = ResourceDescriptor()
-      .setName("testBufferTarget")
-      .setFormat<float>()
-      .setWidth(100)
-      .setDimension(FormatDimension::Buffer);
-
-    auto buffer = dev.createBuffer(bufferdesc);
-
-    auto texturedesc = ResourceDescriptor()
-      .setName("testTexture")
-      .setFormat(FormatType::Uint8x4_Srgb)
-      .setWidth(1280)
-      .setHeight(720)
-      .setMiplevels(4)
-      .setDimension(FormatDimension::Texture2D);
-
-    auto texture = dev.createTexture(texturedesc);
-
-    texturedesc = texturedesc.setArraySize(3);
-    auto texture2 = dev.createTexture(texturedesc);
-
-    ivec2 ires = { 800, 600 };
-    vec2 res = { static_cast<float>(ires.x()), static_cast<float>(ires.y()) };
-    Window window(m_params, name, ires.x(), ires.y());
 
     auto surface = graphics.createSurface(window);
-
-    window.open();
-    int64_t frame = 1;
-    bool closeAnyway = true;
-    while (!window.simpleReadMessages(frame++))
     {
-      if (window.hasResized())
-      {
-        //gpu.reCreateSwapchain(swapchain, surface);
-        window.resizeHandled();
-      }
-      auto& inputs = window.inputs();
+      auto swapchain = dev.createSwapchain(surface);
 
-      if (inputs.isPressedThisFrame(VK_SPACE, 1))
-      {
-        auto& mouse = window.mouse();
-        F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
-      }
+      F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
 
-      if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+      auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat<float>()
+        .setWidth(100)
+        .setDimension(FormatDimension::Buffer);
+
+      auto buffer = dev.createBuffer(bufferdesc);
+
+      auto texturedesc = ResourceDescriptor()
+        .setName("testTexture")
+        .setFormat(FormatType::Uint8x4_Srgb)
+        .setWidth(1280)
+        .setHeight(720)
+        .setMiplevels(4)
+        .setDimension(FormatDimension::Texture2D);
+
+      auto texture = dev.createTexture(texturedesc);
+
+      texturedesc = texturedesc.setArraySize(3);
+      auto texture2 = dev.createTexture(texturedesc);
+
+      int64_t frame = 1;
+      bool closeAnyway = true;
+      while (!window.simpleReadMessages(frame++))
       {
-        break;
+        if (window.hasResized())
+        {
+          //gpu.reCreateSwapchain(swapchain, surface);
+          window.resizeHandled();
+        }
+        auto& inputs = window.inputs();
+
+        if (inputs.isPressedThisFrame(VK_SPACE, 1))
+        {
+          auto& mouse = window.mouse();
+          F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
+        }
+
+        if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+        {
+          break;
+        }
+        if (updateLog) log.update();
+
       }
-      if (updateLog) log.update();
-        
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
+  main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", true);
  /* 
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });

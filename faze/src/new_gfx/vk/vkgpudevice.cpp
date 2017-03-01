@@ -142,10 +142,16 @@ namespace faze
       m_device.destroy();
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(PresentMode, ResourceDescriptor)
+    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface&, PresentMode , FormatType , int )
     {
       return nullptr;
     }
+
+    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl>, GraphicsSurface& , PresentMode , FormatType , int )
+    {
+
+    }
+
     void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl>)
     {
 

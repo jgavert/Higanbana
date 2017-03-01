@@ -156,8 +156,8 @@ namespace faze
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
 
       // impl
-      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(PresentMode mode, ResourceDescriptor descriptor);
-      //virtual Swapchain reCreateSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
 
       void waitGpuIdle() override;

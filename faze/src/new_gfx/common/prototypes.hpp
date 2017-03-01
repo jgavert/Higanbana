@@ -53,8 +53,8 @@ namespace faze
         virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
 
         // swapchain
-        virtual std::shared_ptr<SwapchainImpl> createSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
-        //virtual Swapchain reCreateSwapchain(PresentMode mode, ResourceDescriptor descriptor) = 0;
+        virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount) = 0;
+        virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount) = 0;
         virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
 
         //create/destroy pairs 

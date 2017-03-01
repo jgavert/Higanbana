@@ -140,7 +140,9 @@ namespace faze
       DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl);
       ~DeviceData();
       void waitGpuIdle();
-      Swapchain createSwapchain(PresentMode mode, ResourceDescriptor descriptor);
+      Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
+      void adjustSwapchain(Swapchain& swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
+
       Buffer createBuffer(ResourceDescriptor desc);
       void createBufferView(ShaderViewDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);

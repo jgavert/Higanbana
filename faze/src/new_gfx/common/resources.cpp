@@ -36,6 +36,7 @@ namespace faze
       : m_impl(impl)
       , m_bufferTracker(std::make_shared<ResourceTracker<prototypes::BufferImpl>>())
       , m_textureTracker(std::make_shared<ResourceTracker<prototypes::TextureImpl>>())
+      , m_swapchainTracker(std::make_shared<ResourceTracker<prototypes::SwapchainImpl>>())
       , m_idGenerator(std::make_shared<std::atomic<int64_t>>())
     {
     }
@@ -43,6 +44,14 @@ namespace faze
     DeviceData::~DeviceData()
     {
       waitGpuIdle();
+
+      auto swapChains = m_swapchainTracker->getResources();
+      for (auto&& sc : swapChains)
+      {
+        m_impl->destroySwapchain(sc);
+      }
+
+      // buffers 
       auto buffers = m_bufferTracker->getResources();
       for (auto&& buffer : buffers)
       {
@@ -54,7 +63,7 @@ namespace faze
       {
         m_heaps.release(allocation);
       }
-
+      // textures
       auto textures = m_textureTracker->getResources();
       for (auto&& texture : textures)
       {
@@ -67,6 +76,7 @@ namespace faze
         m_heaps.release(allocation);
       }
 
+      // heaps
       auto heaps = m_heaps.emptyHeaps();
       for (auto&& heap : heaps)
       {
@@ -76,11 +86,24 @@ namespace faze
 
     void DeviceData::waitGpuIdle() { m_impl->waitGpuIdle(); }
 
-    Swapchain DeviceData::createSwapchain(PresentMode mode, ResourceDescriptor descriptor)
+    Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
     {
-      auto sc = m_impl->createSwapchain(mode, descriptor);
+      auto sc = m_impl->createSwapchain(surface, mode, format, bufferCount);
       auto tracker = m_swapchainTracker->makeTracker(newId(), sc);
+      // get backbuffers to swapchain
       return Swapchain(sc, tracker);
+    }
+
+    void DeviceData::adjustSwapchain(Swapchain& swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
+    {
+      // stop gpu
+      waitGpuIdle();
+      // release current swapchain backbuffers
+      // blim
+      m_impl->adjustSwapchain(swapchain.impl(), surface, mode, format, bufferCount);
+      // get new backbuffers... seems like we do it here.
+      // ...
+      // profit!
     }
 
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
