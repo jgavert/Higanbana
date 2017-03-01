@@ -30,7 +30,7 @@ namespace faze
   {
       Amd, // = 4098,
       Nvidia, // = 4318,
-      Intel, // dunno lol
+      Intel, // implemented but lol number 
       Unknown
   };
 
@@ -115,7 +115,7 @@ namespace faze
       };
 
       vector<HeapVector> m_heaps;
-      const int64_t m_minimumHeapSize = 32 * 1024 * 1024;
+      const int64_t m_minimumHeapSize = 16 * 1024 * 1024;
     public:
 
       HeapAllocation allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements);

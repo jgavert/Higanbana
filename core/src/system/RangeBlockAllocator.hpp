@@ -139,7 +139,7 @@ namespace faze
         return RangeBlock{ -1, -1 };
       }
       auto startIndex = checkIfFreeContiguousMemory(inputBlocks);
-      if (startIndex != -1 && startIndex + static_cast<int64_t>(inputBlocks) < m_size)
+      if (startIndex != -1 && startIndex + static_cast<int64_t>(inputBlocks) <= m_size)
       {
         m_freespace -= inputBlocks;
         markUsedPages(startIndex, inputBlocks);
@@ -222,7 +222,7 @@ namespace faze
         }
         if (continuosPages == blockCount)
         {
-          return i - continuosPages + 1; // this might have one off
+          return i - continuosPages+1; // this might have one off
         }
       }
       return -1; // Invalid!

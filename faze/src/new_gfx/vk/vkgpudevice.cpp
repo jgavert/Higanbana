@@ -432,6 +432,12 @@ namespace faze
       reqs.heapType = packed;
       reqs.alignment = requirements.alignment;
       reqs.bytes = requirements.size;
+
+      if (reqs.alignment < 128)
+      {
+          reqs.alignment = ((128 + reqs.alignment - 1) / reqs.alignment) * reqs.alignment;
+      }
+
       return reqs;
     }
 

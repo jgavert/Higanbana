@@ -36,6 +36,7 @@ int EntryPoint::main()
       return;
     FileSystem fs;
     auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
+    F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
 
     auto bufferdesc = ResourceDescriptor()
       .setName("testBufferTarget")
@@ -50,9 +51,12 @@ int EntryPoint::main()
       .setFormat(FormatType::Uint8x4_Srgb)
       .setWidth(1280)
       .setHeight(720)
+      .setMiplevels(4)
       .setDimension(FormatDimension::Texture2D);
 
     auto texture = dev.createTexture(texturedesc);
+
+    texturedesc = texturedesc.setArraySize(3);
     auto texture2 = dev.createTexture(texturedesc);
 
     ivec2 ires = { 800, 600 };
@@ -87,13 +91,13 @@ int EntryPoint::main()
         
     }
   };
-  //main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
-  
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
+ /* 
   LBS lbs;
-  lbs.addTask("vulkan", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
-  lbs.addTask("DX12", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", false); });
-  lbs.sleepTillKeywords({"vulkan", "DX12"});
-  
+  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
+  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "vulkan2", false); });
+  lbs.sleepTillKeywords({"test1", "test2"});
+  */
   log.update();
   return 1;
 }
