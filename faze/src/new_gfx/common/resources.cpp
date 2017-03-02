@@ -45,33 +45,28 @@ namespace faze
     {
       waitGpuIdle();
 
-      auto swapChains = m_swapchainTracker->getResources();
-      for (auto&& sc : swapChains)
+      for (auto&& sc : m_swapchainTracker->getResources())
       {
         m_impl->destroySwapchain(sc);
       }
 
       // buffers 
-      auto buffers = m_bufferTracker->getResources();
-      for (auto&& buffer : buffers)
+      for (auto&& buffer : m_bufferTracker->getResources())
       {
         m_impl->destroyBuffer(buffer);
       }
 
-      auto bufferAllocations = m_bufferTracker->getAllocations();
-      for (auto&& allocation : bufferAllocations)
+      for (auto&& allocation : m_bufferTracker->getAllocations())
       {
         m_heaps.release(allocation);
       }
       // textures
-      auto textures = m_textureTracker->getResources();
-      for (auto&& texture : textures)
+      for (auto&& texture : m_textureTracker->getResources())
       {
         m_impl->destroyTexture(texture);
       }
 
-      auto textureAllocations = m_textureTracker->getAllocations();
-      for (auto&& allocation : textureAllocations)
+      for (auto&& allocation : m_textureTracker->getAllocations())
       {
         m_heaps.release(allocation);
       }
@@ -90,18 +85,49 @@ namespace faze
     {
       auto sc = m_impl->createSwapchain(surface, mode, format, bufferCount);
       auto tracker = m_swapchainTracker->makeTracker(newId(), sc);
+      auto swapchain = Swapchain(sc, tracker);
       // get backbuffers to swapchain
-      return Swapchain(sc, tracker);
+      auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
+      vector<Texture> backbuffers;
+      backbuffers.resize(buffers.size());
+      for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
+      {
+        auto texTracker = m_textureTracker->makeTracker(newId(), buffers[i]);
+        backbuffers[i] = Texture(buffers[i], texTracker, swapchain.impl()->desc());
+      }
+      swapchain.setBackbuffers(backbuffers);
+      return swapchain;
     }
 
     void DeviceData::adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount)
     {
       // stop gpu
       waitGpuIdle();
+      // wait all idle work.
       // release current swapchain backbuffers
+      swapchain.setBackbuffers({}); // technically this frees the textures if they are not used anywhere.
+      // go collect the trash.
+      for (auto&& texture : m_textureTracker->getResources())
+      {
+        m_impl->destroyTexture(texture);
+      }
+      for (auto&& allocation : m_textureTracker->getAllocations())
+      {
+        m_heaps.release(allocation);
+      }
+
       // blim
       m_impl->adjustSwapchain(swapchain.impl(), mode, format, bufferCount);
       // get new backbuffers... seems like we do it here.
+      auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
+      vector<Texture> backbuffers;
+      backbuffers.resize(buffers.size());
+      for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
+      {
+        auto tracker = m_textureTracker->makeTracker(newId(), buffers[i]);
+        backbuffers[i] = Texture(buffers[i], tracker, swapchain.impl()->desc());
+      }
+      swapchain.setBackbuffers(backbuffers);
       // ...
       // profit!
     }

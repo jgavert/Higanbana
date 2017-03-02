@@ -85,7 +85,7 @@ private:
   void resizeEvent(const char*  eventName);
   void setDpi(unsigned scale);
 public:
-  Window(ProgramParams params, std::string windowName, int width, int height);
+  Window(ProgramParams params, std::string windowName, int width, int height, int offsetX = 0, int offsetY = 0);
   bool open();
   void close();
   void cursorHidden(bool enabled);
