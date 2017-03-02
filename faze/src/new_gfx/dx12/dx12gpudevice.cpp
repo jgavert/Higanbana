@@ -221,7 +221,7 @@ namespace faze
       F_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
+      //F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
       format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
@@ -240,6 +240,22 @@ namespace faze
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       native->native()->Release();
+    }
+
+    vector<std::shared_ptr<prototypes::TextureImpl>> DX12Device::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    {
+      auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+
+      vector<std::shared_ptr<prototypes::TextureImpl>> textures;
+      textures.resize(native->getDesc().buffers);
+
+      for (int i = 0; i < native->getDesc().buffers; ++i)
+      {
+        ID3D12Resource* renderTarget;
+        FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
+        textures[i] = std::make_shared<DX12Texture>(renderTarget);
+      }
+      return textures;
     }
 
     void DX12Device::waitGpuIdle()

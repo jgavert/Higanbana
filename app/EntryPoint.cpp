@@ -35,7 +35,7 @@ int EntryPoint::main()
     if (gpus.empty())
       return;
     ivec2 ires = { 800, 600 };
-    Window window(m_params, name, ires.x(), ires.y());
+    Window window(m_params, name, ires.x(), ires.y(), 3860, 300);
     window.open();
 
     FileSystem fs;

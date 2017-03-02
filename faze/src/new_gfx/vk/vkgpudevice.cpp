@@ -344,7 +344,7 @@ namespace faze
       natSwapchain->setSwapchain(m_device.createSwapchainKHR(info));
 
       m_device.destroySwapchainKHR(oldSwapchain);
-      F_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
+      //F_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
     }
 
@@ -352,6 +352,19 @@ namespace faze
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
       m_device.destroySwapchainKHR(native->native());
+    }
+
+    vector<std::shared_ptr<prototypes::TextureImpl>> VulkanDevice::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc)
+    {
+      auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
+      auto images = m_device.getSwapchainImagesKHR(native->native());
+      vector<std::shared_ptr<prototypes::TextureImpl>> textures;
+      textures.resize(images.size());
+      for (int i = 0; i < static_cast<int>(images.size()); ++i)
+      {
+        textures[i] = std::make_shared<VulkanTexture>(images[i], false);
+      }
+      return textures;
     }
 
     vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)
@@ -703,7 +716,8 @@ namespace faze
     void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
     {
       auto native = std::static_pointer_cast<VulkanTexture>(texture);
-      m_device.destroyImage(native->native());
+      if (native->canRelease())
+        m_device.destroyImage(native->native());
     }
   }
 }

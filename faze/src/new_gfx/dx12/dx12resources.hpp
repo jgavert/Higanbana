@@ -93,6 +93,19 @@ namespace faze
         , m_surface(surface)
       {}
 
+      ResourceDescriptor desc() override
+      {
+        return ResourceDescriptor()
+          .setWidth(m_desc.width)
+          .setHeight(m_desc.height)
+          .setFormat(m_desc.format)
+          .setUsage(ResourceUsage::RenderTarget)
+          .setMiplevels(1)
+          .setArraySize(1)
+          .setName("Swapchain Image")
+          .setDepth(1);
+      }
+
       void setBufferMetadata(int x, int y, int count, FormatType format, PresentMode mode)
       {
         m_desc.width = x;
@@ -190,6 +203,7 @@ namespace faze
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount);
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
+      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc);
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;

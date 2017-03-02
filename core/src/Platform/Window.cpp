@@ -141,7 +141,7 @@ void Window::keyUp(int key)
 #endif
 
 // Initializes the window and shows it
-Window::Window(ProgramParams params, std::string windowname, int width, int height)
+Window::Window(ProgramParams params, std::string windowname, int width, int height, int offsetX, int offsetY)
   : m_width(width)
   , m_height(height)
   , m_name(windowname)
@@ -163,16 +163,16 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   wc.lpszClassName = classname.c_str();
   RegisterClassEx(&wc);
 
-  RECT wr = { 0, 0, width, height };
+  RECT wr = { offsetX, offsetY, offsetX+width, offsetY+height };
   AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
   auto result = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
   if (result != S_OK)
   {
-    F_SLOG("Window", "Couldn't set dpi awareness.");
+    F_SLOG("Window", "Tried to set dpi awareness.");
   }
 
-  hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), WS_OVERLAPPEDWINDOW, 100, 300, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
+  hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), WS_OVERLAPPEDWINDOW, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
   if (hWnd == NULL)
   {
     printf("wtf window null\n");
