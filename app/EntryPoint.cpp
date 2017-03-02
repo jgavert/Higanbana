@@ -68,12 +68,12 @@ int EntryPoint::main()
       auto texture2 = dev.createTexture(texturedesc);
 
       int64_t frame = 1;
-      bool closeAnyway = true;
+      bool closeAnyway = false;
       while (!window.simpleReadMessages(frame++))
       {
         if (window.hasResized())
         {
-          //gpu.reCreateSwapchain(swapchain, surface);
+          dev.adjustSwapchain(swapchain);
           window.resizeHandled();
         }
         auto& inputs = window.inputs();

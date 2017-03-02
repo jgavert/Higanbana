@@ -107,7 +107,7 @@ void Window::resizeEvent(const char* eventName)
 {
   if ((m_width != m_resizeWidth || m_height != m_resizeHeight) && !m_minimized)
   {
-    F_SLOG("Window", "%s %dx%d\n",eventName, m_resizeWidth, m_resizeHeight);
+    F_SLOG("Window", "%s: %s %dx%d\n", m_name.c_str(),eventName, m_resizeWidth, m_resizeHeight);
     needToResize = true;
   }
 }
@@ -144,6 +144,7 @@ void Window::keyUp(int key)
 Window::Window(ProgramParams params, std::string windowname, int width, int height)
   : m_width(width)
   , m_height(height)
+  , m_name(windowname)
 {
 #if defined(PLATFORM_WINDOWS)
   WNDCLASSEX wc;

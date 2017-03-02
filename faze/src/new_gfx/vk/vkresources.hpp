@@ -33,12 +33,38 @@ namespace faze
     class VulkanSwapchain : public prototypes::SwapchainImpl
     {
       vk::SwapchainKHR m_swapchain;
+      VulkanGraphicsSurface m_surface;
+
+      struct Desc
+      {
+        int width = 0;
+        int height = 0;
+        int buffers = 0;
+        FormatType format = FormatType::Unknown;
+        PresentMode mode = PresentMode::Unknown;
+      } m_desc;
     public:
+
       VulkanSwapchain()
       {}
-      VulkanSwapchain(vk::SwapchainKHR resource)
+      VulkanSwapchain(vk::SwapchainKHR resource, VulkanGraphicsSurface surface)
         : m_swapchain(resource)
+        , m_surface(surface)
       {}
+
+      void setBufferMetadata(int x, int y, int count, FormatType format, PresentMode mode)
+      {
+        m_desc.width = x;
+        m_desc.height = y;
+        m_desc.buffers = count;
+        m_desc.format = format;
+        m_desc.mode = mode;
+      }
+
+      Desc getDesc()
+      {
+        return m_desc;
+      }
 
       void setSwapchain(vk::SwapchainKHR chain)
       {
@@ -48,6 +74,11 @@ namespace faze
       vk::SwapchainKHR native()
       {
         return m_swapchain;
+      }
+
+      VulkanGraphicsSurface& surface()
+      {
+        return m_surface;
       }
     };
 
@@ -154,7 +185,7 @@ namespace faze
 
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount);
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
 
       void waitGpuIdle() override;

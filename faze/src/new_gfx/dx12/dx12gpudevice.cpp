@@ -172,7 +172,7 @@ namespace faze
       return dxdesc;
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, PresentMode, FormatType format, int bufferCount)
+    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
     {
       auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
       RECT rect{};
@@ -206,24 +206,34 @@ namespace faze
 
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
-      return std::make_shared<DX12Swapchain>(swapChain);
+      auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
+      sc->setBufferMetadata(width, height, bufferCount, format, mode);
+      return sc;
     }
 
-    void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, GraphicsSurface& surface, PresentMode , FormatType format, int bufferCount)
+    void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, PresentMode mode, FormatType format, int bufferCount)
     {
       auto natSwapchain = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
+      auto& natSurface = natSwapchain->surface();
 
       RECT rect{};
-      BOOL lol = GetClientRect(natSurface->native(), &rect);
+      BOOL lol = GetClientRect(natSurface.native(), &rect);
       F_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
       F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
-      UINT bufferLocations[] = { 0 };
-      IUnknown* queues[] = { m_graphicsQueue.Get() };
-      natSwapchain->native()->ResizeBuffers1(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, bufferLocations, queues);
+      format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
+      bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
+      mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
+
+      /*
+      UINT bufferLocations[] = { 1 };
+      IUnknown* queues[] = { m_graphicsQueue.Get() };*/
+
+      FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH/*, bufferLocations, queues*/));
+
+      natSwapchain->setBufferMetadata(width, height, bufferCount, format, mode);
     }
 
     void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)

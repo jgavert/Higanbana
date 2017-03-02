@@ -67,6 +67,7 @@ private:
   std::shared_ptr<WindowInternal> m_window;
   int m_width;
   int m_height;
+  std::string m_name;
   bool needToResize = false;
   bool resizing = false;
   int m_resizeWidth = 0;
