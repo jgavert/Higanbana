@@ -9,6 +9,58 @@ namespace faze
 {
   namespace backend
   {
+    struct DX12Descriptor
+    {
+      D3D12_CPU_DESCRIPTOR_HANDLE cpu;
+      D3D12_DESCRIPTOR_HEAP_TYPE type;
+      RangeBlock block;
+    };
+
+    class StagingDescriptorHeap
+    {
+      RangeBlockAllocator allocator;
+      ComPtr<ID3D12DescriptorHeap> heap;
+      D3D12_DESCRIPTOR_HEAP_TYPE type;
+      D3D12_CPU_DESCRIPTOR_HANDLE start;
+      UINT increment;
+
+      int size = -1;
+    public:
+      StagingDescriptorHeap() {}
+      StagingDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int count)
+        : allocator(count)
+        , type(type)
+        , size(count)
+      {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = type;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        desc.NodeMask = 0;
+        desc.NumDescriptors = static_cast<UINT>(count);
+
+        FAZE_CHECK_HR(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+
+        start = heap->GetCPUDescriptorHandleForHeapStart();
+        increment = device->GetDescriptorHandleIncrementSize(type);
+      }
+
+      DX12Descriptor allocate()
+      {
+        auto dip = allocator.allocate(1);
+        F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        DX12Descriptor desc{};
+        desc.block = dip;
+        desc.type = type;
+        desc.cpu.ptr = start.ptr + increment * dip.offset;
+        return desc;
+      }
+
+      void release(DX12Descriptor desc)
+      {
+        allocator.release(desc.block);
+      }
+    };
+
     class DX12Fence
     {
     public:
@@ -148,6 +200,23 @@ namespace faze
       }
     };
 
+    class DX12TextureView : public prototypes::TextureViewImpl
+    {
+    private:
+      DX12Descriptor resource;
+
+    public:
+      DX12TextureView()
+      {}
+      DX12TextureView(DX12Descriptor resource)
+        : resource(resource)
+      {}
+      DX12Descriptor native()
+      {
+        return resource;
+      }
+    };
+
     class DX12Buffer : public prototypes::BufferImpl
     {
     private:
@@ -160,6 +229,23 @@ namespace faze
         : resource(resource)
       {}
       ID3D12Resource* native()
+      {
+        return resource;
+      }
+    };
+
+    class DX12BufferView : public prototypes::BufferViewImpl
+    {
+    private:
+      DX12Descriptor resource;
+
+    public:
+      DX12BufferView()
+      {}
+      DX12BufferView(DX12Descriptor resource)
+        : resource(resource)
+      {}
+      DX12Descriptor native()
       {
         return resource;
       }
@@ -192,6 +278,11 @@ namespace faze
       ComPtr<ID3D12CommandQueue> m_dmaQueue;
       ComPtr<ID3D12CommandQueue> m_computeQueue;
       DX12Fence m_deviceFence;
+
+      StagingDescriptorHeap m_generics;
+      StagingDescriptorHeap m_samplers;
+      StagingDescriptorHeap m_rtvs;
+      StagingDescriptorHeap m_dsvs;
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
       ~DX12Device();
@@ -210,12 +301,18 @@ namespace faze
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
-      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
-      void createBufferView(ShaderViewDescriptor desc) override;
 
-      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc);
-      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer);
+      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
+
+      std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
+
+      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
+
+      std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl

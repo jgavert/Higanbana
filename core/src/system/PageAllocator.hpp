@@ -16,13 +16,13 @@ namespace faze
     }
   };
 
-  class PageAllocator
+  class FixedSizeAllocator
   {
     int64_t m_pageSize = 0;
     size_t m_sizeInPages = 0;
     RangeBlockAllocator m_allocator;
   public:
-    PageAllocator(int64_t pageSize, size_t sizeInPages)
+    FixedSizeAllocator(int64_t pageSize, size_t sizeInPages)
       : m_pageSize(pageSize)
       , m_sizeInPages(sizeInPages)
       , m_allocator(sizeInPages)

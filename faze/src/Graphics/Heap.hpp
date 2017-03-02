@@ -10,13 +10,13 @@
 class ResourceHeap 
 {
   MemoryHeapImpl                       m_resource;
-  std::shared_ptr<faze::PageAllocator> m_pages; // 16*128 pages, enough? hopefully. atleast simple.
+  std::shared_ptr<faze::FixedSizeAllocator> m_pages; // 16*128 pages, enough? hopefully. atleast simple.
 
 public:
 
   ResourceHeap(MemoryHeapImpl impl)
     : m_resource{ impl }
-    , m_pages{std::make_shared<faze::PageAllocator>(static_cast<int>(impl.desc().m_alignment)
+    , m_pages{std::make_shared<faze::FixedSizeAllocator>(static_cast<int>(impl.desc().m_alignment)
                                                   , impl.desc().m_sizeInBytes/impl.desc().m_alignment)}
   {}
 

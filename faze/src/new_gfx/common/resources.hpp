@@ -103,7 +103,7 @@ namespace faze
       struct HeapBlock
       {
         int index;
-        PageAllocator allocator;
+        FixedSizeAllocator allocator;
         GpuHeap heap;
       };
 
