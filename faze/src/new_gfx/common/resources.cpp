@@ -94,13 +94,13 @@ namespace faze
       return Swapchain(sc, tracker);
     }
 
-    void DeviceData::adjustSwapchain(Swapchain& swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
+    void DeviceData::adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount)
     {
       // stop gpu
       waitGpuIdle();
       // release current swapchain backbuffers
       // blim
-      m_impl->adjustSwapchain(swapchain.impl(), surface, mode, format, bufferCount);
+      m_impl->adjustSwapchain(swapchain.impl(), mode, format, bufferCount);
       // get new backbuffers... seems like we do it here.
       // ...
       // profit!

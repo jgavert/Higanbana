@@ -53,11 +53,16 @@ namespace faze
       return GraphicsList();
     }
 
-    Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Mailbox, FormatType format = FormatType::Uint8x4, int bufferCount = 2)
+    Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Fifo, FormatType format = FormatType::Uint8x4, int bufferCount = 2)
     {
       auto sc = S().createSwapchain(surface, mode, format, bufferCount);
       sc.setParent(this);
       return sc;
+    }
+
+    void adjustSwapchain(Swapchain& swapchain, PresentMode mode = PresentMode::Unknown, FormatType format = FormatType::Unknown, int bufferCount = -1)
+    {
+      S().adjustSwapchain(swapchain, mode, format, bufferCount);
     }
   };
 };

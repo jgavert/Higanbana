@@ -199,6 +199,7 @@ namespace faze
       {
         F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
         wantedFormat = backupFormat;
+        format = FormatType::Uint8x4_Bgr;
       }
 
       auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native());
@@ -238,6 +239,7 @@ namespace faze
       if (!hadChosenMode)
       {
         khrmode = vk::PresentModeKHR::eFifo; // guaranteed by spec
+        mode = PresentMode::Fifo;
       }
 
       auto extent = surfaceCap.currentExtent;
@@ -272,16 +274,23 @@ namespace faze
         .setClipped(false);
 
       auto swapchain = m_device.createSwapchainKHR(info);
-      return std::make_shared<VulkanSwapchain>(swapchain);
+      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface);
+      
+      sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
+      return sc;
     }
 
-    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int buffers)
+    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, PresentMode mode, FormatType format, int bufferCount)
     {
       auto natSwapchain = std::static_pointer_cast<VulkanSwapchain>(swapchain);
-      auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
+      auto& natSurface = natSwapchain->surface();
       auto oldSwapchain = natSwapchain->native();
 
-      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+      format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
+      bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
+      mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
+
+      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
 
       auto& extent = surfaceCap.currentExtent;
       if (extent.height < 8)
@@ -293,9 +302,9 @@ namespace faze
         extent.width = 8;
       }
 
-      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), buffers);
+      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), bufferCount);
 
-      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()))
+      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()))
       {
         F_ASSERT(false, "Was not supported.");
       }
@@ -318,7 +327,7 @@ namespace faze
       }
 
       vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
-        .setSurface(natSurface->native())
+        .setSurface(natSurface.native())
         .setMinImageCount(minImageCount)
         .setImageFormat(formatToVkFormat(format).storage)
         .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
@@ -335,6 +344,8 @@ namespace faze
       natSwapchain->setSwapchain(m_device.createSwapchainKHR(info));
 
       m_device.destroySwapchainKHR(oldSwapchain);
+      F_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
+      natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
     }
 
     void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)

@@ -141,7 +141,7 @@ namespace faze
       ~DeviceData();
       void waitGpuIdle();
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(Swapchain& swapchain, GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
+      void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
 
       Buffer createBuffer(ResourceDescriptor desc);
       void createBufferView(ShaderViewDescriptor desc);
