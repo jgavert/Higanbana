@@ -193,7 +193,7 @@ namespace faze
           .setHeapAlignment(requirements.alignment)
           .setName(name);
         F_SLOG("Graphics","Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
-        return HeapBlock{ index, PageAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
+        return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)

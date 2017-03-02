@@ -18,31 +18,41 @@ namespace faze
       class GraphicsSurfaceImpl
       {
       public:
-        virtual ~GraphicsSurfaceImpl() {}
+        virtual ~GraphicsSurfaceImpl() = default;
       };
 
       class SwapchainImpl
       {
       public:
         virtual ResourceDescriptor desc() = 0;
-        virtual ~SwapchainImpl() {}
+        virtual ~SwapchainImpl() = default;
       };
 
       class TextureImpl
       {
       public:
-        virtual ~TextureImpl() {}
+        virtual ~TextureImpl() = default;
+      };
+      class TextureViewImpl
+      {
+      public:
+        virtual ~TextureViewImpl() = default;
       };
       class BufferImpl
       {
       public:
-        virtual ~BufferImpl() {}
+        virtual ~BufferImpl() = default;
+      };
+      class BufferViewImpl
+      {
+      public:
+        virtual ~BufferViewImpl() = default;
       };
 
       class HeapImpl
       {
       public:
-        virtual ~HeapImpl() {}
+        virtual ~HeapImpl() = default;
       };
 
       class DeviceImpl
@@ -63,12 +73,15 @@ namespace faze
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
         virtual void destroyHeap(GpuHeap heap) = 0;
 
-        virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) = 0;
+        virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual void destroyBuffer(std::shared_ptr<BufferImpl> buffer) = 0;
-        virtual void createBufferView(ShaderViewDescriptor desc) = 0;
+        virtual std::shared_ptr<BufferViewImpl> createBufferView(std::shared_ptr<BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void destroyBufferView(std::shared_ptr<BufferViewImpl> buffer) = 0;
 
-        virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc) = 0;
+        virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual void destroyTexture(std::shared_ptr<TextureImpl> buffer) = 0;
+        virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void destroyTextureView(std::shared_ptr<TextureViewImpl> buffer) = 0;
       };
 
       class SubsystemImpl

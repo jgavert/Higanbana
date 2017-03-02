@@ -48,7 +48,7 @@ int EntryPoint::main()
 
       auto bufferdesc = ResourceDescriptor()
         .setName("testBufferTarget")
-        .setFormat<float>()
+        .setStructured<float>() // todo: this is horrible...
         .setWidth(100)
         .setDimension(FormatDimension::Buffer);
 

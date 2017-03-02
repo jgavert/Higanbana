@@ -123,6 +123,30 @@ namespace faze
       }
     };
 
+    class VulkanTextureView : public prototypes::TextureViewImpl
+    {
+    private:
+      struct Info
+      {
+        vk::ImageView view;
+        vk::DescriptorImageInfo info;
+        vk::Format format;
+        vk::DescriptorType viewType;
+        vk::ImageSubresourceRange subResourceRange;
+      } m;
+
+    public:
+      VulkanTextureView()
+      {}
+      VulkanTextureView(vk::ImageView view, vk::DescriptorImageInfo info, vk::Format format, vk::DescriptorType viewType, vk::ImageSubresourceRange subResourceRange)
+        : m{ view, info, format, viewType, subResourceRange }
+      {}
+      Info& native()
+      {
+        return m;
+      }
+    };
+
     class VulkanBuffer : public prototypes::BufferImpl
     {
     private:
@@ -137,6 +161,27 @@ namespace faze
       vk::Buffer native()
       {
         return resource;
+      }
+    };
+
+    class VulkanBufferView : public prototypes::BufferViewImpl
+    {
+    private:
+      struct Info
+      {
+        vk::DescriptorBufferInfo bufferInfo;
+        vk::DescriptorType type;
+      } m;
+
+    public:
+      VulkanBufferView()
+      {}
+      VulkanBufferView(vk::DescriptorBufferInfo info, vk::DescriptorType type)
+        : m{info, type}
+      {}
+      Info& native()
+      {
+        return m;
       }
     };
 
@@ -219,12 +264,17 @@ namespace faze
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
 
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor desc) override;
+      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
       void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
-      void createBufferView(ShaderViewDescriptor desc) override;
 
-      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor desc);
-      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer);
+      std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
+
+      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
+
+      std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
     };
 
     class VulkanSubsystem : public prototypes::SubsystemImpl

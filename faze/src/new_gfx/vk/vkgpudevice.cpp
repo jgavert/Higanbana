@@ -681,7 +681,7 @@ namespace faze
       m_device.freeMemory(native->native());
     }
 
-    std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
+    std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto vkdesc = fillBufferInfo(desc);
       auto buffer = m_device.createBuffer(vkdesc);
@@ -698,12 +698,41 @@ namespace faze
       m_device.destroyBuffer(native->native());
     }
 
-    void VulkanDevice::createBufferView(ShaderViewDescriptor )
+    std::shared_ptr<prototypes::BufferViewImpl> VulkanDevice::createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
     {
+      auto native = std::static_pointer_cast<VulkanBuffer>(buffer);
 
+      auto& desc = resDesc.desc;
+
+      auto elementSize = desc.stride; // TODO: actually 0 most of the time. FIX SIZE FROM FORMAT.
+      auto sizeInElements = desc.width;
+      auto firstElement = viewDesc.m_firstElement * elementSize;
+      auto maxRange = viewDesc.m_elementCount * elementSize;
+      if (viewDesc.m_elementCount <= 0)
+        maxRange = elementSize * sizeInElements; // VK_WHOLE_SIZE
+
+      vk::DescriptorType type = vk::DescriptorType::eStorageBuffer; // TODO: figure out sane buffers for vulkan...
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        type = vk::DescriptorType::eStorageBuffer;
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
+      {
+        type = vk::DescriptorType::eStorageBuffer;
+      }
+      return std::make_shared<VulkanBufferView>(vk::DescriptorBufferInfo()
+        .setBuffer(native->native())
+        .setOffset(firstElement)
+        .setRange(maxRange)
+        , type);
     }
 
-    std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(HeapAllocation allocation, ResourceDescriptor desc)
+    void VulkanDevice::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl>)
+    {
+      // craak craak
+    }
+
+    std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto vkdesc = fillImageInfo(desc);
       auto image = m_device.createImage(vkdesc);
@@ -713,11 +742,124 @@ namespace faze
       m_device.bindImageMemory(image, native->native(), size);
       return std::make_shared<VulkanTexture>(image);
     }
+
     void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
     {
       auto native = std::static_pointer_cast<VulkanTexture>(texture);
       if (native->canRelease())
         m_device.destroyImage(native->native());
+    }
+
+    std::shared_ptr<prototypes::TextureViewImpl> VulkanDevice::createTextureView(
+      std::shared_ptr<prototypes::TextureImpl> texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
+    {
+      auto native = std::static_pointer_cast<VulkanTexture>(texture);
+      auto desc = texDesc.desc;
+
+      bool isArray = desc.arraySize > 1;
+
+      vk::ImageViewType ivt;
+      switch (desc.dimension)
+      {
+      case FormatDimension::Texture1D:
+        ivt = vk::ImageViewType::e1D;
+        if (isArray)
+          ivt = vk::ImageViewType::e1DArray;
+        break;
+      case FormatDimension::Texture3D:
+        ivt = vk::ImageViewType::e3D;
+        break;
+      case FormatDimension::TextureCube:
+        ivt = vk::ImageViewType::eCube;
+        if (isArray)
+          ivt = vk::ImageViewType::eCubeArray;
+        break;
+      case FormatDimension::Texture2D:
+      default:
+        ivt = vk::ImageViewType::e2D;
+        if (isArray)
+          ivt = vk::ImageViewType::e2DArray;
+        break;
+      }
+
+      // TODO: verify swizzle, fine for now. expect problems with backbuffer BGRA format...
+      vk::ComponentMapping cm = vk::ComponentMapping()
+        .setA(vk::ComponentSwizzle::eIdentity)
+        .setR(vk::ComponentSwizzle::eIdentity)
+        .setG(vk::ComponentSwizzle::eIdentity)
+        .setB(vk::ComponentSwizzle::eIdentity);
+
+      vk::ImageAspectFlags imgFlags;
+
+      if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      {
+        imgFlags |= vk::ImageAspectFlagBits::eDepth;
+        // TODO: support stencil format, no such FormatType yet.
+        //imgFlags |= vk::ImageAspectFlagBits::eStencil;
+      }
+      else
+      {
+        imgFlags |= vk::ImageAspectFlagBits::eColor;
+      }
+
+
+      decltype(VK_REMAINING_MIP_LEVELS) mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? VK_REMAINING_MIP_LEVELS : 1;
+      if (viewDesc.m_mipLevels != -1)
+      {
+        mips = viewDesc.m_mipLevels;
+      }
+
+      decltype(VK_REMAINING_ARRAY_LAYERS) arraySize = (viewDesc.m_arraySize != -1) ? viewDesc.m_arraySize : VK_REMAINING_ARRAY_LAYERS;
+
+      vk::ImageSubresourceRange subResourceRange = vk::ImageSubresourceRange()
+        .setAspectMask(imgFlags)
+        .setBaseArrayLayer(viewDesc.m_arraySlice)
+        .setBaseMipLevel(viewDesc.m_mostDetailedMip)
+        .setLevelCount(mips)
+        .setLayerCount(arraySize);
+
+      FormatType format = viewDesc.m_format;
+      if (format == FormatType::Unknown)
+        format = desc.format;
+
+      vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo()
+        .setViewType(ivt)
+        .setFormat(formatToVkFormat(format).view)
+        .setImage(native->native())
+        .setComponents(cm)
+        .setSubresourceRange(subResourceRange);
+
+      auto view = m_device.createImageView(viewInfo);
+
+      vk::DescriptorImageInfo info = vk::DescriptorImageInfo()
+        .setImageLayout(vk::ImageLayout::eGeneral) // TODO: layouts
+        .setImageView(view);
+
+      vk::DescriptorType imageType = vk::DescriptorType::eInputAttachment;
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        imageType = vk::DescriptorType::eSampledImage; // uhh, so simple
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
+      {
+        imageType = vk::DescriptorType::eStorageImage; // ah, so simple
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      {
+        imageType = vk::DescriptorType::eInputAttachment; // Cannot be anything else \o/
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
+      {
+        imageType = vk::DescriptorType::eInputAttachment; // Cannot be anything else \o/
+      }
+
+      return std::make_shared<VulkanTextureView>(view, info, formatToVkFormat(format).view, imageType, subResourceRange);
+    }
+
+    void VulkanDevice::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
+    {
+      auto native = std::static_pointer_cast<VulkanTextureView>(view);
+      m_device.destroyImageView(native->native().view);
     }
   }
 }

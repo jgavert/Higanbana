@@ -2,6 +2,7 @@
 #include "dx12resources.hpp"
 #include "util/formats.hpp"
 #include "faze/src/new_gfx/common/graphicssurface.hpp"
+#include "view_descriptor.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -12,6 +13,10 @@ namespace faze
       : m_info(info)
       , m_device(device)
       , m_nodeMask(0) // sli/crossfire index
+      , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
+      , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
+      , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
+      , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
     {
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -357,7 +362,7 @@ namespace faze
       native->native()->Release();
     }
 
-    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor desc)
+    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillPlacedBufferInfo(desc);
@@ -390,31 +395,72 @@ namespace faze
       native->native()->Release();
     }
 
-    void DX12Device::createBufferView(ShaderViewDescriptor )
+    std::shared_ptr<prototypes::BufferViewImpl> DX12Device::createBufferView(
+      std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
     {
+      auto native = std::static_pointer_cast<DX12Buffer>(buffer);
 
+      auto desc = bufferDesc.desc;
+
+      FormatType format = viewDesc.m_format;
+      if (format == FormatType::Unknown)
+        format = desc.format;
+
+      auto descriptor = m_generics.allocate();
+
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
+        natDesc.Format = formatTodxFormat(format).view;
+        natDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        natDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
+        natDesc.Buffer.NumElements = viewDesc.m_elementCount;
+        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
+        natDesc.Buffer.Flags = (format == FormatType::R32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+        m_device->CreateShaderResourceView(native->native(), &natDesc, descriptor.cpu);
+      }
+      else
+      {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC natDesc{};
+        natDesc.Format = formatTodxFormat(format).view;
+        natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
+        natDesc.Buffer.NumElements = viewDesc.m_elementCount;
+        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
+        natDesc.Buffer.CounterOffsetInBytes = 0;
+        natDesc.Buffer.Flags = (format == FormatType::R32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+        m_device->CreateUnorderedAccessView(native->native(), nullptr, &natDesc, descriptor.cpu);
+      }
+
+      return std::make_shared<DX12BufferView>(descriptor);
     }
 
+    void DX12Device::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> view)
+    {
+      auto native = std::static_pointer_cast<DX12BufferView>(view);
+      m_generics.release(native->native());
+    }
 
-    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor desc)
+    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillPlacedTextureInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
       switch (desc.desc.usage)
       {
-      case ResourceUsage::Upload:
-      {
-        startState = D3D12_RESOURCE_STATE_GENERIC_READ;
-        break;
-      }
-      case ResourceUsage::Readback:
-      {
-        startState = D3D12_RESOURCE_STATE_COPY_DEST;
-        break;
-      }
-      default:
-        break;
+        case ResourceUsage::Upload:
+        {
+          startState = D3D12_RESOURCE_STATE_GENERIC_READ;
+          break;
+        }
+        case ResourceUsage::Readback:
+        {
+          startState = D3D12_RESOURCE_STATE_COPY_DEST;
+          break;
+        }
+        default:
+          break;
       }
 
       ID3D12Resource* texture;
@@ -427,6 +473,59 @@ namespace faze
     {
       auto native = std::static_pointer_cast<DX12Texture>(texture);
       native->native()->Release();
+    }
+
+    std::shared_ptr<prototypes::TextureViewImpl> DX12Device::createTextureView(
+      std::shared_ptr<prototypes::TextureImpl> texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
+    {
+      auto native = std::static_pointer_cast<DX12Texture>(texture);
+      auto descriptor = m_generics.allocate();
+
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        auto natDesc = dx12::getSRV(texDesc, viewDesc);
+        m_device->CreateShaderResourceView(native->native(), &natDesc, descriptor.cpu);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
+      {
+        auto natDesc = dx12::getUAV(texDesc, viewDesc);
+        m_device->CreateUnorderedAccessView(native->native(), nullptr, &natDesc, descriptor.cpu);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
+      {
+        auto natDesc = dx12::getRTV(texDesc, viewDesc);
+        m_device->CreateRenderTargetView(native->native(), &natDesc, descriptor.cpu);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      {
+        auto natDesc = dx12::getDSV(texDesc, viewDesc);
+        m_device->CreateDepthStencilView(native->native(), &natDesc, descriptor.cpu);
+      }
+      return std::make_shared<DX12TextureView>(descriptor);
+    }
+
+    void DX12Device::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
+    {
+      auto native = std::static_pointer_cast<DX12TextureView>(view);
+      auto descriptor = native->native();
+      switch (descriptor.type)
+      {
+        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+        {
+          m_rtvs.release(native->native());
+          break;
+        }
+        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+        {
+          m_dsvs.release(native->native());
+          break;
+        }
+        default:
+        {
+          m_generics.release(native->native());
+          break;
+        }
+      }
     }
   }
 }

@@ -17,8 +17,8 @@ namespace faze
   enum class ResourceShaderType
   {
     Unknown,
-    ShaderView,
-    UnorderedAccess,
+    ReadOnly,
+    ReadWrite,
     RenderTarget,
     DepthStencil
   };
@@ -28,46 +28,71 @@ namespace faze
   public:
     unsigned m_mostDetailedMip = 0;
     unsigned m_arraySlice = 0;
+    int m_mipLevels = -1;
+    int m_arraySize = -1;
     unsigned m_planeSlice = 0;
     unsigned m_first2DArrayFace = 0;
     unsigned m_firstElement = 0;
     int m_elementCount = -1;
     float m_resourceMinLODClamp = 0.f;
+    FormatType m_format = FormatType::Unknown; // basically, look at base descriptor.
+    ResourceShaderType m_viewType = ResourceShaderType::ReadOnly;
+
     ShaderViewDescriptor()
     {}
-    ShaderViewDescriptor& MostDetailedMip(unsigned index)
+    ShaderViewDescriptor& setMostDetailedMip(unsigned index)
     {
       m_mostDetailedMip = index;
       return *this;
     }
-    ShaderViewDescriptor& ArraySlice(unsigned index)
+    ShaderViewDescriptor& setArraySlice(unsigned index)
     {
       m_arraySlice = index;
       return *this;
     }
-    ShaderViewDescriptor& PlaneSlice(unsigned index)
+    ShaderViewDescriptor& setMipLevels(unsigned index)
+    {
+      m_mipLevels = index;
+      return *this;
+    }
+    ShaderViewDescriptor& setArraySize(unsigned index)
+    {
+      m_arraySize = index;
+      return *this;
+    }
+    ShaderViewDescriptor& setPlaneSlice(unsigned index)
     {
       m_planeSlice = index;
       return *this;
     }
-    ShaderViewDescriptor& First2DArrayFace(unsigned index)
+    ShaderViewDescriptor& setFirst2DArrayFace(unsigned index)
     {
       m_first2DArrayFace = index;
       return *this;
     }
-    ShaderViewDescriptor& FirstElement(unsigned index)
+    ShaderViewDescriptor& setFirstElement(unsigned index)
     {
       m_firstElement = index;
       return *this;
     }
-    ShaderViewDescriptor& ElementCount(int value)
+    ShaderViewDescriptor& setElementCount(int value)
     {
       m_elementCount = value;
       return *this;
     }
-    ShaderViewDescriptor& ResourceMinLODClamp(float clamp)
+    ShaderViewDescriptor& setResourceMinLODClamp(float clamp)
     {
       m_resourceMinLODClamp = clamp;
+      return *this;
+    }
+    ShaderViewDescriptor& setFormat(FormatType type)
+    {
+      m_format = type;
+      return *this;
+    }
+    ShaderViewDescriptor& setType(ResourceShaderType type)
+    {
+      m_viewType = type;
       return *this;
     }
   };
@@ -106,8 +131,9 @@ namespace faze
       return *this;
     }
 
+    // convert this to be solely for structured buffer... actually do it now since it doesn't make sense otherwise.
     template <typename T>
-    ResourceDescriptor& setFormat()
+    ResourceDescriptor& setStructured()
     {
       desc.stride = sizeof(T);
       desc.format = FormatType::Unknown;
@@ -116,7 +142,7 @@ namespace faze
 
     ResourceDescriptor& setFormat(FormatType type)
     {
-      desc.stride = 0; // ??
+      desc.stride = 0; // TODO: set correct stride here, eventhough this isn't structured.
       desc.format = type;
       return *this;
     }
