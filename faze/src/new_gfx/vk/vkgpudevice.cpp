@@ -237,7 +237,7 @@ namespace faze
       }
       if (!hadChosenMode)
       {
-        khrmode = vk::PresentModeKHR::eMailbox; // guaranteed by spec
+        khrmode = vk::PresentModeKHR::eFifo; // guaranteed by spec
       }
 
       auto extent = surfaceCap.currentExtent;
