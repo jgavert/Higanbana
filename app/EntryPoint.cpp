@@ -35,7 +35,7 @@ int EntryPoint::main()
     if (gpus.empty())
       return;
     ivec2 ires = { 800, 600 };
-    Window window(m_params, name, ires.x(), ires.y(), 3860, 300);
+    Window window(m_params, name, ires.x(), ires.y(), -900, 500);
     window.open();
 
     FileSystem fs;
@@ -84,6 +84,11 @@ int EntryPoint::main()
           F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
         }
 
+        if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(VK_RETURN, 1))
+        {
+            window.toggleBorderlessFullscreen();
+        }
+
         if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
         {
           break;
@@ -93,13 +98,13 @@ int EntryPoint::main()
       }
     }
   };
-  //main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", true);
- 
+  main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true);
+ /*
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
-  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "DX12", false); });
+  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
   lbs.sleepTillKeywords({"test1", "test2"});
-  
+  */
   log.update();
   return 1;
 }
