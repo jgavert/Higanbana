@@ -98,7 +98,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true);
+  main(GraphicsApi::DX12, VendorID::Amd, "Vulkan", true);
  /*
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });

@@ -209,12 +209,12 @@ namespace faze
       ComPtr<IDXGIFactory5> dxgiFactory = nullptr;
       FAZE_CHECK_HR(CreateDXGIFactory2(0, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
 
-      dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES);
 
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
       auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
       sc->setBufferMetadata(width, height, bufferCount, format, mode);
+      dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES);
       return sc;
     }
 
@@ -228,7 +228,7 @@ namespace faze
       F_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      //F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
+      F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
       format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
