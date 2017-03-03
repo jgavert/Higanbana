@@ -58,23 +58,7 @@ namespace faze
   };
 
   FormatSizeInfo formatSizeInfo(FormatType format);
-  /* backend can know
-  static size_t sizeOfFormat[] =
-  {
-  0,
-  4 * 4,
-  4 * 4,
-  3 * 4,
-  3 * 4,
-  4 * 1,
-  4 * 1,
-  4 * 1,
-  1 * 4,
-  1 * 4,
-  1 * 1,
-  1 * 1
-  };
-  */
+
   enum class ResourceUsage 
   {
     Upload,

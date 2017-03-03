@@ -40,7 +40,7 @@ int EntryPoint::main()
 
     FileSystem fs;
     auto surface = graphics.createSurface(window);
-    auto dev = graphics.createDevice(fs, gpus[chosenGpu]); // hardcoded 0
+    auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
     {
       auto swapchain = dev.createSwapchain(surface);
 
@@ -48,7 +48,7 @@ int EntryPoint::main()
 
       auto bufferdesc = ResourceDescriptor()
         .setName("testBufferTarget")
-        .setFormat(FormatType::Float32) // todo: this is horrible...
+        .setFormat(FormatType::Float32)
         .setWidth(100)
         .setDimension(FormatDimension::Buffer);
 
