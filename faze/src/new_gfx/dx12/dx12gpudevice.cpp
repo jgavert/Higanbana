@@ -3,6 +3,7 @@
 #include "util/formats.hpp"
 #include "faze/src/new_gfx/common/graphicssurface.hpp"
 #include "view_descriptor.hpp"
+#include "core/src/system/bitpacking.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -276,24 +277,39 @@ namespace faze
       MemoryRequirements reqs{};
       D3D12_RESOURCE_ALLOCATION_INFO requirements;
       D3D12_RESOURCE_DESC resDesc;
+
+      D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+      HeapType type;
+
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
         resDesc = fillPlacedBufferInfo(desc);
+        flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
       }
       else
       {
         resDesc = fillPlacedTextureInfo(desc);
+        if (desc.desc.usage == ResourceUsage::RenderTarget
+          || desc.desc.usage == ResourceUsage::RenderTargetRW
+          || desc.desc.usage == ResourceUsage::DepthStencil
+          || desc.desc.usage == ResourceUsage::DepthStencilRW)
+        {
+          flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        }
       }
 
       requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
       reqs.alignment = requirements.Alignment;
       reqs.bytes = requirements.SizeInBytes;
 
-      reqs.heapType = static_cast<int64_t>(HeapType::Default);
+      type = HeapType::Default;
       if (desc.desc.usage == ResourceUsage::Upload)
-        reqs.heapType = static_cast<int64_t>(HeapType::Upload);
+        type = HeapType::Upload;
       else if (desc.desc.usage == ResourceUsage::Readback)
-        reqs.heapType = static_cast<int64_t>(HeapType::Readback);
+        type = HeapType::Readback;
+
+      reqs.heapType = packInt64(static_cast<int32_t>(flags), static_cast<int32_t>(type));
+
       return reqs;
     }
 
@@ -315,42 +331,50 @@ namespace faze
       dxdesc.SizeInBytes = heapDesc.desc.sizeInBytes;
       dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
       dxdesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
-      if (desc.onlyBuffers)
+      if (desc.heapType != HeapType::Custom)
       {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-      }
-      else if (desc.onlyNonRtDsTextures)
-      {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
-      }
-      else if (desc.onlyRtDsTextures)
-      {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
-      }
+        if (desc.onlyBuffers)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+        }
+        else if (desc.onlyNonRtDsTextures)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+        }
+        else if (desc.onlyRtDsTextures)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        }
 
-      if (smallResource)
-      {
-        dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
-      }
-      
-      if (desc.heapType == HeapType::Custom)
-      {
-        if (desc.customType == static_cast<int64_t>(HeapType::Upload))
+        if (smallResource)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+        }
+        if (desc.heapType == HeapType::Upload)
         {
           dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
         }
-        else if (desc.customType == static_cast<int64_t>(HeapType::Readback))
+        else if (desc.heapType == HeapType::Readback)
         {
           dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
         }
       }
-      else if (desc.heapType == HeapType::Upload)
+      else
       {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-      }
-      else if (desc.heapType == HeapType::Readback)
-      {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        int32_t flags;
+        int32_t type;
+        unpackInt64(desc.customType, flags, type);
+
+        HeapType hType = static_cast<HeapType>(type);
+        if (hType == HeapType::Upload)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        }
+        else if (hType == HeapType::Readback)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        }
+        dxdesc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags);
       }
 
       ID3D12Heap* heap;

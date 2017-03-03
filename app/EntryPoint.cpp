@@ -35,7 +35,7 @@ int EntryPoint::main()
     if (gpus.empty())
       return;
     ivec2 ires = { 800, 600 };
-    Window window(m_params, name, ires.x(), ires.y(), -900, 500);
+    Window window(m_params, name, ires.x(), ires.y(), 3860, 300);
     window.open();
 
     FileSystem fs;
@@ -98,7 +98,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Amd, "Vulkan", true);
+  main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true);
  /*
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
