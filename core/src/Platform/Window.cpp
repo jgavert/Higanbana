@@ -270,24 +270,20 @@ void Window::toggleBorderlessFullscreen()
             m_borderlessFullscreen = true;
             GetWindowRect(m_window->hWnd, &m_windowRect);
             m_baseWindowFlags = static_cast<int>(GetWindowLongPtr(m_window->hWnd, GWL_STYLE));
-            SetWindowLongPtr(m_window->hWnd, GWL_STYLE, WS_POPUPWINDOW | WS_VISIBLE);
+            SetWindowLongPtr(m_window->hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE );
             HMONITOR monitor = MonitorFromWindow(m_window->hWnd, MONITOR_DEFAULTTONEAREST);
             MONITORINFO info;
             info.cbSize = sizeof(MONITORINFO);
             GetMonitorInfo(monitor, &info);
             targetRect = info.rcMonitor;
-            targetRect.left -= 1;
-            targetRect.right += 1;
-            targetRect.top -= 1;
-            targetRect.bottom += 1;
-            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         }
         else
         {
             m_borderlessFullscreen = false;
             SetWindowLongPtr(m_window->hWnd, GWL_STYLE, m_baseWindowFlags);
             targetRect = m_windowRect;
-            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, 0);
+            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         }
     }
 #endif

@@ -209,6 +209,8 @@ namespace faze
       ComPtr<IDXGIFactory5> dxgiFactory = nullptr;
       FAZE_CHECK_HR(CreateDXGIFactory2(0, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
 
+      dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES);
+
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
       auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
