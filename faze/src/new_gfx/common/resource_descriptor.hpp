@@ -142,7 +142,7 @@ namespace faze
 
     ResourceDescriptor& setFormat(FormatType type)
     {
-      desc.stride = 0; // TODO: set correct stride here, eventhough this isn't structured.
+      desc.stride = formatSizeInfo(type).pixelSize;
       desc.format = type;
       return *this;
     }

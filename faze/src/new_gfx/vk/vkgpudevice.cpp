@@ -213,7 +213,7 @@ namespace faze
       {
         F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
         wantedFormat = backupFormat;
-        format = FormatType::Uint8x4_Bgr;
+        format = FormatType::Unorm8x4_Bgr;
       }
 
       auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native());
