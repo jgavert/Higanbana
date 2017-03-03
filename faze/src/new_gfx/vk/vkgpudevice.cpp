@@ -1,6 +1,7 @@
 #include "vkresources.hpp"
 #include "util/formats.hpp"
 #include "faze/src/new_gfx/common/graphicssurface.hpp"
+#include "core/src/system/bitpacking.hpp"
 #include "core/src/global_debug.hpp"
 
 namespace faze
@@ -618,20 +619,6 @@ namespace faze
       }
       }
       return ret;
-    }
-
-    int64_t packInt64(int32_t first, int32_t second)
-    {
-      int64_t val = first;
-      val = val << 32;
-      val += second;
-      return val;
-    }
-
-    void unpackInt64(int64_t val, int32_t& first, int32_t& second)
-    {
-      first = static_cast<int32_t>(val >> 32);
-      second = static_cast<int32_t>(val);
     }
 
     MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
