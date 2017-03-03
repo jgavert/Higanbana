@@ -276,6 +276,10 @@ void Window::toggleBorderlessFullscreen()
             info.cbSize = sizeof(MONITORINFO);
             GetMonitorInfo(monitor, &info);
             targetRect = info.rcMonitor;
+            targetRect.left -= 1;
+            targetRect.right += 1;
+            targetRect.top -= 1;
+            targetRect.bottom += 1;
             SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
         }
         else
