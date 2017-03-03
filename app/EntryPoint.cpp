@@ -48,7 +48,7 @@ int EntryPoint::main()
 
       auto bufferdesc = ResourceDescriptor()
         .setName("testBufferTarget")
-        .setStructured<float>() // todo: this is horrible...
+        .setFormat(FormatType::Float32) // todo: this is horrible...
         .setWidth(100)
         .setDimension(FormatDimension::Buffer);
 
@@ -56,7 +56,7 @@ int EntryPoint::main()
 
       auto texturedesc = ResourceDescriptor()
         .setName("testTexture")
-        .setFormat(FormatType::Uint8x4_Srgb)
+        .setFormat(FormatType::Unorm8x4_Srgb)
         .setWidth(1280)
         .setHeight(720)
         .setMiplevels(4)

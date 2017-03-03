@@ -1,4 +1,5 @@
 #pragma once
+#include "core/src/system/helperMacros.hpp"
 #include <stddef.h>
 
 namespace faze
@@ -18,16 +19,45 @@ namespace faze
   {
     Unknown = 0,
     Uint32x4,
+    Uint32x3,
+    Uint32x2,
+    Uint32,
+    Float32x4,
+    Float32x3,
+    Float32x2,
+    Float32,
     Float16x4,
+    Float16x2,
+    Float16,
+    Unorm16x4,
+    Unorm16x2,
+    Unorm16,
+    Uint16x4,
+    Uint16x2,
+    Uint16,
     Uint8x4,
-    Uint8x4_Srgb,
-    Uint8x4_Bgr,
-    Uint8x4_Sbgr,
-    R32,
+    Uint8x2,
+    Int8x4,
+    Unorm8x4,
+    Unorm8x4_Srgb,
+    Unorm8x4_Bgr,
+    Unorm8x4_Sbgr,
+    Unorm10x3,
+    Raw32,
     Depth32,
+    Depth32_Stencil8,
     Uint8,
     Count
   };
+
+  struct FormatSizeInfo
+  {
+    FormatType fm;
+    int pixelSize;
+    int componentCount;
+  };
+
+  FormatSizeInfo formatSizeInfo(FormatType format);
   /* backend can know
   static size_t sizeOfFormat[] =
   {

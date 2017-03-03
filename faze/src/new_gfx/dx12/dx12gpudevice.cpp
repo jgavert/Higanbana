@@ -64,7 +64,7 @@ namespace faze
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
 
-      dxdesc.Width = desc.width*desc.stride;
+      dxdesc.Width = desc.width * desc.stride;
       dxdesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
       dxdesc.Height = 1;
       dxdesc.DepthOrArraySize = 1;
@@ -443,7 +443,7 @@ namespace faze
         natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
         natDesc.Buffer.NumElements = viewDesc.m_elementCount;
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
-        natDesc.Buffer.Flags = (format == FormatType::R32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+        natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
         m_device->CreateShaderResourceView(native->native(), &natDesc, descriptor.cpu);
       }
       else
@@ -455,7 +455,7 @@ namespace faze
         natDesc.Buffer.NumElements = viewDesc.m_elementCount;
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
         natDesc.Buffer.CounterOffsetInBytes = 0;
-        natDesc.Buffer.Flags = (format == FormatType::R32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+        natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
         m_device->CreateUnorderedAccessView(native->native(), nullptr, &natDesc, descriptor.cpu);
       }
 
