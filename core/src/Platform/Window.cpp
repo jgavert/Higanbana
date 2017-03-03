@@ -8,99 +8,145 @@ LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
   Window* me = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
   switch (message)
   {
-  case WM_DESTROY:
-    {
-      PostQuitMessage(0);
-      return 0;
-    }
-  case WM_ENTERSIZEMOVE:
-  {
-    if (me)
-    {
-      me->resizing = true;
-    }
-    break;
-  }
-  case WM_EXITSIZEMOVE:
-  {
-    if (me)
-    {
-      me->resizeEvent("Resized");
-      me->resizing = false;
-    }
-    break;
-  }
-  case WM_KEYDOWN:
-  {
-    if (me)
-    {
-      me->keyDown(static_cast<int>(wParam));
-    }
-    break;
-  }
-  case WM_KEYUP:
-  {
-    if (me)
-    {
-      me->keyUp(static_cast<int>(wParam));
-    }
-    break;
-  }
-  case WM_MOUSEMOVE:
-  {
-    int xPos = GET_X_LPARAM(lParam);
-    int yPos = GET_Y_LPARAM(lParam);
-    if (me)
-    {
-      me->m_mouse.m_pos = faze::ivec2{ xPos, yPos };
-    }
-    break;
-  }
-  case WM_SIZE:
-  {
-    if (me)
-    {
-      auto evnt = static_cast<int>(wParam);
-      if (SIZE_MINIMIZED == evnt)
+      case WM_DESTROY:
       {
-        me->m_minimized = true;
-        me->resizeEvent("Minimized");
+          PostQuitMessage(0);
+          return 0;
       }
+      case WM_MENUCHAR:
+      {
+          /*
+          if (LOWORD(wParam) & VK_RETURN)
+              return MAKELRESULT(0, MNC_CLOSE);
+          */
+          return MAKELRESULT(0, MNC_CLOSE);
+      }
+      case WM_ENTERSIZEMOVE:
+      {
+          if (me)
+          {
+              me->resizing = true;
+          }
+          break;
+      }
+      case WM_EXITSIZEMOVE:
+      {
+          if (me)
+          {
+              me->resizeEvent("Resized");
+              me->resizing = false;
+          }
+          break;
+      }
+      case WM_KEYDOWN:
+      {
+          if (me)
+          {
+              me->keyDown(static_cast<int>(wParam));
+          }
+          break;
+      }
+      case WM_KEYUP:
+      {
+          if (me)
+          {
+              me->keyUp(static_cast<int>(wParam));
+          }
+          break;
+      }
+      case WM_MOUSEMOVE:
+      {
+          int xPos = GET_X_LPARAM(lParam);
+          int yPos = GET_Y_LPARAM(lParam);
+          if (me)
+          {
+              me->m_mouse.m_pos = faze::ivec2{ xPos, yPos };
+          }
+          break;
+      }
+      case WM_SIZE:
+      {
+          if (me)
+          {
+              auto evnt = static_cast<int>(wParam);
+              if (SIZE_MINIMIZED == evnt)
+              {
+                  me->m_minimized = true;
+                  me->resizeEvent("Minimized");
+              }
 
-      if (!me->m_minimized)
-      {
-        me->m_resizeWidth = static_cast<int>(LOWORD(lParam));
-        me->m_resizeHeight = static_cast<int>(HIWORD(lParam));
-      }
+              if (!me->m_minimized)
+              {
+                  me->m_resizeWidth = static_cast<int>(LOWORD(lParam));
+                  me->m_resizeHeight = static_cast<int>(HIWORD(lParam));
+              }
 
-      if (SIZE_MAXIMIZED == evnt)
-      {
-        me->m_minimized = false;
-        me->resizeEvent("Maximized");
+              if (SIZE_MAXIMIZED == evnt)
+              {
+                  me->m_minimized = false;
+                  me->resizeEvent("Maximized");
+              }
+              else if (SIZE_RESTORED == evnt && !me->resizing)
+              {
+                  me->m_minimized = false;
+                  me->resizeEvent("Restored");
+              }
+          }
       }
-      else if (SIZE_RESTORED == evnt && !me->resizing)
+      case WM_DPICHANGED:
       {
-        me->m_minimized = false;
-        me->resizeEvent("Restored");
+          if (me)
+          {
+              auto dpi = LOWORD(wParam);
+              if (dpi == 0)
+                  break;
+              me->setDpi(dpi);
+              //RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
+          }
       }
-    }
-  }
-  case WM_DPICHANGED:
-  {
-    if (me)
-    {
-      auto dpi = LOWORD(wParam);
-      if (dpi == 0)
-        break;
-      me->setDpi(dpi);
-      //RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
-    }
-  }
-  default:
-    break;
+      default:
+          break;
   }
 
   return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK Window::LowLevelKeyboardHook(
+    int nCode,
+    WPARAM wParam,
+    LPARAM lParam
+)
+{
+    // process event
+    KBDLLHOOKSTRUCT *pkbhs = (KBDLLHOOKSTRUCT *)lParam;
+    BOOL bControlKeyDown = 0;
+    switch (nCode)
+    {
+    case HC_ACTION:
+    {
+        // Check to see if the CTRL key is pressed
+        bControlKeyDown = GetAsyncKeyState(VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
+
+        // Disable CTRL+ESC
+        if (pkbhs->vkCode == VK_ESCAPE && bControlKeyDown)
+            return 1;
+
+        // Disable ALT+ESC
+        if (pkbhs->vkCode == VK_ESCAPE && pkbhs->flags & LLKHF_ALTDOWN)
+            return 1;
+
+        // Disable ALT+ENTER
+        if (pkbhs->vkCode == VK_RETURN && pkbhs->flags & LLKHF_ALTDOWN)
+            return 1;
+
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
 void Window::resizeEvent(const char* eventName)
@@ -129,13 +175,13 @@ void Window::resizeHandled()
   m_height = m_resizeHeight;
 }
 
-void Window::keyDown(int key)
+void Window::keyDown(int)
 {
-  m_inputs.insert(key, 1, m_frame);
+  //m_inputs.insert(key, 1, m_frame);
 }
-void Window::keyUp(int key)
+void Window::keyUp(int)
 {
-  m_inputs.insert(key, 0, m_frame);
+  //m_inputs.insert(key, 0, m_frame);
 }
 
 #endif
@@ -164,7 +210,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   RegisterClassEx(&wc);
 
   RECT wr = { offsetX, offsetY, offsetX+width, offsetY+height };
-  AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+  AdjustWindowRect(&wr, m_baseWindowFlags, FALSE);
 
   auto result = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
   if (result != S_OK)
@@ -172,16 +218,17 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
     F_SLOG("Window", "Tried to set dpi awareness.");
   }
 
-  hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), WS_OVERLAPPEDWINDOW, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
+  hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), m_baseWindowFlags, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
   if (hWnd == NULL)
   {
     printf("wtf window null\n");
   }
   SetWindowLongPtr(hWnd, GWLP_USERDATA, (size_t)this);
 
+  
+
   std::string lol = (windowname + "class");
   m_window = std::make_shared<WindowInternal>(hWnd,params.m_hInstance, wc, params, lol);
-
 
   // clean messages away
   simpleReadMessages(-1);
@@ -192,6 +239,8 @@ bool Window::open()
 {
 #if defined(PLATFORM_WINDOWS)
 	ShowWindow(m_window->hWnd, m_window->m_params.m_nCmdShow);
+    GetWindowRect(m_window->hWnd, &m_windowRect);
+    m_windowVisible = true;
 #endif
 	return true;
 }
@@ -210,13 +259,43 @@ void Window::cursorHidden(bool enabled)
 #endif
 }
 
+void Window::toggleBorderlessFullscreen()
+{
+#if defined(PLATFORM_WINDOWS)
+    if (m_windowVisible)
+    {
+        RECT targetRect{};
+        if (!m_borderlessFullscreen)
+        {
+            m_borderlessFullscreen = true;
+            GetWindowRect(m_window->hWnd, &m_windowRect);
+            m_baseWindowFlags = static_cast<int>(GetWindowLongPtr(m_window->hWnd, GWL_STYLE));
+            SetWindowLongPtr(m_window->hWnd, GWL_STYLE, WS_POPUPWINDOW | WS_VISIBLE);
+            HMONITOR monitor = MonitorFromWindow(m_window->hWnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO info;
+            info.cbSize = sizeof(MONITORINFO);
+            GetMonitorInfo(monitor, &info);
+            targetRect = info.rcMonitor;
+            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+        else
+        {
+            m_borderlessFullscreen = false;
+            SetWindowLongPtr(m_window->hWnd, GWL_STYLE, m_baseWindowFlags);
+            targetRect = m_windowRect;
+            SetWindowPos(m_window->hWnd, nullptr, targetRect.left, targetRect.top, targetRect.right - targetRect.left, targetRect.bottom - targetRect.top, 0);
+        }
+    }
+#endif
+}
+
 bool Window::simpleReadMessages(int64_t frame)
 {
   m_frame = frame;
   m_inputs.setFrame(frame);
 #if defined(PLATFORM_WINDOWS)
   MSG msg;
-
+  m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, Window::LowLevelKeyboardHook, m_window->hInstance, 0);
   while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
   {
     if (msg.message == WM_QUIT)
@@ -225,9 +304,49 @@ bool Window::simpleReadMessages(int64_t frame)
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
+  UnhookWindowsHookEx(m_keyboardHook);
+  updateInputs();
+
   return false;
 #else
   return true;
 #endif
+}
+
+void Window::updateInputs()
+{
+    if (GetFocus() == m_window->hWnd)
+    {
+        BYTE cur[256]{};
+        GetKeyboardState(cur);
+        // handle new keyboards
+
+        for (int i = 0; i < 256; ++i)
+        {
+            if (cur[i] & 0xF0 && !(m_oldKeyboardState[i] & 0xF0))
+            {
+                inputs().insert(i, 1, m_frame);
+            }
+            else if (cur[i] & 0xF0)
+            {
+                inputs().insert(i, 2, m_frame);
+            }
+            else if (!(cur[i] & 0xF0) && m_oldKeyboardState[i] & 0xF0)
+            {
+                inputs().insert(i, 0, m_frame);
+            }
+        }
+
+        memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
+    }
+    else
+    {
+        BYTE cur[256]{};
+        for (int i = 0; i < 256; ++i)
+        {
+            inputs().insert(i, 0, m_frame);
+        }
+        memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
+    }
 }
 

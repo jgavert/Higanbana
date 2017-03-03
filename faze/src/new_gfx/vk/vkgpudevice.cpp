@@ -158,6 +158,19 @@ namespace faze
       }
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
+      /* if VK_KHR_display is a things, use the below. For now, Borderless fullscreen!
+      {
+          auto displayProperties = m_physDevice.getDisplayPropertiesKHR();
+          F_SLOG("Vulkan", "Trying to query available displays...\n");
+          for (auto&& prop : displayProperties)
+          {
+              F_LOG("%s Physical Dimensions: %dx%d Resolution: %dx%d %s %s\n",
+                  prop.displayName, prop.physicalDimensions.width, prop.physicalDimensions.height,
+                  prop.physicalResolution.width, prop.physicalResolution.height,
+                  ((prop.planeReorderPossible) ? " Plane Reorder possible " : ""),
+                  ((prop.persistentContent) ? " Persistent Content " : ""));
+          }
+      }*/
     }
 
     VulkanDevice::~VulkanDevice()

@@ -74,6 +74,14 @@ private:
   int m_resizeHeight = 0;
   unsigned m_dpi = 96;
   bool m_minimized = false;
+  bool m_windowVisible = false;
+  bool m_borderlessFullscreen = false;
+  RECT m_windowRect;
+
+  BYTE m_oldKeyboardState[256];
+  HHOOK m_keyboardHook;
+
+  unsigned m_baseWindowFlags = WS_OVERLAPPEDWINDOW;
 
   int64_t m_frame = 0;
   faze::InputBuffer m_inputs;
@@ -84,6 +92,7 @@ private:
 
   void resizeEvent(const char*  eventName);
   void setDpi(unsigned scale);
+  void updateInputs();
 public:
   Window(ProgramParams params, std::string windowName, int width, int height, int offsetX = 0, int offsetY = 0);
   bool open();
@@ -91,6 +100,8 @@ public:
   void cursorHidden(bool enabled);
   WindowInternal& getInternalWindow() { return *m_window; }
   bool simpleReadMessages(int64_t frame);
+
+  void toggleBorderlessFullscreen();
 
   bool hasResized();
   void resizeHandled();
@@ -106,5 +117,6 @@ public:
   }
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+  static LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam);
 };
 }
