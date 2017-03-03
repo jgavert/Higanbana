@@ -84,7 +84,7 @@ int EntryPoint::main()
           F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
         }
 
-        if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(VK_RETURN, 1))
+        if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(VK_F1, 1))
         {
             window.toggleBorderlessFullscreen();
         }
