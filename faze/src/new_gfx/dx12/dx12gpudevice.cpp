@@ -214,7 +214,7 @@ namespace faze
       FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
       auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
       sc->setBufferMetadata(width, height, bufferCount, format, mode);
-      dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES);
+      //dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES);
       return sc;
     }
 
