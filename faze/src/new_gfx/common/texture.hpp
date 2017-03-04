@@ -11,21 +11,98 @@ namespace faze
   {
     std::shared_ptr<backend::prototypes::TextureImpl> impl;
     std::shared_ptr<int64_t> id;
-    ResourceDescriptor m_desc;
+    std::shared_ptr<ResourceDescriptor> m_desc;
 
   public:
-    Texture() = default;
+    Texture()
+      : m_desc(std::make_shared<ResourceDescriptor>())
+    {
+
+    }
 
     Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
       : impl(impl)
       , id(id)
-      , m_desc(std::move(desc))
+      , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
     {
     }
 
     ResourceDescriptor& desc()
     {
-      return m_desc;
+      return *m_desc;
+    }
+
+    std::shared_ptr<backend::prototypes::TextureImpl> native()
+    {
+      return impl;
+    }
+  };
+
+  class TextureView
+  {
+    Texture tex;
+    std::shared_ptr<backend::prototypes::TextureViewImpl> impl;
+    std::shared_ptr<int64_t> id;
+  public:
+    TextureView() = default;
+
+    TextureView(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
+      : tex(tex)
+      , impl(impl)
+      , id(id)
+    {
+
+    }
+
+    ResourceDescriptor& desc()
+    {
+      return tex.desc();
+    }
+
+    std::shared_ptr<backend::prototypes::TextureViewImpl> native()
+    {
+      return impl;
+    }
+
+    Texture& texture()
+    {
+      return tex;
+    }
+  };
+
+  class TextureSRV : public TextureView
+  {
+  public:
+    TextureSRV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
+      : TextureView(tex, impl, id)
+    {
+    }
+  };
+
+  class TextureUAV : public TextureView
+  {
+  public:
+    TextureUAV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
+      : TextureView(tex, impl, id)
+    {
+    }
+  };
+
+  class TextureRTV : public TextureView
+  {
+  public:
+    TextureRTV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
+      : TextureView(tex, impl, id)
+    {
+    }
+  };
+
+  class TextureDSV : public TextureView
+  {
+  public:
+    TextureDSV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
+      : TextureView(tex, impl, id)
+    {
     }
   };
 };

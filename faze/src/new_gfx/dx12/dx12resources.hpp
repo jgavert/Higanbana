@@ -313,6 +313,9 @@ namespace faze
 
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
+
+      // commandlist stuff
+      void submit(backend::IntermediateList& list) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl

@@ -861,5 +861,10 @@ namespace faze
       auto native = std::static_pointer_cast<VulkanTextureView>(view);
       m_device.destroyImageView(native->native().view);
     }
+
+    void VulkanDevice::submit(backend::IntermediateList&)
+    {
+
+    }
   }
 }

@@ -1,7 +1,7 @@
 #pragma once
-
 #include "resources.hpp"
 #include "heap_descriptor.hpp"
+#include "intermediatelist.hpp"
 #include <string>
 
 namespace faze
@@ -82,6 +82,9 @@ namespace faze
         virtual void destroyTexture(std::shared_ptr<TextureImpl> buffer) = 0;
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
         virtual void destroyTextureView(std::shared_ptr<TextureViewImpl> buffer) = 0;
+
+        // commandlist things
+        virtual void submit(backend::IntermediateList& list) = 0;
       };
 
       class SubsystemImpl
