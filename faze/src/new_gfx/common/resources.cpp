@@ -153,6 +153,12 @@ namespace faze
       // profit!
     }
 
+    TextureRTV DeviceData::acquirePresentableImage(Swapchain& swapchain)
+    {
+      int index = m_impl->acquirePresentableImageIndex(swapchain.impl());
+      return swapchain.buffers()[index];
+    }
+
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
     {
       auto memRes = m_impl->getReqs(desc);

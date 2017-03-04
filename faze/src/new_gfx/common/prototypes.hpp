@@ -68,6 +68,7 @@ namespace faze
         virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) = 0;
         virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
+        virtual int acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
         //create/destroy pairs 
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
