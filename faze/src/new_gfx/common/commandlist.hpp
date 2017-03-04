@@ -10,7 +10,7 @@ namespace faze
   {
     friend class ComputeList;
     friend class GraphicsList;
-    IntermediateList list;
+    backend::IntermediateList list;
   public:
     DmaList()
       : list(LinearAllocator(CommandlistSize))
