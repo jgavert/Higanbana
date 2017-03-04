@@ -4,7 +4,7 @@
 
 namespace faze
 {
-  class LinearAllocator
+  class LinearMemoryAllocator
   {
   private:
     std::unique_ptr<uint8_t[]> m_data;
@@ -31,7 +31,7 @@ namespace faze
     }
 
   public:
-    LinearAllocator(size_t size)
+    LinearMemoryAllocator(size_t size)
       : m_data(std::make_unique<uint8_t[]>(size))
       , m_current(0)
       , m_size(size)
@@ -50,6 +50,44 @@ namespace faze
     }
 
     inline void reset()
+    {
+      m_current = 0;
+    }
+  };
+
+  class LinearAllocator
+  {
+  private:
+    int64_t m_current = -1;
+    int64_t m_size = -1;
+
+    int64_t calcAlignOffset(int64_t size, size_t alignment)
+    {
+      return (alignment - (size & alignment)) % alignment;
+    }
+  public:
+    LinearAllocator() {}
+    LinearAllocator(size_t size)
+      : m_size(static_cast<int64_t>(size))
+    {}
+
+    int64_t allocate(size_t size, size_t alignment = 1)
+    {
+      int64_t alignedCurrent = calcAlignOffset(m_current, alignment);
+      if (alignedCurrent + static_cast<int64_t>(size) > m_size)
+      {
+        return -1;
+      }
+      m_current = alignedCurrent + static_cast<int64_t>(size);
+      return alignedCurrent;
+    }
+
+    void resize(int64_t size)
+    {
+      m_size = size;
+    }
+
+    void reset()
     {
       m_current = 0;
     }

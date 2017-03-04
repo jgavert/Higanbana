@@ -1,8 +1,10 @@
 #pragma once
 #include "core/src/datastructures/proxy.hpp"
-#include "core/src/global_debug.hpp"
+#include "core/src/math/utils.hpp"
 #include "allocators.hpp"
+
 #include <memory>
+#include "core/src/global_debug.hpp"
 
 namespace faze
 {
@@ -33,18 +35,69 @@ namespace faze
     // These can be linked together to form one big list.
     class IntermediateList
     {
+    public:
+      class ListAllocator
+      {
+        LinearAllocator& allocator;
+        vector<std::unique_ptr<uint8_t[]>>& memories;
+        int& activeMemory;
+
+        uint8_t* privateAllocate(size_t size)
+        {
+          auto offset = allocator.allocate(size, 16); // sizeof(uint32_t)*4
+          if (offset == -1)
+          {
+            int64_t refSize = 1024 * 2;
+            if (static_cast<int64_t>(size) > refSize)
+            {
+              refSize = roundUpMultipleInt(static_cast<int64_t>(size), 1024);
+            }
+            activeMemory = static_cast<int>(memories.size());
+            memories.emplace_back(std::make_unique<uint8_t[]>(refSize));
+            allocator.reset();
+            allocator.resize(refSize);
+            offset = allocator.allocate(size, 16);
+          }
+          F_ASSERT(offset != -1, "should always be fine here");
+          return reinterpret_cast<uint8_t*>(offset);
+        }
+      public:
+        ListAllocator(LinearAllocator& allocator, vector<std::unique_ptr<uint8_t[]>>& memories, int& activeMemory)
+          : allocator(allocator)
+          , memories(memories)
+          , activeMemory(activeMemory)
+        {
+        }
+
+        template <typename T>
+        T* allocate(size_t count = 1)
+        {
+          auto size = sizeof(T)*count;
+          if (size == 0)
+          {
+            return nullptr;
+          }
+          return reinterpret_cast<T*>(*memories[activeMemory] + reinterpret_cast<uint8_t*>(privateAllocate(size)));
+        }
+      };
     private:
-      LinearAllocator m_allocator;
       CommandPacket* m_firstPacket = nullptr;
       CommandPacket* m_lastPacket = nullptr;
       size_t m_size = 0;
+      vector<std::unique_ptr<uint8_t[]>> m_memory;
+      LinearAllocator m_allocator;
+      int m_activeMemory = -1;
+      ListAllocator activeAllocator;
     public:
-      IntermediateList(LinearAllocator&& allocator);
+      IntermediateList();
+      IntermediateList(size_t size);
+      IntermediateList(std::unique_ptr<uint8_t[]> memory, size_t size);
       IntermediateList(IntermediateList&& obj) = default;
       IntermediateList(const IntermediateList& obj) = delete;
-
       IntermediateList& operator=(IntermediateList&& obj) = default;
       IntermediateList& operator=(const IntermediateList& obj) = delete;
+
+      void append(IntermediateList&& other);
 
       ~IntermediateList();
       void clear();
@@ -53,8 +106,8 @@ namespace faze
       template <typename Type, typename... Args>
       Type& insert(Args&&... args)
       {
-        Type* ptr = m_allocator.alloc<Type>();
-        ptr = new (ptr) Type(m_allocator, std::forward<Args>(args)...);
+        Type* ptr = activeAllocator.allocate<Type>();
+        ptr = new (ptr) Type(activeAllocator, std::forward<Args>(args)...);
         if (m_lastPacket != nullptr)
         {
           m_lastPacket->setNextPacket(ptr);
@@ -68,7 +121,7 @@ namespace faze
         return *ptr;
       }
 
-      LinearAllocator& allocator() {return m_allocator; }
+      ListAllocator& allocator() {return activeAllocator; }
 
       class iterator {
       public:

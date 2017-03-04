@@ -3,7 +3,7 @@
 #include "core/src/global_debug.hpp"
 #include <memory>
 
-class LinearAllocator
+class LinearMemoryAllocator
 {
 private:
   std::unique_ptr<uint8_t[]> m_data;
@@ -30,7 +30,7 @@ private:
   }
 
 public:
-  LinearAllocator(size_t size)
+  LinearMemoryAllocator(size_t size)
     : m_data(std::make_unique<uint8_t[]>(size))
     , m_current(0)
     , m_size(size)
@@ -132,13 +132,13 @@ template <typename CommandPacket>
 class CommandList
 {
 private:
-  LinearAllocator m_allocator;
+  LinearMemoryAllocator m_allocator;
   CommandPacket* m_firstPacket;
   CommandPacket* m_lastPacket;
   size_t m_size;
 public:
-  CommandList(LinearAllocator&& allocator)
-    : m_allocator(std::forward<LinearAllocator>(allocator))
+  CommandList(LinearMemoryAllocator&& allocator)
+    : m_allocator(std::forward<LinearMemoryAllocator>(allocator))
     , m_firstPacket(nullptr)
     , m_lastPacket(nullptr)
     , m_size(0)
@@ -189,7 +189,7 @@ public:
     return *ptr;
   }
 
-  LinearAllocator& allocator()
+  LinearMemoryAllocator& allocator()
   {
     return m_allocator;
   }

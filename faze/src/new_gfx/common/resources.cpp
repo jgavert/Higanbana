@@ -3,6 +3,8 @@
 #include "graphicssurface.hpp"
 #include "implementation.hpp"
 
+#include "core/src/math/utils.hpp"
+
 namespace faze
 {
   namespace backend
@@ -153,18 +155,6 @@ namespace faze
     void DeviceData::createBufferView(ShaderViewDescriptor )
     {
 
-    }
-
-    static size_t roundUpMultiple(size_t value, size_t multiple)
-    {
-      F_ASSERT(multiple, "multiple needs to be power of 2 was %d", multiple);
-      return ((value + multiple - 1) / multiple) * multiple;
-    }
-
-    static size_t roundUpMultiple2(size_t numToRound, size_t multiple)
-    {
-      F_ASSERT(multiple && ((multiple & (multiple - 1)) == 0), "multiple needs to be power of 2 was %d", multiple);
-      return (numToRound + multiple - 1) & ~(multiple - 1);
     }
 
     HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)
