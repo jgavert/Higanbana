@@ -766,11 +766,12 @@ namespace faze
             std::cerr << "\n";
           }
         }
+        /*
         std::cerr << "LBS: fulllfilled tasks:\n";
         for (auto it = m_fullfilled.begin(); it != m_fullfilled.end(); ++it)
         {
           std::cerr << it->first << " " << (it->second ? "true" : "false") << std::endl;
-        }
+        }*/
         return;
       }
     }

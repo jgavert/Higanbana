@@ -49,7 +49,7 @@ namespace faze
 
   template <typename key>
   using unordered_set = spp::sparse_hash_set<key, Hasher<key>>;
-#elif 0
+#elif 1
   // cannot use robinhood hashmap yet, missing possibility to loop all elements.
   template <typename key, typename val>
   using unordered_map = RobinHoodInfobytePairNoOverflow::Map<key, val, Hasher<key>>;

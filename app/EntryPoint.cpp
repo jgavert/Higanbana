@@ -123,13 +123,13 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true);
- /*
+  //main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true);
+ 
   LBS lbs;
-  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Amd, "Vulkan", true); });
-  lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
-  lbs.sleepTillKeywords({"test1", "test2"});
-  */
+  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true); });
+  //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
+  lbs.sleepTillKeywords({"test1"});
+  
   log.update();
   return 1;
 }
