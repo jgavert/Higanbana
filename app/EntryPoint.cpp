@@ -70,6 +70,7 @@ int EntryPoint::main()
         texturedesc = texturedesc.setArraySize(3);
         auto texture2 = dev.createTexture(texturedesc);
 
+        auto backbuffer = dev.createTextureRTV(swapchain.buffers()[0]);
         int64_t frame = 1;
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
@@ -105,6 +106,14 @@ int EntryPoint::main()
           }
           if (updateLog) log.update();
 
+          CommandGraph tasks;
+          {
+            auto node = tasks.createPass("test!");
+            node.clearRT(backbuffer, vec4{ 1.f, 0.f, 0.f, 1.f });
+            tasks.addPass(std::move(node));
+          }
+
+          dev.submit(tasks);
         }
       }
       if (!reInit)

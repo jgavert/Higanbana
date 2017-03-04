@@ -553,6 +553,11 @@ namespace faze
         }
       }
     }
+
+    void DX12Device::submit(backend::IntermediateList&)
+    {
+
+    }
   }
 }
 #endif

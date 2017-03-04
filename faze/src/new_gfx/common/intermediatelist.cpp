@@ -21,14 +21,12 @@ namespace faze
 		// These can be linked together to form one big list.
 
     IntermediateList::IntermediateList()
-      : activeAllocator(m_allocator, m_memory, m_activeMemory)
     {
     }
 
     IntermediateList::IntermediateList(size_t size)
       : m_allocator(size)
       , m_activeMemory(0)
-      , activeAllocator(m_allocator, m_memory, m_activeMemory)
     {
       m_memory.emplace_back(std::make_unique<uint8_t[]>(size));
     }
@@ -36,7 +34,6 @@ namespace faze
     IntermediateList::IntermediateList(std::unique_ptr<uint8_t[]> memory, size_t size)
       : m_allocator(size)
       , m_activeMemory(0)
-      , activeAllocator(m_allocator, m_memory, m_activeMemory)
     {
       m_memory.emplace_back(std::forward<decltype(memory)>(memory));
     }

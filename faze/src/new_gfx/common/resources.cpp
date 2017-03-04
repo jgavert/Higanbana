@@ -39,6 +39,8 @@ namespace faze
       , m_bufferTracker(std::make_shared<ResourceTracker<prototypes::BufferImpl>>())
       , m_textureTracker(std::make_shared<ResourceTracker<prototypes::TextureImpl>>())
       , m_swapchainTracker(std::make_shared<ResourceTracker<prototypes::SwapchainImpl>>())
+      , m_bufferViewTracker(std::make_shared<ResourceTracker<prototypes::BufferViewImpl>>())
+      , m_textureViewTracker(std::make_shared<ResourceTracker<prototypes::TextureViewImpl>>())
       , m_idGenerator(std::make_shared<std::atomic<int64_t>>())
     {
     }
@@ -46,11 +48,17 @@ namespace faze
     DeviceData::~DeviceData()
     {
       waitGpuIdle();
-
-      for (auto&& sc : m_swapchainTracker->getResources())
+      // views
+      for (auto&& view : m_bufferViewTracker->getResources())
       {
-        m_impl->destroySwapchain(sc);
+        m_impl->destroyBufferView(view);
       }
+
+      for (auto&& view : m_textureViewTracker->getResources())
+      {
+        m_impl->destroyTextureView(view);
+      }
+
 
       // buffers 
       for (auto&& buffer : m_bufferTracker->getResources())
@@ -73,6 +81,10 @@ namespace faze
         m_heaps.release(allocation);
       }
 
+      for (auto&& sc : m_swapchainTracker->getResources())
+      {
+        m_impl->destroySwapchain(sc);
+      }
       // heaps
       auto heaps = m_heaps.emptyHeaps();
       for (auto&& heap : heaps)
@@ -109,6 +121,10 @@ namespace faze
       // release current swapchain backbuffers
       swapchain.setBackbuffers({}); // technically this frees the textures if they are not used anywhere.
       // go collect the trash.
+      for (auto&& texture : m_textureViewTracker->getResources())
+      {
+        m_impl->destroyTextureView(texture);
+      }
       for (auto&& texture : m_textureTracker->getResources())
       {
         m_impl->destroyTexture(texture);
@@ -152,9 +168,51 @@ namespace faze
       return Texture(data, tracker, desc);
     }
 
-    void DeviceData::createBufferView(ShaderViewDescriptor )
+    BufferSRV DeviceData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
+      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
+      auto tracker = m_bufferViewTracker->makeTracker(newId(), data);
+      return BufferSRV(buffer, data, tracker);
+    }
 
+    BufferUAV DeviceData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
+    {
+      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
+      auto tracker = m_bufferViewTracker->makeTracker(newId(), data);
+      return BufferUAV(buffer, data, tracker);
+    }
+
+    TextureSRV DeviceData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
+    {
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      return TextureSRV(texture, data, tracker);
+    }
+
+    TextureUAV DeviceData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
+    {
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      return TextureUAV(texture, data, tracker);
+    }
+
+    TextureRTV DeviceData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
+    {
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      return TextureRTV(texture, data, tracker);
+    }
+
+    TextureDSV DeviceData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
+    {
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      return TextureDSV(texture, data, tracker);
+    }
+
+    void DeviceData::submit(CommandGraph)
+    {
+      // TODO:
     }
 
     HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)

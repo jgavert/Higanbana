@@ -1,6 +1,6 @@
-#include "vkresources.hpp"
 #include "faze/src/new_gfx/common/gpudevice.hpp"
 #include "faze/src/new_gfx/common/graphicssurface.hpp"
+#include "vkresources.hpp"
 #include "core/src/Platform/Window.hpp"
 #include "core/src/global_debug.hpp"
 

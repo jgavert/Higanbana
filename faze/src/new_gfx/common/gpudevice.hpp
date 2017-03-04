@@ -5,6 +5,7 @@
 #include "buffer.hpp"
 #include "texture.hpp"
 #include "swapchain.hpp"
+#include "commandgraph.hpp"
 #include "commandlist.hpp"
 
 namespace faze
@@ -40,17 +41,69 @@ namespace faze
       return tex;
     }
 
-    DmaList createDmaList()
+    BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
     {
-      return DmaList();
+      return S().createBufferSRV(texture, viewDesc);
     }
-    ComputeList createComputeList()
+
+    BufferSRV createBufferSRV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
     {
-      return ComputeList();
+      return createBufferSRV(createBuffer(descriptor), viewDesc);
     }
-    GraphicsList createGraphicsList()
+
+    BufferUAV createBufferUAV(Buffer texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
     {
-      return GraphicsList();
+      return S().createBufferUAV(texture, viewDesc);
+    }
+
+    BufferUAV createBufferUAV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createBufferUAV(createBuffer(descriptor), viewDesc);
+    }
+
+    TextureSRV createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return S().createTextureSRV(texture, viewDesc);
+    }
+
+    TextureSRV createTextureSRV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createTextureSRV(createTexture(descriptor), viewDesc);
+    }
+
+    TextureUAV createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return S().createTextureUAV(texture, viewDesc);
+    }
+
+    TextureUAV createTextureUAV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createTextureUAV(createTexture(descriptor), viewDesc);
+    }
+
+    TextureRTV createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return S().createTextureRTV(texture, viewDesc);
+    }
+
+    TextureRTV createTextureRTV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createTextureRTV(createTexture(descriptor), viewDesc);
+    }
+
+    TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return S().createTextureDSV(texture, viewDesc);
+    }
+
+    TextureDSV createTextureDSV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createTextureDSV(createTexture(descriptor), viewDesc);
+    }
+
+    CommandGraph createGraph()
+    {
+      return CommandGraph();
     }
 
     Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Fifo, FormatType format = FormatType::Uint8x4, int bufferCount = 2)
@@ -63,6 +116,11 @@ namespace faze
     void adjustSwapchain(Swapchain& swapchain, PresentMode mode = PresentMode::Unknown, FormatType format = FormatType::Unknown, int bufferCount = -1)
     {
       S().adjustSwapchain(swapchain, mode, format, bufferCount);
+    }
+
+    void submit(CommandGraph graph)
+    {
+      S().submit(graph);
     }
   };
 };

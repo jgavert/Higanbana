@@ -6,6 +6,7 @@
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/system/PageAllocator.hpp"
 #include "core/src/datastructures/proxy.hpp"
+
 #include <string>
 #include <atomic>
 
@@ -63,9 +64,18 @@ namespace faze
 
   class Buffer;
   class Texture;
+
+  class BufferSRV;
+  class BufferUAV;
+  class TextureSRV;
+  class TextureUAV;
+  class TextureRTV;
+  class TextureDSV;
+
   class Swapchain;
   class GraphicsSurface;
   class Window;
+  class CommandGraph;
 
   namespace backend
   {
@@ -76,6 +86,8 @@ namespace faze
       class HeapImpl;
       class BufferImpl;
       class TextureImpl;
+      class BufferViewImpl;
+      class TextureViewImpl;
       class SwapchainImpl;
       class GraphicsSurfaceImpl;
     }
@@ -133,6 +145,8 @@ namespace faze
       std::shared_ptr<ResourceTracker<prototypes::TextureImpl>> m_textureTracker;
       std::shared_ptr<ResourceTracker<prototypes::SwapchainImpl>> m_swapchainTracker;
 
+      std::shared_ptr<ResourceTracker<prototypes::BufferViewImpl>> m_bufferViewTracker;
+      std::shared_ptr<ResourceTracker<prototypes::TextureViewImpl>> m_textureViewTracker;
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
 
       int64_t newId() { return (*m_idGenerator)++; }
@@ -144,8 +158,16 @@ namespace faze
       void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
 
       Buffer createBuffer(ResourceDescriptor desc);
-      void createBufferView(ShaderViewDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
+
+      BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc);
+      BufferUAV createBufferUAV(Buffer texture, ShaderViewDescriptor viewDesc);
+      TextureSRV createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc);
+      TextureUAV createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc);
+      TextureRTV createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc);
+      TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc);
+      // commandgraph
+      void submit(CommandGraph graph);
     };
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>
