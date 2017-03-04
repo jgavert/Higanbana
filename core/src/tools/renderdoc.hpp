@@ -1,5 +1,5 @@
 #pragma once
-#ifdef PLATFORM_WINDOWS
+#ifdef FAZE_PLATFORM_WINDOWS
 #include <renderdoc_app.h>
 #endif
 
@@ -7,7 +7,7 @@ namespace faze
 {
   class RenderDocApi
   {
-#ifdef PLATFORM_WINDOWS
+#ifdef FAZE_PLATFORM_WINDOWS
     RENDERDOC_API_1_0_0 *rdoc_api = nullptr;
 #else
     int rdoc_api = 0;
@@ -15,7 +15,7 @@ namespace faze
   public:
     RenderDocApi()
     {
-#ifdef PLATFORM_WINDOWS
+#ifdef FAZE_PLATFORM_WINDOWS
       if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
       {
         pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
@@ -36,7 +36,7 @@ namespace faze
 
     void startCapture()
     {
-#ifdef PLATFORM_WINDOWS
+#ifdef FAZE_PLATFORM_WINDOWS
       if (rdoc_api)
       {
         rdoc_api->StartFrameCapture(nullptr, nullptr);
@@ -46,7 +46,7 @@ namespace faze
 
     void endCapture()
     {
-#ifdef PLATFORM_WINDOWS
+#ifdef FAZE_PLATFORM_WINDOWS
       if (rdoc_api)
       {
         rdoc_api->EndFrameCapture(nullptr, nullptr);

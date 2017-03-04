@@ -2,7 +2,7 @@
 
 #include "core/src/global_debug.hpp"
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   Window* me = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
@@ -192,7 +192,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
   , m_height(height)
   , m_name(windowname)
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   WNDCLASSEX wc;
   HWND hWnd;
   ZeroMemory(&hWnd, sizeof(HWND));
@@ -237,7 +237,7 @@ Window::Window(ProgramParams params, std::string windowname, int width, int heig
 
 bool Window::open()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 	ShowWindow(m_window->hWnd, m_window->m_params.m_nCmdShow);
     GetWindowRect(m_window->hWnd, &m_windowRect);
     m_windowVisible = true;
@@ -247,21 +247,21 @@ bool Window::open()
 
 void Window::close()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   CloseWindow(m_window->hWnd);
 #endif
 }
 
 void Window::cursorHidden(bool enabled)
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   ShowCursor(enabled);
 #endif
 }
 
 void Window::toggleBorderlessFullscreen()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
     if (m_windowVisible)
     {
         RECT targetRect{};
@@ -293,7 +293,7 @@ bool Window::simpleReadMessages(int64_t frame)
 {
   m_frame = frame;
   m_inputs.setFrame(frame);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   MSG msg;
   m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, Window::LowLevelKeyboardHook, m_window->hInstance, 0);
   while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))

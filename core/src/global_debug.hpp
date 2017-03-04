@@ -2,8 +2,7 @@
 
 #include "system/fazmesg.hpp"
 
-#if defined(PLATFORM_WINDOWS)
-#define NOMINMAX
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include <Windows.h>
 #include <comdef.h>
 #endif
@@ -25,7 +24,7 @@
 #define F_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
 
 #if 1 //defined(DEBUG)
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #define F_ERROR(msg, ...) \
   log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
   if (IsDebuggerPresent()) \

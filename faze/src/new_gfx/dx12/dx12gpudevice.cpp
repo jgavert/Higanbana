@@ -1,4 +1,4 @@
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "dx12resources.hpp"
 #include "util/formats.hpp"
 #include "faze/src/new_gfx/common/graphicssurface.hpp"

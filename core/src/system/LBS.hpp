@@ -518,12 +518,12 @@ namespace faze
         {
           // everything was finished!!!
           taskname = data.m_name;
-          m_taskInfos.erase(it);
+          m_taskInfos.erase(it->first);
         }
         else
         {
           m_waitingPostRequirements.push_back({ std::move(data.m_post),std::move(data.m_name) });
-          m_taskInfos.erase(it);
+          m_taskInfos.erase(it->first);
         }
       }
 	  if (taskname.length() == 0)

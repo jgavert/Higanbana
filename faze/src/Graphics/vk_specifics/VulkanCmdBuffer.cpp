@@ -314,7 +314,7 @@ void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
 	vk::BufferCopy copy;
 	auto srcSize = src.resourceSize;
 	auto dstSize = dst.resourceSize;
-	auto maxSize = (std::min)(srcSize, dstSize);
+	auto maxSize = std::min(srcSize, dstSize);
 	copy = copy.setSize(maxSize)
 		.setDstOffset(0)
 		.setSrcOffset(0);

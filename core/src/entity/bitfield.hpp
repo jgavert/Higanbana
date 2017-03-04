@@ -179,7 +179,7 @@
 
         if (offset >= 64) // only b to check
         {
-          offset_tmp = (std::min)(64, static_cast<int>(offset)-64);
+          offset_tmp = std::min(64, static_cast<int>(offset)-64);
           for (size_t i = 0; i < offset_tmp; ++i)
           {
             b ^= (-0LL ^ b) & (1LL << i);

@@ -61,7 +61,7 @@ public:
   }
 };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #define GpuProfilingBracket(queueOrList, name) \
   auto _CONCAT(__gpuprofilingbracket, __COUNTER__) = _GpuBracket::createBracket(queueOrList, name);
 #else

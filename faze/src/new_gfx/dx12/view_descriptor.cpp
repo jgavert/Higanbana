@@ -1,4 +1,4 @@
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/dx12/view_descriptor.hpp"
 #include "faze/src/new_gfx/dx12/util/formats.hpp"
 #include "core/src/global_debug.hpp"

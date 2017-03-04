@@ -1,6 +1,6 @@
 #include "VulkanGraphicsInstance.hpp"
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include <intrin.h>
 #endif
 
@@ -27,20 +27,20 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	// Supressing unnecessary log messages.
 
   std::string msgType = "";
-  #if defined(PLATFORM_WINDOWS)
+  #if defined(FAZE_PLATFORM_WINDOWS)
   bool breakOn = false;
   #endif
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
   {
     msgType = "ERROR:";
-    #if defined(PLATFORM_WINDOWS)
+    #if defined(FAZE_PLATFORM_WINDOWS)
     breakOn = true;
       #endif
   }
   else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
   {
     msgType = "WARNING:";
-    #if defined(PLATFORM_WINDOWS)
+    #if defined(FAZE_PLATFORM_WINDOWS)
     breakOn = true;
       #endif
   }
@@ -59,7 +59,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	if (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport")
 		return false;
   F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
     __debugbreak();
 #endif
@@ -193,7 +193,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
     {
       for (uint32_t i = 0; i < queueProp.queueCount; ++i)
       {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
         if (dev.getWin32PresentationSupportKHR(i))
 #endif
         {
@@ -299,7 +299,7 @@ VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
   return VulkanGpuDevice(device,physDev, fs, m_alloc_info, queueProperties, heapInfos, false);
 }
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 VulkanSurface VulkanGraphicsInstance::createSurface(HWND hWnd, HINSTANCE instance)
 {
 	vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()

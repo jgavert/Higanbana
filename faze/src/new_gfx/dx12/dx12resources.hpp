@@ -1,5 +1,5 @@
 #pragma once
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
 

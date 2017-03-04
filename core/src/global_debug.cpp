@@ -35,7 +35,7 @@ void log_adv(const char *fn, int ln, const char* format, ...)
   int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
 
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[n], sizeof(buf)-n, format, args);
 #else
   vsnprintf(&buf[n], sizeof(buf)-n, format, args);
@@ -51,7 +51,7 @@ void log_def(const char* format, ...)
   va_list args;
   char buf[1024];
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);
 #else
   vsnprintf(&buf[0], sizeof(buf), format, args);
@@ -66,13 +66,13 @@ void log_imSys(const char* prefix, const char* format, ...)
   va_list args;
   char buf[1024];
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);
 #else
   vsnprintf(&buf[0], sizeof(buf), format, args);
 #endif
   va_end(args);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   OutputDebugString("[");
   OutputDebugString(prefix);
   OutputDebugString("] ");
@@ -89,7 +89,7 @@ void log_sys(const char* prefix, const char* format, ...)
   va_list args;
   char buf[1024];
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);
 #else
   vsnprintf(&buf[0], sizeof(buf), format, args);
@@ -111,14 +111,14 @@ void log_immideateAssert(const char *fn, int ln, const char* format, ...)
   int n = snprintf(buf, sizeof(buf), "%s(%d): ASSERT!!!\n", fn, ln);
 
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #else
   vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #endif
   va_end(args);
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   OutputDebugString(buf);
   OutputDebugString("\n");
 #endif
@@ -133,14 +133,14 @@ void log_immideate(const char *fn, int ln, const char* format, ...)
   int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
 
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #else
   vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #endif
   va_end(args);
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   OutputDebugString(buf);
   OutputDebugString("\n");
 #endif

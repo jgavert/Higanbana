@@ -49,7 +49,7 @@ private:
 
   std::vector<std::string> extOrder = {
     VK_KHR_SURFACE_EXTENSION_NAME
-#if defined(PF_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
     , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
 #if defined(DEBUG)
@@ -67,7 +67,7 @@ public:
   VulkanGpuDevice createGpuDevice(FileSystem& fs);
 
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   VulkanSurface createSurface(HWND hWnd, HINSTANCE instance);
 #else
   VulkanSurface createSurface();

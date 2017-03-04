@@ -50,7 +50,7 @@ void* allocs::pfnAllocation(
   VkSystemAllocationScope                     /*allocationScope*/)
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   info->normalUse.fetch_add(size, std::memory_order_relaxed);
   return _aligned_malloc(size, alignment);
 #else
@@ -69,7 +69,7 @@ void* allocs::pfnReallocation(
   VkSystemAllocationScope                     /*allocationScope*/)
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   info->normalUse.fetch_add(size, std::memory_order_relaxed);
   return _aligned_realloc(pOriginal, size, alignment);
 #else
@@ -105,7 +105,7 @@ void allocs::pfnFree(
   if (pMemory == nullptr)
     return;
   allocs* info = reinterpret_cast<allocs*>(pUserData);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   info->normalUse.fetch_sub(1, std::memory_order_relaxed);
   _aligned_free(pMemory);
 #else
