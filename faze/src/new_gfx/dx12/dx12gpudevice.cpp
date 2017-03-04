@@ -186,7 +186,7 @@ namespace faze
       F_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      F_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
+      //F_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
       DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
       swapChainDesc.Width = width; // I wonder how to get sane sizes in beginning...
       swapChainDesc.Height = height;

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define BUFFERSIZE 100
+#define BUFFERSIZE 300
 
 namespace faze
 {

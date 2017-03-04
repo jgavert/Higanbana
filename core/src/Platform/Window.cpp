@@ -323,15 +323,18 @@ void Window::updateInputs()
 
         for (int i = 0; i < 256; ++i)
         {
-            if (cur[i] & 0xF0 && !(m_oldKeyboardState[i] & 0xF0))
+			bool pressedCurrent = static_cast<bool>((cur[i] & 0xF0) > 0);
+			bool pressedOld = static_cast<bool>((m_oldKeyboardState[i] & 0xF0) > 0);
+
+            if (pressedCurrent && !(pressedOld))
             {
                 inputs().insert(i, 1, m_frame);
             }
-            else if (cur[i] & 0xF0)
+            else if (pressedCurrent)
             {
                 inputs().insert(i, 2, m_frame);
             }
-            else if (!(cur[i] & 0xF0) && m_oldKeyboardState[i] & 0xF0)
+            else if (!(pressedCurrent) && pressedOld)
             {
                 inputs().insert(i, 0, m_frame);
             }
@@ -344,7 +347,9 @@ void Window::updateInputs()
         BYTE cur[256]{};
         for (int i = 0; i < 256; ++i)
         {
-            inputs().insert(i, 0, m_frame);
+			bool pressedOld = static_cast<bool>((m_oldKeyboardState[i] & 0xF0) > 0);
+			if (pressedOld)
+				inputs().insert(i, 0, m_frame);
         }
         memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
     }
