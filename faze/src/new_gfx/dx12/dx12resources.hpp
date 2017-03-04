@@ -152,6 +152,7 @@ namespace faze
           .setHeight(m_desc.height)
           .setFormat(m_desc.format)
           .setUsage(ResourceUsage::RenderTarget)
+          .setDimension(FormatDimension::Texture2D)
           .setMiplevels(1)
           .setArraySize(1)
           .setName("Swapchain Image")

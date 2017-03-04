@@ -73,6 +73,8 @@ namespace faze
   class TextureSRV : public TextureView
   {
   public:
+
+    TextureSRV() = default;
     TextureSRV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {
@@ -82,6 +84,7 @@ namespace faze
   class TextureUAV : public TextureView
   {
   public:
+    TextureUAV() = default;
     TextureUAV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {
@@ -91,6 +94,7 @@ namespace faze
   class TextureRTV : public TextureView
   {
   public:
+    TextureRTV() = default;
     TextureRTV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {
@@ -100,6 +104,7 @@ namespace faze
   class TextureDSV : public TextureView
   {
   public:
+    TextureDSV() = default;
     TextureDSV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {

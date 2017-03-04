@@ -11,7 +11,7 @@ namespace faze
   {
     std::shared_ptr<backend::prototypes::SwapchainImpl> m_impl;
     std::shared_ptr<int64_t> m_id;
-    vector<Texture> m_backbuffers;
+    vector<TextureRTV> m_backbuffers;
 
   public:
     Swapchain() = default;
@@ -27,12 +27,12 @@ namespace faze
       return m_impl;
     }
 
-    void setBackbuffers(vector<Texture> buffers)
+    void setBackbuffers(vector<TextureRTV> buffers)
     {
       m_backbuffers = buffers;
     }
 
-    vector<Texture>& buffers()
+    vector<TextureRTV>& buffers()
     {
       return m_backbuffers;
     }

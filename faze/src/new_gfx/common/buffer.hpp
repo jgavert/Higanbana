@@ -72,6 +72,7 @@ namespace faze
   class BufferSRV : public BufferView
   {
   public:
+    BufferSRV() = default;
     BufferSRV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
       : BufferView(buf, impl, id)
     {
@@ -81,6 +82,7 @@ namespace faze
   class BufferUAV : public BufferView
   {
   public:
+    BufferUAV() = default;
     BufferUAV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
       : BufferView(buf, impl, id)
     {
@@ -90,6 +92,7 @@ namespace faze
   class BufferIBV : public BufferView
   {
   public:
+    BufferIBV() = default;
     BufferIBV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
       : BufferView(buf, impl, id)
     {
