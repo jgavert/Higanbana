@@ -251,6 +251,7 @@ void DependencyTracker::resolveGraph()
 
 void DependencyTracker::makeAllBarriers()
 {
+  /*
 	int jobsSize = static_cast<int>(m_jobs.size());
 
 	// this function should figure out transitions within a commandbuffer
@@ -366,7 +367,7 @@ void DependencyTracker::makeAllBarriers()
     m_textureStates[obj.first].state->flags = obj.second.flags;
     m_textureStates[obj.first].state->layout = obj.second.layout;
   }
-
+  */
 }
 
 void DependencyTracker::runBarrier(vk::CommandBuffer gfx, int nextDrawCall)
