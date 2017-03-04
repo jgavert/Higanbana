@@ -106,7 +106,7 @@ namespace faze
       return CommandGraph();
     }
 
-    Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Fifo, FormatType format = FormatType::Uint8x4, int bufferCount = 2)
+    Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Fifo, FormatType format = FormatType::Unorm8x4, int bufferCount = 2)
     {
       auto sc = S().createSwapchain(surface, mode, format, bufferCount);
       sc.setParent(this);

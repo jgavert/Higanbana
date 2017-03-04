@@ -102,12 +102,14 @@ namespace faze
       auto swapchain = Swapchain(sc, tracker);
       // get backbuffers to swapchain
       auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
-      vector<Texture> backbuffers;
+      vector<TextureRTV> backbuffers;
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
         auto texTracker = m_textureTracker->makeTracker(newId(), buffers[i]);
-        backbuffers[i] = Texture(buffers[i], texTracker, swapchain.impl()->desc());
+        auto tex = Texture(buffers[i], texTracker, swapchain.impl()->desc());
+        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
+
       }
       swapchain.setBackbuffers(backbuffers);
       return swapchain;
@@ -138,12 +140,13 @@ namespace faze
       m_impl->adjustSwapchain(swapchain.impl(), mode, format, bufferCount);
       // get new backbuffers... seems like we do it here.
       auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
-      vector<Texture> backbuffers;
+      vector<TextureRTV> backbuffers;
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
-        auto tracker = m_textureTracker->makeTracker(newId(), buffers[i]);
-        backbuffers[i] = Texture(buffers[i], tracker, swapchain.impl()->desc());
+        auto texTracker = m_textureTracker->makeTracker(newId(), buffers[i]);
+        auto tex = Texture(buffers[i], texTracker, swapchain.impl()->desc());
+        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
       }
       swapchain.setBackbuffers(backbuffers);
       // ...

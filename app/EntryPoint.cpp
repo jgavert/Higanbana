@@ -70,7 +70,7 @@ int EntryPoint::main()
         texturedesc = texturedesc.setArraySize(3);
         auto texture2 = dev.createTexture(texturedesc);
 
-        auto backbuffer = dev.createTextureRTV(swapchain.buffers()[0]);
+        auto backbuffer = swapchain.buffers()[0];
         int64_t frame = 1;
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
@@ -135,7 +135,7 @@ int EntryPoint::main()
   //main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true);
  
   LBS lbs;
-  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true); });
+  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
   //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
   lbs.sleepTillKeywords({"test1"});
   
