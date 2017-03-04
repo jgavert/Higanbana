@@ -127,6 +127,7 @@ namespace faze
     private:
       D3D12Swapchain* m_resource;
       DX12GraphicsSurface m_surface;
+      int m_backbufferIndex;
 
       struct Desc
       {
@@ -181,6 +182,11 @@ namespace faze
       DX12GraphicsSurface& surface()
       {
         return m_surface;
+      }
+
+      void setBackbufferIndex(int index)
+      {
+        m_backbufferIndex = index;
       }
     };
 
@@ -293,9 +299,10 @@ namespace faze
 
       // impl
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount);
-      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
-      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc);
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
+      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      int acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;

@@ -266,6 +266,15 @@ namespace faze
       return textures;
     }
 
+
+    int DX12Device::acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    {
+      auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      int index = native->native()->GetCurrentBackBufferIndex();
+      native->setBackbufferIndex(index);
+      return index;
+    }
+
     void DX12Device::waitGpuIdle()
     {
       m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());

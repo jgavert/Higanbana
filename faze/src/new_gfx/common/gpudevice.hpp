@@ -118,6 +118,11 @@ namespace faze
       S().adjustSwapchain(swapchain, mode, format, bufferCount);
     }
 
+    TextureRTV acquirePresentableImage(Swapchain& swapchain)
+    {
+      return S().acquirePresentableImage(swapchain);
+    }
+
     void submit(CommandGraph graph)
     {
       S().submit(graph);

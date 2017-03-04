@@ -381,6 +381,20 @@ namespace faze
       return textures;
     }
 
+    int VulkanDevice::acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> sc)
+    {
+      auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
+      auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), *image.semaphore, vk::Fence());
+
+      if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
+      {
+        F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+        //return -1;
+      }
+
+      return res.value;
+    }
+
     vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)
     {
       auto desc = descriptor.desc;

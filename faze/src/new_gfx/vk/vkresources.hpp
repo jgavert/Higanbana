@@ -34,6 +34,8 @@ namespace faze
     {
       vk::SwapchainKHR m_swapchain;
       VulkanGraphicsSurface m_surface;
+      vector<vk::Semaphore> m_semaphores;
+      vector<int> m_assignedSemaphores;
 
       struct Desc
       {
@@ -47,7 +49,7 @@ namespace faze
 
       VulkanSwapchain()
       {}
-      VulkanSwapchain(vk::SwapchainKHR resource, VulkanGraphicsSurface surface)
+      VulkanSwapchain(vk::SwapchainKHR resource, VulkanGraphicsSurface surface, vector<vk::Semaphore> semaphores)
         : m_swapchain(resource)
         , m_surface(surface)
       {}
@@ -78,6 +80,8 @@ namespace faze
       {
         return m_desc;
       }
+
+
 
       void setSwapchain(vk::SwapchainKHR chain)
       {
@@ -253,10 +257,11 @@ namespace faze
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
       // implementation
-      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount);
-      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc);
-      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc);
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount) override;
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
+      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      int acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;

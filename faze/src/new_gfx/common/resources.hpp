@@ -156,6 +156,7 @@ namespace faze
       void waitGpuIdle();
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
+      TextureRTV acquirePresentableImage(Swapchain& swapchain);
 
       Buffer createBuffer(ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
