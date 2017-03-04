@@ -301,7 +301,7 @@ namespace faze
 
       std::vector<std::string> extOrder = {
         VK_KHR_SURFACE_EXTENSION_NAME
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
         , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)

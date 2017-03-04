@@ -26,7 +26,7 @@ void Logger::handleFazMesg(LogMessage &mesg)
   buffer[m_writerIndex].m_array[dataSize] = 0;
   buffer[m_writerIndex].m_size = dataSize;
   unhandled_buffer_size++; m_writerIndex++;
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
   //OutputDebugString(mesg.m_data);
 #endif
   //std::cerr.write(mesg.m_data, dataSize);
@@ -41,7 +41,7 @@ void Logger::update()
       m_readerIndex = 0;
     }
     //TODO: this has had problems
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
     OutputDebugString(buffer[m_readerIndex].m_array.data());
 #endif
     std::cout.write(buffer[m_readerIndex].m_array.data(), buffer[m_readerIndex].m_size);

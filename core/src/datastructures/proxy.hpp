@@ -1,7 +1,8 @@
 #pragma once
 
 #include <sparsepp.h>
-#include "core/src/spookyhash/SpookyV2.h"
+#include "core/src/external/SpookyV2.h"
+#include "core/src/external/robinhashmap.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
@@ -48,6 +49,13 @@ namespace faze
 
   template <typename key>
   using unordered_set = spp::sparse_hash_set<key, Hasher<key>>;
+#elif 0
+  // cannot use robinhood hashmap yet, missing possibility to loop all elements.
+  template <typename key, typename val>
+  using unordered_map = RobinHoodInfobytePairNoOverflow::Map<key, val, Hasher<key>>;
+
+  template <typename key>
+  using unordered_set = std::unordered_set<key, Hasher<key>>;
 #else
   template <typename key, typename val>
   using unordered_map = std::unordered_map<key, val, Hasher<key>>;

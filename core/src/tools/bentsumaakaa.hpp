@@ -4,7 +4,7 @@
 #include <chrono>
 #include <functional>
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include "../system/HighResClock.hpp"
 typedef HighResClock HighPrecisionClock;
 typedef std::chrono::time_point<HighResClock> timepoint;

@@ -1,5 +1,5 @@
 // EntryPoint.cpp
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif

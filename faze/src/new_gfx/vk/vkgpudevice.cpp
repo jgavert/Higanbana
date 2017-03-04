@@ -270,7 +270,7 @@ namespace faze
       {
         F_ASSERT(false, "Was not supported.");
       }
-      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), buffers);
+      int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), buffers);
       F_SLOG("Vulkan", "creating swapchain to %ux%u, buffers %d\n", extent.width, extent.height, minImageCount);
 
       vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
@@ -316,7 +316,7 @@ namespace faze
         extent.width = 8;
       }
 
-      int minImageCount = (std::max)(static_cast<int>(surfaceCap.minImageCount), bufferCount);
+      int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), bufferCount);
 
       if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()))
       {

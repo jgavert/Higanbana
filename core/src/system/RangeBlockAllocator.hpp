@@ -171,7 +171,7 @@ namespace faze
       {
         if (!m_blocks.checkBit(i))
         {
-          largestSize = (std::max)(largestSize, continuosPages);
+          largestSize = std::max(largestSize, continuosPages);
           continuosPages = 0;
         }
         else

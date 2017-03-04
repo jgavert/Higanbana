@@ -1,8 +1,7 @@
 //ProgramParams.hpp
 #pragma once
 
-#ifdef WIN64
-#define NOMINMAX
+#ifdef FAZE_PLATFORM_WINDOWS 
 #include <windows.h>
 #include <ShellScalingAPI.h>
 #include <iostream>

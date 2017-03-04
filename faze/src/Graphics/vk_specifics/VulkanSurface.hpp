@@ -5,7 +5,7 @@
 class VulkanSurface
 {
 public:
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 	std::shared_ptr<vk::SurfaceKHR> surface;
 #else
 	int surface;

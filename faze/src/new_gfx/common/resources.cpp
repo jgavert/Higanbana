@@ -16,7 +16,7 @@ namespace faze
     {
       switch (api)
       {
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
       case GraphicsApi::DX12:
         impl = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion);
         break;
@@ -174,7 +174,7 @@ namespace faze
       alloc.heapType = requirements.heapType;
       auto createHeapBlock = [&](prototypes::DeviceImpl* dev, int index, MemoryRequirements& requirements)
       {
-        auto minSize = (std::min)(m_minimumHeapSize, static_cast<int64_t>(128 * 32 * requirements.alignment));
+        auto minSize = std::min(m_minimumHeapSize, static_cast<int64_t>(128 * 32 * requirements.alignment));
         auto sizeToCreate = roundUpMultiple2(minSize, requirements.alignment);
         if (requirements.bytes > sizeToCreate)
         {

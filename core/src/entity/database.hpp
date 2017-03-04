@@ -16,7 +16,7 @@ namespace faze
   std::string typehash()
   {
     //std::hash<std::string> hfn;
-#if defined(WIN64)
+#if defined(FAZE_PLATFORM_WINDOWS)
     return std::string(__FUNCSIG__);
 #else
     return std::string(__PRETTY_FUNCTION__);

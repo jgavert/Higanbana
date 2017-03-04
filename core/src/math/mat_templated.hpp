@@ -140,7 +140,7 @@ namespace faze
 
   typedef Matrix<float, 4, 4> mat4;
   typedef Matrix<float, 3, 3> mat3;
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4505 ) // unreferenced local function has been removed
 #endif
@@ -162,7 +162,7 @@ namespace faze
         return mat4();
       }
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
       float b = 1.0f / std::tanf(fov*(PI / 180.f)*0.5f);
 #else
       float b = 1.0f / tanf(fov*(PI / 180.f)*0.5f);
@@ -252,7 +252,7 @@ namespace faze
     }
   };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( pop )
 #endif
 }
