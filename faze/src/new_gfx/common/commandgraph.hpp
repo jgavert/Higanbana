@@ -9,7 +9,7 @@ namespace faze
   public:
     class Node
     {
-
+      backend::IntermediateList list;
     };
 
 

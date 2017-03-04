@@ -17,7 +17,7 @@ public:
   CommandListVector<std::pair< unsigned, VulkanBufferShaderView >> modifyBuffers;
   CommandListVector<std::pair< unsigned, VulkanTextureShaderView>> modifyTextures;
 
-  VulkanBindingInformation(LinearAllocator& allocator, VulkanDescriptorSet& set)
+  VulkanBindingInformation(LinearMemoryAllocator& allocator, VulkanDescriptorSet& set)
     : readBuffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.readBuffers.size()), set.readBuffers.size()))
     , readTextures(MemView<std::pair<unsigned, VulkanTextureShaderView>>(allocator.allocList<std::pair<unsigned, VulkanTextureShaderView>>(set.readTextures.size()), set.readTextures.size()))
     , modifyBuffers(MemView<std::pair<unsigned, VulkanBufferShaderView>>(allocator.allocList<std::pair<unsigned, VulkanBufferShaderView>>(set.modifyBuffers.size()), set.modifyBuffers.size()))
@@ -57,7 +57,7 @@ public:
   CommandListVector<vk::BufferMemoryBarrier> bufferBarriers;
   CommandListVector<vk::ImageMemoryBarrier> imageBarriers;
 
-  PipelineBarrierPacket(LinearAllocator& allocator,
+  PipelineBarrierPacket(LinearMemoryAllocator& allocator,
     vk::PipelineStageFlags srcStageMask,
     vk::PipelineStageFlags dstStageMask,
     vk::DependencyFlags dependencyFlags,
@@ -89,7 +89,7 @@ public:
   VulkanBuffer dst;
   CommandListVector<vk::BufferCopy> m_copyList;
 
-  BufferCopyPacket(LinearAllocator& allocator, VulkanBuffer src, VulkanBuffer dst, MemView<vk::BufferCopy> copyList)
+  BufferCopyPacket(LinearMemoryAllocator& allocator, VulkanBuffer src, VulkanBuffer dst, MemView<vk::BufferCopy> copyList)
     : src(src)
     , dst(dst)
     , m_copyList(MemView<vk::BufferCopy>(allocator.allocList<vk::BufferCopy>(copyList.size()), copyList.size()))
@@ -119,7 +119,7 @@ public:
   std::shared_ptr<vk::PipelineLayout> layout;
   std::shared_ptr<vk::DescriptorSetLayout> descriptorLayout;
   vk::PipelineBindPoint point;
-  BindPipelinePacket(LinearAllocator&, vk::PipelineBindPoint point
+  BindPipelinePacket(LinearMemoryAllocator&, vk::PipelineBindPoint point
     , std::shared_ptr<vk::Pipeline>& pipeline, std::shared_ptr<vk::PipelineLayout> layout
     , std::shared_ptr<vk::DescriptorSetLayout> descriptorLayout)
     : pipeline(pipeline)
@@ -147,7 +147,7 @@ public:
   unsigned dx = 0;
   unsigned dy = 0;
   unsigned dz = 0;
-  DispatchPacket(LinearAllocator& allocator, VulkanDescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
+  DispatchPacket(LinearMemoryAllocator& allocator, VulkanDescriptorSet& inputs, unsigned x, unsigned y, unsigned z)
     : descriptors(allocator, std::forward<decltype(inputs)>(inputs))
     , dx(x)
     , dy(y)
@@ -170,7 +170,7 @@ class PrepareForPresentPacket : public VulkanCommandPacket
 public:
 	VulkanTexture texture;
 
-	PrepareForPresentPacket(LinearAllocator&, VulkanTexture& texture)
+	PrepareForPresentPacket(LinearMemoryAllocator&, VulkanTexture& texture)
 		:texture(texture)
 	{
 	}
@@ -191,7 +191,7 @@ public:
 	VulkanTexture texture;
 	vk::ClearColorValue clearValue;
 
-	ClearRTVPacket(LinearAllocator&, VulkanTexture& texture, vk::ClearColorValue clearValue)
+	ClearRTVPacket(LinearMemoryAllocator&, VulkanTexture& texture, vk::ClearColorValue clearValue)
 		:texture(texture)
 		, clearValue(clearValue)
 	{
@@ -221,7 +221,7 @@ public:
 
   VulkanTextureShaderView rtv;
 
-	RenderpassBeginPacket(LinearAllocator&, VulkanRenderpass rp, VulkanTextureShaderView rtv)
+	RenderpassBeginPacket(LinearMemoryAllocator&, VulkanRenderpass rp, VulkanTextureShaderView rtv)
     : rp(rp)
     , rtv(rtv)
 	{
@@ -242,7 +242,7 @@ class RenderpassEndPacket : public VulkanCommandPacket
 {
 public:
 
-	RenderpassEndPacket(LinearAllocator&)
+	RenderpassEndPacket(LinearMemoryAllocator&)
 	{
 	}
 
@@ -261,7 +261,7 @@ class SubpassBeginPacket : public VulkanCommandPacket
 {
 public:
 
-	SubpassBeginPacket(LinearAllocator&)
+	SubpassBeginPacket(LinearMemoryAllocator&)
 	{
 	}
 
@@ -280,7 +280,7 @@ class SubpassEndPacket : public VulkanCommandPacket
 {
 public:
 
-	SubpassEndPacket(LinearAllocator&)
+	SubpassEndPacket(LinearMemoryAllocator&)
 	{
 	}
 
@@ -338,7 +338,7 @@ VulkanCmdBuffer::VulkanCmdBuffer(std::shared_ptr<vk::CommandBuffer> buffer, std:
   : m_cmdBuffer(std::forward<decltype(buffer)>(buffer))
   , m_pool(std::forward<decltype(pool)>(pool))
   , m_closed(false)
-  , m_commandList(std::make_shared<CommandList<VulkanCommandPacket>>(LinearAllocator(COMMANDBUFFERSIZE)))
+  , m_commandList(std::make_shared<CommandList<VulkanCommandPacket>>(LinearMemoryAllocator(COMMANDBUFFERSIZE)))
 {}
 
 bool VulkanCmdBuffer::isValid()

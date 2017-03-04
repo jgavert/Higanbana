@@ -13,7 +13,6 @@ namespace faze
     backend::IntermediateList list;
   public:
     DmaList()
-      : list(LinearAllocator(CommandlistSize))
     {
 
     }
