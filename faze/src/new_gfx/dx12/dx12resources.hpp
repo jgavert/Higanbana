@@ -182,6 +182,17 @@ namespace faze
       std::shared_ptr<LinearDescriptorHeap> samplers;
       // needs the dynamicheaps
     public:
+      DX12CommandBuffer() {}
+      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList,
+        ComPtr<ID3D12CommandAllocator> commandListAllocator,
+        std::shared_ptr<LinearDescriptorHeap> resources,
+        std::shared_ptr<LinearDescriptorHeap> samplers)
+        : commandList(commandList)
+        , commandListAllocator(commandListAllocator)
+        , resources(resources)
+        , samplers(samplers)
+      {}
+
       void fillWith(backend::IntermediateList& list)
       {
         // TODO: move this function somewhere where we have space to actually implement this.
