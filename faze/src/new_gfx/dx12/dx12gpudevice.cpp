@@ -636,7 +636,7 @@ namespace faze
         }
       }
       if (!natList.empty())
-        queue->ExecuteCommandLists(natList.size(), natList.data());
+        queue->ExecuteCommandLists(static_cast<UINT>(natList.size()), natList.data());
 
       if (!signal.empty())
       {
