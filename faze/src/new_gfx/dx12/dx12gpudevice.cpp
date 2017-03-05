@@ -563,39 +563,30 @@ namespace faze
       }
     }
 
+    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
+    {
+      ComPtr<ID3D12GraphicsCommandList> commandList;
+      ComPtr<ID3D12CommandAllocator> commandListAllocator;
+      FAZE_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
+      FAZE_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
+
+      return std::make_shared<DX12CommandBuffer>(commandList, commandListAllocator,
+        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
+        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128));
+    }
+
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createDMAList()
     {
-      ComPtr<ID3D12GraphicsCommandList> commandList;
-      ComPtr<ID3D12CommandAllocator> commandListAllocator;
-      FAZE_CHECK_HR(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
-      FAZE_CHECK_HR(m_device->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_COPY, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
-
-      return std::make_shared<DX12CommandBuffer>(commandList, commandListAllocator,
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128));
+      return createList(D3D12_COMMAND_LIST_TYPE_COPY);
     }
     std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createComputeList()
     {
-      ComPtr<ID3D12GraphicsCommandList> commandList;
-      ComPtr<ID3D12CommandAllocator> commandListAllocator;
-      FAZE_CHECK_HR(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
-      FAZE_CHECK_HR(m_device->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_COMPUTE, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
-
-      return std::make_shared<DX12CommandBuffer>(commandList, commandListAllocator,
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128));
+      return createList(D3D12_COMMAND_LIST_TYPE_COMPUTE);
     }
     std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      ComPtr<ID3D12GraphicsCommandList> commandList;
-      ComPtr<ID3D12CommandAllocator> commandListAllocator;
-      FAZE_CHECK_HR(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
-      FAZE_CHECK_HR(m_device->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
-
-      return std::make_shared<DX12CommandBuffer>(commandList, commandListAllocator,
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128));
+      return createList(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
     std::shared_ptr<prototypes::SemaphoreImpl> DX12Device::createSemaphore()
     {
