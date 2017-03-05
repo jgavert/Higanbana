@@ -194,7 +194,7 @@ namespace faze
         , samplers(samplers)
       {}
 
-      void fillWith(backend::IntermediateList& list)
+      void fillWith(backend::IntermediateList& )
       {
         // TODO: move this function somewhere where we have space to actually implement this.
       }
