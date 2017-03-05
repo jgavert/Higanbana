@@ -221,6 +221,11 @@ namespace faze
       // TODO:
     }
 
+    void DeviceData::present(Swapchain& swapchain)
+    {
+      m_impl->present(swapchain.impl(), swapchain.impl()->acquireSemaphore());
+    }
+
     HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)
     {
       GpuHeapAllocation alloc{};

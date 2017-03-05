@@ -127,5 +127,10 @@ namespace faze
     {
       S().submit(graph);
     }
+
+    void present(Swapchain& swapchain)
+    {
+      S().present(swapchain);
+    }
   };
 };

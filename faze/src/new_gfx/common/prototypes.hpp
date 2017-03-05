@@ -135,6 +135,8 @@ namespace faze
 
         virtual void waitFence(std::shared_ptr<FenceImpl> fence) = 0;
         virtual bool checkFence(std::shared_ptr<FenceImpl> fence) = 0;
+
+        virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished) = 0;
       };
 
       class SubsystemImpl

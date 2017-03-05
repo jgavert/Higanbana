@@ -176,6 +176,7 @@ namespace faze
       TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc);
       // commandgraph
       void submit(CommandGraph graph);
+      void present(Swapchain& swapchain);
     };
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>
