@@ -425,6 +425,7 @@ namespace faze
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
+      std::shared_ptr<prototypes::CommandBufferImpl> createList(D3D12_COMMAND_LIST_TYPE type);
       std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
