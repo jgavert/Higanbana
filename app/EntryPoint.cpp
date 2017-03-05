@@ -105,7 +105,8 @@ int EntryPoint::main()
           }
           if (updateLog) log.update();
 
-          /* If you acquire, you must submit it.
+          // If you acquire, you must submit it. Next, try to first present empty image.
+          // On vulkan, need to at least clear the image or we will just get error about it.
           auto backbuffer = dev.acquirePresentableImage(swapchain);
           CommandGraph tasks = dev.createGraph();
           {
@@ -116,7 +117,8 @@ int EntryPoint::main()
           }
 
           dev.submit(tasks);
-          */
+          
+          dev.present(swapchain);
         }
       }
       if (!reInit)

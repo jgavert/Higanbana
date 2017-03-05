@@ -687,10 +687,22 @@ namespace faze
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       native->waitTillReady();
     }
+
     bool DX12Device::checkFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       return native->hasCompleted();
+    }
+
+    void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
+    {
+      if (renderingFinished)
+      {
+        auto native = std::static_pointer_cast<DX12Fence>(renderingFinished);
+        m_graphicsQueue->Wait(native->fence.Get(), native->value);
+      }
+      auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      FAZE_CHECK_HR(native->native()->Present(1, 0));
     }
   }
 }

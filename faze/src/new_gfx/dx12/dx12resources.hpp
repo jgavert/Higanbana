@@ -485,6 +485,7 @@ namespace faze
 
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;
       bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
+      void present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl

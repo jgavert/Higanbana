@@ -1088,5 +1088,27 @@ namespace faze
 
       return status == vk::Result::eSuccess;
     }
+
+    void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
+    {
+      auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
+      uint32_t index = static_cast<uint32_t>(native->getCurrentPresentableImageIndex());
+      vk::Semaphore renderFinish = nullptr;
+      uint32_t semaphoreCount = 0;
+      vk::SwapchainKHR swap = native->native();
+      if (renderingFinished)
+      {
+        auto sema = std::static_pointer_cast<VulkanSemaphore>(renderingFinished);
+        renderFinish = sema->native();
+        semaphoreCount = 1;
+      }
+
+      m_mainQueue.presentKHR(vk::PresentInfoKHR()
+        .setSwapchainCount(1)
+        .setPSwapchains(&swap)
+        .setPImageIndices(&index)
+        .setWaitSemaphoreCount(semaphoreCount)
+        .setPWaitSemaphores(&renderFinish));
+    };
   }
 }
