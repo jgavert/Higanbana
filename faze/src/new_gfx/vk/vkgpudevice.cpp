@@ -876,9 +876,63 @@ namespace faze
       m_device.destroyImageView(native->native().view);
     }
 
-    void VulkanDevice::submit(backend::IntermediateList&)
+    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createDMAList()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createComputeList()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createGraphicsList()
+    {
+      return nullptr;
+    }
+    void VulkanDevice::resetList(std::shared_ptr<prototypes::CommandBufferImpl> list)
+    {
+    }
+    std::shared_ptr<prototypes::SemaphoreImpl> VulkanDevice::createSemaphore()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::FenceImpl> VulkanDevice::createFence()
+    {
+      return nullptr;
+    }
+
+    void VulkanDevice::submitDMA(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
 
+    }
+
+    void VulkanDevice::submitCompute(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+
+    }
+
+    void VulkanDevice::submitGraphics(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+
+    }
+
+    void VulkanDevice::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    {
+    }
+    bool VulkanDevice::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    {
+      return true;
     }
   }
 }

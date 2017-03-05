@@ -588,6 +588,13 @@ namespace faze
     {
       return createList(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
+
+    void DX12Device::resetList(std::shared_ptr<prototypes::CommandBufferImpl> list)
+    {
+      auto native = std::static_pointer_cast<DX12CommandBuffer>(list);
+      native->reset();
+    }
+
     std::shared_ptr<prototypes::SemaphoreImpl> DX12Device::createSemaphore()
     {
       ComPtr<ID3D12Fence> fence;
@@ -616,17 +623,20 @@ namespace faze
           queue->Wait(native->fence.Get(), native->value);
         }
       }
+      std::vector<ID3D12CommandList*> natList(lists.size());
       if (!lists.empty())
       {
-        std::vector<ID3D12CommandList*> natList(lists.size());
         for (auto&& buffer : lists)
         {
           auto native = std::static_pointer_cast<DX12CommandBuffer>(buffer);
-          natList.emplace_back(native->list());
+          if (native->closed())
+            natList.emplace_back(native->list());
+          else
+            F_ASSERT(false, "Remove when you feel like it.");
         }
-
-        queue->ExecuteCommandLists(natList.size(), natList.data());
       }
+      if (!natList.empty())
+        queue->ExecuteCommandLists(natList.size(), natList.data());
 
       if (!signal.empty())
       {

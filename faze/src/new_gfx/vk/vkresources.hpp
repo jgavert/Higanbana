@@ -13,6 +13,45 @@ namespace faze
 {
   namespace backend
   {
+    class VulkanCommandBuffer : public prototypes::CommandBufferImpl
+    {
+      std::shared_ptr<vk::CommandBuffer>   cmdBuffer;
+      std::shared_ptr<vk::CommandPool>     pool;
+    public:
+      VulkanCommandBuffer(std::shared_ptr<vk::CommandBuffer> cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
+        : cmdBuffer(cmdBuffer)
+        , pool(pool)
+      {}
+    };
+
+    class VulkanSemaphore : public prototypes::SemaphoreImpl
+    {
+      std::shared_ptr<vk::Semaphore> semaphore;
+    public:
+      VulkanSemaphore(std::shared_ptr<vk::Semaphore> semaphore)
+        : semaphore(semaphore)
+      {}
+
+      vk::Semaphore native()
+      {
+        return *semaphore;
+      }
+    };
+
+    class VulkanFence : public prototypes::FenceImpl
+    {
+      std::shared_ptr<vk::Fence> fence;
+    public:
+      VulkanFence(std::shared_ptr<vk::Fence> fence)
+        : fence(fence)
+      {}
+
+      vk::Fence native()
+      {
+        return *fence;
+      }
+    };
+
     class VulkanGraphicsSurface : public prototypes::GraphicsSurfaceImpl
     {
     private:
@@ -286,6 +325,7 @@ namespace faze
       std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
+      void resetList(std::shared_ptr<prototypes::CommandBufferImpl> list) override;
       std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<prototypes::FenceImpl>         createFence() override;
 
