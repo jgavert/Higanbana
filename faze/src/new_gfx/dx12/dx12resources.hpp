@@ -178,6 +178,7 @@ namespace faze
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
+      bool closedList = false;
       std::shared_ptr<LinearDescriptorHeap> resources;
       std::shared_ptr<LinearDescriptorHeap> samplers;
       // needs the dynamicheaps
@@ -201,6 +202,20 @@ namespace faze
       ID3D12GraphicsCommandList* list()
       {
         return commandList.Get();
+      }
+
+      void reset()
+      {
+        commandListAllocator->Reset();
+        commandList->Reset(commandListAllocator.Get(), nullptr);
+        closedList = false;
+        resources->reset();
+        samplers->reset();
+      }
+
+      bool closed()
+      {
+        return closedList;
       }
     };
 
@@ -429,6 +444,7 @@ namespace faze
       std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
+      void resetList(std::shared_ptr<prototypes::CommandBufferImpl> list) override;
       std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<prototypes::FenceImpl>         createFence() override;
 

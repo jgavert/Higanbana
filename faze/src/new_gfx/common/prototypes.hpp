@@ -109,6 +109,7 @@ namespace faze
         virtual std::shared_ptr<CommandBufferImpl> createDMAList() = 0;
         virtual std::shared_ptr<CommandBufferImpl> createComputeList() = 0;
         virtual std::shared_ptr<CommandBufferImpl> createGraphicsList() = 0;
+        virtual void resetList(std::shared_ptr<CommandBufferImpl> list) = 0;
         virtual std::shared_ptr<SemaphoreImpl>     createSemaphore() = 0;
         virtual std::shared_ptr<FenceImpl>         createFence() = 0;
 
