@@ -893,11 +893,31 @@ namespace faze
     }
     std::shared_ptr<prototypes::SemaphoreImpl> VulkanDevice::createSemaphore()
     {
-      return nullptr;
+      auto semaphore = m_device.createSemaphore(vk::SemaphoreCreateInfo());
+
+      auto dev = m_device;
+
+      auto sema = std::shared_ptr<vk::Semaphore>(new vk::Semaphore(semaphore), [dev](vk::Semaphore* semap)
+      {
+        dev.destroySemaphore(*semap);
+        delete semap;
+      });
+      return std::make_shared<VulkanSemaphore>(sema);
     }
     std::shared_ptr<prototypes::FenceImpl> VulkanDevice::createFence()
     {
-      return nullptr;
+      auto createInfo = vk::FenceCreateInfo()
+        .setFlags(vk::FenceCreateFlagBits::eSignaled);
+      auto fence = m_device.createFence(createInfo);
+
+      auto dev = m_device;
+
+      auto fencePtr = std::shared_ptr<vk::Fence>(new vk::Fence(fence), [dev](vk::Fence* fence)
+      {
+        dev.destroyFence(*fence);
+        delete fence;
+      });
+      return std::make_shared<VulkanFence>(fencePtr);
     }
 
     void VulkanDevice::submitDMA(
