@@ -46,9 +46,10 @@ namespace faze
       list.insert<gfxpacket::ClearRT>(rtv, color);
     }
 
-    void prepareForPresent(TextureRTV& rtv, vec4 color)
+    void prepareForPresent(TextureRTV& rtv)
     {
-      list.insert<gfxpacket::ClearRT>(rtv, color);
+      auto tex = rtv.texture();
+      list.insert<gfxpacket::PrepareForPresent>(tex);
     }
   };
 }

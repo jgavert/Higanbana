@@ -563,9 +563,58 @@ namespace faze
       }
     }
 
-    void DX12Device::submit(backend::IntermediateList&)
+    // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
+    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createDMAList()
     {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createComputeList()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createGraphicsList()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::SemaphoreImpl> DX12Device::createSemaphore()
+    {
+      return nullptr;
+    }
+    std::shared_ptr<prototypes::FenceImpl> DX12Device::createFence()
+    {
+      return nullptr;
+    }
 
+    void DX12Device::submitDMA(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+    }
+
+    void DX12Device::submitCompute(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+    }
+
+    void DX12Device::submitGraphics(
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+    }
+
+    void DX12Device::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    {
+    }
+    bool DX12Device::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    {
+      return true;
     }
   }
 }

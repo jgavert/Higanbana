@@ -2,6 +2,8 @@
 #include "resources.hpp"
 #include "heap_descriptor.hpp"
 #include "intermediatelist.hpp"
+#include "core/src/system/memview.hpp"
+
 #include <string>
 
 namespace faze
@@ -19,6 +21,25 @@ namespace faze
       {
       public:
         virtual ~GraphicsSurfaceImpl() = default;
+      };
+
+      class SemaphoreImpl
+      {
+      public:
+        virtual ~SemaphoreImpl() = default;
+      };
+
+      class FenceImpl
+      {
+      public:
+        virtual ~FenceImpl() = default;
+      };
+
+      class CommandBufferImpl
+      {
+      public:
+        virtual void fillWith(backend::IntermediateList& list) = 0;
+        virtual ~CommandBufferImpl() = default;
       };
 
       class SwapchainImpl
@@ -84,8 +105,33 @@ namespace faze
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
         virtual void destroyTextureView(std::shared_ptr<TextureViewImpl> buffer) = 0;
 
-        // commandlist things
-        virtual void submit(backend::IntermediateList& list) = 0;
+        // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
+        virtual std::shared_ptr<CommandBufferImpl> createDMAList() = 0;
+        virtual std::shared_ptr<CommandBufferImpl> createComputeList() = 0;
+        virtual std::shared_ptr<CommandBufferImpl> createGraphicsList() = 0;
+        virtual std::shared_ptr<SemaphoreImpl>     createSemaphore() = 0;
+        virtual std::shared_ptr<FenceImpl>         createFence() = 0;
+
+        virtual void submitDMA(
+          MemView<std::shared_ptr<CommandBufferImpl>> lists,
+          MemView<std::shared_ptr<SemaphoreImpl>> wait,
+          MemView<std::shared_ptr<SemaphoreImpl>> signal,
+          MemView<std::shared_ptr<FenceImpl>> fence) = 0;
+
+        virtual void submitCompute(
+          MemView<std::shared_ptr<CommandBufferImpl>> lists,
+          MemView<std::shared_ptr<SemaphoreImpl>> wait,
+          MemView<std::shared_ptr<SemaphoreImpl>> signal,
+          MemView<std::shared_ptr<FenceImpl>> fence) = 0;
+
+        virtual void submitGraphics(
+          MemView<std::shared_ptr<CommandBufferImpl>> lists,
+          MemView<std::shared_ptr<SemaphoreImpl>> wait,
+          MemView<std::shared_ptr<SemaphoreImpl>> signal,
+          MemView<std::shared_ptr<FenceImpl>> fence) = 0;
+
+        virtual void waitFence(std::shared_ptr<FenceImpl> fence) = 0;
+        virtual bool checkFence(std::shared_ptr<FenceImpl> fence) = 0;
       };
 
       class SubsystemImpl

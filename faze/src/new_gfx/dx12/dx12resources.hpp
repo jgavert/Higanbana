@@ -9,11 +9,82 @@ namespace faze
 {
   namespace backend
   {
+    struct DX12GPUDescriptor
+    {
+      D3D12_CPU_DESCRIPTOR_HANDLE cpu;
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu;
+    };
+
     struct DX12Descriptor
     {
       D3D12_CPU_DESCRIPTOR_HANDLE cpu;
       D3D12_DESCRIPTOR_HEAP_TYPE type;
       RangeBlock block;
+    };
+
+    struct DX12DynamicDescriptorRange
+    {
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu;
+      D3D12_CPU_DESCRIPTOR_HANDLE cpu;
+      UINT increment = 0;
+      int size = -1;
+
+      DX12GPUDescriptor offset(int index)
+      {
+        F_ASSERT(index < size && index >= 0, "Invalid index %d", index);
+        DX12GPUDescriptor desc{};
+        desc.cpu.ptr = cpu.ptr + static_cast<size_t>(index) * increment;
+        desc.gpu.ptr = gpu.ptr + static_cast<size_t>(index) * increment;
+        return desc;
+      }
+    };
+
+    class LinearDescriptorHeap
+    {
+      LinearAllocator allocator;
+      ComPtr<ID3D12DescriptorHeap> heap;
+      D3D12_DESCRIPTOR_HEAP_TYPE type;
+      D3D12_CPU_DESCRIPTOR_HANDLE cpuStart;
+      D3D12_GPU_DESCRIPTOR_HANDLE gpuStart;
+      UINT increment;
+
+      int size = -1;
+    public:
+      LinearDescriptorHeap() {}
+      LinearDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int count)
+        : allocator(count)
+        , type(type)
+        , size(count)
+      {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = type;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        desc.NodeMask = 0;
+        desc.NumDescriptors = static_cast<UINT>(count);
+
+        FAZE_CHECK_HR(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+
+        cpuStart = heap->GetCPUDescriptorHandleForHeapStart();
+        gpuStart = heap->GetGPUDescriptorHandleForHeapStart();
+        increment = device->GetDescriptorHandleIncrementSize(type);
+      }
+
+      DX12DynamicDescriptorRange allocate(int value)
+      {
+        auto offset = allocator.allocate(value, 1);
+        F_ASSERT(offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        DX12DynamicDescriptorRange desc{};
+        desc.cpu.ptr = cpuStart.ptr + increment * offset;
+        desc.gpu.ptr = gpuStart.ptr + increment * offset;
+        desc.increment = increment;
+        desc.size = value;
+        return desc;
+      }
+
+      void reset()
+      {
+        allocator.reset();
+      }
     };
 
     class StagingDescriptorHeap
@@ -61,7 +132,7 @@ namespace faze
       }
     };
 
-    class DX12Fence
+    class DX12Fence : public prototypes::FenceImpl, public prototypes::SemaphoreImpl
     {
     public:
       ComPtr<ID3D12Fence> fence = nullptr;
@@ -99,6 +170,21 @@ namespace faze
         fence->SetEventOnCompletion(value, *handle);
         DWORD result = WaitForSingleObject(*handle, dwMilliseconds);
         F_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
+      }
+    };
+
+
+    class DX12CommandBuffer : public prototypes::CommandBufferImpl
+    {
+      ComPtr<ID3D12GraphicsCommandList> commandList;
+      ComPtr<ID3D12CommandAllocator> commandListAllocator;
+      std::shared_ptr<LinearDescriptorHeap> resources;
+      std::shared_ptr<LinearDescriptorHeap> samplers;
+      // needs the dynamicheaps
+    public:
+      void fillWith(backend::IntermediateList& list)
+      {
+        // TODO: move this function somewhere where we have space to actually implement this.
       }
     };
 
@@ -322,8 +408,33 @@ namespace faze
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
-      // commandlist stuff
-      void submit(backend::IntermediateList& list) override;
+      // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
+      std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
+      std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
+      std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
+      std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
+      std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+
+      void submitDMA(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void submitCompute(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void submitGraphics(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void waitFence(std::shared_ptr<prototypes::FenceImpl>     fence) override;
+      bool checkFence(std::shared_ptr<prototypes::FenceImpl>    fence) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl

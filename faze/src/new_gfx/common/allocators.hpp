@@ -92,4 +92,36 @@ namespace faze
       m_current = 0;
     }
   };
+
+  class FreelistAllocator
+  {
+    vector<int> m_freelist;
+    int m_size = 0;
+  public:
+    FreelistAllocator()
+    {}
+
+    void grow()
+    {
+      m_freelist.emplace_back(m_size++);
+    }
+
+    int allocate()
+    {
+      if (m_freelist.empty())
+      {
+        return -1;
+      }
+      auto ret = m_freelist.back();
+      m_freelist.pop_back();
+      return ret;
+    }
+
+    void release(int val)
+    {
+      F_ASSERT(static_cast<int>(m_freelist.size()) != m_size
+        && val >= 0 && val < m_size, "freelist already full, is this valid?");
+      m_freelist.push_back(val);
+    }
+  };
 }
