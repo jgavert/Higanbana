@@ -16,7 +16,7 @@ namespace faze
     GpuDevice() = default;
     GpuDevice(backend::DeviceData data)
     {
-      makeState(data);
+      makeState(std::forward<decltype(data)>(data));
     }
     GpuDevice(StatePtr state)
     {

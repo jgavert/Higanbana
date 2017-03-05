@@ -132,7 +132,7 @@ namespace faze
       }
     };
 
-    class DX12Fence : public prototypes::FenceImpl, public prototypes::SemaphoreImpl
+    class DX12Fence : public FenceImpl, public SemaphoreImpl
     {
     public:
       ComPtr<ID3D12Fence> fence = nullptr;
@@ -174,7 +174,7 @@ namespace faze
     };
 
 
-    class DX12CommandBuffer : public prototypes::CommandBufferImpl
+    class DX12CommandBuffer : public CommandBufferImpl
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
@@ -194,7 +194,7 @@ namespace faze
         , samplers(samplers)
       {}
 
-      void fillWith(backend::IntermediateList& )
+      void fillWith(backend::IntermediateList& ) override
       {
         // TODO: move this function somewhere where we have space to actually implement this.
       }
@@ -275,6 +275,16 @@ namespace faze
           .setArraySize(1)
           .setName("Swapchain Image")
           .setDepth(1);
+      }
+
+      int getCurrentPresentableImageIndex() override
+      {
+        return m_backbufferIndex;
+      }
+
+      std::shared_ptr<SemaphoreImpl> acquireSemaphore() override
+      {
+        return nullptr;
       }
 
       void setBufferMetadata(int x, int y, int count, FormatType format, PresentMode mode)
@@ -419,7 +429,7 @@ namespace faze
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
-      int acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
+      int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
@@ -440,41 +450,41 @@ namespace faze
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-      std::shared_ptr<prototypes::CommandBufferImpl> createList(D3D12_COMMAND_LIST_TYPE type);
-      std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
-      std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
-      std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
-      void resetList(std::shared_ptr<prototypes::CommandBufferImpl> list) override;
-      std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
-      std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+      std::shared_ptr<CommandBufferImpl> createList(D3D12_COMMAND_LIST_TYPE type);
+      std::shared_ptr<CommandBufferImpl> createDMAList() override;
+      std::shared_ptr<CommandBufferImpl> createComputeList() override;
+      std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
+      void resetList(std::shared_ptr<CommandBufferImpl> list) override;
+      std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
+      std::shared_ptr<FenceImpl>         createFence() override;
 
       void submit(
         ComPtr<ID3D12CommandQueue> queue,
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence);
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence);
 
       void submitDMA(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitCompute(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitGraphics(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
-      void waitFence(std::shared_ptr<prototypes::FenceImpl>     fence) override;
-      bool checkFence(std::shared_ptr<prototypes::FenceImpl>    fence) override;
+      void waitFence(std::shared_ptr<FenceImpl>     fence) override;
+      bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
     };
 
     class DX12Subsystem : public prototypes::SubsystemImpl
