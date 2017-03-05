@@ -36,55 +36,55 @@ namespace faze
     // device
     DeviceData::DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)
       : m_impl(impl)
-      , m_bufferTracker(std::make_shared<ResourceTracker<prototypes::BufferImpl>>())
-      , m_textureTracker(std::make_shared<ResourceTracker<prototypes::TextureImpl>>())
-      , m_swapchainTracker(std::make_shared<ResourceTracker<prototypes::SwapchainImpl>>())
-      , m_bufferViewTracker(std::make_shared<ResourceTracker<prototypes::BufferViewImpl>>())
-      , m_textureViewTracker(std::make_shared<ResourceTracker<prototypes::TextureViewImpl>>())
       , m_idGenerator(std::make_shared<std::atomic<int64_t>>())
     {
     }
 
-    DeviceData::~DeviceData()
+    void DeviceData::gc()
     {
-      waitGpuIdle();
       // views
-      for (auto&& view : m_bufferViewTracker->getResources())
+      for (auto&& view : m_trackers.bufferViews.getResources())
       {
         m_impl->destroyBufferView(view);
       }
 
-      for (auto&& view : m_textureViewTracker->getResources())
+      for (auto&& view : m_trackers.textureViews.getResources())
       {
         m_impl->destroyTextureView(view);
       }
 
 
       // buffers 
-      for (auto&& buffer : m_bufferTracker->getResources())
+      for (auto&& buffer : m_trackers.buffers.getResources())
       {
         m_impl->destroyBuffer(buffer);
       }
 
-      for (auto&& allocation : m_bufferTracker->getAllocations())
+      for (auto&& allocation : m_trackers.buffers.getAllocations())
       {
         m_heaps.release(allocation);
       }
       // textures
-      for (auto&& texture : m_textureTracker->getResources())
+      for (auto&& texture : m_trackers.textures.getResources())
       {
         m_impl->destroyTexture(texture);
       }
 
-      for (auto&& allocation : m_textureTracker->getAllocations())
+      for (auto&& allocation : m_trackers.textures.getAllocations())
       {
         m_heaps.release(allocation);
       }
 
-      for (auto&& sc : m_swapchainTracker->getResources())
+      for (auto&& sc : m_trackers.swapchains.getResources())
       {
         m_impl->destroySwapchain(sc);
       }
+    }
+
+    DeviceData::~DeviceData()
+    {
+      waitGpuIdle();
+      gc();
       // heaps
       auto heaps = m_heaps.emptyHeaps();
       for (auto&& heap : heaps)
@@ -98,7 +98,7 @@ namespace faze
     Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
     {
       auto sc = m_impl->createSwapchain(surface, mode, format, bufferCount);
-      auto tracker = m_swapchainTracker->makeTracker(newId(), sc);
+      auto tracker = m_trackers.swapchains.makeTracker(newId(), sc);
       auto swapchain = Swapchain(sc, tracker);
       // get backbuffers to swapchain
       auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
@@ -106,7 +106,7 @@ namespace faze
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
-        auto texTracker = m_textureTracker->makeTracker(newId(), buffers[i]);
+        auto texTracker = m_trackers.textures.makeTracker(newId(), buffers[i]);
         auto tex = Texture(buffers[i], texTracker, swapchain.impl()->desc());
         backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
 
@@ -123,18 +123,7 @@ namespace faze
       // release current swapchain backbuffers
       swapchain.setBackbuffers({}); // technically this frees the textures if they are not used anywhere.
       // go collect the trash.
-      for (auto&& texture : m_textureViewTracker->getResources())
-      {
-        m_impl->destroyTextureView(texture);
-      }
-      for (auto&& texture : m_textureTracker->getResources())
-      {
-        m_impl->destroyTexture(texture);
-      }
-      for (auto&& allocation : m_textureTracker->getAllocations())
-      {
-        m_heaps.release(allocation);
-      }
+      gc();
 
       // blim
       m_impl->adjustSwapchain(swapchain.impl(), mode, format, bufferCount);
@@ -144,7 +133,7 @@ namespace faze
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
-        auto texTracker = m_textureTracker->makeTracker(newId(), buffers[i]);
+        auto texTracker = m_trackers.textures.makeTracker(newId(), buffers[i]);
         auto tex = Texture(buffers[i], texTracker, swapchain.impl()->desc());
         backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
       }
@@ -164,7 +153,7 @@ namespace faze
       auto memRes = m_impl->getReqs(desc);
       auto allo = m_heaps.allocate(m_impl.get(), memRes);
       auto data = m_impl->createBuffer(allo, desc);
-      auto tracker = m_bufferTracker->makeTracker(newId(), allo.allocation, data);
+      auto tracker = m_trackers.buffers.makeTracker(newId(), allo.allocation, data);
       return Buffer(data, tracker, desc);
     }
 
@@ -173,49 +162,49 @@ namespace faze
       auto memRes = m_impl->getReqs(desc);
       auto allo = m_heaps.allocate(m_impl.get(), memRes);
       auto data = m_impl->createTexture(allo, desc);
-      auto tracker = m_textureTracker->makeTracker(newId(), allo.allocation, data);
+      auto tracker = m_trackers.textures.makeTracker(newId(), allo.allocation, data);
       return Texture(data, tracker, desc);
     }
 
     BufferSRV DeviceData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
-      auto tracker = m_bufferViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.bufferViews.makeTracker(newId(), data);
       return BufferSRV(buffer, data, tracker);
     }
 
     BufferUAV DeviceData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
-      auto tracker = m_bufferViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.bufferViews.makeTracker(newId(), data);
       return BufferUAV(buffer, data, tracker);
     }
 
     TextureSRV DeviceData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
-      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.textureViews.makeTracker(newId(), data);
       return TextureSRV(texture, data, tracker);
     }
 
     TextureUAV DeviceData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
-      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.textureViews.makeTracker(newId(), data);
       return TextureUAV(texture, data, tracker);
     }
 
     TextureRTV DeviceData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
-      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.textureViews.makeTracker(newId(), data);
       return TextureRTV(texture, data, tracker);
     }
 
     TextureDSV DeviceData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
     {
       auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
-      auto tracker = m_textureViewTracker->makeTracker(newId(), data);
+      auto tracker = m_trackers.textureViews.makeTracker(newId(), data);
       return TextureDSV(texture, data, tracker);
     }
 

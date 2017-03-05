@@ -283,7 +283,32 @@ namespace faze
 
 
       // commandlist stuff
-      void submit(backend::IntermediateList& list) override;
+      std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
+      std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
+      std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
+      std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
+      std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+
+      void submitDMA(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void submitCompute(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void submitGraphics(
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+
+      void waitFence(std::shared_ptr<prototypes::FenceImpl>     fence) override;
+      bool checkFence(std::shared_ptr<prototypes::FenceImpl>    fence) override;
     };
 
     class VulkanSubsystem : public prototypes::SubsystemImpl

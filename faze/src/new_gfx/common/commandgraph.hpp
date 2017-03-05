@@ -24,9 +24,9 @@ namespace faze
       list.clearRT(rtv, color);
     }
 
-    void prepareForPresent(TextureRTV& rtv, vec4 color)
+    void prepareForPresent(TextureRTV& rtv)
     {
-      list.clearRT(rtv, color);
+      list.prepareForPresent(rtv);
     }
   };
 

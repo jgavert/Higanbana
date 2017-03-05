@@ -106,10 +106,11 @@ int EntryPoint::main()
           }
           if (updateLog) log.update();
 
-          CommandGraph tasks;
+          CommandGraph tasks = dev.createGraph();
           {
-            auto node = tasks.createPass("test!");
+            auto node = tasks.createPass("clear and present!");
             node.clearRT(backbuffer, vec4{ 1.f, 0.f, 0.f, 1.f });
+            node.prepareForPresent(backbuffer);
             tasks.addPass(std::move(node));
           }
 
