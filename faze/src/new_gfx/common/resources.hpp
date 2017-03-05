@@ -141,21 +141,24 @@ namespace faze
       std::shared_ptr<prototypes::DeviceImpl> m_impl;
       HeapManager m_heaps;
 
-      struct ResourceTrackers
-      {
-        ResourceTracker<prototypes::BufferImpl> buffers;
-        ResourceTracker<prototypes::TextureImpl> textures;
-        ResourceTracker<prototypes::SwapchainImpl> swapchains;
-        ResourceTracker<prototypes::BufferViewImpl> bufferViews;
-        ResourceTracker<prototypes::TextureViewImpl> textureViews;
-      } m_trackers;
+      std::shared_ptr<ResourceTracker<prototypes::BufferImpl>> m_trackerbuffers;
+      std::shared_ptr<ResourceTracker<prototypes::TextureImpl>> m_trackertextures;
+      std::shared_ptr<ResourceTracker<prototypes::SwapchainImpl>> m_trackerswapchains;
+      std::shared_ptr<ResourceTracker<prototypes::BufferViewImpl>> m_trackerbufferViews;
+      std::shared_ptr<ResourceTracker<prototypes::TextureViewImpl>> m_trackertextureViews;
 
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
 
       int64_t newId() { return (*m_idGenerator)++; }
 
       DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl);
+      DeviceData(DeviceData&& data) = default;
+      DeviceData(const DeviceData& data) = delete;
+      DeviceData& operator=(DeviceData&& data) = default;
+      DeviceData& operator=(const DeviceData& data) = delete;
       ~DeviceData();
+
+
       void gc();
       void waitGpuIdle();
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);

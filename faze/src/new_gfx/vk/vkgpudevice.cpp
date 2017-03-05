@@ -212,6 +212,7 @@ namespace faze
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
+      m_semaphores.destroy(m_device);
       m_device.destroy();
     }
 
@@ -323,7 +324,7 @@ namespace faze
         .setClipped(false);
 
       auto swapchain = m_device.createSwapchainKHR(info);
-      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface);
+      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface, m_semaphores.allocate(m_device));
       
       sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
       return sc;
@@ -416,16 +417,21 @@ namespace faze
       return textures;
     }
 
-    int VulkanDevice::acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> sc)
+    // TODO: add fence here, so that we can detect that "we cannot render yet, do something else". Bonus thing honestly.
+    int VulkanDevice::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> sc)
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
-      auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), *image.semaphore, vk::Fence());
+
+      std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate(m_device);
+      auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), freeSemaphore->native(), nullptr);
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
       {
         F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
         //return -1;
       }
+      native->setCurrentPresentableImageIndex(res.value);
+      native->setAcquireSemaphore(freeSemaphore);
 
       return res.value;
     }
@@ -911,7 +917,7 @@ namespace faze
       m_device.destroyImageView(native->native().view);
     }
 
-    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createCommandBuffer(int queueIndex)
+    std::shared_ptr<CommandBufferImpl> VulkanDevice::createCommandBuffer(int queueIndex)
     {
       vk::CommandPoolCreateInfo poolInfo = poolInfo = vk::CommandPoolCreateInfo()
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
@@ -921,42 +927,38 @@ namespace faze
         .setCommandBufferCount(1)
         .setCommandPool(pool)
         .setLevel(vk::CommandBufferLevel::ePrimary));
-      std::shared_ptr<vk::CommandBuffer> retBuf(new vk::CommandBuffer(buffer[0]));
-      std::shared_ptr<vk::CommandPool> retPool(new vk::CommandPool(pool), [&](vk::CommandPool* pool) { m_device.destroyCommandPool(*pool); delete pool; });
-      return std::make_shared<VulkanCommandBuffer>(retBuf, retPool);
+
+      auto ptr = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(buffer[0], pool), [&](VulkanCommandBuffer* ptr)
+      {
+        m_device.destroyCommandPool(ptr->pool());
+        delete ptr;
+      });
+
+      return ptr;
     }
 
-    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createDMAList()
+    std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
       return createCommandBuffer(m_copyQueueIndex);
     }
-    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createComputeList()
+    std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
       return createCommandBuffer(m_computeQueueIndex);
     }
-    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createGraphicsList()
+    std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
       return createCommandBuffer(m_mainQueueIndex);
     }
-    void VulkanDevice::resetList(std::shared_ptr<prototypes::CommandBufferImpl> list)
+    void VulkanDevice::resetList(std::shared_ptr<CommandBufferImpl> list)
     {
       auto native = std::static_pointer_cast<VulkanCommandBuffer>(list);
       m_device.resetCommandPool(native->pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
     }
-    std::shared_ptr<prototypes::SemaphoreImpl> VulkanDevice::createSemaphore()
+    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphore()
     {
-      auto semaphore = m_device.createSemaphore(vk::SemaphoreCreateInfo());
-
-      auto dev = m_device;
-
-      auto sema = std::shared_ptr<vk::Semaphore>(new vk::Semaphore(semaphore), [dev](vk::Semaphore* semap)
-      {
-        dev.destroySemaphore(*semap);
-        delete semap;
-      });
-      return std::make_shared<VulkanSemaphore>(sema);
+      return m_semaphores.allocate(m_device);
     }
-    std::shared_ptr<prototypes::FenceImpl> VulkanDevice::createFence()
+    std::shared_ptr<FenceImpl> VulkanDevice::createFence()
     {
       auto createInfo = vk::FenceCreateInfo()
         .setFlags(vk::FenceCreateFlagBits::eSignaled);
@@ -964,19 +966,19 @@ namespace faze
 
       auto dev = m_device;
 
-      auto fencePtr = std::shared_ptr<vk::Fence>(new vk::Fence(fence), [dev](vk::Fence* fence)
+      auto fencePtr = std::shared_ptr<VulkanFence>(new VulkanFence(fence), [dev](VulkanFence* fence)
       {
-        dev.destroyFence(*fence);
+        dev.destroyFence(fence->native());
         delete fence;
       });
-      return std::make_shared<VulkanFence>(fencePtr);
+      return fencePtr;
     }
 
     void VulkanDevice::submitToQueue(vk::Queue queue,
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       vector<vk::Semaphore> waitList(lists.size());
       vector<vk::CommandBuffer> bufferList(lists.size());
@@ -1021,7 +1023,7 @@ namespace faze
         auto native = std::static_pointer_cast<VulkanFence>(fence[0]);
         {
           vk::ArrayProxy<const vk::Fence> proxy(native->native());
-          // is this ok to do always?
+          // TODO: is this ok to do always?
           m_device.resetFences(proxy);
         }
         vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
@@ -1035,10 +1037,10 @@ namespace faze
     }
 
     void VulkanDevice::submitDMA(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       vk::Queue target = m_copyQueue;
       if (m_singleQueue)
@@ -1049,10 +1051,10 @@ namespace faze
     }
 
     void VulkanDevice::submitCompute(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       vk::Queue target = m_computeQueue;
       if (m_singleQueue)
@@ -1063,15 +1065,15 @@ namespace faze
     }
 
     void VulkanDevice::submitGraphics(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       submitToQueue(m_mainQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
-    void VulkanDevice::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    void VulkanDevice::waitFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<VulkanFence>(fence);
       vk::ArrayProxy<const vk::Fence> proxy(native->native());
@@ -1079,7 +1081,7 @@ namespace faze
       F_ASSERT(res == vk::Result::eSuccess, "uups");
     }
 
-    bool VulkanDevice::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    bool VulkanDevice::checkFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<VulkanFence>(fence);
       auto status = m_device.getFenceStatus(native->native());

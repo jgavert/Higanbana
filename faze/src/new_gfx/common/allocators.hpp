@@ -63,7 +63,7 @@ namespace faze
 
     int64_t calcAlignOffset(int64_t size, size_t alignment)
     {
-      return (alignment - (size & alignment)) % alignment;
+      return size - (alignment - (size & alignment)) % alignment;
     }
   public:
     LinearAllocator() {}

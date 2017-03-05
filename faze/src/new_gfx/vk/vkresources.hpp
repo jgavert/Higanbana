@@ -13,52 +13,58 @@ namespace faze
 {
   namespace backend
   {
-    class VulkanCommandBuffer : public prototypes::CommandBufferImpl
+    // implementations
+    class VulkanCommandBuffer : public CommandBufferImpl
     {
-      std::shared_ptr<vk::CommandBuffer>   m_cmdBuffer;
-      std::shared_ptr<vk::CommandPool>     m_pool;
+      vk::CommandBuffer  m_cmdBuffer;
+      vk::CommandPool     m_pool;
     public:
-      VulkanCommandBuffer(std::shared_ptr<vk::CommandBuffer> cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
+      VulkanCommandBuffer(vk::CommandBuffer cmdBuffer, vk::CommandPool pool)
         : m_cmdBuffer(cmdBuffer)
         , m_pool(pool)
       {}
 
+      void fillWith(backend::IntermediateList&) override
+      {
+        // TODO: move this function somewhere where we have space to actually implement this.
+      }
+
       vk::CommandBuffer list()
       {
-        return *m_cmdBuffer;
+        return m_cmdBuffer;
       }
 
       vk::CommandPool pool()
       {
-        return *m_pool;
+        return m_pool;
       }
     };
 
-    class VulkanSemaphore : public prototypes::SemaphoreImpl
+    class VulkanSemaphore : public SemaphoreImpl
     {
-      std::shared_ptr<vk::Semaphore> semaphore;
+      vk::Semaphore semaphore;
     public:
-      VulkanSemaphore(std::shared_ptr<vk::Semaphore> semaphore)
+      VulkanSemaphore(vk::Semaphore semaphore)
         : semaphore(semaphore)
       {}
 
       vk::Semaphore native()
       {
-        return *semaphore;
+        return semaphore;
       }
     };
 
-    class VulkanFence : public prototypes::FenceImpl
+    class VulkanFence : public FenceImpl
     {
-      std::shared_ptr<vk::Fence> fence;
+      vk::Fence fence;
     public:
-      VulkanFence(std::shared_ptr<vk::Fence> fence)
+      VulkanFence(vk::Fence fence)
         : fence(fence)
       {}
 
       vk::Fence native()
       {
-        return *fence;
+        return fence;
       }
     };
 
@@ -83,9 +89,10 @@ namespace faze
     {
       vk::SwapchainKHR m_swapchain;
       VulkanGraphicsSurface m_surface;
-      vector<vk::Semaphore> m_semaphores;
-      vector<int> m_assignedSemaphores;
+      std::shared_ptr<VulkanSemaphore> m_acquireSemaphore = nullptr;
+      std::shared_ptr<VulkanSemaphore> renderingFinished = nullptr;
 
+      int m_index = -1;
       struct Desc
       {
         int width = 0;
@@ -94,13 +101,15 @@ namespace faze
         FormatType format = FormatType::Unknown;
         PresentMode mode = PresentMode::Unknown;
       } m_desc;
+
     public:
 
       VulkanSwapchain()
       {}
-      VulkanSwapchain(vk::SwapchainKHR resource, VulkanGraphicsSurface surface, vector<vk::Semaphore> semaphores)
+      VulkanSwapchain(vk::SwapchainKHR resource, VulkanGraphicsSurface surface, std::shared_ptr<VulkanSemaphore> semaphore)
         : m_swapchain(resource)
         , m_surface(surface)
+        , renderingFinished(semaphore)
       {}
 
       ResourceDescriptor desc() override
@@ -116,6 +125,20 @@ namespace faze
           .setDepth(1);
       }
 
+      int getCurrentPresentableImageIndex() override
+      {
+        return m_index;
+      }
+
+      std::shared_ptr<SemaphoreImpl> acquireSemaphore() override
+      {
+        return m_acquireSemaphore;
+      }
+
+      void setAcquireSemaphore(std::shared_ptr<VulkanSemaphore> semaphore)
+      {
+        m_acquireSemaphore = semaphore;
+      }
       void setBufferMetadata(int x, int y, int count, FormatType format, PresentMode mode)
       {
         m_desc.width = x;
@@ -130,7 +153,10 @@ namespace faze
         return m_desc;
       }
 
-
+      void setCurrentPresentableImageIndex(int index)
+      {
+        m_index = index;
+      }
 
       void setSwapchain(vk::SwapchainKHR chain)
       {
@@ -254,6 +280,43 @@ namespace faze
       }
     };
 
+    // helpers
+
+    class GrowingSemaphorePool
+    {
+      vector<vk::Semaphore> m_semaphores;
+      FreelistAllocator m_allocator;
+    public:
+      GrowingSemaphorePool()
+      {
+      }
+      std::shared_ptr<VulkanSemaphore> allocate(vk::Device device)
+      {
+        auto index = m_allocator.allocate();
+        if (index == -1)
+        {
+          m_allocator.grow();
+          m_semaphores.emplace_back(device.createSemaphore(vk::SemaphoreCreateInfo()));
+          index = m_allocator.allocate();
+        }
+        auto semaphore = m_semaphores[index];
+
+        auto sema = std::shared_ptr<VulkanSemaphore>(new VulkanSemaphore(m_semaphores[index]), [&, index](VulkanSemaphore* semap)
+        {
+          m_allocator.release(index);
+          delete semap;
+        });
+        return sema;
+      }
+      void destroy(vk::Device device)
+      {
+        for (auto&& it : m_semaphores)
+        {
+          device.destroySemaphore(it);
+        }
+      }
+    };
+
     class VulkanDevice : public prototypes::DeviceImpl
     {
     private:
@@ -275,6 +338,8 @@ namespace faze
       vk::Queue                   m_mainQueue;
       vk::Queue                   m_computeQueue;
       vk::Queue                   m_copyQueue;
+
+      GrowingSemaphorePool        m_semaphores;
 
       struct FreeQueues
       {
@@ -314,7 +379,7 @@ namespace faze
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
-      int acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
+      int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
@@ -336,41 +401,41 @@ namespace faze
 
 
       // commandlist stuff
-      std::shared_ptr<prototypes::CommandBufferImpl> createCommandBuffer(int queueIndex);
-      std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
-      std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
-      std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
-      void resetList(std::shared_ptr<prototypes::CommandBufferImpl> list) override;
-      std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
-      std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+      std::shared_ptr<CommandBufferImpl> createCommandBuffer(int queueIndex);
+      std::shared_ptr<CommandBufferImpl> createDMAList() override;
+      std::shared_ptr<CommandBufferImpl> createComputeList() override;
+      std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
+      void resetList(std::shared_ptr<CommandBufferImpl> list) override;
+      std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
+      std::shared_ptr<FenceImpl>         createFence() override;
 
       void submitToQueue(
         vk::Queue queue,
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence);
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence);
 
       void submitDMA(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitCompute(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitGraphics(
-        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence) override;
+        MemView<std::shared_ptr<CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<FenceImpl>>         fence) override;
 
-      void waitFence(std::shared_ptr<prototypes::FenceImpl>     fence) override;
-      bool checkFence(std::shared_ptr<prototypes::FenceImpl>    fence) override;
+      void waitFence(std::shared_ptr<FenceImpl>     fence) override;
+      bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
     };
 
     class VulkanSubsystem : public prototypes::SubsystemImpl

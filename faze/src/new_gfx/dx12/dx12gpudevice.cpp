@@ -266,8 +266,7 @@ namespace faze
       return textures;
     }
 
-
-    int DX12Device::acquirePresentableImageIndex(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       int index = native->native()->GetCurrentBackBufferIndex();
@@ -563,7 +562,7 @@ namespace faze
       }
     }
 
-    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
+    std::shared_ptr<CommandBufferImpl> DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
@@ -576,32 +575,32 @@ namespace faze
     }
 
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createDMAList()
+    std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
       return createList(D3D12_COMMAND_LIST_TYPE_COPY);
     }
-    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createComputeList()
+    std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
       return createList(D3D12_COMMAND_LIST_TYPE_COMPUTE);
     }
-    std::shared_ptr<prototypes::CommandBufferImpl> DX12Device::createGraphicsList()
+    std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
       return createList(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
 
-    void DX12Device::resetList(std::shared_ptr<prototypes::CommandBufferImpl> list)
+    void DX12Device::resetList(std::shared_ptr<CommandBufferImpl> list)
     {
       auto native = std::static_pointer_cast<DX12CommandBuffer>(list);
       native->reset();
     }
 
-    std::shared_ptr<prototypes::SemaphoreImpl> DX12Device::createSemaphore()
+    std::shared_ptr<SemaphoreImpl> DX12Device::createSemaphore()
     {
       ComPtr<ID3D12Fence> fence;
       FAZE_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
       return std::make_shared<DX12Fence>(fence);
     }
-    std::shared_ptr<prototypes::FenceImpl> DX12Device::createFence()
+    std::shared_ptr<FenceImpl> DX12Device::createFence()
     {
       ComPtr<ID3D12Fence> fence;
       FAZE_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
@@ -610,10 +609,10 @@ namespace faze
 
     void DX12Device::submit(
       ComPtr<ID3D12CommandQueue> queue,
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       if (!wait.empty())
       {
@@ -657,38 +656,38 @@ namespace faze
     }
 
     void DX12Device::submitDMA(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitCompute(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitGraphics(
-      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
-      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+      MemView<std::shared_ptr<CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<FenceImpl>>         fence)
     {
       submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
-    void DX12Device::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    void DX12Device::waitFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       native->waitTillReady();
     }
-    bool DX12Device::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
+    bool DX12Device::checkFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       return native->hasCompleted();

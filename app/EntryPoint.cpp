@@ -70,7 +70,6 @@ int EntryPoint::main()
         texturedesc = texturedesc.setArraySize(3);
         auto texture2 = dev.createTexture(texturedesc);
 
-        auto backbuffer = swapchain.buffers()[0];
         int64_t frame = 1;
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
@@ -106,6 +105,8 @@ int EntryPoint::main()
           }
           if (updateLog) log.update();
 
+          /* If you acquire, you must submit it.
+          auto backbuffer = dev.acquirePresentableImage(swapchain);
           CommandGraph tasks = dev.createGraph();
           {
             auto node = tasks.createPass("clear and present!");
@@ -115,6 +116,7 @@ int EntryPoint::main()
           }
 
           dev.submit(tasks);
+          */
         }
       }
       if (!reInit)
