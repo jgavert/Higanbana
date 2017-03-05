@@ -133,6 +133,7 @@ namespace faze
       m_dmaQueues = !m_freeQueueIndexes.dma.empty();
       m_graphicQueues = !m_freeQueueIndexes.graphics.empty();
 
+      // find graphics, compute, copy queues
       if (m_singleQueue)
       {
         m_mainQueue = m_device.getQueue(0, 0);
@@ -140,7 +141,14 @@ namespace faze
       }
       else
       {
-        if (!m_freeQueueIndexes.universal.empty())
+        if (!m_freeQueueIndexes.graphics.empty())
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.graphicsIndex;
+          uint32_t queueId = m_freeQueueIndexes.graphics.back();
+          m_freeQueueIndexes.graphics.pop_back();
+          m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_mainQueueIndex = queueFamilyIndex;
+        } else if (!m_freeQueueIndexes.universal.empty())
         {
           uint32_t queueFamilyIndex = m_freeQueueIndexes.universalIndex;
           uint32_t queueId = m_freeQueueIndexes.universal.back();
@@ -148,13 +156,40 @@ namespace faze
           m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
           m_mainQueueIndex = queueFamilyIndex;
         }
-        else
+        // compute
+        if (!m_freeQueueIndexes.compute.empty())
         {
-          uint32_t queueFamilyIndex = m_freeQueueIndexes.graphicsIndex;
-          uint32_t queueId = m_freeQueueIndexes.graphics.back();
-          m_freeQueueIndexes.graphics.pop_back();
-          m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
-          m_mainQueueIndex = queueFamilyIndex;
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.computeIndex;
+          uint32_t queueId = m_freeQueueIndexes.compute.back();
+          m_freeQueueIndexes.compute.pop_back();
+          m_computeQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_computeQueueIndex = queueFamilyIndex;
+        }
+        else if (!m_freeQueueIndexes.universal.empty())
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.universalIndex;
+          uint32_t queueId = m_freeQueueIndexes.universal.back();
+          m_freeQueueIndexes.universal.pop_back();
+          m_computeQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_computeQueueIndex = queueFamilyIndex;
+        }
+
+        // copy
+        if (!m_freeQueueIndexes.dma.empty())
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.dmaIndex;
+          uint32_t queueId = m_freeQueueIndexes.dma.back();
+          m_freeQueueIndexes.dma.pop_back();
+          m_copyQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_copyQueueIndex = queueFamilyIndex;
+        }
+        else if (!m_freeQueueIndexes.universal.empty())
+        {
+          uint32_t queueFamilyIndex = m_freeQueueIndexes.universalIndex;
+          uint32_t queueId = m_freeQueueIndexes.universal.back();
+          m_freeQueueIndexes.universal.pop_back();
+          m_copyQueue = m_device.getQueue(queueFamilyIndex, queueId);
+          m_copyQueueIndex = queueFamilyIndex;
         }
       }
       //auto memProp = m_physDevice.getMemoryProperties();
@@ -876,20 +911,37 @@ namespace faze
       m_device.destroyImageView(native->native().view);
     }
 
+    std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createCommandBuffer(int queueIndex)
+    {
+      vk::CommandPoolCreateInfo poolInfo = poolInfo = vk::CommandPoolCreateInfo()
+        .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+        .setQueueFamilyIndex(queueIndex);
+      auto pool = m_device.createCommandPool(poolInfo);
+      auto buffer = m_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
+        .setCommandBufferCount(1)
+        .setCommandPool(pool)
+        .setLevel(vk::CommandBufferLevel::ePrimary));
+      std::shared_ptr<vk::CommandBuffer> retBuf(new vk::CommandBuffer(buffer[0]));
+      std::shared_ptr<vk::CommandPool> retPool(new vk::CommandPool(pool), [&](vk::CommandPool* pool) { m_device.destroyCommandPool(*pool); delete pool; });
+      return std::make_shared<VulkanCommandBuffer>(retBuf, retPool);
+    }
+
     std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createDMAList()
     {
-      return nullptr;
+      return createCommandBuffer(m_copyQueueIndex);
     }
     std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createComputeList()
     {
-      return nullptr;
+      return createCommandBuffer(m_computeQueueIndex);
     }
     std::shared_ptr<prototypes::CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
-      return nullptr;
+      return createCommandBuffer(m_mainQueueIndex);
     }
     void VulkanDevice::resetList(std::shared_ptr<prototypes::CommandBufferImpl> list)
     {
+      auto native = std::static_pointer_cast<VulkanCommandBuffer>(list);
+      m_device.resetCommandPool(native->pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
     }
     std::shared_ptr<prototypes::SemaphoreImpl> VulkanDevice::createSemaphore()
     {
@@ -920,13 +972,80 @@ namespace faze
       return std::make_shared<VulkanFence>(fencePtr);
     }
 
+    void VulkanDevice::submitToQueue(vk::Queue queue,
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+      vector<vk::Semaphore> waitList(lists.size());
+      vector<vk::CommandBuffer> bufferList(lists.size());
+      vector<vk::Semaphore> signalList(lists.size());
+      if (!wait.empty())
+      {
+        for (auto&& sema : wait)
+        {
+          auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
+          waitList.emplace_back(native->native());
+        }
+      }
+      if (!lists.empty())
+      {
+        for (auto&& buffer : lists)
+        {
+          auto native = std::static_pointer_cast<VulkanCommandBuffer>(buffer);
+          bufferList.emplace_back(native->list());
+        }
+      }
+
+      if (!signal.empty())
+      {
+        for (auto&& sema : signal)
+        {
+          auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
+          signalList.emplace_back(native->native());
+        }
+      }
+
+      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands;
+      auto info = vk::SubmitInfo()
+        .setPWaitDstStageMask(&waitMask)
+        .setCommandBufferCount(static_cast<uint32_t>(bufferList.size()))
+        .setPCommandBuffers(bufferList.data())
+        .setWaitSemaphoreCount(static_cast<uint32_t>(waitList.size()))
+        .setPWaitSemaphores(waitList.data())
+        .setSignalSemaphoreCount(static_cast<uint32_t>(signalList.size()))
+        .setPSignalSemaphores(signalList.data());
+      if (!fence.empty())
+      {
+        auto native = std::static_pointer_cast<VulkanFence>(fence[0]);
+        {
+          vk::ArrayProxy<const vk::Fence> proxy(native->native());
+          // is this ok to do always?
+          m_device.resetFences(proxy);
+        }
+        vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
+        queue.submit(proxy, native->native());
+      }
+      else
+      {
+        vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
+        queue.submit(proxy, nullptr);
+      }
+    }
+
     void VulkanDevice::submitDMA(
       MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
-
+      vk::Queue target = m_copyQueue;
+      if (m_singleQueue)
+      {
+        target = m_mainQueue;
+      }
+      submitToQueue(target, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::submitCompute(
@@ -935,7 +1054,12 @@ namespace faze
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
-
+      vk::Queue target = m_computeQueue;
+      if (m_singleQueue)
+      {
+        target = m_mainQueue;
+      }
+      submitToQueue(target, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::submitGraphics(
@@ -944,15 +1068,23 @@ namespace faze
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
-
+      submitToQueue(m_mainQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
     {
+      auto native = std::static_pointer_cast<VulkanFence>(fence);
+      vk::ArrayProxy<const vk::Fence> proxy(native->native());
+      auto res = m_device.waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
+      F_ASSERT(res == vk::Result::eSuccess, "uups");
     }
+
     bool VulkanDevice::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
     {
-      return true;
+      auto native = std::static_pointer_cast<VulkanFence>(fence);
+      auto status = m_device.getFenceStatus(native->native());
+
+      return status == vk::Result::eSuccess;
     }
   }
 }

@@ -15,13 +15,23 @@ namespace faze
   {
     class VulkanCommandBuffer : public prototypes::CommandBufferImpl
     {
-      std::shared_ptr<vk::CommandBuffer>   cmdBuffer;
-      std::shared_ptr<vk::CommandPool>     pool;
+      std::shared_ptr<vk::CommandBuffer>   m_cmdBuffer;
+      std::shared_ptr<vk::CommandPool>     m_pool;
     public:
       VulkanCommandBuffer(std::shared_ptr<vk::CommandBuffer> cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
-        : cmdBuffer(cmdBuffer)
-        , pool(pool)
+        : m_cmdBuffer(cmdBuffer)
+        , m_pool(pool)
       {}
+
+      vk::CommandBuffer list()
+      {
+        return *m_cmdBuffer;
+      }
+
+      vk::CommandPool pool()
+      {
+        return *m_pool;
+      }
     };
 
     class VulkanSemaphore : public prototypes::SemaphoreImpl
@@ -260,7 +270,11 @@ namespace faze
       int64_t                     m_resourceID = 1;
 
       int                         m_mainQueueIndex;
+      int                         m_computeQueueIndex = -1;
+      int                         m_copyQueueIndex = -1;
       vk::Queue                   m_mainQueue;
+      vk::Queue                   m_computeQueue;
+      vk::Queue                   m_copyQueue;
 
       struct FreeQueues
       {
@@ -322,12 +336,20 @@ namespace faze
 
 
       // commandlist stuff
+      std::shared_ptr<prototypes::CommandBufferImpl> createCommandBuffer(int queueIndex);
       std::shared_ptr<prototypes::CommandBufferImpl> createDMAList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createComputeList() override;
       std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
       void resetList(std::shared_ptr<prototypes::CommandBufferImpl> list) override;
       std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+
+      void submitToQueue(
+        vk::Queue queue,
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence);
 
       void submitDMA(
         MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
