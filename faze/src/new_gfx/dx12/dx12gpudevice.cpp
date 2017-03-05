@@ -229,7 +229,7 @@ namespace faze
       F_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
+      //F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
       format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
