@@ -610,12 +610,58 @@ namespace faze
       return std::make_shared<DX12Fence>(fence);
     }
 
+    void DX12Device::submit(
+      ComPtr<ID3D12CommandQueue> queue,
+      MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+      MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+      MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
+    {
+      if (!wait.empty())
+      {
+        for (auto&& sema : wait)
+        {
+          auto native = std::static_pointer_cast<DX12Fence>(sema);
+          queue->Wait(native->fence.Get(), native->value);
+        }
+      }
+      if (!lists.empty())
+      {
+        std::vector<ID3D12CommandList*> natList(lists.size());
+        for (auto&& buffer : lists)
+        {
+          auto native = std::static_pointer_cast<DX12CommandBuffer>(buffer);
+          natList.emplace_back(native->list());
+        }
+
+        queue->ExecuteCommandLists(natList.size(), natList.data());
+      }
+
+      if (!signal.empty())
+      {
+        for (auto&& sema : signal)
+        {
+          auto native = std::static_pointer_cast<DX12Fence>(sema);
+          queue->Signal(native->fence.Get(), native->start());
+        }
+      }
+      if (!fence.empty())
+      {
+        for (auto&& fe : fence)
+        {
+          auto native = std::static_pointer_cast<DX12Fence>(fe);
+          queue->Signal(native->fence.Get(), native->start());
+        }
+      }
+    }
+
     void DX12Device::submitDMA(
       MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
+      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitCompute(
@@ -624,6 +670,7 @@ namespace faze
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
+      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitGraphics(
@@ -632,14 +679,18 @@ namespace faze
       MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<prototypes::FenceImpl>>         fence)
     {
+      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::waitFence(std::shared_ptr<prototypes::FenceImpl> fence)
     {
+      auto native = std::static_pointer_cast<DX12Fence>(fence);
+      native->waitTillReady();
     }
     bool DX12Device::checkFence(std::shared_ptr<prototypes::FenceImpl> fence)
     {
-      return true;
+      auto native = std::static_pointer_cast<DX12Fence>(fence);
+      return native->hasCompleted();
     }
   }
 }

@@ -197,6 +197,11 @@ namespace faze
       {
         // TODO: move this function somewhere where we have space to actually implement this.
       }
+
+      ID3D12GraphicsCommandList* list()
+      {
+        return commandList.Get();
+      }
     };
 
     // implementations
@@ -425,6 +430,13 @@ namespace faze
       std::shared_ptr<prototypes::CommandBufferImpl> createGraphicsList() override;
       std::shared_ptr<prototypes::SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<prototypes::FenceImpl>         createFence() override;
+
+      void submit(
+        ComPtr<ID3D12CommandQueue> queue,
+        MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     wait,
+        MemView<std::shared_ptr<prototypes::SemaphoreImpl>>     signal,
+        MemView<std::shared_ptr<prototypes::FenceImpl>>         fence);
 
       void submitDMA(
         MemView<std::shared_ptr<prototypes::CommandBufferImpl>> lists,
