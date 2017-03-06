@@ -616,10 +616,10 @@ namespace faze
         for (auto&& sema : wait)
         {
           auto native = std::static_pointer_cast<DX12Fence>(sema);
-          queue->Wait(native->fence.Get(), native->value);
+          queue->Wait(native->fence.Get(), *native->value);
         }
       }
-      std::vector<ID3D12CommandList*> natList(lists.size());
+      std::vector<ID3D12CommandList*> natList;
       if (!lists.empty())
       {
         for (auto&& buffer : lists)
@@ -647,7 +647,8 @@ namespace faze
         for (auto&& fe : fence)
         {
           auto native = std::static_pointer_cast<DX12Fence>(fe);
-          queue->Signal(native->fence.Get(), native->start());
+          auto value = native->start();
+          queue->Signal(native->fence.Get(), value);
         }
       }
     }
@@ -658,7 +659,7 @@ namespace faze
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<FenceImpl>>         fence)
     {
-      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submit(m_dmaQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitCompute(
@@ -676,7 +677,7 @@ namespace faze
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<FenceImpl>>         fence)
     {
-      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submit(m_graphicsQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::waitFence(std::shared_ptr<FenceImpl> fence)
@@ -696,7 +697,7 @@ namespace faze
       if (renderingFinished)
       {
         auto native = std::static_pointer_cast<DX12Fence>(renderingFinished);
-        m_graphicsQueue->Wait(native->fence.Get(), native->value);
+        m_graphicsQueue->Wait(native->fence.Get(), *native->value);
       }
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       FAZE_CHECK_HR(native->native()->Present(1, 0));

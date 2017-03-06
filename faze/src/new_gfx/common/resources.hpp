@@ -79,11 +79,11 @@ namespace faze
 
   namespace backend
   {
+    class FenceImpl;
+    class SemaphoreImpl;
+    class CommandBufferImpl;
     namespace prototypes
     {
-      class FenceImpl;
-      class SemaphoreImpl;
-      class CommandBufferImpl;
       class DeviceImpl;
       class SubsystemImpl;
       class HeapImpl;
@@ -141,10 +141,10 @@ namespace faze
 
     struct LiveCommandBuffer
     {
-      vector<std::shared_ptr<prototypes::SemaphoreImpl>> wait;
-      vector<std::shared_ptr<prototypes::CommandBufferImpl>> lists;
-      vector<std::shared_ptr<prototypes::SemaphoreImpl>> signal;
-      std::shared_ptr<prototypes::FenceImpl> fence;
+      vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
+      vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
+      vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
+      std::shared_ptr<backend::FenceImpl> fence;
     };
 
     struct DeviceData : std::enable_shared_from_this<DeviceData>
@@ -170,7 +170,7 @@ namespace faze
       DeviceData& operator=(const DeviceData& data) = delete;
       ~DeviceData();
 
-
+      void checkCompletedLists();
       void gc();
       void waitGpuIdle();
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);

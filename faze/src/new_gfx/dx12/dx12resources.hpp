@@ -137,7 +137,7 @@ namespace faze
     public:
       ComPtr<ID3D12Fence> fence = nullptr;
       std::shared_ptr<HANDLE> handle = nullptr;
-      uint64_t value = 0;
+      std::shared_ptr<uint64_t> value = nullptr;
 
       DX12Fence()
       {}
@@ -149,25 +149,26 @@ namespace faze
               CloseHandle(*ptr);
               delete ptr;
             }))
+        , value(std::make_shared<uint64_t>(0))
       {
       }
       
       uint64_t start()
       {
-        return ++value;
+        return ++(*value);
       }
 
       bool hasCompleted()
       {
         auto val = fence->GetCompletedValue();
-        return val == value;
+        return val == *value;
       }
 
       void waitTillReady(DWORD dwMilliseconds = INFINITE)
       {
         if (hasCompleted())
           return;
-        fence->SetEventOnCompletion(value, *handle);
+        fence->SetEventOnCompletion(*value, *handle);
         DWORD result = WaitForSingleObject(*handle, dwMilliseconds);
         F_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
       }
@@ -197,6 +198,8 @@ namespace faze
       void fillWith(backend::IntermediateList& ) override
       {
         // TODO: move this function somewhere where we have space to actually implement this.
+        commandList->Close();
+        closedList = true;
       }
 
       ID3D12GraphicsCommandList* list()
@@ -206,7 +209,8 @@ namespace faze
 
       void reset()
       {
-        commandList->Close();
+        if (!closedList)
+          commandList->Close();
         commandListAllocator->Reset();
         commandList->Reset(commandListAllocator.Get(), nullptr);
         closedList = false;
@@ -284,6 +288,11 @@ namespace faze
       }
 
       std::shared_ptr<SemaphoreImpl> acquireSemaphore() override
+      {
+        return nullptr;
+      }
+
+      std::shared_ptr<backend::SemaphoreImpl> renderSemaphore() override
       {
         return nullptr;
       }
@@ -426,7 +435,7 @@ namespace faze
 
         auto list = std::shared_ptr<DX12CommandBuffer>(new DX12CommandBuffer(natList), [&, index](DX12CommandBuffer* list)
         {
-          m_lists[index].reset();
+          list->reset();
           m_allocator.release(index);
           delete list;
         });
@@ -443,7 +452,7 @@ namespace faze
       {
       }
       template<typename Device>
-      std::shared_ptr<DX12Fence>  allocate(Device* device)
+      std::shared_ptr<DX12Fence> allocate(Device* device)
       {
         auto index = m_allocator.allocate();
         if (index == -1)

@@ -46,8 +46,42 @@ namespace faze
     {
     }
 
+    void DeviceData::checkCompletedLists()
+    {
+      if (!m_buffers.empty())
+      {
+        int buffersToFree = 0;
+        int buffersWithoutFence = 0;
+        int bufferCount = static_cast<int>(m_buffers.size());
+        for (int i = 0; i < bufferCount; ++i)
+        {
+          if (m_buffers[i].fence)
+          {
+            if (!m_impl->checkFence(m_buffers[i].fence))
+            {
+              break;
+            }
+            buffersToFree += buffersWithoutFence + 1;
+            buffersWithoutFence = 0;
+          }
+          else
+          {
+            buffersWithoutFence++;
+          }
+        }
+
+        while (buffersToFree > 0)
+        {
+          m_buffers.pop_front();
+          buffersToFree--;
+        }
+      }
+    }
+
     void DeviceData::gc()
     {
+      checkCompletedLists();
+
       // views
       for (auto&& view : m_trackerbufferViews->getResources())
       {
@@ -102,7 +136,25 @@ namespace faze
       }
     }
 
-    void DeviceData::waitGpuIdle() { m_impl->waitGpuIdle(); }
+    void DeviceData::waitGpuIdle()
+    {
+      m_impl->waitGpuIdle();
+      if (!m_buffers.empty())
+      {
+        for (auto&& liveBuffer : m_buffers)
+        {
+          if (liveBuffer.fence)
+          {
+            m_impl->waitFence(liveBuffer.fence);
+          }
+        }
+
+        while (!m_buffers.empty())
+        {
+          m_buffers.pop_front();
+        }
+      }
+    }
 
     Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
     {
@@ -217,7 +269,7 @@ namespace faze
       return TextureDSV(texture, data, tracker);
     }
 
-    void DeviceData::submit(Swapchain& , CommandGraph graph)
+    void DeviceData::submit(Swapchain& swapchain, CommandGraph graph)
     {
       auto& nodes = *graph.m_nodes;
 
@@ -231,8 +283,28 @@ namespace faze
 
         auto nativeList = m_impl->createGraphicsList();
         nativeList->fillWith(firstList.list.list);
+        LiveCommandBuffer buffer{};
+        buffer.lists.emplace_back(nativeList);
+
+        auto waitSema = swapchain.impl()->acquireSemaphore();
+        if (waitSema)
+        {
+          buffer.wait.emplace_back(waitSema);
+        }
+
+        auto renderComplete = swapchain.impl()->renderSemaphore();
+        if (renderComplete)
+        {
+          buffer.signal.emplace_back(renderComplete);
+        }
+
+        buffer.fence = m_impl->createFence();
+
+        m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
+        m_buffers.emplace_back(buffer);
       }
       
+      gc();
     }
 
     void DeviceData::present(Swapchain& swapchain)

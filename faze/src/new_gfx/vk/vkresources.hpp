@@ -135,6 +135,11 @@ namespace faze
         return m_acquireSemaphore;
       }
 
+      std::shared_ptr<backend::SemaphoreImpl> renderSemaphore() override
+      {
+        return renderingFinished;
+      }
+
       void setAcquireSemaphore(std::shared_ptr<VulkanSemaphore> semaphore)
       {
         m_acquireSemaphore = semaphore;

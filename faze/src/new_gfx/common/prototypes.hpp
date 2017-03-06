@@ -47,6 +47,7 @@ namespace faze
       public:
         virtual int getCurrentPresentableImageIndex() = 0;
         virtual std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore() = 0;
+        virtual std::shared_ptr<backend::SemaphoreImpl> renderSemaphore() = 0;
         virtual ResourceDescriptor desc() = 0;
         virtual ~SwapchainImpl() = default;
       };
