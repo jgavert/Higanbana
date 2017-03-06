@@ -26,7 +26,11 @@ namespace faze
 
       void fillWith(backend::IntermediateList&) override
       {
+        m_cmdBuffer.begin(vk::CommandBufferBeginInfo()
+          .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
+          .setPInheritanceInfo(nullptr));
         // TODO: move this function somewhere where we have space to actually implement this.
+        m_cmdBuffer.end();
       }
 
       vk::CommandBuffer list()
@@ -380,10 +384,13 @@ namespace faze
           m_lists.emplace_back(device->createCommandBuffer(queueIndex));
           index = m_allocator.allocate();
         }
+        else
+        {
+          device->resetListNative(m_lists[index]);
+        }
 
         auto list = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(m_lists[index]), [&, index](VulkanCommandBuffer* list)
         {
-          device->resetListNative(m_lists[index]);
           m_allocator.release(index);
           delete list;
         });
