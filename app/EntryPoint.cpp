@@ -116,7 +116,7 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
 
-          dev.submit(tasks);
+          dev.submit(swapchain, tasks);
           
           dev.present(swapchain);
         }

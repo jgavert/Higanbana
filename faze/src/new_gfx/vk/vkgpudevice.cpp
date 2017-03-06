@@ -192,6 +192,10 @@ namespace faze
           m_copyQueueIndex = queueFamilyIndex;
         }
       }
+      m_copyListPool = VulkanCommandBufferPool(m_copyQueueIndex);
+      m_computeListPool = VulkanCommandBufferPool(m_computeQueueIndex);
+      m_graphicsListPool = VulkanCommandBufferPool(m_mainQueueIndex);
+
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
       /* if VK_KHR_display is a things, use the below. For now, Borderless fullscreen!
@@ -212,7 +216,11 @@ namespace faze
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
+      m_fences.destroy(m_device);
       m_semaphores.destroy(m_device);
+      m_copyListPool.destroy(m_device);
+      m_computeListPool.destroy(m_device);
+      m_graphicsListPool.destroy(m_device);
       m_device.destroy();
     }
 
@@ -917,7 +925,7 @@ namespace faze
       m_device.destroyImageView(native->native().view);
     }
 
-    std::shared_ptr<CommandBufferImpl> VulkanDevice::createCommandBuffer(int queueIndex)
+    VulkanCommandBuffer VulkanDevice::createCommandBuffer(int queueIndex)
     {
       vk::CommandPoolCreateInfo poolInfo = poolInfo = vk::CommandPoolCreateInfo()
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
@@ -927,51 +935,41 @@ namespace faze
         .setCommandBufferCount(1)
         .setCommandPool(pool)
         .setLevel(vk::CommandBufferLevel::ePrimary));
-
+      /*
       auto ptr = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(buffer[0], pool), [&](VulkanCommandBuffer* ptr)
       {
         m_device.destroyCommandPool(ptr->pool());
         delete ptr;
-      });
+      });*/
 
-      return ptr;
+      return VulkanCommandBuffer(buffer[0], pool);
     }
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
-      return createCommandBuffer(m_copyQueueIndex);
+      return m_copyListPool.allocate(this);
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
-      return createCommandBuffer(m_computeQueueIndex);
+      return m_computeListPool.allocate(this);
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
-      return createCommandBuffer(m_mainQueueIndex);
+      return m_graphicsListPool.allocate(this);
     }
-    void VulkanDevice::resetList(std::shared_ptr<CommandBufferImpl> list)
+
+    void VulkanDevice::resetListNative(VulkanCommandBuffer list)
     {
-      auto native = std::static_pointer_cast<VulkanCommandBuffer>(list);
-      m_device.resetCommandPool(native->pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
+      m_device.resetCommandPool(list.pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
     }
+
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphore()
     {
       return m_semaphores.allocate(m_device);
     }
     std::shared_ptr<FenceImpl> VulkanDevice::createFence()
     {
-      auto createInfo = vk::FenceCreateInfo()
-        .setFlags(vk::FenceCreateFlagBits::eSignaled);
-      auto fence = m_device.createFence(createInfo);
-
-      auto dev = m_device;
-
-      auto fencePtr = std::shared_ptr<VulkanFence>(new VulkanFence(fence), [dev](VulkanFence* fence)
-      {
-        dev.destroyFence(fence->native());
-        delete fence;
-      });
-      return fencePtr;
+      return m_fences.allocate(m_device);
     }
 
     void VulkanDevice::submitToQueue(vk::Queue queue,

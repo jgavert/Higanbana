@@ -40,6 +40,7 @@ namespace faze
   class CommandList
   {
     backend::IntermediateList list;
+    friend struct backend::DeviceData;
   public:
     void clearRT(TextureRTV& rtv, vec4 color)
     {
