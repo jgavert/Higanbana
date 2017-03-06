@@ -927,7 +927,7 @@ namespace faze
 
     VulkanCommandBuffer VulkanDevice::createCommandBuffer(int queueIndex)
     {
-      vk::CommandPoolCreateInfo poolInfo = poolInfo = vk::CommandPoolCreateInfo()
+      vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
         .setQueueFamilyIndex(queueIndex);
       auto pool = m_device.createCommandPool(poolInfo);
@@ -978,9 +978,9 @@ namespace faze
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       MemView<std::shared_ptr<FenceImpl>>         fence)
     {
-      vector<vk::Semaphore> waitList(lists.size());
-      vector<vk::CommandBuffer> bufferList(lists.size());
-      vector<vk::Semaphore> signalList(lists.size());
+      vector<vk::Semaphore> waitList;
+      vector<vk::CommandBuffer> bufferList;
+      vector<vk::Semaphore> signalList;
       if (!wait.empty())
       {
         for (auto&& sema : wait)
@@ -1007,7 +1007,7 @@ namespace faze
         }
       }
 
-      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands;
+      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eTopOfPipe;
       auto info = vk::SubmitInfo()
         .setPWaitDstStageMask(&waitMask)
         .setCommandBufferCount(static_cast<uint32_t>(bufferList.size()))

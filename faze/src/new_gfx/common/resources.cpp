@@ -309,7 +309,7 @@ namespace faze
 
     void DeviceData::present(Swapchain& swapchain)
     {
-      m_impl->present(swapchain.impl(), swapchain.impl()->acquireSemaphore());
+      m_impl->present(swapchain.impl(), swapchain.impl()->renderSemaphore());
     }
 
     HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)
