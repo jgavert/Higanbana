@@ -206,6 +206,7 @@ namespace faze
 
       void reset()
       {
+        commandList->Close();
         commandListAllocator->Reset();
         commandList->Reset(commandListAllocator.Get(), nullptr);
         closedList = false;
@@ -402,6 +403,66 @@ namespace faze
       }
     };
 
+    template<D3D12_COMMAND_LIST_TYPE Type>
+    class CommandBufferPool
+    {
+      vector<DX12CommandBuffer> m_lists;
+      FreelistAllocator m_allocator;
+    public:
+      CommandBufferPool()
+      {
+      }
+      template<typename Device>
+      std::shared_ptr<DX12CommandBuffer>  allocate(Device* device)
+      {
+        auto index = m_allocator.allocate();
+        if (index == -1)
+        {
+          m_allocator.grow();
+          m_lists.emplace_back(device->createList(Type));
+          index = m_allocator.allocate();
+        }
+        auto natList = m_lists[index];
+
+        auto list = std::shared_ptr<DX12CommandBuffer>(new DX12CommandBuffer(natList), [&, index](DX12CommandBuffer* list)
+        {
+          m_lists[index].reset();
+          m_allocator.release(index);
+          delete list;
+        });
+        return list;
+      }
+    };
+
+    class FencePool
+    {
+      vector<DX12Fence> m_fences;
+      FreelistAllocator m_allocator;
+    public:
+      FencePool()
+      {
+      }
+      template<typename Device>
+      std::shared_ptr<DX12Fence>  allocate(Device* device)
+      {
+        auto index = m_allocator.allocate();
+        if (index == -1)
+        {
+          m_allocator.grow();
+          m_fences.emplace_back(device->createNativeFence());
+          index = m_allocator.allocate();
+        }
+        auto natFence = m_fences[index];
+
+        auto fence = std::shared_ptr<DX12Fence>(new DX12Fence(natFence), [&, index](DX12Fence* ptr)
+        {
+          m_allocator.release(index);
+          delete ptr;
+        });
+        return fence;
+      }
+    };
+
     class DX12Device : public prototypes::DeviceImpl
     {
     private:
@@ -417,6 +478,11 @@ namespace faze
       StagingDescriptorHeap m_samplers;
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
+
+      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_COPY> m_copyListPool;
+      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_COMPUTE> m_computeListPool;
+      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_DIRECT> m_graphicsListPool;
+      FencePool m_fencePool;
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
       ~DX12Device();
@@ -450,11 +516,11 @@ namespace faze
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-      std::shared_ptr<CommandBufferImpl> createList(D3D12_COMMAND_LIST_TYPE type);
+      DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
+      DX12Fence         createNativeFence();
       std::shared_ptr<CommandBufferImpl> createDMAList() override;
       std::shared_ptr<CommandBufferImpl> createComputeList() override;
       std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
-      void resetList(std::shared_ptr<CommandBufferImpl> list) override;
       std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<FenceImpl>         createFence() override;
 

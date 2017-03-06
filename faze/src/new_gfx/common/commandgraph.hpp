@@ -11,6 +11,7 @@ namespace faze
   {
     CommandList list;
     std::string name;
+    friend struct backend::DeviceData;
   public:
     CommandGraphNode() {}
     CommandGraphNode(std::string name)
@@ -33,6 +34,7 @@ namespace faze
   class CommandGraph
   {
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
+    friend struct backend::DeviceData;
   public:
     CommandGraph()
       : m_nodes{std::make_shared<vector<CommandGraphNode>>()}

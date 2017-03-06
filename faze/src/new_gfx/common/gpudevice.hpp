@@ -123,9 +123,9 @@ namespace faze
       return S().acquirePresentableImage(swapchain);
     }
 
-    void submit(CommandGraph graph)
+    void submit(Swapchain& swapchain, CommandGraph graph)
     {
-      S().submit(graph);
+      S().submit(swapchain, graph);
     }
 
     void present(Swapchain& swapchain)

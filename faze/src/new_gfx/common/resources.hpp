@@ -81,6 +81,9 @@ namespace faze
   {
     namespace prototypes
     {
+      class FenceImpl;
+      class SemaphoreImpl;
+      class CommandBufferImpl;
       class DeviceImpl;
       class SubsystemImpl;
       class HeapImpl;
@@ -136,6 +139,14 @@ namespace faze
       vector<GpuHeap> emptyHeaps();
     };
 
+    struct LiveCommandBuffer
+    {
+      vector<std::shared_ptr<prototypes::SemaphoreImpl>> wait;
+      vector<std::shared_ptr<prototypes::CommandBufferImpl>> lists;
+      vector<std::shared_ptr<prototypes::SemaphoreImpl>> signal;
+      std::shared_ptr<prototypes::FenceImpl> fence;
+    };
+
     struct DeviceData : std::enable_shared_from_this<DeviceData>
     {
       std::shared_ptr<prototypes::DeviceImpl> m_impl;
@@ -148,6 +159,7 @@ namespace faze
       std::shared_ptr<ResourceTracker<prototypes::TextureViewImpl>> m_trackertextureViews;
 
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
+      deque<LiveCommandBuffer> m_buffers;
 
       int64_t newId() { return (*m_idGenerator)++; }
 
@@ -175,7 +187,7 @@ namespace faze
       TextureRTV createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc);
       TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc);
       // commandgraph
-      void submit(CommandGraph graph);
+      void submit(Swapchain& swapchain, CommandGraph graph);
       void present(Swapchain& swapchain);
     };
 

@@ -1,6 +1,7 @@
 #include "resources.hpp"
 #include "gpudevice.hpp"
 #include "graphicssurface.hpp"
+//#include "prototypes.hpp"
 #include "implementation.hpp"
 
 #include "core/src/math/utils.hpp"
@@ -216,9 +217,22 @@ namespace faze
       return TextureDSV(texture, data, tracker);
     }
 
-    void DeviceData::submit(CommandGraph)
+    void DeviceData::submit(Swapchain& , CommandGraph graph)
     {
-      // TODO:
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        auto& firstList = nodes[0];
+        for (int i = 1; i < nodes.size(); ++i)
+        {
+          firstList.list.list.append(std::move(nodes[i].list.list));
+        }
+
+        auto nativeList = m_impl->createGraphicsList();
+        nativeList->fillWith(firstList.list.list);
+      }
+      
     }
 
     void DeviceData::present(Swapchain& swapchain)

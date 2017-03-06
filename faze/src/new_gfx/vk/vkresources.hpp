@@ -317,6 +317,84 @@ namespace faze
       }
     };
 
+    class GrowingFencePool
+    {
+      vector<vk::Fence> m_fences;
+      FreelistAllocator m_allocator;
+    public:
+      GrowingFencePool()
+      {
+      }
+      std::shared_ptr<VulkanFence> allocate(vk::Device device)
+      {
+        auto index = m_allocator.allocate();
+        if (index == -1)
+        {
+          m_allocator.grow();
+          m_fences.emplace_back(device.createFence(vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled)));
+          index = m_allocator.allocate();
+        }
+
+        auto fence = std::shared_ptr<VulkanFence>(new VulkanFence(m_fences[index]), [&, index](VulkanFence* semap)
+        {
+          m_allocator.release(index);
+          delete semap;
+        });
+        return fence;
+      }
+      void destroy(vk::Device device)
+      {
+        for (auto&& it : m_fences)
+        {
+          device.destroyFence(it);
+        }
+      }
+    };
+
+    class VulkanCommandBufferPool
+    {
+      vector<VulkanCommandBuffer> m_lists;
+      FreelistAllocator m_allocator;
+      int queueIndex;
+    public:
+      VulkanCommandBufferPool()
+      {
+      }
+
+      VulkanCommandBufferPool(int queueIndex)
+        : queueIndex(queueIndex)
+      {
+      }
+      template<typename Device>
+      std::shared_ptr<VulkanCommandBuffer>  allocate(Device* device)
+      {
+        auto index = m_allocator.allocate();
+        if (index == -1)
+        {
+          m_allocator.grow();
+          m_lists.emplace_back(device->createCommandBuffer(queueIndex));
+          index = m_allocator.allocate();
+        }
+
+        auto list = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(m_lists[index]), [&, index](VulkanCommandBuffer* list)
+        {
+          device->resetListNative(m_lists[index]);
+          m_allocator.release(index);
+          delete list;
+        });
+        return list;
+      }
+      
+      void destroy(vk::Device device)
+      {
+        for (auto&& it : m_lists)
+        {
+          device.destroyCommandPool(it.pool());
+        }
+      }
+    };
+
+
     class VulkanDevice : public prototypes::DeviceImpl
     {
     private:
@@ -340,6 +418,11 @@ namespace faze
       vk::Queue                   m_copyQueue;
 
       GrowingSemaphorePool        m_semaphores;
+      GrowingFencePool            m_fences;
+
+      VulkanCommandBufferPool     m_copyListPool;
+      VulkanCommandBufferPool     m_computeListPool;
+      VulkanCommandBufferPool     m_graphicsListPool;
 
       struct FreeQueues
       {
@@ -401,11 +484,11 @@ namespace faze
 
 
       // commandlist stuff
-      std::shared_ptr<CommandBufferImpl> createCommandBuffer(int queueIndex);
+      VulkanCommandBuffer createCommandBuffer(int queueIndex);
+      void resetListNative(VulkanCommandBuffer list);
       std::shared_ptr<CommandBufferImpl> createDMAList() override;
       std::shared_ptr<CommandBufferImpl> createComputeList() override;
       std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
-      void resetList(std::shared_ptr<CommandBufferImpl> list) override;
       std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<FenceImpl>         createFence() override;
 
