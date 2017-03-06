@@ -161,25 +161,27 @@ namespace faze
       {
         GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
       }
-
-      dbgDestroyDebugReportCallback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
-          *m_instance, "vkDestroyDebugReportCallbackEXT");
-      if (!dbgDestroyDebugReportCallback)
+      else
       {
-        GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");
+        dbgDestroyDebugReportCallback =
+          (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
+            *m_instance, "vkDestroyDebugReportCallbackEXT");
+        if (!dbgDestroyDebugReportCallback)
+        {
+          GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");
+        }
+        // the debug things
+        auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug | vk::DebugReportFlagBitsEXT::ePerformanceWarning;
+        vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallbackNew, nullptr);
+
+        auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
+        auto allocInfo = m_alloc_info;
+        m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
+        {
+          dbgDestroyDebugReportCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+        });
+        dbgCreateDebugReportCallback(*m_instance, reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
       }
-      // the debug things
-      auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug | vk::DebugReportFlagBitsEXT::ePerformanceWarning;
-      vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallbackNew, nullptr);
-
-      auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
-      auto allocInfo = m_alloc_info;
-      m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
-      {
-        dbgDestroyDebugReportCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
-      });
-      dbgCreateDebugReportCallback(*m_instance, reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
     }
 
     std::string VulkanSubsystem::gfxApi()
