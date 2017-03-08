@@ -1,4 +1,5 @@
 #include "faze/src/new_gfx/vk/util/VulkanDependencySolver.hpp"
+#include "core/src/global_debug.hpp"
 
 namespace faze
 {
@@ -21,12 +22,41 @@ namespace faze
     {
       m_drawCallInfo.emplace_back(name);
       m_drawCallStage.emplace_back(baseFlags);
+      m_drawCallJobOffsets[drawCallsAdded] = static_cast<int>(m_jobs.size());
       return drawCallsAdded++;
     }
     // buffers
     void VulkanDependencySolver::addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags)
     {
       auto uniqueID = id;
+#if 1 // disable optimization, merges last seen usages to existing. Default on.
+      auto currentUsage = getUsageFromAccessFlags(flags);
+      auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+      if (obj)
+      {
+        if (obj->second.type == currentUsage)
+        {
+          // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
+          auto* jobIndex = m_drawCallJobOffsets.find(obj->second.index);
+          if (jobIndex)
+          {
+            int index = jobIndex->second;
+            while (index < static_cast<int>(m_jobs.size()) && obj->second.index == m_jobs[index].drawIndex)
+            {
+              if (m_jobs[index].resource == uniqueID)
+              {
+                break;
+              }
+              index++;
+            }
+            m_jobs[index].access |= flags;
+            return; // found and could merge... or rather forcefully merged. 
+          }
+        }
+      }
+#endif
+      m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
         flags, vk::ImageLayout::eUndefined, 0, 0, 0, 0, 0 });
       if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
@@ -43,6 +73,20 @@ namespace faze
     void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, vk::ImageLayout layout, vk::AccessFlags flags)
     {
       auto uniqueID = id;
+
+      auto currentUsage = getUsageFromAccessFlags(flags);
+      auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+      if (obj)
+      {
+        if (obj->second.type != currentUsage)
+        {
+          F_SLOG("DependencySolver", "Possible optimization here!\n");
+          // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
+          // Texture... needs to look at all the subresources seen before and combine their state... ugh, this looks not to be easy.
+        }
+      }
+      m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
         flags, layout, 0, 
         static_cast<int16_t>(view.native().subResourceRange.baseMipLevel), 
@@ -64,6 +108,19 @@ namespace faze
     void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout layout, int16_t mipSlice, int16_t mipLevels, int16_t arraySlice, int16_t arrayLevels)
     {
       auto uniqueID = id;
+
+      auto currentUsage = getUsageFromAccessFlags(flags);
+      auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+      if (obj)
+      {
+        if (obj->second.type != currentUsage)
+        {
+          F_SLOG("DependencySolver", "Possible optimization here!\n");
+          // Somehow feels hard to figure out where all last subresources were. so that we could merge the use to them...
+        }
+      }
+      m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
         flags, layout, 0, mipSlice, mipLevels, arraySlice, arrayLevels });
 
