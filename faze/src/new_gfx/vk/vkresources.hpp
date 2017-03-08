@@ -199,7 +199,7 @@ namespace faze
     {
     private:
       vk::Image resource;
-      std::shared_ptr<VulkanTextureState> state;
+      std::shared_ptr<VulkanTextureState> statePtr;
       bool owned = true;
 
     public:
@@ -207,15 +207,22 @@ namespace faze
       {}
       VulkanTexture(vk::Image resource)
         : resource(resource)
+        , statePtr(std::make_shared<VulkanTextureState>())
       {}
 
       VulkanTexture(vk::Image resource, bool owner)
         : resource(resource)
+        , statePtr(std::make_shared<VulkanTextureState>())
         , owned(owner)
       {}
       vk::Image native()
       {
         return resource;
+      }
+
+      std::shared_ptr<VulkanTextureState> state()
+      {
+        return statePtr;
       }
 
       bool canRelease()
@@ -258,19 +265,24 @@ namespace faze
     {
     private:
       vk::Buffer resource;
-      std::shared_ptr<VulkanBufferState> state;
+      std::shared_ptr<VulkanBufferState> statePtr;
 
     public:
       VulkanBuffer()
-        : state(std::make_shared<VulkanBufferState>())
+        : statePtr(std::make_shared<VulkanBufferState>())
       {}
       VulkanBuffer(vk::Buffer resource)
         : resource(resource)
-        , state(std::make_shared<VulkanBufferState>())
+        , statePtr(std::make_shared<VulkanBufferState>())
       {}
       vk::Buffer native()
       {
         return resource;
+      }
+
+      std::shared_ptr<VulkanBufferState> state()
+      {
+        return statePtr;
       }
     };
 

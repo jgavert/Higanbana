@@ -1,11 +1,15 @@
 #pragma once
 #include "intermediatelist.hpp"
+#include "texture.hpp"
+#include "buffer.hpp"
 #include "core/src/math/vec_templated.hpp"
 
 namespace faze
 {
   namespace gfxpacket
   {
+    std::string packetTypeToString(backend::CommandPacket::PacketType type);
+
     class ClearRT : public backend::CommandPacket
     {
     public:
