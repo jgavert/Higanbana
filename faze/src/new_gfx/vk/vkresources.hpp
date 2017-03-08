@@ -183,10 +183,23 @@ namespace faze
       }
     };
 
+    struct TextureStateFlags
+    {
+      vk::AccessFlags access;
+      vk::ImageLayout layout;
+      int queueIndex = -1;
+    };
+
+    struct VulkanTextureState
+    {
+      vector<TextureStateFlags> flags; // subresource count
+    };
+
     class VulkanTexture : public prototypes::TextureImpl
     {
     private:
       vk::Image resource;
+      std::shared_ptr<VulkanTextureState> state;
       bool owned = true;
 
     public:
@@ -235,16 +248,25 @@ namespace faze
       }
     };
 
+    struct VulkanBufferState
+    {
+      vk::AccessFlags flags = vk::AccessFlagBits(0);
+      int queueIndex = -1;
+    };
+
     class VulkanBuffer : public prototypes::BufferImpl
     {
     private:
       vk::Buffer resource;
+      std::shared_ptr<VulkanBufferState> state;
 
     public:
       VulkanBuffer()
+        : state(std::make_shared<VulkanBufferState>())
       {}
       VulkanBuffer(vk::Buffer resource)
         : resource(resource)
+        , state(std::make_shared<VulkanBufferState>())
       {}
       vk::Buffer native()
       {
