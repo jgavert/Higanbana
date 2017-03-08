@@ -11,22 +11,23 @@ namespace faze
     class VulkanDependencySolver
     {
     private:
+      using ResourceUniqueId = int64_t;
+
       struct BufferDependency
       {
-        int64_t uniqueId;
+        ResourceUniqueId uniqueId;
         vk::Buffer buffer;
         std::shared_ptr<VulkanBufferState> state;
       };
 
       struct TextureDependency
       {
-        int64_t uniqueId;
+        ResourceUniqueId uniqueId;
         vk::Image texture;
         std::shared_ptr<VulkanTextureState> state;
       };
 
       using DrawCallIndex = int;
-      using ResourceUniqueId = int64_t;
 
       enum class UsageHint
       {
@@ -55,7 +56,16 @@ namespace faze
         int16_t arrayLevels;
       };
 
+      struct LastSeenUsage
+      {
+        UsageHint type;
+        DrawCallIndex index;
+      };
+
       // general info needed
+      unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
+      unordered_map<ResourceUniqueId, LastSeenUsage> m_resourceUsageInLastAdd;
+
       vector<CommandPacket::PacketType> m_drawCallInfo;
       vector<vk::PipelineStageFlags> m_drawCallStage;
       unordered_set<ResourceUniqueId> m_uniqueBuffersThisChain;
