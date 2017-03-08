@@ -11,7 +11,78 @@
 #include "core/src/Platform/EntryPoint.hpp"
 #include "core/src/global_debug.hpp"
 
+#include "core/src/math/vec_templated.hpp"
+
 using namespace faze;
+
+/*
+ -> arrays
+ mip0
+ mip1
+ mip2
+ mip3
+ ...
+ mipx
+
+ follows the directx subresource image
+
+ lefttop = (1, 1)
+ size = (0, 5)
+
+ ===> arraySlice 1, mip 1-6
+
+*/
+namespace faze
+{
+  struct SubresourceRange
+  {
+    ivec2 leftTop;
+    ivec2 size;
+
+    // 1: (0,0) (5,5) other (3,3) (2,2) => (0,0) (5,5) other (3,3) (5,5) => (3,3) (5,5)
+    // 2: (3,3) (2,2) other (1,1) (4,4) => (3,3) (5,5) other (1,1) (5,5) => (3,3) (5,5)
+    // 3: (3,3) (2,2) other (1,1) (4,4) => (3,3) (5,5) other (1,1) (5,5) => (3,3) (5,5)
+    // 4: (0,0) (1,1) other (2,2) (1,1) => (0,0) (1,1) other (2,2) (3,3) => (2,-1) (2,-1)
+    SubresourceRange getIntersection(const SubresourceRange& other)
+    {
+      int left = std::max(leftTop.x(), other.leftTop.x()); 
+      int right = std::min(leftTop.x() + size.x() , other.leftTop.x() + other.size.x() );
+      int top = std::max(leftTop.y(), other.leftTop.y());
+      int bottom = std::min(leftTop.y() + size.y() , other.leftTop.y() + other.size.y() );
+      return SubresourceRange{ ivec2{left, top}, ivec2{right - left, bottom - top} };
+    }
+
+    SubresourceRange getDifferenceTop(const SubresourceRange& )
+    {
+      //int top = std::min(leftTop.y(), other.leftTop.y());
+    }
+
+    int mostDetailedMip() const
+    {
+      return leftTop.y();
+    }
+
+    int mipLevels() const
+    {
+      return size.y()+1;
+    }
+
+    int arraySlice() const
+    {
+      return leftTop.x();
+    }
+
+    int arraySize() const
+    {
+      return size.x()+1;
+    }
+
+    bool valid() const
+    {
+      return size.x() > 0 && size.y() > 0;
+    }
+  };
+}
 
 int EntryPoint::main()
 {
@@ -20,7 +91,7 @@ int EntryPoint::main()
   {
 	  bool reInit = false;
     ivec2 ires = { 800, 600 };
-    Window window(m_params, name, ires.x(), ires.y(), 3860, 300);
+    Window window(m_params, name, ires.x(), ires.y(), 100, 300);
     window.open();
     FileSystem fs;
     while (true)
@@ -137,7 +208,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Vulkan", true);
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Nvidia", true);
  /*
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
