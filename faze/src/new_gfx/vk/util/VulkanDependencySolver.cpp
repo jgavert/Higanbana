@@ -6,7 +6,19 @@ namespace faze
 {
   namespace backend
   {
+    inline bool overlapRange(int16_t xoffset, int16_t xsize, int16_t yoffset, int16_t ysize)
+    {
+      return xoffset < yoffset+ysize && yoffset < xoffset+xsize;
+    }
 
+    bool overlap(SubresourceRange a, SubresourceRange b)
+    {
+      if (a.mipOffset == SubresourceRange::WholeResource || b.mipOffset == SubresourceRange::WholeResource)
+        return true;
+      return overlapRange(a.mipOffset, a.mipLevels, b.mipOffset, b.mipLevels) // if mips don't overlap, no hope.
+        && overlapRange(a.sliceOffset, a.arraySize, b.sliceOffset, b.arraySize); // otherwise also arrays need to match.
+    }
+    
     VulkanDependencySolver::UsageHint VulkanDependencySolver::getUsageFromAccessFlags(vk::AccessFlags flags)
     {
       int32_t writeMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
