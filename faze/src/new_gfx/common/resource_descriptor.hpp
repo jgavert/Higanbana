@@ -5,6 +5,29 @@
 
 namespace faze
 {
+  // todo move this to somewhere else.
+  struct SubresourceRange
+  {
+    static constexpr const int16_t WholeResource = -1;
+    int16_t mipOffset = -1;
+    int16_t mipLevels = -1;
+    int16_t sliceOffset = -1;
+    int16_t arraySize = -1;
+  private:
+    inline bool overlapRange(int16_t xoffset, int16_t xsize, int16_t yoffset, int16_t ysize)
+    {
+      return xoffset < yoffset + ysize && yoffset < xoffset + xsize;
+    }
+  public:
+    bool overlap(SubresourceRange other)
+    {
+      if (mipOffset == SubresourceRange::WholeResource || other.mipOffset == SubresourceRange::WholeResource)
+        return true;
+      return overlapRange(mipOffset, mipLevels, other.mipOffset, other.mipLevels) // if mips don't overlap, no hope.
+        && overlapRange(sliceOffset, arraySize, other.sliceOffset, other.arraySize); // otherwise also arrays need to match.
+    }
+  };
+
   enum class PresentMode
   {
     Unknown,

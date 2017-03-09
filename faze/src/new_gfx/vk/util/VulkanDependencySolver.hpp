@@ -24,6 +24,8 @@ namespace faze
       {
         ResourceUniqueId uniqueId;
         vk::Image texture;
+        int16_t mips;
+        vk::ImageAspectFlags aspectMask;
         std::shared_ptr<VulkanTextureState> state;
       };
 
@@ -50,10 +52,7 @@ namespace faze
         vk::AccessFlags access;
         vk::ImageLayout layout;
         int queueIndex;
-        int16_t mipSlice;
-        int16_t mipLevels;
-        int16_t arraySlice;
-        int16_t arrayLevels;
+        SubresourceRange range;
       };
 
       struct LastSeenUsage
@@ -117,6 +116,8 @@ namespace faze
       struct SmallTexture
       {
         vk::Image image;
+        int16_t mips;
+        vk::ImageAspectFlags aspectMask;
         vector<TextureStateFlags> states;
       };
 
@@ -131,8 +132,8 @@ namespace faze
       // buffers
       void addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags);
       // textures
-      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, vk::ImageLayout layout, vk::AccessFlags flags);
-      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout layout, int16_t mipSlice, int16_t mipLevels, int16_t arraySlice, int16_t arrayLevels);
+      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, int16_t mips, vk::ImageLayout layout, vk::AccessFlags flags);
+      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, int16_t mips, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout, vk::AccessFlags flags, SubresourceRange range);
 
       // only builds the graph of dependencies.
       // void resolveGraph(); //... hmm, not implementing for now.

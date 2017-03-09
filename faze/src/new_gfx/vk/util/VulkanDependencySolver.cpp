@@ -6,19 +6,6 @@ namespace faze
 {
   namespace backend
   {
-    inline bool overlapRange(int16_t xoffset, int16_t xsize, int16_t yoffset, int16_t ysize)
-    {
-      return xoffset < yoffset+ysize && yoffset < xoffset+xsize;
-    }
-
-    bool overlap(SubresourceRange a, SubresourceRange b)
-    {
-      if (a.mipOffset == SubresourceRange::WholeResource || b.mipOffset == SubresourceRange::WholeResource)
-        return true;
-      return overlapRange(a.mipOffset, a.mipLevels, b.mipOffset, b.mipLevels) // if mips don't overlap, no hope.
-        && overlapRange(a.sliceOffset, a.arraySize, b.sliceOffset, b.arraySize); // otherwise also arrays need to match.
-    }
-    
     VulkanDependencySolver::UsageHint VulkanDependencySolver::getUsageFromAccessFlags(vk::AccessFlags flags)
     {
       int32_t writeMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
@@ -75,7 +62,7 @@ namespace faze
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
-        flags, vk::ImageLayout::eUndefined, 0, 0, 0, 0, 0 });
+        flags, vk::ImageLayout::eUndefined, 0, SubresourceRange{} });
       if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
       {
         BufferDependency d;
@@ -87,7 +74,7 @@ namespace faze
       m_uniqueBuffersThisChain.insert(uniqueID);
     }
     // textures
-    void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, vk::ImageLayout layout, vk::AccessFlags flags)
+    void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, int16_t mips, vk::ImageLayout layout, vk::AccessFlags flags)
     {
         auto uniqueID = id;
 
@@ -111,24 +98,22 @@ namespace faze
         }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, layout, 0, 
-        static_cast<int16_t>(view.native().subResourceRange.baseMipLevel), 
-        static_cast<int16_t>(view.native().subResourceRange.levelCount),
-        static_cast<int16_t>(view.native().subResourceRange.baseArrayLayer),
-        static_cast<int16_t>(view.native().subResourceRange.layerCount) });
+        flags, layout, 0, view.native().subResourceRange });
 
       if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
         TextureDependency d;
         d.uniqueId = uniqueID;
+        d.mips = mips;
         d.texture = texture.native();
         d.state = texture.state();
+        d.aspectMask = view.native().aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }
 
       m_uniqueTexturesThisChain.insert(uniqueID);
     }
-    void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, vk::AccessFlags flags, vk::ImageLayout layout, int16_t mipSlice, int16_t mipLevels, int16_t arraySlice, int16_t arrayLevels)
+    void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, int16_t mips, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout, vk::AccessFlags flags, SubresourceRange range)
     {
       auto uniqueID = id;
 
@@ -151,14 +136,16 @@ namespace faze
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, layout, 0, mipSlice, mipLevels, arraySlice, arrayLevels });
+        flags, layout, 0, range });
 
       if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
         TextureDependency d;
         d.uniqueId = uniqueID;
+        d.mips = mips;
         d.texture = texture.native();
         d.state = texture.state();
+        d.aspectMask = aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }
 
@@ -180,7 +167,7 @@ namespace faze
       {
         auto tesState = m_textureStates[id];
         auto flags = tesState.state->flags;
-        m_imageCache[id] = SmallTexture{ tesState.texture, flags};
+        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, tesState.aspectMask, flags};
       }
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -230,27 +217,93 @@ namespace faze
             auto resource = m_imageCache.find(job.resource);
             if (resource != m_imageCache.end())
             {
-              /* Rewrite this
-              auto lastAccess = resource->second.flags;
-              if (jobResAccess != lastAccess)
+              // gothrough all subresources that are modified, create subresource ranges at the same time encompassing all similar states.
+
+              struct RangePerAccessType
+              {
+                vk::ImageSubresourceRange range;
+                vk::AccessFlags access;
+                vk::ImageLayout layout;
+                int queueIndex;
+              };
+
+              auto addImageBarrier = [&](const RangePerAccessType& range)
               {
                 imageBarriers.emplace_back(vk::ImageMemoryBarrier()
-                  .setSrcAccessMask(lastAccess)
-                  .setDstAccessMask(jobResAccess)
-                  .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                  .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                  .setSrcAccessMask(range.access)
+                  .setDstAccessMask(job.access)
+                  .setSrcQueueFamilyIndex(range.queueIndex)
+                  .setDstQueueFamilyIndex(job.queueIndex)
                   .setNewLayout(job.layout)
-                  .setOldLayout(resource->second.layout)
+                  .setOldLayout(range.layout)
                   .setImage(resource->second.image)
-                  .setSubresourceRange(vk::ImageSubresourceRange()
-                    .setAspectMask(vk::ImageAspectFlagBits::eColor)
-                    .setBaseMipLevel(static_cast<uint32_t>(job.custom1))
-                    .setBaseArrayLayer(static_cast<uint32_t>(job.custom2))
-                    .setLevelCount(VK_REMAINING_MIP_LEVELS)
-                    .setLayerCount(VK_REMAINING_ARRAY_LAYERS)));
-                resource->second.flags = jobResAccess;
+                  .setSubresourceRange(range.range));
                 ++imageBarrierOffsets;
-                */
+              };
+              RangePerAccessType current{};
+              int16_t mipLevels = resource->second.mips;
+              int16_t subresourceIndex;
+
+              for (int16_t mip = job.range.mipOffset; mip < job.range.mipOffset + job.range.mipLevels; ++mip)
+              {
+                for (int16_t slice = job.range.sliceOffset; slice < job.range.sliceOffset + job.range.arraySize; ++slice)
+                {
+                  subresourceIndex = slice * mipLevels + mip;
+                  auto& state = resource->second.states[subresourceIndex];
+
+                  bool accessDiffers = state.access != job.access;
+                  bool queueDiffers = state.queueIndex != job.queueIndex;
+                  bool layoutDiffers = state.layout != job.layout;
+
+                  if (accessDiffers || queueDiffers || layoutDiffers) // something was different
+                  {
+                    // first check if we have fresh range
+                    //   if so, fill it with all data
+                    // else check if we can continue current range
+                    //   check if any of those above differ to this range
+                    // else create new range and fill it with data.
+
+                    if (current.range.levelCount == 0 && current.range.layerCount == 0) // nothing added to range yet.
+                    {
+                      current.access = state.access;
+                      current.queueIndex = state.queueIndex;
+                      current.layout = state.layout;
+                      current.range.aspectMask = resource->second.aspectMask;
+                      current.range.baseMipLevel = mip;
+                      current.range.levelCount = 1;
+                      current.range.baseArrayLayer = slice;
+                      current.range.layerCount = 1;
+                    }
+                    else if (state.access == current.access && state.queueIndex == current.queueIndex && state.layout == current.layout && static_cast<int16_t>(current.range.baseArrayLayer) >= slice) // can continue current range
+                    {
+                      current.range.levelCount = (mip - current.range.baseMipLevel) + 1; // +1 to have at least one, mip is ensured to always be bigger.
+                      current.range.layerCount = (slice - current.range.baseArrayLayer) + 1; // +1 to have at least one
+                    }
+                    else // push back the current range and and create new one.
+                    {
+
+                      addImageBarrier(current);
+                      current = RangePerAccessType{};
+                      current.access = state.access;
+                      current.queueIndex = state.queueIndex;
+                      current.layout = state.layout;
+                      current.range.aspectMask = resource->second.aspectMask;
+                      current.range.baseMipLevel = mip;
+                      current.range.levelCount = 1;
+                      current.range.baseArrayLayer = slice;
+                      current.range.layerCount = 1;
+                    }
+                    // handled by now.
+                    state.access = job.access;
+                    state.queueIndex = job.queueIndex;
+                    state.layout = job.layout;
+                  }
+                }
+              }
+              if (current.range.levelCount != 0 && current.range.layerCount != 0)
+              {
+                addImageBarrier(current);
+              }
             }
           }
           ++jobIndex;
@@ -293,7 +346,7 @@ namespace faze
         {
           return;
         }
-        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eAllCommands;
+        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eBottomOfPipe; // full trust in perfect synchronization
         vk::PipelineStageFlags next = m_drawCallStage[0];
         vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), bufferBarriers.data() + barrierOffset);

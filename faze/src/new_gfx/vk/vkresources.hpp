@@ -17,21 +17,14 @@ namespace faze
     class VulkanCommandBuffer : public CommandBufferImpl
     {
       vk::CommandBuffer  m_cmdBuffer;
-      vk::CommandPool     m_pool;
+      vk::CommandPool    m_pool;
     public:
       VulkanCommandBuffer(vk::CommandBuffer cmdBuffer, vk::CommandPool pool)
         : m_cmdBuffer(cmdBuffer)
         , m_pool(pool)
       {}
 
-      void fillWith(backend::IntermediateList&) override
-      {
-        m_cmdBuffer.begin(vk::CommandBufferBeginInfo()
-          .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
-          .setPInheritanceInfo(nullptr));
-        // TODO: move this function somewhere where we have space to actually implement this.
-        m_cmdBuffer.end();
-      }
+      void fillWith(backend::IntermediateList&) override;
 
       vk::CommandBuffer list()
       {
@@ -240,18 +233,29 @@ namespace faze
         vk::DescriptorImageInfo info;
         vk::Format format;
         vk::DescriptorType viewType;
-        vk::ImageSubresourceRange subResourceRange;
+        SubresourceRange subResourceRange;
+        vk::ImageAspectFlags aspectMask;
       } m;
 
     public:
       VulkanTextureView()
       {}
-      VulkanTextureView(vk::ImageView view, vk::DescriptorImageInfo info, vk::Format format, vk::DescriptorType viewType, vk::ImageSubresourceRange subResourceRange)
-        : m{ view, info, format, viewType, subResourceRange }
+      VulkanTextureView(vk::ImageView view, vk::DescriptorImageInfo info, vk::Format format, vk::DescriptorType viewType, SubresourceRange subResourceRange, vk::ImageAspectFlags aspectMask)
+        : m{ view, info, format, viewType, subResourceRange, aspectMask }
       {}
       Info& native()
       {
         return m;
+      }
+
+      vk::ImageSubresourceRange range()
+      {
+        return vk::ImageSubresourceRange()
+          .setAspectMask(m.aspectMask)
+          .setBaseMipLevel(m.subResourceRange.mipOffset)
+          .setLevelCount(m.subResourceRange.mipLevels)
+          .setBaseArrayLayer(m.subResourceRange.sliceOffset)
+          .setLayerCount(m.subResourceRange.arraySize);
       }
     };
 

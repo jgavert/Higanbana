@@ -916,7 +916,13 @@ namespace faze
         imageType = vk::DescriptorType::eInputAttachment; // Cannot be anything else \o/
       }
 
-      return std::make_shared<VulkanTextureView>(view, info, formatToVkFormat(format).view, imageType, subResourceRange);
+      SubresourceRange range{};
+      range.mipOffset = static_cast<int16_t>(subResourceRange.baseMipLevel);
+      range.mipLevels = static_cast<int16_t>(subResourceRange.levelCount);
+      range.sliceOffset = static_cast<int16_t>(subResourceRange.baseArrayLayer);
+      range.arraySize = static_cast<int16_t>(subResourceRange.layerCount);
+
+      return std::make_shared<VulkanTextureView>(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
     }
 
     void VulkanDevice::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
