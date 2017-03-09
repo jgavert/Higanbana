@@ -10,7 +10,7 @@ namespace faze
   class Texture : public backend::GpuDeviceChild
   {
     std::shared_ptr<backend::prototypes::TextureImpl> impl;
-    std::shared_ptr<int64_t> id;
+    std::shared_ptr<int64_t> m_id;
     std::shared_ptr<ResourceDescriptor> m_desc;
 
   public:
@@ -22,7 +22,7 @@ namespace faze
 
     Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
       : impl(impl)
-      , id(id)
+      , m_id(id)
       , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
     {
     }
@@ -35,6 +35,11 @@ namespace faze
     std::shared_ptr<backend::prototypes::TextureImpl> native()
     {
       return impl;
+    }
+
+    int64_t id()
+    {
+      return *m_id;
     }
   };
 
