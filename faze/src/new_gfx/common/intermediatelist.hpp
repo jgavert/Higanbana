@@ -92,9 +92,9 @@ namespace faze
       IntermediateList();
       IntermediateList(size_t size);
       IntermediateList(std::unique_ptr<uint8_t[]> memory, size_t size);
-      IntermediateList(IntermediateList&& obj) = default;
+      IntermediateList(IntermediateList&& obj);
+      IntermediateList& operator=(IntermediateList&& obj);
       IntermediateList(const IntermediateList& obj) = delete;
-      IntermediateList& operator=(IntermediateList&& obj) = default;
       IntermediateList& operator=(const IntermediateList& obj) = delete;
 
       void append(IntermediateList&& other);

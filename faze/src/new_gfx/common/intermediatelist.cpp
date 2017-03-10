@@ -38,6 +38,37 @@ namespace faze
       m_memory.emplace_back(std::forward<decltype(memory)>(memory));
     }
 
+    IntermediateList::IntermediateList(IntermediateList&& obj)
+      : m_firstPacket(std::move(obj.m_firstPacket))
+      , m_lastPacket(std::move(obj.m_lastPacket))
+      , m_size(std::move(obj.m_size))
+      , m_memory(std::move(obj.m_memory))
+      , m_allocator(std::move(obj.m_allocator))
+      , m_activeMemory(std::move(obj.m_activeMemory))
+    {
+      obj.m_firstPacket = nullptr;
+      obj.m_lastPacket = nullptr;
+      obj.m_size = 0;
+      obj.m_activeMemory = -1;
+    }
+    IntermediateList& IntermediateList::operator=(IntermediateList&& obj)
+    {
+      if (this != &obj)
+      {
+        m_firstPacket = std::move(obj.m_firstPacket);
+        m_lastPacket = std::move(obj.m_lastPacket);
+        m_size = std::move(obj.m_size);
+        m_memory = std::move(obj.m_memory);
+        m_allocator = std::move(obj.m_allocator);
+        m_activeMemory = std::move(obj.m_activeMemory);
+        obj.m_firstPacket = nullptr;
+        obj.m_lastPacket = nullptr;
+        obj.m_size = 0;
+        obj.m_activeMemory = -1;
+      }
+      return *this;
+    }
+
     IntermediateList::~IntermediateList()
     {
       clear();
@@ -62,6 +93,12 @@ namespace faze
 
     void IntermediateList::clear()
     {
+      /*
+      if (m_firstPacket != nullptr)
+      {
+        F_LOG("Uh oh real data screwing up\n");
+      }*/
+
       CommandPacket* current = m_firstPacket;
       while (current != nullptr)
       {

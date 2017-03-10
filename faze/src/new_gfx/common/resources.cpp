@@ -299,6 +299,8 @@ namespace faze
         }
 
         buffer.fence = m_impl->createFence();
+        buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+        buffer.intermediateLists->emplace_back(std::move(firstList.list.list));
 
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);

@@ -181,6 +181,11 @@ namespace faze
       vk::AccessFlags access;
       vk::ImageLayout layout;
       int queueIndex = -1;
+      TextureStateFlags(vk::AccessFlags access, vk::ImageLayout layout, int queueIndex)
+        : access(access)
+        , layout(layout)
+        , queueIndex(queueIndex)
+      {}
     };
 
     struct VulkanTextureState
@@ -198,14 +203,10 @@ namespace faze
     public:
       VulkanTexture()
       {}
-      VulkanTexture(vk::Image resource)
-        : resource(resource)
-        , statePtr(std::make_shared<VulkanTextureState>())
-      {}
 
-      VulkanTexture(vk::Image resource, bool owner)
+      VulkanTexture(vk::Image resource, std::shared_ptr<VulkanTextureState> state, bool owner = false)
         : resource(resource)
-        , statePtr(std::make_shared<VulkanTextureState>())
+        , statePtr(state)
         , owned(owner)
       {}
       vk::Image native()
@@ -273,11 +274,10 @@ namespace faze
 
     public:
       VulkanBuffer()
-        : statePtr(std::make_shared<VulkanBufferState>())
       {}
-      VulkanBuffer(vk::Buffer resource)
+      VulkanBuffer(vk::Buffer resource, std::shared_ptr<VulkanBufferState> state)
         : resource(resource)
-        , statePtr(std::make_shared<VulkanBufferState>())
+        , statePtr(state)
       {}
       vk::Buffer native()
       {

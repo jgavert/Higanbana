@@ -95,20 +95,21 @@ namespace faze
           break;
         }
       }
+      solver.makeAllBarriers();
     }
 
     // implementations
-    void VulkanCommandBuffer::fillWith(backend::IntermediateList&)
+    void VulkanCommandBuffer::fillWith(backend::IntermediateList& list)
     {
       VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
       m_cmdBuffer.begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
 
-      //addDepedencyDataAndSolve(solver, list);
+      addDepedencyDataAndSolve(solver, list);
 
       // add commands to list while also adding barriers
-      //addCommands(m_cmdBuffer, solver, list);
+      addCommands(m_cmdBuffer, solver, list);
 
       m_cmdBuffer.end();
     }

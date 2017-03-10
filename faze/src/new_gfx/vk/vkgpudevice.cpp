@@ -418,9 +418,13 @@ namespace faze
       auto images = m_device.getSwapchainImagesKHR(native->native());
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
       textures.resize(images.size());
+
+      vector<TextureStateFlags> state;
+      state.emplace_back(TextureStateFlags( vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
+
       for (int i = 0; i < static_cast<int>(images.size()); ++i)
       {
-        textures[i] = std::make_shared<VulkanTexture>(images[i], false);
+        textures[i] = std::make_shared<VulkanTexture>(images[i], std::make_shared<VulkanTextureState>(VulkanTextureState{ state }), false);
       }
       return textures;
     }
@@ -752,7 +756,11 @@ namespace faze
       vk::DeviceSize size = allocation.allocation.block.offset;
       m_device.getBufferMemoryRequirements(buffer); // Only to silence the debug layers
       m_device.bindBufferMemory(buffer, native->native(), size);
-      return std::make_shared<VulkanBuffer>(buffer);
+
+      VulkanBufferState state{};
+      state.queueIndex = m_mainQueueIndex;
+
+      return std::make_shared<VulkanBuffer>(buffer, std::make_shared<VulkanBufferState>(state));
     }
 
     void VulkanDevice::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
@@ -803,7 +811,17 @@ namespace faze
       vk::DeviceSize size = allocation.allocation.block.offset;
       auto req = m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
       m_device.bindImageMemory(image, native->native(), size);
-      return std::make_shared<VulkanTexture>(image);
+
+      vector<TextureStateFlags> state;
+      for (uint32_t slice = 0; slice < vkdesc.arrayLayers; ++slice)
+      {
+        for (uint32_t mip = 0; mip < vkdesc.mipLevels; ++mip)
+        {
+          state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
+        }
+      }
+
+      return std::make_shared<VulkanTexture>(image, std::make_shared<VulkanTextureState>(VulkanTextureState{state}));
     }
 
     void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
