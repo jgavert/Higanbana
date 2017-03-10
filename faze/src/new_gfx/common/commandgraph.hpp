@@ -47,7 +47,7 @@ namespace faze
 
     void addPass(CommandGraphNode node)
     {
-      m_nodes->emplace_back(std::forward<decltype(node)>(node));
+      m_nodes->emplace_back(std::move(node));
     }
   };
 }

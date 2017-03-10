@@ -6,6 +6,7 @@
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/system/PageAllocator.hpp"
 #include "core/src/datastructures/proxy.hpp"
+#include "intermediatelist.hpp"
 
 #include <string>
 #include <atomic>
@@ -145,6 +146,7 @@ namespace faze
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
+      std::shared_ptr<vector<IntermediateList>> intermediateLists;
     };
 
     struct DeviceData : std::enable_shared_from_this<DeviceData>
