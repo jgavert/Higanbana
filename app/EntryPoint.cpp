@@ -21,12 +21,13 @@ int EntryPoint::main()
   auto main = [&](GraphicsApi api, VendorID preferredVendor, const char* name, bool updateLog)
   {
 	  bool reInit = false;
-    ivec2 ires = { 800, 600 };
-    Window window(m_params, name, ires.x(), ires.y(), 100, 300);
-    window.open();
+    int64_t frame = 1;
     FileSystem fs;
     while (true)
     {
+      ivec2 ires = { 800, 600 };
+      Window window(m_params, name, ires.x(), ires.y(), 3960, 300);
+      window.open();
       GraphicsSubsystem graphics(api, name);
       F_LOG("Using api %s\n", graphics.gfxApi().c_str());
       F_LOG("Have gpu's\n");
@@ -72,7 +73,6 @@ int EntryPoint::main()
         texturedesc = texturedesc.setArraySize(3);
         auto texture2 = dev.createTexture(texturedesc);
 
-        int64_t frame = 1;
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
         {
@@ -113,7 +113,7 @@ int EntryPoint::main()
           CommandGraph tasks = dev.createGraph();
           {
             auto node = tasks.createPass("clear and present!");
-            node.clearRT(backbuffer, vec4{ 1.f, 0.f, 0.f, 1.f });
+            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f+.5f, 0.f, 0.f, 1.f });
             node.prepareForPresent(backbuffer);
             tasks.addPass(std::move(node));
           }
