@@ -303,7 +303,7 @@ namespace faze
       VulkanBufferView()
       {}
       VulkanBufferView(vk::DescriptorBufferInfo info, vk::DescriptorType type)
-        : m{info, type}
+        : m{ info, type }
       {}
       Info& native()
       {
@@ -434,7 +434,7 @@ namespace faze
         });
         return list;
       }
-      
+
       void destroy(vk::Device device)
       {
         for (auto&& it : m_lists)
@@ -443,7 +443,6 @@ namespace faze
         }
       }
     };
-
 
     class VulkanDevice : public prototypes::DeviceImpl
     {
@@ -490,7 +489,7 @@ namespace faze
       {
         int deviceLocalIndex = -1;
         int hostNormalIndex = -1;
-        int hostCachedIndex = -1; 
+        int hostCachedIndex = -1;
         int deviceHostIndex = -1;
       } m_memoryTypes;
       */
@@ -503,7 +502,7 @@ namespace faze
         GpuInfo info,
         bool debugLayer);
       ~VulkanDevice();
-      
+
       vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
@@ -531,7 +530,6 @@ namespace faze
 
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
-
 
       // commandlist stuff
       VulkanCommandBuffer createCommandBuffer(int queueIndex);
@@ -615,6 +613,5 @@ namespace faze
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu);
       GraphicsSurface createSurface(Window& window) override;
     };
-
   }
 }

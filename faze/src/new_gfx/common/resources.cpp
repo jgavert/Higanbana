@@ -93,8 +93,7 @@ namespace faze
         m_impl->destroyTextureView(view);
       }
 
-
-      // buffers 
+      // buffers
       for (auto&& buffer : m_trackerbuffers->getResources())
       {
         m_impl->destroyBuffer(buffer);
@@ -170,7 +169,6 @@ namespace faze
         auto texTracker = m_trackertextures->makeTracker(newId(), buffers[i]);
         auto tex = Texture(buffers[i], texTracker, swapchain.impl()->desc());
         backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
-
       }
       swapchain.setBackbuffers(backbuffers);
       return swapchain;
@@ -305,7 +303,7 @@ namespace faze
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
       }
-      
+
       gc();
     }
 
@@ -339,14 +337,14 @@ namespace faze
           .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
-        F_SLOG("Graphics","Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
+        F_SLOG("Graphics", "Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
         return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
         return vec.alignment == requirements.alignment
-            && vec.type      == requirements.heapType;
+          && vec.type == requirements.heapType;
       });
       if (vectorPtr != m_heaps.end()) // found alignment
       {
@@ -360,7 +358,7 @@ namespace faze
             {
               alloc.block = block;
               alloc.index = heap.index;
-              return HeapAllocation{ alloc, heap.heap};
+              return HeapAllocation{ alloc, heap.heap };
             }
           }
         }
@@ -375,7 +373,7 @@ namespace faze
           return HeapAllocation{ alloc, heap };
         }
       }
-      HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>()};
+      HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>() };
       auto newHeap = createHeapBlock(device, 0, requirements);
       alloc.block = newHeap.allocator.allocate(requirements.bytes);
       alloc.index = newHeap.index;
@@ -391,7 +389,7 @@ namespace faze
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
         return vec.alignment == object.alignment
-            && vec.type == object.heapType;
+          && vec.type == object.heapType;
       });
       if (vectorPtr != m_heaps.end())
       {
@@ -416,4 +414,3 @@ namespace faze
     }
   }
 }
-

@@ -17,7 +17,6 @@ namespace faze
     Texture()
       : m_desc(std::make_shared<ResourceDescriptor>())
     {
-
     }
 
     Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
@@ -56,7 +55,6 @@ namespace faze
       , impl(impl)
       , id(id)
     {
-
     }
 
     ResourceDescriptor& desc()

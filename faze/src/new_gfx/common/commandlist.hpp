@@ -15,7 +15,6 @@ namespace faze
   public:
     DmaList()
     {
-
     }
   };
 
@@ -26,7 +25,6 @@ namespace faze
     ComputeList()
       : DmaList()
     {}
-
   };
 
   class GraphicsList : public ComputeList

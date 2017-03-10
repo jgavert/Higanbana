@@ -174,7 +174,6 @@ namespace faze
         break;
       }
 
-
       return dxdesc;
     }
 
@@ -209,7 +208,6 @@ namespace faze
 
       ComPtr<IDXGIFactory5> dxgiFactory = nullptr;
       FAZE_CHECK_HR(CreateDXGIFactory2(0, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
-
 
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
@@ -331,7 +329,7 @@ namespace faze
         smallResource = true;
         heapDesc.desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
       }
-      // TODO: properly implement small resources, need to pass these flags around. 
+      // TODO: properly implement small resources, need to pass these flags around.
       // textures support small and the same heap cannot contain buffers or rt/ds textures.
       // disabled for now.
 
@@ -483,18 +481,18 @@ namespace faze
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
       switch (desc.desc.usage)
       {
-        case ResourceUsage::Upload:
-        {
-          startState = D3D12_RESOURCE_STATE_GENERIC_READ;
-          break;
-        }
-        case ResourceUsage::Readback:
-        {
-          startState = D3D12_RESOURCE_STATE_COPY_DEST;
-          break;
-        }
-        default:
-          break;
+      case ResourceUsage::Upload:
+      {
+        startState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        startState = D3D12_RESOURCE_STATE_COPY_DEST;
+        break;
+      }
+      default:
+        break;
       }
 
       ID3D12Resource* texture;
@@ -544,21 +542,21 @@ namespace faze
       auto descriptor = native->native();
       switch (descriptor.type)
       {
-        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
-        {
-          m_rtvs.release(native->native());
-          break;
-        }
-        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
-        {
-          m_dsvs.release(native->native());
-          break;
-        }
-        default:
-        {
-          m_generics.release(native->native());
-          break;
-        }
+      case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+      {
+        m_rtvs.release(native->native());
+        break;
+      }
+      case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+      {
+        m_dsvs.release(native->native());
+        break;
+      }
+      default:
+      {
+        m_generics.release(native->native());
+        break;
+      }
       }
     }
 

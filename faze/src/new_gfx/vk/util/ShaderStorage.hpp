@@ -5,7 +5,6 @@
 #include <vulkan/vulkan.hpp>
 #include <shaderc/shaderc.hpp>
 
-
 class ShaderStorage
 {
 private:
@@ -48,14 +47,12 @@ private:
 
 public:
 
-
-
   ShaderStorage(FileSystem& fs, std::string shaderPath, std::string spirvPath)
     : m_fs(fs)
     , sourcePath("/" + shaderPath + "/")
-	, compiledPath("/" + spirvPath + "/")
+    , compiledPath("/" + spirvPath + "/")
   {
-	  m_fs.loadDirectoryContentsRecursive(sourcePath);
+    m_fs.loadDirectoryContentsRecursive(sourcePath);
     // we could compile all shaders that don't have spv ahead of time
     // requires support from filesystem
   }
@@ -63,39 +60,39 @@ public:
   class IncludeHelper : public shaderc::CompileOptions::IncluderInterface
   {
   private:
-	  FileSystem& m_fs;
-	  std::string sourcePath;
+    FileSystem& m_fs;
+    std::string sourcePath;
   public:
-	  IncludeHelper(FileSystem& fs, std::string sourcePath)
-		  : m_fs(fs)
-		  , sourcePath(sourcePath)
-	  {}
+    IncludeHelper(FileSystem& fs, std::string sourcePath)
+      : m_fs(fs)
+      , sourcePath(sourcePath)
+    {}
 
-	  shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override
-	  {
-		  F_ASSERT(include_depth < 5, "This doesn't sound like everything is alright. Otherwise increase.");
-		  F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
-		  auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
-		  shaderc_include_result* result = new shaderc_include_result;
-		  result->content = reinterpret_cast<const char*>(sourceView.data());
-		  result->content_length = sourceView.size();
-		  auto reqSrcLen = strlen(requested_source);
-		  char* lol = new char[reqSrcLen];
-		  memcpy(lol, requested_source, reqSrcLen);
-		  result->source_name = lol;
-		  result->source_name_length = reqSrcLen;
-		  result->user_data = lol;
+    shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override
+    {
+      F_ASSERT(include_depth < 5, "This doesn't sound like everything is alright. Otherwise increase.");
+      F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
+      auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
+      shaderc_include_result* result = new shaderc_include_result;
+      result->content = reinterpret_cast<const char*>(sourceView.data());
+      result->content_length = sourceView.size();
+      auto reqSrcLen = strlen(requested_source);
+      char* lol = new char[reqSrcLen];
+      memcpy(lol, requested_source, reqSrcLen);
+      result->source_name = lol;
+      result->source_name_length = reqSrcLen;
+      result->user_data = lol;
 
-		  return result;
-	  }
+      return result;
+    }
 
-	  // Handles shaderc_include_result_release_fn callbacks.
-	  void ReleaseInclude(shaderc_include_result* usedResult) override
-	  {
-		  char* lol = reinterpret_cast<char*>(usedResult->user_data);
-		  delete[] lol;
-		  delete usedResult;
-	  }
+    // Handles shaderc_include_result_release_fn callbacks.
+    void ReleaseInclude(shaderc_include_result* usedResult) override
+    {
+      char* lol = reinterpret_cast<char*>(usedResult->user_data);
+      delete[] lol;
+      delete usedResult;
+    }
   };
 
   bool compileShader(std::string shaderName, ShaderType type)
@@ -157,7 +154,7 @@ public:
 
     if (!m_fs.fileExists(spvPath))
     {
-//      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
+      //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
       F_ASSERT(compileShader(shaderName, type), "ups");
     }
     if (m_fs.fileExists(spvPath))
@@ -170,7 +167,7 @@ public:
 
       if (shaderTime > spirvTime || shaderInterfaceTime > spirvTime)
       {
-//        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
+        //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
         F_ASSERT(compileShader(shaderName, type), "ups");
       }
     }
@@ -183,5 +180,3 @@ public:
     return device.createShaderModule(moduleCreate);
   }
 };
-
-

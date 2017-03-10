@@ -145,14 +145,14 @@ namespace faze
       DX12Fence(ComPtr<ID3D12Fence> fence)
         : fence(fence)
         , handle(std::shared_ptr<HANDLE>(new HANDLE(CreateEventExA(nullptr, nullptr, 0, EVENT_ALL_ACCESS)), [](HANDLE* ptr)
-            {
-              CloseHandle(*ptr);
-              delete ptr;
-            }))
+      {
+        CloseHandle(*ptr);
+        delete ptr;
+      }))
         , value(std::make_shared<uint64_t>(0))
       {
       }
-      
+
       uint64_t start()
       {
         return ++(*value);
@@ -174,7 +174,6 @@ namespace faze
       }
     };
 
-
     class DX12CommandBuffer : public CommandBufferImpl
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -195,7 +194,7 @@ namespace faze
         , samplers(samplers)
       {}
 
-      void fillWith(backend::IntermediateList& ) override
+      void fillWith(backend::IntermediateList&) override
       {
         // TODO: move this function somewhere where we have space to actually implement this.
         commandList->Close();

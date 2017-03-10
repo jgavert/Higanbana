@@ -1,24 +1,23 @@
 #include "intermediatelist.hpp"
 
-
 namespace faze
 {
-	namespace backend 
-	{
-		CommandPacket::CommandPacket()
-		{}
+  namespace backend
+  {
+    CommandPacket::CommandPacket()
+    {}
 
-		void CommandPacket::setNextPacket(CommandPacket* packet)
-		{
-			m_nextPacket = packet;
-		}
-		CommandPacket* CommandPacket::nextPacket()
-		{
-			return m_nextPacket;
-		}
+    void CommandPacket::setNextPacket(CommandPacket* packet)
+    {
+      m_nextPacket = packet;
+    }
+    CommandPacket* CommandPacket::nextPacket()
+    {
+      return m_nextPacket;
+    }
 
-		// Average size estimation for a single continuos list is small.
-		// These can be linked together to form one big list.
+    // Average size estimation for a single continuos list is small.
+    // These can be linked together to form one big list.
 
     IntermediateList::IntermediateList()
     {
@@ -74,7 +73,7 @@ namespace faze
       clear();
     }
 
-    // only moving allowed... for now. 
+    // only moving allowed... for now.
     void IntermediateList::append(IntermediateList&& other)
     {
       // sew together the lists.
@@ -114,5 +113,5 @@ namespace faze
       m_size = 0;
       m_activeMemory = -1;
     }
-	}
+  }
 }

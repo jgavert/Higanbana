@@ -44,8 +44,8 @@ namespace faze
       for (int i = 0; i < ArrayLength(DXFormatTransformTable); ++i)
       {
         if (DXFormatTransformTable[i].view == format
-         || DXFormatTransformTable[i].storage == format
-         || DXFormatTransformTable[i].raw == format)
+          || DXFormatTransformTable[i].storage == format
+          || DXFormatTransformTable[i].raw == format)
         {
           return DXFormatTransformTable[i];
         }

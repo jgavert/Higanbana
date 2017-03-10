@@ -75,11 +75,8 @@ namespace faze
       unordered_set<ResourceUniqueId> m_uniqueTexturesThisChain;
       unordered_map<ResourceUniqueId, TextureDependency> m_textureStates;
 
-
-
       // actual jobs used to generate DAG
       vector<DependencyPacket> m_jobs;
-
 
       // results
       struct ScheduleNode
@@ -88,7 +85,6 @@ namespace faze
         DrawCallIndex dependency;
       };
       vector<ScheduleNode> m_schedulingResult;
-
 
       // barriers
       vector<vk::BufferMemoryBarrier> bufferBarriers;
@@ -125,7 +121,6 @@ namespace faze
       unordered_map<ResourceUniqueId, SmallTexture> m_imageCache;
     public:
       VulkanDependencySolver() {}
-
 
       int addDrawCall(CommandPacket::PacketType name, vk::PipelineStageFlags baseFlags);
 

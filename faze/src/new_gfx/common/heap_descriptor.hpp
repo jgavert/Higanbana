@@ -45,7 +45,6 @@ namespace faze
 
     HeapDescriptor()
     {
-
     }
 
     HeapDescriptor& setName(std::string name)
@@ -100,4 +99,3 @@ namespace faze
     }
   };
 }
-

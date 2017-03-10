@@ -8,7 +8,6 @@ namespace faze
 {
   namespace backend
   {
-
     void printMemoryTypeInfos(vk::PhysicalDeviceMemoryProperties prop)
     {
       auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
@@ -148,7 +147,8 @@ namespace faze
           m_freeQueueIndexes.graphics.pop_back();
           m_mainQueue = m_device.getQueue(queueFamilyIndex, queueId);
           m_mainQueueIndex = queueFamilyIndex;
-        } else if (!m_freeQueueIndexes.universal.empty())
+        }
+        else if (!m_freeQueueIndexes.universal.empty())
         {
           uint32_t queueFamilyIndex = m_freeQueueIndexes.universalIndex;
           uint32_t queueId = m_freeQueueIndexes.universal.back();
@@ -333,7 +333,7 @@ namespace faze
 
       auto swapchain = m_device.createSwapchainKHR(info);
       auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface, m_semaphores.allocate(m_device));
-      
+
       sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
       return sc;
     }
@@ -420,7 +420,7 @@ namespace faze
       textures.resize(images.size());
 
       vector<TextureStateFlags> state;
-      state.emplace_back(TextureStateFlags( vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
+      state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
 
       for (int i = 0; i < static_cast<int>(images.size()); ++i)
       {
@@ -632,7 +632,6 @@ namespace faze
       return info;
     }
 
-
     void VulkanDevice::waitGpuIdle()
     {
       m_device.waitIdle();
@@ -718,7 +717,7 @@ namespace faze
 
       if (reqs.alignment < 128)
       {
-          reqs.alignment = ((128 + reqs.alignment - 1) / reqs.alignment) * reqs.alignment;
+        reqs.alignment = ((128 + reqs.alignment - 1) / reqs.alignment) * reqs.alignment;
       }
 
       return reqs;
@@ -821,7 +820,7 @@ namespace faze
         }
       }
 
-      return std::make_shared<VulkanTexture>(image, std::make_shared<VulkanTextureState>(VulkanTextureState{state}));
+      return std::make_shared<VulkanTexture>(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state }));
     }
 
     void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
@@ -882,7 +881,6 @@ namespace faze
       {
         imgFlags |= vk::ImageAspectFlagBits::eColor;
       }
-
 
       decltype(VK_REMAINING_MIP_LEVELS) mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? VK_REMAINING_MIP_LEVELS : 1;
       if (viewDesc.m_mipLevels != -1)

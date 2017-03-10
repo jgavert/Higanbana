@@ -59,7 +59,7 @@ namespace faze
 
   FormatSizeInfo formatSizeInfo(FormatType format);
 
-  enum class ResourceUsage 
+  enum class ResourceUsage
   {
     Upload,
     Readback,

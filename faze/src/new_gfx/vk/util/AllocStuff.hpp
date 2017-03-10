@@ -10,10 +10,10 @@ private:
   std::atomic<uint64_t> normalUse;
 public:
   static void* pfnAllocation(void*, size_t, size_t, VkSystemAllocationScope);
-  static void* pfnReallocation(void* , void*, size_t, size_t, VkSystemAllocationScope);
-  static void pfnFree( void*, void*);
+  static void* pfnReallocation(void*, void*, size_t, size_t, VkSystemAllocationScope);
+  static void pfnFree(void*, void*);
   static void pfnInternalAllocation(void*, size_t, VkInternalAllocationType, VkSystemAllocationScope);
-  static void pfnInternalFree( void*, size_t, VkInternalAllocationType, VkSystemAllocationScope);
+  static void pfnInternalFree(void*, size_t, VkInternalAllocationType, VkSystemAllocationScope);
 
   uint64_t getTotalBytesAlloc()
   {

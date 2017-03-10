@@ -94,7 +94,7 @@ namespace faze
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
-        //create/destroy pairs 
+        //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
         virtual void destroyHeap(GpuHeap heap) = 0;
 

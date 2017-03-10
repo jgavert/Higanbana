@@ -5,7 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-
 namespace faze
 {
   namespace backend

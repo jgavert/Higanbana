@@ -17,7 +17,6 @@ namespace faze
     CommandGraphNode(std::string name)
       : name(name)
     {
-
     }
 
     void clearRT(TextureRTV& rtv, vec4 color)
@@ -37,7 +36,7 @@ namespace faze
     friend struct backend::DeviceData;
   public:
     CommandGraph()
-      : m_nodes{std::make_shared<vector<CommandGraphNode>>()}
+      : m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
     {}
 
     CommandGraphNode createPass(std::string name)
