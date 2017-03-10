@@ -1,4 +1,4 @@
-#include "formats.hpp" 
+#include "formats.hpp"
 
 namespace faze
 {

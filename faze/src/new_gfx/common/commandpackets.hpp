@@ -20,7 +20,6 @@ namespace faze
         : rtv(rtv)
         , color(color)
       {
-
       }
 
       PacketType type() override

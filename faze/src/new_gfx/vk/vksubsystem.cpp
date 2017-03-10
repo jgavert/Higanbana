@@ -4,7 +4,6 @@
 #include "core/src/Platform/Window.hpp"
 #include "core/src/global_debug.hpp"
 
-
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   VkDebugReportFlagsEXT                       flags,
   VkDebugReportObjectTypeEXT                  /*objectType*/,
@@ -47,7 +46,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   {
     msgType = "DEBUG:";
   }
-  if (!breakOn && ( std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport"))
+  if (!breakOn && (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport"))
     return false;
   F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
 #if defined(FAZE_PLATFORM_WINDOWS)
@@ -222,15 +221,15 @@ namespace faze
         info.vendor = VendorID::Unknown;
         if (stuff.vendorID == 4098)
         {
-            info.vendor = VendorID::Amd;
+          info.vendor = VendorID::Amd;
         }
         else if (stuff.vendorID == 4318)
         {
-            info.vendor = VendorID::Nvidia;
+          info.vendor = VendorID::Nvidia;
         }
         else if (stuff.vendorID == 32902)
         {
-            info.vendor = VendorID::Intel;
+          info.vendor = VendorID::Intel;
         }
         switch (stuff.deviceType)
         {
@@ -344,7 +343,6 @@ namespace faze
       vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()
         .setHwnd(window.getInternalWindow().getHWND())
         .setHinstance(window.getInternalWindow().getHInstance());
-
 
       vk::SurfaceKHR surfacekhr = m_instance->createWin32SurfaceKHR(createInfo);
 

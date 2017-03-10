@@ -17,7 +17,6 @@ namespace faze
     Buffer()
       : m_desc(std::make_shared<ResourceDescriptor>())
     {
-
     }
     Buffer(std::shared_ptr<backend::prototypes::BufferImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
       : impl(impl)
@@ -50,7 +49,6 @@ namespace faze
       , impl(impl)
       , id(id)
     {
-
     }
 
     ResourceDescriptor& desc()

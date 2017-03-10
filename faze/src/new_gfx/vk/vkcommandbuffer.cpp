@@ -1,14 +1,12 @@
 #include "vkresources.hpp"
 #include "util/VulkanDependencySolver.hpp"
 
-
 #define packetRef(type, packet) *static_cast<type*>(packet)
 
 namespace faze
 {
   namespace backend
   {
-
     void handle(vk::CommandBuffer buffer, gfxpacket::ClearRT& packet)
     {
       auto view = std::static_pointer_cast<VulkanTextureView>(packet.rtv.native());
@@ -22,7 +20,6 @@ namespace faze
         vk::ClearColorValue().setFloat32({ packet.color.x(), packet.color.y(), packet.color.z(), packet.color.w() }),
         view->range());
     }
-
 
     void addCommands(vk::CommandBuffer buffer, VulkanDependencySolver& solver, backend::IntermediateList& list)
     {
@@ -76,8 +73,8 @@ namespace faze
       {
         switch (packet->type())
         {
-//        case CommandPacket::PacketType::BufferCopy:
-//        case CommandPacket::PacketType::Dispatch:
+          //        case CommandPacket::PacketType::BufferCopy:
+          //        case CommandPacket::PacketType::Dispatch:
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);

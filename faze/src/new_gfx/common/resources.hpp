@@ -30,10 +30,10 @@ namespace faze
 
   enum class VendorID
   {
-      Amd, // = 4098,
-      Nvidia, // = 4318,
-      Intel, // implemented but lol number 
-      Unknown
+    Amd, // = 4098,
+    Nvidia, // = 4318,
+    Intel, // implemented but lol number
+    Unknown
   };
 
   struct GpuInfo

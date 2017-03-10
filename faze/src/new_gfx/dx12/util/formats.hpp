@@ -16,7 +16,6 @@ namespace faze
       FormatType enm;
     };
 
-
     FormatDX12Conversion dxformatToFazeFormat(DXGI_FORMAT format);
     FormatDX12Conversion formatTodxFormat(FormatType format);
   }

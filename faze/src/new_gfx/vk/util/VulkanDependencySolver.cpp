@@ -31,34 +31,34 @@ namespace faze
       auto uniqueID = id;
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining) // disable optimization, merges last seen usages to existing. Default on. Combines only reads.
       {
-          auto currentUsage = getUsageFromAccessFlags(flags);
-          if (currentUsage == UsageHint::read)
+        auto currentUsage = getUsageFromAccessFlags(flags);
+        if (currentUsage == UsageHint::read)
+        {
+          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+          if (obj)
           {
-              auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-              if (obj)
+            if (obj->second.type == currentUsage)
+            {
+              // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
+              auto* jobIndex = m_drawCallJobOffsets.find(obj->second.index);
+              if (jobIndex)
               {
-                  if (obj->second.type == currentUsage)
+                int index = jobIndex->second;
+                while (index < static_cast<int>(m_jobs.size()) && obj->second.index == m_jobs[index].drawIndex)
+                {
+                  if (m_jobs[index].resource == uniqueID)
                   {
-                      // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
-                      auto* jobIndex = m_drawCallJobOffsets.find(obj->second.index);
-                      if (jobIndex)
-                      {
-                          int index = jobIndex->second;
-                          while (index < static_cast<int>(m_jobs.size()) && obj->second.index == m_jobs[index].drawIndex)
-                          {
-                              if (m_jobs[index].resource == uniqueID)
-                              {
-                                  break;
-                              }
-                              index++;
-                          }
-                          m_jobs[index].access |= flags;
-                          return; // found and could merge... or rather forcefully merged. 
-                      }
+                    break;
                   }
+                  index++;
+                }
+                m_jobs[index].access |= flags;
+                return; // found and could merge... or rather forcefully merged.
               }
+            }
           }
-          m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+        }
+        m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
@@ -76,26 +76,26 @@ namespace faze
     // textures
     void VulkanDependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, int16_t mips, vk::ImageLayout layout, vk::AccessFlags flags)
     {
-        auto uniqueID = id;
+      auto uniqueID = id;
 
-        if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
+      if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
+      {
+        auto currentUsage = getUsageFromAccessFlags(flags);
+        if (currentUsage == UsageHint::read)
         {
-            auto currentUsage = getUsageFromAccessFlags(flags);
-            if (currentUsage == UsageHint::read)
+          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+          if (obj)
+          {
+            if (obj->second.type != currentUsage)
             {
-                auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-                if (obj)
-                {
-                    if (obj->second.type != currentUsage)
-                    {
-                        F_SLOG("DependencySolver", "Possible optimization here!\n");
-                        // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
-                        // Texture... needs to look at all the subresources seen before and combine their state... ugh, this looks not to be easy.
-                    }
-                }
+              F_SLOG("DependencySolver", "Possible optimization here!\n");
+              // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
+              // Texture... needs to look at all the subresources seen before and combine their state... ugh, this looks not to be easy.
             }
-            m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+          }
         }
+        m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+      }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
         flags, layout, 0, view.native().subResourceRange });
@@ -119,20 +119,20 @@ namespace faze
 
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
       {
-          auto currentUsage = getUsageFromAccessFlags(flags);
-          if (currentUsage == UsageHint::read)
+        auto currentUsage = getUsageFromAccessFlags(flags);
+        if (currentUsage == UsageHint::read)
+        {
+          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
+          if (obj)
           {
-              auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-              if (obj)
-              {
-                  if (obj->second.type != currentUsage)
-                  {
-                      F_SLOG("DependencySolver", "Possible optimization here!\n");
-                      // Somehow feels hard to figure out where all last subresources were. so that we could merge the use to them...
-                  }
-              }
+            if (obj->second.type != currentUsage)
+            {
+              F_SLOG("DependencySolver", "Possible optimization here!\n");
+              // Somehow feels hard to figure out where all last subresources were. so that we could merge the use to them...
+            }
           }
-          m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
+        }
+        m_resourceUsageInLastAdd[id] = LastSeenUsage{ currentUsage, drawCallIndex };
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
@@ -167,7 +167,7 @@ namespace faze
       {
         auto tesState = m_textureStates[id];
         auto flags = tesState.state->flags;
-        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, tesState.aspectMask, flags};
+        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, tesState.aspectMask, flags };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -185,7 +185,6 @@ namespace faze
           m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
         }
         drawIndex = draw;
-
 
         while (jobIndex < jobsSize && m_jobs[jobIndex].drawIndex == draw)
         {
@@ -281,7 +280,6 @@ namespace faze
                     }
                     else // push back the current range and and create new one.
                     {
-
                       addImageBarrier(current);
                       current = RangePerAccessType{};
                       current.access = state.access;

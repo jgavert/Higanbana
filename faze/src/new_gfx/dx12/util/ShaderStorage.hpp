@@ -58,17 +58,15 @@ namespace faze
         // requires support from filesystem
       }
 
-
-      bool compileShader(std::string , ShaderType )
+      bool compileShader(std::string, ShaderType)
       {
         return false;
       }
 
-      bool shader(vk::Device& , std::string , ShaderType )
+      bool shader(vk::Device&, std::string, ShaderType)
       {
         return false;
       }
     };
   }
 }
-

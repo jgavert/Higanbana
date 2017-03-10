@@ -11,14 +11,14 @@ namespace faze
 {
   namespace backend
   {
-    DX12Subsystem::DX12Subsystem(const char* , unsigned , const char* , unsigned )
+    DX12Subsystem::DX12Subsystem(const char*, unsigned, const char*, unsigned)
     {
       CreateDXGIFactory1(IID_PPV_ARGS(pFactory.GetAddressOf()));
     }
 
     std::string DX12Subsystem::gfxApi()
     {
-      return "DX12"; 
+      return "DX12";
     }
 
     vector<GpuInfo> DX12Subsystem::availableGpus()
@@ -45,15 +45,15 @@ namespace faze
         info.vendor = VendorID::Unknown;
         if (desc.VendorId == 4098)
         {
-            info.vendor = VendorID::Amd;
+          info.vendor = VendorID::Amd;
         }
         else if (desc.VendorId == 4318)
         {
-            info.vendor = VendorID::Nvidia;
+          info.vendor = VendorID::Nvidia;
         }
         else if (desc.VendorId == 32902)
         {
-            info.vendor = VendorID::Intel;
+          info.vendor = VendorID::Intel;
         }
         info.id = i;
         info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
@@ -67,7 +67,7 @@ namespace faze
       return infos;
     }
 
-    GpuDevice DX12Subsystem::createGpuDevice(FileSystem& , GpuInfo gpu)
+    GpuDevice DX12Subsystem::createGpuDevice(FileSystem&, GpuInfo gpu)
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       {
@@ -116,7 +116,6 @@ namespace faze
         ++i;
       }
 
-
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       {
         {
@@ -136,7 +135,6 @@ namespace faze
             D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
           };
 
-
           D3D12_INFO_QUEUE_FILTER filter = {};
           filter.DenyList.NumSeverities = 1;
           filter.DenyList.NumIDs = 3;
@@ -153,7 +151,7 @@ namespace faze
         device->Release();
         delete ptr;
       });
-      
+
       return GpuDevice(DeviceData(impl));
     }
 

@@ -121,7 +121,7 @@ namespace faze
         return *ptr;
       }
 
-      ListAllocator allocator() {return ListAllocator(m_allocator, m_memory, m_activeMemory); }
+      ListAllocator allocator() { return ListAllocator(m_allocator, m_memory, m_activeMemory); }
 
       class iterator {
       public:
