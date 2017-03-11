@@ -116,7 +116,6 @@
 .extLibPaths  + .shadercLibPath
 #endif
 .externalIncludes = ' /I^"$vulkanInclude$"'
-                  + ' /I^"$vulkanCppInclude$"'
                   + ' /I^"$shadercInclude$"'
                   + ' /I^"$compressInclude$"'
                   + ' /I^"$renderdocInclude$"'
@@ -128,7 +127,6 @@
                   + ' -isystem ^"$sparseppInclude$"'
 #endif
 .externalIncludesVisualStudio = '$vulkanInclude$;'
-                              + '$vulkanCppInclude$;'
                               + '$shadercInclude$;'
                               + '$compressInclude$;'
                               + '$renderdocInclude$;'

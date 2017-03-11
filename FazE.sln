@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "core\core.vcxproj", "{B3222543-6C94-4F93-BC2A-7F5284B7D434}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "App", "app\App.vcxproj", "{0446F183-6C94-4F93-BC2A-7F5284B7D434}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fbuild_all", "fbuild_all.vcxproj", "{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "graphics", "faze\graphics.vcxproj", "{76533B5A-6C94-4F93-BC2A-7F5284B7D434}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fbuild_all", "fbuild_all.vcxproj", "{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,18 +30,21 @@ Global
 		{0446F183-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.Build.0 = Profile|x64
 		{0446F183-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.ActiveCfg = Release|x64
 		{0446F183-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.Build.0 = Release|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.ActiveCfg = Debug|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.Build.0 = Debug|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.ActiveCfg = Profile|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.Build.0 = Profile|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.ActiveCfg = Release|x64
-		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.Build.0 = Release|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.ActiveCfg = Debug|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.Build.0 = Debug|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.ActiveCfg = Profile|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.Build.0 = Profile|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.ActiveCfg = Release|x64
 		{76533B5A-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.Build.0 = Release|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.ActiveCfg = Debug|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.Build.0 = Debug|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Debug|x64.Deploy.0 = Debug|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.ActiveCfg = Profile|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.Build.0 = Profile|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Profile|x64.Deploy.0 = Profile|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.ActiveCfg = Release|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.Build.0 = Release|x64
+		{2A0395B1-6C94-4F93-BC2A-7F5284B7D434}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

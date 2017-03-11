@@ -273,11 +273,14 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
       textures.resize(native->getDesc().buffers);
 
+      DX12TextureState state;
+      state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
+
       for (int i = 0; i < native->getDesc().buffers; ++i)
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-        textures[i] = std::make_shared<DX12Texture>(renderTarget);
+        textures[i] = std::make_shared<DX12Texture>(renderTarget, std::make_shared<DX12TextureState>(state));
       }
       return textures;
     }
@@ -436,7 +439,7 @@ namespace faze
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
 
-      return std::make_shared<DX12Buffer>(buffer);
+      return std::make_shared<DX12Buffer>(buffer, std::make_shared<D3D12_RESOURCE_STATES>(startState));
     }
 
     void DX12Device::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
@@ -513,10 +516,19 @@ namespace faze
         break;
       }
 
+      DX12TextureState state;
+      for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
+      {
+        for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
+        {
+          state.flags.emplace_back(startState);
+        }
+      }
+
       ID3D12Resource* texture;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
 
-      return std::make_shared<DX12Texture>(texture);
+      return std::make_shared<DX12Texture>(texture, std::make_shared<DX12TextureState>(state));
     }
 
     void DX12Device::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
@@ -551,7 +563,22 @@ namespace faze
         auto natDesc = dx12::getDSV(texDesc, viewDesc);
         m_device->CreateDepthStencilView(native->native(), &natDesc, descriptor.cpu);
       }
-      return std::make_shared<DX12TextureView>(descriptor);
+
+      unsigned mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? texDesc.desc.miplevels - viewDesc.m_mostDetailedMip : 1;
+      if (viewDesc.m_mipLevels != -1)
+      {
+        mips = viewDesc.m_mipLevels;
+      }
+
+      unsigned arraySize = (viewDesc.m_arraySize != -1) ? viewDesc.m_arraySize : texDesc.desc.arraySize - viewDesc.m_arraySlice;
+
+      SubresourceRange range{};
+      range.mipOffset = static_cast<int16_t>(viewDesc.m_mostDetailedMip);
+      range.mipLevels = static_cast<int16_t>(mips);
+      range.sliceOffset = static_cast<int16_t>(viewDesc.m_arraySlice);
+      range.arraySize = static_cast<int16_t>(arraySize);
+
+      return std::make_shared<DX12TextureView>(descriptor, range);
     }
 
     void DX12Device::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
