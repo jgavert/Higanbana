@@ -15,7 +15,12 @@ namespace faze
     std::function<T()> m_makeItem;
 
   public:
-    RabbitPool(std::function<T()> makeItem)
+    Rabbitpool()
+      : m_pool(nullptr)
+      , m_makeItem([]() {return T(); })
+    {
+    }
+    Rabbitpool(std::function<T()> makeItem)
       : m_pool(std::make_shared<vector<T>>())
       , m_makeItem(makeItem)
     {
@@ -60,6 +65,58 @@ namespace faze
       m_pool->pop_back();
 
       return obj;
+    }
+
+    void clear()
+    {
+      m_pool = std::make_shared<vector<T>>();
+    }
+  };
+
+  template <typename T>
+  class Rabbitpool2
+  {
+  private:
+    std::shared_ptr<vector<T>> m_pool;
+    std::function<T()> m_makeItem;
+
+  public:
+    Rabbitpool2()
+      : m_pool(nullptr)
+    {
+    }
+    Rabbitpool2(std::function<T()> makeItem)
+      : m_pool(std::make_shared<vector<T>>())
+      , m_makeItem(makeItem)
+    {
+    }
+
+    std::shared_ptr<T> allocate()
+    {
+      if (m_pool->empty())
+      {
+        m_pool->emplace_back(std::move(m_makeItem()));
+      }
+
+      std::weak_ptr<vector<T>> weakpool;
+
+      auto obj = std::shared_ptr<T>(new T(m_pool->back()), [weakpool](T* ptr)
+      {
+        if (auto pool = weakpool.lock())
+        {
+          pool->emplace_back(*ptr);
+        }
+        delete ptr;
+      });
+
+      m_pool->pop_back();
+
+      return obj;
+    }
+
+    void clear()
+    {
+      m_pool = std::make_shared<vector<T>>();
     }
   };
 }

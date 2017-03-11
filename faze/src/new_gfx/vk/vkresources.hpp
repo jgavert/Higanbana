@@ -7,6 +7,8 @@
 
 #include "faze/src/new_gfx/definitions.hpp"
 
+#include "core/src/system/MemoryPools.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 namespace faze
@@ -17,9 +19,9 @@ namespace faze
     class VulkanCommandBuffer : public CommandBufferImpl
     {
       vk::CommandBuffer  m_cmdBuffer;
-      vk::CommandPool    m_pool;
+      std::shared_ptr<vk::CommandPool>    m_pool;
     public:
-      VulkanCommandBuffer(vk::CommandBuffer cmdBuffer, vk::CommandPool pool)
+      VulkanCommandBuffer(vk::CommandBuffer cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
         : m_cmdBuffer(cmdBuffer)
         , m_pool(pool)
       {}
@@ -33,35 +35,35 @@ namespace faze
 
       vk::CommandPool pool()
       {
-        return m_pool;
+        return *m_pool;
       }
     };
 
     class VulkanSemaphore : public SemaphoreImpl
     {
-      vk::Semaphore semaphore;
+      std::shared_ptr<vk::Semaphore> semaphore;
     public:
-      VulkanSemaphore(vk::Semaphore semaphore)
+      VulkanSemaphore(std::shared_ptr<vk::Semaphore> semaphore)
         : semaphore(semaphore)
       {}
 
       vk::Semaphore native()
       {
-        return semaphore;
+        return *semaphore;
       }
     };
 
     class VulkanFence : public FenceImpl
     {
-      vk::Fence fence;
+      std::shared_ptr<vk::Fence> fence;
     public:
-      VulkanFence(vk::Fence fence)
+      VulkanFence(std::shared_ptr<vk::Fence> fence)
         : fence(fence)
       {}
 
       vk::Fence native()
       {
-        return fence;
+        return *fence;
       }
     };
 
@@ -327,123 +329,6 @@ namespace faze
       }
     };
 
-    // helpers
-
-    class GrowingSemaphorePool
-    {
-      vector<vk::Semaphore> m_semaphores;
-      FreelistAllocator m_allocator;
-    public:
-      GrowingSemaphorePool()
-      {
-      }
-      std::shared_ptr<VulkanSemaphore> allocate(vk::Device device)
-      {
-        auto index = m_allocator.allocate();
-        if (index == -1)
-        {
-          m_allocator.grow();
-          m_semaphores.emplace_back(device.createSemaphore(vk::SemaphoreCreateInfo()));
-          index = m_allocator.allocate();
-        }
-        auto semaphore = m_semaphores[index];
-
-        auto sema = std::shared_ptr<VulkanSemaphore>(new VulkanSemaphore(m_semaphores[index]), [&, index](VulkanSemaphore* semap)
-        {
-          m_allocator.release(index);
-          delete semap;
-        });
-        return sema;
-      }
-      void destroy(vk::Device device)
-      {
-        for (auto&& it : m_semaphores)
-        {
-          device.destroySemaphore(it);
-        }
-      }
-    };
-
-    class GrowingFencePool
-    {
-      vector<vk::Fence> m_fences;
-      FreelistAllocator m_allocator;
-    public:
-      GrowingFencePool()
-      {
-      }
-      std::shared_ptr<VulkanFence> allocate(vk::Device device)
-      {
-        auto index = m_allocator.allocate();
-        if (index == -1)
-        {
-          m_allocator.grow();
-          m_fences.emplace_back(device.createFence(vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled)));
-          index = m_allocator.allocate();
-        }
-
-        auto fence = std::shared_ptr<VulkanFence>(new VulkanFence(m_fences[index]), [&, index](VulkanFence* semap)
-        {
-          m_allocator.release(index);
-          delete semap;
-        });
-        return fence;
-      }
-      void destroy(vk::Device device)
-      {
-        for (auto&& it : m_fences)
-        {
-          device.destroyFence(it);
-        }
-      }
-    };
-
-    class VulkanCommandBufferPool
-    {
-      vector<VulkanCommandBuffer> m_lists;
-      FreelistAllocator m_allocator;
-      int queueIndex;
-    public:
-      VulkanCommandBufferPool()
-      {
-      }
-
-      VulkanCommandBufferPool(int queueIndex)
-        : queueIndex(queueIndex)
-      {
-      }
-      template<typename Device>
-      std::shared_ptr<VulkanCommandBuffer>  allocate(Device* device)
-      {
-        auto index = m_allocator.allocate();
-        if (index == -1)
-        {
-          m_allocator.grow();
-          m_lists.emplace_back(device->createCommandBuffer(queueIndex));
-          index = m_allocator.allocate();
-        }
-        else
-        {
-          device->resetListNative(m_lists[index]);
-        }
-
-        auto list = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(m_lists[index]), [&, index](VulkanCommandBuffer* list)
-        {
-          m_allocator.release(index);
-          delete list;
-        });
-        return list;
-      }
-
-      void destroy(vk::Device device)
-      {
-        for (auto&& it : m_lists)
-        {
-          device.destroyCommandPool(it.pool());
-        }
-      }
-    };
-
     class VulkanDevice : public prototypes::DeviceImpl
     {
     private:
@@ -466,12 +351,11 @@ namespace faze
       vk::Queue                   m_computeQueue;
       vk::Queue                   m_copyQueue;
 
-      GrowingSemaphorePool        m_semaphores;
-      GrowingFencePool            m_fences;
-
-      VulkanCommandBufferPool     m_copyListPool;
-      VulkanCommandBufferPool     m_computeListPool;
-      VulkanCommandBufferPool     m_graphicsListPool;
+      Rabbitpool2<VulkanSemaphore>      m_semaphores;
+      Rabbitpool2<VulkanFence>          m_fences;
+      Rabbitpool2<VulkanCommandBuffer>  m_copyListPool;
+      Rabbitpool2<VulkanCommandBuffer>  m_computeListPool;
+      Rabbitpool2<VulkanCommandBuffer>  m_graphicsListPool;
 
       struct FreeQueues
       {
@@ -612,6 +496,6 @@ namespace faze
       vector<GpuInfo> availableGpus();
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu);
       GraphicsSurface createSurface(Window& window) override;
-    };
+      };
+    }
   }
-}
