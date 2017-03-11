@@ -36,9 +36,27 @@ namespace faze
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
       FAZE_CHECK_HR(m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_computeQueue.ReleaseAndGetAddressOf())));
 
-      ComPtr<ID3D12Fence> fence;
-      FAZE_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
-      m_deviceFence = DX12Fence(fence);
+      m_deviceFence = createNativeFence();
+
+      m_copyListPool = Rabbitpool2<DX12CommandBuffer>([&]()
+      {
+        return createList(D3D12_COMMAND_LIST_TYPE_COPY);
+      });
+
+      m_computeListPool = Rabbitpool2<DX12CommandBuffer>([&]()
+      {
+        return createList(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+      });
+
+      m_graphicsListPool = Rabbitpool2<DX12CommandBuffer>([&]()
+      {
+        return createList(D3D12_COMMAND_LIST_TYPE_DIRECT);
+      });
+
+      m_fencePool = Rabbitpool2<DX12Fence>([&]()
+      {
+        return createNativeFence();
+      });
       /*
       D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS data{};
       for (int i = 0; i < 64; ++i)
@@ -582,24 +600,30 @@ namespace faze
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
-      return m_copyListPool.allocate(this);
+      auto list = m_copyListPool.allocate();
+      list->reset();
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
-      return m_computeListPool.allocate(this);
+      auto list = m_computeListPool.allocate();
+      list->reset();
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      return m_graphicsListPool.allocate(this);
+      auto list = m_graphicsListPool.allocate();
+      list->reset();
+      return list;
     }
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSemaphore()
     {
-      return m_fencePool.allocate(this);
+      return m_fencePool.allocate();
     }
     std::shared_ptr<FenceImpl> DX12Device::createFence()
     {
-      return m_fencePool.allocate(this);
+      return m_fencePool.allocate();
     }
 
     void DX12Device::submit(

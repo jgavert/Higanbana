@@ -13,16 +13,17 @@ namespace faze
   private:
     std::shared_ptr<vector<T>> m_pool;
     std::function<T()> m_makeItem;
-
+    int size;
   public:
     Rabbitpool()
       : m_pool(nullptr)
-      , m_makeItem([]() {return T(); })
+      , size(0)
     {
     }
     Rabbitpool(std::function<T()> makeItem)
       : m_pool(std::make_shared<vector<T>>())
       , m_makeItem(makeItem)
+      , size(0)
     {
     }
 
@@ -55,11 +56,12 @@ namespace faze
       }
     };
 
-    SharedItem allocate()
+    SharedItem allocate() noexcept
     {
       if (m_pool.empty())
       {
         m_pool->emplace_back(std::move(m_makeItem()));
+        ++size;
       }
       auto obj = std::make_shared<Item>(m_pool->back(), m_pool);
       m_pool->pop_back();
@@ -67,9 +69,10 @@ namespace faze
       return obj;
     }
 
-    void clear()
+    void clear() noexcept
     {
       m_pool = std::make_shared<vector<T>>();
+      size = 0;
     }
   };
 
@@ -79,26 +82,29 @@ namespace faze
   private:
     std::shared_ptr<vector<T>> m_pool;
     std::function<T()> m_makeItem;
-
+    int size;
   public:
     Rabbitpool2()
       : m_pool(nullptr)
+      , size(0)
     {
     }
     Rabbitpool2(std::function<T()> makeItem)
       : m_pool(std::make_shared<vector<T>>())
       , m_makeItem(makeItem)
+      , size(0)
     {
     }
 
-    std::shared_ptr<T> allocate()
+    std::shared_ptr<T> allocate() noexcept
     {
       if (m_pool->empty())
       {
         m_pool->emplace_back(std::move(m_makeItem()));
+        ++size;
       }
 
-      std::weak_ptr<vector<T>> weakpool;
+      std::weak_ptr<vector<T>> weakpool = m_pool;
 
       auto obj = std::shared_ptr<T>(new T(m_pool->back()), [weakpool](T* ptr)
       {
@@ -114,9 +120,10 @@ namespace faze
       return obj;
     }
 
-    void clear()
+    void clear() noexcept
     {
       m_pool = std::make_shared<vector<T>>();
+      size = 0;
     }
   };
 }
