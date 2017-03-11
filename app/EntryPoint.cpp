@@ -20,7 +20,7 @@ int EntryPoint::main()
   Logger log;
   auto main = [&](GraphicsApi api, VendorID preferredVendor, const char* name, bool updateLog)
   {
-	  bool reInit = false;
+    bool reInit = false;
     int64_t frame = 1;
     FileSystem fs;
     while (true)
@@ -113,13 +113,13 @@ int EntryPoint::main()
           CommandGraph tasks = dev.createGraph();
           {
             auto node = tasks.createPass("clear and present!");
-            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f+.5f, 0.f, 0.f, 1.f });
+            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 1.f });
             node.prepareForPresent(backbuffer);
             tasks.addPass(std::move(node));
           }
 
           dev.submit(swapchain, tasks);
-          
+
           dev.present(swapchain);
         }
       }
@@ -139,13 +139,13 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Nvidia", true);
- /*
-  LBS lbs;
-  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
-  //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
-  lbs.sleepTillKeywords({"test1"});
-  */
+  main(GraphicsApi::DX12, VendorID::Nvidia, "Nvidia", true);
+  /*
+   LBS lbs;
+   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
+   //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, "DX12", false); });
+   lbs.sleepTillKeywords({"test1"});
+   */
   log.update();
   return 1;
 }
@@ -179,9 +179,7 @@ using namespace faze;
 
 // thinking of gpu, 1024*64 is the minimum size
 // wait... this works by (I cannot allocate 64kb -> allocate 64^2...? otherwise 64->128?
-// this split can also be done up right. 
-
-
+// this split can also be done up right.
 
 void testAlloca()
 {
@@ -206,7 +204,6 @@ void testAlloca()
 
 int EntryPoint::main()
 {
-
   WTime t;
   t.firstTick();
   Logger log;
@@ -353,7 +350,6 @@ int EntryPoint::main()
           }
 
           log.update();
-
 
           {
             auto rtv = gpu.acquirePresentableImage(swapchain);

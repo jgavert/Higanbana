@@ -3,6 +3,8 @@
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
 
+#include "core/src/system/MemoryPools.hpp"
+
 #include "dx12.hpp"
 
 namespace faze
@@ -411,66 +413,6 @@ namespace faze
       }
     };
 
-    template<D3D12_COMMAND_LIST_TYPE Type>
-    class CommandBufferPool
-    {
-      vector<DX12CommandBuffer> m_lists;
-      FreelistAllocator m_allocator;
-    public:
-      CommandBufferPool()
-      {
-      }
-      template<typename Device>
-      std::shared_ptr<DX12CommandBuffer>  allocate(Device* device)
-      {
-        auto index = m_allocator.allocate();
-        if (index == -1)
-        {
-          m_allocator.grow();
-          m_lists.emplace_back(device->createList(Type));
-          index = m_allocator.allocate();
-        }
-        auto natList = m_lists[index];
-
-        auto list = std::shared_ptr<DX12CommandBuffer>(new DX12CommandBuffer(natList), [&, index](DX12CommandBuffer* list)
-        {
-          list->reset();
-          m_allocator.release(index);
-          delete list;
-        });
-        return list;
-      }
-    };
-
-    class FencePool
-    {
-      vector<DX12Fence> m_fences;
-      FreelistAllocator m_allocator;
-    public:
-      FencePool()
-      {
-      }
-      template<typename Device>
-      std::shared_ptr<DX12Fence> allocate(Device* device)
-      {
-        auto index = m_allocator.allocate();
-        if (index == -1)
-        {
-          m_allocator.grow();
-          m_fences.emplace_back(device->createNativeFence());
-          index = m_allocator.allocate();
-        }
-        auto natFence = m_fences[index];
-
-        auto fence = std::shared_ptr<DX12Fence>(new DX12Fence(natFence), [&, index](DX12Fence* ptr)
-        {
-          m_allocator.release(index);
-          delete ptr;
-        });
-        return fence;
-      }
-    };
-
     class DX12Device : public prototypes::DeviceImpl
     {
     private:
@@ -487,10 +429,11 @@ namespace faze
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
 
-      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_COPY> m_copyListPool;
-      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_COMPUTE> m_computeListPool;
-      CommandBufferPool<D3D12_COMMAND_LIST_TYPE_DIRECT> m_graphicsListPool;
-      FencePool m_fencePool;
+      Rabbitpool2<DX12CommandBuffer> m_copyListPool;
+      Rabbitpool2<DX12CommandBuffer> m_computeListPool;
+      Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
+      Rabbitpool2<DX12Fence> m_fencePool;
+
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
       ~DX12Device();
@@ -576,4 +519,5 @@ namespace faze
     };
   }
 }
+
 #endif

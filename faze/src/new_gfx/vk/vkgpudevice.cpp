@@ -988,15 +988,21 @@ namespace faze
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
-      return m_copyListPool.allocate();
+      auto list = m_copyListPool.allocate();
+      resetListNative(*list);
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
-      return m_computeListPool.allocate();
+      auto list = m_computeListPool.allocate();
+      resetListNative(*list);
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
-      return m_graphicsListPool.allocate();
+      auto list = m_graphicsListPool.allocate();
+      resetListNative(*list);
+      return list;
     }
 
     void VulkanDevice::resetListNative(VulkanCommandBuffer list)
