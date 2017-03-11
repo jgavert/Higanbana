@@ -901,13 +901,13 @@ namespace faze
         imgFlags |= vk::ImageAspectFlagBits::eColor;
       }
 
-      decltype(VK_REMAINING_MIP_LEVELS) mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? VK_REMAINING_MIP_LEVELS : 1;
+      decltype(VK_REMAINING_MIP_LEVELS) mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? texDesc.desc.miplevels - viewDesc.m_mostDetailedMip : 1;
       if (viewDesc.m_mipLevels != -1)
       {
         mips = viewDesc.m_mipLevels;
       }
 
-      decltype(VK_REMAINING_ARRAY_LAYERS) arraySize = (viewDesc.m_arraySize != -1) ? viewDesc.m_arraySize : VK_REMAINING_ARRAY_LAYERS;
+      decltype(VK_REMAINING_ARRAY_LAYERS) arraySize = (viewDesc.m_arraySize != -1) ? viewDesc.m_arraySize : texDesc.desc.arraySize - viewDesc.m_arraySlice;
 
       vk::ImageSubresourceRange subResourceRange = vk::ImageSubresourceRange()
         .setAspectMask(imgFlags)
@@ -936,19 +936,19 @@ namespace faze
       vk::DescriptorType imageType = vk::DescriptorType::eInputAttachment;
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
-        imageType = vk::DescriptorType::eSampledImage; // uhh, so simple
+        imageType = vk::DescriptorType::eSampledImage;
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
       {
-        imageType = vk::DescriptorType::eStorageImage; // ah, so simple
+        imageType = vk::DescriptorType::eStorageImage;
       }
       else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
       {
-        imageType = vk::DescriptorType::eInputAttachment; // Cannot be anything else \o/
+        imageType = vk::DescriptorType::eInputAttachment;
       }
       else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
       {
-        imageType = vk::DescriptorType::eInputAttachment; // Cannot be anything else \o/
+        imageType = vk::DescriptorType::eInputAttachment;
       }
 
       SubresourceRange range{};

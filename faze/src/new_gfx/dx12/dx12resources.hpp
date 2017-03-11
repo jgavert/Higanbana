@@ -328,20 +328,32 @@ namespace faze
       }
     };
 
+    struct DX12TextureState
+    {
+      vector<D3D12_RESOURCE_STATES> flags; // subresource count
+    };
+
     class DX12Texture : public prototypes::TextureImpl
     {
     private:
-      ID3D12Resource* resource;
+      ID3D12Resource* resource = nullptr;
+      std::shared_ptr<DX12TextureState> statePtr = nullptr;
 
     public:
       DX12Texture()
       {}
-      DX12Texture(ID3D12Resource* resource)
+      DX12Texture(ID3D12Resource* resource, std::shared_ptr<DX12TextureState> state)
         : resource(resource)
+        , statePtr(state)
       {}
       ID3D12Resource* native()
       {
         return resource;
+      }
+
+      std::shared_ptr<DX12TextureState> state()
+      {
+        return statePtr;
       }
     };
 
@@ -349,16 +361,22 @@ namespace faze
     {
     private:
       DX12Descriptor resource;
-
+      SubresourceRange subResourceRange;
     public:
       DX12TextureView()
       {}
-      DX12TextureView(DX12Descriptor resource)
+      DX12TextureView(DX12Descriptor resource, SubresourceRange subResourceRange)
         : resource(resource)
+        , subResourceRange(subResourceRange)
       {}
       DX12Descriptor native()
       {
         return resource;
+      }
+
+      SubresourceRange range()
+      {
+        return subResourceRange;
       }
     };
 
@@ -366,16 +384,22 @@ namespace faze
     {
     private:
       ID3D12Resource* resource;
+      std::shared_ptr<D3D12_RESOURCE_STATES> statePtr = nullptr;
 
     public:
       DX12Buffer()
       {}
-      DX12Buffer(ID3D12Resource* resource)
+      DX12Buffer(ID3D12Resource* resource, std::shared_ptr<D3D12_RESOURCE_STATES> state)
         : resource(resource)
+        , statePtr(state)
       {}
       ID3D12Resource* native()
       {
         return resource;
+      }
+      std::shared_ptr<D3D12_RESOURCE_STATES> state()
+      {
+        return statePtr;
       }
     };
 

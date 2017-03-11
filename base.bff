@@ -75,8 +75,9 @@ Compiler( 'Compiler-x64-Linux' )
                        + ' /wd4065' // switch statement contains 'default' but no 'case' labels
                        + ' /wd4714' // function 'function' marked as __forceinline not inlined
 
-  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
+  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4 '
                       + ' /WX' // warnings as errors, also required as fastbuild hides warnings
+					  //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
@@ -300,7 +301,7 @@ Compiler( 'Compiler-x64-Linux' )
 
 VCXProject( 'All-proj' )
 {
-  .ProjectOutput    = './fbuild_all.vcxproj'
+  .ProjectOutput    = './All.vcxproj'
   .ProjectFiles     = { './fbuild.bff', './base.bff', './externals/externals.bff', './config.bff' }
   .ProjectBasePath  = './'
 }
