@@ -39,6 +39,12 @@ Compiler( 'Compiler-x64' )
                   '$VSBasePath$/VC/redist/x64/Microsoft.VC140.CRT/vccorlib140.dll',
                   '$VSBasePath$/VC/redist/x64/Microsoft.VC140.CRT/concrt140.dll'
                   }
+
+	//.Root = '$VSBasePath$/VC/ClangC2'
+	//.Executable = '$Root$/bin/amd64/clang.exe'
+	//.Executable = 'C:/Program Files/LLVM/bin/clang-cl.exe'
+	//.ExtraFiles = { '$Root$/bin/amd64/amd64/c2.dll' }
+
 }
 
 Compiler( 'Compiler-x64-Linux' )

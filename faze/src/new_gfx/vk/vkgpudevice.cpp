@@ -18,7 +18,7 @@ namespace faze
       for (int i = 0; i < static_cast<int>(prop.memoryTypeCount); ++i)
       {
         auto memType = prop.memoryTypes[i];
-        F_ILOG("Graphics/Memory", "propertyFlags %u", memType.propertyFlags);
+        F_ILOG("Graphics/Memory", "propertyFlags %u", memType.propertyFlags.operator unsigned int());
         if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
         {
           F_ILOG("Graphics/Memory", "heap %u type %u was eDeviceLocal", memType.heapIndex, i);
