@@ -192,9 +192,28 @@ namespace faze
           m_copyQueueIndex = queueFamilyIndex;
         }
       }
-      m_copyListPool = VulkanCommandBufferPool(m_copyQueueIndex);
-      m_computeListPool = VulkanCommandBufferPool(m_computeQueueIndex);
-      m_graphicsListPool = VulkanCommandBufferPool(m_mainQueueIndex);
+
+      m_semaphores = Rabbitpool2<VulkanSemaphore>([device]()
+      {
+        auto fence = device.createSemaphore(vk::SemaphoreCreateInfo());
+        return VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence), [=](vk::Semaphore* ptr)
+        {
+          device.destroySemaphore(*ptr);
+          delete ptr;
+        }));
+      });
+      m_fences = Rabbitpool2<VulkanFence>([device]()
+      {
+        auto fence = device.createFence(vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled));
+        return VulkanFence(std::shared_ptr<vk::Fence>(new vk::Fence(fence), [=](vk::Fence* ptr)
+        {
+          device.destroyFence(*ptr);
+          delete ptr;
+        }));
+      });
+      m_copyListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_copyQueueIndex); });
+      m_computeListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_computeQueueIndex); });
+      m_graphicsListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_mainQueueIndex); });
 
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
@@ -216,11 +235,11 @@ namespace faze
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
-      m_fences.destroy(m_device);
-      m_semaphores.destroy(m_device);
-      m_copyListPool.destroy(m_device);
-      m_computeListPool.destroy(m_device);
-      m_graphicsListPool.destroy(m_device);
+      m_fences.clear();
+      m_semaphores.clear();
+      m_copyListPool.clear();
+      m_computeListPool.clear();
+      m_graphicsListPool.clear();
       m_device.destroy();
     }
 
@@ -332,7 +351,7 @@ namespace faze
         .setClipped(false);
 
       auto swapchain = m_device.createSwapchainKHR(info);
-      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface, m_semaphores.allocate(m_device));
+      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface, m_semaphores.allocate());
 
       sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
       return sc;
@@ -434,7 +453,7 @@ namespace faze
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
 
-      std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate(m_device);
+      std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
       auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), freeSemaphore->native(), nullptr);
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
@@ -957,27 +976,27 @@ namespace faze
         .setCommandBufferCount(1)
         .setCommandPool(pool)
         .setLevel(vk::CommandBufferLevel::ePrimary));
-      /*
-      auto ptr = std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(buffer[0], pool), [&](VulkanCommandBuffer* ptr)
-      {
-        m_device.destroyCommandPool(ptr->pool());
-        delete ptr;
-      });*/
 
-      return VulkanCommandBuffer(buffer[0], pool);
+      auto ptr = std::shared_ptr<vk::CommandPool>(new vk::CommandPool(pool), [&](vk::CommandPool* ptr)
+      {
+        m_device.destroyCommandPool(*ptr);
+        delete ptr;
+      });
+
+      return VulkanCommandBuffer(buffer[0], ptr);
     }
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
-      return m_copyListPool.allocate(this);
+      return m_copyListPool.allocate();
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
-      return m_computeListPool.allocate(this);
+      return m_computeListPool.allocate();
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
-      return m_graphicsListPool.allocate(this);
+      return m_graphicsListPool.allocate();
     }
 
     void VulkanDevice::resetListNative(VulkanCommandBuffer list)
@@ -987,11 +1006,11 @@ namespace faze
 
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphore()
     {
-      return m_semaphores.allocate(m_device);
+      return m_semaphores.allocate();
     }
     std::shared_ptr<FenceImpl> VulkanDevice::createFence()
     {
-      return m_fences.allocate(m_device);
+      return m_fences.allocate();
     }
 
     void VulkanDevice::submitToQueue(vk::Queue queue,
