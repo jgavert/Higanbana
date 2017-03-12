@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define BUFFERSIZE 100
+#define BUFFERSIZE 300
 
 namespace faze
 {
@@ -23,7 +23,7 @@ namespace faze
   public:
     InputBuffer();
 
-    void insert(int, int, int64_t);
+    void insert(int key, int action, int64_t frame);
     void readUntil(std::function<bool(int, int)> func);
     void readTill(int64_t time, std::function<void(int, int, int64_t)> func);
     bool findAndDisableThisFrame(int key, int action);

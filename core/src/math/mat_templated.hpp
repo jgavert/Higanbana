@@ -7,17 +7,16 @@
 
 namespace faze
 {
-
   template <typename T, int rows, int cols>
   struct Matrix {
     std::array<Vector<cols, T>, rows> data;
 
     Matrix()
     {
-		  data = {};
+      data = {};
     }
 
-	  template <int rows2, int cols2>
+    template <int rows2, int cols2>
     Matrix<T, rows, cols2> operator*(Matrix<T, rows2, cols2>& scnd)
     {
       Matrix<T, rows, cols2> result;
@@ -118,7 +117,6 @@ namespace faze
       return data[i];
     }
 
-
     // TODO: oh fuck
     static Matrix Identity()
     {
@@ -135,7 +133,6 @@ namespace faze
       }
       return mat;
     }
-
   };
 
   typedef Matrix<float, 4, 4> mat4;
@@ -153,8 +150,6 @@ namespace faze
   };
   */
 #define printMat(input) input.print(#input)
-
-
 
   template <typename T, int rowCount, int columnCount>
   struct Matrix2 {
@@ -193,29 +188,28 @@ namespace faze
     }
   };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4505 ) // unreferenced local function has been removed
 #endif
   namespace MatrixMath
   {
     // new stuff
-	  template <typename T, int rows, int cols, int rows2, int cols2>
-	  inline Matrix2<T, 1, rows*cols + rows2*cols2> concatenateToSingleDimension(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
-	  {
-		  Matrix2<T, 1, rows*cols + rows2*cols2> outResult{};
-		  std::copy(std::begin(a.data), std::end(a.data), std::begin(outResult.data));
-		  std::copy(std::begin(b.data), std::end(b.data), std::begin(outResult.data)+rows*cols);
-		  return outResult;
-	  }
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline Matrix2<T, 1, rows*cols + rows2*cols2> concatenateToSingleDimension(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
+    {
+      Matrix2<T, 1, rows*cols + rows2*cols2> outResult{};
+      std::copy(std::begin(a.data), std::end(a.data), std::begin(outResult.data));
+      std::copy(std::begin(b.data), std::end(b.data), std::begin(outResult.data) + rows*cols);
+      return outResult;
+    }
 
-	  template <typename T, int rows, int cols, int rows2, int cols2>
-	  inline void extractMatrices(Matrix2<T, 1, rows*cols + rows2*cols2> input, Matrix2<T, rows, cols>& a, Matrix2<T, rows2, cols2>& b)
-	  {
-		  std::copy_n(std::begin(input.data), rows*cols, std::begin(a.data));
-		  std::copy_n(std::begin(input.data)+rows*cols, rows2*cols2, std::begin(b.data));
-	  }
-
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline void extractMatrices(Matrix2<T, 1, rows*cols + rows2*cols2> input, Matrix2<T, rows, cols>& a, Matrix2<T, rows2, cols2>& b)
+    {
+      std::copy_n(std::begin(input.data), rows*cols, std::begin(a.data));
+      std::copy_n(std::begin(input.data) + rows*cols, rows2*cols2, std::begin(b.data));
+    }
 
     template <typename T, int rows, int cols, int rows2, int cols2>
     inline Matrix2<T, rows, cols2> mul(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
@@ -256,7 +250,7 @@ namespace faze
       {
         for (int x = 0; x < rows; ++x)
         {
-          outResult(x, y) += a(x, y) - b(x,y);
+          outResult(x, y) += a(x, y) - b(x, y);
         }
       }
       return outResult;
@@ -284,7 +278,7 @@ namespace faze
       {
         for (int x = 0; x < cols; ++x)
         {
-          outResult(y,x) = a(y,x) * b(y,x);
+          outResult(y, x) = a(y, x) * b(y, x);
         }
       }
       return outResult;
@@ -312,7 +306,7 @@ namespace faze
       {
         for (int x = 0; x < cols; ++x)
         {
-          outResult(y,x) = f(value(y,x));
+          outResult(y, x) = f(value(y, x));
         }
       }
       return outResult;
@@ -326,14 +320,13 @@ namespace faze
       {
         for (int x = 0; x < cols; ++x)
         {
-          outResult += value(y,x);
+          outResult += value(y, x);
         }
       }
       return outResult;
     }
 
     // old stuff
-
 
     const float PI = 3.14159265f;
     static mat4 Translation(float x, float y, float z)
@@ -351,7 +344,7 @@ namespace faze
         return mat4();
       }
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
       float b = 1.0f / std::tanf(fov*(PI / 180.f)*0.5f);
 #else
       float b = 1.0f / tanf(fov*(PI / 180.f)*0.5f);
@@ -441,7 +434,7 @@ namespace faze
     }
   };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( pop )
 #endif
 }

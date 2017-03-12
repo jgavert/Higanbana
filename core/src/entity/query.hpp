@@ -637,7 +637,7 @@ namespace faze
             {
               for_each_tableptr(tup, [=, &index](char* ptr, size_t stride)
               {
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
                 _mm_prefetch(ptr + index*stride, _MM_HINT_NTA);
 #else
                 __builtin_prefetch(ptr + index*stride, 1, 0);

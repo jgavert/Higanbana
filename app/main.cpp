@@ -1,5 +1,5 @@
 // entrypoint.cpp
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
@@ -8,7 +8,7 @@
 #include "core/src/Platform/EntryPoint.hpp" // client entrypoint
 
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 int WINAPI WinMain(HINSTANCE hInstance,
   HINSTANCE hPrevInstance,
   LPSTR lpCmdLine,
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     returnValue = ep.main();
   }
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
   //_CrtDumpMemoryLeaks(); // finds my hack message class thingies from globalspace.
 #endif
   return returnValue;

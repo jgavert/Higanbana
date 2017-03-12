@@ -8,7 +8,7 @@
 #include <iostream>
 #include <algorithm>
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include "HighResClock.hpp"
 typedef HighResClock HighPrecisionClock;
 typedef std::chrono::time_point<HighResClock> timepoint;
