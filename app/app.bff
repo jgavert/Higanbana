@@ -37,7 +37,6 @@
   }
   // Windows specials
   .CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
-                      + ' libcmt.lib'
                       + ' kernel32.lib'
                       + ' user32.lib'
                       + ' gdi32.lib'
@@ -50,20 +49,23 @@
                       + ' uuid.lib'
                       + ' odbc32.lib'
                       + ' odbccp32.lib'
-                      + ' libconcrt1.lib'
-                      + ' OLDNAMES.lib'
+                      + ' oldnames.lib'
                       + ' D3d12.lib'
                       + ' Dxgi.lib'
                       + ' atls.lib'
                       + ' Shcore.lib'
                       + ' D3DCompiler.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
+					  + ' libcmtd.lib'
                       + ' libucrtd.lib'
                       + ' libvcruntimed.lib'
+					  + ' libconcrtd1.lib'
                       + .extDebLibs
   .Releaselinkerlibs  = ' libcpmt.lib'
+					  + ' libcmt.lib'
                       + ' libucrt.lib'
                       + ' libvcruntime.lib'
+					  + ' libconcrt1.lib'
                       + .extRelLibs
   .Profilelinkerlibs  = .Releaselinkerlibs
 
