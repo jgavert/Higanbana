@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sparsepp.h>
 #include "core/src/external/SpookyV2.h"
 #include "core/src/external/robinhashmap.hpp"
 #include <unordered_map>
@@ -42,7 +41,6 @@ struct Hasher<std::string>
 
 namespace faze
 {
-
 #if defined(USING_SPARSEPP) && defined(_DEBUG)
   template <typename key, typename val>
   using unordered_map = spp::sparse_hash_map<key, val, Hasher<key>>;

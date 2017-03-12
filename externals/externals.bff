@@ -87,12 +87,6 @@
 .renderdocInclude = .extIncludeDir
                   + "renderdoc/include"
 
-
-// sparsepp
-
-.sparseppInclude = .extIncludeDir
-                  + "sparsepp"
-
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////
@@ -119,15 +113,12 @@
                   + ' /I^"$shadercInclude$"'
                   + ' /I^"$compressInclude$"'
                   + ' /I^"$renderdocInclude$"'
-                  + ' /I^"$sparseppInclude$"'
 #if __LINUX__
 .externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
                   + ' -isystem ^"$shadercInclude$"'
-                  + ' -isystem ^"$sparseppInclude$"'
 #endif
 .externalIncludesVisualStudio = '$vulkanInclude$;'
                               + '$shadercInclude$;'
                               + '$compressInclude$;'
                               + '$renderdocInclude$;'
-                              + '$sparseppInclude$;'
