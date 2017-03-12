@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(GFX_VULKAN)
-#include "gfxvk/src/Graphics/gfxApi.hpp"
+#include "faze/src/Graphics/gfxApi.hpp"
 #elif defined(GFX_D3D12)
 #include "gfxdx12/src/Graphics/gfxApi.hpp"
 #elif defined(GFX_NULL)

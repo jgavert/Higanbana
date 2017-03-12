@@ -1,0 +1,90 @@
+// FBuildCore
+//------------------------------------------------------------------------------
+{
+  .ProjectName    = 'graphics'
+  .ProjectPath    = 'faze'
+  //.PCHName      = 'PrecompiledHeader'
+
+  // Visual Studio Project Generation
+  //--------------------------------------------------------------------------
+  VCXProject( '$ProjectName$-proj' )
+  {
+    .ProjectOutput        = '$ProjectPath$/$ProjectName$.vcxproj'
+    .ProjectInputPaths    = '$ProjectPath$/'
+    .ProjectBasePath      = '$ProjectPath$/'
+  }
+
+  // Unity
+  //--------------------------------------------------------------------------
+    {
+        // Common options
+        .UnityInputPath     = '$ProjectPath$/'
+        .UnityOutputPath    = '$OutputBase$/Unity/$ProjectPath$/'
+        .UnityOutputPattern = 'Unity_$ProjectName$.cpp'
+
+        Unity( '$ProjectName$-Unity-Windows' )
+        {
+        }
+        Unity( '$ProjectName$-Unity-Linux' )
+        {
+        }
+    }
+
+  // Windows (MSVC)
+  //--------------------------------------------------------------------------
+  ForEach( .Config in .Configs_Windows_MSVC )
+  {
+    Using( .Config )
+    .OutputBase + '/$Platform$-$Config$'
+
+    // Static Library
+    Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+    {
+      // Unity build
+      //.CompilerInputUnity     = '$ProjectName$-Unity-Windows'
+      // Normal build
+      .CompilerInputPath  = '$ProjectPath$/'
+
+      // Output
+      .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
+    }
+    Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
+  }
+  // Linux
+  //--------------------------------------------------------------------------
+  ForEach( .Config in .Configs_Linux )
+  {
+    Using( .Config )
+    .OutputBase + '/$Platform$-$Config$'
+
+    // Static Library
+    Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+    {
+      // Input (Unity)
+      .CompilerInputUnity     = '$ProjectName$-Unity-Linux'
+
+      // Output
+      .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.a'
+    }
+    Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
+  }
+
+  // Aliases
+  //--------------------------------------------------------------------------
+  // Per-Config
+  Alias( '$ProjectName$-Debug' )    { .Targets = { '$ProjectName$-X64-Debug' } }
+  Alias( '$ProjectName$-Profile' )  { .Targets = { '$ProjectName$-X64-Profile' } }
+  Alias( '$ProjectName$-Release' )  { .Targets = { '$ProjectName$-X64-Release' } }
+
+  // Per-Platform
+  Alias( '$ProjectName$-X64' )    { .Targets = { '$ProjectName$-X64-Debug', '$ProjectName$-X64-Release', '$ProjectName$-X64-Profile' } }
+  Alias( '$ProjectName$-X64Linux' )    { .Targets = { '$ProjectName$-X64Linux-Debug', '$ProjectName$-X64Linux-Release', '$ProjectName$-X64Linux-Profile' } }
+
+  // All
+  Alias( '$ProjectName$' )
+  {
+    .Targets = { '$ProjectName$-Debug', '$ProjectName$-Profile', '$ProjectName$-Release' }
+  }
+}

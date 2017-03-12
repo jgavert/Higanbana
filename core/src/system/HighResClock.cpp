@@ -1,8 +1,7 @@
 #include "HighResClock.hpp"
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 
-#define NOMINMAX
 #include <Windows.h>
 
 // for some reason

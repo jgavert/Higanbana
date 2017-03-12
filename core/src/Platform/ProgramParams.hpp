@@ -1,9 +1,11 @@
 //ProgramParams.hpp
 #pragma once
 
-#ifdef WIN64
-#define NOMINMAX
+#ifdef FAZE_PLATFORM_WINDOWS 
 #include <windows.h>
+#include <ShellScalingAPI.h>
+#include <iostream>
+
 class ProgramParams
 {
 public:
@@ -12,7 +14,19 @@ public:
     , m_hPrevInstance(hPrevInstance)
     , m_lpCmdLine(lpCmdLine)
     , m_nCmdShow(nCmdShow)
-  {}
+  {
+	  // super cool!
+	  AllocConsole();
+	  freopen("CONIN$", "r", stdin);
+	  freopen("CONOUT$", "w", stdout);
+	  freopen("CONOUT$", "w", stderr);
+	  std::wcout.clear();
+	  std::cout.clear();
+	  std::wcerr.clear();
+	  std::cerr.clear();
+	  std::wcin.clear();
+	  std::cin.clear();
+  }
 
   HINSTANCE m_hInstance;
   HINSTANCE m_hPrevInstance;

@@ -7,50 +7,57 @@
 Settings
 {
     #if __WINDOWS__
-        .Environment  = { "PATH=$VSBasePath$\Common7\IDE\;$VSBasePath$\VC\bin\",
-                            "TMP=C:\Windows\Temp",
-                            "SystemRoot=C:\Windows" }
+        .Environment  = { "PATH=$VSBasePath$/Common7/IDE/;$VSBasePath$/VC/bin/",
+                            "TMP=C:/Windows/Temp",
+                            "SystemRoot=C:/Windows" }
     #endif
     .CachePath    = .FBuildCache
 }
 // definitions
 Compiler( 'Compiler-x64' )
 {
-  .Root   = '$VSBasePath$\VC\bin'
-  .Executable = '$Root$\amd64\cl.exe'
-  .ExtraFiles = { '$Root$\amd64\c1.dll'
-                  '$Root$\amd64\atlprov.dll',
-                  '$Root$\amd64\c1xx.dll',
-                  '$Root$\amd64\dpcmi.dll',
-                  '$Root$\amd64\c2.dll',
-                  '$Root$\amd64\1033\clui.dll',
-                  '$Root$\amd64\msobj140.dll',
-                  '$Root$\amd64\mspdb140.dll',
-                  '$Root$\amd64\mspdbsrv.exe',
-                  '$Root$\amd64\mspdbst.dll',
-                  '$Root$\amd64\mspdbcore.dll',
-                  '$Root$\amd64\mspft140.dll',
-                  '$Root$\amd64\msvcdis140.dll',
-                  '$Root$\amd64\pgodb140.dll',
-                  '$Root$\amd64\pgort140.dll',
-                  '$Root$\amd64\vcmeta.dll',
-                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\msvcp140.dll',
-                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\vcruntime140.dll',
-                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\vccorlib140.dll',
-                  '$VSBasePath$\VC\redist\x64\Microsoft.VC140.CRT\concrt140.dll'
+  .Root   = '$VSBasePath$/VC/Tools/MSVC/14.10.25017/bin/HostX64/x64'
+  .helperPath = '$VSBasePath$/VC/Redist/MSVC/14.10.25008/x64/Microsoft.VC150.CRT'
+  .Executable = '$Root$/cl.exe'
+  .ExtraFiles = { '$Root$/c1.dll'
+                  '$Root$/atlprov.dll',
+                  '$Root$/c1xx.dll',
+                  '$Root$/dpcmi.dll',
+                  '$Root$/c2.dll',
+                  '$Root$/1033/clui.dll',
+                  '$Root$/msobj140.dll',
+                  '$Root$/mspdb140.dll',
+                  '$Root$/mspdbsrv.exe',
+                  '$Root$/mspdbst.dll',
+                  '$Root$/mspdbcore.dll',
+                  '$Root$/mspft140.dll',
+                  '$Root$/msvcdis140.dll',
+                  '$Root$/pgodb140.dll',
+                  '$Root$/pgort140.dll',
+                  '$Root$/vcmeta.dll',
+                  '$helperPath$/msvcp140.dll',
+                  '$helperPath$/vcruntime140.dll',
+                  '$helperPath$/vccorlib140.dll',
+                  '$helperPath$/concrt140.dll'
                   }
+
+	//.Root = '$VSBasePath$/VC/ClangC2'
+	//.Executable = '$Root$/bin/amd64/clang.exe'
+	//.Executable = 'C:/Program Files/LLVM/bin/clang-cl.exe'
+	//.ExtraFiles = { '$Root$/bin/amd64/amd64/c2.dll' }
+
 }
 
 Compiler( 'Compiler-x64-Linux' )
 {
-  .Executable = '/usr/bin/clang++'
+  .Executable = '/usr/bin/g++'
 }
 
 // Resource Compiler
 //------------------------------------------------------------------------------
 .ResourceCompiler =
 [
-  .Compiler         = '$WindowsSDKBasePath10$\Bin\x64\RC.exe'
+  .Compiler         = '$WindowsSDKBasePath10$/Bin/x64/RC.exe'
   .CompilerOutputExtension  = '.res'
   .CompilerOptions      = '/nologo /fo"%2" %1'
 ]
@@ -69,31 +76,35 @@ Compiler( 'Compiler-x64-Linux' )
                   //   + ' /we4836' // nonstandard extension used : 'type' : local types or unnamed types cannot be used as template arguments
                   //   + ' /we4905' // wide string literal cast to 'LPSTR'
                   //   + ' /we4906' // string literal cast to 'LPWSTR'
+                       + ' /wd4996' // sparsepp on debug
+                       + ' /wd4127' // conditional expression is constant (so what)
                        + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
                        + ' /wd4065' // switch statement contains 'default' but no 'case' labels
+                       + ' /wd4714' // function 'function' marked as __forceinline not inlined
 
-  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4'
+  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4 '
                       + ' /WX' // warnings as errors, also required as fastbuild hides warnings
+					  //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
                       + .AdditionalWarnings
                       + ' /fp:fast'
-                      + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /D__WINDOWS__'
-                      + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
-                      + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
+					  // generic windows defines
+                      + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /DWIN64 /D__WINDOWS__ /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /D_WINSOCK_DEPRECATED_NO_WARNINGS'
+                      // + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
+                      // + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
                       //+ ' /showIncludes'
                       + ' /Gd'
                       + '$extDefines$'
-                      + ' /DPLATFORM_LINUX'
   .PCHOptions         = .CompilerOptions
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
   .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
-            + ' /IGNORE:4217' // don't complain about locally defined symbols
-            + ' /IGNORE:4049' // urgh
+                      + ' /IGNORE:4217' // don't complain about locally defined symbols
+                      + ' /IGNORE:4049' // urgh
 
   // Optimizations
   .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
@@ -104,8 +115,8 @@ Compiler( 'Compiler-x64-Linux' )
   .LinkerReleaseOptimizations     = ' /LTCG /OPT:REF,ICF'
 
   .BaseIncludePaths   = ' /I"./"'
-                      + ' /I"$VSBasePath$/VC/include/"'
-                      + ' /I"$VSBasePath$/VC/atlmfc/include/"'
+                      + ' /I"$VSBasePath$/VC/Tools/MSVC/14.10.25017/include/"'
+                      + ' /I"$VSBasePath$/VC/Tools/MSVC/14.10.25017/atlmfc/include/"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
@@ -115,7 +126,6 @@ Compiler( 'Compiler-x64-Linux' )
   .CompilerOptions    + .BaseIncludePaths
   .PCHOptions         + .BaseIncludePaths
 
-  //.WindowsLibPaths  = '$WindowsSDKBasePath$/lib/winv6.3/um'
   .WindowsLibPaths10  = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/ucrt'
   .WindowsLibPaths10d = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/um/'
 
@@ -136,19 +146,20 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Wno-unused-private-field'
                           + ' -Wno-unused-variable'
                           + ' -Wno-unused-function'
+                          + ' -Wno-ignored-attributes'
                           + ' -m64'         // x86-64
                           + ' -std=c++14'   // allow C++14 features
                           + ' -msse4.2'     // SSE4.2
-                          + ' -DPLATFORM_LINUX -D__LINUX__'
+                          + ' -DFAZE_PLATFORM_LINUX -D__LINUX__'
                           + .extDefines
   .BaseIncludePaths       = ' "-I" "."' // TODO: horrible
-                          + ' -isystem /usr/include'
+                          //+ ' -isystem /usr/include'
                           + '$externalIncludes$'
   .CompilerOptions        = .BaseCompilerOptions
                           + .BaseIncludePaths
   .Librarian              = '/usr/bin/ar'
   .Linker                 = '/usr/bin/clang++'
-  .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin'
+  .LinkerOptions          = '"%1" -o "%2" -use-gold-plugin -lpthread -lstdc++fs'
   .LibrarianOptions       = 'rcs "%2" "%1"'
 
     // Optimizations
@@ -165,19 +176,18 @@ Compiler( 'Compiler-x64-Linux' )
 .X64BaseConfig =
 [
   Using( .MSVCBaseConfig )
-  .ToolsBasePath      = '$VSBasePath$\VC\bin\amd64'
+  .ToolsBasePath      = '$VSBasePath$/VC/Tools/MSVC/14.10.25017/bin/HostX64/x64'
   .Compiler           = 'Compiler-x64'
-  .Librarian          = '$ToolsBasePath$\lib.exe'
-  .Linker             = '$ToolsBasePath$\link.exe'
-  .CompilerOptions    + ' /DWIN64 /DPLATFORM_WINDOWS'
-  .PCHOptions         + ' /DWIN64 /DPLATFORM_WINDOWS'
+  .Librarian          = '$ToolsBasePath$/lib.exe'
+  .Linker             = '$ToolsBasePath$/link.exe'
+  .CompilerOptions    + ' /DFAZE_PLATFORM_WINDOWS'
+  .PCHOptions         + ' /DFAZE_PLATFORM_WINDOWS'
   .LinkerOptions      + ' /MACHINE:X64'
   .Platform           = 'x64'
   .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
                       + ' /LIBPATH:"$WindowsLibPaths10d$/x64"'
-                      //+ ' /LIBPATH:"$WindowsLibPaths$/x64"'
-                      + ' /LIBPATH:"$VSBasePath$/VC/lib/amd64"'
-                      + ' /LIBPATH:"$VSBasePath$/VC/atlmfc/lib/amd64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/14.10.25017/lib/x64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/14.10.25017/atlmfc/lib/x64"'
                       + .extLibPaths
 
   //Print('$LinkerOptions$')
@@ -219,6 +229,7 @@ Compiler( 'Compiler-x64-Linux' )
   .Config             = 'Profile'
   .CompilerOptions    + ' /DPROFILING_ENABLED'
   .PCHOptions         + ' /DPROFILING_ENABLED'
+  .LinkerOptions      + ' /Profile'
 
   .DeoptimizeWritableFilesWithToken = false
 ]
@@ -230,6 +241,7 @@ Compiler( 'Compiler-x64-Linux' )
 [
     Using( .LinuxBaseConfig )
     .Platform               = 'x64Linux'
+    .LinkerOptions          + .extLibPaths
 ]
 .X64LinuxDebugConfig =
 [
@@ -261,24 +273,27 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 // Unity/Blob files (shared across configs)
 //------------------------------------------------------------------------------
-.UnityInputIsolateWritableFiles = true
+.UnityInputIsolateWritableFiles = false 
 
 //------------------------------------------------------------------------------
 // VisualStudio Project Generation
 //------------------------------------------------------------------------------
 .ProjectCommon =
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)\ &amp; fbuild -vs -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .OutputDirectory          = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
-  .IntermediateDirectory    = '^$(SolutionDir)\bin\^$(Platform)-^$(onfiguration)\^$(ProjectName)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .Platform                 = 'x64'
-  .PlatformToolset          = 'v140'
-  .IncludeSearchPath        = '^$(SolutionDir);.\;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
+  .PlatformToolset          = 'v141'
+  .IncludeSearchPath        = '^$(SolutionDir);./;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
                             + '$externalIncludesVisualStudio$'
-  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;WIN64;WINDOWS;PF_WINDOWS;PLATFORM_WINDOWS;'
-              + '$extVisualStudioDefines$'
+  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;'
+							+ 'FAZE_PLATFORM_WINDOWS;'
+                            + '$extVisualStudioDefines$'
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
@@ -290,58 +305,12 @@ Compiler( 'Compiler-x64-Linux' )
 
 .ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
-#if __WINDOWS__
-.D3D12Define  = 'GFX_D3D12'
-#endif
-.VulkanDefine = 'GFX_VULKAN'
-.NullDefine   = 'GFX_NULL'
-
-// global gfx backend config
-#if __WINDOWS__
-.GfxDX12         = [ .GraphicsApi = 'D3D12'  .GfxName = 'GfxDx12' .gfxDefines = ' /D$D3D12Define$']
-.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' /D$VulkanDefine$']
-.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' /D$NullDefine$']
-#endif
-#if __LINUX__
-.GfxVulkan       = [ .GraphicsApi = 'Vulkan' .GfxName = 'GfxVk'   .gfxDefines = ' -D$VulkanDefine$']
-.GfxNull         = [ .GraphicsApi = 'Null'   .GfxName = 'GfxNull' .gfxDefines = ' -D$NullDefine$']
-#endif
-
-#if __WINDOWS__
-.GraphicsBackends = {.GfxDX12, .GfxVulkan, .GfxNull }
-#endif
-#if __LINUX__
-.GraphicsBackends = {.GfxVulkan, .GfxNull }
-#endif
-
-// Solution targets
-#if __WINDOWS__
-.ProjectX64D3D12Debug      = [ Using( .ProjectX64Debug )   .Config  = 'D3D12-Debug'   .PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Profile    = [ Using( .ProjectX64Profile ) .Config  = 'D3D12-Profile' .PreprocessorDefinitions + ';$D3D12Define$']
-.ProjectX64D3D12Release    = [ Using( .ProjectX64Release ) .Config  = 'D3D12-Release' .PreprocessorDefinitions + ';$D3D12Define$']
-#endif
-.ProjectX64VulkanDebug     = [ Using( .ProjectX64Debug )   .Config  = 'Vulkan-Debug'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanProfile   = [ Using( .ProjectX64Profile ) .Config  = 'Vulkan-Profile'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64VulkanRelease   = [ Using( .ProjectX64Release ) .Config  = 'Vulkan-Release'  .PreprocessorDefinitions + ';$VulkanDefine$']
-.ProjectX64NullDebug       = [ Using( .ProjectX64Debug )   .Config  = 'Null-Debug'    .PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullProfile     = [ Using( .ProjectX64Profile ) .Config  = 'Null-Profile'  .PreprocessorDefinitions + ';$NullDefine$']
-.ProjectX64NullRelease     = [ Using( .ProjectX64Release ) .Config  = 'Null-Release'  .PreprocessorDefinitions + ';$NullDefine$']
-
-.ProjectGfxConfigs = {
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
-  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
-#if __WINDOWS__
-.ProjectGfxConfigs = {
-  .ProjectX64D3D12Debug,  .ProjectX64D3D12Profile,  .ProjectX64D3D12Release,
-  .ProjectX64VulkanDebug, .ProjectX64VulkanProfile, .ProjectX64VulkanRelease,
-  .ProjectX64NullDebug,   .ProjectX64NullProfile,   .ProjectX64NullRelease}
-#endif
 
 VCXProject( 'All-proj' )
 {
-  .ProjectOutput    = '.\fbuild_all.vcxproj'
-  .ProjectFiles     = { '.\fbuild.bff', '.\base.bff', '.\externals\externals.bff', '.\config.bff' }
-  .ProjectBasePath  = '.\'
+  .ProjectOutput    = './All.vcxproj'
+  .ProjectFiles     = { './fbuild.bff', './base.bff', './externals/externals.bff', './config.bff' }
+  .ProjectBasePath  = './'
 }
 
 // helper definitions
