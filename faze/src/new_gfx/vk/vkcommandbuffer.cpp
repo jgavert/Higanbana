@@ -1,8 +1,6 @@
 #include "vkresources.hpp"
 #include "util/VulkanDependencySolver.hpp"
 
-#define packetRef(type, packet) *static_cast<type*>(packet)
-
 namespace faze
 {
   namespace backend

@@ -227,42 +227,42 @@ namespace faze
 
     BufferSRV DeviceData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
+      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
       auto tracker = m_trackerbufferViews->makeTracker(newId(), data);
       return BufferSRV(buffer, data, tracker);
     }
 
     BufferUAV DeviceData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc);
+      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
       auto tracker = m_trackerbufferViews->makeTracker(newId(), data);
       return BufferUAV(buffer, data, tracker);
     }
 
     TextureSRV DeviceData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
       auto tracker = m_trackertextureViews->makeTracker(newId(), data);
       return TextureSRV(texture, data, tracker);
     }
 
     TextureUAV DeviceData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
       auto tracker = m_trackertextureViews->makeTracker(newId(), data);
       return TextureUAV(texture, data, tracker);
     }
 
     TextureRTV DeviceData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
       auto tracker = m_trackertextureViews->makeTracker(newId(), data);
       return TextureRTV(texture, data, tracker);
     }
 
     TextureDSV DeviceData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc);
+      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::DepthStencil));
       auto tracker = m_trackertextureViews->makeTracker(newId(), data);
       return TextureDSV(texture, data, tracker);
     }
