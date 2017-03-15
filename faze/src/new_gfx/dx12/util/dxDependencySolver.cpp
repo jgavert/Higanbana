@@ -6,27 +6,26 @@ namespace faze
 {
   namespace backend
   {
-    DX12DependencySolver::UsageHint DX12DependencySolver::getUsageFromAccessFlags(vk::AccessFlags flags)
+    DX12DependencySolver::UsageHint DX12DependencySolver::getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags)
     {
-      int32_t writeMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-        | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_COMMAND_PROCESS_WRITE_BIT_NVX;
+      int32_t writeMask = D3D12_RESOURCE_STATE_UNORDERED_ACCESS | D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_RENDER_TARGET
+        | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_RESOLVE_DEST;
 
-      if (flags.operator unsigned int() & writeMask)
+      if (flags == D3D12_RESOURCE_STATE_COMMON || flags & writeMask) // common is the most complex state... with value of 0
       {
         return DX12DependencySolver::UsageHint::write;
       }
       return DX12DependencySolver::UsageHint::read;
     }
 
-    int DX12DependencySolver::addDrawCall(CommandPacket::PacketType name, vk::PipelineStageFlags baseFlags)
+    int DX12DependencySolver::addDrawCall(CommandPacket::PacketType name)
     {
       m_drawCallInfo.emplace_back(name);
-      m_drawCallStage.emplace_back(baseFlags);
       m_drawCallJobOffsets[drawCallsAdded] = static_cast<int>(m_jobs.size());
       return drawCallsAdded++;
     }
     // buffers
-    void DX12DependencySolver::addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags)
+    void DX12DependencySolver::addBuffer(int drawCallIndex, int64_t id, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags)
     {
       auto uniqueID = id;
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining) // disable optimization, merges last seen usages to existing. Default on. Combines only reads.
@@ -62,7 +61,7 @@ namespace faze
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
-        flags, vk::ImageLayout::eUndefined, 0, SubresourceRange{} });
+        flags, SubresourceRange{} });
       if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
       {
         BufferDependency d;
@@ -74,7 +73,7 @@ namespace faze
       m_uniqueBuffersThisChain.insert(uniqueID);
     }
     // textures
-    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, int16_t mips, vk::ImageLayout layout, vk::AccessFlags flags)
+    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t id, DX12Texture& texture, DX12TextureView& view, int16_t mips, D3D12_RESOURCE_STATES flags)
     {
       auto uniqueID = id;
 
@@ -98,7 +97,7 @@ namespace faze
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, layout, 0, view.native().subResourceRange });
+        flags, view.range() });
 
       if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
@@ -107,13 +106,12 @@ namespace faze
         d.mips = mips;
         d.texture = texture.native();
         d.state = texture.state();
-        d.aspectMask = view.native().aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }
 
       m_uniqueTexturesThisChain.insert(uniqueID);
     }
-    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, int16_t mips, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout, vk::AccessFlags flags, SubresourceRange range)
+    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t id, DX12Texture& texture, int16_t mips, D3D12_RESOURCE_STATES flags, SubresourceRange range)
     {
       auto uniqueID = id;
 
@@ -136,7 +134,7 @@ namespace faze
       }
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, layout, 0, range });
+        flags, range });
 
       if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
@@ -145,7 +143,6 @@ namespace faze
         d.mips = mips;
         d.texture = texture.native();
         d.state = texture.state();
-        d.aspectMask = aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }
 
@@ -160,19 +157,18 @@ namespace faze
       // fill cache with all resources seen.
       for (auto&& id : m_uniqueBuffersThisChain)
       {
-        m_bufferCache[id] = SmallBuffer{ m_bufferStates[id].buffer, m_bufferStates[id].state->flags, m_bufferStates[id].state->queueIndex };
+        m_bufferCache[id] = SmallBuffer{ m_bufferStates[id].buffer, *m_bufferStates[id].state };
       }
 
       for (auto&& id : m_uniqueTexturesThisChain)
       {
         auto tesState = m_textureStates[id];
         auto flags = tesState.state->flags;
-        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, tesState.aspectMask, flags };
+        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, flags };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
-      int bufferBarrierOffsets = 0;
-      int imageBarrierOffsets = 0;
+      int barriersOffset = 0;
 
       int drawIndex = 0;
 
@@ -181,10 +177,11 @@ namespace faze
         int draw = m_jobs[jobIndex].drawIndex;
         for (int skippedDraw = drawIndex; skippedDraw <= draw; ++skippedDraw)
         {
-          m_barrierOffsets.emplace_back(bufferBarrierOffsets);
-          m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
+          m_barriersOffsets.emplace_back(barriersOffset);
         }
         drawIndex = draw;
+
+        m_uavCache.clear();
 
         while (jobIndex < jobsSize && m_jobs[jobIndex].drawIndex == draw)
         {
@@ -196,18 +193,23 @@ namespace faze
             if (resource != m_bufferCache.end())
             {
               auto lastAccess = resource->second.flags;
-              if (jobResAccess != vk::AccessFlagBits(0) && jobResAccess != lastAccess)
+
+              if (lastAccess & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) // everytime the last access was unordered access, make uav barrier.
               {
-                bufferBarriers.emplace_back(vk::BufferMemoryBarrier()
-                  .setSrcAccessMask(lastAccess)
-                  .setDstAccessMask(jobResAccess)
-                  .setSrcQueueFamilyIndex(resource->second.queueIndex)
-                  .setDstQueueFamilyIndex(job.queueIndex)
-                  .setBuffer(resource->second.buffer)
-                  .setOffset(0)
-                  .setSize(VK_WHOLE_SIZE));
+                m_uavCache.emplace(resource->second.buffer);
+              }
+
+              if (jobResAccess != lastAccess)
+              {
+                barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                  D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                  D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                  resource->second.buffer,
+                  static_cast<UINT>(-1),
+                  lastAccess,
+                  jobResAccess });
                 resource->second.flags = jobResAccess;
-                ++bufferBarrierOffsets;
+                ++barriersOffset;
               }
             }
           }
@@ -216,30 +218,6 @@ namespace faze
             auto resource = m_imageCache.find(job.resource);
             if (resource != m_imageCache.end())
             {
-              // gothrough all subresources that are modified, create subresource ranges at the same time encompassing all similar states.
-
-              struct RangePerAccessType
-              {
-                vk::ImageSubresourceRange range;
-                vk::AccessFlags access;
-                vk::ImageLayout layout;
-                int queueIndex;
-              };
-
-              auto addImageBarrier = [&](const RangePerAccessType& range)
-              {
-                imageBarriers.emplace_back(vk::ImageMemoryBarrier()
-                  .setSrcAccessMask(range.access)
-                  .setDstAccessMask(job.access)
-                  .setSrcQueueFamilyIndex(range.queueIndex)
-                  .setDstQueueFamilyIndex(job.queueIndex)
-                  .setNewLayout(job.layout)
-                  .setOldLayout(range.layout)
-                  .setImage(resource->second.image)
-                  .setSubresourceRange(range.range));
-                ++imageBarrierOffsets;
-              };
-              RangePerAccessType current{};
               int16_t mipLevels = resource->second.mips;
               int16_t subresourceIndex;
 
@@ -250,71 +228,46 @@ namespace faze
                   subresourceIndex = slice * mipLevels + mip;
                   auto& state = resource->second.states[subresourceIndex];
 
-                  bool accessDiffers = state.access != job.access;
-                  bool queueDiffers = state.queueIndex != job.queueIndex;
-                  bool layoutDiffers = state.layout != job.layout;
-
-                  if (accessDiffers || queueDiffers || layoutDiffers) // something was different
+                  if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
                   {
-                    // first check if we have fresh range
-                    //   if so, fill it with all data
-                    // else check if we can continue current range
-                    //   check if any of those above differ to this range
-                    // else create new range and fill it with data.
+                    m_uavCache.emplace(resource->second.image);
+                  }
 
-                    if (current.range.levelCount == 0 && current.range.layerCount == 0) // nothing added to range yet.
-                    {
-                      current.access = state.access;
-                      current.queueIndex = state.queueIndex;
-                      current.layout = state.layout;
-                      current.range.aspectMask = resource->second.aspectMask;
-                      current.range.baseMipLevel = mip;
-                      current.range.levelCount = 1;
-                      current.range.baseArrayLayer = slice;
-                      current.range.layerCount = 1;
-                    }
-                    else if (state.access == current.access && state.queueIndex == current.queueIndex && state.layout == current.layout && static_cast<int16_t>(current.range.baseArrayLayer) >= slice) // can continue current range
-                    {
-                      current.range.levelCount = (mip - current.range.baseMipLevel) + 1; // +1 to have at least one, mip is ensured to always be bigger.
-                      current.range.layerCount = (slice - current.range.baseArrayLayer) + 1; // +1 to have at least one
-                    }
-                    else // push back the current range and and create new one.
-                    {
-                      addImageBarrier(current);
-                      current = RangePerAccessType{};
-                      current.access = state.access;
-                      current.queueIndex = state.queueIndex;
-                      current.layout = state.layout;
-                      current.range.aspectMask = resource->second.aspectMask;
-                      current.range.baseMipLevel = mip;
-                      current.range.levelCount = 1;
-                      current.range.baseArrayLayer = slice;
-                      current.range.layerCount = 1;
-                    }
-                    // handled by now.
-                    state.access = job.access;
-                    state.queueIndex = job.queueIndex;
-                    state.layout = job.layout;
+                  if (state != job.access)
+                  {
+                    barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                      D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                      D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                      resource->second.image,
+                      static_cast<UINT>(-1),
+                      state,
+                      jobResAccess });
+
+                    ++barriersOffset;
                   }
                 }
               }
-              if (current.range.levelCount != 0 && current.range.layerCount != 0)
-              {
-                addImageBarrier(current);
-              }
             }
           }
+
+          for (auto&& it : m_uavCache)
+          {
+            barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+              D3D12_RESOURCE_BARRIER_TYPE_UAV,
+              D3D12_RESOURCE_BARRIER_FLAG_NONE,
+              it });
+            ++barriersOffset;
+          }
+
           ++jobIndex;
         }
       }
-      m_barrierOffsets.emplace_back(static_cast<int>(bufferBarriers.size()));
-      m_imageBarrierOffsets.emplace_back(static_cast<int>(imageBarriers.size()));
+      m_barriersOffsets.emplace_back(static_cast<int>(barriers.size()));
 
       // update global state
       for (auto&& obj : m_uniqueBuffersThisChain)
       {
-        m_bufferStates[obj].state->flags = m_bufferCache[obj].flags;
-        m_bufferStates[obj].state->queueIndex = m_bufferCache[obj].queueIndex;
+        *m_bufferStates[obj].state = m_bufferCache[obj].flags;
       }
 
       for (auto&& obj : m_uniqueTexturesThisChain)
@@ -324,67 +277,46 @@ namespace faze
         auto globalSize = globalState.size();
         for (int i = 0; i < globalSize; ++i)
         {
-          globalState[i].access = localState[i].access;
-          globalState[i].layout = localState[i].layout;
-          globalState[i].queueIndex = localState[i].queueIndex;
+          globalState[i] = localState[i];
         }
       }
       // function ends
     }
 
-    void DX12DependencySolver::runBarrier(vk::CommandBuffer gfx, int nextDrawCall)
+    void DX12DependencySolver::runBarrier(ID3D12GraphicsCommandList* gfx, int nextDrawCall)
     {
       if (nextDrawCall == 0)
       {
-        int barrierOffset = 0;
-        int barrierSize = (m_barrierOffsets.size() > 1 && m_barrierOffsets[1] > 0) ? m_barrierOffsets[1] : static_cast<int>(bufferBarriers.size());
-        int imageBarrierOffset = 0;
-        int imageBarrierSize = (m_imageBarrierOffsets.size() > 1 && m_imageBarrierOffsets[1] > 0) ? m_imageBarrierOffsets[1] : static_cast<int>(imageBarriers.size());
-        if (barrierSize == 0 && imageBarrierSize == 0)
+        int barrierSize = (m_barriersOffsets.size() > 1 && m_barriersOffsets[1] > 0) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
+        if (barrierSize == 0)
         {
           return;
         }
-        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eBottomOfPipe; // full trust in perfect synchronization
-        vk::PipelineStageFlags next = m_drawCallStage[0];
-        vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
-        vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), bufferBarriers.data() + barrierOffset);
-        vk::ArrayProxy<const vk::ImageMemoryBarrier> image(static_cast<uint32_t>(imageBarrierSize), imageBarriers.data() + imageBarrierOffset);
-        gfx.pipelineBarrier(last, next, vk::DependencyFlags(), memory, buffer, image);
+        gfx->ResourceBarrier(barrierSize, barriers.data());
         return;
       }
 
       // after first and second, nextDrawCall == 1
       // so we need barriers from offset 0
-      int barrierOffset = m_barrierOffsets[nextDrawCall];
-      int barrierSize = m_barrierOffsets[nextDrawCall + 1] - barrierOffset;
+      int barrierOffset = m_barriersOffsets[nextDrawCall];
+      int barrierSize = m_barriersOffsets[nextDrawCall + 1] - barrierOffset;
 
-      int imageBarrierOffset = m_imageBarrierOffsets[nextDrawCall];
-      int imageBarrierSize = m_imageBarrierOffsets[nextDrawCall + 1] - imageBarrierOffset;
-
-      if (barrierSize == 0 && imageBarrierSize == 0)
+      if (barrierSize == 0)
       {
         return;
       }
-      vk::PipelineStageFlags last = m_drawCallStage[nextDrawCall - 1];
-      vk::PipelineStageFlags next = m_drawCallStage[nextDrawCall];
 
-      vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
-      vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), bufferBarriers.data() + barrierOffset);
-      vk::ArrayProxy<const vk::ImageMemoryBarrier> image(static_cast<uint32_t>(imageBarrierSize), imageBarriers.data() + imageBarrierOffset);
-      gfx.pipelineBarrier(last, next, vk::DependencyFlags(), memory, buffer, image);
+      gfx->ResourceBarrier(barrierSize, barriers.data() + barrierOffset);
     }
 
     void DX12DependencySolver::reset()
     {
       m_drawCallInfo.clear();
-      m_drawCallStage.clear();
       m_jobs.clear();
       m_schedulingResult.clear();
-      m_barrierOffsets.clear();
-      bufferBarriers.clear();
+      m_barriersOffsets.clear();
+      barriers.clear();
       m_uniqueBuffersThisChain.clear();
-      m_imageBarrierOffsets.clear();
-      imageBarriers.clear();
       m_uniqueTexturesThisChain.clear();
     }
   }

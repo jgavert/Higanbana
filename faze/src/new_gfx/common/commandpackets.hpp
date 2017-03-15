@@ -4,6 +4,8 @@
 #include "buffer.hpp"
 #include "core/src/math/vec_templated.hpp"
 
+#define packetRef(type, packet) *static_cast<type*>(packet)
+
 namespace faze
 {
   namespace gfxpacket

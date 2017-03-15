@@ -541,25 +541,30 @@ namespace faze
       std::shared_ptr<prototypes::TextureImpl> texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
       auto native = std::static_pointer_cast<DX12Texture>(texture);
-      auto descriptor = m_generics.allocate();
+
+      DX12Descriptor descriptor;
 
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
+        descriptor = m_generics.allocate();
         auto natDesc = dx12::getSRV(texDesc, viewDesc);
         m_device->CreateShaderResourceView(native->native(), &natDesc, descriptor.cpu);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
       {
+        descriptor = m_generics.allocate();
         auto natDesc = dx12::getUAV(texDesc, viewDesc);
         m_device->CreateUnorderedAccessView(native->native(), nullptr, &natDesc, descriptor.cpu);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
       {
+        descriptor = m_rtvs.allocate();
         auto natDesc = dx12::getRTV(texDesc, viewDesc);
         m_device->CreateRenderTargetView(native->native(), &natDesc, descriptor.cpu);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
       {
+        descriptor = m_dsvs.allocate();
         auto natDesc = dx12::getDSV(texDesc, viewDesc);
         m_device->CreateDepthStencilView(native->native(), &natDesc, descriptor.cpu);
       }

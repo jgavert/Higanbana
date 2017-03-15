@@ -196,12 +196,7 @@ namespace faze
         , samplers(samplers)
       {}
 
-      void fillWith(backend::IntermediateList&) override
-      {
-        // TODO: move this function somewhere where we have space to actually implement this.
-        commandList->Close();
-        closedList = true;
-      }
+      void fillWith(backend::IntermediateList&) override;
 
       ID3D12GraphicsCommandList* list()
       {

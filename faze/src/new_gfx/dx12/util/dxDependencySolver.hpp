@@ -16,17 +16,16 @@ namespace faze
       struct BufferDependency
       {
         ResourceUniqueId uniqueId;
-        vk::Buffer buffer;
-        std::shared_ptr<VulkanBufferState> state;
+        ID3D12Resource* buffer;
+        std::shared_ptr<D3D12_RESOURCE_STATES> state;
       };
 
       struct TextureDependency
       {
         ResourceUniqueId uniqueId;
-        vk::Image texture;
+        ID3D12Resource* texture;
         int16_t mips;
-        vk::ImageAspectFlags aspectMask;
-        std::shared_ptr<VulkanTextureState> state;
+        std::shared_ptr<DX12TextureState> state;
       };
 
       using DrawCallIndex = int;
@@ -49,9 +48,7 @@ namespace faze
         DrawCallIndex drawIndex;
         ResourceUniqueId resource;
         ResourceType type;
-        vk::AccessFlags access;
-        vk::ImageLayout layout;
-        int queueIndex;
+        D3D12_RESOURCE_STATES access;
         SubresourceRange range;
       };
 
@@ -66,7 +63,6 @@ namespace faze
       unordered_map<ResourceUniqueId, LastSeenUsage> m_resourceUsageInLastAdd;
 
       vector<CommandPacket::PacketType> m_drawCallInfo;
-      vector<vk::PipelineStageFlags> m_drawCallStage;
       unordered_set<ResourceUniqueId> m_uniqueBuffersThisChain;
       unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
       int drawCallsAdded = 0;
@@ -87,11 +83,9 @@ namespace faze
       vector<ScheduleNode> m_schedulingResult;
 
       // barriers
-      vector<vk::BufferMemoryBarrier> bufferBarriers;
-      vector<int> m_barrierOffsets;
 
-      vector<vk::ImageMemoryBarrier> imageBarriers;
-      vector<int> m_imageBarrierOffsets;
+      vector<D3D12_RESOURCE_BARRIER> barriers;
+      vector<int> m_barriersOffsets;
 
       // caches
       struct WriteCall
@@ -104,41 +98,37 @@ namespace faze
 
       struct SmallBuffer
       {
-        vk::Buffer buffer;
-        vk::AccessFlags flags;
-        int queueIndex;
+        ID3D12Resource* buffer;
+        D3D12_RESOURCE_STATES flags;
       };
 
       struct SmallTexture
       {
-        vk::Image image;
+        ID3D12Resource* image;
         int16_t mips;
-        vk::ImageAspectFlags aspectMask;
-        vector<TextureStateFlags> states;
+        vector<D3D12_RESOURCE_STATES> states;
       };
 
       unordered_map<ResourceUniqueId, SmallBuffer> m_bufferCache;
       unordered_map<ResourceUniqueId, SmallTexture> m_imageCache;
+      unordered_set<ID3D12Resource*> m_uavCache;
     public:
       DX12DependencySolver() {}
 
-      int addDrawCall(CommandPacket::PacketType name, vk::PipelineStageFlags baseFlags);
+      int addDrawCall(CommandPacket::PacketType name);
 
       // buffers
-      void addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags);
+      void addBuffer(int drawCallIndex, int64_t id, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags);
       // textures
-      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, VulkanTextureView& view, int16_t mips, vk::ImageLayout layout, vk::AccessFlags flags);
-      void addTexture(int drawCallIndex, int64_t id, VulkanTexture& texture, int16_t mips, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout, vk::AccessFlags flags, SubresourceRange range);
+      void addTexture(int drawCallIndex, int64_t id, DX12Texture& texture, DX12TextureView& view, int16_t mips, D3D12_RESOURCE_STATES flags);
+      void addTexture(int drawCallIndex, int64_t id, DX12Texture& texture, int16_t mips, D3D12_RESOURCE_STATES flags, SubresourceRange range);
 
-      // only builds the graph of dependencies.
-      // void resolveGraph(); //... hmm, not implementing for now.
-      // void printStuff(std::function<void(std::string)> func);
       void makeAllBarriers();
-      void runBarrier(vk::CommandBuffer gfx, int nextDrawCall);
+      void runBarrier(ID3D12GraphicsCommandList* gfx, int nextDrawCall);
       void reset();
 
     private:
-      UsageHint getUsageFromAccessFlags(vk::AccessFlags flags);
+      UsageHint getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags);
     };
   }
 }
