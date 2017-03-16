@@ -343,7 +343,7 @@ namespace faze
         .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
         .setImageExtent(surfaceCap.currentExtent)
         .setImageArrayLayers(1)
-        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)  // linear to here
+        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst)  // linear to here
         .setImageSharingMode(vk::SharingMode::eExclusive)
         //	.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eInherit)
         //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
@@ -410,7 +410,7 @@ namespace faze
         .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
         .setImageExtent(surfaceCap.currentExtent)
         .setImageArrayLayers(1)
-        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)  // linear to here
+        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst)  // linear to here
         .setImageSharingMode(vk::SharingMode::eExclusive)
         //	.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eInherit)
         //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
@@ -439,7 +439,7 @@ namespace faze
       textures.resize(images.size());
 
       vector<TextureStateFlags> state;
-      state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
+      state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
 
       for (int i = 0; i < static_cast<int>(images.size()); ++i)
       {

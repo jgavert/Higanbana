@@ -152,7 +152,7 @@ namespace faze
           m_buffers.pop_front();
         }
       }
-      //m_impl->waitGpuIdle(); // this crashes for some reason, well we do everything above correctly so who cares.
+      m_impl->waitGpuIdle(); // this crashes for some reason, well we do everything above correctly so who cares.
     }
 
     Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)

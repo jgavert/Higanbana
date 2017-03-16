@@ -174,12 +174,12 @@ namespace faze
       int bufferBarrierOffsets = 0;
       int imageBarrierOffsets = 0;
 
-      int drawIndex = 0;
+      int drawIndex = -1;
 
       while (jobIndex < jobsSize)
       {
         int draw = m_jobs[jobIndex].drawIndex;
-        for (int skippedDraw = drawIndex; skippedDraw <= draw; ++skippedDraw)
+        for (int skippedDraw = drawIndex; skippedDraw < draw; ++skippedDraw)
         {
           m_barrierOffsets.emplace_back(bufferBarrierOffsets);
           m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
@@ -332,7 +332,7 @@ namespace faze
       // function ends
     }
 
-    void VulkanDependencySolver::runBarrier(vk::CommandBuffer gfx, int nextDrawCall)
+    void VulkanDependencySolver::runBarrier(vk::CommandBuffer& gfx, int nextDrawCall)
     {
       if (nextDrawCall == 0)
       {
@@ -344,7 +344,7 @@ namespace faze
         {
           return;
         }
-        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eBottomOfPipe; // full trust in perfect synchronization
+        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eTopOfPipe; // full trust in perfect synchronization
         vk::PipelineStageFlags next = m_drawCallStage[0];
         vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), bufferBarriers.data() + barrierOffset);
