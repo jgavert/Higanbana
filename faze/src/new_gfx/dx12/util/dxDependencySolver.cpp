@@ -170,12 +170,12 @@ namespace faze
       int jobIndex = 0;
       int barriersOffset = 0;
 
-      int drawIndex = 0;
+      int drawIndex = -1;
 
       while (jobIndex < jobsSize)
       {
         int draw = m_jobs[jobIndex].drawIndex;
-        for (int skippedDraw = drawIndex; skippedDraw <= draw; ++skippedDraw)
+        for (int skippedDraw = drawIndex; skippedDraw < draw; ++skippedDraw)
         {
           m_barriersOffsets.emplace_back(barriersOffset);
         }
@@ -242,7 +242,7 @@ namespace faze
                       static_cast<UINT>(-1),
                       state,
                       jobResAccess });
-
+                    state = jobResAccess;
                     ++barriersOffset;
                   }
                 }

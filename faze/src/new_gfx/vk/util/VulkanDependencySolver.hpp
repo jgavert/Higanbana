@@ -134,7 +134,7 @@ namespace faze
       // void resolveGraph(); //... hmm, not implementing for now.
       // void printStuff(std::function<void(std::string)> func);
       void makeAllBarriers();
-      void runBarrier(vk::CommandBuffer gfx, int nextDrawCall);
+      void runBarrier(vk::CommandBuffer& gfx, int nextDrawCall);
       void reset();
 
     private:

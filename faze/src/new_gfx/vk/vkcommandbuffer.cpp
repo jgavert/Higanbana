@@ -14,7 +14,7 @@ namespace faze
 
       buffer.clearColorImage(
         texture->native(),
-        texture->state()->flags[0].layout,
+        vk::ImageLayout::eTransferDstOptimal, // this probably should be somehow in the command, as we hold only old information in "texture"
         vk::ClearColorValue().setFloat32({ packet.color.x(), packet.color.y(), packet.color.z(), packet.color.w() }),
         view->range());
     }
@@ -76,14 +76,14 @@ namespace faze
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
-          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eColorAttachmentOutput);
-          addTextureView(drawIndex, p.rtv, vk::ImageLayout::eGeneral, vk::AccessFlagBits::eTransferWrite);
+          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eTopOfPipe);
+          addTextureView(drawIndex, p.rtv, vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits::eTransferWrite);
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
           drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eTopOfPipe);
-          addTexture(drawIndex, p.texture, vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferWrite);
+          addTexture(drawIndex, p.texture, vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eMemoryRead);
           drawIndex++;
         }
         default:

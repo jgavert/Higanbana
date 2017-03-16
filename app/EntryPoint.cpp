@@ -76,10 +76,10 @@ int EntryPoint::main()
           .setMiplevels(4)
           .setDimension(FormatDimension::Texture2D);
 
-        auto texture = dev.createTexture(texturedesc);
+        //auto texture = dev.createTexture(texturedesc);
 
-        texturedesc = texturedesc.setArraySize(3);
-        auto texture2 = dev.createTexture(texturedesc);
+        //texturedesc = texturedesc.setArraySize(3);
+       // auto texture2 = dev.createTexture(texturedesc);
 
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
@@ -147,7 +147,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Nvidia, "Nvidia", true);
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Nvidia", true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
