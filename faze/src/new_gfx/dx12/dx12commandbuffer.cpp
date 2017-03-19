@@ -88,7 +88,7 @@ namespace faze
     }
 
     // implementations
-    void DX12CommandBuffer::fillWith(backend::IntermediateList& list)
+    void DX12CommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList& list)
     {
       DX12DependencySolver solver;
 

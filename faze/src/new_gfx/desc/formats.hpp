@@ -71,4 +71,17 @@ namespace faze
     DepthStencilRW,
     Count
   };
+
+  enum class LoadOp
+  {
+    Load,
+    Clear,
+    DontCare
+  };
+
+  enum class StoreOp
+  {
+    Store,
+    DontCare
+  };
 }

@@ -72,6 +72,14 @@ namespace faze
       // TODO: These need to be saved for device creation also. which layers and extensions each use.
       auto layersInfos = vk::enumerateInstanceLayerProperties();
 
+#ifdef FAZE_GRAPHICS_EXTRA_INFO
+      GFX_ILOG("Available layers for instance:");
+      for (auto&& it : layersInfos)
+      {
+        GFX_ILOG("\t\t%s", it.layerName);
+      }
+#endif
+
       std::vector<const char*> layers;
       {
         // lunargvalidation list order
@@ -97,6 +105,14 @@ namespace faze
       /////////////////////////////////
       // Getting extensions
       std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
+
+#ifdef FAZE_GRAPHICS_EXTRA_INFO
+      GFX_ILOG("Available extensions for instance:");
+      for (auto&& it : extInfos)
+      {
+        GFX_ILOG("\t\t%s", it.extensionName);
+      }
+#endif
 
       std::vector<const char*> extensions;
       {
@@ -278,11 +294,13 @@ namespace faze
 
       std::vector<const char*> extensions;
       {
+#ifdef FAZE_GRAPHICS_EXTRA_INFO
         GFX_ILOG("Available extensions for device:");
         for (auto&& it : devExts)
         {
           GFX_ILOG("\t\t%s", it.extensionName);
         }
+#endif
         // lunargvalidation list order
         GFX_ILOG("Enabled Vulkan extensions for device:");
 

@@ -74,6 +74,7 @@ namespace faze
   class TextureDSV;
 
   class Swapchain;
+  class Renderpass;
   class GraphicsSurface;
   class Window;
   class CommandGraph;
@@ -178,6 +179,8 @@ namespace faze
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
       TextureRTV acquirePresentableImage(Swapchain& swapchain);
+
+      Renderpass createRenderpass();
 
       Buffer createBuffer(ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);

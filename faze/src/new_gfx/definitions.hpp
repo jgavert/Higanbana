@@ -6,6 +6,8 @@
 // Enables debug validation layers for dx12/vulkan
 #define FAZE_GRAPHICS_VALIDATION_LAYER
 
+#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
+
 // Enables GBV validation for DX12, super slow.
 //#define FAZE_GRAPHICS_GPUBASED_VALIDATION
 
@@ -14,14 +16,21 @@
 
 namespace faze
 {
-    namespace globalconfig 
+  namespace globalconfig
+  {
+    namespace graphics
     {
-        namespace graphics
-        {
-
-            // barrier booleans, toggle to control. Nothing thread safe here.
-            // cannot toggle per window... I guess.
-            static bool GraphicsEnableReadStateCombining = false;
-        }
+      // barrier booleans, toggle to control. Nothing thread safe here.
+      // cannot toggle per window... I guess.
+      static bool GraphicsEnableReadStateCombining = false;
     }
+  }
 }
+
+#ifdef FAZE_GRAPHICS_EXTRA_INFO
+#define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
+#define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
+#else
+#define GFX_ILOG(msg, ...)
+#define GFX_LOG(msg, ...)
+#endif

@@ -21,7 +21,10 @@ namespace faze
         BufferCopy,
         Dispatch,
         ClearRT,
-        PrepareForPresent
+        PrepareForPresent,
+        RenderpassBegin,
+        RenderpassEnd,
+        Subpass
       };
 
       CommandPacket();

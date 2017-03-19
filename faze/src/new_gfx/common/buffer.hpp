@@ -3,7 +3,7 @@
 #include "backend.hpp"
 #include "resources.hpp"
 #include "resource_descriptor.hpp"
-#include "implementation.hpp"
+#include "prototypes.hpp"
 
 namespace faze
 {
