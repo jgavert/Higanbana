@@ -3,6 +3,7 @@
 #include "commandvector.hpp"
 #include "texture.hpp"
 #include "buffer.hpp"
+#include "renderpass.hpp"
 #include "core/src/math/vec_templated.hpp"
 
 #define packetRef(type, packet) *static_cast<type*>(packet)
