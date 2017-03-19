@@ -46,7 +46,7 @@ namespace faze
   {
     Texture tex;
     std::shared_ptr<backend::prototypes::TextureViewImpl> impl;
-    std::shared_ptr<int64_t> id;
+    std::shared_ptr<int64_t> m_id;
 
     LoadOp m_loadOp = LoadOp::Load;
     StoreOp m_storeOp = StoreOp::Store;
@@ -56,7 +56,7 @@ namespace faze
     TextureView(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : tex(tex)
       , impl(impl)
-      , id(id)
+      , m_id(id)
     {
     }
 
@@ -73,6 +73,11 @@ namespace faze
     Texture& texture()
     {
       return tex;
+    }
+
+    int64_t id()
+    {
+      return *m_id;
     }
 
     void setOp(LoadOp op)

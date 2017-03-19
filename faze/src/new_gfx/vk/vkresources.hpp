@@ -398,6 +398,8 @@ namespace faze
         bool debugLayer);
       ~VulkanDevice();
 
+      vk::Device native() { return m_device; }
+
       vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
