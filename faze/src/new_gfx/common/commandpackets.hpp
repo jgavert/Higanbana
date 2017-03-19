@@ -1,5 +1,6 @@
 #pragma once
 #include "intermediatelist.hpp"
+#include "commandvector.hpp"
 #include "texture.hpp"
 #include "buffer.hpp"
 #include "core/src/math/vec_templated.hpp"
@@ -43,6 +44,66 @@ namespace faze
       PacketType type() override
       {
         return PacketType::PrepareForPresent;
+      }
+    };
+
+    // renderpass related packets
+
+    class RenderpassBegin : public backend::CommandPacket
+    {
+    public:
+      Renderpass renderpass;
+
+      RenderpassBegin(backend::ListAllocator, Renderpass renderpass)
+        : renderpass(renderpass)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::RenderpassBegin;
+      }
+    };
+
+    class RenderpassEnd : public backend::CommandPacket
+    {
+    public:
+
+      RenderpassEnd(backend::ListAllocator)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::RenderpassEnd;
+      }
+    };
+
+    class Subpass : public backend::CommandPacket
+    {
+    public:
+      CommandListVector<int> dependencies;
+      CommandListVector<TextureRTV> rtvs;
+      CommandListVector<TextureDSV> dsvs;
+      Subpass(backend::ListAllocator allocator, MemView<int> inputDeps, MemView<TextureRTV> inputRtvs, MemView<TextureDSV> inputDsvs)
+        : dependencies(MemView<int>(allocator.allocate<int>(inputDeps.size()), inputDeps.size()))
+        , rtvs(MemView<TextureRTV>(allocator.allocate<TextureRTV>(inputRtvs.size()), inputRtvs.size()))
+        , dsvs(MemView<TextureDSV>(allocator.allocate<TextureDSV>(inputDsvs.size()), inputDsvs.size()))
+      {
+        memcpy(dependencies.data(), inputDeps.data(), inputDeps.size());
+        for (size_t i = 0; i < inputRtvs.size(); ++i)
+        {
+          rtvs[i] = inputRtvs[i];
+        }
+        for (size_t i = 0; i < inputDsvs.size(); ++i)
+        {
+          dsvs[i] = inputDsvs[i];
+        }
+      }
+
+      PacketType type() override
+      {
+        return PacketType::Subpass;
       }
     };
   }

@@ -76,7 +76,6 @@
 #define F_ASSERT(cond, msg, ...) do {} while(0)
 #endif
 
-
 #ifdef _MSC_VER
 #define _snprintf c99_snprintf
 #define _vsnprintf c99_vsnprintf
@@ -96,9 +95,3 @@ void log_immideateAssert(const char *fn, int ln, const char* format, ...);
 std::string _log_getvalue(std::string type, float& value);
 std::string _log_getvalue(std::string type, int64_t& value);
 std::string _log_str(const char* s);
-
-
-
-#define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
-#define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
-

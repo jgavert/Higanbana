@@ -26,7 +26,7 @@ namespace faze
         , m_pool(pool)
       {}
 
-      void fillWith(backend::IntermediateList&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
 
       vk::CommandBuffer list()
       {
@@ -200,13 +200,13 @@ namespace faze
     private:
       vk::Image resource;
       std::shared_ptr<VulkanTextureState> statePtr;
-      bool owned = true;
+      bool owned;
 
     public:
       VulkanTexture()
       {}
 
-      VulkanTexture(vk::Image resource, std::shared_ptr<VulkanTextureState> state, bool owner = false)
+      VulkanTexture(vk::Image resource, std::shared_ptr<VulkanTextureState> state, bool owner = true)
         : resource(resource)
         , statePtr(state)
         , owned(owner)
@@ -329,6 +329,25 @@ namespace faze
       }
     };
 
+    class VulkanRenderpass : public prototypes::RenderpassImpl
+    {
+    private:
+      std::shared_ptr<vk::RenderPass> m_renderpass = nullptr;
+    public:
+
+      VulkanRenderpass() {}
+
+      bool valid()
+      {
+        return m_renderpass.get() != nullptr;
+      }
+
+      std::shared_ptr<vk::RenderPass>& native()
+      {
+        return m_renderpass;
+      }
+    };
+
     class VulkanDevice : public prototypes::DeviceImpl
     {
     private:
@@ -368,15 +387,7 @@ namespace faze
         std::vector<uint32_t> compute;
         std::vector<uint32_t> dma;
       } m_freeQueueIndexes;
-      /*
-      struct MemoryTypes
-      {
-        int deviceLocalIndex = -1;
-        int hostNormalIndex = -1;
-        int hostCachedIndex = -1;
-        int deviceHostIndex = -1;
-      } m_memoryTypes;
-      */
+
     public:
       VulkanDevice(
         vk::Device device,
@@ -399,6 +410,8 @@ namespace faze
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
+
+      std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
@@ -471,23 +484,27 @@ namespace faze
 
       // lunargvalidation list order
       std::vector<std::string> layerOrder = {
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-        "VK_LAYER_LUNARG_standard_validation",
-#endif
-        "VK_LAYER_LUNARG_swapchain"
+  #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+          "VK_LAYER_LUNARG_standard_validation",
+  #endif
+          "VK_LAYER_LUNARG_swapchain"
       };
 
       std::vector<std::string> extOrder = {
         VK_KHR_SURFACE_EXTENSION_NAME
-#if defined(FAZE_PLATFORM_WINDOWS)
-        , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
-#endif
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-        , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
-#endif
+        , VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+  #if defined(FAZE_PLATFORM_WINDOWS)
+          , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+  #endif
+  #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+          , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+  #endif
       };
 
       std::vector<std::string> devExtOrder = {
+        "VK_EXT_shader_subgroup_ballot",
+        "VK_EXT_shader_subgroup_vote",
+        "VK_KHR_maintenance1",
         "VK_KHR_swapchain"
       };
     public:
@@ -496,6 +513,6 @@ namespace faze
       vector<GpuInfo> availableGpus();
       GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu);
       GraphicsSurface createSurface(Window& window) override;
-      };
-    }
+    };
   }
+}

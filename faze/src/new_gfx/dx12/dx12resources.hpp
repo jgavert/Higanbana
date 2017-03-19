@@ -4,6 +4,7 @@
 #include "faze/src/new_gfx/common/resources.hpp"
 
 #include "core/src/system/MemoryPools.hpp"
+#include "core/src/system/MovePtr.hpp"
 
 #include "dx12.hpp"
 
@@ -196,7 +197,7 @@ namespace faze
         , samplers(samplers)
       {}
 
-      void fillWith(backend::IntermediateList&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
 
       ID3D12GraphicsCommandList* list()
       {
@@ -432,6 +433,14 @@ namespace faze
       }
     };
 
+    class DX12Renderpass : public prototypes::RenderpassImpl
+    {
+    private:
+      int _unused = -1;
+    public:
+      DX12Renderpass() {}
+    };
+
     class DX12Device : public prototypes::DeviceImpl
     {
     private:
@@ -469,6 +478,8 @@ namespace faze
 
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
+
+      std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;

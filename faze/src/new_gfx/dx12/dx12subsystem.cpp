@@ -133,11 +133,13 @@ namespace faze
             D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+            D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
           };
 
           D3D12_INFO_QUEUE_FILTER filter = {};
-          filter.DenyList.NumSeverities = 1;
-          filter.DenyList.NumIDs = 3;
+          filter.DenyList.NumSeverities = ArrayLength(disabledSeverities);
+          filter.DenyList.NumIDs = ArrayLength(disabledMessages);
           filter.DenyList.pSeverityList = disabledSeverities;
           filter.DenyList.pIDList = disabledMessages;
           infoQueue->PushStorageFilter(&filter);

@@ -1,7 +1,6 @@
 #include "resources.hpp"
 #include "gpudevice.hpp"
 #include "graphicssurface.hpp"
-//#include "prototypes.hpp"
 #include "implementation.hpp"
 
 #include "core/src/math/utils.hpp"
@@ -124,6 +123,7 @@ namespace faze
     {
       if (m_impl)
       {
+        m_impl->waitGpuIdle();
         waitGpuIdle();
         gc();
         // heaps
@@ -152,7 +152,6 @@ namespace faze
           m_buffers.pop_front();
         }
       }
-      m_impl->waitGpuIdle(); // this crashes for some reason, well we do everything above correctly so who cares.
     }
 
     Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
@@ -205,6 +204,11 @@ namespace faze
     {
       int index = m_impl->acquirePresentableImage(swapchain.impl());
       return swapchain.buffers()[index];
+    }
+
+    Renderpass DeviceData::createRenderpass()
+    {
+      return Renderpass(m_impl->createRenderpass());
     }
 
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
@@ -280,7 +284,7 @@ namespace faze
         }
 
         auto nativeList = m_impl->createGraphicsList();
-        nativeList->fillWith(firstList.list.list);
+        nativeList->fillWith(m_impl, firstList.list.list);
         LiveCommandBuffer buffer{};
         buffer.lists.emplace_back(nativeList);
 

@@ -247,11 +247,13 @@ namespace faze
     {
       auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
       auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+#ifdef FAZE_GRAPHICS_EXTRA_INFO
       F_SLOG("Graphics/Surface", "surface details\n");
       F_SLOG("Graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
       F_SLOG("Graphics/Surface", "current res %dx%d\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
       F_SLOG("Graphics/Surface", "min res %dx%d\n", surfaceCap.minImageExtent.width, surfaceCap.minImageExtent.height);
       F_SLOG("Graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
+#endif
 
       auto formats = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
 
@@ -302,6 +304,7 @@ namespace faze
       bool hadChosenMode = false;
       for (auto&& fmt : asd)
       {
+#ifdef        FAZE_GRAPHICS_EXTRA_INFO
         if (fmt == vk::PresentModeKHR::eImmediate)
           F_SLOG("Graphics/AvailablePresentModes", "Immediate\n");
         if (fmt == vk::PresentModeKHR::eMailbox)
@@ -310,6 +313,7 @@ namespace faze
           F_SLOG("Graphics/AvailablePresentModes", "Fifo\n");
         if (fmt == vk::PresentModeKHR::eFifoRelaxed)
           F_SLOG("Graphics/AvailablePresentModes", "FifoRelaxed\n");
+#endif
         if (fmt == khrmode)
           hadChosenMode = true;
       }
@@ -742,6 +746,11 @@ namespace faze
       return reqs;
     }
 
+    std::shared_ptr<prototypes::RenderpassImpl> VulkanDevice::createRenderpass()
+    {
+      return std::make_shared<VulkanRenderpass>();
+    }
+
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
     {
       auto&& desc = heapDesc.desc;
@@ -835,7 +844,7 @@ namespace faze
       {
         for (uint32_t mip = 0; mip < vkdesc.mipLevels; ++mip)
         {
-          state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eGeneral, m_mainQueueIndex));
+          state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
         }
       }
 

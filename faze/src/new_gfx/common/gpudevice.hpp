@@ -101,6 +101,11 @@ namespace faze
       return createTextureDSV(createTexture(descriptor), viewDesc);
     }
 
+    Renderpass createRenderpass()
+    {
+      return S().createRenderpass();
+    }
+
     CommandGraph createGraph()
     {
       return CommandGraph();

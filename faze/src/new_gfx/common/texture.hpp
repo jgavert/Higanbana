@@ -3,7 +3,7 @@
 #include "backend.hpp"
 #include "resources.hpp"
 #include "resource_descriptor.hpp"
-#include "implementation.hpp"
+#include "prototypes.hpp"
 
 namespace faze
 {
@@ -47,6 +47,9 @@ namespace faze
     Texture tex;
     std::shared_ptr<backend::prototypes::TextureViewImpl> impl;
     std::shared_ptr<int64_t> id;
+
+    LoadOp m_loadOp = LoadOp::Load;
+    StoreOp m_storeOp = StoreOp::Store;
   public:
     TextureView() = default;
 
@@ -71,6 +74,26 @@ namespace faze
     {
       return tex;
     }
+
+    void setOp(LoadOp op)
+    {
+      m_loadOp = op;
+    }
+
+    void setOp(StoreOp op)
+    {
+      m_storeOp = op;
+    }
+
+    LoadOp loadOp()
+    {
+      return m_loadOp;
+    }
+
+    StoreOp storeOp()
+    {
+      return m_storeOp;
+    }
   };
 
   class TextureSRV : public TextureView
@@ -82,6 +105,18 @@ namespace faze
       : TextureView(tex, impl, id)
     {
     }
+
+    TextureSRV& op(LoadOp op)
+    {
+      setOp(op);
+      return *this;
+    }
+
+    TextureSRV& op(StoreOp op)
+    {
+      setOp(op);
+      return *this;
+    }
   };
 
   class TextureUAV : public TextureView
@@ -91,6 +126,18 @@ namespace faze
     TextureUAV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {
+    }
+
+    TextureUAV& op(LoadOp op)
+    {
+      setOp(op);
+      return *this;
+    }
+
+    TextureUAV& op(StoreOp op)
+    {
+      setOp(op);
+      return *this;
     }
   };
 
@@ -102,6 +149,18 @@ namespace faze
       : TextureView(tex, impl, id)
     {
     }
+
+    TextureRTV& op(LoadOp op)
+    {
+      setOp(op);
+      return *this;
+    }
+
+    TextureRTV& op(StoreOp op)
+    {
+      setOp(op);
+      return *this;
+    }
   };
 
   class TextureDSV : public TextureView
@@ -111,6 +170,18 @@ namespace faze
     TextureDSV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id)
       : TextureView(tex, impl, id)
     {
+    }
+
+    TextureDSV& op(LoadOp op)
+    {
+      setOp(op);
+      return *this;
+    }
+
+    TextureDSV& op(StoreOp op)
+    {
+      setOp(op);
+      return *this;
     }
   };
 };

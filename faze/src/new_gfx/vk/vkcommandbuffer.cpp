@@ -5,6 +5,91 @@ namespace faze
 {
   namespace backend
   {
+    void handleRenderpass(VulkanDevice*, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
+    {
+      F_LOG("yay\n");
+
+      // step1. check if renderpass is done, otherwise create renderpass
+      auto renderpassbegin = packetRef(gfxpacket::RenderpassBegin, begin);
+      if (false)
+      {
+        for (CommandPacket* current = begin; current != end; current = current->nextPacket())
+        {
+        }
+
+        vk::AttachmentDescription attach = vk::AttachmentDescription()
+          .setFormat(vk::Format::eA1R5G5B5UnormPack16) // find from texture
+          .setSamples(vk::SampleCountFlagBits::e1) // find from texture
+          .setLoadOp(vk::AttachmentLoadOp::eLoad) // find from textureView
+          .setStoreOp(vk::AttachmentStoreOp::eStore) // textureView
+          .setStencilLoadOp(vk::AttachmentLoadOp::eLoad) // textureView
+          .setStencilStoreOp(vk::AttachmentStoreOp::eStore) // textureView
+          .setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal) // choose based on usage, optimal. Maybe expose this to user.
+          .setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal); // probably best to keep it as it. Maybe expose this to user.
+
+        vk::SubpassDescription description = vk::SubpassDescription()
+          .setColorAttachmentCount(0)
+          .setInputAttachmentCount(0)
+          .setPreserveAttachmentCount(0)
+          .setPColorAttachments(nullptr)
+          .setPInputAttachments(nullptr)
+          .setPPreserveAttachments(nullptr)
+          .setPDepthStencilAttachment(nullptr)
+          .setPResolveAttachments(nullptr)
+          .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
+
+        vk::SubpassDependency dependency = vk::SubpassDependency()
+          .setSrcSubpass(0)
+          .setDstSubpass(0)
+          .setSrcStageMask(vk::PipelineStageFlagBits::eAllCommands)
+          .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
+          .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead)
+          .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+
+        vk::RenderPassCreateInfo rpinfo = vk::RenderPassCreateInfo()
+          .setAttachmentCount(0)
+          .setDependencyCount(0)
+          .setSubpassCount(0)
+          .setPAttachments(nullptr)
+          .setPDependencies(nullptr)
+          .setPSubpasses(nullptr);
+      }
+      // step2. compile used pipelines against the renderpass (lel, later)
+      // step3. collect and register framebuffer to renderpass
+    }
+
+    void preprocess(VulkanDevice* device, backend::IntermediateList& list)
+    {
+      // find all renderpasses
+
+      CommandPacket* beginPass = nullptr;
+      CommandPacket* endPass = nullptr;
+
+      for (CommandPacket* packet : list)
+      {
+        switch (packet->type())
+        {
+        case CommandPacket::PacketType::RenderpassBegin:
+        {
+          F_ASSERT(beginPass == nullptr, "!?");
+          beginPass = packet;
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassEnd:
+        {
+          F_ASSERT(beginPass != nullptr && endPass == nullptr, "!?");
+          endPass = packet;
+          handleRenderpass(device, list, beginPass, endPass);
+          beginPass = nullptr;
+          endPass = nullptr;
+          break;
+        }
+        default:
+          break;
+        }
+      }
+    }
+
     void handle(vk::CommandBuffer buffer, gfxpacket::ClearRT& packet)
     {
       auto view = std::static_pointer_cast<VulkanTextureView>(packet.rtv.native());
@@ -94,8 +179,14 @@ namespace faze
     }
 
     // implementations
-    void VulkanCommandBuffer::fillWith(backend::IntermediateList& list)
+    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
+      auto nat = std::static_pointer_cast<VulkanDevice>(device);
+
+      // preprocess to compile renderpasses/pipelines
+
+      preprocess(nat.get(), list);
+
       VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
       m_cmdBuffer.begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)

@@ -340,6 +340,11 @@ namespace faze
       return reqs;
     }
 
+    std::shared_ptr<prototypes::RenderpassImpl> DX12Device::createRenderpass()
+    {
+      return std::make_shared<DX12Renderpass>();
+    }
+
     GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)
     {
       auto desc = heapDesc.desc;
@@ -525,8 +530,31 @@ namespace faze
         }
       }
 
+      D3D12_CLEAR_VALUE clear;
+      clear.Format = formatTodxFormat(desc.desc.format).view;
+      D3D12_CLEAR_VALUE* clearPtr = nullptr;
+      switch (desc.desc.usage)
+      {
+      case ResourceUsage::DepthStencil:
+      case ResourceUsage::DepthStencilRW:
+        clear.DepthStencil.Depth = 0.f;
+        clear.DepthStencil.Stencil = 0;
+        clearPtr = &clear;
+        break;
+      case ResourceUsage::RenderTarget:
+      case ResourceUsage::RenderTargetRW:
+        clear.Color[0] = 0.f;
+        clear.Color[1] = 0.f;
+        clear.Color[2] = 0.f;
+        clear.Color[3] = 0.f;
+        clearPtr = &clear;
+        break;
+      default:
+        break;
+      }
+
       ID3D12Resource* texture;
-      m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
+      m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture));
 
       return std::make_shared<DX12Texture>(texture, std::make_shared<DX12TextureState>(state));
     }

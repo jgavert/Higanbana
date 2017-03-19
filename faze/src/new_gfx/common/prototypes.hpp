@@ -30,12 +30,18 @@ namespace faze
     class CommandBufferImpl
     {
     public:
-      virtual void fillWith(backend::IntermediateList& list) = 0;
+      virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list) = 0;
       virtual ~CommandBufferImpl() = default;
     };
 
     namespace prototypes
     {
+      class RenderpassImpl
+      {
+      public:
+        virtual ~RenderpassImpl() = default;
+      };
+
       class GraphicsSurfaceImpl
       {
       public:
@@ -93,6 +99,8 @@ namespace faze
         virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
+
+        virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;

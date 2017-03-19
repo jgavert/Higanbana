@@ -2,6 +2,7 @@
 #include "intermediatelist.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "renderpass.hpp"
 #include "commandpackets.hpp"
 #include "core/src/global_debug.hpp"
 
@@ -49,6 +50,21 @@ namespace faze
     {
       auto tex = rtv.texture();
       list.insert<gfxpacket::PrepareForPresent>(tex);
+    }
+
+    void renderpass(Renderpass& pass)
+    {
+      list.insert<gfxpacket::RenderpassBegin>(pass);
+    }
+
+    void renderpassEnd()
+    {
+      list.insert<gfxpacket::RenderpassEnd>();
+    }
+
+    void subpass(MemView<int> deps, MemView<TextureRTV> rtvs, MemView<TextureDSV> dsvs)
+    {
+      list.insert<gfxpacket::Subpass>(deps, rtvs, dsvs);
     }
   };
 }

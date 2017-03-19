@@ -34,7 +34,7 @@ int EntryPoint::main()
     while (true)
     {
       ivec2 ires = { 800, 600 };
-      Window window(m_params, name, ires.x(), ires.y(), 3960, 300);
+      Window window(m_params, name, ires.x(), ires.y(), 2760, 1200);
       window.open();
       GraphicsSubsystem graphics(api, name);
       F_LOG("Using api %s\n", graphics.gfxApi().c_str());
@@ -68,26 +68,39 @@ int EntryPoint::main()
 
         auto buffer = dev.createBuffer(bufferdesc);
 
-        auto texturedesc = ResourceDescriptor()
+        auto texture = dev.createTexture(ResourceDescriptor()
           .setName("testTexture")
           .setFormat(FormatType::Unorm8x4_Srgb)
-          .setWidth(1280)
-          .setHeight(720)
+          .setWidth(ires.x())
+          .setHeight(ires.y())
           .setMiplevels(4)
-          .setDimension(FormatDimension::Texture2D);
+          .setDimension(FormatDimension::Texture2D)
+          .setUsage(ResourceUsage::RenderTarget));
+        auto texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+        auto texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
-        //auto texture = dev.createTexture(texturedesc);
+        Renderpass triangleRenderpass = dev.createRenderpass();
 
-        //texturedesc = texturedesc.setArraySize(3);
-       // auto texture2 = dev.createTexture(texturedesc);
-
-        bool closeAnyway = false;
+        bool closeAnyway = true;
         while (!window.simpleReadMessages(frame++))
         {
           if (window.hasResized())
           {
             dev.adjustSwapchain(swapchain);
             window.resizeHandled();
+
+            auto& desc = swapchain.buffers()[0].desc().desc;
+
+            texture = dev.createTexture(ResourceDescriptor()
+              .setName("testTexture")
+              .setFormat(FormatType::Unorm8x4_Srgb)
+              .setWidth(desc.width)
+              .setHeight(desc.height)
+              .setMiplevels(4)
+              .setDimension(FormatDimension::Texture2D)
+              .setUsage(ResourceUsage::RenderTarget));
+            texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+            texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
           }
           auto& inputs = window.inputs();
 
@@ -109,21 +122,33 @@ int EntryPoint::main()
             break;
           }
 
-          if (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1))
+          if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
           {
             break;
           }
           if (updateLog) log.update();
 
           // If you acquire, you must submit it. Next, try to first present empty image.
-          // On vulkan, need to at least clear the image or we will just get error about it.
+          // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
           auto backbuffer = dev.acquirePresentableImage(swapchain);
           CommandGraph tasks = dev.createGraph();
           {
-            auto node = tasks.createPass("clear and present!");
+            auto node = tasks.createPass("clear");
             node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 1.f });
-            node.prepareForPresent(backbuffer);
+            node.clearRT(texRtv, vec4{ 0.f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
+          }
+          {
+            // we have pulsing red color background, draw a triangle on top of it !
+            auto node = tasks.createPass("Triangle!");
+            node.renderpass(triangleRenderpass);
+            node.subpass(backbuffer);
+            node.endRenderpass();
+            tasks.addPass(std::move(node));
+          }
+          {
+            auto& node = tasks.createPass2("present");
+            node.prepareForPresent(backbuffer);
           }
 
           dev.submit(swapchain, tasks);
