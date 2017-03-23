@@ -34,7 +34,7 @@ int EntryPoint::main()
     while (true)
     {
       ivec2 ires = { 800, 600 };
-      Window window(m_params, name, ires.x(), ires.y(), 2760, 1200);
+      Window window(m_params, name, ires.x(), ires.y(), 300, 200);
       window.open();
       GraphicsSubsystem graphics(api, name);
       F_LOG("Using api %s\n", graphics.gfxApi().c_str());
@@ -47,7 +47,7 @@ int EntryPoint::main()
         {
           chosenGpu = it.id;
         }
-        F_LOG("\t%d. %s (memory: %zd)\n", it.id, it.name.c_str(), it.memory);
+        F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
       }
       if (updateLog) log.update();
       if (gpus.empty())
@@ -172,7 +172,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, "Nvidia", true);
+  main(GraphicsApi::Vulkan, VendorID::Amd, "Nvidia", true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });

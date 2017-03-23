@@ -193,6 +193,67 @@ namespace faze
       }
       // step2. compile used pipelines against the renderpass (lel, later)
       // step3. collect and register framebuffer to renderpass
+
+      unordered_map<int64_t, int> uidToAttachmendId;
+      vector<vk::ImageView> attachments;
+
+      int fbWidth = -1;
+      int fbHeight = -1;
+
+      for (CommandPacket* current = begin; current != end; current = current->nextPacket())
+      {
+          if (current->type() == CommandPacket::PacketType::Subpass)
+          {
+              auto& subpass = packetRef(gfxpacket::Subpass, current);
+              
+              for (auto&& it : subpass.rtvs)
+              {
+                  auto* found = uidToAttachmendId.find(it.id());
+                  if (found == uidToAttachmendId.end())
+                  {
+                      if (fbWidth == fbHeight && fbHeight == -1)
+                      {
+                          fbWidth = static_cast<int>(it.desc().desc.width);
+                          fbHeight = static_cast<int>(it.desc().desc.height);
+                      }
+                      F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
+                      auto attachmentId = static_cast<int>(attachments.size());
+                      uidToAttachmendId[it.id()] = attachmentId;
+                      auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
+                      attachments.emplace_back(view->native().view);
+                  }
+              }
+              if (subpass.dsvs.size() > 0)
+              {
+                  // have dsv
+                  auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
+                  if (found == uidToAttachmendId.end())
+                  {
+                      if (fbWidth == fbHeight && fbHeight == -1)
+                      {
+                          fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
+                          fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
+                      }
+                      F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
+                      auto attachmentId = static_cast<int>(attachments.size());
+                      uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
+                      auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
+                      attachments.emplace_back(view->native().view);
+                  }
+              }
+          }
+      }
+
+      vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
+          .setWidth(static_cast<uint32_t>(fbWidth))
+          .setHeight(static_cast<uint32_t>(fbHeight))
+          .setLayers(1)
+          .setPAttachments(attachments.data()) // imageview
+          .setRenderPass(*rp->native())
+          .setAttachmentCount(static_cast<uint32_t>(attachments.size()));
+
+      auto framebuffer = device->native().createFramebuffer(info);
+      device->native().destroyFramebuffer(framebuffer);
     }
 
     void preprocess(VulkanDevice* device, backend::IntermediateList& list)

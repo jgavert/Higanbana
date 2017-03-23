@@ -44,6 +44,8 @@ namespace faze
     VendorID vendor;
     DeviceType type;
     bool canPresent;
+    uint32_t apiVersion;
+    std::string apiVersionStr;
   };
 
   struct MemoryRequirements
