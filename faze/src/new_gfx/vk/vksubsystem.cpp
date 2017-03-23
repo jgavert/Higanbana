@@ -145,7 +145,7 @@ namespace faze
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_MAKE_VERSION(1, 0, 42));
+        .setApiVersion(VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION));
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)
@@ -265,6 +265,14 @@ namespace faze
           info.type = DeviceType::Unknown;
           break;
         }
+
+       
+        info.apiVersion = stuff.apiVersion;
+        info.apiVersionStr += std::to_string(VK_VERSION_MAJOR(stuff.apiVersion));
+        info.apiVersionStr += ".";
+        info.apiVersionStr += std::to_string(VK_VERSION_MINOR(stuff.apiVersion));
+        info.apiVersionStr += ".";
+        info.apiVersionStr += std::to_string(VK_VERSION_PATCH(stuff.apiVersion));
 
         if (info.type == DeviceType::DiscreteGpu)
         {
