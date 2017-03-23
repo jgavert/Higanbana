@@ -3,6 +3,7 @@
 #include "backend.hpp"
 
 #include "heap_descriptor.hpp"
+#include "pipeline.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/system/PageAllocator.hpp"
 #include "core/src/datastructures/proxy.hpp"

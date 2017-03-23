@@ -81,6 +81,11 @@ int EntryPoint::main()
 
         Renderpass triangleRenderpass = dev.createRenderpass();
 
+        auto pipelineDescriptor = GraphicsPipelineDescriptor();
+
+        GraphicsPipeline pipelineA(pipelineDescriptor);
+        F_LOG("%d\n", pipelineA.descriptor.sampleCount);
+
         bool closeAnyway = true;
         while (!window.simpleReadMessages(frame++))
         {
