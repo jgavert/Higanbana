@@ -1,5 +1,6 @@
 #include "vkresources.hpp"
 #include "util/VulkanDependencySolver.hpp"
+#include "core/src/datastructures/proxy.hpp"
 
 namespace faze
 {
@@ -192,6 +193,8 @@ namespace faze
         F_LOG("have created a renderpass!\n");
       }
       // step2. compile used pipelines against the renderpass (lel, later)
+      // ugh! Maybe easy, maybe not...
+
       // step3. collect and register framebuffer to renderpass
 
       unordered_map<int64_t, int> uidToAttachmendId;
@@ -202,49 +205,54 @@ namespace faze
 
       for (CommandPacket* current = begin; current != end; current = current->nextPacket())
       {
-          if (current->type() == CommandPacket::PacketType::Subpass)
+        if (current->type() == CommandPacket::PacketType::Subpass)
+        {
+          auto& subpass = packetRef(gfxpacket::Subpass, current);
+
+          for (auto&& it : subpass.rtvs)
           {
-              auto& subpass = packetRef(gfxpacket::Subpass, current);
-              
-              for (auto&& it : subpass.rtvs)
+            auto* found = uidToAttachmendId.find(it.id());
+            if (found == uidToAttachmendId.end())
+            {
+              if (fbWidth == fbHeight && fbHeight == -1)
               {
-                  auto* found = uidToAttachmendId.find(it.id());
-                  if (found == uidToAttachmendId.end())
-                  {
-                      if (fbWidth == fbHeight && fbHeight == -1)
-                      {
-                          fbWidth = static_cast<int>(it.desc().desc.width);
-                          fbHeight = static_cast<int>(it.desc().desc.height);
-                      }
-                      F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
-                      auto attachmentId = static_cast<int>(attachments.size());
-                      uidToAttachmendId[it.id()] = attachmentId;
-                      auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
-                      attachments.emplace_back(view->native().view);
-                  }
+                fbWidth = static_cast<int>(it.desc().desc.width);
+                fbHeight = static_cast<int>(it.desc().desc.height);
               }
-              if (subpass.dsvs.size() > 0)
-              {
-                  // have dsv
-                  auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
-                  if (found == uidToAttachmendId.end())
-                  {
-                      if (fbWidth == fbHeight && fbHeight == -1)
-                      {
-                          fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
-                          fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
-                      }
-                      F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
-                      auto attachmentId = static_cast<int>(attachments.size());
-                      uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
-                      auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
-                      attachments.emplace_back(view->native().view);
-                  }
-              }
+              F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
+              auto attachmentId = static_cast<int>(attachments.size());
+              uidToAttachmendId[it.id()] = attachmentId;
+              auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
+              attachments.emplace_back(view->native().view);
+            }
           }
+          if (subpass.dsvs.size() > 0)
+          {
+            // have dsv
+            auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
+            if (found == uidToAttachmendId.end())
+            {
+              if (fbWidth == fbHeight && fbHeight == -1)
+              {
+                fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
+                fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
+              }
+              F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
+              auto attachmentId = static_cast<int>(attachments.size());
+              uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
+              auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
+              attachments.emplace_back(view->native().view);
+            }
+          }
+        }
       }
 
-      vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
+      auto hash = HashMemory(attachments.data(), attachments.size());
+      auto& fbs = rp->framebuffers();
+      auto* findFramebuffer = fbs.find(hash);
+      if (findFramebuffer == fbs.end())
+      {
+        vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
           .setWidth(static_cast<uint32_t>(fbWidth))
           .setHeight(static_cast<uint32_t>(fbHeight))
           .setLayers(1)
@@ -252,8 +260,18 @@ namespace faze
           .setRenderPass(*rp->native())
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()));
 
-      auto framebuffer = device->native().createFramebuffer(info);
-      device->native().destroyFramebuffer(framebuffer);
+        fbs[hash] = std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
+        {
+          dev.destroyFramebuffer(*ptr);
+          delete ptr;
+        });
+        F_LOG("Created a framebuffer\n");
+      }
+      else
+      {
+        F_LOG("Framebuffer was already found!!!!\n");
+      }
+      rp->setActiveFramebuffer(hash);
     }
 
     void preprocess(VulkanDevice* device, backend::IntermediateList& list)
