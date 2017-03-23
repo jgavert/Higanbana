@@ -249,8 +249,8 @@ namespace faze
 
       auto hash = HashMemory(attachments.data(), attachments.size());
       auto& fbs = rp->framebuffers();
-      auto* findFramebuffer = fbs.find(hash);
-      if (findFramebuffer == fbs.end())
+      auto* exists = fbs.find(hash);
+      if (exists == fbs.end())
       {
         vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
           .setWidth(static_cast<uint32_t>(fbWidth))
@@ -271,7 +271,7 @@ namespace faze
       {
         F_LOG("Framebuffer was already found!!!!\n");
       }
-      rp->setActiveFramebuffer(hash);
+      rp->setActiveFramebuffer(hash); // remember to set the current hash as active one.
     }
 
     void preprocess(VulkanDevice* device, backend::IntermediateList& list)
