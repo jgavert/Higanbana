@@ -1,18 +1,17 @@
-#ifndef FAZE_SHADER_DEFINITIONS
-#define FAZE_SHADER_DEFINITIONS
+#ifndef TRIANGLE_HLSL
+#define TRIANGLE_HLSL
 
-#include "../graphics/definitions.hpp"
+#include "app/graphics/definitions.hpp"
 
 FAZE_BEGIN_LAYOUT(Triangle)
 
 struct TriangleConstants
 {
-	float4 color;
+  float4 color;
 };
 
-FAZE_CBUFFER(color)
+FAZE_CBUFFER(TriangleConstants)
 
 FAZE_END_LAYOUT
-
 
 #endif /*FAZE_SHADER_DEFINITIONS*/

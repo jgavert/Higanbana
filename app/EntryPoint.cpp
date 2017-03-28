@@ -16,6 +16,8 @@
 
 #include "core/src/math/vec_templated.hpp"
 
+#include "shaders/triangle.if.hpp"
+
 using namespace faze;
 
 int EntryPoint::main()
@@ -59,6 +61,9 @@ int EntryPoint::main()
         auto swapchain = dev.createSwapchain(surface);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
+
+        decltype(::shader::Triangle::constants) constants{};
+        constants.color = float4{ 1.f, 0.f, 0.f, 1.f };
 
         auto bufferdesc = ResourceDescriptor()
           .setName("testBufferTarget")

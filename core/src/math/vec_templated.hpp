@@ -5,10 +5,8 @@
 #include <array>
 #include <cmath>
 
-
 namespace faze
 {
-
   const float PI = 3.14159265f;
 
   template <int NUM_ELEMENTS, typename VectorType, bool Enabled = true>
@@ -22,7 +20,6 @@ namespace faze
     Vector(const std::initializer_list<type> &init_list) : data(init_list) {}
     */
     std::array<VectorType, NUM_ELEMENTS> data;
-
 
     inline Vector normalize()
     {
@@ -202,8 +199,6 @@ namespace faze
     }
   };
 
-
-
   typedef Vector<2, float> vec2;
   typedef Vector<3, float> vec3;
   typedef Vector<4, float> vec4;
@@ -215,9 +210,8 @@ namespace faze
   struct Quaternion
   {
     Quaternion()
-      : data( { 1.f, 0.f, 0.f, 0.f} )
+      : data({ 1.f, 0.f, 0.f, 0.f })
     {
-
     }
 
     Vector<4, float> data;
@@ -271,9 +265,7 @@ namespace faze
     {
       return data[i];
     }
-
   };
-
 
   class vecTemplateTests
   {
@@ -311,5 +303,17 @@ namespace faze
       tests.runTests();
     }
   };
-
 }
+
+using float2 = faze::Vector<2, float>;
+using float3 = faze::Vector<3, float>;
+using float4 = faze::Vector<4, float>;
+
+using uint = unsigned;
+using uint2 = faze::Vector<2, unsigned>;
+using uint3 = faze::Vector<3, unsigned>;
+using uint4 = faze::Vector<4, unsigned>;
+
+using int2 = faze::Vector<2, int>;
+using int3 = faze::Vector<3, int>;
+using int4 = faze::Vector<4, int>;

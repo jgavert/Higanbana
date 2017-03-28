@@ -291,7 +291,7 @@ Compiler( 'Compiler-x64-Linux' )
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
                             + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
                             + '$externalIncludesVisualStudio$'
-  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;'
+  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;'
 							+ 'FAZE_PLATFORM_WINDOWS;'
                             + '$extVisualStudioDefines$'
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
