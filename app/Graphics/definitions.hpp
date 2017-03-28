@@ -3,13 +3,18 @@
 
 #ifdef __cplusplus
 
+#include "core/src/math/vec_templated.hpp"
+
 #define FAZE_BEGIN_LAYOUT(signatureName) \
+namespace shader\
+{ \
       struct signatureName {
 #define FAZE_END_LAYOUT \
-      };
+      }; \
+};
 
 #define FAZE_CBUFFER(cbufferType) \
-    static constexpr cbufferType constants;
+    static cbufferType constants;
 
 #define FAZE_SRV(type, name, index) \
 	static constexpr int name = index;
@@ -48,7 +53,7 @@
 
 #else /*FAZE_DX12*/
 
-#define GX_SIGNATURE 
+#define GX_SIGNATURE
 #define CS_SIGNATURE [numthreads(FAZE_THREADGROUP_X, FAZE_THREADGROUP_Y, FAZE_THREADGROUP_Z)]
 
 #endif /*FAZE_DX12*/
