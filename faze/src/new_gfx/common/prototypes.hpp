@@ -42,6 +42,12 @@ namespace faze
         virtual ~RenderpassImpl() = default;
       };
 
+      class GraphicsPipelineImpl
+      {
+      public:
+        virtual ~GraphicsPipelineImpl() = default;
+      };
+
       class GraphicsSurfaceImpl
       {
       public:
@@ -100,7 +106,9 @@ namespace faze
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
+        // pipeline related
         virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
+        virtual std::shared_ptr<GraphicsPipelineImpl> createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;

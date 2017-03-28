@@ -480,6 +480,7 @@ namespace faze
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
+      std::shared_ptr<prototypes::GraphicsPipelineImpl> createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;

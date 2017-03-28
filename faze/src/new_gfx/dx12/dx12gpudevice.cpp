@@ -345,6 +345,11 @@ namespace faze
       return std::make_shared<DX12Renderpass>();
     }
 
+    std::shared_ptr<prototypes::GraphicsPipelineImpl> DX12Device::createGraphicsPipeline(GraphicsPipelineDescriptor descriptor)
+    {
+      return nullptr;
+    }
+
     GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)
     {
       auto desc = heapDesc.desc;
