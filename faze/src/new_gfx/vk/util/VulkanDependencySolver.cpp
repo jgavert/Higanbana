@@ -307,8 +307,11 @@ namespace faze
           ++jobIndex;
         }
       }
-      m_barrierOffsets.emplace_back(static_cast<int>(bufferBarriers.size()));
-      m_imageBarrierOffsets.emplace_back(static_cast<int>(imageBarriers.size()));
+      for (int skippedDraw = drawIndex; skippedDraw < drawCallsAdded; ++skippedDraw)
+      {
+        m_barrierOffsets.emplace_back(bufferBarrierOffsets);
+        m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
+      }
 
       // update global state
       for (auto&& obj : m_uniqueBuffersThisChain)
@@ -329,7 +332,6 @@ namespace faze
           globalState[i].queueIndex = localState[i].queueIndex;
         }
       }
-      // function ends
     }
 
     void VulkanDependencySolver::runBarrier(vk::CommandBuffer& gfx, int nextDrawCall)
