@@ -15,8 +15,10 @@
 #include "core/src/global_debug.hpp"
 
 #include "core/src/math/vec_templated.hpp"
-
 #include "shaders/triangle.if.hpp"
+
+#include "faze/src/new_gfx/vk/util/ShaderStorage.hpp"
+#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
 
 using namespace faze;
 
@@ -33,6 +35,15 @@ int EntryPoint::main()
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs;
+
+    backend::DX12ShaderStorage shadersdx(fs, "../app/shaders", "dxil");
+    auto res = shadersdx.compileShader("triangle", backend::DX12ShaderStorage::ShaderType::Vertex);
+    F_LOG("compiled! %d\n", int(res));
+
+    ShaderStorage shaders(fs, "../app/shaders", "spirv");
+    res = shaders.compileShader("triangle", ShaderStorage::ShaderType::Vertex);
+    F_LOG("compiled! %d\n", int(res));
+
     while (true)
     {
       ivec2 ires = { 800, 600 };

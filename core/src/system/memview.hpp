@@ -14,8 +14,8 @@ namespace faze
   public:
     MemView() {}
 
-	MemView(T* ptr, size_t size)
-	  : m_size(size)
+    MemView(T* ptr, size_t size)
+      : m_size(size)
       , m_ptr(ptr)
     {}
 
@@ -31,61 +31,61 @@ namespace faze
     {
     }
 
-	template <typename RndIter>
-	MemView(RndIter first, size_t size)
-		: m_size(size)
-		, m_ptr(size == 0 ? nullptr : std::addressof(*first))
-	{
-	}
+    template <typename RndIter>
+    MemView(RndIter first, size_t size)
+      : m_size(size)
+      , m_ptr(size == 0 ? nullptr : std::addressof(*first))
+    {
+    }
 
-	template <typename RndIter>
-	MemView(RndIter first, RndIter last)
-		: m_size(last - first)
-		, m_ptr(m_size == 0 ? nullptr : std::addressof(*first))
-	{
-	}
+    template <typename RndIter>
+    MemView(RndIter first, RndIter last)
+      : m_size(last - first)
+      , m_ptr(m_size == 0 ? nullptr : std::addressof(*first))
+    {
+    }
 
-	template <typename MemViewO>
-	MemView(MemViewO &&c)
-		: m_size(std::end(c) - std::begin(c))
-		, m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(c)))
-	{
-	}
+    template <typename MemViewO>
+    MemView(MemViewO &&c)
+      : m_size(std::end(c) - std::begin(c))
+      , m_ptr(m_size == 0 ? nullptr : std::addressof(*std::begin(c)))
+    {
+    }
 
-	bool empty() const
-	{
-		return m_size == 0;
-	}
+    bool empty() const
+    {
+      return m_size == 0;
+    }
 
-	T* begin()
-	{
-		return m_ptr;
-	}
+    T* begin()
+    {
+      return m_ptr;
+    }
 
-	T* end()
-	{
-		return m_ptr + m_size;
-	}
+    T* end()
+    {
+      return m_ptr + m_size;
+    }
 
-	T* data()
-	{
-		return begin();
-	}
+    T* data()
+    {
+      return begin();
+    }
 
     const T* begin() const
     {
       return m_ptr;
     }
 
-	const T* end() const
-	{
-		return m_ptr + m_size;
-	}
+    const T* end() const
+    {
+      return m_ptr + m_size;
+    }
 
-	const T* data() const
-	{
-		return begin();
-	}
+    const T* data() const
+    {
+      return begin();
+    }
 
     size_t size() const
     {
@@ -97,10 +97,10 @@ namespace faze
       return m_ptr[i];
     }
 
-	const T& operator[](size_t i) const
-	{
-		return m_ptr[i];
-	}
+    const T& operator[](size_t i) const
+    {
+      return m_ptr[i];
+    }
 
     operator bool() const
     {
@@ -108,17 +108,16 @@ namespace faze
     }
   };
 
-
   template <typename T>
   MemView<T> makeMemView(T* ptr, size_t size)
   {
-	  return MemView<T>(ptr, size);
+    return MemView<T>(ptr, size);
   }
 
   template <typename T>
   MemView<T> makeMemView(T& obj)
   {
-	  return MemView<T>(&obj, 1);
+    return MemView<T>(&obj, 1);
   }
 
   // actually quite useful
@@ -131,20 +130,26 @@ namespace faze
   template <typename T>
   MemView<uint8_t> makeByteView(T* ptr, size_t size)
   {
-	  return MemView<uint8_t>(ptr, size);
+    return MemView<uint8_t>(reinterpret_cast<uint8_t*>(ptr), size);
+  }
+
+  template <typename T>
+  MemView<const uint8_t> makeByteView(const T* ptr, size_t size)
+  {
+    return MemView<const uint8_t>(reinterpret_cast<const uint8_t*>(ptr), size);
   }
 
   template <typename T>
   MemView<uint8_t> makeByteView(T& obj)
   {
-	  return MemView<uint8_t>(&obj, 1);
+    return MemView<uint8_t>(&obj, 1);
   }
 
   // actually quite useful
   template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
   MemView<uint8_t> makeByteView(Container<Elem, Args...>& s)
   {
-	  return MemView<uint8_t>(s.begin(), s.end());
+    return MemView<uint8_t>(s.begin(), s.end());
   }
 
   template <typename targetElem, typename Elem>
@@ -159,6 +164,6 @@ namespace faze
   template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
   size_t containerByteCount(Container<Elem, Args...>& s)
   {
-	  return makeByteView(s).size();
+    return makeByteView(s).size();
   }
 };

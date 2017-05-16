@@ -28,17 +28,17 @@ private:
     switch (type)
     {
     case ShaderType::Vertex:
-      return "vs.glsl";
+      return "vs.hlsl";
     case ShaderType::Pixel:
-      return "ps.glsl";
+      return "ps.hlsl";
     case ShaderType::Compute:
-      return "cs.glsl";
+      return "cs.hlsl";
     case ShaderType::Geometry:
-      return "gs.glsl";
+      return "gs.hlsl";
     case ShaderType::TessControl:
-      return "tc.glsl";
+      return "tc.hlsl";
     case ShaderType::TessEvaluation:
-      return "te.glsl";
+      return "te.hlsl";
     default:
       F_ASSERT(false, "Unknown ShaderType");
     }
@@ -105,13 +105,14 @@ public:
     std::string text;
     text.resize(view.size());
     memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
-    //printf("%s\n", text.data());
+    printf("%s\n", text.data());
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
 
     shaderc::CompileOptions opt;
+    opt.SetSourceLanguage(shaderc_source_language_hlsl);
     opt.SetIncluder(std::make_unique<IncludeHelper>(m_fs, sourcePath));
-    opt.SetForcedVersionProfile(450, shaderc_profile_none);
-    opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
+    //opt.SetForcedVersionProfile(450, shaderc_profile_none);
+    //opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
     opt.AddMacroDefinition("FAZE_VULKAN");
     shaderc::Compiler compiler;
     auto something = compiler.CompileGlslToSpv(text, static_cast<shaderc_shader_kind>(type), "main", opt);
