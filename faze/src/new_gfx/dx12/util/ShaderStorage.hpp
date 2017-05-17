@@ -24,7 +24,7 @@ public:
     default:
       assert(0);
     }
-    F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %c\n", finalPath.c_str());
+    F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     auto shader = m_fs.viewToFile(finalPath);
     *ppData = shader.data();
@@ -118,7 +118,7 @@ namespace faze
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
         auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
-        F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %c\n", shaderPath.c_str());
+        F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
         auto view = m_fs.viewToFile(shaderPath);
         std::string text;
         text.resize(view.size());
@@ -170,9 +170,9 @@ namespace faze
 
           auto shaderTime = m_fs.timeModified(shaderPath);
           auto shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
-          auto spirvTime = m_fs.timeModified(dxilPath);
+          auto dxilTime = m_fs.timeModified(dxilPath);
 
-          if (shaderTime > spirvTime || shaderInterfaceTime > spirvTime)
+          if (shaderTime > dxilTime || shaderInterfaceTime > dxilTime)
           {
             //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
             F_ASSERT(compileShader(shaderName, type), "ups");
