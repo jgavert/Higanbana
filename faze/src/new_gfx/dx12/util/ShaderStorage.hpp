@@ -12,17 +12,28 @@ class CShaderInclude : public ID3DInclude {
 public:
   CShaderInclude(FileSystem& fs, std::string sourcePath) : m_fs(fs), m_sourcePath(sourcePath) {}
 
-  HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID /*pParentData*/, LPCVOID *ppData, UINT *pBytes) {
+  HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID /*pParentData*/, LPCVOID *ppData, UINT *pBytes)
+  {
+    std::string filename(pFileName);
     std::string finalPath;
-    switch (IncludeType) {
-    case D3D_INCLUDE_LOCAL:
-      finalPath = m_sourcePath + pFileName;
-      break;
-    case D3D_INCLUDE_SYSTEM:
-      finalPath = m_sourcePath + pFileName;
-      break;
-    default:
-      assert(0);
+    if (filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+    {
+      finalPath = "/../" + filename;
+      if (!m_fs.fileExists(finalPath))
+        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+    }
+    else
+    {
+      switch (IncludeType) {
+      case D3D_INCLUDE_LOCAL:
+        finalPath = m_sourcePath + filename;
+        break;
+      case D3D_INCLUDE_SYSTEM:
+        finalPath = m_sourcePath + filename;
+        break;
+      default:
+        assert(0);
+      }
     }
     F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
@@ -144,6 +155,9 @@ namespace faze
         {
           if (errorMsg.Get())
           {
+            OutputDebugStringA("Error In \"");
+            OutputDebugStringA(shaderPath.c_str());
+            OutputDebugStringA("\": \n");
             OutputDebugStringA((char*)errorMsg->GetBufferPointer());
           }
           abort();
