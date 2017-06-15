@@ -72,15 +72,26 @@ public:
     {
       F_ASSERT(include_depth < 5, "This doesn't sound like everything is alright. Otherwise increase.");
       F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
-      auto sourceView = m_fs.viewToFile(sourcePath + requested_source);
-      shaderc_include_result* result = new shaderc_include_result;
+      std::string filename(requested_source);
+      std::string fullPath = sourcePath + filename;
+      if (filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+      {
+        fullPath = "/../" + filename;
+        if (!m_fs.fileExists(fullPath))
+          m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+      }
+      F_ASSERT(m_fs.fileExists(fullPath), "File has to exist. for now.");
+
+      auto sourceView = m_fs.viewToFile(fullPath);
+      shaderc_include_result* result = (shaderc_include_result*)malloc(sizeof(shaderc_include_result));
       result->content = reinterpret_cast<const char*>(sourceView.data());
       result->content_length = sourceView.size();
       auto reqSrcLen = strlen(requested_source);
-      char* lol = new char[reqSrcLen];
+      char* lol = (char*)malloc(sizeof(char)*(reqSrcLen + 1));
       memcpy(lol, requested_source, reqSrcLen);
+      lol[reqSrcLen] = '\0';
       result->source_name = lol;
-      result->source_name_length = reqSrcLen;
+      result->source_name_length = reqSrcLen + 1;
       result->user_data = lol;
 
       return result;
@@ -90,8 +101,8 @@ public:
     void ReleaseInclude(shaderc_include_result* usedResult) override
     {
       char* lol = reinterpret_cast<char*>(usedResult->user_data);
-      delete[] lol;
-      delete usedResult;
+      free(lol);
+      free(usedResult);
     }
   };
 
@@ -106,6 +117,7 @@ public:
     text.resize(view.size());
     memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
     printf("%s\n", text.data());
+    OutputDebugStringA(text.data());
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
 
     shaderc::CompileOptions opt;
