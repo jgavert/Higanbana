@@ -22,6 +22,12 @@ namespace shader\
 #define FAZE_UAV(type, name, index) \
 	static constexpr int name = index;
 
+#define FAZE_SRV_TABLE(size) \
+  static constexpr int srv = size;
+
+#define FAZE_UAV_TABLE(size) \
+  static constexpr int uav = size;
+
 #else /*__cplusplus*/
 
 #define FAZE_BEGIN_LAYOUT(signatureName)
@@ -35,6 +41,9 @@ namespace shader\
 
 #define FAZE_UAV(type, name, index) \
 	type name : register(u##index);
+
+#define FAZE_SRV_TABLE(size)
+#define FAZE_UAV_TABLE(size)
 
 #define FAZE_STATIC_SAMPLER(name) SamplerState name : register( s0 );
 

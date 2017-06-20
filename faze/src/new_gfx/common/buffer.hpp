@@ -7,12 +7,12 @@
 
 namespace faze
 {
-  class Buffer : public backend::GpuDeviceChild
+  class Buffer
   {
     std::shared_ptr<backend::prototypes::BufferImpl> impl;
     std::shared_ptr<int64_t> id;
     std::shared_ptr<ResourceDescriptor> m_desc;
-
+    backend::TrackedState m_dependency;
   public:
     Buffer()
       : m_desc(std::make_shared<ResourceDescriptor>())
@@ -22,6 +22,7 @@ namespace faze
       : impl(impl)
       , id(id)
       , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
+      , m_dependency(impl->dependency())
     {
     }
 
@@ -34,6 +35,10 @@ namespace faze
     {
       return impl;
     }
+    backend::TrackedState dependency()
+    {
+      return m_dependency;
+    }
   };
 
   class BufferView
@@ -41,6 +46,8 @@ namespace faze
     Buffer buf;
     std::shared_ptr<backend::prototypes::BufferViewImpl> impl;
     std::shared_ptr<int64_t> id;
+    backend::RawView m_view;
+    backend::TrackedState m_dependency;
   public:
     BufferView() = default;
 
@@ -48,6 +55,8 @@ namespace faze
       : buf(buf)
       , impl(impl)
       , id(id)
+      , m_view(impl->view())
+      , m_dependency(buf.dependency())
     {
     }
 
@@ -64,6 +73,15 @@ namespace faze
     Buffer& buffer()
     {
       return buf;
+    }
+
+    backend::RawView view()
+    {
+      return m_view;
+    }
+    backend::TrackedState dependency()
+    {
+      return m_dependency;
     }
   };
 

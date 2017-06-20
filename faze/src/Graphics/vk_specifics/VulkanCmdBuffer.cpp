@@ -5,7 +5,6 @@
 #include <utility>
 #include <deque>
 
-
 #define COMMANDBUFFERSIZE 500*1024
 using namespace faze;
 
@@ -42,7 +41,6 @@ public:
   }
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// PACKETS START /////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +69,6 @@ public:
     , bufferBarriers(MemView<vk::BufferMemoryBarrier>(allocator.allocList<vk::BufferMemoryBarrier>(bufferBarriers.size()), bufferBarriers.size()))
     , imageBarriers(MemView<vk::ImageMemoryBarrier>(allocator.allocList<vk::ImageMemoryBarrier>(imageBarriers.size()), imageBarriers.size()))
   {
-
   }
   void execute(vk::CommandBuffer& cmd) override
   {
@@ -139,7 +136,6 @@ public:
   }
 };
 
-
 class DispatchPacket : public VulkanCommandPacket
 {
 public:
@@ -168,50 +164,50 @@ public:
 class PrepareForPresentPacket : public VulkanCommandPacket
 {
 public:
-	VulkanTexture texture;
+  VulkanTexture texture;
 
-	PrepareForPresentPacket(LinearMemoryAllocator&, VulkanTexture& texture)
-		:texture(texture)
-	{
-	}
+  PrepareForPresentPacket(LinearMemoryAllocator&, VulkanTexture& texture)
+    :texture(texture)
+  {
+  }
 
-	void execute(vk::CommandBuffer& ) override
-	{
-	}
+  void execute(vk::CommandBuffer&) override
+  {
+  }
 
-	PacketType type() override
-	{
-		return PacketType::PrepareForPresent;
-	}
+  PacketType type() override
+  {
+    return PacketType::PrepareForPresent;
+  }
 };
 
 class ClearRTVPacket : public VulkanCommandPacket
 {
 public:
-	VulkanTexture texture;
-	vk::ClearColorValue clearValue;
+  VulkanTexture texture;
+  vk::ClearColorValue clearValue;
 
-	ClearRTVPacket(LinearMemoryAllocator&, VulkanTexture& texture, vk::ClearColorValue clearValue)
-		:texture(texture)
-		, clearValue(clearValue)
-	{
-	}
+  ClearRTVPacket(LinearMemoryAllocator&, VulkanTexture& texture, vk::ClearColorValue clearValue)
+    :texture(texture)
+    , clearValue(clearValue)
+  {
+  }
 
-	void execute(vk::CommandBuffer& cmd) override
-	{
-		vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
-			.setBaseMipLevel(0)
-			.setAspectMask(vk::ImageAspectFlagBits::eColor)
-			.setBaseArrayLayer(0)
-			.setLayerCount(1)
-			.setLevelCount(1);
-		cmd.clearColorImage(texture.impl(), vk::ImageLayout::eGeneral, clearValue, range);
-	}
+  void execute(vk::CommandBuffer& cmd) override
+  {
+    vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
+      .setBaseMipLevel(0)
+      .setAspectMask(vk::ImageAspectFlagBits::eColor)
+      .setBaseArrayLayer(0)
+      .setLayerCount(1)
+      .setLevelCount(1);
+    cmd.clearColorImage(texture.impl(), vk::ImageLayout::eGeneral, clearValue, range);
+  }
 
-	PacketType type() override
-	{
-		return PacketType::ClearRTV;
-	}
+  PacketType type() override
+  {
+    return PacketType::ClearRTV;
+  }
 };
 
 class RenderpassBeginPacket : public VulkanCommandPacket
@@ -221,78 +217,74 @@ public:
 
   VulkanTextureShaderView rtv;
 
-	RenderpassBeginPacket(LinearMemoryAllocator&, VulkanRenderpass rp, VulkanTextureShaderView rtv)
+  RenderpassBeginPacket(LinearMemoryAllocator&, VulkanRenderpass rp, VulkanTextureShaderView rtv)
     : rp(rp)
     , rtv(rtv)
-	{
-	}
+  {
+  }
 
-	void execute(vk::CommandBuffer& ) override
-	{
-	
-	}
+  void execute(vk::CommandBuffer&) override
+  {
+  }
 
-	PacketType type() override
-	{
-		return PacketType::RenderpassBegin;
-	}
+  PacketType type() override
+  {
+    return PacketType::RenderpassBegin;
+  }
 };
 
 class RenderpassEndPacket : public VulkanCommandPacket
 {
 public:
 
-	RenderpassEndPacket(LinearMemoryAllocator&)
-	{
-	}
+  RenderpassEndPacket(LinearMemoryAllocator&)
+  {
+  }
 
-	void execute(vk::CommandBuffer&) override
-	{
+  void execute(vk::CommandBuffer&) override
+  {
+  }
 
-	}
-
-	PacketType type() override
-	{
-		return PacketType::RenderpassEnd;
-	}
+  PacketType type() override
+  {
+    return PacketType::RenderpassEnd;
+  }
 };
 
 class SubpassBeginPacket : public VulkanCommandPacket
 {
 public:
 
-	SubpassBeginPacket(LinearMemoryAllocator&)
-	{
-	}
+  SubpassBeginPacket(LinearMemoryAllocator&)
+  {
+  }
 
-	void execute(vk::CommandBuffer&) override
-	{
+  void execute(vk::CommandBuffer&) override
+  {
+  }
 
-	}
-
-	PacketType type() override
-	{
-		return PacketType::SubpassBegin;
-	}
+  PacketType type() override
+  {
+    return PacketType::SubpassBegin;
+  }
 };
 
 class SubpassEndPacket : public VulkanCommandPacket
 {
 public:
 
-	SubpassEndPacket(LinearMemoryAllocator&)
-	{
-	}
+  SubpassEndPacket(LinearMemoryAllocator&)
+  {
+  }
 
-	void execute(vk::CommandBuffer&) override
-	{
+  void execute(vk::CommandBuffer&) override
+  {
+  }
 
-	}
-
-	PacketType type() override
-	{
-		return PacketType::SubpassEnd;
-	}
+  PacketType type() override
+  {
+    return PacketType::SubpassEnd;
+  }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +293,7 @@ public:
 
 void VulkanCmdBuffer::bindComputePipeline(VulkanPipeline& pipeline)
 {
-	m_commandList->insert<BindPipelinePacket>(vk::PipelineBindPoint::eCompute, pipeline.m_pipeline, pipeline.m_pipelineLayout, pipeline.m_descriptorSetLayout);
+  m_commandList->insert<BindPipelinePacket>(vk::PipelineBindPoint::eCompute, pipeline.m_pipeline, pipeline.m_pipelineLayout, pipeline.m_descriptorSetLayout);
 }
 
 void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y, unsigned z)
@@ -311,25 +303,24 @@ void VulkanCmdBuffer::dispatch(VulkanDescriptorSet& set, unsigned x, unsigned y,
 
 void VulkanCmdBuffer::copy(VulkanBuffer& src, VulkanBuffer& dst)
 {
-	vk::BufferCopy copy;
-	auto srcSize = src.resourceSize;
-	auto dstSize = dst.resourceSize;
-	auto maxSize = std::min(srcSize, dstSize);
-	copy = copy.setSize(maxSize)
-		.setDstOffset(0)
-		.setSrcOffset(0);
-	m_commandList->insert<BufferCopyPacket>(src, dst, copy);
+  vk::BufferCopy copy;
+  auto srcSize = src.resourceSize;
+  auto dstSize = dst.resourceSize;
+  auto maxSize = std::min(srcSize, dstSize);
+  copy = copy.setSize(maxSize)
+    .setDstOffset(0)
+    .setSrcOffset(0);
+  m_commandList->insert<BufferCopyPacket>(src, dst, copy);
 }
 
 void VulkanCmdBuffer::clearRTV(VulkanTexture& texture, float r, float g, float b, float a)
 {
-	m_commandList->insert<ClearRTVPacket>(texture, vk::ClearColorValue().setFloat32({ r, g, b, a }));
-
+  m_commandList->insert<ClearRTVPacket>(texture, vk::ClearColorValue().setFloat32({ r, g, b, a }));
 }
 
 void VulkanCmdBuffer::prepareForPresent(VulkanTexture& texture)
 {
-	m_commandList->insert<PrepareForPresentPacket>(texture);
+  m_commandList->insert<PrepareForPresentPacket>(texture);
 }
 
 // MISC
@@ -372,12 +363,12 @@ void VulkanCmdBuffer::endRenderpass()
 
 void VulkanCmdBuffer::beginSubpass()
 {
-	m_commandList->insert<SubpassBeginPacket>();
+  m_commandList->insert<SubpassBeginPacket>();
 }
 
 void VulkanCmdBuffer::endSubpass()
 {
-	m_commandList->insert<SubpassEndPacket>();
+  m_commandList->insert<SubpassEndPacket>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -403,14 +394,14 @@ void VulkanCmdBuffer::close()
       pipelineLayout = *current->layout;
       break;
     }
-	case VulkanCommandPacket::PacketType::BufferCopy:
-	{
-		tracker.runBarrier(*m_cmdBuffer, barrierCall++);
-		break;
-	}
+    case VulkanCommandPacket::PacketType::BufferCopy:
+    {
+      tracker.runBarrier(*m_cmdBuffer, barrierCall++);
+      break;
+    }
     case VulkanCommandPacket::PacketType::Dispatch:
     {
-	  tracker.runBarrier(*m_cmdBuffer, barrierCall++);
+      tracker.runBarrier(*m_cmdBuffer, barrierCall++);
       constexpr uint32_t firstSet = 0;
       vk::ArrayProxy<const vk::DescriptorSet> sets(m_updatedSetsPerDraw[drawOrDispatch]);
       vk::ArrayProxy<const uint32_t> setOffsets(0, 0);
@@ -430,26 +421,25 @@ void VulkanCmdBuffer::close()
     packet->execute(*m_cmdBuffer);
   });
 
-
   m_cmdBuffer->end();
   m_closed = true;
 }
 
 void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& device)
 {
-	int unhandledRenderpasses = 0;
-	bool insideRenderpass = false;
+  int unhandledRenderpasses = 0;
+  bool insideRenderpass = false;
   RenderpassBeginPacket* active = nullptr;
 
-	m_commandList->foreach([&](VulkanCommandPacket* packet)
-	{
-		switch (packet->type())
-		{
-		case VulkanCommandPacket::PacketType::RenderpassBegin:
+  m_commandList->foreach([&](VulkanCommandPacket* packet)
+  {
+    switch (packet->type())
+    {
+    case VulkanCommandPacket::PacketType::RenderpassBegin:
       active = static_cast<RenderpassBeginPacket*>(packet);
-			insideRenderpass = true;
-			break;
-		case VulkanCommandPacket::PacketType::RenderpassEnd:
+      insideRenderpass = true;
+      break;
+    case VulkanCommandPacket::PacketType::RenderpassEnd:
       if (insideRenderpass)
       {
         if (!active->rp.created())
@@ -472,7 +462,7 @@ void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& device)
           vk::AttachmentReference refRtv = vk::AttachmentReference()
             .setAttachment(0) // hardcoded.
             .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
- 
+
           vk::ArrayProxy<const vk::AttachmentReference> colorAttachments(refRtv);
 
           uint32_t preservedAttachments[1] = { 0 };
@@ -504,14 +494,14 @@ void VulkanCmdBuffer::processRenderpasses(VulkanGpuDevice& device)
           }));
         }
       }
-			insideRenderpass = false;
-			break;
-		default:
-			break;
-		}
-	});
+      insideRenderpass = false;
+      break;
+    default:
+      break;
+    }
+  });
   if (unhandledRenderpasses > 0)
-	  F_LOG("Renderpasses to compile: %d\n", unhandledRenderpasses);
+    F_LOG("Renderpasses to compile: %d\n", unhandledRenderpasses);
 }
 
 void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorPool& pool)
@@ -563,31 +553,31 @@ void VulkanCmdBuffer::processBindings(VulkanGpuDevice& device, VulkanDescriptorP
       break;
     }
     case VulkanCommandPacket::PacketType::Dispatch:
+    {
+      // handle binding here, create function that does it in a generic way.
+      DispatchPacket* dis = static_cast<DispatchPacket*>(packet);
+      auto& bind = dis->descriptors;
+      for (auto&& it : bind.readBuffers)
       {
-        // handle binding here, create function that does it in a generic way.
-        DispatchPacket* dis = static_cast<DispatchPacket*>(packet);
-        auto& bind = dis->descriptors;
-        for (auto&& it : bind.readBuffers)
-        {
-          m_allSets.emplace_back(vk::WriteDescriptorSet()
-            .setDescriptorCount(1)
-            .setDescriptorType(it.second.type())
-            .setDstBinding(it.first)
-            .setDstSet(m_updatedSetsPerDraw[setCount])
-            .setPBufferInfo(&it.second.info()));
-        }
-        for (auto&& it : bind.modifyBuffers)
-        {
-          m_allSets.emplace_back(vk::WriteDescriptorSet()
-            .setDescriptorCount(1)
-            .setDescriptorType(it.second.type())
-            .setDstBinding(it.first)
-            .setDstSet(m_updatedSetsPerDraw[setCount])
-            .setPBufferInfo(&it.second.info()));
-        }
-        ++setCount;
-        break;
+        m_allSets.emplace_back(vk::WriteDescriptorSet()
+          .setDescriptorCount(1)
+          .setDescriptorType(it.second.type())
+          .setDstBinding(it.first)
+          .setDstSet(m_updatedSetsPerDraw[setCount])
+          .setPBufferInfo(&it.second.info()));
       }
+      for (auto&& it : bind.modifyBuffers)
+      {
+        m_allSets.emplace_back(vk::WriteDescriptorSet()
+          .setDescriptorCount(1)
+          .setDescriptorType(it.second.type())
+          .setDstBinding(it.first)
+          .setDstSet(m_updatedSetsPerDraw[setCount])
+          .setPBufferInfo(&it.second.info()));
+      }
+      ++setCount;
+      break;
+    }
     default:
       break;
     }
@@ -635,13 +625,13 @@ void VulkanCmdBuffer::dependencyFuckup()
       drawCallIndex++;
       break;
     }
-	case VulkanCommandPacket::PacketType::PrepareForPresent:
-	{
-		PrepareForPresentPacket* p = static_cast<PrepareForPresentPacket*>(packet);
-		tracker.addDrawCall(drawCallIndex, DependencyTracker::DrawType::PrepareForPresent, vk::PipelineStageFlagBits::eColorAttachmentOutput);
-		tracker.addReadTexture(drawCallIndex, p->texture, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::ePresentSrcKHR);
-		drawCallIndex++;
-	}
+    case VulkanCommandPacket::PacketType::PrepareForPresent:
+    {
+      PrepareForPresentPacket* p = static_cast<PrepareForPresentPacket*>(packet);
+      tracker.addDrawCall(drawCallIndex, DependencyTracker::DrawType::PrepareForPresent, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+      tracker.addReadTexture(drawCallIndex, p->texture, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::ePresentSrcKHR);
+      drawCallIndex++;
+    }
     default:
       break;
     }
@@ -656,4 +646,3 @@ void VulkanCmdBuffer::dependencyFuckup()
   });
   */
 }
-
