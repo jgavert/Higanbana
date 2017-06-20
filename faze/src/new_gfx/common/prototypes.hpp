@@ -68,21 +68,25 @@ namespace faze
       {
       public:
         virtual ~TextureImpl() = default;
+        virtual backend::TrackedState dependency() = 0;
       };
       class TextureViewImpl
       {
       public:
         virtual ~TextureViewImpl() = default;
+        virtual backend::RawView view() = 0;
       };
       class BufferImpl
       {
       public:
         virtual ~BufferImpl() = default;
+        virtual backend::TrackedState dependency() = 0;
       };
       class BufferViewImpl
       {
       public:
         virtual ~BufferViewImpl() = default;
+        virtual backend::RawView view() = 0;
       };
 
       class HeapImpl

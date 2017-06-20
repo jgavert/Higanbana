@@ -12,7 +12,7 @@ namespace faze
     std::shared_ptr<backend::prototypes::TextureImpl> impl;
     std::shared_ptr<int64_t> m_id;
     std::shared_ptr<ResourceDescriptor> m_desc;
-
+    backend::TrackedState m_dependency;
   public:
     Texture()
       : m_desc(std::make_shared<ResourceDescriptor>())
@@ -23,6 +23,7 @@ namespace faze
       : impl(impl)
       , m_id(id)
       , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
+      , m_dependency(impl->dependency())
     {
     }
 
@@ -40,6 +41,11 @@ namespace faze
     {
       return *m_id;
     }
+
+    backend::TrackedState dependency()
+    {
+      return m_dependency;
+    }
   };
 
   class TextureView
@@ -47,6 +53,9 @@ namespace faze
     Texture tex;
     std::shared_ptr<backend::prototypes::TextureViewImpl> impl;
     std::shared_ptr<int64_t> m_id;
+
+    backend::RawView m_view;
+    backend::TrackedState m_dependency;
 
     LoadOp m_loadOp = LoadOp::Load;
     StoreOp m_storeOp = StoreOp::Store;
@@ -57,6 +66,8 @@ namespace faze
       : tex(tex)
       , impl(impl)
       , m_id(id)
+      , m_view(impl->view())
+      , m_dependency(tex.dependency())
     {
     }
 
@@ -98,6 +109,15 @@ namespace faze
     StoreOp storeOp()
     {
       return m_storeOp;
+    }
+
+    backend::RawView view()
+    {
+      return m_view;
+    }
+    backend::TrackedState dependency()
+    {
+      return m_dependency;
     }
   };
 

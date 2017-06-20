@@ -38,6 +38,18 @@ namespace faze
       bool valid() const { return !!m_state; }
     };
 
+    struct RawView
+    {
+      size_t ptr;
+      unsigned type;
+    };
+    struct TrackedState
+    {
+      size_t resPtr;
+      size_t statePtr;
+      size_t additionalInfo;
+    };
+
     template <typename TrackedResource>
     class ResourceTracker : public std::enable_shared_from_this<ResourceTracker<TrackedResource>>
     {

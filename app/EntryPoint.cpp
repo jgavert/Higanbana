@@ -26,8 +26,8 @@ int EntryPoint::main()
 {
   Logger log;
   {
-    testNetwork(log);
-    log.update();
+    //testNetwork(log);
+    //log.update();
   }
 
   auto main = [&](GraphicsApi api, VendorID preferredVendor, const char* name, bool updateLog)
@@ -102,8 +102,8 @@ int EntryPoint::main()
           .setPixelShader("app/shaders/triangle.ps.hlsl")
           .setPrimitiveTopology(PrimitiveTopology::Triangle);
 
-        GraphicsPipeline pipelineA(pipelineDescriptor);
-        F_LOG("%d\n", pipelineA.descriptor.sampleCount);
+        GraphicsPipeline trianglePipe(pipelineDescriptor);
+        F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         bool closeAnyway = true;
         while (!window.simpleReadMessages(frame++))
@@ -167,6 +167,8 @@ int EntryPoint::main()
             auto node = tasks.createPass("Triangle!");
             node.renderpass(triangleRenderpass);
             node.subpass(backbuffer);
+            auto binding = node.bind<::shader::Triangle>(trianglePipe);
+            //binding.constants.
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }

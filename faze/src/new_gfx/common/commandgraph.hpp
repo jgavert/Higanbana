@@ -3,6 +3,7 @@
 #include "core/src/datastructures/proxy.hpp"
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
+#include "binding.hpp"
 
 #include <string>
 
@@ -58,6 +59,14 @@ namespace faze
     {
       list.subpass(deps, {}, { dsv });
       return subpassIndex++;
+    }
+
+    // bindings
+
+    template <typename interface>
+    Binding<interface> bind(GraphicsPipeline&)
+    {
+      return Binding<interface>();
     }
   };
 
