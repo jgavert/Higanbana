@@ -104,6 +104,16 @@ namespace faze
       return S().createRenderpass();
     }
 
+    ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
+    {
+      return S().createComputePipeline(desc);
+    }
+
+    GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
+    {
+      return S().createGraphicsPipeline(desc);
+    }
+
     CommandGraph createGraph()
     {
       return CommandGraph();

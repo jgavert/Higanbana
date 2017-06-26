@@ -184,6 +184,8 @@ namespace faze
       TextureRTV acquirePresentableImage(Swapchain& swapchain);
 
       Renderpass createRenderpass();
+      ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
+      GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
       Buffer createBuffer(ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);

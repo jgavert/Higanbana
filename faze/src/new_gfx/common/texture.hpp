@@ -57,17 +57,19 @@ namespace faze
     backend::RawView m_view;
     backend::TrackedState m_dependency;
 
+    FormatType m_format;
     LoadOp m_loadOp = LoadOp::Load;
     StoreOp m_storeOp = StoreOp::Store;
   public:
     TextureView() = default;
 
-    TextureView(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range)
+    TextureView(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range, FormatType type)
       : tex(tex)
       , impl(impl)
       , m_id(id)
       , m_view(impl->view())
       , m_dependency(tex.dependency())
+      , m_format(type)
     {
       F_LOG("Storing data %u %u %u %u\n", static_cast<unsigned>(range.mipOffset),
         static_cast<unsigned>(range.mipLevels),
@@ -133,6 +135,11 @@ namespace faze
     {
       return m_dependency;
     }
+
+    FormatType format()
+    {
+      return m_format;
+    }
   };
 
   class TextureSRV : public TextureView
@@ -140,8 +147,8 @@ namespace faze
   public:
 
     TextureSRV() = default;
-    TextureSRV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range)
-      : TextureView(tex, impl, id, range)
+    TextureSRV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range, FormatType type)
+      : TextureView(tex, impl, id, range, type)
     {
     }
 
@@ -162,8 +169,8 @@ namespace faze
   {
   public:
     TextureUAV() = default;
-    TextureUAV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range)
-      : TextureView(tex, impl, id, range)
+    TextureUAV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range, FormatType type)
+      : TextureView(tex, impl, id, range, type)
     {
     }
 
@@ -184,8 +191,8 @@ namespace faze
   {
   public:
     TextureRTV() = default;
-    TextureRTV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range)
-      : TextureView(tex, impl, id, range)
+    TextureRTV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range, FormatType type)
+      : TextureView(tex, impl, id, range, type)
     {
     }
 
@@ -206,8 +213,8 @@ namespace faze
   {
   public:
     TextureDSV() = default;
-    TextureDSV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range)
-      : TextureView(tex, impl, id, range)
+    TextureDSV(Texture tex, std::shared_ptr<backend::prototypes::TextureViewImpl> impl, std::shared_ptr<int64_t> id, const SubresourceRange& range, FormatType type)
+      : TextureView(tex, impl, id, range, type)
     {
     }
 

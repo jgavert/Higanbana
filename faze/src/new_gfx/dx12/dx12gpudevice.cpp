@@ -17,10 +17,12 @@ namespace faze
 {
   namespace backend
   {
-      DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory)
+      DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs)
           : m_info(info)
           , m_device(device)
           , m_factory(factory)
+          , m_fs(fs)
+          , m_shaders(fs, "../app/shaders", "dxil")
           , m_nodeMask(0) // sli/crossfire index
           , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
           , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
@@ -358,25 +360,84 @@ namespace faze
       return std::make_shared<DX12Renderpass>();
     }
 
-    void DX12Device::updatePipeline(GraphicsPipeline& , gfxpacket::Subpass& )
+    std::shared_ptr<prototypes::PipelineImpl> DX12Device::createPipeline()
     {
-      /*
-      std::vector<backend::RawView> views;
+      return std::make_shared<DX12Pipeline>();
+    }
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(DX12ShaderStorage& shaders, GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
+    {
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+
+
+
+      return desc;
+    }
+
+    void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
+    {
+      // TODO: needs formats here, not views which are too unique.
+      std::vector<FormatType> views;
       for (auto&& it : subpass.rtvs)
       {
-        views.emplace_back(it.view());
+        views.emplace_back(it.format());
       }
       for (auto&& it : subpass.dsvs)
       {
-        views.emplace_back(it.view());
+        views.emplace_back(it.format());
       }
-      auto hash = HashMemory(views.data(), views.size() * sizeof(backend::RawView));*/
+      auto hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
+      bool missing = true;
+      for (auto&& it : *pipeline.m_pipelines)
+      {
+        if (it.first == hash)
+        {
+          missing = false;
+          break;
+        }
+      }
 
+      if (missing)
+      {
+        F_LOG("missing pipeline for hash %zu\n", hash);
+        auto desc = getDesc(m_shaders, pipeline, subpass);
+        ComPtr<ID3D12PipelineState> pipe;
+        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+
+        ComPtr<ID3D12RootSignature> root;
+        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+
+        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<prototypes::PipelineImpl>(DX12Pipeline(pipe, root))));
+      }
     }
 
-    void DX12Device::updatePipeline(ComputePipeline& )
+    void DX12Device::updatePipeline(ComputePipeline& pipeline)
     {
+      auto* ptr = static_cast<DX12Pipeline*>(pipeline.impl.get());
+      bool needsCompile = false;
+      if (ptr->pipeline.Get() == nullptr)
+      {
+        needsCompile = true;
+      }
+      // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
+      if (needsCompile)
+      {
+        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
+        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
 
+        D3D12_SHADER_BYTECODE byte;
+        byte.pShaderBytecode = thing.data();
+        byte.BytecodeLength = thing.size();
+
+        D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
+        ZeroMemory(&computeDesc, sizeof(computeDesc));
+        computeDesc.CS = byte;
+        computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        computeDesc.NodeMask = 0;
+        computeDesc.pRootSignature = ptr->root.Get();
+
+        FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
+      }
     }
 
     GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)
