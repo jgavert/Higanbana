@@ -6,6 +6,7 @@
 #include <experimental/filesystem>
 
 namespace system_fs = std::experimental::filesystem;
+using namespace faze;
 
 void getDirs(std::string path, std::deque<std::string>& ret)
 {

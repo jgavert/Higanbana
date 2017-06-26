@@ -21,6 +21,7 @@
 #include <vulkan/vulkan.hpp>
 #include <memory>
 
+
 class VulkanGpuDevice
 {
 private:
@@ -79,7 +80,7 @@ public:
   VulkanGpuDevice(
 	std::shared_ptr<vk::Device> device,
 	  vk::PhysicalDevice physDev,
-    FileSystem& fs,
+    faze::FileSystem& fs,
     vk::AllocationCallbacks alloc_info,
     std::vector<vk::QueueFamilyProperties> queues,
     vk::PhysicalDeviceMemoryProperties memProp,

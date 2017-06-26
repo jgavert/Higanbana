@@ -4,21 +4,34 @@
 #include "faze/src/new_gfx/common/graphicssurface.hpp"
 #include "view_descriptor.hpp"
 #include "core/src/system/bitpacking.hpp"
+#include "faze/src/new_gfx/common/commandpackets.hpp"
+
 #include "core/src/global_debug.hpp"
+#include "faze/src/new_gfx/definitions.hpp"
+
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+#include <DXGIDebug.h>
+#endif
 
 namespace faze
 {
   namespace backend
   {
-    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device)
-      : m_info(info)
-      , m_device(device)
-      , m_nodeMask(0) // sli/crossfire index
-      , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
-      , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
-      , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
-      , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
-    {
+      DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory)
+          : m_info(info)
+          , m_device(device)
+          , m_factory(factory)
+          , m_nodeMask(0) // sli/crossfire index
+          , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
+          , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
+          , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
+          , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
+      {
+
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+      DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
+      //m_debug->EnableLeakTrackingForThread();
+#endif
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -75,6 +88,9 @@ namespace faze
 
     DX12Device::~DX12Device()
     {
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+      m_debug->ReportLiveObjects(DXGI_DEBUG_DX, DXGI_DEBUG_RLO_ALL);
+#endif
     }
 
     D3D12_RESOURCE_DESC DX12Device::fillPlacedBufferInfo(ResourceDescriptor descriptor)
@@ -224,14 +240,11 @@ namespace faze
       fullDesc.RefreshRate.Denominator = 1001; // lol 2
       fullDesc.Windowed = TRUE; // oh boy, need to toggle this in flight only. fullscreen + breakpoint + single screen == pain.
 
-      ComPtr<IDXGIFactory5> dxgiFactory = nullptr;
-      FAZE_CHECK_HR(CreateDXGIFactory2(0, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
-
       D3D12Swapchain* swapChain = nullptr;
-      FAZE_CHECK_HR(dxgiFactory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
+      FAZE_CHECK_HR(m_factory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
       auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
       sc->setBufferMetadata(width, height, bufferCount, format, mode);
-      dxgiFactory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
+      m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
       return sc;
     }
 
@@ -345,9 +358,25 @@ namespace faze
       return std::make_shared<DX12Renderpass>();
     }
 
-    std::shared_ptr<prototypes::GraphicsPipelineImpl> DX12Device::createGraphicsPipeline(GraphicsPipelineDescriptor descriptor)
+    void DX12Device::updatePipeline(GraphicsPipeline& , gfxpacket::Subpass& )
     {
-      return nullptr;
+      /*
+      std::vector<backend::RawView> views;
+      for (auto&& it : subpass.rtvs)
+      {
+        views.emplace_back(it.view());
+      }
+      for (auto&& it : subpass.dsvs)
+      {
+        views.emplace_back(it.view());
+      }
+      auto hash = HashMemory(views.data(), views.size() * sizeof(backend::RawView));*/
+
+    }
+
+    void DX12Device::updatePipeline(ComputePipeline& )
+    {
+
     }
 
     GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)

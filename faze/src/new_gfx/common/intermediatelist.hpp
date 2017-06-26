@@ -24,7 +24,9 @@ namespace faze
         PrepareForPresent,
         RenderpassBegin,
         RenderpassEnd,
-        Subpass
+        Subpass,
+        GraphicsPipelineBind,
+        ComputePipelineBind
       };
 
       CommandPacket();

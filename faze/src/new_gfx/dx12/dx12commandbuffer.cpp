@@ -87,12 +87,46 @@ namespace faze
       solver.makeAllBarriers();
     }
 
+    void processRenderpasses(DX12Device* dev, backend::IntermediateList& list)
+    {
+      gfxpacket::Subpass* activeSubpass = nullptr;
+
+      for (CommandPacket* packet : list)
+      {
+        switch (packet->type())
+        {
+        case CommandPacket::PacketType::Subpass:
+        {
+          activeSubpass = packetPtr(gfxpacket::Subpass, packet);
+          break;
+        }
+        case CommandPacket::PacketType::ComputePipelineBind:
+        {
+          auto& ref = packetRef(gfxpacket::ComputePipelineBind, packet);
+          dev->updatePipeline(ref.pipeline);
+          break;
+        }
+        case CommandPacket::PacketType::GraphicsPipelineBind:
+        {
+          auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, packet);
+          dev->updatePipeline(ref.pipeline, *activeSubpass);
+          break;
+        }
+        default:
+          break;
+        }
+      }
+    }
+
     // implementations
-    void DX12CommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList& list)
+    void DX12CommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
       DX12DependencySolver solver;
 
+      DX12Device* dev = static_cast<DX12Device*>(device.get());
+
       addDepedencyDataAndSolve(solver, list);
+      processRenderpasses(dev, list);
       addCommands(commandList.Get(), solver, list);
 
       commandList->Close();

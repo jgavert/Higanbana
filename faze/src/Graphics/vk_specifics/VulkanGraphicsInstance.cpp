@@ -183,7 +183,7 @@ bool VulkanGraphicsInstance::createInstance(const char* appName, unsigned appVer
   return true;
 }
 
-VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(FileSystem& fs)
+VulkanGpuDevice VulkanGraphicsInstance::createGpuDevice(faze::FileSystem& fs)
 {
 
   auto canPresent = [](vk::PhysicalDevice dev)

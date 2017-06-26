@@ -63,10 +63,20 @@ namespace faze
 
     // bindings
 
-    template <typename interface>
-    Binding<interface> bind(GraphicsPipeline&)
+    template <typename Shader>
+    Binding<Shader> bind(GraphicsPipeline& pipeline)
     {
-      return Binding<interface>();
+      list.bindPipeline(pipeline);
+
+      return Binding<Shader>();
+    }
+
+    template <typename Shader>
+    Binding<Shader> bind(ComputePipeline& pipeline)
+    {
+      list.bindPipeline(pipeline);
+
+      return Binding<Shader>();
     }
   };
 

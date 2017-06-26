@@ -751,11 +751,6 @@ namespace faze
       return std::make_shared<VulkanRenderpass>();
     }
 
-    std::shared_ptr<prototypes::GraphicsPipelineImpl> VulkanDevice::createGraphicsPipeline(GraphicsPipelineDescriptor descriptor)
-    {
-      return nullptr;
-    }
-
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
     {
       auto&& desc = heapDesc.desc;

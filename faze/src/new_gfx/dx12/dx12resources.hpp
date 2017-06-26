@@ -2,11 +2,17 @@
 #if defined(FAZE_PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
+#include "faze/src/new_gfx/common/commandpackets.hpp"
 
 #include "core/src/system/MemoryPools.hpp"
 #include "core/src/system/MovePtr.hpp"
 
 #include "dx12.hpp"
+
+#include "faze/src/new_gfx/definitions.hpp"
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+#include <DXGIDebug.h>
+#endif
 
 namespace faze
 {
@@ -351,6 +357,15 @@ namespace faze
       {
         return statePtr;
       }
+
+      backend::TrackedState dependency() override
+      {
+        backend::TrackedState state{};
+        state.resPtr = reinterpret_cast<size_t>(resource);
+        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
+        state.additionalInfo = 0;
+        return state;
+      }
     };
 
     class DX12TextureView : public prototypes::TextureViewImpl
@@ -373,6 +388,13 @@ namespace faze
       SubresourceRange range()
       {
         return subResourceRange;
+      }
+
+      backend::RawView view() override
+      {
+        backend::RawView view;
+        view.val(resource.cpu.ptr);
+        return view;
       }
     };
 
@@ -397,6 +419,14 @@ namespace faze
       {
         return statePtr;
       }
+      backend::TrackedState dependency() override
+      {
+        backend::TrackedState state{};
+        state.resPtr = reinterpret_cast<size_t>(resource);
+        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
+        state.additionalInfo = 0;
+        return state;
+      }
     };
 
     class DX12BufferView : public prototypes::BufferViewImpl
@@ -413,6 +443,13 @@ namespace faze
       DX12Descriptor native()
       {
         return resource;
+      }
+
+      backend::RawView view() override
+      {
+        backend::RawView view;
+        view.val(resource.cpu.ptr);
+        return view;
       }
     };
 
@@ -446,6 +483,10 @@ namespace faze
     private:
       GpuInfo m_info;
       ComPtr<ID3D12Device> m_device;
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+      ComPtr<IDXGIDebug1> m_debug;
+#endif
+      ComPtr<IDXGIFactory4> m_factory;
       UINT m_nodeMask;
       ComPtr<ID3D12CommandQueue> m_graphicsQueue;
       ComPtr<ID3D12CommandQueue> m_dmaQueue;
@@ -463,11 +504,14 @@ namespace faze
       Rabbitpool2<DX12Fence> m_fencePool;
 
     public:
-      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device);
+      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory);
       ~DX12Device();
 
       D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
+
+      void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass);
+      void updatePipeline(ComputePipeline& pipeline);
 
       // impl
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
@@ -480,7 +524,6 @@ namespace faze
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
-      std::shared_ptr<prototypes::GraphicsPipelineImpl> createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
@@ -539,8 +582,8 @@ namespace faze
     class DX12Subsystem : public prototypes::SubsystemImpl
     {
       vector<GpuInfo> infos;
-      ComPtr<IDXGIFactory5> pFactory;
-      std::vector<IDXGIAdapter3*> vAdapters;
+      ComPtr<IDXGIFactory4> pFactory;
+      std::vector<ComPtr<IDXGIAdapter3>> vAdapters;
     public:
       DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
       std::string gfxApi() override;

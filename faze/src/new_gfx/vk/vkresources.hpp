@@ -225,6 +225,11 @@ namespace faze
       {
         return owned;
       }
+
+	  backend::TrackedState dependency() override
+	  {
+		  return backend::TrackedState{};
+	  }
     };
 
     class VulkanTextureView : public prototypes::TextureViewImpl
@@ -260,6 +265,11 @@ namespace faze
           .setBaseArrayLayer(m.subResourceRange.sliceOffset)
           .setLayerCount(m.subResourceRange.arraySize);
       }
+
+	  backend::RawView view() override
+	  {
+		  return backend::RawView{};
+	  }
     };
 
     struct VulkanBufferState
@@ -290,6 +300,11 @@ namespace faze
       {
         return statePtr;
       }
+
+	  backend::TrackedState dependency() override
+	  {
+		  return backend::TrackedState{};
+	  }
     };
 
     class VulkanBufferView : public prototypes::BufferViewImpl
@@ -311,6 +326,11 @@ namespace faze
       {
         return m;
       }
+
+	  backend::RawView view() override
+	  {
+		  return backend::RawView{};
+	  }
     };
 
     class VulkanHeap : public prototypes::HeapImpl
@@ -431,7 +451,6 @@ namespace faze
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
-      std::shared_ptr<prototypes::GraphicsPipelineImpl> createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;
