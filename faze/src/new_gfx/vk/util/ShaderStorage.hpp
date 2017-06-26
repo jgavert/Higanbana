@@ -8,7 +8,7 @@
 class ShaderStorage
 {
 private:
-  FileSystem& m_fs;
+  faze::FileSystem& m_fs;
   std::string sourcePath;
   std::string compiledPath;
 public:
@@ -47,7 +47,7 @@ private:
 
 public:
 
-  ShaderStorage(FileSystem& fs, std::string shaderPath, std::string spirvPath)
+  ShaderStorage(faze::FileSystem& fs, std::string shaderPath, std::string spirvPath)
     : m_fs(fs)
     , sourcePath("/" + shaderPath + "/")
     , compiledPath("/" + spirvPath + "/")
@@ -60,10 +60,10 @@ public:
   class IncludeHelper : public shaderc::CompileOptions::IncluderInterface
   {
   private:
-    FileSystem& m_fs;
+    faze::FileSystem& m_fs;
     std::string sourcePath;
   public:
-    IncludeHelper(FileSystem& fs, std::string sourcePath)
+    IncludeHelper(faze::FileSystem& fs, std::string sourcePath)
       : m_fs(fs)
       , sourcePath(sourcePath)
     {}

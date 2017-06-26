@@ -13,6 +13,6 @@
   public:
     GraphicsInstance();
     bool createInstance(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
-    GpuDevice createGpuDevice(FileSystem& fs);
+    GpuDevice createGpuDevice(faze::FileSystem& fs);
     WindowSurface createSurface(faze::Window& window);
   };

@@ -5,6 +5,8 @@
 #include <vector>
 #include <mutex>
 
+#include "core/src/global_debug.hpp"
+
 namespace faze
 {
   class GpuDevice;
@@ -38,16 +40,87 @@ namespace faze
       bool valid() const { return !!m_state; }
     };
 
+    constexpr size_t createMaskWithNBitsSet(size_t count)
+    {
+      return (count == 0ll) ? 0ll : (1ll << (count - 1ll)) | createMaskWithNBitsSet(count - 1ll);
+    }
+
     struct RawView
     {
-      size_t ptr;
-      unsigned type;
+      size_t view;
+      
+      template <typename T>
+      void ptr(const T* val)
+      {
+        size_t storable = reinterpret_cast<size_t>(val);
+        auto checkFirstBits = storable & createMaskWithNBitsSet(4);
+        F_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
+        view &= createMaskWithNBitsSet(4);
+        view |= storable
+      }
+
+      template <typename T>
+      void val(const T val)
+      {
+        size_t storable = static_cast<size_t>(val);
+        auto checkFirstBits = storable & createMaskWithNBitsSet(4);
+        F_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
+        view &= createMaskWithNBitsSet(4);
+        view |= storable;
+      }
+
+      void storeSmallValue(unsigned val)
+      {
+        val &= createMaskWithNBitsSet(4);
+        view &= ~(createMaskWithNBitsSet(4));
+        view |= val;
+      }
     };
+
     struct TrackedState
     {
       size_t resPtr;
       size_t statePtr;
       size_t additionalInfo;
+
+      static constexpr size_t arrayBits = 11;
+      static constexpr size_t mipBits = 4;
+
+      // layout is arraySize(11), arrayBase(11), mipSize(4), mipBase(4), rest of additionalinfo.
+      void storeSubresourceRange(unsigned mipBase, unsigned mipSize, unsigned arrayBase, unsigned arraySize)
+      {
+        size_t res = mipBase;
+        res = res << mipBits;
+        res |= mipSize;
+        res = res << arrayBits;
+        res |= arrayBase;
+        res = res << arrayBits;
+        res |= arraySize;
+        additionalInfo &= ~(createMaskWithNBitsSet(arrayBits + arrayBits + mipBits + mipBits));
+        additionalInfo |= res;
+      }
+
+      size_t mip() const
+      {
+        return (additionalInfo >> (arrayBits + arrayBits + mipBits)) & createMaskWithNBitsSet(mipBits);
+      }
+
+      size_t slice() const
+      {
+        return (additionalInfo >> arrayBits) & createMaskWithNBitsSet(arrayBits);
+      }
+
+      size_t arraySize() const
+      {
+        auto size = additionalInfo & createMaskWithNBitsSet(arrayBits);
+        return (size == 0) ? 2048 : size;
+      }
+
+      size_t mipLevels() const
+      {
+        auto size = (additionalInfo >> (arrayBits + arrayBits)) & createMaskWithNBitsSet(mipBits);
+        return (size == 0) ? 16 : size;
+      }
     };
 
     template <typename TrackedResource>

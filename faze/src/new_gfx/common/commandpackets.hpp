@@ -7,6 +7,7 @@
 #include "core/src/math/vec_templated.hpp"
 
 #define packetRef(type, packet) *static_cast<type*>(packet)
+#define packetPtr(type, packet) static_cast<type*>(packet)
 
 namespace faze
 {
@@ -105,6 +106,38 @@ namespace faze
       PacketType type() override
       {
         return PacketType::Subpass;
+      }
+    };
+
+    class GraphicsPipelineBind : public backend::CommandPacket
+    {
+    public:
+      GraphicsPipeline pipeline;
+
+      GraphicsPipelineBind(backend::ListAllocator, const GraphicsPipeline& pipeline)
+        : pipeline(pipeline)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::GraphicsPipelineBind;
+      }
+    };
+
+    class ComputePipelineBind : public backend::CommandPacket
+    {
+    public:
+      ComputePipeline pipeline;
+
+      ComputePipelineBind(backend::ListAllocator, const ComputePipeline& pipeline)
+        : pipeline(pipeline)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::ComputePipelineBind;
       }
     };
   }

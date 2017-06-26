@@ -1,19 +1,32 @@
 #pragma once
-#include "resources.hpp"
 #include "heap_descriptor.hpp"
-#include "intermediatelist.hpp"
 #include "core/src/system/memview.hpp"
+#include "core/src/datastructures/proxy.hpp"
+
+#include "faze/src/new_gfx/common/resource_descriptor.hpp"
 
 #include <string>
+#include <memory>
 
 namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
   class GraphicsSurface;
+
+  // descriptors
+  class ResourceDescriptor;
+  class FileSystem;
+  class Window;
+  struct MemoryRequirements;
+
   namespace backend
   {
+    struct TrackedState;
+    struct RawView;
     struct GpuHeap;
+    class IntermediateList;
+    struct HeapAllocation;
 
     class SemaphoreImpl
     {
@@ -26,6 +39,11 @@ namespace faze
     public:
       virtual ~FenceImpl() = default;
     };
+
+    namespace prototypes
+    {
+      class DeviceImpl;
+    }
 
     class CommandBufferImpl
     {
@@ -46,6 +64,12 @@ namespace faze
       {
       public:
         virtual ~GraphicsPipelineImpl() = default;
+      };
+
+      class ComputePipelineImpl
+      {
+      public:
+        virtual ~ComputePipelineImpl() = default;
       };
 
       class GraphicsSurfaceImpl
@@ -112,7 +136,6 @@ namespace faze
 
         // pipeline related
         virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
-        virtual std::shared_ptr<GraphicsPipelineImpl> createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;

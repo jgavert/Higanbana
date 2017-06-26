@@ -55,17 +55,18 @@
                       + ' atls.lib'
                       + ' Shcore.lib'
                       + ' D3DCompiler.lib'
+                      + ' dxguid.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
-					  + ' libcmtd.lib'
+					            + ' libcmtd.lib'
                       + ' libucrtd.lib'
                       + ' libvcruntimed.lib'
-					  + ' libconcrtd1.lib'
+					            + ' libconcrtd1.lib'
                       + .extDebLibs
   .Releaselinkerlibs  = ' libcpmt.lib'
-					  + ' libcmt.lib'
+					            + ' libcmt.lib'
                       + ' libucrt.lib'
                       + ' libvcruntime.lib'
-					  + ' libconcrt1.lib'
+					            + ' libconcrt1.lib'
                       + .extRelLibs
   .Profilelinkerlibs  = .Releaselinkerlibs
 

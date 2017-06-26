@@ -198,7 +198,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Amd, "Nvidia", true);
+  main(GraphicsApi::DX12, VendorID::Intel, "Warp", true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });

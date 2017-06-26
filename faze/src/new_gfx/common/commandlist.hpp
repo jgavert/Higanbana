@@ -66,5 +66,15 @@ namespace faze
     {
       list.insert<gfxpacket::Subpass>(deps, rtvs, dsvs);
     }
+
+    void bindPipeline(GraphicsPipeline& pipeline)
+    {
+      list.insert<gfxpacket::GraphicsPipelineBind>(pipeline);
+    }
+
+    void bindPipeline(ComputePipeline& pipeline)
+    {
+      list.insert<gfxpacket::ComputePipelineBind>(pipeline);
+    }
   };
 }

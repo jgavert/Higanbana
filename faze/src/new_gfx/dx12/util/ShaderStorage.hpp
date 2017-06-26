@@ -10,7 +10,7 @@
 
 class CShaderInclude : public ID3DInclude {
 public:
-  CShaderInclude(FileSystem& fs, std::string sourcePath) : m_fs(fs), m_sourcePath(sourcePath) {}
+  CShaderInclude(faze::FileSystem& fs, std::string sourcePath) : m_fs(fs), m_sourcePath(sourcePath) {}
 
   HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID /*pParentData*/, LPCVOID *ppData, UINT *pBytes)
   {
@@ -46,7 +46,7 @@ public:
     return S_OK;
   }
 private:
-  FileSystem& m_fs;
+  faze::FileSystem& m_fs;
   std::string m_sourcePath;
 };
 

@@ -13,7 +13,8 @@ namespace faze
   {
     DX12Subsystem::DX12Subsystem(const char*, unsigned, const char*, unsigned)
     {
-      CreateDXGIFactory1(IID_PPV_ARGS(pFactory.GetAddressOf()));
+      CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(pFactory.GetAddressOf()));
+
     }
 
     std::string DX12Subsystem::gfxApi()
@@ -24,44 +25,74 @@ namespace faze
     vector<GpuInfo> DX12Subsystem::availableGpus()
     {
       UINT i = 0;
-      IDXGIAdapter1* pAdapter;
+      ComPtr<IDXGIAdapter1> pAdapter;
       while (pFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
       {
-        IDXGIAdapter3* wanted;
-        HRESULT hr = pAdapter->QueryInterface(__uuidof(IDXGIAdapter3), (void **)&wanted);
+        HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
-          vAdapters.push_back(wanted);
-        }
 
-        DXGI_ADAPTER_DESC desc;
-        wanted->GetDesc(&desc);
-        char ch[128];
-        char DefChar = ' ';
-        WideCharToMultiByte(CP_ACP, 0, desc.Description, -1, ch, 128, &DefChar, NULL);
+            DXGI_ADAPTER_DESC desc;
+            pAdapter->GetDesc(&desc);
+            char ch[128];
+            char DefChar = ' ';
+            WideCharToMultiByte(CP_ACP, 0, desc.Description, -1, ch, 128, &DefChar, NULL);
 
-        GpuInfo info{};
-        info.name = std::string(ch);
-        info.vendor = VendorID::Unknown;
-        if (desc.VendorId == 4098)
-        {
-          info.vendor = VendorID::Amd;
-        }
-        else if (desc.VendorId == 4318)
-        {
-          info.vendor = VendorID::Nvidia;
-        }
-        else if (desc.VendorId == 32902)
-        {
-          info.vendor = VendorID::Intel;
-        }
-        info.id = i;
-        info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
-        info.type = DeviceType::Unknown;
-        info.canPresent = true;
-        infos.push_back(info);
+            GpuInfo info{};
+            info.name = std::string(ch);
 
+            if (info.name.find("Microsoft Basic Render Driver") != std::string::npos)
+            {
+                i++;
+                continue;
+            }
+
+            ComPtr<IDXGIAdapter3> wanted;
+            hr = pAdapter->QueryInterface(IID_PPV_ARGS(&wanted));
+
+            if (SUCCEEDED(hr))
+            {
+                vAdapters.push_back(wanted);
+            }
+            else
+            {
+                i++;
+                continue;
+            }
+            info.vendor = VendorID::Unknown;
+            info.type = DeviceType::Unknown;
+            if (desc.VendorId == 4098)
+            {
+                info.vendor = VendorID::Amd;
+                info.type = DeviceType::DiscreteGpu;
+            }
+            else if (desc.VendorId == 4318)
+            {
+                info.vendor = VendorID::Nvidia;
+                info.type = DeviceType::DiscreteGpu;
+            }
+            else if (desc.VendorId == 32902)
+            {
+                info.vendor = VendorID::Intel;
+                info.type = DeviceType::IntegratedGpu;
+            }
+            info.id = static_cast<int>(vAdapters.size())-1;
+            info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
+            info.canPresent = true;
+
+            infos.push_back(info);
+        }
         ++i;
+      }
+      
+      {
+        GpuInfo info{};
+        info.name = "Warp";
+        info.id = -1;
+        info.canPresent = true;
+        info.type = DeviceType::Cpu;
+        info.vendor = VendorID::Unknown;
+        infos.push_back(info);
       }
 
       return infos;
@@ -91,29 +122,37 @@ namespace faze
         D3D_FEATURE_LEVEL_12_1,
         D3D_FEATURE_LEVEL_12_0,
         D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1
       };
-
-      int i = 0;
-      while (i < 4)
+      if (gpu.id == -1)
       {
-#if defined(FAZE_GRAPHICS_WARP_DRIVER)
-        ComPtr<IDXGIAdapter1> pAdapter;
-        pFactory->EnumWarpAdapter(IID_PPV_ARGS(pAdapter.GetAddressOf()));
-        HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
-#else
-        HRESULT hr = D3D12CreateDevice(vAdapters[gpu.id], tryToEnable[i], IID_PPV_ARGS(&device));
-#endif
-        if (SUCCEEDED(hr))
-        {
-          createdLevel = tryToEnable[i];
-          device->SetName(L"HwDevice");
-#if defined(FAZE_GRAPHICS_WARP_DRIVER)
-          device->SetName(L"Warp");
-#endif
-          break;
-        }
-        ++i;
+          ComPtr<IDXGIAdapter> pAdapter;
+          pFactory->EnumWarpAdapter(IID_PPV_ARGS(&pAdapter));
+          HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+          if (SUCCEEDED(hr))
+          {
+              device->SetName(L"Warp");
+          }
+          else
+          {
+              F_ASSERT(false, ":( no warp");
+          }
+      }
+      else
+      {
+          int i = 0;
+          while (i < 4)
+          {
+              HRESULT hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
+              if (SUCCEEDED(hr))
+              {
+                  createdLevel = tryToEnable[i];
+                  device->SetName(L"HwDevice");
+                  break;
+              }
+              ++i;
+          }
       }
 
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
@@ -147,7 +186,7 @@ namespace faze
       }
 #endif
 
-      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device),
+      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory),
         [device](DX12Device* ptr)
       {
         device->Release();

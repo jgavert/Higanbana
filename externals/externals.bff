@@ -64,7 +64,7 @@
                   + 'shaderc_combined_d'
                   + .extLibPostfix
 .shadercLibRelease  = .extLibPrefix
-                    + 'shaderc_combined'
+                    + 'shaderc_combined_r'
                     + .extLibPostfix
 
 

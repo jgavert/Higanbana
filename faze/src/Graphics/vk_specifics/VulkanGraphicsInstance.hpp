@@ -64,7 +64,7 @@ private:
 public:
   VulkanGraphicsInstance();
   bool createInstance(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
-  VulkanGpuDevice createGpuDevice(FileSystem& fs);
+  VulkanGpuDevice createGpuDevice(faze::FileSystem& fs);
 
 
 #if defined(FAZE_PLATFORM_WINDOWS)
