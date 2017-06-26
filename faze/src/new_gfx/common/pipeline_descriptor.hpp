@@ -6,10 +6,9 @@ namespace faze
 {
   class ComputePipelineDescriptor
   {
-    friend class GpuDevice;
-
-    std::string shaderSourcePath;
   public:
+    std::string shaderSourcePath;
+
     ComputePipelineDescriptor()
     {
     }

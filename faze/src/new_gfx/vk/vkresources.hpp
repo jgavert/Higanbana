@@ -349,6 +349,14 @@ namespace faze
       }
     };
 
+    class VulkanPipeline : public prototypes::PipelineImpl
+    {
+
+      vk::Pipeline            m_pipeline;
+      vk::PipelineLayout      m_pipelineLayout;
+      vk::DescriptorSetLayout m_descriptorSetLayout;
+    };
+
     class VulkanRenderpass : public prototypes::RenderpassImpl
     {
     private:
@@ -451,6 +459,7 @@ namespace faze
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
+      std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
       void destroyHeap(GpuHeap heap) override;

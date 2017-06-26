@@ -60,16 +60,10 @@ namespace faze
         virtual ~RenderpassImpl() = default;
       };
 
-      class GraphicsPipelineImpl
+      class PipelineImpl
       {
       public:
-        virtual ~GraphicsPipelineImpl() = default;
-      };
-
-      class ComputePipelineImpl
-      {
-      public:
-        virtual ~ComputePipelineImpl() = default;
+        virtual ~PipelineImpl() = default;
       };
 
       class GraphicsSurfaceImpl
@@ -136,6 +130,7 @@ namespace faze
 
         // pipeline related
         virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
+        virtual std::shared_ptr<PipelineImpl> createPipeline() = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;

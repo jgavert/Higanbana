@@ -98,7 +98,7 @@ namespace faze
       return infos;
     }
 
-    GpuDevice DX12Subsystem::createGpuDevice(FileSystem&, GpuInfo gpu)
+    GpuDevice DX12Subsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       {
@@ -186,7 +186,7 @@ namespace faze
       }
 #endif
 
-      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory),
+      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory, fs),
         [device](DX12Device* ptr)
       {
         device->Release();

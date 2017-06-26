@@ -9,6 +9,8 @@
 
 #include "dx12.hpp"
 
+#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
+
 #include "faze/src/new_gfx/definitions.hpp"
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
@@ -478,6 +480,23 @@ namespace faze
       DX12Renderpass() {}
     };
 
+    class DX12Pipeline : public prototypes::PipelineImpl
+    {
+    public:
+      ComPtr<ID3D12PipelineState> pipeline;
+      ComPtr<ID3D12RootSignature> root;
+      DX12Pipeline()
+        : pipeline(nullptr)
+        , root(nullptr)
+      {
+      }
+      DX12Pipeline(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> root)
+        : pipeline(pipeline)
+        , root(root)
+      {
+      }
+    };
+
     class DX12Device : public prototypes::DeviceImpl
     {
     private:
@@ -487,6 +506,10 @@ namespace faze
       ComPtr<IDXGIDebug1> m_debug;
 #endif
       ComPtr<IDXGIFactory4> m_factory;
+
+      FileSystem& m_fs;
+      DX12ShaderStorage m_shaders;
+
       UINT m_nodeMask;
       ComPtr<ID3D12CommandQueue> m_graphicsQueue;
       ComPtr<ID3D12CommandQueue> m_dmaQueue;
@@ -504,7 +527,7 @@ namespace faze
       Rabbitpool2<DX12Fence> m_fencePool;
 
     public:
-      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory);
+      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
       ~DX12Device();
 
       D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
@@ -514,6 +537,8 @@ namespace faze
       void updatePipeline(ComputePipeline& pipeline);
 
       // impl
+      std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
+
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;

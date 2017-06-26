@@ -102,7 +102,7 @@ int EntryPoint::main()
           .setPixelShader("app/shaders/triangle.ps.hlsl")
           .setPrimitiveTopology(PrimitiveTopology::Triangle);
 
-        GraphicsPipeline trianglePipe(pipelineDescriptor);
+        GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         bool closeAnyway = true;

@@ -10,11 +10,12 @@ namespace faze
   class ComputePipeline
   {
   public:
-    std::shared_ptr<backend::prototypes::ComputePipelineImpl> impl;
+    std::shared_ptr<backend::prototypes::PipelineImpl> impl;
     ComputePipelineDescriptor descriptor;
 
-    ComputePipeline(ComputePipelineDescriptor desc)
-      : descriptor(desc)
+    ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, ComputePipelineDescriptor desc)
+      : impl(impl)
+      , descriptor(desc)
     {}
   };
 
@@ -23,11 +24,12 @@ namespace faze
   public:
     GraphicsPipelineDescriptor::Desc descriptor;
 
-    using HorrorPair = std::pair<size_t, std::unique_ptr<backend::prototypes::GraphicsPipelineImpl>>;
+    using HorrorPair = std::pair<size_t, std::shared_ptr<backend::prototypes::PipelineImpl>>;
     std::shared_ptr<vector<HorrorPair>> m_pipelines;
 
     GraphicsPipeline(GraphicsPipelineDescriptor desc)
       : descriptor(desc.desc)
+      , m_pipelines(std::make_shared<vector<HorrorPair>>())
     {}
   };
 }
