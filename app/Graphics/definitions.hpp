@@ -48,7 +48,7 @@ namespace shader\
 #define FAZE_STATIC_SAMPLER(name) SamplerState name : register( s0 );
 
 #ifdef FAZE_DX12
-#define ROOTSIG "RootFlags( ), " \
+#define ROOTSIG "RootFlags(0), " \
         "CBV(b0), " \
         "DescriptorTable( SRV(t0, numDescriptors = 32)), " \
         "DescriptorTable( UAV(u0, numDescriptors = 8)), " \

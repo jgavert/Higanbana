@@ -149,7 +149,13 @@ namespace faze
         ComPtr<ID3DBlob> shaderBlob;
         ComPtr<ID3DBlob> errorMsg;
 
-        HRESULT hr = D3DCompile(text.data(), text.size(), nullptr, nullptr, &include, "main", p, compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
+        D3D_SHADER_MACRO macros[] =
+        {
+          D3D_SHADER_MACRO{"FAZE_DX12", nullptr },
+          D3D_SHADER_MACRO{nullptr, nullptr }
+        };
+
+        HRESULT hr = D3DCompile(text.data(), text.size(), shaderName.c_str(), macros, &include, "main", p, compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
         // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
         if (FAILED(hr))
         {
@@ -168,7 +174,7 @@ namespace faze
         return true;
       }
 
-      faze::MemView<uint8_t> shader(std::string shaderName, ShaderType type)
+      faze::MemoryBlob shader(const std::string& shaderName, ShaderType type)
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
         auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
@@ -194,7 +200,7 @@ namespace faze
         }
         F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
         auto shader = m_fs.readFile(dxilPath);
-        return faze::makeByteView(shader.data(), shader.size());
+        return shader;
       }
 
       ComPtr<ID3DBlob> rootSignature(std::string shaderName, ShaderType type)

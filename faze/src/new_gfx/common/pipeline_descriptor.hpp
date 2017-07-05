@@ -77,11 +77,11 @@ namespace faze
 
   enum ColorWriteEnable
   {
-    Red,
-    Green,
-    Blue,
-    Alpha,
-    All
+    Red = 1,
+    Green = 2,
+    Blue = 4,
+    Alpha = 8,
+    All = (((Red | Green) | Blue) | Alpha)
   };
 
   class RTBlendDescriptor
@@ -169,7 +169,7 @@ namespace faze
     Back
   };
 
-  enum class ConvervativeRasterization
+  enum class ConservativeRasterization
   {
     Off,
     On
@@ -190,7 +190,7 @@ namespace faze
       bool multisampleEnable = false;
       bool antialiasedLineEnable = false;
       unsigned int forcedSampleCount = 0;
-      ConvervativeRasterization conservativeRaster = ConvervativeRasterization::Off;
+      ConservativeRasterization conservativeRaster = ConservativeRasterization::Off;
     } desc;
 
     RasterizerDescriptor()
@@ -245,7 +245,7 @@ namespace faze
       desc.forcedSampleCount = value;
       return *this;
     }
-    RasterizerDescriptor& setConservativeRaster(ConvervativeRasterization value)
+    RasterizerDescriptor& setConservativeRaster(ConservativeRasterization value)
     {
       desc.conservativeRaster = value;
       return *this;
@@ -266,7 +266,7 @@ namespace faze
     LessEqual,
     Greater,
     NotEqual,
-    GreaterEqualL,
+    GreaterEqual,
     Always
   };
 
@@ -438,7 +438,6 @@ namespace faze
       std::array<FormatType, 8> rtvFormats;
       FormatType dsvFormat = FormatType::Unknown;
       unsigned int sampleCount = 1;
-      unsigned int sampleQuality = 0;
     } desc;
 
     GraphicsPipelineDescriptor()
@@ -514,10 +513,9 @@ namespace faze
       desc.dsvFormat = value;
       return *this;
     }
-    GraphicsPipelineDescriptor& setMultiSampling(unsigned int SampleCount, unsigned int SampleQuality)
+    GraphicsPipelineDescriptor& setMultiSampling(unsigned int SampleCount)
     {
       desc.sampleCount = SampleCount;
-      desc.sampleQuality = SampleQuality;
       return *this;
     }
   };
