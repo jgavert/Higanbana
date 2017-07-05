@@ -98,9 +98,11 @@ int EntryPoint::main()
         Renderpass triangleRenderpass = dev.createRenderpass();
 
         auto pipelineDescriptor = GraphicsPipelineDescriptor()
-          .setVertexShader("app/shaders/triangle.vs.hlsl")
-          .setPixelShader("app/shaders/triangle.ps.hlsl")
-          .setPrimitiveTopology(PrimitiveTopology::Triangle);
+          .setVertexShader("triangle")
+          .setPixelShader("triangle")
+          .setPrimitiveTopology(PrimitiveTopology::Triangle)
+          .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false));
 
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);

@@ -9,6 +9,8 @@
 #include "core/src/global_debug.hpp"
 #include "faze/src/new_gfx/definitions.hpp"
 
+#include "faze/src/new_gfx/dx12/util/pipeline_helpers.hpp"
+
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
 #endif
@@ -17,19 +19,18 @@ namespace faze
 {
   namespace backend
   {
-      DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs)
-          : m_info(info)
-          , m_device(device)
-          , m_factory(factory)
-          , m_fs(fs)
-          , m_shaders(fs, "../app/shaders", "dxil")
-          , m_nodeMask(0) // sli/crossfire index
-          , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
-          , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
-          , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
-          , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
-      {
-
+    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs)
+      : m_info(info)
+      , m_device(device)
+      , m_factory(factory)
+      , m_fs(fs)
+      , m_shaders(fs, "../app/shaders", "dxil")
+      , m_nodeMask(0) // sli/crossfire index
+      , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
+      , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
+      , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
+      , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
+    {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
       //m_debug->EnableLeakTrackingForThread();
@@ -365,11 +366,86 @@ namespace faze
       return std::make_shared<DX12Pipeline>();
     }
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(DX12ShaderStorage& shaders, GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
     {
       D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
 
-
+      GraphicsPipelineDescriptor::Desc d = pipeline.descriptor;
+      {
+        // BlendState
+        desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.alphaToCoverageEnable;
+        desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.independentBlendEnable;
+        for (int i = 0; i < 8; ++i)
+        {
+          auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
+          desc.BlendState.RenderTarget[i].BlendEnable = rtb.blendEnable;
+          desc.BlendState.RenderTarget[i].LogicOpEnable = rtb.logicOpEnable;
+          desc.BlendState.RenderTarget[i].SrcBlend = convertBlend(rtb.srcBlend);
+          desc.BlendState.RenderTarget[i].DestBlend = convertBlend(rtb.destBlend);
+          desc.BlendState.RenderTarget[i].BlendOp = convertBlendOp(rtb.blendOp);
+          desc.BlendState.RenderTarget[i].SrcBlendAlpha = convertBlend(rtb.srcBlendAlpha);
+          desc.BlendState.RenderTarget[i].DestBlendAlpha = convertBlend(rtb.destBlendAlpha);
+          desc.BlendState.RenderTarget[i].BlendOpAlpha = convertBlendOp(rtb.blendOpAlpha);
+          desc.BlendState.RenderTarget[i].LogicOp = convertLogicOp(rtb.logicOp);
+          desc.BlendState.RenderTarget[i].RenderTargetWriteMask = convertColorWriteEnable(rtb.colorWriteEnable);
+        }
+      }
+      {
+        // Rasterization
+        auto& rd = d.rasterDesc.desc;
+        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
+        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
+        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
+        desc.RasterizerState.DepthBias = rd.depthBias;
+        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
+        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
+        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
+        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
+        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
+        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
+        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
+      }
+      {
+        // DepthStencil
+        auto& dss = d.dsdesc.desc;
+        desc.DepthStencilState.DepthEnable = dss.depthEnable;
+        desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
+        desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
+        desc.DepthStencilState.StencilEnable = dss.stencilEnable;
+        desc.DepthStencilState.StencilReadMask = dss.stencilReadMask;
+        desc.DepthStencilState.StencilWriteMask = dss.stencilWriteMask;
+        desc.DepthStencilState.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
+        desc.DepthStencilState.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
+        desc.DepthStencilState.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
+        desc.DepthStencilState.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
+        desc.DepthStencilState.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
+        desc.DepthStencilState.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
+        desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
+        desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
+      }
+      desc.PrimitiveTopologyType = convertPrimitiveTopology(d.primitiveTopology);
+      desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+      // subpass things here
+      desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
+      for (size_t i = 0; i < subpass.rtvs.size(); ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(subpass.rtvs[i].format()).view;
+      }
+      desc.DSVFormat = (subpass.dsvs.size() == 0) ? DXGI_FORMAT_UNKNOWN : formatTodxFormat(subpass.dsvs[0].format()).view;
+      for (size_t i = subpass.rtvs.size(); i < 8; ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+      }
+      /*
+      desc.NumRenderTargets = d.numRenderTargets;
+      for (int i = 0; i < 8; ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+      }
+      desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
+      */
+      desc.SampleDesc.Count = d.sampleCount;
+      desc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
 
       return desc;
     }
@@ -400,12 +476,56 @@ namespace faze
       if (missing)
       {
         F_LOG("missing pipeline for hash %zu\n", hash);
-        auto desc = getDesc(m_shaders, pipeline, subpass);
-        ComPtr<ID3D12PipelineState> pipe;
-        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+        auto desc = getDesc(pipeline, subpass);
+
+        GraphicsPipelineDescriptor::Desc d = pipeline.descriptor;
+        vector<MemoryBlob> blobs;
+        if (!d.vertexShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(d.vertexShaderPath, DX12ShaderStorage::ShaderType::Vertex);
+          blobs.emplace_back(shader);
+          desc.VS.BytecodeLength = blobs.back().size();
+          desc.VS.pShaderBytecode = blobs.back().data();
+        }
+
+        if (!d.hullShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(d.hullShaderPath, DX12ShaderStorage::ShaderType::TessControl);
+          blobs.emplace_back(shader);
+          desc.HS.BytecodeLength = blobs.back().size();
+          desc.HS.pShaderBytecode = blobs.back().data();
+        }
+
+        if (!d.domainShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(d.domainShaderPath, DX12ShaderStorage::ShaderType::TessEvaluation);
+          blobs.emplace_back(shader);
+          desc.DS.BytecodeLength = blobs.back().size();
+          desc.DS.pShaderBytecode = blobs.back().data();
+        }
+
+        if (!d.geometryShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(d.geometryShaderPath, DX12ShaderStorage::ShaderType::Geometry);
+          blobs.emplace_back(shader);
+          desc.GS.BytecodeLength = blobs.back().size();
+          desc.GS.pShaderBytecode = blobs.back().data();
+        }
+
+        if (!d.pixelShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(d.pixelShaderPath, DX12ShaderStorage::ShaderType::Pixel);
+          blobs.emplace_back(shader);
+          desc.PS.BytecodeLength = blobs.back().size();
+          desc.PS.pShaderBytecode = blobs.back().data();
+        }
 
         ComPtr<ID3D12RootSignature> root;
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+        desc.pRootSignature = root.Get();
+
+        ComPtr<ID3D12PipelineState> pipe;
+        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
 
         pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<prototypes::PipelineImpl>(DX12Pipeline(pipe, root))));
       }
