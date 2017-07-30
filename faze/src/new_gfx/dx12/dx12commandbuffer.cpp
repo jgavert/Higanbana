@@ -1,10 +1,77 @@
 #include "dx12resources.hpp"
 #include "util/dxDependencySolver.hpp"
 
+#include <algorithm>
+
 namespace faze
 {
   namespace backend
   {
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
+    {
+      // set viewport and rendertargets
+      uint2 size;
+      if (packet.rtvs.size() > 0)
+      {
+        size = uint2{ packet.rtvs[0].desc().desc.width, packet.rtvs[0].desc().desc.height };
+      }
+      else if (packet.dsvs.size() > 0)
+      {
+        size = uint2{ packet.dsvs[0].desc().desc.width, packet.dsvs[0].desc().desc.height };
+      }
+      else
+      {
+        return;
+      }
+      D3D12_VIEWPORT port{};
+      port.Width = float(size.x());
+      port.Height = float(size.y());
+      port.MinDepth = D3D12_MIN_DEPTH;
+      port.MaxDepth = D3D12_MAX_DEPTH;
+      buffer->RSSetViewports(1, &port);
+
+      D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8]{};
+      unsigned maxSize = static_cast<unsigned>(std::min(8ull, packet.rtvs.size()));
+      D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+      D3D12_CPU_DESCRIPTOR_HANDLE* dsvPtr = nullptr;
+
+      if (packet.rtvs.size() > 0)
+      {
+        for (unsigned i = 0; i < maxSize; ++i)
+        {
+          rtvs[i].ptr = packet.rtvs[i].view().view;
+        }
+      }
+      if (packet.dsvs.size() > 0)
+      {
+        dsv.ptr = packet.dsvs[0].view().view;
+        dsvPtr = &dsv;
+      }
+      buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
+    }
+
+    void handle(ID3D12GraphicsCommandList*, gfxpacket::GraphicsPipelineBind&)
+    {
+      //packet.pipeline.
+      //buffer->SetPipelineState()
+    }
+
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
+    {
+      auto pipeline = std::static_pointer_cast<DX12Pipeline>(packet.pipeline.impl);
+      buffer->SetComputeRootSignature(pipeline->root.Get());
+      buffer->SetPipelineState(pipeline->pipeline.Get());
+    }
+
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Draw& packet)
+    {
+      buffer->DrawInstanced(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
+    }
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
+    {
+      buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
     {
       auto view = std::static_pointer_cast<DX12TextureView>(packet.rtv.native());
@@ -21,7 +88,26 @@ namespace faze
         switch (packet->type())
         {
           //        case CommandPacket::PacketType::BufferCopy:
-          //        case CommandPacket::PacketType::Dispatch:
+        case CommandPacket::PacketType::Subpass:
+        {
+          handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          break;
+        }
+        case CommandPacket::PacketType::Draw:
+        {
+          //handle(buffer, packetRef(gfxpacket::Draw, packet));
+          break;
+        }
+        case CommandPacket::PacketType::GraphicsPipelineBind:
+        {
+          handle(buffer, packetRef(gfxpacket::GraphicsPipelineBind, packet));
+          break;
+        }
+        case CommandPacket::PacketType::ComputePipelineBind:
+        {
+          handle(buffer, packetRef(gfxpacket::ComputePipelineBind, packet));
+          break;
+        }
         case CommandPacket::PacketType::ClearRT:
         {
           solver.runBarrier(buffer, drawIndex);

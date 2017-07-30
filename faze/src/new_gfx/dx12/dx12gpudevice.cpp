@@ -997,7 +997,8 @@ namespace faze
         m_graphicsQueue->Wait(native->fence.Get(), *native->value);
       }
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      FAZE_CHECK_HR(native->native()->Present(1, 0));
+      unsigned syncInterval = (native->getDesc().mode == PresentMode::Fifo) ? 1 : 0;
+      FAZE_CHECK_HR(native->native()->Present(syncInterval, 0));
     }
   }
 }
