@@ -76,5 +76,42 @@ namespace faze
     {
       list.insert<gfxpacket::ComputePipelineBind>(pipeline);
     }
+
+    void bindGraphicsResources(
+      MemView<backend::TrackedState> resources,
+      MemView<uint8_t> constants,
+      MemView<backend::RawView> srvs,
+      MemView<backend::RawView> uavs)
+    {
+      list.insert<gfxpacket::ResourceBinding>(
+        gfxpacket::ResourceBinding::BindingType::Graphics
+        , resources, constants, srvs, uavs);
+    }
+
+    void bindComputeResources(
+      MemView<backend::TrackedState> resources,
+      MemView<uint8_t> constants,
+      MemView<backend::RawView> srvs,
+      MemView<backend::RawView> uavs)
+    {
+      list.insert<gfxpacket::ResourceBinding>(
+        gfxpacket::ResourceBinding::BindingType::Compute,
+        resources, constants, srvs, uavs);
+    }
+
+    void draw(
+      unsigned vertexCountPerInstance,
+      unsigned instanceCount,
+      unsigned startVertex,
+      unsigned startInstance)
+    {
+      list.insert<gfxpacket::Draw>(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+    }
+
+    void dispatch(
+      uint3 groups)
+    {
+      list.insert<gfxpacket::Dispatch>(groups);
+    }
   };
 }

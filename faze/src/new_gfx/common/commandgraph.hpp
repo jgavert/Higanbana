@@ -78,6 +78,20 @@ namespace faze
 
       return Binding<Shader>();
     }
+
+    // draws/dispatches
+
+    template <typename Shader>
+    void draw(
+      Binding<Shader>& binding,
+      unsigned vertexCountPerInstance,
+      unsigned instanceCount = 0,
+      unsigned startVertex = 0,
+      unsigned startInstance = 0)
+    {
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
+      list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+    }
   };
 
   class CommandGraph

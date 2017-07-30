@@ -78,7 +78,7 @@ namespace faze
     {
       // sew together the lists.
       m_lastPacket->setNextPacket(*other.begin());
-      m_lastPacket = *other.end();
+      m_lastPacket = *other.last();
       m_memory.insert(m_memory.end(), std::make_move_iterator(other.m_memory.begin()), std::make_move_iterator(other.m_memory.end()));
       m_size += other.m_size;
       other.m_firstPacket = nullptr;

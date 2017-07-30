@@ -26,7 +26,9 @@ namespace faze
         RenderpassEnd,
         Subpass,
         GraphicsPipelineBind,
-        ComputePipelineBind
+        ComputePipelineBind,
+        ResourceBinding,
+        Draw
       };
 
       CommandPacket();
@@ -235,13 +237,26 @@ namespace faze
       }
       iterator end()
       {
-        return iterator(m_lastPacket);
+        return iterator(nullptr);
       }
       const_iterator end() const
       {
-        return const_iterator(m_lastPacket);
+        return const_iterator(nullptr);
       }
       const_iterator cend() const
+      {
+        return const_iterator(nullptr);
+      }
+
+      iterator last()
+      {
+        return iterator(m_lastPacket);
+      }
+      const_iterator last() const
+      {
+        return const_iterator(m_lastPacket);
+      }
+      const_iterator clast() const
       {
         return const_iterator(m_lastPacket);
       }

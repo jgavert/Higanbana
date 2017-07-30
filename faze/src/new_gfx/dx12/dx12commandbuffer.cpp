@@ -27,11 +27,13 @@ namespace faze
           solver.runBarrier(buffer, drawIndex);
           handle(buffer, packetRef(gfxpacket::ClearRT, packet));
           drawIndex++;
+          break;
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           solver.runBarrier(buffer, drawIndex);
           drawIndex++;
+          break;
         }
         default:
           break;
@@ -72,6 +74,7 @@ namespace faze
           auto& p = packetRef(gfxpacket::ClearRT, packet);
           drawIndex = solver.addDrawCall(packet->type());
           addTextureView(drawIndex, p.rtv, D3D12_RESOURCE_STATE_RENDER_TARGET);
+          break;
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
@@ -79,6 +82,7 @@ namespace faze
           drawIndex = solver.addDrawCall(packet->type());
           addTexture(drawIndex, p.texture, D3D12_RESOURCE_STATE_PRESENT);
           drawIndex++;
+          break;
         }
         default:
           break;

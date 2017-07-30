@@ -16,6 +16,20 @@ namespace faze
         return "ClearRT";
       case backend::CommandPacket::PacketType::PrepareForPresent:
         return "PrepareForPresent";
+      case backend::CommandPacket::PacketType::RenderpassBegin:
+        return "RenderpassBegin";
+      case backend::CommandPacket::PacketType::RenderpassEnd:
+        return "RenderpassEnd";
+      case backend::CommandPacket::PacketType::Subpass:
+        return "Subpass";
+      case backend::CommandPacket::PacketType::GraphicsPipelineBind:
+        return "GraphicsPipelineBind";
+      case backend::CommandPacket::PacketType::ComputePipelineBind:
+        return "ComputePipelineBind";
+      case backend::CommandPacket::PacketType::ResourceBinding:
+        return "ResourceBinding";
+      case backend::CommandPacket::PacketType::Draw:
+        return "Draw";
       default:
         return "Unknown";
       }
