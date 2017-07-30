@@ -7,8 +7,9 @@ namespace faze
 {
   namespace backend
   {
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
+    size_t handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
     {
+      size_t hash = 0;
       // set viewport and rendertargets
       uint2 size;
       if (packet.rtvs.size() > 0)
@@ -21,7 +22,7 @@ namespace faze
       }
       else
       {
-        return;
+        return hash;
       }
       D3D12_VIEWPORT port{};
       port.Width = float(size.x());
@@ -48,12 +49,33 @@ namespace faze
         dsvPtr = &dsv;
       }
       buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
+
+      {
+        std::vector<FormatType> views;
+        for (auto&& it : packet.rtvs)
+        {
+          views.emplace_back(it.format());
+        }
+        for (auto&& it : packet.dsvs)
+        {
+          views.emplace_back(it.format());
+        }
+        hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
+      }
+      return hash;
     }
 
-    void handle(ID3D12GraphicsCommandList*, gfxpacket::GraphicsPipelineBind&)
+    void handle(ID3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
     {
-      //packet.pipeline.
-      //buffer->SetPipelineState()
+      for (auto&& it : *pipelines.pipeline.m_pipelines)
+      {
+        if (it.first == hash)
+        {
+          auto pipeline = std::static_pointer_cast<DX12Pipeline>(it.second);
+          buffer->SetGraphicsRootSignature(pipeline->root.Get());
+          buffer->SetPipelineState(pipeline->pipeline.Get());
+        }
+      }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
@@ -83,6 +105,9 @@ namespace faze
     void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver& solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
+
+      size_t currentActiveSubpassHash = 0;
+
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
@@ -90,7 +115,7 @@ namespace faze
           //        case CommandPacket::PacketType::BufferCopy:
         case CommandPacket::PacketType::Subpass:
         {
-          handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          currentActiveSubpassHash = handle(buffer, packetRef(gfxpacket::Subpass, packet));
           break;
         }
         case CommandPacket::PacketType::Draw:
@@ -100,7 +125,9 @@ namespace faze
         }
         case CommandPacket::PacketType::GraphicsPipelineBind:
         {
-          handle(buffer, packetRef(gfxpacket::GraphicsPipelineBind, packet));
+          if (currentActiveSubpassHash == 0)
+            break;
+          handle(buffer, currentActiveSubpassHash, packetRef(gfxpacket::GraphicsPipelineBind, packet));
           break;
         }
         case CommandPacket::PacketType::ComputePipelineBind:

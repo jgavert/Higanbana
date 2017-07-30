@@ -527,7 +527,7 @@ namespace faze
         ComPtr<ID3D12PipelineState> pipe;
         FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
 
-        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<prototypes::PipelineImpl>(DX12Pipeline(pipe, root))));
+        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root))));
       }
     }
 
