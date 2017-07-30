@@ -395,7 +395,7 @@ namespace faze
       backend::RawView view() override
       {
         backend::RawView view;
-        view.val(resource.cpu.ptr);
+        view.view = resource.cpu.ptr;
         return view;
       }
     };
@@ -450,7 +450,7 @@ namespace faze
       backend::RawView view() override
       {
         backend::RawView view;
-        view.val(resource.cpu.ptr);
+        view.view = resource.cpu.ptr;
         return view;
       }
     };

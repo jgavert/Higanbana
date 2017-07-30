@@ -48,7 +48,9 @@ namespace faze
     struct RawView
     {
       size_t view;
-      
+      bool cpuToGpu;
+
+      /*
       template <typename T>
       void ptr(const T* val)
       {
@@ -74,7 +76,7 @@ namespace faze
         val &= createMaskWithNBitsSet(4);
         view &= ~(createMaskWithNBitsSet(4));
         view |= val;
-      }
+      }*/
     };
 
     struct TrackedState
