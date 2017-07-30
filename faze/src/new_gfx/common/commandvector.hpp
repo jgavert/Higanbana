@@ -10,6 +10,10 @@ namespace faze
   private:
     faze::MemView<T> m_view;
   public:
+    CommandListVector()
+    {
+    }
+
     CommandListVector(faze::MemView<T> view)
       : m_view(std::forward<decltype(view)>(view))
     {
@@ -22,9 +26,22 @@ namespace faze
       }
     }
 
-    CommandListVector(CommandListVector&&) = default;
+    CommandListVector(CommandListVector&& other)
+      :m_view(std::move(other.m_view))
+    {
+      other.m_view = MemView<T>();
+    }
     CommandListVector(const CommandListVector&) = delete;
-    CommandListVector& operator=(CommandListVector&&) = default;
+    CommandListVector& operator=(CommandListVector&& other)
+    {
+      if (this != &other)
+      {
+        m_view = other.m_view;
+        other.m_view = MemView<T>();
+      }
+      return *this;
+    }
+
     CommandListVector& operator=(const CommandListVector&) = delete;
 
     ~CommandListVector()

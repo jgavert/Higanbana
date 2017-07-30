@@ -19,6 +19,15 @@ namespace faze
     {
     }
 
+    Texture(const Texture&) = default;
+    Texture(Texture&&) = default;
+    Texture& operator=(const Texture&) = default;
+    Texture& operator=(Texture&&) = default;
+
+    ~Texture()
+    {
+    }
+
     Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
       : impl(impl)
       , m_id(id)

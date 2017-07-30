@@ -16,7 +16,33 @@ namespace faze
     backend::RawView m_uavs[uavCount];
     backend::TrackedState m_res[(resCount == 0) ? 1 : resCount];
   public:
+    friend class CommandGraphNode;
+
     decltype(Shader::constants) constants;
+
+  private:
+
+    MemView<backend::TrackedState> bResources()
+    {
+      return MemView<backend::TrackedState>(m_res, resCount);
+    }
+
+    MemView<backend::RawView> bSrvs()
+    {
+      return MemView<backend::RawView>(m_srvs, Shader::srv);
+    }
+
+    MemView<backend::RawView> bUavs()
+    {
+      return MemView<backend::RawView>(m_uavs, Shader::uav);
+    }
+
+    MemView<uint8_t> bConstants()
+    {
+      return MemView<uint8_t>(reinterpret_cast<uint8_t*>(&constants), sizeof(constants));
+    }
+
+  public:
 
     void srv(int pos, const BufferSRV& res)
     {

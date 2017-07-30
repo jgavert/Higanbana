@@ -13,7 +13,33 @@ namespace faze
 {
   namespace gfxpacket
   {
+    // helpers
     std::string packetTypeToString(backend::CommandPacket::PacketType type);
+
+    template <typename Type>
+    CommandListVector<Type> toCmdVector(backend::ListAllocator& allocator, MemView<Type>& view)
+    {
+      if (view.size() == 0)
+        return CommandListVector<Type>();
+
+      CommandListVector<Type> fnl(MemView<Type>(allocator.allocate<Type>(view.size()), view.size()));
+
+      if (std::is_pod<Type>::value)
+      {
+        memcpy(fnl.data(), view.data(), view.size() * sizeof(Type));
+      }
+      else
+      {
+        for (size_t i = 0; i < view.size(); ++i)
+        {
+          fnl[i] = view[i];
+        }
+      }
+
+      return fnl;
+    }
+
+    // packets
 
     class ClearRT : public backend::CommandPacket
     {
@@ -88,19 +114,10 @@ namespace faze
       CommandListVector<TextureRTV> rtvs;
       CommandListVector<TextureDSV> dsvs;
       Subpass(backend::ListAllocator allocator, MemView<int> inputDeps, MemView<TextureRTV> inputRtvs, MemView<TextureDSV> inputDsvs)
-        : dependencies(MemView<int>(allocator.allocate<int>(inputDeps.size()), inputDeps.size()))
-        , rtvs(MemView<TextureRTV>(allocator.allocate<TextureRTV>(inputRtvs.size()), inputRtvs.size()))
-        , dsvs(MemView<TextureDSV>(allocator.allocate<TextureDSV>(inputDsvs.size()), inputDsvs.size()))
+        : dependencies(toCmdVector(allocator, inputDeps))
+        , rtvs(toCmdVector(allocator, inputRtvs))
+        , dsvs(toCmdVector(allocator, inputDsvs))
       {
-        memcpy(dependencies.data(), inputDeps.data(), inputDeps.size());
-        for (size_t i = 0; i < inputRtvs.size(); ++i)
-        {
-          rtvs[i] = inputRtvs[i];
-        }
-        for (size_t i = 0; i < inputDsvs.size(); ++i)
-        {
-          dsvs[i] = inputDsvs[i];
-        }
       }
 
       PacketType type() override
@@ -138,6 +155,84 @@ namespace faze
       PacketType type() override
       {
         return PacketType::ComputePipelineBind;
+      }
+    };
+
+    class ResourceBinding : public backend::CommandPacket
+    {
+    public:
+      enum class BindingType : unsigned char
+      {
+        Graphics,
+        Compute
+      };
+
+      BindingType graphicsBinding;
+      CommandListVector<backend::TrackedState> resources;
+      CommandListVector<uint8_t> constants;
+      CommandListVector<backend::RawView> srvs;
+      CommandListVector<backend::RawView> uavs;
+
+      ResourceBinding(
+        backend::ListAllocator allocator,
+        BindingType graphicsBinding,
+        MemView<backend::TrackedState>& resources,
+        MemView<uint8_t>& constants,
+        MemView<backend::RawView>& srvs,
+        MemView<backend::RawView>& uavs)
+        : graphicsBinding(graphicsBinding)
+        , resources(toCmdVector(allocator, resources))
+        , constants(toCmdVector(allocator, constants))
+        , srvs(toCmdVector(allocator, srvs))
+        , uavs(toCmdVector(allocator, uavs))
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::ResourceBinding;
+      }
+    };
+
+    class Draw : public backend::CommandPacket
+    {
+    public:
+      unsigned vertexCountPerInstance;
+      unsigned instanceCount;
+      unsigned startVertex;
+      unsigned startInstance;
+
+      Draw(backend::ListAllocator,
+        unsigned vertexCountPerInstance,
+        unsigned instanceCount,
+        unsigned startVertex,
+        unsigned startInstance)
+        : vertexCountPerInstance(vertexCountPerInstance)
+        , instanceCount(instanceCount)
+        , startVertex(startVertex)
+        , startInstance(startInstance)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::Draw;
+      }
+    };
+
+    class Dispatch : public backend::CommandPacket
+    {
+    public:
+      uint3 groups;
+
+      Dispatch(backend::ListAllocator, uint3 groups)
+        : groups(groups)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::Dispatch;
       }
     };
   }

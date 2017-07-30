@@ -107,7 +107,7 @@ int EntryPoint::main()
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
-        bool closeAnyway = true;
+        bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
         {
           if (window.hasResized())
@@ -170,7 +170,8 @@ int EntryPoint::main()
             node.renderpass(triangleRenderpass);
             node.subpass(backbuffer);
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
-            //binding.constants.
+            binding.constants.color = float4{ 0.f, 1.f, 0.f, 1.f };
+            node.draw(binding, 3);
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }
