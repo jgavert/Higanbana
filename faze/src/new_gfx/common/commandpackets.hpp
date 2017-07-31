@@ -110,14 +110,26 @@ namespace faze
     class Subpass : public backend::CommandPacket
     {
     public:
+      size_t hash;
       CommandListVector<int> dependencies;
       CommandListVector<TextureRTV> rtvs;
       CommandListVector<TextureDSV> dsvs;
+
       Subpass(backend::ListAllocator allocator, MemView<int> inputDeps, MemView<TextureRTV> inputRtvs, MemView<TextureDSV> inputDsvs)
         : dependencies(toCmdVector(allocator, inputDeps))
         , rtvs(toCmdVector(allocator, inputRtvs))
         , dsvs(toCmdVector(allocator, inputDsvs))
       {
+        std::vector<FormatType> views;
+        for (auto&& it : rtvs)
+        {
+          views.emplace_back(it.format());
+        }
+        for (auto&& it : dsvs)
+        {
+          views.emplace_back(it.format());
+        }
+        hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
       }
 
       PacketType type() override

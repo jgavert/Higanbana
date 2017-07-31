@@ -7,9 +7,8 @@ namespace faze
 {
   namespace backend
   {
-    size_t handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
     {
-      size_t hash = 0;
       // set viewport and rendertargets
       uint2 size;
       if (packet.rtvs.size() > 0)
@@ -22,7 +21,7 @@ namespace faze
       }
       else
       {
-        return hash;
+        return;
       }
       D3D12_VIEWPORT port{};
       port.Width = float(size.x());
@@ -49,20 +48,6 @@ namespace faze
         dsvPtr = &dsv;
       }
       buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
-
-      {
-        std::vector<FormatType> views;
-        for (auto&& it : packet.rtvs)
-        {
-          views.emplace_back(it.format());
-        }
-        for (auto&& it : packet.dsvs)
-        {
-          views.emplace_back(it.format());
-        }
-        hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
-      }
-      return hash;
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
@@ -93,6 +78,9 @@ namespace faze
     {
       buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
     }
+    void handle(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding&)
+    {
+    }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
     {
@@ -115,12 +103,23 @@ namespace faze
           //        case CommandPacket::PacketType::BufferCopy:
         case CommandPacket::PacketType::Subpass:
         {
-          currentActiveSubpassHash = handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          currentActiveSubpassHash = (packetRef(gfxpacket::Subpass, packet)).hash;
+          handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          break;
+        }
+        case CommandPacket::PacketType::ResourceBinding:
+        {
+          handle(buffer, packetRef(gfxpacket::ResourceBinding, packet));
           break;
         }
         case CommandPacket::PacketType::Draw:
         {
           //handle(buffer, packetRef(gfxpacket::Draw, packet));
+          break;
+        }
+        case CommandPacket::PacketType::Dispatch:
+        {
+          //handle(buffer, packetRef(gfxpacket::Dispatch, packet));
           break;
         }
         case CommandPacket::PacketType::GraphicsPipelineBind:
@@ -236,7 +235,7 @@ namespace faze
     }
 
     // implementations
-    void DX12CommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
+    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
       DX12DependencySolver solver;
 
@@ -244,10 +243,9 @@ namespace faze
 
       addDepedencyDataAndSolve(solver, list);
       processRenderpasses(dev, list);
-      addCommands(commandList.Get(), solver, list);
+      addCommands(m_buffer->list(), solver, list);
 
-      commandList->Close();
-      closedList = true;
+      m_buffer->closeList();
     }
   }
 }

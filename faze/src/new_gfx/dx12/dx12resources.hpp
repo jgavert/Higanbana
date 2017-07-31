@@ -16,6 +16,8 @@
 #include <DXGIDebug.h>
 #endif
 
+#include <memory>
+
 namespace faze
 {
   namespace backend
@@ -143,6 +145,83 @@ namespace faze
       }
     };
 
+    struct UploadBlock
+    {
+      uint8_t* m_data;
+      PageBlock block;
+
+      uint8_t* data()
+      {
+        return m_data + block.offset;
+      }
+
+      size_t size()
+      {
+        return block.size;
+      }
+
+      explicit operator bool() const
+      {
+        return m_data != nullptr;
+      }
+    };
+
+    // TODO: protect with mutex
+    // accessed in dx12commandbuffer
+    class DX12UploadHeap
+    {
+      FixedSizeAllocator allocator;
+      ComPtr<ID3D12Resource> resource;
+      unsigned fixedSize = 1;
+      unsigned size = 1;
+
+      uint8_t* data = nullptr;
+    public:
+      DX12UploadHeap() : allocator(1, 1) {}
+      DX12UploadHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
+        : allocator(allocationSize, allocationCount)
+        , fixedSize(allocationSize)
+        , size(allocationSize*allocationCount)
+      {
+        {
+          D3D12_RESOURCE_DESC dxdesc{};
+
+          dxdesc.Width = allocationSize * allocationCount;
+          dxdesc.Height = 1;
+          dxdesc.DepthOrArraySize = 1;
+          dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+          dxdesc.Format = DXGI_FORMAT_UNKNOWN;
+          dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+          dxdesc.MipLevels = 1;
+          dxdesc.SampleDesc.Count = 1;
+          dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+          D3D12_HEAP_PROPERTIES heap{};
+          heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+          heap.CreationNodeMask = 0;
+
+          FAZE_CHECK_HR(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &dxdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&resource)));
+        }
+
+        D3D12_RANGE range{};
+        range.End = allocationSize * allocationCount;
+
+        FAZE_CHECK_HR(resource->Map(0, &range, reinterpret_cast<void**>(&data)));
+      }
+
+      UploadBlock allocate(size_t bytes)
+      {
+        auto dip = allocator.allocate(bytes);
+        F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d", size);
+        return UploadBlock{ data, dip };
+      }
+
+      void release(UploadBlock desc)
+      {
+        allocator.release(desc.block);
+      }
+    };
+
     class DX12Fence : public FenceImpl, public SemaphoreImpl
     {
     public:
@@ -185,47 +264,95 @@ namespace faze
       }
     };
 
-    class DX12CommandBuffer : public CommandBufferImpl
+    class DX12CommandBuffer
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       bool closedList = false;
-      std::shared_ptr<LinearDescriptorHeap> resources;
-      std::shared_ptr<LinearDescriptorHeap> samplers;
-      // needs the dynamicheaps
     public:
-      DX12CommandBuffer() {}
-      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList,
-        ComPtr<ID3D12CommandAllocator> commandListAllocator,
-        std::shared_ptr<LinearDescriptorHeap> resources,
-        std::shared_ptr<LinearDescriptorHeap> samplers)
+      //DX12CommandBuffer() {}
+      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
         : commandList(commandList)
         , commandListAllocator(commandListAllocator)
-        , resources(resources)
-        , samplers(samplers)
-      {}
+      {
+      }
 
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
+      DX12CommandBuffer(DX12CommandBuffer&& other) = default;
+      DX12CommandBuffer(const DX12CommandBuffer& other) = delete;
+
+      DX12CommandBuffer& operator=(DX12CommandBuffer&& other) = default;
+      DX12CommandBuffer& operator=(const DX12CommandBuffer& other) = delete;
 
       ID3D12GraphicsCommandList* list()
       {
         return commandList.Get();
       }
 
-      void reset()
+      void closeList()
+      {
+        commandList->Close();
+        closedList = true;
+      }
+
+      void resetList()
       {
         if (!closedList)
           commandList->Close();
         commandListAllocator->Reset();
         commandList->Reset(commandListAllocator.Get(), nullptr);
         closedList = false;
-        resources->reset();
-        samplers->reset();
       }
 
-      bool closed()
+      bool closed() const
       {
         return closedList;
+      }
+    };
+
+    class DX12CommandList : public CommandBufferImpl
+    {
+      std::shared_ptr<DX12CommandBuffer> m_buffer;
+      std::shared_ptr<DX12UploadHeap> m_constants;
+
+      struct FreeableResources
+      {
+        vector<UploadBlock> uploadBlocks;
+      };
+
+      std::shared_ptr<FreeableResources> m_freeResources;
+    public:
+      DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants)
+        : m_buffer(buffer)
+        , m_constants(constants)
+      {
+        m_buffer->resetList();
+
+        std::weak_ptr<DX12UploadHeap> consts = m_constants;
+
+        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts](FreeableResources* ptr)
+        {
+          if (auto constants = consts.lock())
+          {
+            for (auto&& it : ptr->uploadBlocks)
+            {
+              constants->release(it);
+            }
+          }
+
+          delete ptr;
+        });
+      }
+
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
+
+      bool closed() const
+      {
+        return m_buffer->closed();
+      }
+
+      ID3D12GraphicsCommandList* list()
+      {
+        return m_buffer->list();
       }
     };
 
@@ -525,6 +652,8 @@ namespace faze
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
       Rabbitpool2<DX12Fence> m_fencePool;
+
+      std::shared_ptr<DX12UploadHeap> m_constantsUpload;
 
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);

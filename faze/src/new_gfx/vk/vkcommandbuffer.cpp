@@ -8,8 +8,6 @@ namespace faze
   {
     void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
     {
-      F_LOG("yay\n");
-
       // step1. check if renderpass is done, otherwise create renderpass
       auto& renderpassbegin = packetRef(gfxpacket::RenderpassBegin, begin);
       auto rp = std::static_pointer_cast<VulkanRenderpass>(renderpassbegin.renderpass.impl());
