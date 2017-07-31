@@ -106,11 +106,11 @@ namespace faze
 
       std::weak_ptr<vector<T>> weakpool = m_pool;
 
-      auto obj = std::shared_ptr<T>(new T(m_pool->back()), [weakpool](T* ptr)
+      auto obj = std::shared_ptr<T>(new T(std::move(m_pool->back())), [weakpool](T* ptr)
       {
         if (auto pool = weakpool.lock())
         {
-          pool->emplace_back(*ptr);
+          pool->emplace_back(std::move(*ptr));
         }
         delete ptr;
       });

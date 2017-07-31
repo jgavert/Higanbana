@@ -136,12 +136,12 @@ int EntryPoint::main()
             F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
           }
 
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(0x31, 1))
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('1', 1))
           {
             window.toggleBorderlessFullscreen();
           }
 
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(0x32, 1))
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
           {
             reInit = true;
             F_LOG("switch api\n");

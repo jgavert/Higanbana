@@ -30,6 +30,7 @@ namespace faze
       , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
+      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
@@ -452,17 +453,7 @@ namespace faze
 
     void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
     {
-      // TODO: needs formats here, not views which are too unique.
-      std::vector<FormatType> views;
-      for (auto&& it : subpass.rtvs)
-      {
-        views.emplace_back(it.format());
-      }
-      for (auto&& it : subpass.dsvs)
-      {
-        views.emplace_back(it.format());
-      }
-      auto hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
+      auto hash = subpass.hash;
       bool missing = true;
       for (auto&& it : *pipeline.m_pipelines)
       {
@@ -860,9 +851,10 @@ namespace faze
       FAZE_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
       FAZE_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
 
-      return DX12CommandBuffer(commandList, commandListAllocator,
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
-        std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128));
+      return DX12CommandBuffer(commandList, commandListAllocator
+        //  , std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
+        //  , std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128)
+      );
     }
 
     DX12Fence DX12Device::createNativeFence()
@@ -875,21 +867,15 @@ namespace faze
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
-      auto list = m_copyListPool.allocate();
-      list->reset();
-      return list;
+      return std::make_shared<DX12CommandList>(m_copyListPool.allocate(), m_constantsUpload);
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
-      auto list = m_computeListPool.allocate();
-      list->reset();
-      return list;
+      return std::make_shared<DX12CommandList>(m_computeListPool.allocate(), m_constantsUpload);
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      auto list = m_graphicsListPool.allocate();
-      list->reset();
-      return list;
+      return std::make_shared<DX12CommandList>(m_graphicsListPool.allocate(), m_constantsUpload);
     }
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSemaphore()
@@ -921,7 +907,7 @@ namespace faze
       {
         for (auto&& buffer : lists)
         {
-          auto native = std::static_pointer_cast<DX12CommandBuffer>(buffer);
+          auto native = std::static_pointer_cast<DX12CommandList>(buffer);
           if (native->closed())
             natList.emplace_back(native->list());
           else
