@@ -101,6 +101,8 @@ int EntryPoint::main()
           .setVertexShader("triangle")
           .setPixelShader("triangle")
           .setPrimitiveTopology(PrimitiveTopology::Triangle)
+		  //.setRasterizer(faze::RasterizerDescriptor()
+		  //	.setFrontCounterClockwise(true))
           .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
@@ -171,7 +173,7 @@ int EntryPoint::main()
             node.subpass(backbuffer);
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
             binding.constants.color = float4{ 0.f, 1.f, 0.f, 1.f };
-            node.draw(binding, 3);
+            node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }
@@ -201,7 +203,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Intel, "Warp", true);
+  main(GraphicsApi::DX12, VendorID::Amd, "amd", true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });

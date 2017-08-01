@@ -169,6 +169,36 @@ namespace faze
       }
     };
 
+	class UploadLinearAllocator
+	{
+		LinearAllocator allocator;
+		UploadBlock block;
+
+		int64_t calcAlignedSize(int64_t size, size_t alignment)
+		{
+			return size + (alignment - (size % alignment));
+		}
+	public:
+		UploadLinearAllocator() {}
+		UploadLinearAllocator(UploadBlock block)
+			: allocator(block.size())
+			, block(block)
+		{
+
+		}
+
+		UploadBlock allocate(size_t bytes, size_t alignment)
+		{
+			auto offset = allocator.allocate(bytes, alignment);
+			if (offset < 0)
+				return UploadBlock{ nullptr, PageBlock{} };
+
+			UploadBlock b = block;
+			b.block.offset += offset;
+			return b;
+		}
+	};
+
     // TODO: protect with mutex
     // accessed in dx12commandbuffer
     class DX12UploadHeap
@@ -223,6 +253,11 @@ namespace faze
       {
         allocator.release(desc.block);
       }
+
+	  ID3D12Resource* native()
+	  {
+		return resource.Get();
+	  }
     };
 
     class DX12Fence : public FenceImpl, public SemaphoreImpl
@@ -317,6 +352,8 @@ namespace faze
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
 
+	  UploadLinearAllocator m_constantsAllocator;
+
       struct FreeableResources
       {
         vector<UploadBlock> uploadBlocks;
@@ -324,6 +361,7 @@ namespace faze
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
+	  UploadBlock allocateConstants(size_t size);
       void handleBindings(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
       void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
@@ -620,14 +658,17 @@ namespace faze
     public:
       ComPtr<ID3D12PipelineState> pipeline;
       ComPtr<ID3D12RootSignature> root;
+	  D3D12_PRIMITIVE_TOPOLOGY primitive;
       DX12Pipeline()
         : pipeline(nullptr)
         , root(nullptr)
+		, primitive(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
       {
       }
-      DX12Pipeline(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> root)
+      DX12Pipeline(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> root, D3D12_PRIMITIVE_TOPOLOGY primitive)
         : pipeline(pipeline)
         , root(root)
+		, primitive(primitive)
       {
       }
     };

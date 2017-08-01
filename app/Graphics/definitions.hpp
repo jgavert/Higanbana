@@ -50,11 +50,11 @@ namespace shader\
 #ifdef FAZE_DX12
 #define ROOTSIG "RootFlags(0), " \
         "CBV(b0), " \
-        "DescriptorTable( SRV(t0, numDescriptors = 32)), " \
-        "DescriptorTable( UAV(u0, numDescriptors = 8)), " \
         "StaticSampler(s0, " \
              "addressU = TEXTURE_ADDRESS_WRAP, " \
              "filter = FILTER_MIN_MAG_MIP_LINEAR )"
+        //"DescriptorTable( SRV(t0, numDescriptors = 32)), " \
+        //"DescriptorTable( UAV(u0, numDescriptors = 8)), " \
 
 #define GX_SIGNATURE [RootSignature(ROOTSIG)]
 #define CS_SIGNATURE [RootSignature(ROOTSIG)] \
