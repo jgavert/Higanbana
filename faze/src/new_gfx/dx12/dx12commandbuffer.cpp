@@ -159,7 +159,7 @@ namespace faze
         }
         case CommandPacket::PacketType::Dispatch:
         {
-          //handle(buffer, packetRef(gfxpacket::Dispatch, packet));
+          handle(buffer, packetRef(gfxpacket::Dispatch, packet));
           break;
         }
         case CommandPacket::PacketType::GraphicsPipelineBind:
