@@ -48,7 +48,6 @@ namespace faze
     struct RawView
     {
       size_t view;
-      bool cpuToGpu;
 
       /*
       template <typename T>

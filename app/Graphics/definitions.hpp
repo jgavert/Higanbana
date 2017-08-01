@@ -37,7 +37,7 @@ namespace shader\
     ConstantBuffer<cbufferType> constants : register( b0 );
 
 #define FAZE_SRV(type, name, index) \
-	type name : register(s##index);
+	type name : register(t##index);
 
 #define FAZE_UAV(type, name, index) \
 	type name : register(u##index);

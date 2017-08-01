@@ -30,7 +30,7 @@ int EntryPoint::main()
     //log.update();
   }
 
-  auto main = [&](GraphicsApi api, VendorID preferredVendor, const char* name, bool updateLog)
+  auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;
     int64_t frame = 1;
@@ -46,10 +46,7 @@ int EntryPoint::main()
 
     while (true)
     {
-      ivec2 ires = { 800, 600 };
-      Window window(m_params, name, ires.x(), ires.y(), 300, 200);
-      window.open();
-      GraphicsSubsystem graphics(api, name);
+      GraphicsSubsystem graphics(api, "faze");
       F_LOG("Using api %s\n", graphics.gfxApi().c_str());
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
@@ -65,6 +62,10 @@ int EntryPoint::main()
       if (updateLog) log.update();
       if (gpus.empty())
         return;
+
+      ivec2 ires = { 800, 600 };
+      Window window(m_params, gpus[chosenGpu].name, ires.x(), ires.y(), 300, 200);
+      window.open();
 
       auto surface = graphics.createSurface(window);
       auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
@@ -101,8 +102,8 @@ int EntryPoint::main()
           .setVertexShader("triangle")
           .setPixelShader("triangle")
           .setPrimitiveTopology(PrimitiveTopology::Triangle)
-		  //.setRasterizer(faze::RasterizerDescriptor()
-		  //	.setFrontCounterClockwise(true))
+          //.setRasterizer(faze::RasterizerDescriptor()
+          //	.setFrontCounterClockwise(true))
           .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
@@ -135,7 +136,7 @@ int EntryPoint::main()
           if (inputs.isPressedThisFrame(VK_SPACE, 1))
           {
             auto& mouse = window.mouse();
-            F_LOG("%s mouse %d %d\n", name, mouse.m_pos.x(), mouse.m_pos.y());
+            F_LOG("%s mouse %d %d\n", gpus[chosenGpu].name.c_str(), mouse.m_pos.x(), mouse.m_pos.y());
           }
 
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('1', 1))
@@ -163,17 +164,26 @@ int EntryPoint::main()
           {
             auto node = tasks.createPass("clear");
             node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 1.f });
-            node.clearRT(texRtv, vec4{ 0.f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
+            node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
-		  //if (inputs.isPressedThisFrame('3', 2))
-		  {
-			// we have pulsing red color background, draw a triangle on top of it !
+          //if (inputs.isPressedThisFrame('3', 2))
+          {
+            // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
             node.renderpass(triangleRenderpass);
             node.subpass(backbuffer);
+
+            vector<float4> vertices;
+            vertices.push_back(float4{ 0.f, 0.5f, 1.f, 1.f });
+            vertices.push_back(float4{ 0.5f, -0.5f, 1.f, 1.f });
+            vertices.push_back(float4{ -0.5f, -0.5f, 1.f, 1.f });
+
+            auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
+
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
-            binding.constants.color = float4{ 0.f, 1.f, 0.f, 1.f };
+            binding.constants.color = float4{ 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 0.f, 1.f };
+            binding.srv(::shader::Triangle::vertices, verts);
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
@@ -204,7 +214,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Amd, "amd", true);
+  main(GraphicsApi::DX12, VendorID::Amd, true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });

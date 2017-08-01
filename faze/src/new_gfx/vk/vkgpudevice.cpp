@@ -655,6 +655,10 @@ namespace faze
       return info;
     }
 
+    void VulkanDevice::collectTrash()
+    {
+    }
+
     void VulkanDevice::waitGpuIdle()
     {
       m_device.waitIdle();
@@ -978,6 +982,15 @@ namespace faze
     {
       auto native = std::static_pointer_cast<VulkanTextureView>(view);
       m_device.destroyImageView(native->native().view);
+    }
+
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t>, FormatType)
+    {
+      return std::make_shared<VulkanDynamicBufferView>();
+    }
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t>, unsigned)
+    {
+      return std::make_shared<VulkanDynamicBufferView>();
     }
 
     VulkanCommandBuffer VulkanDevice::createCommandBuffer(int queueIndex)

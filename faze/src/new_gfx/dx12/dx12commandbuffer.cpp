@@ -30,10 +30,10 @@ namespace faze
       port.MaxDepth = D3D12_MAX_DEPTH;
       buffer->RSSetViewports(1, &port);
 
-	  D3D12_RECT rect{};
-	  rect.bottom = size.y();
-	  rect.right = size.x();
-	  buffer->RSSetScissorRects(1, &rect);
+      D3D12_RECT rect{};
+      rect.bottom = size.y();
+      rect.right = size.x();
+      buffer->RSSetScissorRects(1, &rect);
 
       D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8]{};
       unsigned maxSize = static_cast<unsigned>(std::min(8ull, packet.rtvs.size()));
@@ -64,7 +64,7 @@ namespace faze
           auto pipeline = std::static_pointer_cast<DX12Pipeline>(it.second);
           buffer->SetGraphicsRootSignature(pipeline->root.Get());
           buffer->SetPipelineState(pipeline->pipeline.Get());
-		  buffer->IASetPrimitiveTopology(pipeline->primitive);
+          buffer->IASetPrimitiveTopology(pipeline->primitive);
         }
       }
     }
@@ -85,39 +85,37 @@ namespace faze
       buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
     }
 
-	UploadBlock DX12CommandList::allocateConstants(size_t size)
-	{
-		auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		if (!block)
-		{
-			auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 16);
-			F_ASSERT(newBlock, "What!");
-			m_freeResources->uploadBlocks.push_back(newBlock);
-			m_constantsAllocator = UploadLinearAllocator(newBlock);
-			block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		}
+    UploadBlock DX12CommandList::allocateConstants(size_t size)
+    {
+      auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+      if (!block)
+      {
+        auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 16);
+        F_ASSERT(newBlock, "What!");
+        m_freeResources->uploadBlocks.push_back(newBlock);
+        m_constantsAllocator = UploadLinearAllocator(newBlock);
+        block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+      }
 
-		F_ASSERT(block, "What!");
-		return block;
-	}
+      F_ASSERT(block, "What!");
+      return block;
+    }
 
     void DX12CommandList::handleBindings(ID3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
     {
-		if (ding.constants.size() > 0)
-		{
-			auto block = allocateConstants(ding.constants.size());
-			memcpy(block.data(), ding.constants.data(), ding.constants.size());
-			auto virtualAddress = m_constants->native()->GetGPUVirtualAddress();
-			virtualAddress += block.block.offset;
-			if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-			{
-				buffer->SetGraphicsRootConstantBufferView(0, virtualAddress);
-			}
-			else
-			{
-				buffer->SetComputeRootConstantBufferView(0, virtualAddress);
-			}
-		}
+      if (ding.constants.size() > 0)
+      {
+        auto block = allocateConstants(ding.constants.size());
+        memcpy(block.data(), ding.constants.data(), ding.constants.size());
+        if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+        {
+          buffer->SetGraphicsRootConstantBufferView(0, block.gpuVirtualAddress());
+        }
+        else
+        {
+          buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
+        }
+      }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
@@ -147,9 +145,9 @@ namespace faze
         }
         case CommandPacket::PacketType::ResourceBinding:
         {
-		  solver->runBarrier(buffer, drawIndex);
+          solver->runBarrier(buffer, drawIndex);
           handleBindings(buffer, packetRef(gfxpacket::ResourceBinding, packet));
-		  drawIndex++;
+          drawIndex++;
           break;
         }
         case CommandPacket::PacketType::Draw:
@@ -215,7 +213,7 @@ namespace faze
         solver->addTexture(index, texture.id(), *tex, static_cast<int16_t>(texture.desc().desc.miplevels), flags, range);
       };
 
-	  CommandPacket* subpass = nullptr;
+      CommandPacket* subpass = nullptr;
 
       for (CommandPacket* packet : list)
       {
@@ -230,40 +228,37 @@ namespace faze
           addTextureView(drawIndex, p.rtv, D3D12_RESOURCE_STATE_RENDER_TARGET);
           break;
         }
-		case CommandPacket::PacketType::Subpass:
-		{
-		  subpass = packet;
-		  break;
-		}
-		case CommandPacket::PacketType::ResourceBinding:
-		{
-		  drawIndex = solver->addDrawCall(packet->type());
-		  auto& p = packetRef(gfxpacket::ResourceBinding, packet);
-		  if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-		  {
-			  /*
-			auto& s = packetRef(gfxpacket::Subpass, subpass);
-			for (auto&& it : s.rtvs)
-			{
-			}
-			for (auto&& it : s.dsvs)
-			{
+        case CommandPacket::PacketType::Subpass:
+        {
+          subpass = packet;
+          break;
+        }
+        case CommandPacket::PacketType::ResourceBinding:
+        {
+          drawIndex = solver->addDrawCall(packet->type());
+          auto& p = packetRef(gfxpacket::ResourceBinding, packet);
+          if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+          {
+            /*
+          auto& s = packetRef(gfxpacket::Subpass, subpass);
+          for (auto&& it : s.rtvs)
+          {
+          }
+          for (auto&& it : s.dsvs)
+          {
+          }
+          */
+          }
+          /*
+      for (auto&& it : p.srvs)
+      {
+      }
+      for (auto&& it : p.uavs)
+      {
+      }		*/
 
-			}
-			*/
-		  }
-		  	  /*
-		  for (auto&& it : p.srvs)
-		  {
-
-		  }
-		  for (auto&& it : p.uavs)
-		  {
-
-		  }		*/
-
-		  break;
-		}
+          break;
+        }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);

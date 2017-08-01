@@ -107,6 +107,13 @@ namespace faze
         virtual backend::RawView view() = 0;
       };
 
+      class DynamicBufferViewImpl
+      {
+      public:
+        virtual ~DynamicBufferViewImpl() = default;
+        virtual backend::RawView view() = 0;
+      };
+
       class HeapImpl
       {
       public:
@@ -118,6 +125,7 @@ namespace faze
       public:
 
         // utility
+        virtual void collectTrash() = 0;
         virtual void waitGpuIdle() = 0;
         virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
 
@@ -145,6 +153,10 @@ namespace faze
         virtual void destroyTexture(std::shared_ptr<TextureImpl> buffer) = 0;
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
         virtual void destroyTextureView(std::shared_ptr<TextureViewImpl> buffer) = 0;
+
+        // create dynamic resources
+        virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;
+        virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) = 0;
 
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
         virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;

@@ -6,6 +6,7 @@
 
 #include "core/src/system/MemoryPools.hpp"
 #include "core/src/system/MovePtr.hpp"
+#include "core/src/system/SequenceTracker.hpp"
 
 #include "dx12.hpp"
 
@@ -151,11 +152,17 @@ namespace faze
     struct UploadBlock
     {
       uint8_t* m_data;
+      D3D12_GPU_VIRTUAL_ADDRESS m_resourceAddress;
       PageBlock block;
 
       uint8_t* data()
       {
         return m_data + block.offset;
+      }
+
+      D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress()
+      {
+        return m_resourceAddress + block.offset;
       }
 
       size_t size()
@@ -169,35 +176,31 @@ namespace faze
       }
     };
 
-	class UploadLinearAllocator
-	{
-		LinearAllocator allocator;
-		UploadBlock block;
+    class UploadLinearAllocator
+    {
+      LinearAllocator allocator;
+      UploadBlock block;
 
-		int64_t calcAlignedSize(int64_t size, size_t alignment)
-		{
-			return size + (alignment - (size % alignment));
-		}
-	public:
-		UploadLinearAllocator() {}
-		UploadLinearAllocator(UploadBlock block)
-			: allocator(block.size())
-			, block(block)
-		{
+    public:
+      UploadLinearAllocator() {}
+      UploadLinearAllocator(UploadBlock block)
+        : allocator(block.size())
+        , block(block)
+      {
+      }
 
-		}
+      UploadBlock allocate(size_t bytes, size_t alignment)
+      {
+        auto offset = allocator.allocate(bytes, alignment);
+        if (offset < 0)
+          return UploadBlock{ nullptr, 0, PageBlock{} };
 
-		UploadBlock allocate(size_t bytes, size_t alignment)
-		{
-			auto offset = allocator.allocate(bytes, alignment);
-			if (offset < 0)
-				return UploadBlock{ nullptr, PageBlock{} };
-
-			UploadBlock b = block;
-			b.block.offset += offset;
-			return b;
-		}
-	};
+        UploadBlock b = block;
+        b.block.offset += offset;
+        b.block.size = roundUpMultipleInt(bytes, alignment);
+        return b;
+      }
+    };
 
     // TODO: protect with mutex
     // accessed in dx12commandbuffer
@@ -209,6 +212,7 @@ namespace faze
       unsigned size = 1;
 
       uint8_t* data = nullptr;
+      D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
     public:
       DX12UploadHeap() : allocator(1, 1) {}
       DX12UploadHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
@@ -234,6 +238,8 @@ namespace faze
           heap.CreationNodeMask = 0;
 
           FAZE_CHECK_HR(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &dxdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&resource)));
+
+          gpuAddr = resource->GetGPUVirtualAddress();
         }
 
         D3D12_RANGE range{};
@@ -246,7 +252,7 @@ namespace faze
       {
         auto dip = allocator.allocate(bytes);
         F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d", size);
-        return UploadBlock{ data, dip };
+        return UploadBlock{ data, gpuAddr,  dip };
       }
 
       void release(UploadBlock desc)
@@ -254,10 +260,10 @@ namespace faze
         allocator.release(desc.block);
       }
 
-	  ID3D12Resource* native()
-	  {
-		return resource.Get();
-	  }
+      ID3D12Resource* native()
+      {
+        return resource.Get();
+      }
     };
 
     class DX12Fence : public FenceImpl, public SemaphoreImpl
@@ -352,7 +358,7 @@ namespace faze
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
 
-	  UploadLinearAllocator m_constantsAllocator;
+      UploadLinearAllocator m_constantsAllocator;
 
       struct FreeableResources
       {
@@ -361,7 +367,7 @@ namespace faze
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
-	  UploadBlock allocateConstants(size_t size);
+      UploadBlock allocateConstants(size_t size);
       void handleBindings(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
       void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
@@ -567,7 +573,7 @@ namespace faze
 
       backend::RawView view() override
       {
-        backend::RawView view;
+        backend::RawView view{};
         view.view = resource.cpu.ptr;
         return view;
       }
@@ -622,7 +628,48 @@ namespace faze
 
       backend::RawView view() override
       {
-        backend::RawView view;
+        backend::RawView view{};
+        view.view = resource.cpu.ptr;
+        return view;
+      }
+    };
+
+    class DX12DynamicBufferView : public prototypes::DynamicBufferViewImpl
+    {
+    private:
+      UploadBlock block;
+      DX12Descriptor resource;
+      DXGI_FORMAT format;
+      friend class DX12Device;
+    public:
+      DX12DynamicBufferView()
+      {
+      }
+
+      DX12DynamicBufferView(UploadBlock block, DX12Descriptor resource, DXGI_FORMAT format)
+        : block(block)
+        , resource(resource)
+        , format(format)
+      {
+      }
+
+      DX12Descriptor native()
+      {
+        return resource;
+      }
+
+      D3D12_INDEX_BUFFER_VIEW indexBufferView()
+      {
+        D3D12_INDEX_BUFFER_VIEW view{};
+        view.BufferLocation = block.gpuVirtualAddress();
+        view.Format = format;
+        view.SizeInBytes = static_cast<unsigned>(block.size());
+        return view;
+      }
+
+      backend::RawView view() override
+      {
+        backend::RawView view{};
         view.view = resource.cpu.ptr;
         return view;
       }
@@ -658,17 +705,17 @@ namespace faze
     public:
       ComPtr<ID3D12PipelineState> pipeline;
       ComPtr<ID3D12RootSignature> root;
-	  D3D12_PRIMITIVE_TOPOLOGY primitive;
+      D3D12_PRIMITIVE_TOPOLOGY primitive;
       DX12Pipeline()
         : pipeline(nullptr)
         , root(nullptr)
-		, primitive(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+        , primitive(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
       {
       }
       DX12Pipeline(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> root, D3D12_PRIMITIVE_TOPOLOGY primitive)
         : pipeline(pipeline)
         , root(root)
-		, primitive(primitive)
+        , primitive(primitive)
       {
       }
     };
@@ -703,6 +750,21 @@ namespace faze
       Rabbitpool2<DX12Fence> m_fencePool;
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
+      std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
+
+      std::shared_ptr<SequenceTracker> m_seqTracker;
+
+      struct Garbage
+      {
+        vector<UploadBlock> dynamicBuffers;
+        vector<DX12Descriptor> genericDescriptors;
+        vector<DX12Descriptor> rtvsDescriptors;
+        vector<DX12Descriptor> dsvsDescriptors;
+        vector<ID3D12Resource*> resources;
+      };
+
+      std::shared_ptr<Garbage> m_trash;
+      deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
 
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
@@ -723,6 +785,7 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
+      void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
@@ -732,15 +795,17 @@ namespace faze
       void destroyHeap(GpuHeap heap) override;
 
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
-
       std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
-
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
-
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
+
+      // empty, these don't do anything.
+      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
+      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
+      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
