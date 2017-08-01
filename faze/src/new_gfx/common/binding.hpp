@@ -44,23 +44,33 @@ namespace faze
 
   public:
 
+    void srv(int pos, const DynamicBufferView& res)
+    {
+      F_ASSERT(pos < Shader::srv && pos >= 0, "Invalid srv");
+      m_srvs[pos] = res.view();
+      m_res[pos] = backend::TrackedState{ 0,0,0 };
+    }
     void srv(int pos, const BufferSRV& res)
     {
+      F_ASSERT(pos < Shader::srv && pos >= 0, "Invalid srv");
       m_srvs[pos] = res.view();
       m_res[pos] = res.dependency();
     }
     void srv(int pos, const TextureSRV& res)
     {
+      F_ASSERT(pos < Shader::srv && pos >= 0, "Invalid srv");
       m_srvs[pos] = res.view();
       m_res[pos] = res.dependency();
     }
     void uav(int pos, const BufferUAV& res)
     {
+      F_ASSERT(pos < Shader::uav && pos >= 0, "Invalid uav");
       m_uavs[pos] = res.view();
       m_res[Shader::srv + pos] = res.dependency();
     }
     void uav(int pos, const TextureUAV& res)
     {
+      F_ASSERT(pos < Shader::uav && pos >= 0, "Invalid uav");
       m_uavs[pos] = res.view();
       m_res[Shader::srv + pos] = res.dependency();
     }

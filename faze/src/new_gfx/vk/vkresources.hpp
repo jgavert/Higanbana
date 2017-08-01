@@ -226,10 +226,10 @@ namespace faze
         return owned;
       }
 
-	  backend::TrackedState dependency() override
-	  {
-		  return backend::TrackedState{};
-	  }
+      backend::TrackedState dependency() override
+      {
+        return backend::TrackedState{};
+      }
     };
 
     class VulkanTextureView : public prototypes::TextureViewImpl
@@ -266,10 +266,10 @@ namespace faze
           .setLayerCount(m.subResourceRange.arraySize);
       }
 
-	  backend::RawView view() override
-	  {
-		  return backend::RawView{};
-	  }
+      backend::RawView view() override
+      {
+        return backend::RawView{};
+      }
     };
 
     struct VulkanBufferState
@@ -301,10 +301,10 @@ namespace faze
         return statePtr;
       }
 
-	  backend::TrackedState dependency() override
-	  {
-		  return backend::TrackedState{};
-	  }
+      backend::TrackedState dependency() override
+      {
+        return backend::TrackedState{};
+      }
     };
 
     class VulkanBufferView : public prototypes::BufferViewImpl
@@ -327,10 +327,36 @@ namespace faze
         return m;
       }
 
-	  backend::RawView view() override
-	  {
-		  return backend::RawView{};
-	  }
+      backend::RawView view() override
+      {
+        return backend::RawView{};
+      }
+    };
+
+    class VulkanDynamicBufferView : public prototypes::DynamicBufferViewImpl
+    {
+    private:
+      struct Info
+      {
+        vk::DescriptorBufferInfo bufferInfo;
+        vk::DescriptorType type;
+      } m;
+
+    public:
+      VulkanDynamicBufferView()
+      {}
+      VulkanDynamicBufferView(vk::DescriptorBufferInfo info, vk::DescriptorType type)
+        : m{ info, type }
+      {}
+      Info& native()
+      {
+        return m;
+      }
+
+      backend::RawView view() override
+      {
+        return backend::RawView{};
+      }
     };
 
     class VulkanHeap : public prototypes::HeapImpl
@@ -351,7 +377,6 @@ namespace faze
 
     class VulkanPipeline : public prototypes::PipelineImpl
     {
-
       vk::Pipeline            m_pipeline;
       vk::PipelineLayout      m_pipelineLayout;
       vk::DescriptorSetLayout m_descriptorSetLayout;
@@ -455,6 +480,7 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
+      void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
@@ -475,6 +501,9 @@ namespace faze
 
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
+
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
 
       // commandlist stuff
       VulkanCommandBuffer createCommandBuffer(int queueIndex);

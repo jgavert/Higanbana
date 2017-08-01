@@ -114,4 +114,21 @@ namespace faze
     {
     }
   };
+
+  class DynamicBufferView
+  {
+    std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> impl;
+    backend::RawView m_view;
+  public:
+    DynamicBufferView() = default;
+    DynamicBufferView(std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> impl)
+      : impl(impl)
+      , m_view(impl->view())
+    {
+    }
+    backend::RawView view() const
+    {
+      return m_view;
+    }
+  };
 };

@@ -12,7 +12,9 @@ struct TriangleConstants
 
 FAZE_CBUFFER(TriangleConstants)
 
-FAZE_SRV_TABLE(0)
+FAZE_SRV(Buffer<float4>, vertices, 0)
+
+FAZE_SRV_TABLE(1)
 FAZE_UAV_TABLE(0)
 
 FAZE_END_LAYOUT

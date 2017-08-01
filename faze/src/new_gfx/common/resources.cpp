@@ -117,6 +117,8 @@ namespace faze
       {
         m_impl->destroySwapchain(sc);
       }
+
+      garbageCollection();
     }
 
     DeviceData::~DeviceData()
@@ -271,7 +273,7 @@ namespace faze
         range.arraySize = static_cast<int16_t>(desc.desc.arraySize - range.sliceOffset);
         if (desc.desc.dimension == FormatDimension::TextureCube)
         {
-          range.arraySize = static_cast<int16_t>((desc.desc.arraySize*6) - range.sliceOffset);
+          range.arraySize = static_cast<int16_t>((desc.desc.arraySize * 6) - range.sliceOffset);
         }
       }
 
@@ -327,6 +329,15 @@ namespace faze
       return TextureDSV(texture, data, tracker, rangeFrom(viewDesc, texture.desc(), false), viewDesc.m_format);
     }
 
+    DynamicBufferView DeviceData::dynamicBuffer(MemView<uint8_t> view, FormatType type)
+    {
+      return m_impl->dynamic(view, type);
+    }
+    DynamicBufferView DeviceData::dynamicBuffer(MemView<uint8_t> view, unsigned stride)
+    {
+      return m_impl->dynamic(view, stride);
+    }
+
     void DeviceData::submit(Swapchain& swapchain, CommandGraph graph)
     {
       auto& nodes = *graph.m_nodes;
@@ -365,6 +376,11 @@ namespace faze
       }
 
       gc();
+    }
+
+    void DeviceData::garbageCollection()
+    {
+      m_impl->collectTrash();
     }
 
     void DeviceData::present(Swapchain& swapchain)

@@ -99,6 +99,18 @@ namespace faze
       return createTextureDSV(createTexture(descriptor), viewDesc);
     }
 
+    template <typename Type>
+    DynamicBufferView dynamicBuffer(MemView<Type> view, FormatType type)
+    {
+      return S().dynamicBuffer(reinterpret_memView<uint8_t>(view), type);
+    }
+
+    template <typename Type>
+    DynamicBufferView dynamicBuffer(MemView<Type> view)
+    {
+      return S().dynamicBuffer(reinterpret_memView<uint8_t>(view), sizeof(Type));
+    }
+
     Renderpass createRenderpass()
     {
       return S().createRenderpass();
@@ -144,6 +156,11 @@ namespace faze
     void present(Swapchain& swapchain)
     {
       S().present(swapchain);
+    }
+
+    void garbageCollection()
+    {
+      S().garbageCollection();
     }
   };
 };

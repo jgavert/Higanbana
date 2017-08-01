@@ -75,6 +75,7 @@ namespace faze
   class TextureUAV;
   class TextureRTV;
   class TextureDSV;
+  class DynamicBufferView;
 
   class Swapchain;
   class Renderpass;
@@ -178,6 +179,7 @@ namespace faze
 
       void checkCompletedLists();
       void gc();
+      void garbageCollection();
       void waitGpuIdle();
       Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
       void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
@@ -196,6 +198,9 @@ namespace faze
       TextureUAV createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc);
       TextureRTV createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc);
       TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc);
+
+      DynamicBufferView dynamicBuffer(MemView<uint8_t> view, FormatType type);
+      DynamicBufferView dynamicBuffer(MemView<uint8_t> view, unsigned stride);
       // commandgraph
       void submit(Swapchain& swapchain, CommandGraph graph);
       void present(Swapchain& swapchain);

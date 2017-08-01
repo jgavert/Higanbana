@@ -31,6 +31,9 @@ namespace faze
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
+      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024)) // we have room 64megs of dynamic buffers
+      , m_trash(std::make_shared<Garbage>())
+      , m_seqTracker(std::make_shared<SequenceTracker>())
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
@@ -293,11 +296,26 @@ namespace faze
       DX12TextureState state;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
+      std::weak_ptr<Garbage> weak = m_trash;
+
       for (int i = 0; i < native->getDesc().buffers; ++i)
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-        textures[i] = std::make_shared<DX12Texture>(renderTarget, std::make_shared<DX12TextureState>(state));
+
+        textures[i] = std::shared_ptr<DX12Texture>(new DX12Texture(renderTarget, std::make_shared<DX12TextureState>(state)),
+          [weak](DX12Texture* ptr)
+        {
+          if (auto trash = weak.lock())
+          {
+            trash->resources.emplace_back(ptr->native());
+          }
+          else
+          {
+            ptr->native()->Release();
+          }
+          delete ptr;
+        });
       }
       return textures;
     }
@@ -308,6 +326,48 @@ namespace faze
       int index = native->native()->GetCurrentBackBufferIndex();
       native->setBackbufferIndex(index);
       return index;
+    }
+
+    void DX12Device::collectTrash()
+    {
+      auto latestSequenceStarted = m_seqTracker->lastSequence();
+
+      m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
+      m_trash->dynamicBuffers.clear();
+      m_trash->genericDescriptors.clear();
+      m_trash->rtvsDescriptors.clear();
+      m_trash->dsvsDescriptors.clear();
+      m_trash->resources.clear();
+
+      while (!m_collectableTrash.empty())
+      {
+        auto&& it = m_collectableTrash.front();
+        if (!m_seqTracker->hasCompleted(it.first))
+        {
+          break;
+        }
+        for (auto&& dynBuf : it.second.dynamicBuffers)
+        {
+          m_dynamicUpload->release(dynBuf);
+        }
+        for (auto&& descriptor : it.second.genericDescriptors)
+        {
+          m_generics.release(descriptor);
+        }
+        for (auto&& descriptor : it.second.rtvsDescriptors)
+        {
+          m_rtvs.release(descriptor);
+        }
+        for (auto&& descriptor : it.second.dsvsDescriptors)
+        {
+          m_dsvs.release(descriptor);
+        }
+        for (auto&& resource : it.second.resources)
+        {
+          resource->Release();
+        }
+        m_collectableTrash.pop_front();
+      }
     }
 
     void DX12Device::waitGpuIdle()
@@ -437,7 +497,7 @@ namespace faze
       {
         desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
       }
-	  desc.SampleMask = UINT_MAX;
+      desc.SampleMask = UINT_MAX;
       /*
       desc.NumRenderTargets = d.numRenderTargets;
       for (int i = 0; i < 8; ++i)
@@ -519,7 +579,7 @@ namespace faze
         ComPtr<ID3D12PipelineState> pipe;
         FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
 
-		D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+        D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
 
         pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
       }
@@ -653,13 +713,25 @@ namespace faze
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
 
-      return std::make_shared<DX12Buffer>(buffer, std::make_shared<D3D12_RESOURCE_STATES>(startState));
+      std::weak_ptr<Garbage> weak = m_trash;
+
+      return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<D3D12_RESOURCE_STATES>(startState)),
+        [weak](DX12Buffer* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->resources.emplace_back(ptr->native());
+        }
+        else
+        {
+          ptr->native()->Release();
+        }
+        delete ptr;
+      });
     }
 
-    void DX12Device::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
+    void DX12Device::destroyBuffer(std::shared_ptr<prototypes::BufferImpl>)
     {
-      auto native = std::static_pointer_cast<DX12Buffer>(buffer);
-      native->native()->Release();
     }
 
     std::shared_ptr<prototypes::BufferViewImpl> DX12Device::createBufferView(
@@ -700,13 +772,21 @@ namespace faze
         m_device->CreateUnorderedAccessView(native->native(), nullptr, &natDesc, descriptor.cpu);
       }
 
-      return std::make_shared<DX12BufferView>(descriptor);
+      std::weak_ptr<Garbage> weak = m_trash;
+
+      return std::shared_ptr<DX12BufferView>(new DX12BufferView(descriptor),
+        [weak](DX12BufferView* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->genericDescriptors.emplace_back(ptr->native());
+        }
+        delete ptr;
+      });
     }
 
-    void DX12Device::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> view)
+    void DX12Device::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl>)
     {
-      auto native = std::static_pointer_cast<DX12BufferView>(view);
-      m_generics.release(native->native());
     }
 
     std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
@@ -765,13 +845,25 @@ namespace faze
       ID3D12Resource* texture;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture));
 
-      return std::make_shared<DX12Texture>(texture, std::make_shared<DX12TextureState>(state));
+      std::weak_ptr<Garbage> weak = m_trash;
+
+      return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12TextureState>(state)),
+        [weak](DX12Texture* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->resources.emplace_back(ptr->native());
+        }
+        else
+        {
+          ptr->native()->Release();
+        }
+        delete ptr;
+      });
     }
 
-    void DX12Device::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
+    void DX12Device::destroyTexture(std::shared_ptr<prototypes::TextureImpl>)
     {
-      auto native = std::static_pointer_cast<DX12Texture>(texture);
-      native->native()->Release();
     }
 
     std::shared_ptr<prototypes::TextureViewImpl> DX12Device::createTextureView(
@@ -779,7 +871,7 @@ namespace faze
     {
       auto native = std::static_pointer_cast<DX12Texture>(texture);
 
-      DX12Descriptor descriptor;
+      DX12Descriptor descriptor{};
 
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
@@ -820,31 +912,94 @@ namespace faze
       range.sliceOffset = static_cast<int16_t>(viewDesc.m_arraySlice);
       range.arraySize = static_cast<int16_t>(arraySize);
 
-      return std::make_shared<DX12TextureView>(descriptor, range);
+      std::weak_ptr<Garbage> weak = m_trash;
+      auto type = descriptor.type;
+
+      return std::shared_ptr<DX12TextureView>(new DX12TextureView(descriptor, range),
+        [weak, type](DX12TextureView* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          switch (type)
+          {
+          case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+          {
+            trash->rtvsDescriptors.emplace_back(ptr->native());
+            break;
+          }
+          case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+          {
+            trash->dsvsDescriptors.emplace_back(ptr->native());
+            break;
+          }
+          default:
+          {
+            trash->genericDescriptors.emplace_back(ptr->native());
+            break;
+          }
+          }
+        }
+        delete ptr;
+      });
     }
 
-    void DX12Device::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
+    void DX12Device::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl>)
     {
-      auto native = std::static_pointer_cast<DX12TextureView>(view);
-      auto descriptor = native->native();
-      switch (descriptor.type)
-      {
-      case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
-      {
-        m_rtvs.release(native->native());
-        break;
-      }
-      case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
-      {
-        m_dsvs.release(native->native());
-        break;
-      }
-      default:
-      {
-        m_generics.release(native->native());
-        break;
-      }
-      }
+    }
+
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)
+    {
+      auto descriptor = m_generics.allocate();
+      auto upload = m_dynamicUpload->allocate(view.size());
+      F_ASSERT(upload, "Halp");
+      memcpy(upload.data(), view.data(), view.size());
+
+      auto format = formatTodxFormat(type).view;
+      auto stride = formatSizeInfo(type).pixelSize;
+
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+      desc.Format = format;
+      desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+      desc.Buffer.NumElements = static_cast<unsigned>(view.size() / stride);
+      desc.Buffer.FirstElement = upload.block.offset / stride;
+      desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+      desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
+      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+      F_ASSERT(upload.block.offset % stride == 0, "oh no");
+
+      m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
+
+      // will be collected promtly
+      m_trash->dynamicBuffers.emplace_back(upload);
+      m_trash->genericDescriptors.emplace_back(descriptor);
+
+      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format);
+    }
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, unsigned stride)
+    {
+      auto descriptor = m_generics.allocate();
+      auto upload = m_dynamicUpload->allocate(view.size());
+      F_ASSERT(upload, "Halp");
+      memcpy(upload.data(), view.data(), view.size());
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+      desc.Buffer.NumElements = static_cast<unsigned>(view.size() / stride);
+      desc.Buffer.FirstElement = upload.block.offset / stride;
+      desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+      desc.Buffer.StructureByteStride = stride;
+      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+      F_ASSERT(upload.block.offset % stride == 0, "oh no");
+
+      m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
+
+      // will be collected promtly
+      m_trash->dynamicBuffers.emplace_back(upload);
+      m_trash->genericDescriptors.emplace_back(descriptor);
+
+      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN);
     }
 
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
@@ -870,15 +1025,46 @@ namespace faze
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
-      return std::make_shared<DX12CommandList>(m_copyListPool.allocate(), m_constantsUpload);
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload), [tracker, seqNumber](DX12CommandList* ptr)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete ptr;
+      });
+
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
-      return std::make_shared<DX12CommandList>(m_computeListPool.allocate(), m_constantsUpload);
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload), [tracker, seqNumber](DX12CommandList* ptr)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete ptr;
+      });
+      return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      return std::make_shared<DX12CommandList>(m_graphicsListPool.allocate(), m_constantsUpload);
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload), [tracker, seqNumber](DX12CommandList* ptr)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete ptr;
+      });
+      return list;
     }
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSemaphore()
