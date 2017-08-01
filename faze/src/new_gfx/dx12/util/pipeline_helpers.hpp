@@ -24,6 +24,7 @@ namespace faze
     D3D12_STENCIL_OP convertStencilOp(StencilOp op);
 
     // misc
-    D3D12_PRIMITIVE_TOPOLOGY_TYPE convertPrimitiveTopology(PrimitiveTopology topology);
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE convertPrimitiveTopologyType(PrimitiveTopology topology);
+	D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology);
   }
 }

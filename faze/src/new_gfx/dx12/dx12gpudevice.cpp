@@ -424,7 +424,7 @@ namespace faze
         desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
         desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
       }
-      desc.PrimitiveTopologyType = convertPrimitiveTopology(d.primitiveTopology);
+      desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
       desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
       // subpass things here
       desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
@@ -437,6 +437,7 @@ namespace faze
       {
         desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
       }
+	  desc.SampleMask = UINT_MAX;
       /*
       desc.NumRenderTargets = d.numRenderTargets;
       for (int i = 0; i < 8; ++i)
@@ -446,7 +447,7 @@ namespace faze
       desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
       */
       desc.SampleDesc.Count = d.sampleCount;
-      desc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
+      desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 
       return desc;
     }
@@ -518,7 +519,9 @@ namespace faze
         ComPtr<ID3D12PipelineState> pipe;
         FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
 
-        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root))));
+		D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+
+        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
       }
     }
 

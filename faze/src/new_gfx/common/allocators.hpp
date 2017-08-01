@@ -1,5 +1,6 @@
 #pragma once
 #include "core/src/global_debug.hpp"
+#include "core/src/math/utils.hpp"
 #include <memory>
 
 namespace faze
@@ -11,23 +12,14 @@ namespace faze
     size_t m_current;
     size_t m_size;
 
-    uintptr_t calcAlignOffset(uintptr_t size, size_t alignment = 16)
-    {
-      return (alignment - (size & alignment)) % alignment;
-    }
-
     uintptr_t privateAlloc(size_t size)
     {
-      F_ASSERT(m_current + size < m_size, "No space in allocator");
+	  int64_t alignedCurrent = roundUpMultipleInt(m_current, 16);
+      F_ASSERT(alignedCurrent + size < m_size, "No space in allocator");
       if (size == 0)
         return 0;
-      auto freeMemory = m_current;
-      m_current += size;
-      uintptr_t ptrPos = reinterpret_cast<uintptr_t>(&m_data[freeMemory]);
-      auto offset = calcAlignOffset(ptrPos);
-      m_current += offset;
-      ptrPos += offset;
-      return ptrPos;
+      m_current = alignedCurrent + size;
+      return reinterpret_cast<uintptr_t>(&m_data[alignedCurrent]);
     }
 
   public:
@@ -61,19 +53,16 @@ namespace faze
     int64_t m_current = -1;
     int64_t m_size = -1;
 
-    int64_t calcAlignOffset(int64_t size, size_t alignment)
-    {
-      return size - (alignment - (size & alignment)) % alignment;
-    }
   public:
     LinearAllocator() {}
     LinearAllocator(size_t size)
       : m_size(static_cast<int64_t>(size))
+	  , m_current(0)
     {}
 
     int64_t allocate(size_t size, size_t alignment = 1)
     {
-      int64_t alignedCurrent = calcAlignOffset(m_current, alignment);
+      int64_t alignedCurrent = roundUpMultipleInt(m_current, alignment);
       if (alignedCurrent + static_cast<int64_t>(size) > m_size)
       {
         return -1;

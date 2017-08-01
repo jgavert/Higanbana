@@ -221,7 +221,7 @@ namespace faze
       return D3D12_STENCIL_OP_DECR;
     }
 
-    D3D12_PRIMITIVE_TOPOLOGY_TYPE convertPrimitiveTopology(PrimitiveTopology topology)
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE convertPrimitiveTopologyType(PrimitiveTopology topology)
     {
       switch (topology)
       {
@@ -239,5 +239,24 @@ namespace faze
       }
       return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
     }
+
+	D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology)
+	{
+		switch (topology)
+		{
+		case PrimitiveTopology::Undefined:
+			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		case PrimitiveTopology::Point:
+			return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case PrimitiveTopology::Line:
+			return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		case PrimitiveTopology::Triangle:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case PrimitiveTopology::Patch:
+		default:
+			break;
+		}
+		return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+	}
   }
 }
