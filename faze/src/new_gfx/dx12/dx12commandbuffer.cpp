@@ -147,7 +147,9 @@ namespace faze
         }
         case CommandPacket::PacketType::ResourceBinding:
         {
+		  solver->runBarrier(buffer, drawIndex);
           handleBindings(buffer, packetRef(gfxpacket::ResourceBinding, packet));
+		  drawIndex++;
           break;
         }
         case CommandPacket::PacketType::Draw:
@@ -213,6 +215,8 @@ namespace faze
         solver->addTexture(index, texture.id(), *tex, static_cast<int16_t>(texture.desc().desc.miplevels), flags, range);
       };
 
+	  CommandPacket* subpass = nullptr;
+
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
@@ -226,6 +230,40 @@ namespace faze
           addTextureView(drawIndex, p.rtv, D3D12_RESOURCE_STATE_RENDER_TARGET);
           break;
         }
+		case CommandPacket::PacketType::Subpass:
+		{
+		  subpass = packet;
+		  break;
+		}
+		case CommandPacket::PacketType::ResourceBinding:
+		{
+		  drawIndex = solver->addDrawCall(packet->type());
+		  auto& p = packetRef(gfxpacket::ResourceBinding, packet);
+		  if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+		  {
+			  /*
+			auto& s = packetRef(gfxpacket::Subpass, subpass);
+			for (auto&& it : s.rtvs)
+			{
+			}
+			for (auto&& it : s.dsvs)
+			{
+
+			}
+			*/
+		  }
+		  	  /*
+		  for (auto&& it : p.srvs)
+		  {
+
+		  }
+		  for (auto&& it : p.uavs)
+		  {
+
+		  }		*/
+
+		  break;
+		}
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
