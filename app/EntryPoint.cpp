@@ -166,7 +166,7 @@ int EntryPoint::main()
             node.clearRT(texRtv, vec4{ 0.f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
-		  if (inputs.isPressedThisFrame('3', 2))
+		  //if (inputs.isPressedThisFrame('3', 2))
 		  {
 			// we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
