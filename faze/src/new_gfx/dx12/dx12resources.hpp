@@ -22,6 +22,9 @@ namespace faze
 {
   namespace backend
   {
+    class DX12DependencySolver;
+    class DX12Device;
+
     struct DX12GPUDescriptor
     {
       D3D12_CPU_DESCRIPTOR_HANDLE cpu;
@@ -320,6 +323,11 @@ namespace faze
       };
 
       std::shared_ptr<FreeableResources> m_freeResources;
+
+      void handleBindings(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
+      void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
+      void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
+      void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
       DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants)
         : m_buffer(buffer)

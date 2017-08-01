@@ -78,7 +78,7 @@ namespace faze
     {
       buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
     }
-    void handle(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding&)
+    void DX12CommandList::handleBindings(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding&)
     {
     }
 
@@ -90,7 +90,7 @@ namespace faze
       buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
     }
 
-    void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver& solver, backend::IntermediateList& list)
+    void DX12CommandList::addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
 
@@ -109,7 +109,7 @@ namespace faze
         }
         case CommandPacket::PacketType::ResourceBinding:
         {
-          handle(buffer, packetRef(gfxpacket::ResourceBinding, packet));
+          handleBindings(buffer, packetRef(gfxpacket::ResourceBinding, packet));
           break;
         }
         case CommandPacket::PacketType::Draw:
@@ -136,14 +136,14 @@ namespace faze
         }
         case CommandPacket::PacketType::ClearRT:
         {
-          solver.runBarrier(buffer, drawIndex);
+          solver->runBarrier(buffer, drawIndex);
           handle(buffer, packetRef(gfxpacket::ClearRT, packet));
           drawIndex++;
           break;
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
-          solver.runBarrier(buffer, drawIndex);
+          solver->runBarrier(buffer, drawIndex);
           drawIndex++;
           break;
         }
@@ -153,7 +153,7 @@ namespace faze
       }
     }
 
-    void addDepedencyDataAndSolve(DX12DependencySolver& solver, backend::IntermediateList& list)
+    void DX12CommandList::addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
 
@@ -161,7 +161,7 @@ namespace faze
       {
         auto view = std::static_pointer_cast<DX12TextureView>(texView.native());
         auto texture = std::static_pointer_cast<DX12Texture>(texView.texture().native());
-        solver.addTexture(index, texView.texture().id(), *texture, *view, static_cast<int16_t>(texView.texture().desc().desc.miplevels), flags);
+        solver->addTexture(index, texView.texture().id(), *texture, *view, static_cast<int16_t>(texView.texture().desc().desc.miplevels), flags);
       };
 
       auto addTexture = [&](int index, Texture& texture, D3D12_RESOURCE_STATES flags)
@@ -172,7 +172,7 @@ namespace faze
         range.mipLevels = 1;
         range.sliceOffset = 0;
         range.arraySize = 1;
-        solver.addTexture(index, texture.id(), *tex, static_cast<int16_t>(texture.desc().desc.miplevels), flags, range);
+        solver->addTexture(index, texture.id(), *tex, static_cast<int16_t>(texture.desc().desc.miplevels), flags, range);
       };
 
       for (CommandPacket* packet : list)
@@ -184,14 +184,14 @@ namespace faze
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
-          drawIndex = solver.addDrawCall(packet->type());
+          drawIndex = solver->addDrawCall(packet->type());
           addTextureView(drawIndex, p.rtv, D3D12_RESOURCE_STATE_RENDER_TARGET);
           break;
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
-          drawIndex = solver.addDrawCall(packet->type());
+          drawIndex = solver->addDrawCall(packet->type());
           addTexture(drawIndex, p.texture, D3D12_RESOURCE_STATE_PRESENT);
           drawIndex++;
           break;
@@ -200,10 +200,10 @@ namespace faze
           break;
         }
       }
-      solver.makeAllBarriers();
+      solver->makeAllBarriers();
     }
 
-    void processRenderpasses(DX12Device* dev, backend::IntermediateList& list)
+    void DX12CommandList::processRenderpasses(DX12Device* dev, backend::IntermediateList& list)
     {
       gfxpacket::Subpass* activeSubpass = nullptr;
 
@@ -241,9 +241,9 @@ namespace faze
 
       DX12Device* dev = static_cast<DX12Device*>(device.get());
 
-      addDepedencyDataAndSolve(solver, list);
+      addDepedencyDataAndSolve(&solver, list);
       processRenderpasses(dev, list);
-      addCommands(m_buffer->list(), solver, list);
+      addCommands(m_buffer->list(), &solver, list);
 
       m_buffer->closeList();
     }
