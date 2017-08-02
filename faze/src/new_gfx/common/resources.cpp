@@ -118,6 +118,12 @@ namespace faze
         m_impl->destroySwapchain(sc);
       }
 
+	  auto heaps = m_heaps.emptyHeaps();
+	  for (auto&& heap : heaps)
+	  {
+		  m_impl->destroyHeap(heap);
+	  }
+
       garbageCollection();
     }
 
@@ -128,12 +134,6 @@ namespace faze
         m_impl->waitGpuIdle();
         waitGpuIdle();
         gc();
-        // heaps
-        auto heaps = m_heaps.emptyHeaps();
-        for (auto&& heap : heaps)
-        {
-          m_impl->destroyHeap(heap);
-        }
       }
     }
 
@@ -404,7 +404,7 @@ namespace faze
         std::string name;
         name += std::to_string(index);
         name += "Heap";
-        name += std::to_string(static_cast<int>(requirements.heapType));
+        name += std::to_string(requirements.heapType);
         name += "a";
         name += std::to_string(requirements.alignment);
         HeapDescriptor desc = HeapDescriptor()
@@ -427,7 +427,7 @@ namespace faze
         PageBlock block{ -1, -1 };
         for (auto& heap : vectorPtr->heaps)
         {
-          if (heap.allocator.freesize() > requirements.bytes) // this will find falsepositives if memory is fragmented.
+          if (heap.allocator.freesize() >= requirements.bytes) // this will find falsepositives if memory is fragmented.
           {
             block = heap.allocator.allocate(requirements.bytes); // should be cheap anyway
             if (block.valid())
@@ -469,23 +469,46 @@ namespace faze
       });
       if (vectorPtr != m_heaps.end())
       {
-        vectorPtr->heaps[object.index].allocator.release(object.block);
-      }
-    }
+		  auto heapPtr = std::find_if(vectorPtr->heaps.begin(), vectorPtr->heaps.end(), [&](HeapBlock& vec)
+		  {
+			  return vec.index == object.index;
+		  });
+		  heapPtr->allocator.release(object.block);
+	  }
+	}
 
     vector<GpuHeap> HeapManager::emptyHeaps()
     {
       vector<GpuHeap> emptyHeaps;
       for (auto&& it : m_heaps)
       {
-        for (auto&& heap : it.heaps)
-        {
-          if (heap.allocator.empty())
-          {
-            emptyHeaps.emplace_back(heap.heap);
-          }
-        }
+		for (auto iter = it.heaps.begin(); iter != it.heaps.end(); ++iter)
+		{
+			if (iter->allocator.empty())
+			{
+				emptyHeaps.emplace_back(iter->heap);
+
+				F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu\n", iter->index, it.type, it.alignment, iter->allocator.size());
+			}
+		}
+		auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
+	    {
+		  return vec.allocator.empty();
+	    });
+		if (removables != it.heaps.end())
+		{
+			it.heaps.erase(removables);
+		}
       }
+
+	  auto removables = std::remove_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
+	  {
+		  return vec.heaps.empty();
+	  });
+	  if (removables != m_heaps.end())
+	  {
+		  m_heaps.erase(removables);
+	  }
       return emptyHeaps;
     }
   }
