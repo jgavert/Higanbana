@@ -99,7 +99,7 @@ int EntryPoint::main()
           .setVertexShader("triangle")
           .setPixelShader("triangle")
           .setPrimitiveTopology(PrimitiveTopology::Triangle)
-		  .setDepthStencil(DepthStencilDescriptor()
+          .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
@@ -170,15 +170,16 @@ int EntryPoint::main()
             node.subpass(backbuffer);
 
             vector<float4> vertices;
-            vertices.push_back(float4{ 0.f, 0.5f, 1.f, 1.f });
+            vertices.push_back(float4{ 0.f + std::sin(float(frame)*0.01f), 0.5f, 1.f, 1.f });
             vertices.push_back(float4{ 0.5f, -0.5f, 1.f, 1.f });
             vertices.push_back(float4{ -0.5f, -0.5f, 1.f, 1.f });
 
             auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
 
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
-            binding.constants.color = float4{ 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 0.f, 1.f };
+            binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
             binding.srv(::shader::Triangle::vertices, verts);
+            binding.srv(::shader::Triangle::yellow, texSrv);
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));

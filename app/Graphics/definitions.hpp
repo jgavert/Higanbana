@@ -28,6 +28,8 @@ namespace shader\
 #define FAZE_UAV_TABLE(size) \
   static constexpr int uav = size;
 
+#define FAZE_STATIC_SAMPLER(name)
+
 #else /*__cplusplus*/
 
 #define FAZE_BEGIN_LAYOUT(signatureName)
@@ -50,10 +52,10 @@ namespace shader\
 #ifdef FAZE_DX12
 #define ROOTSIG "RootFlags(0), " \
         "CBV(b0), " \
+        "DescriptorTable( SRV(t0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE)), " \
         "StaticSampler(s0, " \
              "addressU = TEXTURE_ADDRESS_WRAP, " \
              "filter = FILTER_MIN_MAG_MIP_LINEAR )"
-        //"DescriptorTable( SRV(t0, numDescriptors = 32)), " \
         //"DescriptorTable( UAV(u0, numDescriptors = 8)), " \
 
 #define GX_SIGNATURE [RootSignature(ROOTSIG)]
