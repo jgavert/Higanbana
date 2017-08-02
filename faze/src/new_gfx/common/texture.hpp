@@ -35,6 +35,7 @@ namespace faze
       , m_dependency(impl->dependency())
     {
       m_dependency.storeSubresourceRange(0, m_desc->desc.miplevels, 0, m_desc->desc.arraySize);
+      m_dependency.storeTotalMipLevels(m_desc->desc.miplevels);
     }
 
     ResourceDescriptor& desc()
@@ -136,11 +137,11 @@ namespace faze
       return m_storeOp;
     }
 
-    backend::RawView view()
+    backend::RawView view() const
     {
       return m_view;
     }
-    backend::TrackedState dependency()
+    backend::TrackedState dependency() const
     {
       return m_dependency;
     }

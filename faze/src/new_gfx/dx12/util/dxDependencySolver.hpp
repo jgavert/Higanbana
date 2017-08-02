@@ -11,13 +11,13 @@ namespace faze
     class DX12DependencySolver
     {
     private:
-      using ResourceUniqueId = int64_t;
+      using ResourceUniqueId = size_t;
 
       struct BufferDependency
       {
         ResourceUniqueId uniqueId;
         ID3D12Resource* buffer;
-        std::shared_ptr<D3D12_RESOURCE_STATES> state;
+        D3D12_RESOURCE_STATES* state;
       };
 
       struct TextureDependency
@@ -25,19 +25,19 @@ namespace faze
         ResourceUniqueId uniqueId;
         ID3D12Resource* texture;
         int16_t mips;
-        std::shared_ptr<DX12TextureState> state;
+        DX12ResourceState* state;
       };
 
       using DrawCallIndex = int;
 
-      enum class UsageHint
+      enum class UsageHint : unsigned char
       {
         unknown,
         read,
         write
       };
 
-      enum class ResourceType
+      enum class ResourceType : unsigned char
       {
         buffer,
         texture
@@ -116,6 +116,10 @@ namespace faze
       DX12DependencySolver() {}
 
       int addDrawCall(CommandPacket::PacketType name);
+
+      // buffers
+      void addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags);
+      void addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags, SubresourceRange range);
 
       // buffers
       void addBuffer(int drawCallIndex, int64_t id, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags);

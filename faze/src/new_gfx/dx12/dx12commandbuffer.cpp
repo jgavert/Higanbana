@@ -101,21 +101,21 @@ namespace faze
       return block;
     }
 
-	DynamicDescriptorBlock DX12CommandList::allocateDescriptors(size_t size)
-	{
-		auto block = m_descriptorAllocator.allocate(size);
-		if (!block)
-		{
-			auto newBlock = m_descriptors->allocate(1024);
-			F_ASSERT(newBlock, "What!");
-			m_freeResources->descriptorBlocks.push_back(newBlock);
-			m_descriptorAllocator = LinearDescriptorAllocator(newBlock);
-			block = m_descriptorAllocator.allocate(size);
-		}
+    DynamicDescriptorBlock DX12CommandList::allocateDescriptors(size_t size)
+    {
+      auto block = m_descriptorAllocator.allocate(size);
+      if (!block)
+      {
+        auto newBlock = m_descriptors->allocate(1024);
+        F_ASSERT(newBlock, "What!");
+        m_freeResources->descriptorBlocks.push_back(newBlock);
+        m_descriptorAllocator = LinearDescriptorAllocator(newBlock);
+        block = m_descriptorAllocator.allocate(size);
+      }
 
-		F_ASSERT(block, "What!");
-		return block;
-	}
+      F_ASSERT(block, "What!");
+      return block;
+    }
 
     void DX12CommandList::handleBindings(DX12Device* dev, ID3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
     {
@@ -132,25 +132,25 @@ namespace faze
           buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
         }
       }
-	  if (ding.srvs.size() > 0)
-	  {
-		  auto descriptors = allocateDescriptors(ding.srvs.size());
-		  auto start = descriptors.offset(0);
-		  unsigned startSizes[1] = { static_cast<unsigned>(ding.srvs.size()) };
-		  vector<unsigned> srcSizes(ding.srvs.size(), 1);
-		  dev->m_device->CopyDescriptors(
-			  1, &(start.cpu), startSizes,
-			  static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      if (ding.srvs.size() > 0)
+      {
+        auto descriptors = allocateDescriptors(ding.srvs.size());
+        auto start = descriptors.offset(0);
+        unsigned startSizes[1] = { static_cast<unsigned>(ding.srvs.size()) };
+        vector<unsigned> srcSizes(ding.srvs.size(), 1);
+        dev->m_device->CopyDescriptors(
+          1, &(start.cpu), startSizes,
+          static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		  if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-		  {
-			  buffer->SetGraphicsRootDescriptorTable(1, start.gpu);
-		  }
-		  else
-		  {
-			  buffer->SetComputeRootDescriptorTable(1, start.gpu);
-		  }
-	  }
+        if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+        {
+          buffer->SetGraphicsRootDescriptorTable(1, start.gpu);
+        }
+        else
+        {
+          buffer->SetComputeRootDescriptorTable(1, start.gpu);
+        }
+      }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
@@ -164,6 +164,9 @@ namespace faze
     void DX12CommandList::addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
+
+      ID3D12DescriptorHeap* heaps[] = { m_descriptors->native() };
+      buffer->SetDescriptorHeaps(1, heaps);
 
       size_t currentActiveSubpassHash = 0;
 
@@ -230,24 +233,6 @@ namespace faze
     {
       int drawIndex = 0;
 
-      auto addTextureView = [&](int index, TextureView& texView, D3D12_RESOURCE_STATES flags)
-      {
-        auto view = std::static_pointer_cast<DX12TextureView>(texView.native());
-        auto texture = std::static_pointer_cast<DX12Texture>(texView.texture().native());
-        solver->addTexture(index, texView.texture().id(), *texture, *view, static_cast<int16_t>(texView.texture().desc().desc.miplevels), flags);
-      };
-
-      auto addTexture = [&](int index, Texture& texture, D3D12_RESOURCE_STATES flags)
-      {
-        auto tex = std::static_pointer_cast<DX12Texture>(texture.native());
-        SubresourceRange range{};
-        range.mipOffset = 0;
-        range.mipLevels = 1;
-        range.sliceOffset = 0;
-        range.arraySize = 1;
-        solver->addTexture(index, texture.id(), *tex, static_cast<int16_t>(texture.desc().desc.miplevels), flags, range);
-      };
-
       CommandPacket* subpass = nullptr;
 
       for (CommandPacket* packet : list)
@@ -260,7 +245,7 @@ namespace faze
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
           drawIndex = solver->addDrawCall(packet->type());
-          addTextureView(drawIndex, p.rtv, D3D12_RESOURCE_STATE_RENDER_TARGET);
+          solver->addResource(drawIndex, p.rtv.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
           break;
         }
         case CommandPacket::PacketType::Subpass:
@@ -274,23 +259,29 @@ namespace faze
           auto& p = packetRef(gfxpacket::ResourceBinding, packet);
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
-            /*
-          auto& s = packetRef(gfxpacket::Subpass, subpass);
-          for (auto&& it : s.rtvs)
+            auto& s = packetRef(gfxpacket::Subpass, subpass);
+            for (auto&& it : s.rtvs)
+            {
+              solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            }
+            for (auto&& it : s.dsvs)
+            {
+              solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            }
+          }
+
+          auto srvCount = p.srvs.size();
+          auto uavCount = p.uavs.size();
+
+          for (size_t i = 0; i < srvCount; ++i)
           {
+            solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
           }
-          for (auto&& it : s.dsvs)
+
+          for (size_t i = srvCount; i < uavCount; ++i)
           {
+            solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
           }
-          */
-          }
-          /*
-      for (auto&& it : p.srvs)
-      {
-      }
-      for (auto&& it : p.uavs)
-      {
-      }		*/
 
           break;
         }
@@ -298,7 +289,7 @@ namespace faze
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
           drawIndex = solver->addDrawCall(packet->type());
-          addTexture(drawIndex, p.texture, D3D12_RESOURCE_STATE_PRESENT);
+          solver->addResource(drawIndex, p.texture.dependency(), D3D12_RESOURCE_STATE_PRESENT);
           drawIndex++;
           break;
         }

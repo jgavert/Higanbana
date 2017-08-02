@@ -24,10 +24,57 @@ namespace faze
       m_drawCallJobOffsets[drawCallsAdded] = static_cast<int>(m_jobs.size());
       return drawCallsAdded++;
     }
+
+    void DX12DependencySolver::addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags)
+    {
+      size_t uniqueID = state.resPtr;
+      if (uniqueID == 0)
+        return;
+
+      SubresourceRange range{};
+
+      range.sliceOffset = static_cast<int16_t>(state.slice());
+      range.arraySize = static_cast<int16_t>(state.arraySize());
+      range.mipOffset = static_cast<int16_t>(state.mip());
+      range.mipLevels = static_cast<int16_t>(state.mipLevels());
+
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
+      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      {
+        TextureDependency d;
+        d.uniqueId = uniqueID;
+        d.mips = static_cast<int16_t>(state.totalMipLevels());
+        d.texture = reinterpret_cast<ID3D12Resource*>(state.resPtr);
+        d.state = reinterpret_cast<DX12ResourceState*>(state.statePtr);
+        m_textureStates[uniqueID] = std::move(d);
+      }
+      m_uniqueTexturesThisChain.insert(uniqueID);
+    }
+
+    void DX12DependencySolver::addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags, SubresourceRange range)
+    {
+      size_t uniqueID = state.resPtr;
+      if (uniqueID == 0)
+        return;
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
+
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
+      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      {
+        TextureDependency d;
+        d.uniqueId = uniqueID;
+        d.mips = static_cast<int16_t>(state.totalMipLevels());
+        d.texture = reinterpret_cast<ID3D12Resource*>(state.resPtr);
+        d.state = reinterpret_cast<DX12ResourceState*>(state.statePtr);
+        m_textureStates[uniqueID] = std::move(d);
+      }
+      m_uniqueTexturesThisChain.insert(uniqueID);
+    }
+
     // buffers
     void DX12DependencySolver::addBuffer(int drawCallIndex, int64_t, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags)
     {
-      int64_t uniqueID = reinterpret_cast<int64_t>(buffer.native());
+      size_t uniqueID = reinterpret_cast<size_t>(buffer.native());
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining) // disable optimization, merges last seen usages to existing. Default on. Combines only reads.
       {
         auto currentUsage = getUsageFromAccessFlags(flags);
@@ -62,20 +109,22 @@ namespace faze
 
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
         flags, SubresourceRange{} });
-      if (m_bufferStates.find(uniqueID) == m_bufferStates.end())
+
+      if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
-        BufferDependency d;
+        TextureDependency d;
         d.uniqueId = uniqueID;
-        d.buffer = buffer.native();
-        d.state = buffer.state();
-        m_bufferStates[uniqueID] = std::move(d);
+        d.mips = 1;
+        d.texture = buffer.native();
+        d.state = buffer.state().get();
+        m_textureStates[uniqueID] = std::move(d);
       }
       m_uniqueBuffersThisChain.insert(uniqueID);
     }
     // textures
     void DX12DependencySolver::addTexture(int drawCallIndex, int64_t, DX12Texture& texture, DX12TextureView& view, int16_t mips, D3D12_RESOURCE_STATES flags)
     {
-      auto uniqueID = reinterpret_cast<int64_t>(texture.native());
+      auto uniqueID = reinterpret_cast<size_t>(texture.native());
 
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
       {
@@ -105,7 +154,7 @@ namespace faze
         d.uniqueId = uniqueID;
         d.mips = mips;
         d.texture = texture.native();
-        d.state = texture.state();
+        d.state = texture.state().get();
         m_textureStates[uniqueID] = std::move(d);
       }
 
@@ -113,7 +162,7 @@ namespace faze
     }
     void DX12DependencySolver::addTexture(int drawCallIndex, int64_t, DX12Texture& texture, int16_t mips, D3D12_RESOURCE_STATES flags, SubresourceRange range)
     {
-      auto uniqueID = reinterpret_cast<int64_t>(texture.native());
+      auto uniqueID = reinterpret_cast<size_t>(texture.native());
 
       if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
       {
@@ -133,8 +182,7 @@ namespace faze
         m_resourceUsageInLastAdd[uniqueID] = LastSeenUsage{ currentUsage, drawCallIndex };
       }
 
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, range });
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
 
       if (m_textureStates.find(uniqueID) == m_textureStates.end())
       {
@@ -142,7 +190,7 @@ namespace faze
         d.uniqueId = uniqueID;
         d.mips = mips;
         d.texture = texture.native();
-        d.state = texture.state();
+        d.state = texture.state().get();
         m_textureStates[uniqueID] = std::move(d);
       }
 

@@ -32,7 +32,7 @@ namespace faze
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024)) // we have room 64megs of dynamic buffers
-	  , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
+      , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
       , m_trash(std::make_shared<Garbage>())
       , m_seqTracker(std::make_shared<SequenceTracker>())
     {
@@ -294,7 +294,7 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
       textures.resize(native->getDesc().buffers);
 
-      DX12TextureState state;
+      DX12ResourceState state;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
       std::weak_ptr<Garbage> weak = m_trash;
@@ -304,7 +304,7 @@ namespace faze
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
 
-        textures[i] = std::shared_ptr<DX12Texture>(new DX12Texture(renderTarget, std::make_shared<DX12TextureState>(state)),
+        textures[i] = std::shared_ptr<DX12Texture>(new DX12Texture(renderTarget, std::make_shared<DX12ResourceState>(state)),
           [weak](DX12Texture* ptr)
         {
           if (auto trash = weak.lock())
@@ -694,6 +694,7 @@ namespace faze
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillPlacedBufferInfo(desc);
+
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
       switch (desc.desc.usage)
       {
@@ -710,13 +711,14 @@ namespace faze
       default:
         break;
       }
-
+      DX12ResourceState state;
+      state.flags.emplace_back(startState);
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
 
       std::weak_ptr<Garbage> weak = m_trash;
 
-      return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<D3D12_RESOURCE_STATES>(startState)),
+      return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
         [weak](DX12Buffer* ptr)
       {
         if (auto trash = weak.lock())
@@ -811,7 +813,7 @@ namespace faze
         break;
       }
 
-      DX12TextureState state;
+      DX12ResourceState state;
       for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
       {
         for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
@@ -848,7 +850,7 @@ namespace faze
 
       std::weak_ptr<Garbage> weak = m_trash;
 
-      return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12TextureState>(state)),
+      return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
         [weak](DX12Texture* ptr)
       {
         if (auto trash = weak.lock())

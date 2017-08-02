@@ -101,26 +101,41 @@ namespace faze
         additionalInfo |= res;
       }
 
-      size_t mip() const
+      void storeTotalMipLevels(unsigned mips)
       {
-        return (additionalInfo >> (arrayBits + arrayBits + mipBits)) & createMaskWithNBitsSet(mipBits);
+        size_t res = mips;
+        res = res << (arrayBits + arrayBits + mipBits + mipBits);
+        size_t mask = createMaskWithNBitsSet(mipBits) << (arrayBits + arrayBits + mipBits + mipBits);
+
+        additionalInfo &= ~(mask);
+        additionalInfo |= res;
       }
 
-      size_t slice() const
+      unsigned mip() const
       {
-        return (additionalInfo >> arrayBits) & createMaskWithNBitsSet(arrayBits);
+        return static_cast<unsigned>((additionalInfo >> (arrayBits + arrayBits + mipBits)) & createMaskWithNBitsSet(mipBits));
       }
 
-      size_t arraySize() const
+      unsigned slice() const
       {
-        auto size = additionalInfo & createMaskWithNBitsSet(arrayBits);
+        return static_cast<unsigned>((additionalInfo >> arrayBits) & createMaskWithNBitsSet(arrayBits));
+      }
+
+      unsigned arraySize() const
+      {
+        auto size = static_cast<unsigned>(additionalInfo & createMaskWithNBitsSet(arrayBits));
         return (size == 0) ? 2048 : size;
       }
 
-      size_t mipLevels() const
+      unsigned mipLevels() const
       {
-        auto size = (additionalInfo >> (arrayBits + arrayBits)) & createMaskWithNBitsSet(mipBits);
+        auto size = static_cast<unsigned>((additionalInfo >> (arrayBits + arrayBits)) & createMaskWithNBitsSet(mipBits));
         return (size == 0) ? 16 : size;
+      }
+
+      unsigned totalMipLevels() const
+      {
+        return static_cast<unsigned>((additionalInfo >> (arrayBits + arrayBits + mipBits + mipBits)) & createMaskWithNBitsSet(mipBits));
       }
     };
 
