@@ -106,7 +106,7 @@ namespace faze
 		DX12DynamicDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int blockSize, int blockCount)
         : allocator(blockSize, blockCount)
         , type(type)
-        , size(blockSize+blockCount)
+        , size(blockSize*blockCount)
       {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
         desc.Type = type;

@@ -138,7 +138,18 @@ namespace faze
 		  auto start = descriptors.offset(0);
 		  unsigned startSizes[1] = { static_cast<unsigned>(ding.srvs.size()) };
 		  vector<unsigned> srcSizes(ding.srvs.size(), 1);
-		  dev->m_device->CopyDescriptors(1, &start.cpu, startSizes, static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		  dev->m_device->CopyDescriptors(
+			  1, &(start.cpu), startSizes,
+			  static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		  if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+		  {
+			  buffer->SetGraphicsRootDescriptorTable(1, start.gpu);
+		  }
+		  else
+		  {
+			  buffer->SetComputeRootDescriptorTable(1, start.gpu);
+		  }
 	  }
     }
 
