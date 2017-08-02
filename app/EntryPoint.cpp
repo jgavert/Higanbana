@@ -74,9 +74,6 @@ int EntryPoint::main()
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
 
-        decltype(::shader::Triangle::constants) constants{};
-        constants.color = float4{ 1.f, 0.f, 0.f, 1.f };
-
         auto bufferdesc = ResourceDescriptor()
           .setName("testBufferTarget")
           .setFormat(FormatType::Float32)
@@ -102,9 +99,7 @@ int EntryPoint::main()
           .setVertexShader("triangle")
           .setPixelShader("triangle")
           .setPrimitiveTopology(PrimitiveTopology::Triangle)
-          //.setRasterizer(faze::RasterizerDescriptor()
-          //	.setFrontCounterClockwise(true))
-          .setDepthStencil(DepthStencilDescriptor()
+		  .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);

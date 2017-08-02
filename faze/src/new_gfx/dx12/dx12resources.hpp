@@ -32,76 +32,109 @@ namespace faze
       D3D12_GPU_DESCRIPTOR_HANDLE gpu;
     };
 
-    struct DX12Descriptor
+    struct DX12CPUDescriptor
     {
       D3D12_CPU_DESCRIPTOR_HANDLE cpu;
       D3D12_DESCRIPTOR_HEAP_TYPE type;
       RangeBlock block;
     };
 
-    struct DX12DynamicDescriptorRange
+    struct DynamicDescriptorBlock
     {
-      D3D12_GPU_DESCRIPTOR_HANDLE gpu;
-      D3D12_CPU_DESCRIPTOR_HANDLE cpu;
+      D3D12_CPU_DESCRIPTOR_HANDLE baseCpuHandle;
+      D3D12_GPU_DESCRIPTOR_HANDLE baseGpuHandle;
       UINT increment = 0;
-      int size = -1;
+	  PageBlock block;
 
-      DX12GPUDescriptor offset(int index)
+      DX12GPUDescriptor offset(int index) const 
       {
-        F_ASSERT(index < size && index >= 0, "Invalid index %d", index);
+        F_ASSERT(index < block.size && index >= 0, "Invalid index %d", index);
         DX12GPUDescriptor desc{};
-        desc.cpu.ptr = cpu.ptr + static_cast<size_t>(index) * increment;
-        desc.gpu.ptr = gpu.ptr + static_cast<size_t>(index) * increment;
+        desc.cpu.ptr = baseCpuHandle.ptr + static_cast<size_t>(index + block.offset) * increment;
+        desc.gpu.ptr = baseGpuHandle.ptr + static_cast<size_t>(index + block.offset) * increment;
         return desc;
       }
+
+	  operator bool() const
+	  {
+		  return block.valid();
+	  }
+
+	  size_t size() const
+	  {
+		  return block.size;
+	  }
     };
 
-    class LinearDescriptorHeap
+	class LinearDescriptorAllocator
+	{
+		LinearAllocator allocator;
+		DynamicDescriptorBlock block;
+
+	public:
+		LinearDescriptorAllocator() {}
+		LinearDescriptorAllocator(DynamicDescriptorBlock block)
+			: allocator(block.size())
+			, block(block)
+		{
+		}
+
+		DynamicDescriptorBlock allocate(size_t bytes)
+		{
+			auto offset = allocator.allocate(bytes);
+			if (offset < 0)
+				return DynamicDescriptorBlock{ 0, 0, 0, PageBlock{} };
+
+			DynamicDescriptorBlock b = block;
+			b.block.offset += offset;
+			b.block.size = bytes;
+			return b;
+		}
+	};
+
+    class DX12DynamicDescriptorHeap
     {
-      LinearAllocator allocator;
+	  FixedSizeAllocator allocator;
       ComPtr<ID3D12DescriptorHeap> heap;
       D3D12_DESCRIPTOR_HEAP_TYPE type;
-      D3D12_CPU_DESCRIPTOR_HANDLE cpuStart;
-      D3D12_GPU_DESCRIPTOR_HANDLE gpuStart;
-      UINT increment;
-
+	  DynamicDescriptorBlock baseRange;
       int size = -1;
     public:
-      LinearDescriptorHeap() {}
-      LinearDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int count)
-        : allocator(count)
+		DX12DynamicDescriptorHeap()
+			: allocator(0, 0)
+		{}
+		DX12DynamicDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int blockSize, int blockCount)
+        : allocator(blockSize, blockCount)
         , type(type)
-        , size(count)
+        , size(blockSize+blockCount)
       {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
         desc.Type = type;
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         desc.NodeMask = 0;
-        desc.NumDescriptors = static_cast<UINT>(count);
+        desc.NumDescriptors = static_cast<UINT>(size);
 
-        FAZE_CHECK_HR(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+        FAZE_CHECK_HR(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&heap)));
 
-        cpuStart = heap->GetCPUDescriptorHandleForHeapStart();
-        gpuStart = heap->GetGPUDescriptorHandleForHeapStart();
-        increment = device->GetDescriptorHandleIncrementSize(type);
+		baseRange.baseCpuHandle = heap->GetCPUDescriptorHandleForHeapStart();
+		baseRange.baseGpuHandle = heap->GetGPUDescriptorHandleForHeapStart();
+		baseRange.increment = device->GetDescriptorHandleIncrementSize(type);
       }
 
-      DX12DynamicDescriptorRange allocate(int value)
+      DynamicDescriptorBlock allocate(int value)
       {
-        auto offset = allocator.allocate(value, 1);
-        F_ASSERT(offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
-        DX12DynamicDescriptorRange desc{};
-        desc.cpu.ptr = cpuStart.ptr + increment * offset;
-        desc.gpu.ptr = gpuStart.ptr + increment * offset;
-        desc.increment = increment;
-        desc.size = value;
+        auto offset = allocator.allocate(value);
+        F_ASSERT(offset.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        DynamicDescriptorBlock desc = baseRange;
+		desc.block = offset;
         return desc;
       }
 
-      void reset()
-      {
-        allocator.reset();
-      }
+	  void release(DynamicDescriptorBlock range)
+	  {
+	    F_ASSERT(range.block.offset != -1, "halp");
+	    allocator.release(range.block);
+	  }
     };
 
     class StagingDescriptorHeap
@@ -132,18 +165,18 @@ namespace faze
         increment = device->GetDescriptorHandleIncrementSize(type);
       }
 
-      DX12Descriptor allocate()
+      DX12CPUDescriptor allocate()
       {
         auto dip = allocator.allocate(1);
         F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
-        DX12Descriptor desc{};
+        DX12CPUDescriptor desc{};
         desc.block = dip;
         desc.type = type;
         desc.cpu.ptr = start.ptr + increment * dip.offset;
         return desc;
       }
 
-      void release(DX12Descriptor desc)
+      void release(DX12CPUDescriptor desc)
       {
         allocator.release(desc.block);
       }
@@ -357,31 +390,37 @@ namespace faze
     {
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
+	  std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
 
       UploadLinearAllocator m_constantsAllocator;
+	  LinearDescriptorAllocator m_descriptorAllocator;
 
       struct FreeableResources
       {
         vector<UploadBlock> uploadBlocks;
+		vector<DynamicDescriptorBlock> descriptorBlocks;
       };
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
       UploadBlock allocateConstants(size_t size);
-      void handleBindings(ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
-      void addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
+	  DynamicDescriptorBlock allocateDescriptors(size_t size);
+      void handleBindings(DX12Device* dev, ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
+      void addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
-      DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants)
+      DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants, std::shared_ptr<DX12DynamicDescriptorHeap> descriptors)
         : m_buffer(buffer)
         , m_constants(constants)
+		, m_descriptors(descriptors)
       {
         m_buffer->resetList();
 
         std::weak_ptr<DX12UploadHeap> consts = m_constants;
+		std::weak_ptr<DX12DynamicDescriptorHeap> descriptrs = m_descriptors;
 
-        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts](FreeableResources* ptr)
+        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs](FreeableResources* ptr)
         {
           if (auto constants = consts.lock())
           {
@@ -390,6 +429,14 @@ namespace faze
               constants->release(it);
             }
           }
+
+		  if (auto descriptors = descriptrs.lock())
+		  {
+			  for (auto&& it : ptr->descriptorBlocks)
+			  {
+				  descriptors->release(it);
+			  }
+		  }
 
           delete ptr;
         });
@@ -552,16 +599,16 @@ namespace faze
     class DX12TextureView : public prototypes::TextureViewImpl
     {
     private:
-      DX12Descriptor resource;
+      DX12CPUDescriptor resource;
       SubresourceRange subResourceRange;
     public:
       DX12TextureView()
       {}
-      DX12TextureView(DX12Descriptor resource, SubresourceRange subResourceRange)
+      DX12TextureView(DX12CPUDescriptor resource, SubresourceRange subResourceRange)
         : resource(resource)
         , subResourceRange(subResourceRange)
       {}
-      DX12Descriptor native()
+      DX12CPUDescriptor native()
       {
         return resource;
       }
@@ -613,15 +660,15 @@ namespace faze
     class DX12BufferView : public prototypes::BufferViewImpl
     {
     private:
-      DX12Descriptor resource;
+      DX12CPUDescriptor resource;
 
     public:
       DX12BufferView()
       {}
-      DX12BufferView(DX12Descriptor resource)
+      DX12BufferView(DX12CPUDescriptor resource)
         : resource(resource)
       {}
-      DX12Descriptor native()
+      DX12CPUDescriptor native()
       {
         return resource;
       }
@@ -638,7 +685,7 @@ namespace faze
     {
     private:
       UploadBlock block;
-      DX12Descriptor resource;
+      DX12CPUDescriptor resource;
       DXGI_FORMAT format;
       friend class DX12Device;
     public:
@@ -646,14 +693,14 @@ namespace faze
       {
       }
 
-      DX12DynamicBufferView(UploadBlock block, DX12Descriptor resource, DXGI_FORMAT format)
+      DX12DynamicBufferView(UploadBlock block, DX12CPUDescriptor resource, DXGI_FORMAT format)
         : block(block)
         , resource(resource)
         , format(format)
       {
       }
 
-      DX12Descriptor native()
+      DX12CPUDescriptor native()
       {
         return resource;
       }
@@ -752,20 +799,23 @@ namespace faze
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
 
+	  std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
+
       std::shared_ptr<SequenceTracker> m_seqTracker;
 
       struct Garbage
       {
         vector<UploadBlock> dynamicBuffers;
-        vector<DX12Descriptor> genericDescriptors;
-        vector<DX12Descriptor> rtvsDescriptors;
-        vector<DX12Descriptor> dsvsDescriptors;
+        vector<DX12CPUDescriptor> genericDescriptors;
+        vector<DX12CPUDescriptor> rtvsDescriptors;
+        vector<DX12CPUDescriptor> dsvsDescriptors;
         vector<ID3D12Resource*> resources;
       };
 
       std::shared_ptr<Garbage> m_trash;
       deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
 
+	  friend class DX12CommandList;
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
       ~DX12Device();

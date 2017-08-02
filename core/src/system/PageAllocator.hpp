@@ -10,9 +10,9 @@ namespace faze
     int64_t offset;
     int64_t size;
 
-    bool valid()
+    bool valid() const
     {
-      return offset != -1 && size != -1;
+      return offset != -1 && size > 0;
     }
   };
 

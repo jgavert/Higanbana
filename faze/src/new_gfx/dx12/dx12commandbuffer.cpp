@@ -101,7 +101,23 @@ namespace faze
       return block;
     }
 
-    void DX12CommandList::handleBindings(ID3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
+	DynamicDescriptorBlock DX12CommandList::allocateDescriptors(size_t size)
+	{
+		auto block = m_descriptorAllocator.allocate(size);
+		if (!block)
+		{
+			auto newBlock = m_descriptors->allocate(1024);
+			F_ASSERT(newBlock, "What!");
+			m_freeResources->descriptorBlocks.push_back(newBlock);
+			m_descriptorAllocator = LinearDescriptorAllocator(newBlock);
+			block = m_descriptorAllocator.allocate(size);
+		}
+
+		F_ASSERT(block, "What!");
+		return block;
+	}
+
+    void DX12CommandList::handleBindings(DX12Device* dev, ID3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
     {
       if (ding.constants.size() > 0)
       {
@@ -116,6 +132,14 @@ namespace faze
           buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
         }
       }
+	  if (ding.srvs.size() > 0)
+	  {
+		  auto descriptors = allocateDescriptors(ding.srvs.size());
+		  auto start = descriptors.offset(0);
+		  unsigned startSizes[1] = { static_cast<unsigned>(ding.srvs.size()) };
+		  vector<unsigned> srcSizes(ding.srvs.size(), 1);
+		  dev->m_device->CopyDescriptors(1, &start.cpu, startSizes, static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	  }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
@@ -126,7 +150,7 @@ namespace faze
       buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
     }
 
-    void DX12CommandList::addCommands(ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
+    void DX12CommandList::addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
 
@@ -146,7 +170,7 @@ namespace faze
         case CommandPacket::PacketType::ResourceBinding:
         {
           solver->runBarrier(buffer, drawIndex);
-          handleBindings(buffer, packetRef(gfxpacket::ResourceBinding, packet));
+          handleBindings(dev, buffer, packetRef(gfxpacket::ResourceBinding, packet));
           drawIndex++;
           break;
         }
@@ -314,7 +338,7 @@ namespace faze
 
       addDepedencyDataAndSolve(&solver, list);
       processRenderpasses(dev, list);
-      addCommands(m_buffer->list(), &solver, list);
+      addCommands(dev, m_buffer->list(), &solver, list);
 
       m_buffer->closeList();
     }
