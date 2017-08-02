@@ -38,17 +38,17 @@ namespace faze
       range.mipOffset = static_cast<int16_t>(state.mip());
       range.mipLevels = static_cast<int16_t>(state.mipLevels());
 
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
-      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, flags, range });
+      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
       {
-        TextureDependency d;
+        ResourceDependency d{};
         d.uniqueId = uniqueID;
         d.mips = static_cast<int16_t>(state.totalMipLevels());
         d.texture = reinterpret_cast<ID3D12Resource*>(state.resPtr);
         d.state = reinterpret_cast<DX12ResourceState*>(state.statePtr);
-        m_textureStates[uniqueID] = std::move(d);
+        m_resourceStates[uniqueID] = std::move(d);
       }
-      m_uniqueTexturesThisChain.insert(uniqueID);
+      m_uniqueResourcesThisChain.insert(uniqueID);
     }
 
     void DX12DependencySolver::addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags, SubresourceRange range)
@@ -56,22 +56,23 @@ namespace faze
       size_t uniqueID = state.resPtr;
       if (uniqueID == 0)
         return;
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, flags, range });
 
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
-      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, flags, range });
+      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
       {
-        TextureDependency d;
+        ResourceDependency d{};
         d.uniqueId = uniqueID;
         d.mips = static_cast<int16_t>(state.totalMipLevels());
         d.texture = reinterpret_cast<ID3D12Resource*>(state.resPtr);
         d.state = reinterpret_cast<DX12ResourceState*>(state.statePtr);
-        m_textureStates[uniqueID] = std::move(d);
+        m_resourceStates[uniqueID] = std::move(d);
       }
-      m_uniqueTexturesThisChain.insert(uniqueID);
+      m_uniqueResourcesThisChain.insert(uniqueID);
     }
 
     // buffers
+    /*
     void DX12DependencySolver::addBuffer(int drawCallIndex, int64_t, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags)
     {
       size_t uniqueID = reinterpret_cast<size_t>(buffer.native());
@@ -110,18 +111,20 @@ namespace faze
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
         flags, SubresourceRange{} });
 
-      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
       {
         TextureDependency d;
         d.uniqueId = uniqueID;
         d.mips = 1;
         d.texture = buffer.native();
         d.state = buffer.state().get();
-        m_textureStates[uniqueID] = std::move(d);
+        m_resourceStates[uniqueID] = std::move(d);
       }
       m_uniqueBuffersThisChain.insert(uniqueID);
     }
+    */
     // textures
+    /*
     void DX12DependencySolver::addTexture(int drawCallIndex, int64_t, DX12Texture& texture, DX12TextureView& view, int16_t mips, D3D12_RESOURCE_STATES flags)
     {
       auto uniqueID = reinterpret_cast<size_t>(texture.native());
@@ -148,71 +151,29 @@ namespace faze
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
         flags, view.range() });
 
-      if (m_textureStates.find(uniqueID) == m_textureStates.end())
+      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
       {
         TextureDependency d;
         d.uniqueId = uniqueID;
         d.mips = mips;
         d.texture = texture.native();
         d.state = texture.state().get();
-        m_textureStates[uniqueID] = std::move(d);
+        m_resourceStates[uniqueID] = std::move(d);
       }
 
-      m_uniqueTexturesThisChain.insert(uniqueID);
+      m_uniqueResourcesThisChain.insert(uniqueID);
     }
-    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t, DX12Texture& texture, int16_t mips, D3D12_RESOURCE_STATES flags, SubresourceRange range)
-    {
-      auto uniqueID = reinterpret_cast<size_t>(texture.native());
-
-      if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
-      {
-        auto currentUsage = getUsageFromAccessFlags(flags);
-        if (currentUsage == UsageHint::read)
-        {
-          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-          if (obj)
-          {
-            if (obj->second.type != currentUsage)
-            {
-              F_SLOG("DependencySolver", "Possible optimization here!\n");
-              // Somehow feels hard to figure out where all last subresources were. so that we could merge the use to them...
-            }
-          }
-        }
-        m_resourceUsageInLastAdd[uniqueID] = LastSeenUsage{ currentUsage, drawCallIndex };
-      }
-
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture, flags, range });
-
-      if (m_textureStates.find(uniqueID) == m_textureStates.end())
-      {
-        TextureDependency d;
-        d.uniqueId = uniqueID;
-        d.mips = mips;
-        d.texture = texture.native();
-        d.state = texture.state().get();
-        m_textureStates[uniqueID] = std::move(d);
-      }
-
-      m_uniqueTexturesThisChain.insert(uniqueID);
-    }
+    */
 
     void DX12DependencySolver::makeAllBarriers()
     {
-      m_bufferCache.clear();
-      m_imageCache.clear();
+      m_resourceCache.clear();
 
-      // fill cache with all resources seen.
-      for (auto&& id : m_uniqueBuffersThisChain)
+      for (auto&& id : m_uniqueResourcesThisChain)
       {
-        m_bufferCache[id] = SmallBuffer{ m_bufferStates[id].buffer, *m_bufferStates[id].state };
-      }
-
-      for (auto&& id : m_uniqueTexturesThisChain)
-      {
-        auto tesState = m_textureStates[id];
+        auto tesState = m_resourceStates[id];
         auto flags = tesState.state->flags;
-        m_imageCache[id] = SmallTexture{ tesState.texture, tesState.mips, flags };
+        m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, flags };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -235,6 +196,7 @@ namespace faze
         {
           auto& job = m_jobs[jobIndex];
           auto jobResAccess = job.access;
+          /*
           if (job.type == ResourceType::buffer)
           {
             auto resource = m_bufferCache.find(job.resource);
@@ -261,10 +223,10 @@ namespace faze
               }
             }
           }
-          else
+          else*/
           {
-            auto resource = m_imageCache.find(job.resource);
-            if (resource != m_imageCache.end())
+            auto resource = m_resourceCache.find(job.resource);
+            if (resource != m_resourceCache.end())
             {
               int16_t mipLevels = resource->second.mips;
               int16_t subresourceIndex;
@@ -317,15 +279,11 @@ namespace faze
       m_barriersOffsets.emplace_back(static_cast<int>(barriers.size()));
 
       // update global state
-      for (auto&& obj : m_uniqueBuffersThisChain)
-      {
-        *m_bufferStates[obj].state = m_bufferCache[obj].flags;
-      }
 
-      for (auto&& obj : m_uniqueTexturesThisChain)
+      for (auto&& obj : m_uniqueResourcesThisChain)
       {
-        auto& globalState = m_textureStates[obj].state->flags;
-        auto& localState = m_imageCache[obj].states;
+        auto& globalState = m_resourceStates[obj].state->flags;
+        auto& localState = m_resourceCache[obj].states;
         auto globalSize = globalState.size();
         for (int i = 0; i < globalSize; ++i)
         {
@@ -368,8 +326,7 @@ namespace faze
       m_schedulingResult.clear();
       m_barriersOffsets.clear();
       barriers.clear();
-      m_uniqueBuffersThisChain.clear();
-      m_uniqueTexturesThisChain.clear();
+      m_uniqueResourcesThisChain.clear();
     }
   }
 }
