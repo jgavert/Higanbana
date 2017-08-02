@@ -10,7 +10,7 @@ namespace faze
   static constexpr SeqNum InvalidSeqNum = -1;
   class SequenceTracker
   {
-    static constexpr int64_t blockSize = 128;
+    constexpr static int64_t BitfieldBlockSize = 128;
     SeqNum nextSequence = InvalidSeqNum;
     SeqNum fullCompletedSeq = InvalidSeqNum;
     std::deque<Bitfield<1>> m_incomplete;
@@ -20,6 +20,7 @@ namespace faze
     SeqNum next();
     void complete(SeqNum num);
     bool hasCompleted(SeqNum num);
-    SeqNum lastSequence();
+	bool hasCompletedTill(SeqNum num);
+	SeqNum lastSequence();
   };
 }
