@@ -6,6 +6,8 @@ workspace/
 externals/
 package/
 app/external/imgui/
+
+.cov/
 *.7z
 *.nvuser
 *.cmd
