@@ -11,5 +11,5 @@ void main(uint id : SV_DispatchThreadID)
 	pos.x = id % constants.iResolution.x;
 	pos.y = id / constants.iResolution.y;
 	
-	output[pos] = float4(0.f, 0.4f, sin(constants.iTime), 1.f);
+	output[pos] = float4(0.f, 0.f, sin(constants.iTime*10.f)*0.5f + 0.5f, 1.f);
 }
