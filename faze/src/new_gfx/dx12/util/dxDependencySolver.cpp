@@ -58,7 +58,6 @@ namespace faze
         return;
       m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, flags, range });
 
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, flags, range });
       if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
       {
         ResourceDependency d{};
