@@ -94,17 +94,21 @@ FileSystem::FileSystem()
 
 bool FileSystem::fileExists(std::string path)
 {
+  std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+  std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
   return (m_files.find(fullPath) != m_files.end());
 }
 
 bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
 {
+  // convert all \ to /
+  std::replace(path.begin(), path.end(), '/', '\\');
+
   auto fp = fopen(path.c_str(), "rb");
   fseek(fp, 0L, SEEK_END);
   auto fsize = ftell(fp);
   fseek(fp, 0L, SEEK_SET);
-  F_ILOG("FileSystem", "found file %s, loading %.2fMB(%ld)...", path.c_str(), static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
   std::vector<uint8_t> contents(fsize);
   size_t leftToRead = fsize;
   size_t offset = 0;
@@ -117,13 +121,16 @@ bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
   }
   fclose(fp);
   //contents.resize(size - leftToRead);
-  m_files[path] = contents;
+  auto time = static_cast<size_t>(system_fs::last_write_time(path).time_since_epoch().count());
+  F_ILOG("FileSystem", "found file %s(%zu), loading %.2fMB(%ld)...", path.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
+  m_files[path] = FileObj{ time, contents };
   size = fsize;
   return true;
 }
 
 void FileSystem::loadDirectoryContentsRecursive(std::string path)
 {
+  std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = system_fs::current_path().string() + path;
   std::vector<std::string> files;
   getFilesRecursive(fullPath.c_str(), files);
@@ -142,9 +149,10 @@ MemoryBlob FileSystem::readFile(std::string path)
   MemoryBlob blob;
   if (fileExists(path))
   {
+    std::lock_guard<std::mutex> guard(m_lock);
     auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
     auto& file = m_files[fullPath];
-    blob = MemoryBlob(file);
+    blob = MemoryBlob(file.data);
   }
   return blob;
 }
@@ -154,8 +162,9 @@ faze::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
   faze::MemView<const uint8_t> view;
   if (fileExists(path))
   {
+    std::lock_guard<std::mutex> guard(m_lock);
     auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
-    view = faze::MemView<const uint8_t>(m_files[fullPath]);
+    view = faze::MemView<const uint8_t>(m_files[fullPath].data);
   }
   return view;
 }
@@ -173,6 +182,7 @@ bool FileSystem::writeFile(std::string path, faze::MemView<const uint8_t> view)
 
 bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 {
+  std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = system_fs::path(system_fs::current_path().string() + path);
 
   std::vector<uint8_t> fdata(size);
@@ -211,6 +221,49 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 
   fclose(file);
   system_fs::resize_file(fullPath, size);
-  m_files[fullPath.string()] = std::move(fdata);
+  m_files[fullPath.string()].data = std::move(fdata);
   return true;
+}
+
+WatchFile FileSystem::watchFile(std::string path)
+{
+  if (fileExists(path))
+  {
+    std::lock_guard<std::mutex> guard(m_lock);
+    WatchFile w = WatchFile(std::make_shared<std::atomic<bool>>());
+    auto fullPath = system_fs::current_path().string() + path;
+    std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
+    m_watchedFiles[fullPath].push_back(w);
+    return w;
+  }
+  return WatchFile{};
+}
+
+void FileSystem::updateWatchedFiles()
+{
+  std::lock_guard<std::mutex> guard(m_lock);
+  if (m_watchedFiles.empty())
+  {
+    return;
+  }
+  if (rollingUpdate >= m_watchedFiles.size())
+  {
+    rollingUpdate = 0;
+  }
+  auto current = m_watchedFiles.begin();
+  for (int i = 0; i < rollingUpdate; ++i)
+  {
+    current++;
+  }
+  auto oldTime = m_files[current->first].timeModified;
+  auto newTime = static_cast<size_t>(system_fs::last_write_time(current->first).time_since_epoch().count());
+  if (newTime > oldTime)
+  {
+    size_t opt;
+    loadFileFromHDD(current->first, opt);
+    for (auto&& it : current->second)
+    {
+      it.update();
+    }
+  }
 }
