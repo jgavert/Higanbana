@@ -266,4 +266,5 @@ void FileSystem::updateWatchedFiles()
       it.update();
     }
   }
+  rollingUpdate++;
 }

@@ -13,11 +13,12 @@ namespace faze
   {
   public:
     std::shared_ptr<backend::prototypes::PipelineImpl> impl;
-    WatchFile m_update;
+    std::shared_ptr<WatchFile> m_update;
     ComputePipelineDescriptor descriptor;
 
     ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, ComputePipelineDescriptor desc)
       : impl(impl)
+      , m_update(std::make_shared<WatchFile>())
       , descriptor(desc)
     {}
   };

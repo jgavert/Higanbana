@@ -671,10 +671,14 @@ namespace faze
         needsCompile = true;
       }
       // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
-      if (needsCompile || pipeline.m_update.updated())
+      if (needsCompile || pipeline.m_update->updated())
       {
         m_trash->pipelines.emplace_back(ptr->pipeline);
         m_trash->roots.emplace_back(ptr->root);
+        if (pipeline.m_update->updated())
+        {
+          F_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
+        }
 
         auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
@@ -683,11 +687,11 @@ namespace faze
         byte.pShaderBytecode = thing.data();
         byte.BytecodeLength = thing.size();
 
-        if (pipeline.m_update.empty())
+        if (pipeline.m_update->empty())
         {
-          pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
+          *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
         }
-        pipeline.m_update.react();
+        pipeline.m_update->react();
 
         D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
         ZeroMemory(&computeDesc, sizeof(computeDesc));
