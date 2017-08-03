@@ -396,9 +396,11 @@ namespace faze
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
+	  DX12CPUDescriptor m_nullBufferUAV;
 
       UploadLinearAllocator m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
+
 
       struct FreeableResources
       {
@@ -415,10 +417,11 @@ namespace faze
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
-      DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants, std::shared_ptr<DX12DynamicDescriptorHeap> descriptors)
+      DX12CommandList(std::shared_ptr<DX12CommandBuffer> buffer, std::shared_ptr<DX12UploadHeap> constants, std::shared_ptr<DX12DynamicDescriptorHeap> descriptors, DX12CPUDescriptor nullBufferUAV)
         : m_buffer(buffer)
         , m_constants(constants)
         , m_descriptors(descriptors)
+		, m_nullBufferUAV(nullBufferUAV)
       {
         m_buffer->resetList();
 
@@ -807,6 +810,8 @@ namespace faze
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 
       std::shared_ptr<SequenceTracker> m_seqTracker;
+
+	  DX12CPUDescriptor m_nullBufferUAV;
 
       struct Garbage
       {

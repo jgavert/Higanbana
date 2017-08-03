@@ -92,6 +92,14 @@ namespace faze
       list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
+
+	template <typename Shader>
+	void dispatch(
+		Binding<Shader>& binding, uint3 groups)
+	{
+		list.bindComputeResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
+		list.dispatch(groups);
+	}
   };
 
   class CommandGraph
