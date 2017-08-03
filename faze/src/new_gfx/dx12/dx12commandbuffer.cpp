@@ -140,7 +140,8 @@ namespace faze
         vector<unsigned> srcSizes(ding.srvs.size(), 1);
         dev->m_device->CopyDescriptors(
           1, &(start.cpu), startSizes,
-          static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+          static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(),
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
         {
@@ -151,6 +152,30 @@ namespace faze
           buffer->SetComputeRootDescriptorTable(1, start.gpu);
         }
       }
+
+	  {
+		  auto descriptors = allocateDescriptors(8);
+		  auto start = descriptors.offset(0);
+
+		  vector<D3D12_CPU_DESCRIPTOR_HANDLE> uavs(8, m_nullBufferUAV.cpu);
+		  memcpy(uavs.data(), ding.uavs.data(), ding.uavs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+		  unsigned destSizes[1] = { 8 };
+		  vector<unsigned> srcSizes(8, 1);
+
+		  dev->m_device->CopyDescriptors(
+			  1, &(start.cpu), destSizes,
+			  8, uavs.data(), srcSizes.data(),
+			  D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		  if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+		  {
+			  buffer->SetGraphicsRootDescriptorTable(2, start.gpu);
+		  }
+		  else
+		  {
+			  buffer->SetComputeRootDescriptorTable(2, start.gpu);
+		  }
+	  }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)

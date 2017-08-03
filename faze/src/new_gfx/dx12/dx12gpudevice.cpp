@@ -92,6 +92,21 @@ namespace faze
           F_SLOG("DX12", "Supported msaa mode with SampleCount %d\n", i);
         }
       }*/
+
+	  {
+		  m_nullBufferUAV = m_generics.allocate();
+		  D3D12_UNORDERED_ACCESS_VIEW_DESC nulldesc = {};
+		  nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		  nulldesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		  nulldesc.Buffer.FirstElement = 0;
+		  nulldesc.Buffer.NumElements = 1;
+		  nulldesc.Buffer.StructureByteStride = 0;
+		  nulldesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+		  m_device->CreateUnorderedAccessView(
+			  nullptr, nullptr,
+			  &nulldesc,
+			  m_nullBufferUAV.cpu);
+	  }
     }
 
     DX12Device::~DX12Device()
@@ -1030,7 +1045,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1045,7 +1060,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1059,7 +1074,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
