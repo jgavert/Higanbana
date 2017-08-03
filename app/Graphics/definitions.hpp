@@ -55,7 +55,6 @@ namespace shader\
         "DescriptorTable( SRV(t0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE)), " \
         "DescriptorTable( UAV(u0, numDescriptors = 8, flags = DESCRIPTORS_VOLATILE)), " \
         "StaticSampler(s0, " \
-             "addressU = TEXTURE_ADDRESS_WRAP, " \
              "filter = FILTER_MIN_MAG_MIP_LINEAR )"
 
 #define GX_SIGNATURE [RootSignature(ROOTSIG)]

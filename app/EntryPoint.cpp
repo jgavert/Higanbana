@@ -194,9 +194,9 @@ int EntryPoint::main()
             node.subpass(backbuffer);
 
             vector<float4> vertices;
-            vertices.push_back(float4{ 0.f + std::sin(float(frame)*0.01f), 0.5f, 1.f, 1.f });
-            vertices.push_back(float4{ 0.5f, -0.5f, 1.f, 1.f });
-            vertices.push_back(float4{ -0.5f, -0.5f, 1.f, 1.f });
+            vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+            vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+            vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
 
             auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
 
