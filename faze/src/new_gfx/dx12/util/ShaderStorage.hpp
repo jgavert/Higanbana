@@ -212,6 +212,12 @@ namespace faze
         D3DGetBlobPart(shd.data(), shd.size(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.GetAddressOf());
         return rootBlob;
       }
+
+      WatchFile watch(std::string shaderName, ShaderType type)
+      {
+        auto shd = sourcePath + shaderName + "." + shaderFileType(type);
+        return m_fs.watchFile(shd);
+      }
     };
   }
 }

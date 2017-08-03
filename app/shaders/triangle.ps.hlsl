@@ -9,8 +9,8 @@ struct PSInput
 GX_SIGNATURE
 float4 main(PSInput input) : SV_Target
 {
-	float4 final = constants.color * 0.5f;
-	final += yellow.Sample(staSam, input.uv) * 0.5f;
+	float4 final = constants.color * 0.f;
+	final += yellow.Sample(staSam, input.uv);
 
   return final;
 }

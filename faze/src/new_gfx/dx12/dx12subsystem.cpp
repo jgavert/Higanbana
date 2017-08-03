@@ -28,12 +28,11 @@ namespace faze
       ComPtr<IDXGIAdapter1> pAdapter;
       while (pFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
       {
+        DXGI_ADAPTER_DESC desc;
+        pAdapter->GetDesc(&desc);
         HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
-
-            DXGI_ADAPTER_DESC desc;
-            pAdapter->GetDesc(&desc);
             char ch[128];
             char DefChar = ' ';
             WideCharToMultiByte(CP_ACP, 0, desc.Description, -1, ch, 128, &DefChar, NULL);

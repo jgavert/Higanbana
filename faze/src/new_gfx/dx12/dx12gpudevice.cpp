@@ -107,6 +107,21 @@ namespace faze
 			  &nulldesc,
 			  m_nullBufferUAV.cpu);
 	  }
+    {
+      m_nullBufferSRV = m_generics.allocate();
+      D3D12_SHADER_RESOURCE_VIEW_DESC nulldesc = {};
+      nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+      nulldesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+      nulldesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      nulldesc.Buffer.FirstElement = 0;
+      nulldesc.Buffer.NumElements = 1;
+      nulldesc.Buffer.StructureByteStride = 0;
+      nulldesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+      m_device->CreateShaderResourceView(
+        nullptr,
+        &nulldesc,
+        m_nullBufferSRV.cpu);
+    }
     }
 
     DX12Device::~DX12Device()
@@ -532,18 +547,29 @@ namespace faze
     {
       auto hash = subpass.hash;
       bool missing = true;
+
+      GraphicsPipeline::FullPipeline* ptr = nullptr;
+
       for (auto&& it : *pipeline.m_pipelines)
       {
-        if (it.first == hash)
+        if (it.hash == hash)
         {
           missing = false;
+          ptr = &it;
           break;
         }
       }
 
       if (missing)
       {
-        F_LOG("missing pipeline for hash %zu\n", hash);
+        pipeline.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
+        ptr = &pipeline.m_pipelines->back();
+        ptr->hash = hash;
+      }
+
+      if (ptr->needsUpdating())
+      {
+        F_LOG("updating pipeline for hash %zu\n", hash);
         auto desc = getDesc(pipeline, subpass);
 
         GraphicsPipelineDescriptor::Desc d = pipeline.descriptor;
@@ -554,6 +580,12 @@ namespace faze
           blobs.emplace_back(shader);
           desc.VS.BytecodeLength = blobs.back().size();
           desc.VS.pShaderBytecode = blobs.back().data();
+
+          if (ptr->vs.empty())
+          {
+            ptr->vs = m_shaders.watch(d.vertexShaderPath, DX12ShaderStorage::ShaderType::Vertex);
+          }
+          ptr->vs.react();
         }
 
         if (!d.hullShaderPath.empty())
@@ -562,6 +594,12 @@ namespace faze
           blobs.emplace_back(shader);
           desc.HS.BytecodeLength = blobs.back().size();
           desc.HS.pShaderBytecode = blobs.back().data();
+
+          if (ptr->hs.empty())
+          {
+            ptr->hs = m_shaders.watch(d.hullShaderPath, DX12ShaderStorage::ShaderType::TessControl);
+          }
+          ptr->hs.react();
         }
 
         if (!d.domainShaderPath.empty())
@@ -570,6 +608,11 @@ namespace faze
           blobs.emplace_back(shader);
           desc.DS.BytecodeLength = blobs.back().size();
           desc.DS.pShaderBytecode = blobs.back().data();
+          if (ptr->ds.empty())
+          {
+            ptr->ds = m_shaders.watch(d.domainShaderPath, DX12ShaderStorage::ShaderType::TessEvaluation);
+          }
+          ptr->ds.react();
         }
 
         if (!d.geometryShaderPath.empty())
@@ -578,6 +621,11 @@ namespace faze
           blobs.emplace_back(shader);
           desc.GS.BytecodeLength = blobs.back().size();
           desc.GS.pShaderBytecode = blobs.back().data();
+          if (ptr->gs.empty())
+          {
+            ptr->gs = m_shaders.watch(d.geometryShaderPath, DX12ShaderStorage::ShaderType::Geometry);
+          }
+          ptr->gs.react();
         }
 
         if (!d.pixelShaderPath.empty())
@@ -586,6 +634,11 @@ namespace faze
           blobs.emplace_back(shader);
           desc.PS.BytecodeLength = blobs.back().size();
           desc.PS.pShaderBytecode = blobs.back().data();
+          if (ptr->ps.empty())
+          {
+            ptr->ps = m_shaders.watch(d.pixelShaderPath, DX12ShaderStorage::ShaderType::Pixel);
+          }
+          ptr->ps.react();
         }
 
         ComPtr<ID3D12RootSignature> root;
@@ -597,7 +650,15 @@ namespace faze
 
         D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
 
-        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
+        if (ptr->pipeline)
+        {
+          auto* natptr = static_cast<DX12Pipeline*>(ptr->pipeline.get());
+          m_trash->pipelines.emplace_back(natptr->pipeline);
+          m_trash->roots.emplace_back(natptr->root);
+        }
+
+        ptr->pipeline = std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive));
+        //pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
       }
     }
 
@@ -610,14 +671,23 @@ namespace faze
         needsCompile = true;
       }
       // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
-      if (needsCompile)
+      if (needsCompile || pipeline.m_update.updated())
       {
+        m_trash->pipelines.emplace_back(ptr->pipeline);
+        m_trash->roots.emplace_back(ptr->root);
+
         auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
 
         D3D12_SHADER_BYTECODE byte;
         byte.pShaderBytecode = thing.data();
         byte.BytecodeLength = thing.size();
+
+        if (pipeline.m_update.empty())
+        {
+          pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
+        }
+        pipeline.m_update.react();
 
         D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
         ZeroMemory(&computeDesc, sizeof(computeDesc));
@@ -1045,7 +1115,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1060,7 +1130,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1074,7 +1144,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {

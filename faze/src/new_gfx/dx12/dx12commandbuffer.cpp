@@ -59,9 +59,9 @@ namespace faze
     {
       for (auto&& it : *pipelines.pipeline.m_pipelines)
       {
-        if (it.first == hash)
+        if (it.hash == hash)
         {
-          auto pipeline = std::static_pointer_cast<DX12Pipeline>(it.second);
+          auto pipeline = std::static_pointer_cast<DX12Pipeline>(it.pipeline);
           buffer->SetGraphicsRootSignature(pipeline->root.Get());
           buffer->SetPipelineState(pipeline->pipeline.Get());
           buffer->IASetPrimitiveTopology(pipeline->primitive);
@@ -132,16 +132,19 @@ namespace faze
           buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
         }
       }
-      if (ding.srvs.size() > 0)
       {
-        auto descriptors = allocateDescriptors(ding.srvs.size());
+        auto descriptors = allocateDescriptors(32);
         auto start = descriptors.offset(0);
-        unsigned startSizes[1] = { static_cast<unsigned>(ding.srvs.size()) };
-        vector<unsigned> srcSizes(ding.srvs.size(), 1);
+        unsigned destSizes[1] = { 32 };
+        vector<unsigned> srcSizes(32, 1);
+
+        vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvs(32, m_nullBufferSRV.cpu);
+        memcpy(srvs.data(), ding.srvs.data(), ding.srvs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+
         dev->m_device->CopyDescriptors(
-          1, &(start.cpu), startSizes,
-          static_cast<unsigned>(ding.srvs.size()), reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(),
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+          1, &(start.cpu), destSizes,
+          32, srvs.data(), srcSizes.data(),
+			    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
         {

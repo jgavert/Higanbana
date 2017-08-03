@@ -108,12 +108,13 @@ int EntryPoint::main()
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
-		ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
-			.shader("textureTest"));
+        ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+          .shader("textureTest"));
 
         bool closeAnyway = false;
         while (!window.simpleReadMessages(frame++))
         {
+          fs.updateWatchedFiles();
           if (window.hasResized())
           {
             dev.adjustSwapchain(swapchain);
@@ -131,7 +132,7 @@ int EntryPoint::main()
               .setUsage(ResourceUsage::RenderTargetRW));
             texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
             texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-			texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+            texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
           }
           auto& inputs = window.inputs();
 
@@ -169,22 +170,22 @@ int EntryPoint::main()
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
-		  {
-			  auto node = tasks.createPass("compute!");
+          {
+            auto node = tasks.createPass("compute!");
 
-			  auto binding = node.bind<::shader::TextureTest>(testCompute);
-			  binding.constants = {};
-			  uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
-			  binding.constants.iResolution = iRes;
-			  binding.constants.iFrame = static_cast<int>(frame);
-			  binding.constants.iTime = float(frame)*0.01f;
-			  binding.uav(::shader::TextureTest::output, texUav);
+            auto binding = node.bind<::shader::TextureTest>(testCompute);
+            binding.constants = {};
+            uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
+            binding.constants.iResolution = iRes;
+            binding.constants.iFrame = static_cast<int>(frame);
+            binding.constants.iTime = float(frame)*0.01f;
+            binding.uav(::shader::TextureTest::output, texUav);
 
-			  unsigned x = static_cast<unsigned>(roundUpMultiple((iRes.x() * iRes.y())/64, 64));
-			  node.dispatch(binding, uint3{ x, 1, 1 });
+            unsigned x = static_cast<unsigned>(roundUpMultiple((iRes.x() * iRes.y()) / 64, 64));
+            node.dispatch(binding, uint3{ x, 1, 1 });
 
-			  tasks.addPass(std::move(node));
-		  }
+            tasks.addPass(std::move(node));
+          }
           //if (inputs.isPressedThisFrame('3', 2))
           {
             // we have pulsing red color background, draw a triangle on top of it !
@@ -234,7 +235,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Amd, true);
+  main(GraphicsApi::DX12, VendorID::Nvidia, true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });
