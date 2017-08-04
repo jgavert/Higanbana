@@ -58,7 +58,7 @@ int EntryPoint::main()
         if (it.vendor == preferredVendor)
         {
           chosenGpu = it.id;
-        }
+		}
         F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
       }
       if (updateLog) log.update();
@@ -236,7 +236,7 @@ int EntryPoint::main()
       }
     }
   };
-  main(GraphicsApi::DX12, VendorID::Nvidia, true);
+  main(GraphicsApi::DX12, VendorID::Amd, true);
   /*
    LBS lbs;
    lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, "Vulkan", true); });

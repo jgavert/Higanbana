@@ -87,7 +87,7 @@ namespace faze
       {
         GpuInfo info{};
         info.name = "Warp";
-        info.id = -1;
+        info.id = static_cast<int>(vAdapters.size());
         info.canPresent = true;
         info.type = DeviceType::Cpu;
         info.vendor = VendorID::Unknown;
@@ -124,7 +124,7 @@ namespace faze
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_1
       };
-      if (gpu.id == -1)
+      if (gpu.id == static_cast<int>(vAdapters.size()))
       {
           ComPtr<IDXGIAdapter> pAdapter;
           pFactory->EnumWarpAdapter(IID_PPV_ARGS(&pAdapter));
