@@ -19,8 +19,8 @@ FAZE_CBUFFER(TestConstants)
 
 FAZE_UAV(RWTexture2D<float4>, output, 0)
 
-#define FAZE_THREADGROUP_X 64
-#define FAZE_THREADGROUP_Y 1
+#define FAZE_THREADGROUP_X 8
+#define FAZE_THREADGROUP_Y 8
 #define FAZE_THREADGROUP_Z 1
 
 FAZE_SRV_TABLE(0)
