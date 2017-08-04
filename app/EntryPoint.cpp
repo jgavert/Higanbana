@@ -181,8 +181,9 @@ int EntryPoint::main()
             binding.constants.iTime = float(frame)*0.01f;
             binding.uav(::shader::TextureTest::output, texUav);
 
-            unsigned x = static_cast<unsigned>(roundUpMultiple((iRes.x() * iRes.y()) / 64, 64));
-            node.dispatch(binding, uint3{ x, 1, 1 });
+            unsigned x = static_cast<unsigned>(roundUpMultiple(iRes.x() / 8, 8));
+            unsigned y = static_cast<unsigned>(roundUpMultiple(iRes.y() / 8, 8));
+            node.dispatch(binding, uint3{ x, y, 1 });
 
             tasks.addPass(std::move(node));
           }
