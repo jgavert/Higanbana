@@ -124,6 +124,16 @@ namespace faze
           .setDepth(1);
       }
 
+      bool HDRSupport() override
+      {
+        return false;
+      }
+
+      DisplayCurve displayCurve() override
+      {
+        return DisplayCurve::sRGB;
+      }
+
       int getCurrentPresentableImageIndex() override
       {
         return m_index;
@@ -474,8 +484,8 @@ namespace faze
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
 
       // implementation
-      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount) override;
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;

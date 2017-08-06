@@ -13,12 +13,12 @@ namespace faze
 
   static constexpr FormatSizeInfo FormatToSizeTable[] =
   {
-    {FormatType::Unknown, 0, 0},
-    {FormatType::Uint32x4, 16, 4 },
-    {FormatType::Uint32x3, 12, 3 },
-    {FormatType::Uint32x2, 8, 2 },
-    {FormatType::Uint32, 4, 1 },
-    {FormatType::Float32x4, 16, 4 },
+    { FormatType::Unknown, 0, 0},
+    { FormatType::Uint32x4, 16, 4 },
+    { FormatType::Uint32x3, 12, 3 },
+    { FormatType::Uint32x2, 8, 2 },
+    { FormatType::Uint32, 4, 1 },
+    { FormatType::Float32x4, 16, 4 },
     { FormatType::Float32x3, 12, 3 },
     { FormatType::Float32x2, 8, 2 },
     { FormatType::Float32, 4, 1 },
@@ -55,5 +55,23 @@ namespace faze
       }
     }
     return FormatToSizeTable[0];
+  }
+
+  int formatBitDepth(FormatType format)
+  {
+    if (format == FormatType::Unorm10x3)
+    {
+      return 10;
+    }
+    auto slot = FormatToSizeTable[0];
+    for (int i = 0; i < ArrayLength(FormatToSizeTable); ++i)
+    {
+      if (FormatToSizeTable[i].fm == format)
+      {
+        slot = FormatToSizeTable[i];
+        break;
+      }
+    }
+    return (slot.pixelSize / slot.componentCount) * 8;
   }
 }

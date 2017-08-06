@@ -181,8 +181,8 @@ namespace faze
       void gc();
       void garbageCollection();
       void waitGpuIdle();
-      Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount);
+      Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
+      void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor);
       TextureRTV acquirePresentableImage(Swapchain& swapchain);
 
       Renderpass createRenderpass();

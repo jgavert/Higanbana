@@ -118,11 +118,11 @@ namespace faze
         m_impl->destroySwapchain(sc);
       }
 
-	  auto heaps = m_heaps.emptyHeaps();
-	  for (auto&& heap : heaps)
-	  {
-		  m_impl->destroyHeap(heap);
-	  }
+      auto heaps = m_heaps.emptyHeaps();
+      for (auto&& heap : heaps)
+      {
+        m_impl->destroyHeap(heap);
+      }
 
       garbageCollection();
     }
@@ -156,9 +156,9 @@ namespace faze
       }
     }
 
-    Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
+    Swapchain DeviceData::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
-      auto sc = m_impl->createSwapchain(surface, mode, format, bufferCount);
+      auto sc = m_impl->createSwapchain(surface, descriptor);
       auto tracker = m_trackerswapchains->makeTracker(newId(), sc);
       auto swapchain = Swapchain(sc, tracker);
       // get backbuffers to swapchain
@@ -175,7 +175,7 @@ namespace faze
       return swapchain;
     }
 
-    void DeviceData::adjustSwapchain(Swapchain& swapchain, PresentMode mode, FormatType format, int bufferCount)
+    void DeviceData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor)
     {
       // stop gpu
       waitGpuIdle();
@@ -186,7 +186,7 @@ namespace faze
       gc();
 
       // blim
-      m_impl->adjustSwapchain(swapchain.impl(), mode, format, bufferCount);
+      m_impl->adjustSwapchain(swapchain.impl(), descriptor);
       // get new backbuffers... seems like we do it here.
       auto buffers = m_impl->getSwapchainTextures(swapchain.impl());
       vector<TextureRTV> backbuffers;
@@ -469,46 +469,46 @@ namespace faze
       });
       if (vectorPtr != m_heaps.end())
       {
-		  auto heapPtr = std::find_if(vectorPtr->heaps.begin(), vectorPtr->heaps.end(), [&](HeapBlock& vec)
-		  {
-			  return vec.index == object.index;
-		  });
-		  heapPtr->allocator.release(object.block);
-	  }
-	}
+        auto heapPtr = std::find_if(vectorPtr->heaps.begin(), vectorPtr->heaps.end(), [&](HeapBlock& vec)
+        {
+          return vec.index == object.index;
+        });
+        heapPtr->allocator.release(object.block);
+      }
+    }
 
     vector<GpuHeap> HeapManager::emptyHeaps()
     {
       vector<GpuHeap> emptyHeaps;
       for (auto&& it : m_heaps)
       {
-		for (auto iter = it.heaps.begin(); iter != it.heaps.end(); ++iter)
-		{
-			if (iter->allocator.empty())
-			{
-				emptyHeaps.emplace_back(iter->heap);
+        for (auto iter = it.heaps.begin(); iter != it.heaps.end(); ++iter)
+        {
+          if (iter->allocator.empty())
+          {
+            emptyHeaps.emplace_back(iter->heap);
 
-				F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu\n", iter->index, it.type, it.alignment, iter->allocator.size());
-			}
-		}
-		auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
-	    {
-		  return vec.allocator.empty();
-	    });
-		if (removables != it.heaps.end())
-		{
-			it.heaps.erase(removables);
-		}
+            F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu\n", iter->index, it.type, it.alignment, iter->allocator.size());
+          }
+        }
+        auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
+        {
+          return vec.allocator.empty();
+        });
+        if (removables != it.heaps.end())
+        {
+          it.heaps.erase(removables);
+        }
       }
 
-	  auto removables = std::remove_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
-	  {
-		  return vec.heaps.empty();
-	  });
-	  if (removables != m_heaps.end())
-	  {
-		  m_heaps.erase(removables);
-	  }
+      auto removables = std::remove_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
+      {
+        return vec.heaps.empty();
+      });
+      if (removables != m_heaps.end())
+      {
+        m_heaps.erase(removables);
+      }
       return emptyHeaps;
     }
   }

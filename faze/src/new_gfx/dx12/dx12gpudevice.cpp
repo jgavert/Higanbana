@@ -93,35 +93,35 @@ namespace faze
         }
       }*/
 
-	  {
-		  m_nullBufferUAV = m_generics.allocate();
-		  D3D12_UNORDERED_ACCESS_VIEW_DESC nulldesc = {};
-		  nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		  nulldesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-		  nulldesc.Buffer.FirstElement = 0;
-		  nulldesc.Buffer.NumElements = 1;
-		  nulldesc.Buffer.StructureByteStride = 0;
-		  nulldesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-		  m_device->CreateUnorderedAccessView(
-			  nullptr, nullptr,
-			  &nulldesc,
-			  m_nullBufferUAV.cpu);
-	  }
-    {
-      m_nullBufferSRV = m_generics.allocate();
-      D3D12_SHADER_RESOURCE_VIEW_DESC nulldesc = {};
-      nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      nulldesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-      nulldesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-      nulldesc.Buffer.FirstElement = 0;
-      nulldesc.Buffer.NumElements = 1;
-      nulldesc.Buffer.StructureByteStride = 0;
-      nulldesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-      m_device->CreateShaderResourceView(
-        nullptr,
-        &nulldesc,
-        m_nullBufferSRV.cpu);
-    }
+      {
+        m_nullBufferUAV = m_generics.allocate();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC nulldesc = {};
+        nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        nulldesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        nulldesc.Buffer.FirstElement = 0;
+        nulldesc.Buffer.NumElements = 1;
+        nulldesc.Buffer.StructureByteStride = 0;
+        nulldesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+        m_device->CreateUnorderedAccessView(
+          nullptr, nullptr,
+          &nulldesc,
+          m_nullBufferUAV.cpu);
+      }
+      {
+        m_nullBufferSRV = m_generics.allocate();
+        D3D12_SHADER_RESOURCE_VIEW_DESC nulldesc = {};
+        nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        nulldesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        nulldesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        nulldesc.Buffer.FirstElement = 0;
+        nulldesc.Buffer.NumElements = 1;
+        nulldesc.Buffer.StructureByteStride = 0;
+        nulldesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        m_device->CreateShaderResourceView(
+          nullptr,
+          &nulldesc,
+          m_nullBufferSRV.cpu);
+      }
     }
 
     DX12Device::~DX12Device()
@@ -249,7 +249,7 @@ namespace faze
       return dxdesc;
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount)
+    std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
       auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
       RECT rect{};
@@ -261,11 +261,11 @@ namespace faze
       DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
       swapChainDesc.Width = width; // I wonder how to get sane sizes in beginning...
       swapChainDesc.Height = height;
-      swapChainDesc.Format = formatTodxFormat(format).storage;
+      swapChainDesc.Format = formatTodxFormat(descriptor.desc.format).storage;
       swapChainDesc.Stereo = FALSE;
       swapChainDesc.SampleDesc.Count = 1;
       swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-      swapChainDesc.BufferCount = static_cast<UINT>(bufferCount); // conviently array can be used to describe bufferCount
+      swapChainDesc.BufferCount = static_cast<UINT>(descriptor.desc.bufferCount); // conviently array can be used to describe bufferCount
       swapChainDesc.Scaling = DXGI_SCALING_NONE; // scaling.. hmm ignore for now
       swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
       swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
@@ -281,12 +281,58 @@ namespace faze
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(m_factory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
       auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
-      sc->setBufferMetadata(width, height, bufferCount, format, mode);
+      sc->setBufferMetadata(width, height, descriptor);
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
+
+      if (!m_factory->IsCurrent())
+      {
+        FAZE_CHECK_HR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&m_factory)));
+      }
+
+      // Get information about the display we are presenting to.
+      ComPtr<IDXGIOutput> output;
+      ComPtr<IDXGIOutput6> output6;
+
+      FAZE_CHECK_HR(swapChain->GetContainingOutput(&output));
+      if (SUCCEEDED(output.As(&output6)))
+      {
+        DXGI_OUTPUT_DESC1 outputDesc;
+        FAZE_CHECK_HR(output6->GetDesc1(&outputDesc));
+
+        sc->setHDR(outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+      }
+
+      auto enableST2084 = (descriptor.desc.colorSpace == Colorspace::BT2020);
+      DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+      auto bitdepth = formatBitDepth(descriptor.desc.format);
+      switch (bitdepth)
+      {
+      case 8:
+        sc->setDisplayCurve(DisplayCurve::sRGB);
+        break;
+      case 10:
+        colorSpace = enableST2084 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+        sc->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
+        break;
+      case 16:
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+        sc->setDisplayCurve(DisplayCurve::None);
+        break;
+      default:
+        break;
+      }
+
+        UINT colorSpaceSupport = 0;
+        if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
+          ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+        {
+          FAZE_CHECK_HR(sc->native()->SetColorSpace1(colorSpace));
+          sc->setNativeColorspace(colorSpace);
+        }
       return sc;
     }
 
-    void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, PresentMode mode, FormatType format, int bufferCount)
+    void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, SwapchainDescriptor d)
     {
       auto natSwapchain = std::static_pointer_cast<DX12Swapchain>(swapchain);
       auto& natSurface = natSwapchain->surface();
@@ -298,9 +344,8 @@ namespace faze
       auto height = rect.bottom - rect.top;
       //F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
-      format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
-      bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
-      mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
+      auto format = d.desc.format;
+      auto bufferCount = d.desc.bufferCount;
 
       /*
       UINT bufferLocations[] = { 1 };
@@ -308,7 +353,38 @@ namespace faze
 
       FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH/*, bufferLocations, queues*/));
 
-      natSwapchain->setBufferMetadata(width, height, bufferCount, format, mode);
+      natSwapchain->setBufferMetadata(width, height, d);
+
+      auto enableST2084 = (d.desc.colorSpace == Colorspace::BT2020);
+      DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+      auto bitdepth = formatBitDepth(format);
+      switch (bitdepth)
+      {
+      case 8:
+        natSwapchain->setDisplayCurve(DisplayCurve::sRGB);
+        break;
+      case 10:
+        colorSpace = enableST2084 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+        natSwapchain->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
+        break;
+      case 16:
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+        natSwapchain->setDisplayCurve(DisplayCurve::None);
+        break;
+      default:
+        break;
+      }
+
+      if (colorSpace != natSwapchain->nativeColorspace())
+      {
+        UINT colorSpaceSupport = 0;
+        if (SUCCEEDED(natSwapchain->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
+          ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+        {
+          FAZE_CHECK_HR(natSwapchain->native()->SetColorSpace1(colorSpace));
+          natSwapchain->setNativeColorspace(colorSpace);
+        }
+      }
     }
 
     void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
@@ -322,14 +398,14 @@ namespace faze
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
 
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
-      textures.resize(native->getDesc().buffers);
+      textures.resize(native->getDesc().descriptor.desc.bufferCount);
 
       DX12ResourceState state;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
       std::weak_ptr<Garbage> weak = m_trash;
 
-      for (int i = 0; i < native->getDesc().buffers; ++i)
+      for (int i = 0; i < native->getDesc().descriptor.desc.bufferCount; ++i)
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
@@ -1264,7 +1340,7 @@ namespace faze
         m_graphicsQueue->Wait(native->fence.Get(), *native->value);
       }
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      unsigned syncInterval = (native->getDesc().mode == PresentMode::Fifo) ? 1 : 0;
+      unsigned syncInterval = (native->getDesc().descriptor.desc.mode == PresentMode::Fifo) ? 1 : 0;
       FAZE_CHECK_HR(native->native()->Present(syncInterval, 0));
     }
   }

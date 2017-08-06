@@ -243,8 +243,12 @@ namespace faze
       m_device.destroy();
     }
 
-    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int buffers)
+    std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
+      auto format = descriptor.desc.format;
+      auto mode = descriptor.desc.mode;
+      auto buffers = descriptor.desc.bufferCount;
+
       auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
       auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
@@ -361,8 +365,12 @@ namespace faze
       return sc;
     }
 
-    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, PresentMode mode, FormatType format, int bufferCount)
+    void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, SwapchainDescriptor descriptor)
     {
+      auto format = descriptor.desc.format;
+      auto mode = descriptor.desc.mode;
+      auto bufferCount = descriptor.desc.bufferCount;
+
       auto natSwapchain = std::static_pointer_cast<VulkanSwapchain>(swapchain);
       auto& natSurface = natSwapchain->surface();
       auto oldSwapchain = natSwapchain->native();
