@@ -131,16 +131,16 @@ namespace faze
       return CommandGraph();
     }
 
-    Swapchain createSwapchain(GraphicsSurface& surface, PresentMode mode = PresentMode::Fifo, FormatType format = FormatType::Unorm8x4, int bufferCount = 2)
+    Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor = SwapchainDescriptor())
     {
-      auto sc = S().createSwapchain(surface, mode, format, bufferCount);
+      auto sc = S().createSwapchain(surface, descriptor);
       sc.setParent(this);
       return sc;
     }
 
-    void adjustSwapchain(Swapchain& swapchain, PresentMode mode = PresentMode::Unknown, FormatType format = FormatType::Unknown, int bufferCount = -1)
+    void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor = SwapchainDescriptor())
     {
-      S().adjustSwapchain(swapchain, mode, format, bufferCount);
+      S().adjustSwapchain(swapchain, descriptor);
     }
 
     TextureRTV acquirePresentableImage(Swapchain& swapchain)

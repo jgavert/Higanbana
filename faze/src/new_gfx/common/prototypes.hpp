@@ -15,6 +15,7 @@ namespace faze
   class GraphicsSurface;
 
   // descriptors
+  class SwapchainDescriptor;
   class ResourceDescriptor;
   class FileSystem;
   class Window;
@@ -79,6 +80,8 @@ namespace faze
         virtual std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore() = 0;
         virtual std::shared_ptr<backend::SemaphoreImpl> renderSemaphore() = 0;
         virtual ResourceDescriptor desc() = 0;
+        virtual bool HDRSupport() = 0;
+        virtual DisplayCurve displayCurve() = 0;
         virtual ~SwapchainImpl() = default;
       };
 
@@ -130,8 +133,8 @@ namespace faze
         virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
 
         // swapchain
-        virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount) = 0;
-        virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) = 0;
+        virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) = 0;
+        virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, SwapchainDescriptor descriptor) = 0;
         virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;

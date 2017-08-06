@@ -15,17 +15,17 @@ groupshared RayData rdata[64];
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 2.0
+#define MAXREFLECTION 1.0
 // how much object reflects light
-#define REFLECTIVITY 0.5
+#define REFLECTIVITY 0.8
 // How far rays can travel(applies to first ray only)
-#define MAXLENGTH 50.0
+#define MAXLENGTH 140.0
 // color to red by iteration multiplier
-#define COLORBYITER 0.0
+#define COLORBYITER 1.0
 // This multiplies the one intensity of the light
-#define LIGHTINTENSITY 7.0
+#define LIGHTINTENSITY 6.0
 // this is basically resolution multiplier, one pixel is RAYMULTIPLIER*RAYMULTIPLIER amount of rays
-#define RAYMULTIPLIER 1.0
+#define RAYMULTIPLIER 2.0
 // kind of deprecated, adds walls/cube to somewhere.
 
 float3 rotateX(float3 p, float phi) {
@@ -272,10 +272,10 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 	float2 fp = float2(float(id.x), float(id.y));
 	//fp /= float2(float(constants.iResolution.x), float(constants.iResolution.y));
 
-	//output[id] = float4(sin(constants.iTime)*0.5 + fp.x, cos(constants.iTime)*0.5 + fp.y, 0.f, 1.f);
+	//output[id] = float4(sin(constants.iTime)*0.2 + fp.x, cos(constants.iTime)*0.5 + fp.y, 0.f, 1.f);
 
 	float3 position = float3(-0,5.0,0.0);
-  float3 direction = position + float3(0.4 + sin(constants.iTime)*0.5, .0, 0.99);
+  float3 direction = position + float3(0.4 + sin(constants.iTime)*0.2, .0, 0.99);
 
   uint index = gid.x + gid.y*8;
 

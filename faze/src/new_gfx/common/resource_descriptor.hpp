@@ -37,6 +37,53 @@ namespace faze
     FifoRelaxed
   };
 
+  enum class Colorspace
+  {
+    BT709,
+    BT2020
+  };
+
+  enum DisplayCurve
+  {
+    sRGB = 0,	// The display expects an sRGB signal.
+    ST2084,		// The display expects an HDR10 signal.
+    None		// The display expects a linear signal.
+  };
+
+  class SwapchainDescriptor
+  {
+  public:
+    struct descriptor
+    {
+      PresentMode mode = PresentMode::Fifo;
+      FormatType format = FormatType::Unorm8x4;
+      int bufferCount = 2;
+      Colorspace colorSpace = Colorspace::BT709;
+    } desc;
+    SwapchainDescriptor()
+    {}
+    SwapchainDescriptor& presentMode(PresentMode mode)
+    {
+      desc.mode = mode;
+      return *this;
+    }
+    SwapchainDescriptor& formatType(FormatType format)
+    {
+      desc.format = format;
+      return *this;
+    }
+    SwapchainDescriptor& bufferCount(unsigned count)
+    {
+      desc.bufferCount = count;
+      return *this;
+    }
+    SwapchainDescriptor& colorspace(Colorspace space)
+    {
+      desc.colorSpace = space;
+      return *this;
+    }
+  };
+
   enum class ResourceShaderType
   {
     Unknown,

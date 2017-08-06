@@ -58,6 +58,7 @@ namespace faze
   };
 
   FormatSizeInfo formatSizeInfo(FormatType format);
+  int formatBitDepth(FormatType format);
 
   enum class ResourceUsage
   {

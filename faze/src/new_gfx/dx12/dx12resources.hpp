@@ -494,15 +494,16 @@ namespace faze
     private:
       D3D12Swapchain* m_resource;
       DX12GraphicsSurface m_surface;
-      int m_backbufferIndex;
+      int m_backbufferIndex = 0;
+      bool supportsHDR = false;
+      DisplayCurve curve = DisplayCurve::sRGB;
+      DXGI_COLOR_SPACE_TYPE colorSpace;
 
       struct Desc
       {
         int width = 0;
         int height = 0;
-        int buffers = 0;
-        FormatType format = FormatType::Unknown;
-        PresentMode mode = PresentMode::Unknown;
+        SwapchainDescriptor descriptor;
       } m_desc;
 
     public:
@@ -518,7 +519,7 @@ namespace faze
         return ResourceDescriptor()
           .setWidth(m_desc.width)
           .setHeight(m_desc.height)
-          .setFormat(m_desc.format)
+          .setFormat(m_desc.descriptor.desc.format)
           .setUsage(ResourceUsage::RenderTarget)
           .setDimension(FormatDimension::Texture2D)
           .setMiplevels(1)
@@ -542,13 +543,41 @@ namespace faze
         return nullptr;
       }
 
-      void setBufferMetadata(int x, int y, int count, FormatType format, PresentMode mode)
+      void setHDR(bool hdr)
+      {
+        supportsHDR = hdr;
+      }
+
+      void setDisplayCurve(DisplayCurve value)
+      {
+        curve = value;
+      }
+
+      void setNativeColorspace(DXGI_COLOR_SPACE_TYPE value)
+      {
+        colorSpace = value;
+      }
+
+      DXGI_COLOR_SPACE_TYPE nativeColorspace()
+      {
+        return colorSpace;
+      }
+
+      bool HDRSupport() override
+      {
+        return supportsHDR;
+      }
+
+      DisplayCurve displayCurve() override
+      {
+        return curve;
+      }
+
+      void setBufferMetadata(int x, int y, SwapchainDescriptor descriptor)
       {
         m_desc.width = x;
         m_desc.height = y;
-        m_desc.buffers = count;
-        m_desc.format = format;
-        m_desc.mode = mode;
+        m_desc.descriptor = descriptor;
       }
 
       Desc getDesc()
@@ -848,8 +877,8 @@ namespace faze
       // impl
       std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
 
-      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, PresentMode mode, FormatType format, int bufferCount);
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, PresentMode mode, FormatType format, int bufferCount) override;
+      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
+      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
       void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;

@@ -58,7 +58,7 @@ int EntryPoint::main()
         if (it.vendor == preferredVendor)
         {
           chosenGpu = it.id;
-		}
+        }
         F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
       }
       if (updateLog) log.update();
@@ -72,7 +72,9 @@ int EntryPoint::main()
       auto surface = graphics.createSurface(window);
       auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
       {
-        auto swapchain = dev.createSwapchain(surface);
+        auto toggleHDR = false;
+        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm10x3).colorspace(Colorspace::BT709);
+        auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
 
@@ -86,7 +88,7 @@ int EntryPoint::main()
 
         auto texture = dev.createTexture(ResourceDescriptor()
           .setName("testTexture")
-          .setFormat(FormatType::Unorm8x4)
+          .setFormat(FormatType::Unorm16x4)
           .setWidth(ires.x())
           .setHeight(ires.y())
           .setMiplevels(4)
@@ -115,16 +117,16 @@ int EntryPoint::main()
         while (!window.simpleReadMessages(frame++))
         {
           fs.updateWatchedFiles();
-          if (window.hasResized())
+          if (window.hasResized() || toggleHDR)
           {
-            dev.adjustSwapchain(swapchain);
+            dev.adjustSwapchain(swapchain, scdesc);
             window.resizeHandled();
 
             auto& desc = swapchain.buffers()[0].desc().desc;
 
             texture = dev.createTexture(ResourceDescriptor()
               .setName("testTexture")
-              .setFormat(FormatType::Unorm8x4)
+              .setFormat(FormatType::Unorm16x4)
               .setWidth(desc.width)
               .setHeight(desc.height)
               .setMiplevels(4)
@@ -133,6 +135,7 @@ int EntryPoint::main()
             texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
             texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
             texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+            toggleHDR = false;
           }
           auto& inputs = window.inputs();
 
@@ -152,6 +155,21 @@ int EntryPoint::main()
             reInit = true;
             F_LOG("switch api\n");
             break;
+          }
+
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('3', 1))
+          {
+            if (scdesc.desc.colorSpace == Colorspace::BT709)
+            {
+              scdesc.desc.colorSpace = Colorspace::BT2020;
+              F_LOG("Colorspace::BT2020\n");
+            }
+            else
+            {
+              scdesc.desc.colorSpace = Colorspace::BT709;
+              F_LOG("Colorspace::BT709\n");
+            }
+            toggleHDR = true;
           }
 
           if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
