@@ -132,6 +132,7 @@ int EntryPoint::main()
               .setMiplevels(4)
               .setDimension(FormatDimension::Texture2D)
               .setUsage(ResourceUsage::RenderTargetRW));
+
             texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
             texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
             texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
@@ -169,6 +170,22 @@ int EntryPoint::main()
               scdesc.desc.colorSpace = Colorspace::BT709;
               F_LOG("Colorspace::BT709\n");
             }
+            toggleHDR = true;
+          }
+
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('4', 1))
+          {
+            scdesc.desc.format = FormatType::Unorm8x4;
+            toggleHDR = true;
+          }
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('5', 1))
+          {
+            scdesc.desc.format = FormatType::Unorm10x3;
+            toggleHDR = true;
+          }
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('6', 1))
+          {
+            scdesc.desc.format = FormatType::Float16x4;
             toggleHDR = true;
           }
 
@@ -221,6 +238,7 @@ int EntryPoint::main()
 
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
             binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+            binding.constants.colorspace = static_cast<int>(swapchain.impl()->displayCurve());
             binding.srv(::shader::Triangle::vertices, verts);
             binding.srv(::shader::Triangle::yellow, texSrv);
             node.draw(binding, 3, 1);
