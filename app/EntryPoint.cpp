@@ -188,6 +188,18 @@ int EntryPoint::main()
             scdesc.desc.format = FormatType::Float16x4;
             toggleHDR = true;
           }
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('9', 1))
+          {
+            scdesc.desc.mode = PresentMode::FifoRelaxed;
+            F_LOG("FifoRelaxed\n");
+            toggleHDR = true;
+          }
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('0', 1))
+          {
+            scdesc.desc.mode = PresentMode::Fifo;
+            F_LOG("Fifo\n");
+            toggleHDR = true;
+          }
 
           if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
           {
