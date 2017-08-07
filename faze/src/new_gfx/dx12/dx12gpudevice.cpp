@@ -267,8 +267,8 @@ namespace faze
       swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
       swapChainDesc.BufferCount = static_cast<UINT>(descriptor.desc.bufferCount); // conviently array can be used to describe bufferCount
       swapChainDesc.Scaling = DXGI_SCALING_NONE; // scaling.. hmm ignore for now
-      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
-      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
+      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
+      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
                                                                     // also DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
 
       DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullDesc{};
@@ -322,13 +322,13 @@ namespace faze
         break;
       }
 
-        UINT colorSpaceSupport = 0;
-        if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
-          ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
-        {
-          FAZE_CHECK_HR(sc->native()->SetColorSpace1(colorSpace));
-          sc->setNativeColorspace(colorSpace);
-        }
+      UINT colorSpaceSupport = 0;
+      if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
+        ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+      {
+        FAZE_CHECK_HR(sc->native()->SetColorSpace1(colorSpace));
+        sc->setNativeColorspace(colorSpace);
+      }
       return sc;
     }
 
@@ -351,7 +351,7 @@ namespace faze
       UINT bufferLocations[] = { 1 };
       IUnknown* queues[] = { m_graphicsQueue.Get() };*/
 
-      FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH/*, bufferLocations, queues*/));
+      FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING/*, bufferLocations, queues*/));
 
       natSwapchain->setBufferMetadata(width, height, d);
 
@@ -368,7 +368,7 @@ namespace faze
         natSwapchain->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
         break;
       case 16:
-        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709; // should be G10, but it's buggy on nvidia.
         natSwapchain->setDisplayCurve(DisplayCurve::None);
         break;
       default:
