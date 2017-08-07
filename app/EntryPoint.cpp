@@ -65,7 +65,7 @@ int EntryPoint::main()
       if (gpus.empty())
         return;
 
-      ivec2 ires = { 800, 600 };
+      ivec2 ires = { 1280, 720 };
       Window window(m_params, gpus[chosenGpu].name, ires.x(), ires.y(), 300, 200);
       window.open();
 
@@ -121,7 +121,7 @@ int EntryPoint::main()
           {
             dev.adjustSwapchain(swapchain, scdesc);
             window.resizeHandled();
-
+            /*
             auto& desc = swapchain.buffers()[0].desc().desc;
 
             texture = dev.createTexture(ResourceDescriptor()
@@ -136,6 +136,7 @@ int EntryPoint::main()
             texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
             texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
             texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+            */
             toggleHDR = false;
           }
           auto& inputs = window.inputs();
@@ -153,7 +154,7 @@ int EntryPoint::main()
 
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
           {
-            reInit = true;
+            //reInit = true;
             F_LOG("switch api\n");
             break;
           }

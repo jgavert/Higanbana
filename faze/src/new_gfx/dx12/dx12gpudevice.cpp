@@ -284,51 +284,7 @@ namespace faze
       sc->setBufferMetadata(width, height, descriptor);
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
 
-      if (!m_factory->IsCurrent())
-      {
-        FAZE_CHECK_HR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&m_factory)));
-      }
-
-      // Get information about the display we are presenting to.
-      ComPtr<IDXGIOutput> output;
-      ComPtr<IDXGIOutput6> output6;
-
-      FAZE_CHECK_HR(swapChain->GetContainingOutput(&output));
-      if (SUCCEEDED(output.As(&output6)))
-      {
-        DXGI_OUTPUT_DESC1 outputDesc;
-        FAZE_CHECK_HR(output6->GetDesc1(&outputDesc));
-
-        sc->setHDR(outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
-      }
-
-      auto enableST2084 = (descriptor.desc.colorSpace == Colorspace::BT2020);
-      DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-      auto bitdepth = formatBitDepth(descriptor.desc.format);
-      switch (bitdepth)
-      {
-      case 8:
-        sc->setDisplayCurve(DisplayCurve::sRGB);
-        break;
-      case 10:
-        colorSpace = enableST2084 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-        sc->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
-        break;
-      case 16:
-        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
-        sc->setDisplayCurve(DisplayCurve::None);
-        break;
-      default:
-        break;
-      }
-
-      UINT colorSpaceSupport = 0;
-      if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
-        ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
-      {
-        FAZE_CHECK_HR(sc->native()->SetColorSpace1(colorSpace));
-        sc->setNativeColorspace(colorSpace);
-      }
+      ensureSwapchainColorspace(sc, descriptor);
       return sc;
     }
 
@@ -355,34 +311,57 @@ namespace faze
 
       natSwapchain->setBufferMetadata(width, height, d);
 
-      auto enableST2084 = natSwapchain->HDRSupport() && (d.desc.colorSpace == Colorspace::BT2020);
+      ensureSwapchainColorspace(natSwapchain, d);
+    }
+
+    void DX12Device::ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor)
+    {
+      if (!m_factory->IsCurrent())
+      {
+        FAZE_CHECK_HR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&m_factory)));
+      }
+
+      // Get information about the display we are presenting to.
+      ComPtr<IDXGIOutput> output;
+      ComPtr<IDXGIOutput6> output6;
+
+      FAZE_CHECK_HR(sc->native()->GetContainingOutput(&output));
+      if (SUCCEEDED(output.As(&output6)))
+      {
+        DXGI_OUTPUT_DESC1 outputDesc;
+        FAZE_CHECK_HR(output6->GetDesc1(&outputDesc));
+
+        sc->setHDR(outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+      }
+
+      auto enableST2084 = sc->HDRSupport() && (descriptor.desc.colorSpace == Colorspace::BT2020);
       DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-      auto bitdepth = formatBitDepth(format);
+      auto bitdepth = formatBitDepth(sc->getDesc().descriptor.desc.format);
       switch (bitdepth)
       {
       case 8:
-        natSwapchain->setDisplayCurve(DisplayCurve::sRGB);
+        sc->setDisplayCurve(DisplayCurve::sRGB);
         break;
       case 10:
         colorSpace = enableST2084 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-        natSwapchain->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
+        sc->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
         break;
       case 16:
-        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709; // should be G10, but it's buggy on nvidia.
-        natSwapchain->setDisplayCurve(DisplayCurve::None);
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+        sc->setDisplayCurve(DisplayCurve::None);
         break;
       default:
         break;
       }
 
-      if (colorSpace != natSwapchain->nativeColorspace())
+      if (colorSpace != sc->nativeColorspace())
       {
         UINT colorSpaceSupport = 0;
-        if (SUCCEEDED(natSwapchain->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
+        if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&
           ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
         {
-          FAZE_CHECK_HR(natSwapchain->native()->SetColorSpace1(colorSpace));
-          natSwapchain->setNativeColorspace(colorSpace);
+          FAZE_CHECK_HR(sc->native()->SetColorSpace1(colorSpace));
+          sc->setNativeColorspace(colorSpace);
         }
       }
     }

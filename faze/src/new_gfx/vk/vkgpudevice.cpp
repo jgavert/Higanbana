@@ -341,6 +341,15 @@ namespace faze
       {
         F_ASSERT(false, "Was not supported.");
       }
+
+      auto sFormats = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
+
+      for (auto&& f : sFormats)
+      {
+        auto cs = f.colorSpace;
+        F_LOG("found surface format %s %s\n", vk::to_string(cs).c_str(), vk::to_string(f.format).c_str());
+      }
+
       int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), buffers);
       F_SLOG("Vulkan", "creating swapchain to %ux%u, buffers %d\n", extent.width, extent.height, minImageCount);
 
