@@ -81,20 +81,23 @@ namespace faze
       , m_dependency(tex.dependency())
       , m_format(type)
     {
-      F_LOG("Storing data %u %u %u %u\n", static_cast<unsigned>(range.mipOffset),
+      /*F_LOG("Storing data %u %u %u %u\n", static_cast<unsigned>(range.mipOffset),
         static_cast<unsigned>(range.mipLevels),
         static_cast<unsigned>(range.sliceOffset),
         static_cast<unsigned>(range.arraySize));
+        */
       m_dependency.storeSubresourceRange(
         static_cast<unsigned>(range.mipOffset),
         static_cast<unsigned>(range.mipLevels),
         static_cast<unsigned>(range.sliceOffset),
         static_cast<unsigned>(range.arraySize));
+      /*
       F_LOG("verify data %u %u %u %u\n",
         m_dependency.mip(),
         m_dependency.mipLevels(),
         m_dependency.slice(),
         m_dependency.arraySize());
+        */
     }
 
     ResourceDescriptor& desc()

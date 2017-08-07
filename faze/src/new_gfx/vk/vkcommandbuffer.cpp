@@ -267,7 +267,7 @@ namespace faze
       }
       else
       {
-        F_LOG("Framebuffer was already found!!!!\n");
+        //F_LOG("Framebuffer was already found!!!!\n");
       }
       rp->setActiveFramebuffer(hash); // remember to set the current hash as active one.
     }
