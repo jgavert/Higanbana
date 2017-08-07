@@ -355,7 +355,7 @@ namespace faze
 
       natSwapchain->setBufferMetadata(width, height, d);
 
-      auto enableST2084 = (d.desc.colorSpace == Colorspace::BT2020);
+      auto enableST2084 = natSwapchain->HDRSupport() && (d.desc.colorSpace == Colorspace::BT2020);
       DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
       auto bitdepth = formatBitDepth(format);
       switch (bitdepth)
@@ -368,7 +368,7 @@ namespace faze
         natSwapchain->setDisplayCurve(enableST2084 ? DisplayCurve::ST2084 : DisplayCurve::sRGB);
         break;
       case 16:
-        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
         natSwapchain->setDisplayCurve(DisplayCurve::None);
         break;
       default:

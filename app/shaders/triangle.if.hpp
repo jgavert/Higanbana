@@ -8,6 +8,7 @@ FAZE_BEGIN_LAYOUT(Triangle)
 struct TriangleConstants
 {
   float4 color;
+  int colorspace;
 };
 
 FAZE_CBUFFER(TriangleConstants)
