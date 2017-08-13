@@ -325,13 +325,15 @@ namespace faze
       ComPtr<IDXGIOutput> output;
       ComPtr<IDXGIOutput6> output6;
 
-      FAZE_CHECK_HR(sc->native()->GetContainingOutput(&output));
-      if (SUCCEEDED(output.As(&output6)))
+      if (SUCCEEDED(sc->native()->GetContainingOutput(&output)))
       {
-        DXGI_OUTPUT_DESC1 outputDesc;
-        FAZE_CHECK_HR(output6->GetDesc1(&outputDesc));
+        if (SUCCEEDED(output.As(&output6)))
+        {
+          DXGI_OUTPUT_DESC1 outputDesc;
+          FAZE_CHECK_HR(output6->GetDesc1(&outputDesc));
 
-        sc->setHDR(outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+          sc->setHDR(outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+        }
       }
 
       auto enableST2084 = sc->HDRSupport() && (descriptor.desc.colorSpace == Colorspace::BT2020);
