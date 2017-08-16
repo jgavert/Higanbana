@@ -395,6 +395,7 @@ namespace faze
     {
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
+      std::shared_ptr<DX12UploadHeap> m_upload;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
@@ -420,11 +421,13 @@ namespace faze
       DX12CommandList(
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
+        std::shared_ptr<DX12UploadHeap> dynamicUpload,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
         DX12CPUDescriptor nullBufferUAV,
         DX12CPUDescriptor nullBufferSRV)
         : m_buffer(buffer)
         , m_constants(constants)
+        , m_upload(dynamicUpload)
         , m_descriptors(descriptors)
         , m_nullBufferUAV(nullBufferUAV)
         , m_nullBufferSRV(nullBufferSRV)
@@ -730,9 +733,16 @@ namespace faze
       UploadBlock block;
       DX12CPUDescriptor resource;
       DXGI_FORMAT format;
+      int m_rowPitch = -1;
       friend class DX12Device;
     public:
       DX12DynamicBufferView()
+      {
+      }
+      DX12DynamicBufferView(UploadBlock block, size_t rowPitch)
+        : block(block)
+        , format(DXGI_FORMAT_UNKNOWN)
+        , m_rowPitch(static_cast<int>(rowPitch))
       {
       }
 
@@ -762,6 +772,16 @@ namespace faze
         backend::RawView view{};
         view.view = resource.cpu.ptr;
         return view;
+      }
+
+      int rowPitch() override
+      {
+        return m_rowPitch;
+      }
+
+      int64_t offset() override
+      {
+        return block.block.offset;
       }
     };
 
@@ -900,6 +920,7 @@ namespace faze
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // empty, these don't do anything.
       void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;

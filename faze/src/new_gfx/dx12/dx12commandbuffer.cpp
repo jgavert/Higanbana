@@ -1,5 +1,6 @@
 #include "dx12resources.hpp"
 #include "util/dxDependencySolver.hpp"
+#include "util/formats.hpp"
 
 #include <algorithm>
 
@@ -67,6 +68,36 @@ namespace faze
           buffer->IASetPrimitiveTopology(pipeline->primitive);
         }
       }
+    }
+
+    D3D12_TEXTURE_COPY_LOCATION locationFromTexture(Texture& tex, int mip, int slice)
+    {
+      D3D12_TEXTURE_COPY_LOCATION loc{};
+      loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      loc.SubresourceIndex = tex.dependency().totalMipLevels() * slice + mip;
+      loc.pResource = reinterpret_cast<ID3D12Resource*>(tex.dependency().resPtr);
+      return loc;
+    }
+
+    D3D12_TEXTURE_COPY_LOCATION locationFromDynamic(ID3D12Resource* upload, DynamicBufferView& view, Texture& ref)
+    {
+      D3D12_TEXTURE_COPY_LOCATION loc{};
+      loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      loc.PlacedFootprint.Footprint.Width = ref.desc().desc.width;
+      loc.PlacedFootprint.Footprint.Height = ref.desc().desc.height;
+      loc.PlacedFootprint.Footprint.Depth = ref.desc().desc.depth;
+      loc.PlacedFootprint.Footprint.Format = backend::formatTodxFormat(ref.desc().desc.format).storage;
+      loc.PlacedFootprint.Footprint.RowPitch = view.rowPitch(); // ???
+      loc.PlacedFootprint.Offset = view.offset(); // ???
+      loc.pResource = upload;
+      return loc;
+    }
+
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::UpdateTexture& packet, ID3D12Resource* upload)
+    {
+      D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(packet.dst, packet.mip, packet.slice);
+      D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(upload, packet.src, packet.dst);
+      buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
@@ -203,6 +234,13 @@ namespace faze
         switch (packet->type())
         {
           //        case CommandPacket::PacketType::BufferCopy:
+        case CommandPacket::PacketType::UpdateTexture:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::UpdateTexture, packet), m_upload->native());
+          drawIndex++;
+          break;
+        }
         case CommandPacket::PacketType::Subpass:
         {
           currentActiveSubpassHash = (packetRef(gfxpacket::Subpass, packet)).hash;
@@ -269,6 +307,18 @@ namespace faze
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
+        case CommandPacket::PacketType::UpdateTexture:
+        {
+          auto& p = packetRef(gfxpacket::UpdateTexture, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          SubresourceRange range{};
+          range.mipLevels = 1;
+          range.arraySize = 1;
+          range.mipOffset = static_cast<int16_t>(p.mip);
+          range.sliceOffset = static_cast<int16_t>(p.slice);
+          solver->addResource(drawIndex, p.dst.dependency(), D3D12_RESOURCE_STATE_COPY_DEST, range);
+          break;
+        }
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);

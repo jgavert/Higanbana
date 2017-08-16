@@ -130,5 +130,15 @@ namespace faze
     {
       return m_view;
     }
+
+    int rowPitch() const
+    {
+      return impl->rowPitch();
+    }
+
+    int64_t offset() const
+    {
+      return impl->offset();
+    }
   };
 };

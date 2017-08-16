@@ -2,6 +2,7 @@
 #include "gpudevice.hpp"
 #include "graphicssurface.hpp"
 #include "implementation.hpp"
+#include "faze/src/new_gfx/common/cpuimage.hpp"
 
 #include "core/src/math/utils.hpp"
 
@@ -333,9 +334,40 @@ namespace faze
     {
       return m_impl->dynamic(view, type);
     }
+
     DynamicBufferView DeviceData::dynamicBuffer(MemView<uint8_t> view, unsigned stride)
     {
       return m_impl->dynamic(view, stride);
+    }
+
+    bool DeviceData::uploadInitialTexture(Texture& tex, CpuImage& image)
+    {
+      auto arraySize = image.desc().desc.arraySize;
+      for (auto slice = 0u; slice < arraySize; ++slice)
+      {
+        CommandList list;
+
+        for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
+        {
+          auto sr = image.subresource(mip, slice);
+          DynamicBufferView dynBuffer = m_impl->dynamicImage(makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
+          list.updateTexture(tex, dynBuffer, mip, slice);
+        }
+
+        // just submit the list
+        auto nativeList = m_impl->createGraphicsList();
+        nativeList->fillWith(m_impl, list.list);
+        LiveCommandBuffer buffer{};
+        buffer.lists.emplace_back(nativeList);
+
+        buffer.fence = m_impl->createFence();
+        buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+        buffer.intermediateLists->emplace_back(std::move(list.list));
+
+        m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
+        m_buffers.emplace_back(buffer);
+      }
+      return true;
     }
 
     void DeviceData::submit(Swapchain& swapchain, CommandGraph graph)

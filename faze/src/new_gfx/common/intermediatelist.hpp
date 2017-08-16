@@ -19,6 +19,7 @@ namespace faze
       enum class PacketType
       {
         BufferCopy,
+        UpdateTexture,
         Dispatch,
         ClearRT,
         PrepareForPresent,

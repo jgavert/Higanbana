@@ -41,6 +41,12 @@ namespace faze
     backend::IntermediateList list;
     friend struct backend::DeviceData;
   public:
+
+    void updateTexture(Texture& tex, DynamicBufferView& dynBuffer, int mip, int slice)
+    {
+      list.insert<gfxpacket::UpdateTexture>(tex, dynBuffer, mip, slice);
+    }
+
     void clearRT(TextureRTV& rtv, vec4 color)
     {
       list.insert<gfxpacket::ClearRT>(rtv, color);

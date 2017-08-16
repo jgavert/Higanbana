@@ -115,6 +115,8 @@ namespace faze
       public:
         virtual ~DynamicBufferViewImpl() = default;
         virtual backend::RawView view() = 0;
+        virtual int rowPitch() = 0;
+        virtual int64_t offset() = 0;
       };
 
       class HeapImpl
@@ -160,6 +162,9 @@ namespace faze
         // create dynamic resources
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) = 0;
+
+        virtual std::shared_ptr<DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) = 0;
+
 
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
         virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;

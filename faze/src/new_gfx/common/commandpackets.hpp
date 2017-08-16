@@ -41,6 +41,29 @@ namespace faze
 
     // packets
 
+    class UpdateTexture : public backend::CommandPacket
+    {
+    public:
+      Texture dst;
+      DynamicBufferView src;
+      int mip;
+      int slice;
+
+      UpdateTexture(backend::ListAllocator, Texture dst, DynamicBufferView view, int mip, int slice)
+        : dst(dst)
+        , src(view)
+        , mip(mip)
+        , slice(slice)
+      {
+
+      }
+
+      PacketType type() override
+      {
+        return PacketType::UpdateTexture;
+      }
+    };
+
     class ClearRT : public backend::CommandPacket
     {
     public:

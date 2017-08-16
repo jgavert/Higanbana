@@ -16,7 +16,7 @@ public:
   {
     std::string filename(pFileName);
     std::string finalPath;
-    if (filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+    if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
     {
       finalPath = "/../" + filename;
       if (!m_fs.fileExists(finalPath))

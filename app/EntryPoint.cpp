@@ -19,18 +19,46 @@
 #include "shaders/triangle.if.hpp"
 #include "shaders/textureTest.if.hpp"
 
-#include "faze/src/new_gfx/vk/util/ShaderStorage.hpp"
-#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
+#include "renderer/blitter.hpp"
+
+#include "faze/src/new_gfx/common/cpuimage.hpp"
+
+#define STBI_NO_STDIO
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 using namespace faze;
+
+
+CpuImage loadImageFromFilesystem(FileSystem& fs, std::string path)
+{
+  F_ASSERT(fs.fileExists(path), ":D");
+
+  auto view = fs.viewToFile(path);
+  int imgX, imgY, channels;
+  stbi_set_flip_vertically_on_load(true);
+  auto asd = stbi_load_from_memory(view.data(), static_cast<int>(view.size()), &imgX, &imgY, &channels, 4);
+  F_LOG("%dx%d %d\n", imgX, imgY, channels);
+
+  CpuImage image(ResourceDescriptor()
+    .setSize({ imgX, imgY, 1 })
+    .setDimension(FormatDimension::Texture2D)
+    .setFormat(FormatType::Unorm8x4)
+    .setName(path)
+    .setUsage(ResourceUsage::GpuReadOnly));
+
+  auto sr = image.subresource(0, 0);
+
+  memcpy(sr.data(), asd, sr.size());
+
+  stbi_image_free(asd);
+
+  return image;
+}
 
 int EntryPoint::main()
 {
   Logger log;
-  {
-    //testNetwork(log);
-    //log.update();
-  }
 
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
@@ -38,13 +66,8 @@ int EntryPoint::main()
     int64_t frame = 1;
     FileSystem fs;
 
-    backend::DX12ShaderStorage shadersdx(fs, "../app/shaders", "dxil");
-    auto res = shadersdx.compileShader("triangle", backend::DX12ShaderStorage::ShaderType::Vertex);
-    F_LOG("compiled! %d\n", int(res));
-
-    ShaderStorage shaders(fs, "../app/shaders", "spirv");
-    res = shaders.compileShader("triangle", ShaderStorage::ShaderType::Vertex);
-    F_LOG("compiled! %d\n", int(res));
+    auto image = loadImageFromFilesystem(fs, "/simple.jpg");
+    log.update();
 
     while (true)
     {
@@ -65,8 +88,8 @@ int EntryPoint::main()
       if (gpus.empty())
         return;
 
-      ivec2 ires = { 1280, 720 };
-      Window window(m_params, gpus[chosenGpu].name, ires.x(), ires.y(), 300, 200);
+      ivec2 ires = { 200, 100 };
+      Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
       window.open();
 
       auto surface = graphics.createSurface(window);
@@ -85,6 +108,9 @@ int EntryPoint::main()
           .setDimension(FormatDimension::Buffer);
 
         auto buffer = dev.createBuffer(bufferdesc);
+
+        auto testImage = dev.createTexture(image);
+        auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
         auto texture = dev.createTexture(ResourceDescriptor()
           .setName("testTexture")
@@ -109,6 +135,8 @@ int EntryPoint::main()
 
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
+
+        renderer::Blitter blit(dev);
 
         ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
           .shader("textureTest"));
@@ -236,6 +264,7 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //if (inputs.isPressedThisFrame('3', 2))
+          
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
@@ -258,6 +287,8 @@ int EntryPoint::main()
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }
+          float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
+          blit.blit(dev, tasks, backbuffer, testSrv, float2{-0.8f, 0.8f}, float2{ 1.6f, 1.6f*heightMulti });
 
           {
             auto& node = tasks.createPass2("present");

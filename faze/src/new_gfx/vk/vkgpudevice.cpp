@@ -1009,6 +1009,10 @@ namespace faze
     {
       return std::make_shared<VulkanDynamicBufferView>();
     }
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamicImage(MemView<uint8_t> , unsigned )
+    {
+      return std::make_shared<VulkanDynamicBufferView>();
+    }
 
     VulkanCommandBuffer VulkanDevice::createCommandBuffer(int queueIndex)
     {

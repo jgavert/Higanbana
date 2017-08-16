@@ -1151,6 +1151,31 @@ namespace faze
       return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN);
     }
 
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch)
+    {
+      auto rows = bytes.size() / rowPitch;
+
+      constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+      const auto requiredRowPitch = roundUpMultiple2(rowPitch, APIRowPitchAlignmentRequirement);
+      F_LOG("rowPitch %zu\n", requiredRowPitch);
+      const auto requiredTotalSize = rows * requiredRowPitch;
+
+      auto upload = m_dynamicUpload->allocate(requiredTotalSize);
+      F_ASSERT(upload, "Halp");
+      for (size_t row = 0; row < rows; ++row)
+      {
+        auto srcPosition = rowPitch * row;
+        auto dstPosition = requiredRowPitch * row;
+        memcpy(upload.data() + dstPosition, bytes.data() + srcPosition, rowPitch);
+      }
+
+      // will be collected promtly
+      m_trash->dynamicBuffers.emplace_back(upload);
+
+      return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
+    }
+
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -1158,10 +1183,7 @@ namespace faze
       FAZE_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
       FAZE_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
 
-      return DX12CommandBuffer(commandList, commandListAllocator
-        //  , std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
-        //  , std::make_shared<LinearDescriptorHeap>(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128)
-      );
+      return DX12CommandBuffer(commandList, commandListAllocator);
     }
 
     DX12Fence DX12Device::createNativeFence()
@@ -1176,7 +1198,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1191,7 +1213,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1205,7 +1227,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {

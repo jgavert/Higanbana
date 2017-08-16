@@ -7,6 +7,7 @@
 #include "swapchain.hpp"
 #include "commandgraph.hpp"
 #include "commandlist.hpp"
+#include "faze/src/new_gfx/common/cpuimage.hpp"
 
 namespace faze
 {
@@ -36,6 +37,13 @@ namespace faze
     Texture createTexture(ResourceDescriptor descriptor)
     {
       auto tex = S().createTexture(descriptor);
+      return tex;
+    }
+
+    Texture createTexture(CpuImage& image)
+    {
+      auto tex = S().createTexture(image.desc());
+      S().uploadInitialTexture(tex, image);
       return tex;
     }
 
