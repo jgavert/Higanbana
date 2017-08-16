@@ -367,6 +367,16 @@ namespace faze
       {
         return backend::RawView{};
       }
+
+      int rowPitch() override
+      {
+        return -1;
+      }
+
+      int64_t offset() override
+      {
+        return -1;
+      }
     };
 
     class VulkanHeap : public prototypes::HeapImpl
@@ -514,6 +524,7 @@ namespace faze
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
+      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // commandlist stuff
       VulkanCommandBuffer createCommandBuffer(int queueIndex);

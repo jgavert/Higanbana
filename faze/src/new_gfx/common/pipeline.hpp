@@ -55,6 +55,11 @@ namespace faze
 
     std::shared_ptr<vector<FullPipeline>> m_pipelines;
 
+    GraphicsPipeline()
+      : descriptor()
+      , m_pipelines(nullptr)
+    {}
+
     GraphicsPipeline(GraphicsPipelineDescriptor desc)
       : descriptor(desc.desc)
       , m_pipelines(std::make_shared<vector<FullPipeline>>())

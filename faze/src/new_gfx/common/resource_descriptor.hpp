@@ -1,5 +1,6 @@
 #pragma once
 #include "faze/src/new_gfx/desc/Formats.hpp"
+#include "core/src/math/vec_templated.hpp"
 #include <string>
 #include <array>
 
@@ -226,6 +227,14 @@ namespace faze
     ResourceDescriptor& setDimension(FormatDimension dimension)
     {
       desc.dimension = dimension;
+      return *this;
+    }
+
+    ResourceDescriptor& setSize(int3 size)
+    {
+      desc.width = size.x();
+      desc.height = size.y();
+      desc.depth = size.z();
       return *this;
     }
 

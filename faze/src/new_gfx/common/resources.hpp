@@ -68,7 +68,7 @@ namespace faze
 
   class Buffer;
   class Texture;
-
+  
   class BufferSRV;
   class BufferUAV;
   class TextureSRV;
@@ -82,6 +82,7 @@ namespace faze
   class GraphicsSurface;
   class Window;
   class CommandGraph;
+  class CpuImage;
 
   namespace backend
   {
@@ -201,6 +202,10 @@ namespace faze
 
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, FormatType type);
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, unsigned stride);
+      // streaming
+
+      bool uploadInitialTexture(Texture& tex, CpuImage& image);
+
       // commandgraph
       void submit(Swapchain& swapchain, CommandGraph graph);
       void present(Swapchain& swapchain);

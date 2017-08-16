@@ -11,6 +11,8 @@ namespace faze
     std::shared_ptr<backend::prototypes::RenderpassImpl> m_renderpass;
 
   public:
+    Renderpass() {}
+
     Renderpass(std::shared_ptr<backend::prototypes::RenderpassImpl> native)
       : m_renderpass(native)
     {
