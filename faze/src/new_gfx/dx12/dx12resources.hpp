@@ -289,7 +289,7 @@ namespace faze
       UploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d", size);
+        F_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", size);
         return UploadBlock{ data, gpuAddr,  dip };
       }
 
