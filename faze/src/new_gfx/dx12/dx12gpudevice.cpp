@@ -31,7 +31,7 @@ namespace faze
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
-      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024)) // we have room 64megs of dynamic buffers
+      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024 * 4)) // we have room 64megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
       , m_trash(std::make_shared<Garbage>())
       , m_seqTracker(std::make_shared<SequenceTracker>())

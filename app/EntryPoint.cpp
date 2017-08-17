@@ -234,7 +234,7 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //if (inputs.isPressedThisFrame('3', 2))
-          
+
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
@@ -257,8 +257,8 @@ int EntryPoint::main()
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }
-          float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
-          blit.blit(dev, tasks, backbuffer, testSrv, float2{-0.8f, 0.8f}, float2{ 1.6f, 1.6f*heightMulti });
+          //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
+          blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fill);
 
           {
             auto& node = tasks.createPass2("present");
