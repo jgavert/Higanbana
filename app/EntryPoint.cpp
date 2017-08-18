@@ -258,7 +258,16 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
-          blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fill);
+          //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
+
+		  uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
+		  float scale = float(sdim.x()) / float(sdim.y());
+
+		  float nwidth = float(backbuffer.desc().desc.width)*0.1f;
+		  float nheight = nwidth / scale;
+
+
+		  blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{int(nwidth), int(nheight) });
 
           {
             auto& node = tasks.createPass2("present");

@@ -76,7 +76,7 @@ namespace faze
 
       vector<float4> vertices;
       float left = topleft.x() * 2.f - 1.f;
-      float top = topleft.y() * 2.f - 1.f;
+      float top = 1.f - (topleft.y() * 2.f);
       float right = left + size.x()*2.f; // -0.8f + 1.f
       float bottom = top - size.y()*2.f; // 0.8f - 1.f
 
