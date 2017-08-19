@@ -16,8 +16,8 @@
 
 #include "core/src/math/vec_templated.hpp"
 
-#include "shaders/triangle.if.hpp"
 #include "shaders/textureTest.if.hpp"
+#include "shaders/triangle.if.hpp"
 
 #include "renderer/blitter.hpp"
 
@@ -249,7 +249,8 @@ int EntryPoint::main()
             auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
 
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
-            binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+            //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+            binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
             binding.constants.colorspace = static_cast<int>(swapchain.impl()->displayCurve());
             binding.srv(::shader::Triangle::vertices, verts);
             binding.srv(::shader::Triangle::yellow, texSrv);

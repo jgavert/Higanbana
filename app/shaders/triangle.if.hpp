@@ -5,13 +5,11 @@
 
 FAZE_BEGIN_LAYOUT(Triangle)
 
-struct TriangleConstants
+FAZE_CBUFFER
 {
   float4 color;
   int colorspace;
 };
-
-FAZE_CBUFFER(TriangleConstants)
 
 FAZE_SRV(Buffer<float4>, vertices, 0)
 FAZE_SRV(Texture2D<float4>, yellow, 1)

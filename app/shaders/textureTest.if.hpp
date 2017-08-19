@@ -5,7 +5,7 @@
 
 FAZE_BEGIN_LAYOUT(TextureTest)
 
-struct TestConstants
+FAZE_CBUFFER
 {
   uint2 iResolution;
   float iTime;
@@ -14,8 +14,6 @@ struct TestConstants
   float2 mouse;
   uint _padding;
 };
-
-FAZE_CBUFFER(TestConstants)
 
 FAZE_UAV(RWTexture2D<float4>, output, 0)
 

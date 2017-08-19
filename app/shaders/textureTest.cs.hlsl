@@ -71,7 +71,7 @@ float revBox( float3 p, float3 b )
 
 float rotBox( float3 p, float3 b )
 {
-  return udBox(rotateZ(rotateY(p, sin(constants.iTime*0.1)*PII), cos(constants.iTime*0.1)*PII), b);
+  return udBox(rotateZ(rotateY(p, sin(iTime*0.1)*PII), cos(iTime*0.1)*PII), b);
 }
 
 float sdHexPrism( float3 p, float2 h )
@@ -104,10 +104,10 @@ float2 opU( float2 d1, float2 d2 )
 
 float2 map2(float3 pos)
 {
-  //float box = rotBox(pos-float3(1.0,sin(constants.iTime*0.3)*0.6,.6), float3(0.3, 0.3, 0.3));
+  //float box = rotBox(pos-float3(1.0,sin(iTime*0.3)*0.6,.6), float3(0.3, 0.3, 0.3));
   //float ball = sBall(pos-float3(-.2,0.1,.5),  0.4);
   //float ball2 = sBall(pos-float3(-.2,0.1,-.5),  0.4);
-  //float3 rot = rotateX(pos-float3(-.2,-.5,.0),sin(constants.iTime*0.2)*PII);
+  //float3 rot = rotateX(pos-float3(-.2,-.5,.0),sin(iTime*0.2)*PII);
   //float prism = sdHexPrism(rot,float2(0.2, 0.2));
   float what = opRepBox( pos-float3(-4999.3,0.2,0.0), float3(1.0,0.6, .6));
   float2 res = float2(what,4.0);
@@ -229,7 +229,7 @@ float3 calcRay(in uint index, in float3 rd)
 
 float2 getHigherResolutionPos(in float2 fragCoord, float x, float y)
 {
-  float2 biggerRes = constants.iResolution.xy*RAYMULTIPLIER;
+  float2 biggerRes = iResolution.xy*RAYMULTIPLIER;
   float2 screenPos = fragCoord.xy*RAYMULTIPLIER; //oletus, aina pikseli blokin ylÃ¤vasen
   screenPos.x += x;
   screenPos.y += y;
@@ -270,12 +270,12 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 
 	
 	float2 fp = float2(float(id.x), float(id.y));
-	//fp /= float2(float(constants.iResolution.x), float(constants.iResolution.y));
+	//fp /= float2(float(iResolution.x), float(iResolution.y));
 
-	//output[id] = float4(sin(constants.iTime)*0.2 + fp.x, cos(constants.iTime)*0.5 + fp.y, 0.f, 1.f);
+	//output[id] = float4(sin(iTime)*0.2 + fp.x, cos(iTime)*0.5 + fp.y, 0.f, 1.f);
 
 	float3 position = float3(-0,5.0,0.0);
-  float3 direction = position + float3(0.4 + sin(constants.iTime)*0.2, .0, 0.99);
+  float3 direction = position + float3(0.4 + sin(iTime)*0.2, .0, 0.99);
 
   uint index = gid.x + gid.y*8;
 
@@ -286,7 +286,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 	rdata[index].lightPos = float3(-5.0,3.0,-1.5);
 	//GroupMemoryBarrierWithGroupSync();
   castManyRays(index);
-  if (id.x >= constants.iResolution.x || id.y >= constants.iResolution.y)
+  if (id.x >= iResolution.x || id.y >= iResolution.y)
 		return;
   output[id] = float4(rdata[index].mixColor,1.0);
 }
