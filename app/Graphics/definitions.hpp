@@ -10,11 +10,12 @@ namespace shader\
 { \
       struct signatureName {
 #define FAZE_END_LAYOUT \
+        static Constants constants; \
       }; \
 };
 
-#define FAZE_CBUFFER(cbufferType) \
-    static cbufferType constants;
+#define FAZE_CBUFFER \
+    struct Constants 
 
 #define FAZE_SRV(type, name, index) \
 	static constexpr int name = index;
@@ -35,8 +36,8 @@ namespace shader\
 #define FAZE_BEGIN_LAYOUT(signatureName)
 #define FAZE_END_LAYOUT
 
-#define FAZE_CBUFFER(cbufferType) \
-    ConstantBuffer<cbufferType> constants : register( b0 );
+#define FAZE_CBUFFER \
+    cbuffer _constants : register( b0 )
 
 #define FAZE_SRV(type, name, index) \
 	type name : register(t##index);
