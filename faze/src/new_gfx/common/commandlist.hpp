@@ -105,11 +105,26 @@ namespace faze
         resources, constants, srvs, uavs);
     }
 
+    void setIndexBuffer(BufferIBV&)
+    {
+      //list.insert<gfxpacket::ComputePipelineBind>(pipeline);
+    }
+
     void draw(
       unsigned vertexCountPerInstance,
       unsigned instanceCount,
       unsigned startVertex,
       unsigned startInstance)
+    {
+      list.insert<gfxpacket::Draw>(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+    }
+
+    void drawIndexed(
+      unsigned IndexCountPerInstance,
+      unsigned instanceCount,
+      unsigned StartIndexLocation,
+      int BaseVertexLocation,
+      unsigned StartInstanceLocation)
     {
       list.insert<gfxpacket::Draw>(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
