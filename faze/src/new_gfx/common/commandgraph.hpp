@@ -85,7 +85,7 @@ namespace faze
     void draw(
       Binding<Shader>& binding,
       unsigned vertexCountPerInstance,
-      unsigned instanceCount = 0,
+      unsigned instanceCount = 1,
       unsigned startVertex = 0,
       unsigned startInstance = 0)
     {
@@ -93,13 +93,43 @@ namespace faze
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
-	template <typename Shader>
-	void dispatch(
-		Binding<Shader>& binding, uint3 groups)
-	{
-		list.bindComputeResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
-		list.dispatch(groups);
-	}
+    template <typename Shader>
+    void drawIndexed(
+      Binding<Shader>& binding,
+      DynamicBufferView view,
+      unsigned IndexCountPerInstance,
+      unsigned instanceCount = 1,
+      unsigned StartIndexLocation = 0,
+      int BaseVertexLocation = 0,
+      unsigned StartInstanceLocation)
+    {
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
+      list.setDynamicIndexBuffer(view);
+      list.drawIndexed(IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+    }
+
+    template <typename Shader>
+    void drawIndexed(
+      Binding<Shader>& binding,
+      BufferIBV view,
+      unsigned IndexCountPerInstance,
+      unsigned instanceCount = 1,
+      unsigned StartIndexLocation = 0,
+      int BaseVertexLocation = 0,
+      unsigned StartInstanceLocation = 0)
+    {
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
+      list.setIndexBuffer(view);
+      list.drawIndexed(IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+    }
+
+    template <typename Shader>
+    void dispatch(
+      Binding<Shader>& binding, uint3 groups)
+    {
+      list.bindComputeResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
+      list.dispatch(groups);
+    }
   };
 
   class CommandGraph
