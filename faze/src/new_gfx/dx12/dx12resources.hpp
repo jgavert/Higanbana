@@ -497,6 +497,7 @@ namespace faze
     private:
       D3D12Swapchain* m_resource;
       DX12GraphicsSurface m_surface;
+      HANDLE m_frameLatencyObj;
       int m_backbufferIndex = 0;
       bool supportsHDR = false;
       DisplayCurve curve = DisplayCurve::sRGB;
@@ -512,9 +513,10 @@ namespace faze
     public:
       DX12Swapchain()
       {}
-      DX12Swapchain(D3D12Swapchain* resource, DX12GraphicsSurface surface)
+      DX12Swapchain(D3D12Swapchain* resource, DX12GraphicsSurface surface, HANDLE frameLatObject)
         : m_resource(resource)
         , m_surface(surface)
+        , m_frameLatencyObj(frameLatObject)
       {}
 
       ResourceDescriptor desc() override
@@ -596,6 +598,11 @@ namespace faze
       DX12GraphicsSurface& surface()
       {
         return m_surface;
+      }
+
+      HANDLE frameLatencyObj()
+      {
+        return m_frameLatencyObj;
       }
 
       void setBackbufferIndex(int index)

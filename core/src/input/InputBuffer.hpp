@@ -3,11 +3,10 @@
 
 #include <stdint.h>
 
-#define BUFFERSIZE 300
+#define BUFFERSIZE 600 
 
 namespace faze
 {
-
   class Input
   {
   public:
@@ -27,6 +26,7 @@ namespace faze
     void readUntil(std::function<bool(int, int)> func);
     void readTill(int64_t time, std::function<void(int, int, int64_t)> func);
     bool findAndDisableThisFrame(int key, int action);
+    void goThroughThisFrame(std::function<void(Input)> func);
     bool isPressedThisFrame(int key, int action);
     void setF_translator(std::function<int(int)> const &translator)
     {
