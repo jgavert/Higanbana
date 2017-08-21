@@ -268,7 +268,7 @@ namespace faze
       swapChainDesc.BufferCount = static_cast<UINT>(descriptor.desc.bufferCount); // conviently array can be used to describe bufferCount
       swapChainDesc.Scaling = DXGI_SCALING_NONE; // scaling.. hmm ignore for now
       swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
-      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
+      swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
                                                                     // also DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
 
       DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullDesc{};
@@ -280,9 +280,15 @@ namespace faze
 
       D3D12Swapchain* swapChain = nullptr;
       FAZE_CHECK_HR(m_factory->CreateSwapChainForHwnd(m_graphicsQueue.Get(), natSurface->native(), &swapChainDesc, &fullDesc, nullptr, (IDXGISwapChain1**)&swapChain));
-      auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface);
+
+      swapChain->SetMaximumFrameLatency(1);
+
+      HANDLE thingy = swapChain->GetFrameLatencyWaitableObject();
+
+      auto sc = std::make_shared<DX12Swapchain>(swapChain, *natSurface, thingy);
       sc->setBufferMetadata(width, height, descriptor);
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
+
 
       ensureSwapchainColorspace(sc, descriptor);
       return sc;
@@ -307,7 +313,7 @@ namespace faze
       UINT bufferLocations[] = { 1 };
       IUnknown* queues[] = { m_graphicsQueue.Get() };*/
 
-      FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING/*, bufferLocations, queues*/));
+      FAZE_CHECK_HR(natSwapchain->native()->ResizeBuffers(bufferCount, width, height, formatTodxFormat(format).storage, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING/*, bufferLocations, queues*/));
 
       natSwapchain->setBufferMetadata(width, height, d);
 
@@ -411,6 +417,7 @@ namespace faze
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      WaitForSingleObjectEx(native->frameLatencyObj(), INFINITE, FALSE);
       int index = native->native()->GetCurrentBackBufferIndex();
       native->setBackbufferIndex(index);
       return index;

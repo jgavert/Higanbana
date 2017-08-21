@@ -7,6 +7,7 @@
 #endif
 #include "core/src/neural/network.hpp"
 #include "core/src/system/LBS.hpp"
+#include "core/src/system/time.hpp"
 #include "faze/src/new_gfx/GraphicsCore.hpp"
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/Platform/Window.hpp"
@@ -39,6 +40,7 @@ int EntryPoint::main()
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs;
+    WTime time;
 
     auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
@@ -68,9 +70,10 @@ int EntryPoint::main()
 
       auto surface = graphics.createSurface(window);
       auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
+      time.firstTick();
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8x4).colorspace(Colorspace::BT709);
+        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8x4).colorspace(Colorspace::BT709).bufferCount(3);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
@@ -111,14 +114,14 @@ int EntryPoint::main()
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         renderer::Blitter blit(dev);
-		renderer::ImGui imgRenderer(dev);
+        renderer::ImGui imgRenderer(dev);
 
         ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
           .shader("textureTest"));
 
         bool closeAnyway = false;
 
-		bool showTestImgui = true;
+        bool showTestImgui = true;
 
         while (!window.simpleReadMessages(frame++))
         {
@@ -146,6 +149,15 @@ int EntryPoint::main()
             toggleHDR = false;
           }
           auto& inputs = window.inputs();
+
+          if (inputs.isPressedThisFrame(112, 1))
+          {
+            window.captureMouse(true);
+          }
+          if (inputs.isPressedThisFrame(113, 1))
+          {
+            window.captureMouse(false);
+          }
 
           if (inputs.isPressedThisFrame(VK_SPACE, 1))
           {
@@ -195,10 +207,10 @@ int EntryPoint::main()
             scdesc.desc.format = FormatType::Float16x4;
             toggleHDR = true;
           }
-		  if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(220, 1))
-		  {
-			  showTestImgui = !showTestImgui;
-		  }
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(220, 1))
+          {
+            showTestImgui = !showTestImgui;
+          }
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('9', 1))
           {
             scdesc.desc.mode = PresentMode::FifoRelaxed;
@@ -224,10 +236,11 @@ int EntryPoint::main()
           CommandGraph tasks = dev.createGraph();
           {
             auto node = tasks.createPass("clear");
-            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 0.f });
+            node.clearRT(backbuffer, vec4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
+          /*
           {
             auto node = tasks.createPass("compute!");
 
@@ -236,7 +249,7 @@ int EntryPoint::main()
             uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
             binding.constants.iResolution = iRes;
             binding.constants.iFrame = static_cast<int>(frame);
-            binding.constants.iTime = float(frame)*0.01f;
+            binding.constants.iTime = time.getFTime();
             binding.uav(::shader::TextureTest::output, texUav);
 
             unsigned x = static_cast<unsigned>(roundUpMultiple(iRes.x() / 8, 8));
@@ -244,9 +257,9 @@ int EntryPoint::main()
             node.dispatch(binding, uint3{ x, y, 1 });
 
             tasks.addPass(std::move(node));
-          }
+          }*/
           //if (inputs.isPressedThisFrame('3', 2))
-						/*
+            /*
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
@@ -272,22 +285,73 @@ int EntryPoint::main()
           }			  */
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
-				  /*
-		  uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
-		  float scale = float(sdim.x()) / float(sdim.y());
+          /*
+      uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
+      float scale = float(sdim.x()) / float(sdim.y());
 
-		  float nwidth = float(backbuffer.desc().desc.width)*0.1f;
-		  float nheight = nwidth / scale;
+      float nwidth = float(backbuffer.desc().desc.width)*0.1f;
+      float nheight = nwidth / scale;
 
+      blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{int(nwidth), int(nheight) });
+        */
+          {
+            imgRenderer.beginFrame(backbuffer);
+            ImGuiIO &io = ImGui::GetIO();
+            time.tick();
+            io.DeltaTime = time.getFrameTimeDelta();
 
-		  blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{int(nwidth), int(nheight) });
-				*/
-		  {
-			  imgRenderer.beginFrame(backbuffer);
-			  ::ImGui::ShowTestWindow(&showTestImgui);
-			  imgRenderer.endFrame(dev, tasks, backbuffer);
-		  }
+            auto& mouse = window.mouse();
 
+            if (mouse.captured)
+            {
+              io.MousePos.x = static_cast<float>(mouse.m_pos.x());
+              io.MousePos.y = static_cast<float>(mouse.m_pos.y());
+
+              io.MouseWheel = static_cast<float>(mouse.mouseWheel)*0.1f;
+            }
+
+            auto& input = window.inputs();
+
+            input.goThroughThisFrame([&](Input i)
+            {
+              if (i.key >= 0)
+              {
+                switch (i.key)
+                {
+                case VK_LBUTTON:
+                {
+                  io.MouseDown[0] = (i.action > 0);
+                  break;
+                }
+                case VK_RBUTTON:
+                {
+                  io.MouseDown[1] = (i.action > 0);
+                  break;
+                }
+                case VK_MBUTTON:
+                {
+                  io.MouseDown[2] = (i.action > 0);
+                  break;
+                }
+                default:
+                  if (i.key < 512)
+                    io.KeysDown[i.key] = (i.action > 0);
+                  break;
+                }
+              }
+            });
+
+            for (auto ch : window.charInputs())
+              io.AddInputCharacter(static_cast<ImWchar>(ch));
+
+            io.KeyCtrl = inputs.isPressedThisFrame(VK_CONTROL, 2);
+            io.KeyShift = inputs.isPressedThisFrame(VK_SHIFT, 2);
+            io.KeyAlt = inputs.isPressedThisFrame(VK_MENU, 2);
+            io.KeySuper = false;
+
+            ::ImGui::ShowTestWindow(&showTestImgui);
+            imgRenderer.endFrame(dev, tasks, backbuffer);
+          }
 
           {
             auto& node = tasks.createPass2("present");

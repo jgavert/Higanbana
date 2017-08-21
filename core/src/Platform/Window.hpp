@@ -2,10 +2,10 @@
 #include "ProgramParams.hpp"
 #include "core/src/input/InputBuffer.hpp"
 #include "core/src/math/vec_templated.hpp"
+#include "core/src/datastructures/proxy.hpp"
 
 #include <string>
 #include <memory>
-
 
 #ifdef FAZE_PLATFORM_WINDOWS
 #include <Windowsx.h>
@@ -30,7 +30,6 @@ namespace faze
     }
     HWND& getHWND() { return hWnd; }
     HINSTANCE& getHInstance() { return hInstance; }
-
   };
 #else
 class WindowInternal
@@ -50,7 +49,6 @@ public:
   }
 
   int& getNative() { return m_ptr; }
-
 };
 #endif
 
@@ -58,7 +56,8 @@ class MouseState
 {
 public:
   faze::ivec2 m_pos;
-  bool captured;
+  int mouseWheel = 0;
+  bool captured = true;
 };
 
 class Window
@@ -85,6 +84,7 @@ private:
 
   int64_t m_frame = 0;
   faze::InputBuffer m_inputs;
+  vector<wchar_t> m_characterInput;
   MouseState m_mouse;
 
   void keyDown(int key);
@@ -106,6 +106,8 @@ public:
   bool hasResized();
   void resizeHandled();
 
+  void captureMouse(bool val);
+
   faze::InputBuffer& inputs()
   {
     return m_inputs;
@@ -114,6 +116,11 @@ public:
   MouseState& mouse()
   {
     return m_mouse;
+  }
+
+  vector<wchar_t> charInputs()
+  {
+    return m_characterInput;
   }
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

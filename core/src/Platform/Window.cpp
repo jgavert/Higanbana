@@ -55,6 +55,7 @@ namespace faze
       }
       break;
     }
+
     case WM_MOUSEMOVE:
     {
       int xPos = GET_X_LPARAM(lParam);
@@ -105,6 +106,23 @@ namespace faze
         //RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
       }
     }
+    case WM_CHAR:
+    {
+      if (me)
+      {
+        wchar_t ch = static_cast<wchar_t>(wParam);
+        if (ch == wParam)
+        {
+          me->m_characterInput.emplace_back(ch);
+        }
+      }
+    }
+    case WM_MOUSEWHEEL:
+      if (me)
+      {
+        me->m_mouse.mouseWheel += GET_WHEEL_DELTA_WPARAM(wParam);
+      }
+      break;
     default:
       break;
     }
@@ -174,6 +192,18 @@ namespace faze
     needToResize = false;
     m_width = m_resizeWidth;
     m_height = m_resizeHeight;
+  }
+
+  void Window::captureMouse(bool val)
+  {
+    if (val)
+    {
+      SetCapture(m_window->getHWND());
+    }
+    else
+    {
+      ReleaseCapture();
+    }
   }
 
   void Window::keyDown(int)
@@ -295,6 +325,7 @@ namespace faze
 #if defined(FAZE_PLATFORM_WINDOWS)
     MSG msg;
     m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, Window::LowLevelKeyboardHook, m_window->hInstance, 0);
+    m_characterInput.clear();
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
     {
       if (msg.message == WM_QUIT)
@@ -340,6 +371,14 @@ namespace faze
       }
 
       memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
+
+      /*
+      POINT point;
+      if (GetCursorPos(&point))
+      {
+        F_LOG("%dx%d %dx%dx\n", m_mouse.m_pos.x(), m_mouse.m_pos.y(), point.x, point.y);
+        //m_mouse.m_pos = ivec2{ point.x, point.y };
+      }*/
     }
     else
     {

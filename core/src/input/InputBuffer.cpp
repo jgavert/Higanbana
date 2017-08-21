@@ -3,7 +3,7 @@
 
 using namespace faze;
 
-InputBuffer::InputBuffer(): m_tail(0), m_head(0),m_frame(0), f_translator([](int i){return i;})
+InputBuffer::InputBuffer() : m_tail(0), m_head(0), m_frame(0), f_translator([](int i) {return i; })
 {
   for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
   {
@@ -26,24 +26,23 @@ void InputBuffer::insert(int key, int action, int64_t frame)
   {
     m_tail = m_tail%m_inputs.size();
   }
-  
 }
 
 void InputBuffer::readUntil(std::function<bool(int, int)> func)
 {
   int currentHead = m_head;
-  for (int i=currentHead; i<currentHead+m_tail; i++)
+  for (int i = currentHead; i < currentHead + m_tail; i++)
   {
     m_head++;
     auto& input = m_inputs[i++];
-    if (func(f_translator(input.key),input.action))
+    if (func(f_translator(input.key), input.action))
     {
       return;
     }
   }
 }
 
-void InputBuffer::readTill(int64_t /*time*/, std::function<void(int,int, int64_t)> /*func*/)
+void InputBuffer::readTill(int64_t /*time*/, std::function<void(int, int, int64_t)> /*func*/)
 {
   // TODO: readTill(time, function)
   std::cerr << "InputBuffer: I don't know wtf to do\n";
@@ -64,6 +63,18 @@ bool InputBuffer::findAndDisableThisFrame(int key, int action)
     }
   }
   return false;
+}
+
+void InputBuffer::goThroughThisFrame(std::function<void(Input)> func)
+{
+  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  {
+    if (m_inputs[m_tail - i].time != m_frame)
+    {
+      return;
+    }
+    func(m_inputs[m_tail - i]);
+  }
 }
 
 bool InputBuffer::isPressedThisFrame(int key, int action)

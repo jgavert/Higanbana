@@ -27,7 +27,6 @@ void WTime::startFrame()
   timepoint_last = HighPrecisionClock::now();
 }
 
-
 void WTime::tick()
 {
   frames++;
@@ -93,8 +92,9 @@ float WTime::getframetime_low() {
   return frametime_low * 0.000001f;
 }
 
-void WTime::printStatistics() {
-  F_SLOG("WTime", "Time running: %.3f seconds, ", std::chrono::duration_cast<std::chrono::milliseconds>(timepoint_last - start).count()/1000.f);
+void WTime::printStatistics()
+{
+  F_SLOG("WTime", "Time running: %.3f seconds, ", std::chrono::duration_cast<std::chrono::milliseconds>(timepoint_last - start).count() / 1000.f);
   F_LOG_UNFORMATTED("frames: %zu\n", frames);
   F_SLOG("WTime", "Fps(min, aveg, high): %f", interpolateFpsFromNanoseconds(frametime_high));
   F_LOG_UNFORMATTED(" / %f / %f\n", getAverageFps(), interpolateFpsFromNanoseconds(frametime_low));
@@ -105,6 +105,11 @@ void WTime::printStatistics() {
 int64_t WTime::getCurrentNano()
 {
   return frametime_current;
+}
+
+float WTime::getFTime()
+{
+  return timepoint_last.time_since_epoch().count() * 0.000000001f;
 }
 
 int64_t WTime::getFrame()
