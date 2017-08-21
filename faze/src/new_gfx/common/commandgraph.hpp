@@ -79,6 +79,11 @@ namespace faze
       return Binding<Shader>();
     }
 
+	void setScissor(int2 tl, int2 br)
+	{
+	  list.setScissorRect(tl, br);
+	}
+
     // draws/dispatches
 
     template <typename Shader>
@@ -101,11 +106,10 @@ namespace faze
       unsigned instanceCount = 1,
       unsigned StartIndexLocation = 0,
       int BaseVertexLocation = 0,
-      unsigned StartInstanceLocation)
+      unsigned StartInstanceLocation = 0)
     {
       list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
-      list.setDynamicIndexBuffer(view);
-      list.drawIndexed(IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     template <typename Shader>
@@ -119,8 +123,7 @@ namespace faze
       unsigned StartInstanceLocation = 0)
     {
       list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
-      list.setIndexBuffer(view);
-      list.drawIndexed(IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     template <typename Shader>

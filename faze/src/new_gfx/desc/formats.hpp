@@ -47,6 +47,7 @@ namespace faze
     Depth32,
     Depth32_Stencil8,
     Uint8,
+	Unorm8,
     Count
   };
 

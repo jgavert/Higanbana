@@ -20,6 +20,10 @@
 #include "shaders/triangle.if.hpp"
 
 #include "renderer/blitter.hpp"
+#include "renderer/imgui_renderer.hpp"
+
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#include "core/src/external/imgiu/imgui.h"
 
 #include "faze/src/new_gfx/common/cpuimage.hpp"
 #include "faze/src/new_gfx/common/image_loaders.hpp"
@@ -66,7 +70,7 @@ int EntryPoint::main()
       auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm10x3).colorspace(Colorspace::BT709);
+        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8x4).colorspace(Colorspace::BT709);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
@@ -107,11 +111,15 @@ int EntryPoint::main()
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         renderer::Blitter blit(dev);
+		renderer::ImGui imgRenderer(dev);
 
         ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
           .shader("textureTest"));
 
         bool closeAnyway = false;
+
+		bool showTestImgui = true;
+
         while (!window.simpleReadMessages(frame++))
         {
           fs.updateWatchedFiles();
@@ -187,6 +195,10 @@ int EntryPoint::main()
             scdesc.desc.format = FormatType::Float16x4;
             toggleHDR = true;
           }
+		  if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(220, 1))
+		  {
+			  showTestImgui = !showTestImgui;
+		  }
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('9', 1))
           {
             scdesc.desc.mode = PresentMode::FifoRelaxed;
@@ -212,7 +224,7 @@ int EntryPoint::main()
           CommandGraph tasks = dev.createGraph();
           {
             auto node = tasks.createPass("clear");
-            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 1.f });
+            node.clearRT(backbuffer, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 0.f, 0.f });
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
@@ -234,7 +246,7 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //if (inputs.isPressedThisFrame('3', 2))
-
+						/*
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
@@ -257,10 +269,10 @@ int EntryPoint::main()
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
-          }
+          }			  */
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
-
+				  /*
 		  uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
 		  float scale = float(sdim.x()) / float(sdim.y());
 
@@ -269,6 +281,13 @@ int EntryPoint::main()
 
 
 		  blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{int(nwidth), int(nheight) });
+				*/
+		  {
+			  imgRenderer.beginFrame(backbuffer);
+			  ::ImGui::ShowTestWindow(&showTestImgui);
+			  imgRenderer.endFrame(dev, tasks, backbuffer);
+		  }
+
 
           {
             auto& node = tasks.createPass2("present");

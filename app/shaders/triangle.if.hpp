@@ -14,7 +14,7 @@ FAZE_CBUFFER
 FAZE_SRV(Buffer<float4>, vertices, 0)
 FAZE_SRV(Texture2D<float4>, yellow, 1)
 
-FAZE_STATIC_SAMPLER(staSam)
+FAZE_SAMPLER_POINT(staSam)
 
 FAZE_SRV_TABLE(2)
 FAZE_UAV_TABLE(0)

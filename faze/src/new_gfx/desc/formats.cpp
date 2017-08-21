@@ -34,6 +34,7 @@ namespace faze
     { FormatType::Uint8x4, 4, 4 },
     { FormatType::Uint8x2, 2, 2 },
     { FormatType::Uint8, 1, 1 },
+    { FormatType::Unorm8, 1, 1 },
     { FormatType::Int8x4, 4, 4 },
     { FormatType::Unorm8x4, 4, 4 },
     { FormatType::Unorm8x4_Srgb, 4, 4 },

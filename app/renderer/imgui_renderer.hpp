@@ -9,6 +9,8 @@ namespace faze
     {
       GraphicsPipeline pipeline;
       Renderpass renderpass;
+	  Texture fontatlas;
+	  TextureSRV fontatlasSrv;
     public:
       ImGui(GpuDevice& device);
       void beginFrame(TextureRTV& target);

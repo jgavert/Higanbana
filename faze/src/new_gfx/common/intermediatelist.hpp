@@ -29,7 +29,10 @@ namespace faze
         GraphicsPipelineBind,
         ComputePipelineBind,
         ResourceBinding,
-        Draw
+        Draw,
+		DrawIndexed,
+		DrawDynamicIndexed,
+		SetScissorRect
       };
 
       CommandPacket();
