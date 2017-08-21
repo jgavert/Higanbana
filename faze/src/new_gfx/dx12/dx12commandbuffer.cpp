@@ -107,10 +107,43 @@ namespace faze
       buffer->SetPipelineState(pipeline->pipeline.Get());
     }
 
+	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
+	{
+		D3D12_RECT rect{};
+		rect.bottom = packet.bottomright.y();
+		rect.right = packet.bottomright.x();
+		rect.top = packet.topleft.y();
+		rect.left = packet.topleft.x();
+		buffer->RSSetScissorRects(1, &rect);
+	}
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Draw& packet)
     {
       buffer->DrawInstanced(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
     }
+
+	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawIndexed& packet)
+	{
+		auto& buf = packet.ib;
+		auto* ptr = static_cast<DX12Buffer*>(buf.buffer().native().get());
+		D3D12_INDEX_BUFFER_VIEW ib{};
+		ib.BufferLocation = ptr->native()->GetGPUVirtualAddress();
+		ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+		ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+		buffer->IASetIndexBuffer(&ib);
+
+		buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
+	}
+
+	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawDynamicIndexed& packet)
+	{
+		auto& buf = packet.ib;
+		auto* ptr = static_cast<DX12DynamicBufferView*>(buf.native().get());
+		D3D12_INDEX_BUFFER_VIEW ib = ptr->indexBufferView();
+		buffer->IASetIndexBuffer(&ib);
+
+		buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
+	}
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
     {
       buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
@@ -233,7 +266,6 @@ namespace faze
       {
         switch (packet->type())
         {
-          //        case CommandPacket::PacketType::BufferCopy:
         case CommandPacket::PacketType::UpdateTexture:
         {
           solver->runBarrier(buffer, drawIndex);
@@ -254,6 +286,21 @@ namespace faze
           drawIndex++;
           break;
         }
+		case CommandPacket::PacketType::SetScissorRect:
+		{
+			handle(buffer, packetRef(gfxpacket::SetScissorRect, packet));
+			break;
+		}		
+		case CommandPacket::PacketType::DrawIndexed:
+		{
+			handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
+			break;
+		}
+		case CommandPacket::PacketType::DrawDynamicIndexed:
+		{
+			handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
+			break;
+		}
         case CommandPacket::PacketType::Draw:
         {
           handle(buffer, packetRef(gfxpacket::Draw, packet));
@@ -305,8 +352,6 @@ namespace faze
       {
         switch (packet->type())
         {
-          //        case CommandPacket::PacketType::BufferCopy:
-          //        case CommandPacket::PacketType::Dispatch:
         case CommandPacket::PacketType::UpdateTexture:
         {
           auto& p = packetRef(gfxpacket::UpdateTexture, packet);
@@ -363,12 +408,17 @@ namespace faze
 
           break;
         }
+		case CommandPacket::PacketType::DrawIndexed:
+		{
+			auto& p = packetRef(gfxpacket::DrawIndexed, packet);
+			solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			break;
+		}
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
           drawIndex = solver->addDrawCall(packet->type());
           solver->addResource(drawIndex, p.texture.dependency(), D3D12_RESOURCE_STATE_PRESENT);
-          drawIndex++;
           break;
         }
         default:

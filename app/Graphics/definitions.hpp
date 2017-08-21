@@ -29,7 +29,10 @@ namespace shader\
 #define FAZE_UAV_TABLE(size) \
   static constexpr int uav = size;
 
-#define FAZE_STATIC_SAMPLER(name)
+#define FAZE_SAMPLER_BILINEAR(name)
+#define FAZE_SAMPLER_POINT(name)
+#define FAZE_SAMPLER_BILINEAR_WRAP(name)
+#define FAZE_SAMPLER_POINT_WRAP(name)
 
 #else /*__cplusplus*/
 
@@ -48,7 +51,10 @@ namespace shader\
 #define FAZE_SRV_TABLE(size)
 #define FAZE_UAV_TABLE(size)
 
-#define FAZE_STATIC_SAMPLER(name) SamplerState name : register( s0 );
+#define FAZE_SAMPLER_BILINEAR(name) SamplerState name : register( s0 );
+#define FAZE_SAMPLER_POINT(name) SamplerState name : register( s1 );
+#define FAZE_SAMPLER_BILINEAR_WRAP(name) SamplerState name : register( s2 );
+#define FAZE_SAMPLER_POINT_WRAP(name) SamplerState name : register( s3 );
 
 #ifdef FAZE_DX12
 #define ROOTSIG "RootFlags(0), " \
@@ -56,7 +62,19 @@ namespace shader\
         "DescriptorTable( SRV(t0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE)), " \
         "DescriptorTable( UAV(u0, numDescriptors = 8, flags = DESCRIPTORS_VOLATILE)), " \
         "StaticSampler(s0, " \
-             "filter = FILTER_MIN_MAG_MIP_LINEAR )"
+			"filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
+		"StaticSampler(s1, " \
+			"filter = FILTER_MIN_MAG_MIP_POINT), " \
+		"StaticSampler(s2, " \
+			"filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, " \
+			"addressU = TEXTURE_ADDRESS_WRAP, " \
+			"addressV = TEXTURE_ADDRESS_WRAP, " \
+			"addressW = TEXTURE_ADDRESS_WRAP), " \
+		"StaticSampler(s3, " \
+			"filter = FILTER_MIN_MAG_MIP_POINT, " \
+			"addressU = TEXTURE_ADDRESS_WRAP, " \
+			"addressV = TEXTURE_ADDRESS_WRAP, " \
+			"addressW = TEXTURE_ADDRESS_WRAP) "
 
 #define GX_SIGNATURE [RootSignature(ROOTSIG)]
 #define CS_SIGNATURE [RootSignature(ROOTSIG)] \

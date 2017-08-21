@@ -140,5 +140,10 @@ namespace faze
     {
       return impl->offset();
     }
+
+	std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> native()
+	{
+		return impl;
+	}
   };
 };

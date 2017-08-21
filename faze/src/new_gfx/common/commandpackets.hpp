@@ -229,6 +229,24 @@ namespace faze
       }
     };
 
+	class SetScissorRect : public backend::CommandPacket
+	{
+	public:
+		int2 topleft;
+		int2 bottomright;
+
+		SetScissorRect(backend::ListAllocator, int2 topleft, int2 bottomright)
+			: topleft(topleft)
+			, bottomright(bottomright)
+		{
+		}
+
+		PacketType type() override
+		{
+			return PacketType::SetScissorRect;
+		}
+	};
+
     class Draw : public backend::CommandPacket
     {
     public:
@@ -254,6 +272,72 @@ namespace faze
         return PacketType::Draw;
       }
     };
+
+	class DrawIndexed : public backend::CommandPacket
+	{
+	public:
+		BufferIBV ib;
+		unsigned IndexCountPerInstance;
+		unsigned instanceCount;
+		unsigned StartIndexLocation;
+		int BaseVertexLocation;
+		unsigned StartInstanceLocation;
+
+		DrawIndexed(backend::ListAllocator,
+			BufferIBV ib,
+			unsigned IndexCountPerInstance,
+			unsigned instanceCount,
+			unsigned StartIndexLocation,
+			int BaseVertexLocation,
+			unsigned StartInstanceLocation)
+			: ib(ib)
+			, IndexCountPerInstance(IndexCountPerInstance)
+			, instanceCount(instanceCount)
+			, StartIndexLocation(StartIndexLocation)
+			, BaseVertexLocation(BaseVertexLocation)
+			, StartInstanceLocation(StartInstanceLocation)
+		{
+		}
+
+		PacketType type() override
+		{
+			return PacketType::DrawIndexed;
+		}
+	};
+
+	class DrawDynamicIndexed : public backend::CommandPacket
+	{
+	public:
+		DynamicBufferView ib;
+		unsigned IndexCountPerInstance;
+		unsigned instanceCount;
+		unsigned StartIndexLocation;
+		int BaseVertexLocation;
+		unsigned StartInstanceLocation;
+
+		DrawDynamicIndexed(backend::ListAllocator,
+			DynamicBufferView ib,
+			unsigned IndexCountPerInstance,
+			unsigned instanceCount,
+			unsigned StartIndexLocation,
+			int BaseVertexLocation,
+			unsigned StartInstanceLocation)
+			: ib(ib)
+			, IndexCountPerInstance(IndexCountPerInstance)
+			, instanceCount(instanceCount)
+			, StartIndexLocation(StartIndexLocation)
+			, BaseVertexLocation(BaseVertexLocation)
+			, StartInstanceLocation(StartInstanceLocation)
+		{
+		}
+
+		PacketType type() override
+		{
+			return PacketType::DrawDynamicIndexed;
+		}
+	};
+
+
 
     class Dispatch : public backend::CommandPacket
     {

@@ -27,6 +27,7 @@ namespace faze
       { vk::Format::eR8G8B8A8Uint,        vk::Format::eR8G8B8A8Uint,          FormatType::Uint8x4 },
       { vk::Format::eR8G8Uint,            vk::Format::eR8G8Uint,              FormatType::Uint8x2 },
       { vk::Format::eR8Uint,              vk::Format::eR8Uint,                FormatType::Uint8 },
+      { vk::Format::eR8Unorm,              vk::Format::eR8Unorm,                FormatType::Unorm8 },
       { vk::Format::eR8G8B8A8Sint,        vk::Format::eR8G8B8A8Sint,          FormatType::Int8x4 },
       { vk::Format::eR8G8B8A8Unorm,       vk::Format::eR8G8B8A8Unorm,         FormatType::Unorm8x4 },
       { vk::Format::eR8G8B8A8Srgb,        vk::Format::eR8G8B8A8Srgb,          FormatType::Unorm8x4_Srgb },
