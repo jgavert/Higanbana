@@ -121,8 +121,6 @@ int EntryPoint::main()
 
         bool closeAnyway = false;
 
-        bool showTestImgui = true;
-
         while (!window.simpleReadMessages(frame++))
         {
           fs.updateWatchedFiles();
@@ -159,69 +157,9 @@ int EntryPoint::main()
             window.captureMouse(false);
           }
 
-          if (inputs.isPressedThisFrame(VK_SPACE, 1))
-          {
-            auto& mouse = window.mouse();
-            F_LOG("%s mouse %d %d\n", gpus[chosenGpu].name.c_str(), mouse.m_pos.x(), mouse.m_pos.y());
-          }
-
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('1', 1))
           {
             window.toggleBorderlessFullscreen();
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
-          {
-            //reInit = true;
-            F_LOG("switch api\n");
-            break;
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('3', 1))
-          {
-            if (scdesc.desc.colorSpace == Colorspace::BT709)
-            {
-              scdesc.desc.colorSpace = Colorspace::BT2020;
-              F_LOG("Colorspace::BT2020\n");
-            }
-            else
-            {
-              scdesc.desc.colorSpace = Colorspace::BT709;
-              F_LOG("Colorspace::BT709\n");
-            }
-            toggleHDR = true;
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('4', 1))
-          {
-            scdesc.desc.format = FormatType::Unorm8x4;
-            toggleHDR = true;
-          }
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('5', 1))
-          {
-            scdesc.desc.format = FormatType::Unorm10x3;
-            toggleHDR = true;
-          }
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('6', 1))
-          {
-            scdesc.desc.format = FormatType::Float16x4;
-            toggleHDR = true;
-          }
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame(220, 1))
-          {
-            showTestImgui = !showTestImgui;
-          }
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('9', 1))
-          {
-            scdesc.desc.mode = PresentMode::FifoRelaxed;
-            F_LOG("FifoRelaxed\n");
-            toggleHDR = true;
-          }
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('0', 1))
-          {
-            scdesc.desc.mode = PresentMode::Fifo;
-            F_LOG("Fifo\n");
-            toggleHDR = true;
           }
 
           if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
@@ -240,7 +178,7 @@ int EntryPoint::main()
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
-          /*
+          
           {
             auto node = tasks.createPass("compute!");
 
@@ -257,9 +195,9 @@ int EntryPoint::main()
             node.dispatch(binding, uint3{ x, y, 1 });
 
             tasks.addPass(std::move(node));
-          }*/
+          }
           //if (inputs.isPressedThisFrame('3', 2))
-            /*
+            
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
@@ -282,10 +220,10 @@ int EntryPoint::main()
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
-          }			  */
+          }			  
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
-          /*
+          
       uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
       float scale = float(sdim.x()) / float(sdim.y());
 
@@ -293,7 +231,7 @@ int EntryPoint::main()
       float nheight = nwidth / scale;
 
       blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{int(nwidth), int(nheight) });
-        */
+        
           {
             imgRenderer.beginFrame(backbuffer);
             ImGuiIO &io = ImGui::GetIO();
@@ -349,7 +287,77 @@ int EntryPoint::main()
             io.KeyAlt = inputs.isPressedThisFrame(VK_MENU, 2);
             io.KeySuper = false;
 
-            ::ImGui::ShowTestWindow(&showTestImgui);
+            //::ImGui::ShowTestWindow(&showTestImgui);
+
+			ImGui::SetNextWindowPos({ 10.f, 10.f });
+			if (ImGui::Begin("My First Window", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				/*
+				ImGui::SliderInt("Shader iterations", &workloadSettings.iterations, 1, 50);
+				ImGui::SliderInt("Size exponent", &workloadSettings.sizeExp, 0, 24);
+				ImGui::Text("Size: %u", workloadSettings.size());
+				ImGui::InputInt("Minimum items", &workloadSettings.minItems);
+				ImGui::InputInt("Maximum items", &workloadSettings.maxItems);
+				ImGui::InputInt("Item count multiplier", &workloadSettings.multiplier);
+				ImGui::SliderFloat("Probability of zero items", &workloadSettings.zeroProb, 0, 1);
+				ImGui::Checkbox("VSync", &workloadSettings.vsync);*/
+				ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
+				ImGui::Text("Swapchain");
+				ImGui::Text("format %s", formatToString(scdesc.desc.format));
+				if (ImGui::Button(formatToString(FormatType::Unorm8x4)))
+				{
+					scdesc.desc.format = FormatType::Unorm8x4;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(formatToString(FormatType::Unorm10x3)))
+				{
+					scdesc.desc.format = FormatType::Unorm10x3;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(formatToString(FormatType::Float16x4)))
+				{
+					scdesc.desc.format = FormatType::Float16x4;
+					toggleHDR = true;
+				}
+				ImGui::Text("Resolution: %dx%d", swapchain.impl()->desc().desc.width, swapchain.impl()->desc().desc.height);
+				ImGui::Text("Displaycurve: %s", displayCurveToStr(swapchain.impl()->displayCurve()));
+				ImGui::Text("%s", swapchain.impl()->HDRSupport() ? "HDR Available" : "HDR not supported");
+				ImGui::Text("PresentMode: %s", presentModeToStr(scdesc.desc.mode));
+				if (ImGui::Button(presentModeToStr(PresentMode::FifoRelaxed)))
+				{
+					scdesc.desc.mode = PresentMode::FifoRelaxed;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(presentModeToStr(PresentMode::Fifo)))
+				{
+					scdesc.desc.mode = PresentMode::Fifo;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(presentModeToStr(PresentMode::Immediate)))
+				{
+					scdesc.desc.mode = PresentMode::Immediate;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(presentModeToStr(PresentMode::Mailbox)))
+				{
+					scdesc.desc.mode = PresentMode::Mailbox;
+					toggleHDR = true;
+				}
+				ImGui::Text("Colorspace: %s", colorspaceToStr(scdesc.desc.colorSpace));
+				if (ImGui::Button(colorspaceToStr(Colorspace::BT709)))
+				{
+					scdesc.desc.colorSpace = Colorspace::BT709;
+					toggleHDR = true;
+				} ImGui::SameLine();
+				if (ImGui::Button(colorspaceToStr(Colorspace::BT2020)))
+				{
+					scdesc.desc.colorSpace = Colorspace::BT2020;
+					toggleHDR = true;
+				}
+
+			}
+			ImGui::End();
+
             imgRenderer.endFrame(dev, tasks, backbuffer);
           }
 

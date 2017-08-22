@@ -51,6 +51,10 @@ namespace faze
     None		// The display expects a linear signal.
   };
 
+  const char* presentModeToStr(PresentMode mode);
+  const char* colorspaceToStr(Colorspace mode);
+  const char* displayCurveToStr(DisplayCurve mode);
+
   class SwapchainDescriptor
   {
   public:
