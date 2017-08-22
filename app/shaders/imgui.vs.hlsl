@@ -21,12 +21,11 @@ PSInput main(uint id: SV_VertexID)
 {
   uint loadID = id * 5;
 
+  const uint multiplier = 4;
+
   float4 i1;
-  i1.x = asfloat(vertices.Load(loadID));
-  i1.y = asfloat(vertices.Load(loadID + 1));
-  i1.z = asfloat(vertices.Load(loadID + 2));
-  i1.w = asfloat(vertices.Load(loadID + 3));
-  uint col = vertices.Load(loadID + 4);
+  i1 = asfloat(vertices.Load4(loadID*multiplier));
+  uint col = vertices.Load((loadID + 4)*multiplier);
 
   PSInput o;
 

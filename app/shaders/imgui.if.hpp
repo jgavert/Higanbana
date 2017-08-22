@@ -10,7 +10,7 @@ FAZE_CBUFFER
   float2 reciprocalResolution;
 };
 
-FAZE_SRV(Buffer<uint>, vertices, 0)
+FAZE_SRV(ByteAddressBuffer, vertices, 0)
 FAZE_SRV(Texture2D<float>, tex, 1)
 
 FAZE_SAMPLER_POINT(pointSampler)
