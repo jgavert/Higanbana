@@ -75,4 +75,75 @@ namespace faze
     }
     return (slot.pixelSize / slot.componentCount) * 8;
   }
+
+  const char* formatToString(FormatType format)
+  {
+	  switch (format)
+	  {
+		case FormatType::Uint32x4:
+			return "Uint32x4";
+		case FormatType::Uint32x3:
+			return "Uint32x3";
+		case FormatType::Uint32x2:
+			return "Uint32x2";
+		case FormatType::Uint32:
+			return "Uint32";
+		case FormatType::Float32x4:
+			return "Float32x4";
+		case FormatType::Float32x3:
+			return "Float32x3";
+		case FormatType::Float32x2:
+			return "Float32x2";
+		case FormatType::Float32:
+			return "Float32";
+		case FormatType::Float16x4:
+			return "Float16x4";
+		case FormatType::Float16x2:
+			return "Float16x2";
+		case FormatType::Float16:
+			return "Float16";
+		case FormatType::Unorm16x4:
+			return "Unorm16x4";
+		case FormatType::Unorm16x2:
+			return "Unorm16x2";
+		case FormatType::Unorm16:
+			return "Unorm16";
+		case FormatType::Uint16x4:
+			return "Uint16x4";
+		case FormatType::Uint16x2:
+			return "Uint16x2";
+		case FormatType::Uint16:
+			return "Uint16";
+		case FormatType::Uint8x4:
+			return "Uint8x4";
+		case FormatType::Uint8x2:
+			return "Uint8x2";
+		case FormatType::Uint8:
+			return "Uint8";
+		case FormatType::Unorm8:
+			return "Unorm8";
+		case FormatType::Int8x4:
+			return "Int8x4";
+		case FormatType::Unorm8x4:
+			return "Unorm8x4";
+		case FormatType::Unorm8x4_Srgb:
+			return "Unorm8x4_Srgb";
+		case FormatType::Unorm8x4_Bgr:
+			return "Unorm8x4_Bgr";
+		case FormatType::Unorm8x4_Sbgr:
+			return "Unorm8x4_Sbgr";
+		case FormatType::Unorm10x3:
+			return "Unorm10x3";
+		case FormatType::Raw32:
+			return "Raw32";
+		case FormatType::Depth32:
+			return "Depth32";
+		case FormatType::Depth32_Stencil8:
+			return "Depth32_Stencil8";
+		case FormatType::Unknown:
+		default:
+			break;
+	  }
+	  return "Unknown";
+  }
 }

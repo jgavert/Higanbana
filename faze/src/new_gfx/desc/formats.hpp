@@ -61,6 +61,8 @@ namespace faze
   FormatSizeInfo formatSizeInfo(FormatType format);
   int formatBitDepth(FormatType format);
 
+  const char* formatToString(FormatType format);
+
   enum class ResourceUsage
   {
     Upload,
