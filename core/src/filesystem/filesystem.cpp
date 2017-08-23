@@ -144,6 +144,25 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
   F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
 }
 
+// SLOW
+void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func)
+{
+	std::lock_guard<std::mutex> guard(m_lock);
+	const auto currentPath = system_fs::current_path().string();
+	auto fullPath = currentPath + path;
+	std::vector<std::string> files;
+	getFilesRecursive(fullPath.c_str(), files);
+	for (auto&& it : files)
+	{
+		auto f = m_files.find(it);
+		if (f != m_files.end())
+		{
+			auto localPath = it.substr(fullPath.size());
+			func(localPath, faze::MemView<const uint8_t>(f->second.data));
+		}
+	}
+}
+
 MemoryBlob FileSystem::readFile(std::string path)
 {
   MemoryBlob blob;
