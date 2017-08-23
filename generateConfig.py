@@ -2,7 +2,6 @@
 import os
 
 config = """
-.VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Community'
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 .WindowsSDKSubVersion = '10.0.15063.0'
 #if __WINDOWS__
@@ -22,4 +21,9 @@ print("current directory: " + curDir)
 config = config.replace("CURRENT_DIRECTORY", curDir)
 
 with open('config.bff', 'w') as out:
-        out.write(config)
+  if os.path.isdir('C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional'):
+    out.write(""".VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional'""")
+  else:
+    out.write(""".VSBasePath     = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Community'""")
+  out.write("\n")
+  out.write(config)
