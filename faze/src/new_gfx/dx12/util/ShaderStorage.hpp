@@ -60,6 +60,7 @@ namespace faze
       FileSystem& m_fs;
       std::string sourcePath;
       std::string compiledPath;
+	  std::string sourceCopyPath;
     public:
       enum class ShaderType
       {
@@ -115,15 +116,37 @@ namespace faze
       }
 
     public:
-      DX12ShaderStorage(FileSystem& fs, std::string shaderPath, std::string binaryPath)
-        : m_fs(fs)
-        , sourcePath("/" + shaderPath + "/")
-        , compiledPath("/" + binaryPath + "/")
-      {
-        m_fs.loadDirectoryContentsRecursive(sourcePath);
-        // we could compile all shaders that don't have spv ahead of time
-        // requires support from filesystem
-      }
+		DX12ShaderStorage(FileSystem& fs, std::string shaderPath, std::string binaryPath)
+			: m_fs(fs)
+			, sourcePath("/" + shaderPath + "/")
+			, compiledPath("/" + binaryPath + "/")
+			, sourceCopyPath(compiledPath + "source/")
+		{
+			m_fs.loadDirectoryContentsRecursive(sourcePath);
+			// we could compile all shaders that don't have spv ahead of time
+			// requires support from filesystem
+			vector<std::pair<std::string, MemView<const uint8_t>>> filesToCopy;
+			m_fs.getFilesWithinDir(sourcePath, [&](std::string& path, MemView<const uint8_t> data)
+			{
+				//F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
+				filesToCopy.emplace_back(std::make_pair(path, data));
+			});
+			m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+			m_fs.getFilesWithinDir("/../app/graphics/", [&](std::string& path, MemView<const uint8_t> data)
+			{
+				if (path.compare("definitions.hpp") == 0)
+				{
+					//F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
+					filesToCopy.emplace_back(std::make_pair(path, data));
+				}
+			});
+			for (auto&& file : filesToCopy)
+			{
+				auto finalPath = sourceCopyPath + file.first;
+				m_fs.writeFile(finalPath, file.second);
+			}
+			m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
+		}
 
       bool compileShader(std::string shaderName, ShaderType type)
       {
@@ -184,7 +207,7 @@ namespace faze
           //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
           F_ASSERT(compileShader(shaderName, type), "ups");
         }
-        if (m_fs.fileExists(dxilPath))
+        if (m_fs.fileExists(dxilPath) && m_fs.fileExists(shaderPath))
         {
           auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
 
@@ -216,7 +239,11 @@ namespace faze
       WatchFile watch(std::string shaderName, ShaderType type)
       {
         auto shd = sourcePath + shaderName + "." + shaderFileType(type);
-        return m_fs.watchFile(shd);
+		if (m_fs.fileExists(shd))
+		{
+			return m_fs.watchFile(shd);
+		}
+		return WatchFile{};
       }
     };
   }
