@@ -157,7 +157,7 @@ namespace faze
         std::string text;
         text.resize(view.size());
         memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
-        printf("%s\n", text.data());
+        //printf("%s\n", text.data());
         // we got shader in "text"
 
         CShaderInclude include(m_fs, sourcePath);
@@ -184,12 +184,15 @@ namespace faze
         {
           if (errorMsg.Get())
           {
+			  /*
             OutputDebugStringA("Error In \"");
             OutputDebugStringA(shaderPath.c_str());
             OutputDebugStringA("\": \n");
-            OutputDebugStringA((char*)errorMsg->GetBufferPointer());
+            OutputDebugStringA((char*)errorMsg->GetBufferPointer());*/
+
+			F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
           }
-          abort();
+          //abort();
           return false;
         }
         F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
@@ -218,7 +221,11 @@ namespace faze
           if (shaderTime > dxilTime || shaderInterfaceTime > dxilTime)
           {
             //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
-            F_ASSERT(compileShader(shaderName, type), "ups");
+			  bool result = compileShader(shaderName, type);
+			  if (!result)
+			  {
+				  F_ILOG("DX12", "Shader compile failed.\n");
+			  }
           }
         }
         F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
