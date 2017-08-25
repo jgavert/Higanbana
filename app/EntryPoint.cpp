@@ -65,6 +65,11 @@ int EntryPoint::main()
         return;
 
       ivec2 ires = { 200, 100 };
+
+	  int raymarch_Res = 10;
+	  int raymarch_x = 16;
+	  int raymarch_y = 9;
+
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
       window.open();
 
@@ -286,8 +291,8 @@ int EntryPoint::main()
             io.KeyShift = inputs.isPressedThisFrame(VK_SHIFT, 2);
             io.KeyAlt = inputs.isPressedThisFrame(VK_MENU, 2);
             io.KeySuper = false;
-
-            //::ImGui::ShowTestWindow(&showTestImgui);
+			bool kek = true;
+            ::ImGui::ShowTestWindow(&kek);
 
             ImGui::SetNextWindowPos({ 10.f, 10.f });
             if (ImGui::Begin("My First Window", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -354,7 +359,50 @@ int EntryPoint::main()
                 scdesc.desc.colorSpace = Colorspace::BT2020;
                 toggleHDR = true;
               }
-            }
+			  ImGui::SliderInt("Buffer count", &scdesc.desc.bufferCount, 2, 8);
+
+			  ImGui::Text("raymarch texture size %dx%d", ires.x(), ires.y());
+
+
+
+			  int oldRes = raymarch_Res;
+			  int oldraymarch_x = raymarch_x;
+			  int oldraymarch_y = raymarch_y;
+			  ImGui::SliderInt("scale X", &raymarch_x, 1, 30); ImGui::SameLine();
+			  ImGui::SliderInt("Y", &raymarch_y, 1, 30);	ImGui::SameLine();
+			  ImGui::SliderInt("max", &raymarch_Res, 1, 4096);
+
+			  if (raymarch_x > raymarch_y)
+			  {
+				  ires.data[0] = raymarch_Res;
+				  ires.data[1] = static_cast<int>(static_cast<float>(raymarch_y) / static_cast<float>(raymarch_x) * static_cast<float>(raymarch_Res));
+
+			  }
+			  else
+			  {
+				  ires.data[1] = raymarch_Res;
+				  ires.data[0] = static_cast<int>(static_cast<float>(raymarch_x) / static_cast<float>(raymarch_y) * static_cast<float>(raymarch_Res));
+			  }
+
+			  if (ImGui::Button("Reinit raymarch texture") || raymarch_Res != oldRes || oldraymarch_x != raymarch_x || oldraymarch_y != raymarch_y)
+			  {
+				  ires.data[0] = std::max(ires.data[0], 1);
+				  ires.data[1] = std::max(ires.data[1], 1);
+				  texture = dev.createTexture(ResourceDescriptor()
+					  .setName("testTexture")
+					  .setFormat(FormatType::Unorm16x4)
+					  .setWidth(ires.data[0])
+					  .setHeight(ires.data[1])
+					  .setMiplevels(4)
+					  .setDimension(FormatDimension::Texture2D)
+					  .setUsage(ResourceUsage::RenderTargetRW));
+
+				  texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+				  texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+				  texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+			  }
+			  //ImGui::Int
+			}
             ImGui::End();
 
             imgRenderer.endFrame(dev, tasks, backbuffer);

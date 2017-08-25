@@ -15,15 +15,15 @@ groupshared RayData rdata[64];
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 1.0
+#define MAXREFLECTION 2.0
 // how much object reflects light
-#define REFLECTIVITY 0.8
+#define REFLECTIVITY 0.4
 // How far rays can travel(applies to first ray only)
 #define MAXLENGTH 140.0
 // color to red by iteration multiplier
-#define COLORBYITER 1.0
+#define COLORBYITER 0.0
 // This multiplies the one intensity of the light
-#define LIGHTINTENSITY 6.0
+#define LIGHTINTENSITY 12.0
 // this is basically resolution multiplier, one pixel is RAYMULTIPLIER*RAYMULTIPLIER amount of rays
 #define RAYMULTIPLIER 2.0
 // kind of deprecated, adds walls/cube to somewhere.
@@ -283,7 +283,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   rdata[index].ro = position;
 	rdata[index].direction = direction;
 	rdata[index].mixColor = float3(0.f, 0.f, 0.f);
-	rdata[index].lightPos = float3(-5.0,3.0,-1.5);
+	rdata[index].lightPos = float3(-3.0,3.0,-1.5);
 	//GroupMemoryBarrierWithGroupSync();
   castManyRays(index);
   if (id.x >= iResolution.x || id.y >= iResolution.y)
