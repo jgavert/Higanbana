@@ -1,6 +1,9 @@
 #include "config.bff"
 #include "externals/externals.bff"
 
+.VSVersion = '14.11.25503'
+.VSRedist = '14.11.25325'
+
 ;-------------------------------------------------------------------------------
 ; Settings
 ;-------------------------------------------------------------------------------
@@ -16,8 +19,8 @@ Settings
 // definitions
 Compiler( 'Compiler-x64' )
 {
-  .Root   = '$VSBasePath$/VC/Tools/MSVC/14.10.25017/bin/HostX64/x64'
-  .helperPath = '$VSBasePath$/VC/Redist/MSVC/14.10.25008/x64/Microsoft.VC150.CRT'
+  .Root   = '$VSBasePath$/VC/Tools/MSVC/$VSVersion$/bin/HostX64/x64'
+  .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/x64/Microsoft.VC141.CRT'
   .Executable = '$Root$/cl.exe'
   .ExtraFiles = { '$Root$/c1.dll'
                   '$Root$/atlprov.dll',
@@ -36,7 +39,7 @@ Compiler( 'Compiler-x64' )
                   '$Root$/pgort140.dll',
                   '$Root$/vcmeta.dll',
                   '$helperPath$/msvcp140.dll',
-                  '$helperPath$/vcruntime140.dll',
+                  '$helperPath$/vcruntime140.dll'
                   '$helperPath$/vccorlib140.dll',
                   '$helperPath$/concrt140.dll'
                   }
@@ -84,13 +87,13 @@ Compiler( 'Compiler-x64-Linux' )
 
   .CompilerOptions    = '"%1" /Z7 /nologo /c /W4 /std:c++latest'
                       + ' /WX' // warnings as errors, also required as fastbuild hides warnings
-					  //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
+					            //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
                       + ' /TP' // compile as c++
                       + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                       + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
                       + .AdditionalWarnings
                       + ' /fp:fast'
-					  // generic windows defines
+					            // generic windows defines
                       + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /DWIN64 /D__WINDOWS__ /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /D_WINSOCK_DEPRECATED_NO_WARNINGS'
                       //+ ' /D_WIN32_WINNT_WIN10'
                       // + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
@@ -102,22 +105,26 @@ Compiler( 'Compiler-x64-Linux' )
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
-  .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
+  .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1"  /debug:fastlink '
                       + ' /IGNORE:4001'  // don't complain about linking libs only
                       + ' /IGNORE:4217' // don't complain about locally defined symbols
                       + ' /IGNORE:4049' // urgh
+                      //+ ' /time+' // debug
 
   // Optimizations
   .CompilerDebugOptimizations     = ' /MTd /Od /RTC1 /GS /Oy- /GR- /EHsc'
-  .CompilerReleaseOptimizations   = ' /MT /Ox /Oy /Oi /GS- /GF /GL /Gy /Gw /GR- /EHsc'
+  .CompilerReleaseOptimizations   = ' /MT /Ox /Oy /Oi /GS- /GF /Gy /Gw /GR- /EHsc'
+                                  //+ ' /GL'
   .LibrarianDebugOptimizations    = ''
-  .LibrarianReleaseOptimizations  = ' /LTCG'
+  .LibrarianReleaseOptimizations  = ''
+                                  //+ ' /LTCG:INCREMENTAL'
   .LinkerDebugOptimizations       = ''
-  .LinkerReleaseOptimizations     = ' /LTCG /OPT:REF,ICF'
+  .LinkerReleaseOptimizations     = ' /OPT:REF,ICF'
+                                  //+ ' /LTCG:INCREMENTAL'
 
   .BaseIncludePaths   = ' /I"./"'
-                      + ' /I"$VSBasePath$/VC/Tools/MSVC/14.10.25017/include/"'
-                      + ' /I"$VSBasePath$/VC/Tools/MSVC/14.10.25017/atlmfc/include/"'
+                      + ' /I"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/include/"'
+                      + ' /I"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/atlmfc/include/"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
@@ -177,7 +184,7 @@ Compiler( 'Compiler-x64-Linux' )
 .X64BaseConfig =
 [
   Using( .MSVCBaseConfig )
-  .ToolsBasePath      = '$VSBasePath$/VC/Tools/MSVC/14.10.25017/bin/HostX64/x64'
+  .ToolsBasePath      = '$VSBasePath$/VC/Tools/MSVC/$VSVersion$/bin/HostX64/x64'
   .Compiler           = 'Compiler-x64'
   .Librarian          = '$ToolsBasePath$/lib.exe'
   .Linker             = '$ToolsBasePath$/link.exe'
@@ -187,8 +194,8 @@ Compiler( 'Compiler-x64-Linux' )
   .Platform           = 'x64'
   .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
                       + ' /LIBPATH:"$WindowsLibPaths10d$/x64"'
-                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/14.10.25017/lib/x64"'
-                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/14.10.25017/atlmfc/lib/x64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/lib/x64"'
+                      + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/atlmfc/lib/x64"'
                       + .extLibPaths
 
   //Print('$LinkerOptions$')
@@ -281,8 +288,8 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .ProjectCommon =
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .Platform                 = 'x64'
