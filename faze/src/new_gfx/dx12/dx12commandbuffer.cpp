@@ -382,6 +382,7 @@ namespace faze
           auto& p = packetRef(gfxpacket::ResourceBinding, packet);
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
+			F_ASSERT(subpass, "nullptr");
             auto& s = packetRef(gfxpacket::Subpass, subpass);
             for (auto&& it : s.rtvs)
             {
@@ -450,6 +451,7 @@ namespace faze
         case CommandPacket::PacketType::GraphicsPipelineBind:
         {
           auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, packet);
+		  F_ASSERT(activeSubpass, "nullptr");
           dev->updatePipeline(ref.pipeline, *activeSubpass);
           break;
         }
