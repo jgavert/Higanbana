@@ -7,3 +7,6 @@
 [submodule "externals/stb"]
 	path = externals/stb
 	url = https://github.com/nothings/stb.git
+[submodule "externals/DirectXShaderCompiler"]
+	path = externals/DirectXShaderCompiler
+	url = https://github.com/Microsoft/DirectXShaderCompiler.git
