@@ -417,9 +417,9 @@ namespace faze
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      WaitForSingleObjectEx(native->frameLatencyObj(), INFINITE, FALSE);
       int index = native->native()->GetCurrentBackBufferIndex();
       native->setBackbufferIndex(index);
+      WaitForSingleObjectEx(native->frameLatencyObj(), INFINITE, FALSE);
       return index;
     }
 
