@@ -3,7 +3,7 @@ import os
 
 config = """
 .WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
-.WindowsSDKSubVersion = '10.0.15063.0'
+.WindowsSDKSubVersion = '10.0.16299.0'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/fazecache'
