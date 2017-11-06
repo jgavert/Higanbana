@@ -8,6 +8,74 @@
 #include <fstream>
 #include <string>
 
+
+/*
+IDxcIncludeHandler : public IUnknown {
+virtual HRESULT STDMETHODCALLTYPE LoadSource(
+_In_ LPCWSTR pFilename,                                   // Candidate filename.
+_COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
+) = 0;
+};
+*/
+
+class DXCIncludeHandler : public IDxcIncludeHandler
+{
+public:
+	DXCIncludeHandler(faze::FileSystem& fs, std::string sourcePath, ComPtr<IDxcLibrary> lib) : m_fs(fs), m_sourcePath(sourcePath), m_lib(lib) {}
+	DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
+	virtual ~DXCIncludeHandler() {}
+	
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) {
+		return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
+	}
+
+	HRESULT STDMETHODCALLTYPE LoadSource(
+		_In_ LPCWSTR pFilename,                                   // Candidate filename.
+		_COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
+	) override
+	{
+		ppIncludeSource = nullptr;
+		std::string filename = ws2s(pFilename);
+		if (!filename.empty())
+			filename = filename.substr(2);
+		
+		F_LOG("%s\n", filename.c_str());
+
+		std::string finalPath;
+		if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+		{
+			finalPath = "/../" + filename;
+			if (!m_fs.fileExists(finalPath))
+				m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+		}
+		else
+		{	
+			finalPath = m_sourcePath + filename;
+		}
+		F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
+
+		auto shader = m_fs.viewToFile(finalPath);
+		ComPtr<IDxcBlobEncoding> asd;
+		auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_UTF8, &asd);
+
+
+		if (SUCCEEDED(hr))
+		{
+			ComPtr<IDxcBlob> blob = asd;
+			blobs.push_back(blob);
+			ppIncludeSource = blobs.back().GetAddressOf();
+		}
+
+		return hr;
+	}
+private:
+	DXC_MICROCOM_REF_FIELD(m_dwRef)
+	faze::FileSystem& m_fs;
+	std::string m_sourcePath;
+	ComPtr<IDxcLibrary> m_lib;
+	faze::vector<ComPtr<IDxcBlob>> blobs;
+};
+
 class CShaderInclude : public ID3DInclude {
 public:
   CShaderInclude(faze::FileSystem& fs, std::string sourcePath) : m_fs(fs), m_sourcePath(sourcePath) {}
@@ -160,6 +228,34 @@ namespace faze
         //printf("%s\n", text.data());
         // we got shader in "text"
 
+		ComPtr<IDxcLibrary> pLibrary;
+		ComPtr<IDxcBlobEncoding> pSource;
+		DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
+		pLibrary->CreateBlobWithEncodingOnHeapCopy(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
+
+		DXCIncludeHandler dxcHandler(m_fs, sourcePath, pLibrary);
+
+		LPCWSTR ppArgs[] = { L"/Zi" }; // debug info
+		ComPtr<IDxcCompiler> pCompiler;
+		DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
+
+		ComPtr<IDxcOperationResult> pResult;
+		auto hr = pCompiler->Compile(
+			pSource.Get(),          // program text
+			L"myfile.hlsl",   // file name, mostly for error messages
+			L"main",          // entry point function
+			L"ps_6_0",        // target profile
+			ppArgs,           // compilation arguments
+			_countof(ppArgs), // number of compilation arguments
+			nullptr, 0,       // name/value defines and their count
+			&dxcHandler,          // handler for #include directives
+			&pResult);
+
+		if (SUCCEEDED(hr))
+		{
+			F_LOG("cool! dxil made\n");
+		}
+
         CShaderInclude include(m_fs, sourcePath);
         auto p = shaderFeature(type);
         UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | /*D3DCOMPILE_WARNINGS_ARE_ERRORS |*/ D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES | D3DCOMPILE_ALL_RESOURCES_BOUND;
@@ -178,7 +274,7 @@ namespace faze
           D3D_SHADER_MACRO{nullptr, nullptr }
         };
 
-        HRESULT hr = D3DCompile(text.data(), text.size(), shaderName.c_str(), macros, &include, "main", p, compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
+        hr = D3DCompile(text.data(), text.size(), shaderName.c_str(), macros, &include, "main", p, compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
         // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
         if (FAILED(hr))
         {

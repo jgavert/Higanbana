@@ -17,6 +17,9 @@
 #include <sstream>
 #include <cassert>
 
+#include <locale>
+#include <codecvt>
+
 #define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 #define F_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
 #define F_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
@@ -95,3 +98,6 @@ void log_immideateAssert(const char *fn, int ln, const char* format, ...);
 std::string _log_getvalue(std::string type, float& value);
 std::string _log_getvalue(std::string type, int64_t& value);
 std::string _log_str(const char* s);
+
+std::wstring s2ws(const std::string& str);
+std::string ws2s(const std::wstring& wstr);
