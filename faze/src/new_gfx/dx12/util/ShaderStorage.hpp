@@ -8,7 +8,6 @@
 #include <fstream>
 #include <string>
 
-
 /*
 IDxcIncludeHandler : public IUnknown {
 virtual HRESULT STDMETHODCALLTYPE LoadSource(
@@ -21,59 +20,58 @@ _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source ob
 class DXCIncludeHandler : public IDxcIncludeHandler
 {
 public:
-	DXCIncludeHandler(faze::FileSystem& fs, std::string sourcePath, ComPtr<IDxcLibrary> lib) : m_fs(fs), m_sourcePath(sourcePath), m_lib(lib) {}
-	DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
-	virtual ~DXCIncludeHandler() {}
-	
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) {
-		return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
-	}
+  DXCIncludeHandler(faze::FileSystem& fs, std::string sourcePath, ComPtr<IDxcLibrary> lib) : m_fs(fs), m_sourcePath(sourcePath), m_lib(lib) {}
+  DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
+    virtual ~DXCIncludeHandler() {}
 
-	HRESULT STDMETHODCALLTYPE LoadSource(
-		_In_ LPCWSTR pFilename,                                   // Candidate filename.
-		_COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
-	) override
-	{
-		ppIncludeSource = nullptr;
-		std::string filename = ws2s(pFilename);
-		if (!filename.empty())
-			filename = filename.substr(2);
-		
-		F_LOG("%s\n", filename.c_str());
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) {
+    return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
+  }
 
-		std::string finalPath;
-		if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
-		{
-			finalPath = "/../" + filename;
-			if (!m_fs.fileExists(finalPath))
-				m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-		}
-		else
-		{	
-			finalPath = m_sourcePath + filename;
-		}
-		F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
+  HRESULT STDMETHODCALLTYPE LoadSource(
+    _In_ LPCWSTR pFilename,                                   // Candidate filename.
+    _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
+  ) override
+  {
+    ppIncludeSource = nullptr;
+    std::string filename = ws2s(pFilename);
+    if (!filename.empty())
+      filename = filename.substr(2);
 
-		auto shader = m_fs.viewToFile(finalPath);
-		ComPtr<IDxcBlobEncoding> asd;
-		auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_UTF8, &asd);
+    F_LOG("DXCIncludeHandler %s\n", filename.c_str());
 
+    std::string finalPath;
+    if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+    {
+      finalPath = "/../" + filename;
+      if (!m_fs.fileExists(finalPath))
+        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+    }
+    else
+    {
+      finalPath = m_sourcePath + filename;
+    }
+    F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
-		if (SUCCEEDED(hr))
-		{
-			ComPtr<IDxcBlob> blob = asd;
-			blobs.push_back(blob);
-			ppIncludeSource = blobs.back().GetAddressOf();
-		}
+    auto shader = m_fs.viewToFile(finalPath);
+    ComPtr<IDxcBlobEncoding> asd;
+    auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_UTF8, &asd);
 
-		return hr;
-	}
+    if (SUCCEEDED(hr))
+    {
+      ComPtr<IDxcBlob> blob = asd;
+      blobs.push_back(blob);
+      ppIncludeSource = blobs.back().GetAddressOf();
+    }
+
+    return hr;
+  }
 private:
-	DXC_MICROCOM_REF_FIELD(m_dwRef)
-	faze::FileSystem& m_fs;
-	std::string m_sourcePath;
-	ComPtr<IDxcLibrary> m_lib;
-	faze::vector<ComPtr<IDxcBlob>> blobs;
+  DXC_MICROCOM_REF_FIELD(m_dwRef)
+    faze::FileSystem& m_fs;
+  std::string m_sourcePath;
+  ComPtr<IDxcLibrary> m_lib;
+  faze::vector<ComPtr<IDxcBlob>> blobs;
 };
 
 class CShaderInclude : public ID3DInclude {
@@ -128,7 +126,7 @@ namespace faze
       FileSystem& m_fs;
       std::string sourcePath;
       std::string compiledPath;
-	  std::string sourceCopyPath;
+      std::string sourceCopyPath;
     public:
       enum class ShaderType
       {
@@ -183,38 +181,58 @@ namespace faze
         return "";
       }
 
+      const wchar_t* shaderFeatureDXC(ShaderType type)
+      {
+        switch (type)
+        {
+        case ShaderType::Vertex:
+          return L"vs_6_0";
+        case ShaderType::Pixel:
+          return L"ps_6_0";
+        case ShaderType::Compute:
+          return L"cs_6_0";
+        case ShaderType::Geometry:
+          return L"gs_6_0";
+        case ShaderType::TessControl:
+        case ShaderType::TessEvaluation:
+        default:
+          F_ASSERT(false, "Unknown ShaderType");
+        }
+        return L"";
+      }
+
     public:
-		DX12ShaderStorage(FileSystem& fs, std::string shaderPath, std::string binaryPath)
-			: m_fs(fs)
-			, sourcePath("/" + shaderPath + "/")
-			, compiledPath("/" + binaryPath + "/")
-			, sourceCopyPath(compiledPath + "source/")
-		{
-			m_fs.loadDirectoryContentsRecursive(sourcePath);
-			// we could compile all shaders that don't have spv ahead of time
-			// requires support from filesystem
-			vector<std::pair<std::string, MemView<const uint8_t>>> filesToCopy;
-			m_fs.getFilesWithinDir(sourcePath, [&](std::string& path, MemView<const uint8_t> data)
-			{
-				//F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
-				filesToCopy.emplace_back(std::make_pair(path, data));
-			});
-			m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-			m_fs.getFilesWithinDir("/../app/graphics/", [&](std::string& path, MemView<const uint8_t> data)
-			{
-				if (path.compare("definitions.hpp") == 0)
-				{
-					//F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
-					filesToCopy.emplace_back(std::make_pair(path, data));
-				}
-			});
-			for (auto&& file : filesToCopy)
-			{
-				auto finalPath = sourceCopyPath + file.first;
-				m_fs.writeFile(finalPath, file.second);
-			}
-			m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
-		}
+      DX12ShaderStorage(FileSystem& fs, std::string shaderPath, std::string binaryPath)
+        : m_fs(fs)
+        , sourcePath("/" + shaderPath + "/")
+        , compiledPath("/" + binaryPath + "/")
+        , sourceCopyPath(compiledPath + "source/")
+      {
+        m_fs.loadDirectoryContentsRecursive(sourcePath);
+        // we could compile all shaders that don't have spv ahead of time
+        // requires support from filesystem
+        vector<std::pair<std::string, MemView<const uint8_t>>> filesToCopy;
+        m_fs.getFilesWithinDir(sourcePath, [&](std::string& path, MemView<const uint8_t> data)
+        {
+          //F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
+          filesToCopy.emplace_back(std::make_pair(path, data));
+        });
+        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
+        m_fs.getFilesWithinDir("/../app/graphics/", [&](std::string& path, MemView<const uint8_t> data)
+        {
+          if (path.compare("definitions.hpp") == 0)
+          {
+            //F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
+            filesToCopy.emplace_back(std::make_pair(path, data));
+          }
+        });
+        for (auto&& file : filesToCopy)
+        {
+          auto finalPath = sourceCopyPath + file.first;
+          m_fs.writeFile(finalPath, file.second);
+        }
+        m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
+      }
 
       bool compileShader(std::string shaderName, ShaderType type)
       {
@@ -228,33 +246,35 @@ namespace faze
         //printf("%s\n", text.data());
         // we got shader in "text"
 
-		ComPtr<IDxcLibrary> pLibrary;
-		ComPtr<IDxcBlobEncoding> pSource;
-		DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
-		pLibrary->CreateBlobWithEncodingOnHeapCopy(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
+        ComPtr<IDxcLibrary> pLibrary;
+        ComPtr<IDxcBlobEncoding> pSource;
+        DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
+        pLibrary->CreateBlobWithEncodingOnHeapCopy(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
-		DXCIncludeHandler dxcHandler(m_fs, sourcePath, pLibrary);
+        //DXCIncludeHandler dxcHandler(m_fs, sourcePath, pLibrary);
 
-		LPCWSTR ppArgs[] = { L"/Zi" }; // debug info
-		ComPtr<IDxcCompiler> pCompiler;
-		DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
+        ComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, sourcePath, pLibrary));
 
-		ComPtr<IDxcOperationResult> pResult;
-		auto hr = pCompiler->Compile(
-			pSource.Get(),          // program text
-			L"myfile.hlsl",   // file name, mostly for error messages
-			L"main",          // entry point function
-			L"ps_6_0",        // target profile
-			ppArgs,           // compilation arguments
-			_countof(ppArgs), // number of compilation arguments
-			nullptr, 0,       // name/value defines and their count
-			&dxcHandler,          // handler for #include directives
-			&pResult);
+        LPCWSTR ppArgs[] = { L"/Zi" }; // debug info
+        ComPtr<IDxcCompiler> pCompiler;
+        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
+        DxcDefine defs[] = { DxcDefine{ L"FAZE_DX12", nullptr } };
+        ComPtr<IDxcOperationResult> pResult;
+        auto hr = pCompiler->Compile(
+          pSource.Get(),          // program text
+          L"myfile.hlsl",   // file name, mostly for error messages
+          L"main",          // entry point function
+          shaderFeatureDXC(type),        // target profile
+          ppArgs,           // compilation arguments
+          _countof(ppArgs), // number of compilation arguments
+          defs, _countof(defs),       // name/value defines and their count
+          dxcHandlerPtr.Get(),          // handler for #include directives
+          &pResult);
 
-		if (SUCCEEDED(hr))
-		{
-			F_LOG("cool! dxil made\n");
-		}
+        if (SUCCEEDED(hr))
+        {
+          F_LOG("cool! dxil made\n");
+        }
 
         CShaderInclude include(m_fs, sourcePath);
         auto p = shaderFeature(type);
@@ -280,13 +300,13 @@ namespace faze
         {
           if (errorMsg.Get())
           {
-			  /*
-            OutputDebugStringA("Error In \"");
-            OutputDebugStringA(shaderPath.c_str());
-            OutputDebugStringA("\": \n");
-            OutputDebugStringA((char*)errorMsg->GetBufferPointer());*/
+            /*
+                OutputDebugStringA("Error In \"");
+                OutputDebugStringA(shaderPath.c_str());
+                OutputDebugStringA("\": \n");
+                OutputDebugStringA((char*)errorMsg->GetBufferPointer());*/
 
-			F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
+            F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
           }
           //abort();
           return false;
@@ -317,11 +337,11 @@ namespace faze
           if (shaderTime > dxilTime || shaderInterfaceTime > dxilTime)
           {
             //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
-			  bool result = compileShader(shaderName, type);
-			  if (!result)
-			  {
-				  F_ILOG("DX12", "Shader compile failed.\n");
-			  }
+            bool result = compileShader(shaderName, type);
+            if (!result)
+            {
+              F_ILOG("DX12", "Shader compile failed.\n");
+            }
           }
         }
         F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
@@ -342,11 +362,11 @@ namespace faze
       WatchFile watch(std::string shaderName, ShaderType type)
       {
         auto shd = sourcePath + shaderName + "." + shaderFileType(type);
-		if (m_fs.fileExists(shd))
-		{
-			return m_fs.watchFile(shd);
-		}
-		return WatchFile{};
+        if (m_fs.fileExists(shd))
+        {
+          return m_fs.watchFile(shd);
+        }
+        return WatchFile{};
       }
     };
   }
