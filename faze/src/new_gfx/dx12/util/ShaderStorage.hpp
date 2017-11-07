@@ -33,7 +33,7 @@ public:
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
   ) override
   {
-    ppIncludeSource = nullptr;
+    //ppIncludeSource = nullptr;
     std::string filename = ws2s(pFilename);
     if (!filename.empty())
       filename = filename.substr(2);
@@ -50,18 +50,21 @@ public:
     else
     {
       finalPath = m_sourcePath + filename;
+      // m_sourcePath + 
     }
     F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     auto shader = m_fs.viewToFile(finalPath);
     ComPtr<IDxcBlobEncoding> asd;
-    auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_UTF8, &asd);
+    auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
 
     if (SUCCEEDED(hr))
     {
-      ComPtr<IDxcBlob> blob = asd;
-      blobs.push_back(blob);
-      ppIncludeSource = blobs.back().GetAddressOf();
+      *ppIncludeSource = asd.Detach();
+    }
+    else
+    {
+      F_LOG("oh no\n");
     }
 
     return hr;
@@ -71,7 +74,6 @@ private:
     faze::FileSystem& m_fs;
   std::string m_sourcePath;
   ComPtr<IDxcLibrary> m_lib;
-  faze::vector<ComPtr<IDxcBlob>> blobs;
 };
 
 class CShaderInclude : public ID3DInclude {
@@ -260,9 +262,12 @@ namespace faze
         DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
         DxcDefine defs[] = { DxcDefine{ L"FAZE_DX12", nullptr } };
         ComPtr<IDxcOperationResult> pResult;
-        auto hr = pCompiler->Compile(
+
+        std::wstring kek = s2ws(shaderName);
+
+        pCompiler->Compile(
           pSource.Get(),          // program text
-          L"myfile.hlsl",   // file name, mostly for error messages
+          kek.c_str(),   // file name, mostly for error messages
           L"main",          // entry point function
           shaderFeatureDXC(type),        // target profile
           ppArgs,           // compilation arguments
@@ -271,20 +276,42 @@ namespace faze
           dxcHandlerPtr.Get(),          // handler for #include directives
           &pResult);
 
-        if (SUCCEEDED(hr))
-        {
-          F_LOG("cool! dxil made\n");
-        }
+        HRESULT hr;
 
+        pResult->GetStatus(&hr);
+
+        if (FAILED(hr))
+        {
+          ComPtr<IDxcBlobEncoding> blob;
+          pResult->GetErrorBuffer(blob.GetAddressOf());
+
+          OutputDebugStringA("Error In \"");
+          OutputDebugStringA(shaderPath.c_str());
+          OutputDebugStringA("\": \n");
+          OutputDebugStringA((char*)blob->GetBufferPointer());
+
+          F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)blob->GetBufferPointer());
+          return false;
+        }
+        F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
+        ComPtr<IDxcBlob> blob;
+        pResult->GetResult(blob.ReleaseAndGetAddressOf());
+        auto thingA = blob->GetBufferPointer();
+        auto thingB = blob->GetBufferSize();
+        auto viewToBlob = faze::reinterpret_memView<const uint8_t>(faze::makeByteView(thingA, thingB));
+        m_fs.writeFile(dxilPath, viewToBlob);
+        return true;
+        /*
         CShaderInclude include(m_fs, sourcePath);
         auto p = shaderFeature(type);
         UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | /*D3DCOMPILE_WARNINGS_ARE_ERRORS |*/ D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES | D3DCOMPILE_ALL_RESOURCES_BOUND;
 #if !defined(RELEASE)
-        compileFlags |= D3DCOMPILE_DEBUG;
+        //compileFlags |= D3DCOMPILE_DEBUG;
 #endif
 #if !defined(DEBUG)
-        compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+        //compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
+        /*
         ComPtr<ID3DBlob> shaderBlob;
         ComPtr<ID3DBlob> errorMsg;
 
@@ -306,14 +333,15 @@ namespace faze
                 OutputDebugStringA("\": \n");
                 OutputDebugStringA((char*)errorMsg->GetBufferPointer());*/
 
-            F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
-          }
-          //abort();
-          return false;
-        }
-        F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
-        m_fs.writeFile(dxilPath, faze::reinterpret_memView<const uint8_t>(faze::makeByteView(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize())));
-        return true;
+                //F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
+              //}
+              //abort();
+              //return false;
+            //}
+
+            //F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
+            //m_fs.writeFile(dxilPath, faze::reinterpret_memView<const uint8_t>(faze::makeByteView(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize())));
+            //return true;
       }
 
       faze::MemoryBlob shader(const std::string& shaderName, ShaderType type)
