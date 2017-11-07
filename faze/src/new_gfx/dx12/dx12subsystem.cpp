@@ -14,7 +14,6 @@ namespace faze
     DX12Subsystem::DX12Subsystem(const char*, unsigned, const char*, unsigned)
     {
       CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(pFactory.GetAddressOf()));
-
     }
 
     std::string DX12Subsystem::gfxApi()
@@ -33,57 +32,57 @@ namespace faze
         HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
-            char ch[128];
-            char DefChar = ' ';
-            WideCharToMultiByte(CP_ACP, 0, desc.Description, -1, ch, 128, &DefChar, NULL);
+          char ch[128];
+          char DefChar = ' ';
+          WideCharToMultiByte(CP_ACP, 0, desc.Description, -1, ch, 128, &DefChar, NULL);
 
-            GpuInfo info{};
-            info.name = std::string(ch);
+          GpuInfo info{};
+          info.name = std::string(ch);
 
-            if (info.name.find("Microsoft Basic Render Driver") != std::string::npos)
-            {
-                i++;
-                continue;
-            }
+          if (info.name.find("Microsoft Basic Render Driver") != std::string::npos)
+          {
+            i++;
+            continue;
+          }
 
-            ComPtr<IDXGIAdapter3> wanted;
-            hr = pAdapter->QueryInterface(IID_PPV_ARGS(&wanted));
+          ComPtr<IDXGIAdapter3> wanted;
+          hr = pAdapter->QueryInterface(IID_PPV_ARGS(&wanted));
 
-            if (SUCCEEDED(hr))
-            {
-                vAdapters.push_back(wanted);
-            }
-            else
-            {
-                i++;
-                continue;
-            }
-            info.vendor = VendorID::Unknown;
-            info.type = DeviceType::Unknown;
-            if (desc.VendorId == 4098)
-            {
-                info.vendor = VendorID::Amd;
-                info.type = DeviceType::DiscreteGpu;
-            }
-            else if (desc.VendorId == 4318)
-            {
-                info.vendor = VendorID::Nvidia;
-                info.type = DeviceType::DiscreteGpu;
-            }
-            else if (desc.VendorId == 32902)
-            {
-                info.vendor = VendorID::Intel;
-                info.type = DeviceType::IntegratedGpu;
-            }
-            info.id = static_cast<int>(vAdapters.size())-1;
-            info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
-            info.canPresent = true;
+          if (SUCCEEDED(hr))
+          {
+            vAdapters.push_back(wanted);
+          }
+          else
+          {
+            i++;
+            continue;
+          }
+          info.vendor = VendorID::Unknown;
+          info.type = DeviceType::Unknown;
+          if (desc.VendorId == 4098)
+          {
+            info.vendor = VendorID::Amd;
+            info.type = DeviceType::DiscreteGpu;
+          }
+          else if (desc.VendorId == 4318)
+          {
+            info.vendor = VendorID::Nvidia;
+            info.type = DeviceType::DiscreteGpu;
+          }
+          else if (desc.VendorId == 32902)
+          {
+            info.vendor = VendorID::Intel;
+            info.type = DeviceType::IntegratedGpu;
+          }
+          info.id = static_cast<int>(vAdapters.size()) - 1;
+          info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
+          info.canPresent = true;
 
-            infos.push_back(info);
+          infos.push_back(info);
         }
         ++i;
       }
-      
+
       {
         GpuInfo info{};
         info.name = "Warp";
@@ -124,34 +123,44 @@ namespace faze
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_1
       };
+
+      static const GUID D3D12ExperimentalShaderModelsID = { /* 76f5573e-f13a-40f5-b297-81ce9e18933f */
+        0x76f5573e,
+        0xf13a,
+        0x40f5,
+        { 0xb2, 0x97, 0x81, 0xce, 0x9e, 0x18, 0x93, 0x3f }
+      };
+
+      FAZE_CHECK_HR(D3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModelsID, nullptr, nullptr));
+
       if (gpu.id == static_cast<int>(vAdapters.size()))
       {
-          ComPtr<IDXGIAdapter> pAdapter;
-          pFactory->EnumWarpAdapter(IID_PPV_ARGS(&pAdapter));
-          HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
-          if (SUCCEEDED(hr))
-          {
-              device->SetName(L"Warp");
-          }
-          else
-          {
-              F_ASSERT(false, ":( no warp");
-          }
+        ComPtr<IDXGIAdapter> pAdapter;
+        pFactory->EnumWarpAdapter(IID_PPV_ARGS(&pAdapter));
+        HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+        if (SUCCEEDED(hr))
+        {
+          device->SetName(L"Warp");
+        }
+        else
+        {
+          F_ASSERT(false, ":( no warp");
+        }
       }
       else
       {
-          int i = 0;
-          while (i < 4)
+        int i = 0;
+        while (i < 4)
+        {
+          HRESULT hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
+          if (SUCCEEDED(hr))
           {
-              HRESULT hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
-              if (SUCCEEDED(hr))
-              {
-                  createdLevel = tryToEnable[i];
-                  device->SetName(L"HwDevice");
-                  break;
-              }
-              ++i;
+            createdLevel = tryToEnable[i];
+            device->SetName(L"HwDevice");
+            break;
           }
+          ++i;
+        }
       }
 
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
