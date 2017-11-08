@@ -11,11 +11,11 @@ struct RayData
 
 groupshared RayData rdata[64];
 
-#define MAX_ITER 90.0
+#define MAX_ITER 120.0
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 2.0
+#define MAXREFLECTION 1.0
 // how much object reflects light
 #define REFLECTIVITY 0.4
 // How far rays can travel(applies to first ray only)
@@ -274,8 +274,8 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 
 	//output[id] = float4(sin(iTime)*0.2 + fp.x, cos(iTime)*0.5 + fp.y, 0.f, 1.f);
 
-	float3 position = float3(-0,5.0,0.0);
-  float3 direction = position + float3(0.4 + sin(iTime)*0.2, .0, 0.99);
+	float3 position = float3(-3,5.0,0.0);
+  float3 direction = position + float3(0.4 + sin(iTime*0.1)*0.2, .0, 0.99);
 
   uint index = gid.x + gid.y*8;
 
@@ -283,7 +283,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   rdata[index].ro = position;
 	rdata[index].direction = direction;
 	rdata[index].mixColor = float3(0.f, 0.f, 0.f);
-	rdata[index].lightPos = float3(-3.0,3.0,-1.5);
+	rdata[index].lightPos = float3(-3.4 + sin(iTime*0.3)*0.2,3.0,-1.5);
 	//GroupMemoryBarrierWithGroupSync();
   castManyRays(index);
   if (id.x >= iResolution.x || id.y >= iResolution.y)
