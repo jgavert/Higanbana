@@ -243,7 +243,11 @@ namespace faze
       bool compileShader(std::string shaderName, ShaderType type)
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
+#if defined(FAZE_DX12_DXIL)
         auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
+#else
+        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxbc";
+#endif
         F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
         auto view = m_fs.viewToFile(shaderPath);
         std::string text;
@@ -353,7 +357,11 @@ namespace faze
       faze::MemoryBlob shader(const std::string& shaderName, ShaderType type)
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
+#if defined(FAZE_DX12_DXIL)
         auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
+#else
+        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxbc";
+#endif
 
         if (!m_fs.fileExists(dxilPath))
         {
