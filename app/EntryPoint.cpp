@@ -238,10 +238,10 @@ int EntryPoint::main()
           blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{ int(nwidth), int(nheight) });
 
           {
-            imgRenderer.beginFrame(backbuffer);
             ImGuiIO &io = ImGui::GetIO();
             time.tick();
             io.DeltaTime = time.getFrameTimeDelta();
+            
 
             auto& mouse = window.mouse();
 
@@ -292,6 +292,9 @@ int EntryPoint::main()
             io.KeyAlt = inputs.isPressedThisFrame(VK_MENU, 2);
             io.KeySuper = false;
             bool kek = true;
+
+			imgRenderer.beginFrame(backbuffer);
+
             ::ImGui::ShowTestWindow(&kek);
 
             ImGui::SetNextWindowPos({ 10.f, 10.f });
