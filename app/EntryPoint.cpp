@@ -31,6 +31,43 @@
 
 using namespace faze;
 
+class DynamicScale
+{
+private:
+  int m_scale = 10;
+  float m_frametimeTarget = 16.6667f; // 60fps
+  float m_targetThreshold = 1.f; // 1 millisecond
+
+public:
+  DynamicScale(int scale = 10, float frametimeTarget = 16.6667f, float threshold = 1.f)
+    : m_scale(scale)
+    , m_frametimeTarget(frametimeTarget)
+    , m_targetThreshold(threshold)
+  {}
+
+  int tick(float frametimeInMilli)
+  {
+    auto howFar = std::fabs((m_frametimeTarget - frametimeInMilli)*10.f);
+    if (frametimeInMilli > m_frametimeTarget)
+    {
+      F_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
+
+      //m_scale -= m_scale / std::max(100-int(howFar),2);
+      m_scale -= int(howFar * 4);
+    }
+    else if (frametimeInMilli < m_frametimeTarget - m_targetThreshold)
+    {
+      F_LOG("Increasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
+      //auto multiplier = int(m_frametimeTarget / frametimeInMilli)*6;
+
+      m_scale += int(howFar);
+    }
+    if (m_scale <= 0)
+      m_scale = 1;
+    return m_scale;
+  }
+};
+
 int EntryPoint::main()
 {
   Logger log;
@@ -69,6 +106,10 @@ int EntryPoint::main()
       int raymarch_Res = 10;
       int raymarch_x = 16;
       int raymarch_y = 9;
+
+      float raymarchfpsTarget = 16.78f;
+      float raymarchFpsThr = 0.4f;
+      bool raymarchDynamicEnabled = false;
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
       window.open();
@@ -232,16 +273,17 @@ int EntryPoint::main()
           uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
           float scale = float(sdim.x()) / float(sdim.y());
 
-          float nwidth = float(backbuffer.desc().desc.width)*0.1f;
+          float nwidth = float(backbuffer.desc().desc.width)*0.2f;
           float nheight = nwidth / scale;
 
-          blit.blit(dev, tasks, backbuffer, testSrv, { 4, 4 }, int2{ int(nwidth), int(nheight) });
+          blit.blit(dev, tasks, backbuffer, testSrv, { 4, 800 }, int2{ int(nwidth), int(nheight) });
 
           {
             ImGuiIO &io = ImGui::GetIO();
             time.tick();
             io.DeltaTime = time.getFrameTimeDelta();
-            
+            if (io.DeltaTime < 0.f)
+              io.DeltaTime = 0.00001f;
 
             auto& mouse = window.mouse();
 
@@ -293,7 +335,7 @@ int EntryPoint::main()
             io.KeySuper = false;
             bool kek = true;
 
-			imgRenderer.beginFrame(backbuffer);
+            imgRenderer.beginFrame(backbuffer);
 
             ::ImGui::ShowTestWindow(&kek);
 
@@ -372,6 +414,26 @@ int EntryPoint::main()
               ImGui::SliderInt("scale X", &raymarch_x, 1, 30); ImGui::SameLine();
               ImGui::SliderInt("Y", &raymarch_y, 1, 30);	ImGui::SameLine();
               ImGui::SliderInt("max", &raymarch_Res, 1, 4096);
+
+              ImGui::Checkbox("dynamic raymarch scale", &raymarchDynamicEnabled); ImGui::SameLine();
+              raymarchfpsTarget = 1000.f / raymarchfpsTarget;
+              ImGui::SliderFloat("target framerate", &raymarchfpsTarget, 10.f, 999.f);	ImGui::SameLine();
+              raymarchfpsTarget = 1000.f / raymarchfpsTarget;
+              ImGui::SliderFloat("threshold", &raymarchFpsThr, 0.001f, 1.f);
+
+              if (ImGui::Button("reset to 60fps"))
+              {
+                raymarchfpsTarget = 16.666667f;
+              }
+
+              if (raymarchDynamicEnabled)
+              {
+                if (frame % 30 == 0)
+                {
+                  DynamicScale raymarchDynamicScale(raymarch_Res, raymarchfpsTarget, raymarchFpsThr);
+                  raymarch_Res = raymarchDynamicScale.tick(time.getCurrentFps());
+                }
+              }
 
               if (raymarch_x > raymarch_y)
               {

@@ -289,7 +289,6 @@ namespace faze
       sc->setBufferMetadata(width, height, descriptor);
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
 
-
       ensureSwapchainColorspace(sc, descriptor);
       return sc;
     }
@@ -417,9 +416,9 @@ namespace faze
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      WaitForSingleObjectEx(native->frameLatencyObj(), INFINITE, FALSE);
       int index = native->native()->GetCurrentBackBufferIndex();
       native->setBackbufferIndex(index);
-      WaitForSingleObjectEx(native->frameLatencyObj(), INFINITE, FALSE);
       return index;
     }
 
