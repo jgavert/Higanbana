@@ -50,14 +50,14 @@ public:
     auto howFar = std::fabs((m_frametimeTarget - frametimeInMilli)*10.f);
     if (frametimeInMilli > m_frametimeTarget)
     {
-      F_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
+      //F_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
 
       //m_scale -= m_scale / std::max(100-int(howFar),2);
       m_scale -= int(howFar * 4);
     }
     else if (frametimeInMilli < m_frametimeTarget - m_targetThreshold)
     {
-      F_LOG("Increasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
+      //F_LOG("Increasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
       //auto multiplier = int(m_frametimeTarget / frametimeInMilli)*6;
 
       m_scale += int(howFar);
