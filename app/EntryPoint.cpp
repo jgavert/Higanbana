@@ -107,8 +107,8 @@ int EntryPoint::main()
       int raymarch_x = 16;
       int raymarch_y = 9;
 
-      float raymarchfpsTarget = 16.78f;
-      float raymarchFpsThr = 0.4f;
+      float raymarchfpsTarget = 16.666667f;
+      float raymarchFpsThr = 0.2f;
       bool raymarchDynamicEnabled = false;
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
