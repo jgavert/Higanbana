@@ -15,9 +15,9 @@ groupshared RayData rdata[64];
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 1.0
+#define MAXREFLECTION 6.0
 // how much object reflects light
-#define REFLECTIVITY 0.4
+#define REFLECTIVITY 0.3
 // How far rays can travel(applies to first ray only)
 #define MAXLENGTH 140.0
 // color to red by iteration multiplier
@@ -25,7 +25,7 @@ groupshared RayData rdata[64];
 // This multiplies the one intensity of the light
 #define LIGHTINTENSITY 12.0
 // this is basically resolution multiplier, one pixel is RAYMULTIPLIER*RAYMULTIPLIER amount of rays
-#define RAYMULTIPLIER 2.0
+#define RAYMULTIPLIER 1.0
 // kind of deprecated, adds walls/cube to somewhere.
 
 float3 rotateX(float3 p, float phi) {
@@ -264,6 +264,47 @@ void castManyRays(in uint index)
   }
 }
 
+// The code in this file was originally written by Stephen Hill (@self_shadow), who deserves all
+// credit for coming up with this fit and implementing it. Buy him a beer next time you see him. :)
+
+// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
+static const float3x3 ACESInputMat =
+{
+    { 0.59719, 0.35458, 0.04823 },
+    { 0.07600, 0.90834, 0.01566 },
+    { 0.02840, 0.13383, 0.83777 }
+};
+
+// ODT_SAT => XYZ => D60_2_D65 => sRGB
+static const float3x3 ACESOutputMat =
+{
+    { 1.60475, -0.53108, -0.07367 },
+    { -0.10208,  1.10813, -0.00605 },
+    { -0.00327, -0.07276,  1.07602 }
+};
+
+float3 RRTAndODTFit(float3 v)
+{
+    float3 a = v * (v + 0.0245786f) - 0.000090537f;
+    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
+}
+
+float3 ACESFitted(float3 color)
+{
+    color = mul(ACESInputMat, color);
+
+    // Apply RRT and ODT
+    color = RRTAndODTFit(color);
+
+    color = mul(ACESOutputMat, color);
+
+    // Clamp to [0, 1]
+    color = saturate(color);
+
+    return color;
+}
+
 CS_SIGNATURE
 void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 {
@@ -288,5 +329,5 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   castManyRays(index);
   if (id.x >= iResolution.x || id.y >= iResolution.y)
 		return;
-  output[id] = float4(rdata[index].mixColor,1.0);
+  output[id] = float4(ACESFitted(rdata[index].mixColor),1.0);
 }
