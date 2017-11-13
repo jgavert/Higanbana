@@ -428,10 +428,10 @@ namespace faze
       auto createHeapBlock = [&](prototypes::DeviceImpl* dev, int index, MemoryRequirements& requirements)
       {
         auto minSize = std::min(m_minimumHeapSize, static_cast<int64_t>(128 * 32 * requirements.alignment));
-        auto sizeToCreate = roundUpMultiple2(minSize, requirements.alignment);
+        auto sizeToCreate = roundUpMultiplePowerOf2(minSize, requirements.alignment);
         if (requirements.bytes > sizeToCreate)
         {
-          sizeToCreate = roundUpMultiple2(requirements.bytes, requirements.alignment);
+          sizeToCreate = roundUpMultiplePowerOf2(requirements.bytes, requirements.alignment);
         }
         std::string name;
         name += std::to_string(index);

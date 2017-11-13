@@ -1163,7 +1163,7 @@ namespace faze
 
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
-      const auto requiredRowPitch = roundUpMultiple2(rowPitch, APIRowPitchAlignmentRequirement);
+      const auto requiredRowPitch = roundUpMultiplePowerOf2(rowPitch, APIRowPitchAlignmentRequirement);
       F_LOG("rowPitch %zu\n", requiredRowPitch);
       const auto requiredTotalSize = rows * requiredRowPitch;
 
