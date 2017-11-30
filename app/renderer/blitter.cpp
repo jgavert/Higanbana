@@ -48,7 +48,7 @@ namespace faze
       vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
       vertices.push_back(float4{ right, top,    1.f, 1.f });
 
-      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
+      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32RGBA);
 
       auto rp = graph.createPass("Blit");
       rp.renderpass(renderpass);
@@ -88,7 +88,7 @@ namespace faze
       vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
       vertices.push_back(float4{ right, top,    1.f, 1.f });
 
-      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
+      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32RGBA);
 
       auto rp = graph.createPass("Blit");
       rp.renderpass(renderpass);
@@ -154,7 +154,7 @@ namespace faze
       vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
       vertices.push_back(float4{ right, top,    1.f, 1.f });
 
-      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
+      auto verts = device.dynamicBuffer(makeMemView(vertices), FormatType::Float32RGBA);
 
       auto rp = graph.createPass("Blit");
       rp.renderpass(renderpass);
