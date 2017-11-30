@@ -24,7 +24,7 @@ namespace faze
       CpuImage image(ResourceDescriptor()
         .setSize({ imgX, imgY, 1 })
         .setDimension(FormatDimension::Texture2D)
-        .setFormat(FormatType::Unorm8x4)
+        .setFormat(FormatType::Unorm8RGBA)
         .setName(path)
         .setUsage(ResourceUsage::GpuReadOnly));
 

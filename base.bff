@@ -288,8 +288,8 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .ProjectCommon =
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -clean -summary ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .Platform                 = 'x64'

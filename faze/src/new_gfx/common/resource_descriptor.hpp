@@ -61,7 +61,7 @@ namespace faze
     struct descriptor
     {
       PresentMode mode = PresentMode::Fifo;
-      FormatType format = FormatType::Unorm8x4;
+      FormatType format = FormatType::Unorm8RGBA;
       int bufferCount = 2;
       Colorspace colorSpace = Colorspace::BT709;
     } desc;

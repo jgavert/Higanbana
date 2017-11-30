@@ -119,7 +119,7 @@ int EntryPoint::main()
       time.firstTick();
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8x4).colorspace(Colorspace::BT709).bufferCount(3);
+        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709).bufferCount(3);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
@@ -137,7 +137,7 @@ int EntryPoint::main()
 
         auto texture = dev.createTexture(ResourceDescriptor()
           .setName("testTexture")
-          .setFormat(FormatType::Unorm16x4)
+          .setFormat(FormatType::Unorm16RGBA)
           .setWidth(ires.x())
           .setHeight(ires.y())
           .setMiplevels(4)
@@ -239,7 +239,7 @@ int EntryPoint::main()
             vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
             vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
 
-            auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32x4);
+            auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32RGBA);
 
             auto binding = node.bind<::shader::Triangle>(trianglePipe);
             //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
@@ -371,19 +371,19 @@ int EntryPoint::main()
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
               ImGui::Text("Swapchain");
               ImGui::Text("format %s", formatToString(scdesc.desc.format));
-              if (ImGui::Button(formatToString(FormatType::Unorm8x4)))
+              if (ImGui::Button(formatToString(FormatType::Unorm8RGBA)))
               {
-                scdesc.desc.format = FormatType::Unorm8x4;
+                scdesc.desc.format = FormatType::Unorm8RGBA;
                 toggleHDR = true;
               } ImGui::SameLine();
-              if (ImGui::Button(formatToString(FormatType::Unorm10x3)))
+              if (ImGui::Button(formatToString(FormatType::Unorm10RGB2A)))
               {
-                scdesc.desc.format = FormatType::Unorm10x3;
+                scdesc.desc.format = FormatType::Unorm10RGB2A;
                 toggleHDR = true;
               } ImGui::SameLine();
-              if (ImGui::Button(formatToString(FormatType::Float16x4)))
+              if (ImGui::Button(formatToString(FormatType::Float16RGBA)))
               {
-                scdesc.desc.format = FormatType::Float16x4;
+                scdesc.desc.format = FormatType::Float16RGBA;
                 toggleHDR = true;
               }
               ImGui::Text("Resolution: %dx%d", swapchain.impl()->desc().desc.width, swapchain.impl()->desc().desc.height);
@@ -479,7 +479,7 @@ int EntryPoint::main()
                 ires.data[1] = std::max(ires.data[1], 1);
                 texture = dev.createTexture(ResourceDescriptor()
                   .setName("testTexture")
-                  .setFormat(FormatType::Unorm16x4)
+                  .setFormat(FormatType::Unorm16RGBA)
                   .setWidth(ires.data[0])
                   .setHeight(ires.data[1])
                   .setMiplevels(4)
