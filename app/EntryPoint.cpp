@@ -51,11 +51,11 @@ public:
     if (frametimeInMilli > m_frametimeTarget)
     {
       //F_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
-		m_scale -= int(howFar * 2);
+      m_scale -= int(howFar * 2);
     }
     else if (frametimeInMilli < m_frametimeTarget - m_targetThreshold)
     {
-        m_scale += int(howFar);
+      m_scale += int(howFar);
     }
     if (m_scale <= 0)
       m_scale = 1;
@@ -77,7 +77,7 @@ int EntryPoint::main()
     auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
 
-	bool explicitID = false;
+    bool explicitID = false;
     int chosenGpu = 0;
 
     while (true)
@@ -86,17 +86,17 @@ int EntryPoint::main()
       F_LOG("Using api %s\n", graphics.gfxApi().c_str());
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
-	  if (!explicitID)
-	  {
-		  for (auto&& it : gpus)
-		  {
-			  if (it.vendor == preferredVendor)
-			  {
-				  chosenGpu = it.id;
-			  }
-			  F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
-		  }
-	  }
+      if (!explicitID)
+      {
+        for (auto&& it : gpus)
+        {
+          if (it.vendor == preferredVendor)
+          {
+            chosenGpu = it.id;
+          }
+          F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
+        }
+      }
       if (updateLog) log.update();
       if (gpus.empty())
         return;
@@ -254,7 +254,7 @@ int EntryPoint::main()
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
 
-		  /*
+      /*
           uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
           float scale = float(sdim.x()) / float(sdim.y());
 
@@ -262,7 +262,7 @@ int EntryPoint::main()
           float nheight = nwidth / scale;
 
           blit.blit(dev, tasks, backbuffer, testSrv, { 4, 800 }, int2{ int(nwidth), int(nheight) });
-		  */
+      */
 
           {
             ImGuiIO &io = ImGui::GetIO();
@@ -328,45 +328,45 @@ int EntryPoint::main()
             ImGui::SetNextWindowPos({ 10.f, 10.f });
             if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-				if (ImGui::Button("Api"))
-					ImGui::OpenPopup("selectApi");
-				ImGui::SameLine();
-				ImGui::Text(api == GraphicsApi::DX12 ? "DX12" : "Vulkan");
-				if (ImGui::BeginPopup("selectApi"))
-				{
-					if (ImGui::Selectable("DX12"))
-					{
-						api = GraphicsApi::DX12;
-						reInit = true;
-						closeAnyway = true;
-					}
-					if (ImGui::Selectable("Vulkan"))
-					{
-						api = GraphicsApi::Vulkan;
-						reInit = true;
-						closeAnyway = true;
-					}
-					ImGui::EndPopup();
-				}
+              if (ImGui::Button("Api"))
+                ImGui::OpenPopup("selectApi");
+              ImGui::SameLine();
+              ImGui::Text(api == GraphicsApi::DX12 ? "DX12" : "Vulkan");
+              if (ImGui::BeginPopup("selectApi"))
+              {
+                if (ImGui::Selectable("DX12"))
+                {
+                  api = GraphicsApi::DX12;
+                  reInit = true;
+                  closeAnyway = true;
+                }
+                if (ImGui::Selectable("Vulkan"))
+                {
+                  api = GraphicsApi::Vulkan;
+                  reInit = true;
+                  closeAnyway = true;
+                }
+                ImGui::EndPopup();
+              }
 
-				if (ImGui::Button("Device"))
-					ImGui::OpenPopup("selectGpu");
-				ImGui::SameLine();
-				ImGui::Text(gpus[chosenGpu].name.c_str());
-				if (ImGui::BeginPopup("selectGpu"))
-				{
-					for (auto&& it : gpus)
-					{
-						if (ImGui::Selectable(it.name.c_str()))
-						{
-							chosenGpu = it.id;
-							reInit = true;
-							closeAnyway = true;
-							explicitID = true;
-						}
-					}
-					ImGui::EndPopup();
-				}
+              if (ImGui::Button("Device"))
+                ImGui::OpenPopup("selectGpu");
+              ImGui::SameLine();
+              ImGui::Text(gpus[chosenGpu].name.c_str());
+              if (ImGui::BeginPopup("selectGpu"))
+              {
+                for (auto&& it : gpus)
+                {
+                  if (ImGui::Selectable(it.name.c_str()))
+                  {
+                    chosenGpu = it.id;
+                    reInit = true;
+                    closeAnyway = true;
+                    explicitID = true;
+                  }
+                }
+                ImGui::EndPopup();
+              }
 
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
               ImGui::Text("Swapchain");
@@ -442,16 +442,16 @@ int EntryPoint::main()
               {
                 raymarchfpsTarget = 16.666667f * 2.f;
               }
-			  ImGui::SameLine();
-			  if (ImGui::Button("reset to 60fps"))
-			  {
-				  raymarchfpsTarget = 16.666667f;
-			  }
-			  ImGui::SameLine();
-			  if (ImGui::Button("reset to 120fps"))
-			  {
-				  raymarchfpsTarget = 16.666667f / 2.f;
-			  }
+              ImGui::SameLine();
+              if (ImGui::Button("reset to 60fps"))
+              {
+                raymarchfpsTarget = 16.666667f;
+              }
+              ImGui::SameLine();
+              if (ImGui::Button("reset to 120fps"))
+              {
+                raymarchfpsTarget = 16.666667f / 2.f;
+              }
 
               if (raymarchDynamicEnabled)
               {
@@ -490,6 +490,8 @@ int EntryPoint::main()
                 texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
                 texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
               }
+
+              ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));
             }
             ImGui::End();
 
@@ -511,19 +513,19 @@ int EntryPoint::main()
       else
       {
         reInit = false;
-	  }
+      }
     }
   };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  
-   LBS lbs;
-   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
-   //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, false); });
-   lbs.sleepTillKeywords({"test1"});
-   
+
+  LBS lbs;
+  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
+  //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, false); });
+  lbs.sleepTillKeywords({ "test1" });
+
 #endif
   log.update();
   return 1;
-}
+    }
