@@ -445,7 +445,7 @@ namespace faze
           .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
-        F_SLOG("Graphics", "Created heap \"%s\" size %zu\n", name.c_str(), sizeToCreate);
+        F_SLOG("Graphics", "Created heap \"%s\" size %.2fMB (%zu) \n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate);
         return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
