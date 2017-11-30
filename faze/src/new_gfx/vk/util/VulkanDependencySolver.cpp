@@ -346,7 +346,7 @@ namespace faze
         {
           return;
         }
-        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eTopOfPipe; // full trust in perfect synchronization
+        vk::PipelineStageFlags last = vk::PipelineStageFlagBits::eAllCommands; // full trust in perfect synchronization
         vk::PipelineStageFlags next = m_drawCallStage[0];
         vk::ArrayProxy<const vk::MemoryBarrier> memory(0, 0);
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffer(static_cast<uint32_t>(barrierSize), bufferBarriers.data() + barrierOffset);

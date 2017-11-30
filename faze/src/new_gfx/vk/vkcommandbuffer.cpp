@@ -375,13 +375,13 @@ namespace faze
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
-          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eTopOfPipe);
+          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eAllCommands);
           addTextureView(drawIndex, p.rtv, vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits::eTransferWrite);
         }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
-          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eTopOfPipe);
+          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eAllCommands);
           addTexture(drawIndex, p.texture, vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eMemoryRead);
           drawIndex++;
         }
