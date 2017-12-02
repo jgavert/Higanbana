@@ -161,7 +161,17 @@
       }
       .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$.exe'
     }
-    Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$Config$' }
+
+	Copy('$ProjectName$-Exe-$Platform$-$Config$-DLL')
+	{
+	  .Source   = .extRelDlls
+	  .Dest     = '$OutputBase$/$ProjectName$/'
+	}
+
+    Alias( '$ProjectName$-$Platform$-$Config$' )
+	{
+		.Targets = { '$ProjectName$-Exe-$Platform$-$Config$', '$ProjectName$-Exe-$Platform$-$Config$-DLL'}
+	}
   }
   ForEach( .Config in .Configs_Linux)
   {
@@ -190,7 +200,11 @@
       }
       .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$'
     }
-    Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$Config$' }
+
+    Alias( '$ProjectName$-$Platform$-$Config$' )
+	{
+	  .Targets = { '$ProjectName$-Exe-$Platform$-$Config$'}
+	}
   }
 
   // Aliases
