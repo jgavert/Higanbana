@@ -119,6 +119,9 @@
               + .shadercLibDebug
               + .dxcLibDebug
 
+
+.extRelDlls = "externals/hlsl.bin/Release/bin/dxcompiler.dll"
+
 #if __WINDOWS__
 //.extRelLibs   + .compressLibRelease
 //.extDebLibs   + .compressLibDebug
