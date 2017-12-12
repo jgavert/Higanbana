@@ -201,13 +201,15 @@ int EntryPoint::main()
           // If you acquire, you must submit it. Next, try to first present empty image.
           // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
           auto backbuffer = dev.acquirePresentableImage(swapchain);
+
           CommandGraph tasks = dev.createGraph();
+          /*
           {
             auto node = tasks.createPass("clear");
             node.clearRT(backbuffer, vec4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
-          }
+          }*/
 
           {
             auto node = tasks.createPass("compute!");
@@ -232,7 +234,9 @@ int EntryPoint::main()
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
             node.renderpass(triangleRenderpass);
+            backbuffer.setOp(LoadOp::Clear);
             node.subpass(backbuffer);
+            backbuffer.setOp(LoadOp::DontCare);
 
             vector<float4> vertices;
             vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
@@ -528,4 +532,4 @@ int EntryPoint::main()
 #endif
   log.update();
   return 1;
-    }
+}
