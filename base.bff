@@ -217,7 +217,7 @@ Compiler( 'Compiler-x64-Linux' )
 [
   Using( .X64BaseConfig )
   .Config             = 'Release'
-  .CompilerOptions    + ' /DRELEASE'
+  .CompilerOptions    + ' /Zc:inline /DRELEASE'
   .PCHOptions         + ' /DRELEASE'
 
   // Setup de-optimization options (FASTBUILD_DEOPTIMIZE_OBJECT)
