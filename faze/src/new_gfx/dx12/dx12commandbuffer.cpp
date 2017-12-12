@@ -54,6 +54,16 @@ namespace faze
         dsvPtr = &dsv;
       }
       buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
+      // TODO: fix barriers to happen or detect this case.
+      /*
+      for (auto&& rtv : packet.rtvs)
+      {
+        if (rtv.loadOp() == LoadOp::Clear)
+        {
+          FLOAT color[4] = { 0.f, 0.f, 0.f, 0.f };
+          buffer->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv.view().view }, color, 0, nullptr);
+        }
+      }*/
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
@@ -107,43 +117,43 @@ namespace faze
       buffer->SetPipelineState(pipeline->pipeline.Get());
     }
 
-	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
-	{
-		D3D12_RECT rect{};
-		rect.bottom = packet.bottomright.y();
-		rect.right = packet.bottomright.x();
-		rect.top = packet.topleft.y();
-		rect.left = packet.topleft.x();
-		buffer->RSSetScissorRects(1, &rect);
-	}
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
+    {
+      D3D12_RECT rect{};
+      rect.bottom = packet.bottomright.y();
+      rect.right = packet.bottomright.x();
+      rect.top = packet.topleft.y();
+      rect.left = packet.topleft.x();
+      buffer->RSSetScissorRects(1, &rect);
+    }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Draw& packet)
     {
       buffer->DrawInstanced(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
     }
 
-	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawIndexed& packet)
-	{
-		auto& buf = packet.ib;
-		auto* ptr = static_cast<DX12Buffer*>(buf.buffer().native().get());
-		D3D12_INDEX_BUFFER_VIEW ib{};
-		ib.BufferLocation = ptr->native()->GetGPUVirtualAddress();
-		ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-		ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
-		buffer->IASetIndexBuffer(&ib);
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawIndexed& packet)
+    {
+      auto& buf = packet.ib;
+      auto* ptr = static_cast<DX12Buffer*>(buf.buffer().native().get());
+      D3D12_INDEX_BUFFER_VIEW ib{};
+      ib.BufferLocation = ptr->native()->GetGPUVirtualAddress();
+      ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+      ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+      buffer->IASetIndexBuffer(&ib);
 
-		buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
-	}
+      buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
+    }
 
-	void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawDynamicIndexed& packet)
-	{
-		auto& buf = packet.ib;
-		auto* ptr = static_cast<DX12DynamicBufferView*>(buf.native().get());
-		D3D12_INDEX_BUFFER_VIEW ib = ptr->indexBufferView();
-		buffer->IASetIndexBuffer(&ib);
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawDynamicIndexed& packet)
+    {
+      auto& buf = packet.ib;
+      auto* ptr = static_cast<DX12DynamicBufferView*>(buf.native().get());
+      D3D12_INDEX_BUFFER_VIEW ib = ptr->indexBufferView();
+      buffer->IASetIndexBuffer(&ib);
 
-		buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
-	}
+      buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
+    }
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
     {
       buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
@@ -208,7 +218,7 @@ namespace faze
         dev->m_device->CopyDescriptors(
           1, &(start.cpu), destSizes,
           32, srvs.data(), srcSizes.data(),
-			    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
         {
@@ -220,29 +230,29 @@ namespace faze
         }
       }
 
-	  {
-		  auto descriptors = allocateDescriptors(8);
-		  auto start = descriptors.offset(0);
+      {
+        auto descriptors = allocateDescriptors(8);
+        auto start = descriptors.offset(0);
 
-		  vector<D3D12_CPU_DESCRIPTOR_HANDLE> uavs(8, m_nullBufferUAV.cpu);
-		  memcpy(uavs.data(), ding.uavs.data(), ding.uavs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
-		  unsigned destSizes[1] = { 8 };
-		  vector<unsigned> srcSizes(8, 1);
+        vector<D3D12_CPU_DESCRIPTOR_HANDLE> uavs(8, m_nullBufferUAV.cpu);
+        memcpy(uavs.data(), ding.uavs.data(), ding.uavs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+        unsigned destSizes[1] = { 8 };
+        vector<unsigned> srcSizes(8, 1);
 
-		  dev->m_device->CopyDescriptors(
-			  1, &(start.cpu), destSizes,
-			  8, uavs.data(), srcSizes.data(),
-			  D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        dev->m_device->CopyDescriptors(
+          1, &(start.cpu), destSizes,
+          8, uavs.data(), srcSizes.data(),
+          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		  if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-		  {
-			  buffer->SetGraphicsRootDescriptorTable(2, start.gpu);
-		  }
-		  else
-		  {
-			  buffer->SetComputeRootDescriptorTable(2, start.gpu);
-		  }
-	  }
+        if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+        {
+          buffer->SetGraphicsRootDescriptorTable(2, start.gpu);
+        }
+        else
+        {
+          buffer->SetComputeRootDescriptorTable(2, start.gpu);
+        }
+      }
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
@@ -286,21 +296,21 @@ namespace faze
           drawIndex++;
           break;
         }
-		case CommandPacket::PacketType::SetScissorRect:
-		{
-			handle(buffer, packetRef(gfxpacket::SetScissorRect, packet));
-			break;
-		}		
-		case CommandPacket::PacketType::DrawIndexed:
-		{
-			handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
-			break;
-		}
-		case CommandPacket::PacketType::DrawDynamicIndexed:
-		{
-			handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
-			break;
-		}
+        case CommandPacket::PacketType::SetScissorRect:
+        {
+          handle(buffer, packetRef(gfxpacket::SetScissorRect, packet));
+          break;
+        }
+        case CommandPacket::PacketType::DrawIndexed:
+        {
+          handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
+          break;
+        }
+        case CommandPacket::PacketType::DrawDynamicIndexed:
+        {
+          handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
+          break;
+        }
         case CommandPacket::PacketType::Draw:
         {
           handle(buffer, packetRef(gfxpacket::Draw, packet));
@@ -382,7 +392,7 @@ namespace faze
           auto& p = packetRef(gfxpacket::ResourceBinding, packet);
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
-			F_ASSERT(subpass, "nullptr");
+            F_ASSERT(subpass, "nullptr");
             auto& s = packetRef(gfxpacket::Subpass, subpass);
             for (auto&& it : s.rtvs)
             {
@@ -409,12 +419,12 @@ namespace faze
 
           break;
         }
-		case CommandPacket::PacketType::DrawIndexed:
-		{
-			auto& p = packetRef(gfxpacket::DrawIndexed, packet);
-			solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			break;
-		}
+        case CommandPacket::PacketType::DrawIndexed:
+        {
+          auto& p = packetRef(gfxpacket::DrawIndexed, packet);
+          solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+          break;
+        }
         case CommandPacket::PacketType::PrepareForPresent:
         {
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
@@ -451,7 +461,7 @@ namespace faze
         case CommandPacket::PacketType::GraphicsPipelineBind:
         {
           auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, packet);
-		  F_ASSERT(activeSubpass, "nullptr");
+          F_ASSERT(activeSubpass, "nullptr");
           dev->updatePipeline(ref.pipeline, *activeSubpass);
           break;
         }
