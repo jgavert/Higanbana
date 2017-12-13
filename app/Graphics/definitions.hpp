@@ -59,8 +59,8 @@ namespace shader\
 #ifdef FAZE_DX12
 #define ROOTSIG "RootFlags(0), " \
         "CBV(b0), " \
-        "DescriptorTable( SRV(t0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE)), " \
-        "DescriptorTable( UAV(u0, numDescriptors = 8, flags = DESCRIPTORS_VOLATILE)), " \
+        "DescriptorTable( SRV(t0, numDescriptors = 32)), " \
+        "DescriptorTable( UAV(u0, numDescriptors = 8)), " \
         "StaticSampler(s0, " \
 			"filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
 		"StaticSampler(s1, " \
