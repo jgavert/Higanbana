@@ -105,7 +105,7 @@ Compiler( 'Compiler-x64-Linux' )
                       + ' /Fp"%2" /Fo"%3"'
   .CompilerOptions    + ' /Fo"%2"'
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
-  .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1"  /debug:fastlink '
+  .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /DEBUG:FASTLINK /OPT:NOREF /OPT:NOICF /OUT:"%2" "%1"'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
                       + ' /IGNORE:4217' // don't complain about locally defined symbols
                       + ' /IGNORE:4049' // urgh
