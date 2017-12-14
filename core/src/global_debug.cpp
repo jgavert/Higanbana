@@ -32,10 +32,10 @@ void log_adv(const char *fn, int ln, const char* format, ...)
 {
   va_list args;
   char buf[1024];
-  int n = snprintf(buf, sizeof(buf), "%s:%d> ", fn, ln);
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
 
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[n], sizeof(buf)-n, format, args);
 #else
   vsnprintf(&buf[n], sizeof(buf)-n, format, args);
@@ -51,7 +51,7 @@ void log_def(const char* format, ...)
   va_list args;
   char buf[1024];
   va_start(args, format);
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);
 #else
   vsnprintf(&buf[0], sizeof(buf), format, args);
@@ -59,6 +59,93 @@ void log_def(const char* format, ...)
   va_end(args);
   LogMessage log(buf);
   sendMessage(log);
+}
+
+void log_imSys(const char* prefix, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  va_start(args, format);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
+  va_end(args);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  OutputDebugString("[");
+  OutputDebugString(prefix);
+  OutputDebugString("] ");
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr << "[" << prefix << "] ";
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
+}
+
+void log_sys(const char* prefix, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  va_start(args, format);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
+  va_end(args);
+
+  std::string asd = "[";
+  asd += prefix;
+  asd += "] ";
+  asd += buf;
+  LogMessage log(asd.c_str());
+  sendMessage(log);
+}
+
+void log_immideateAssert(const char *fn, int ln, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ASSERT!!!\n", fn, ln);
+
+  va_start(args, format);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#else
+  vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#endif
+  va_end(args);
+
+#if defined(FAZE_PLATFORM_WINDOWS)
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
+}
+
+void log_immideate(const char *fn, int ln, const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  int n = snprintf(buf, sizeof(buf), "%s(%d): ", fn, ln);
+
+  va_start(args, format);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#else
+  vsnprintf(&buf[n], sizeof(buf) - n, format, args);
+#endif
+  va_end(args);
+
+#if defined(FAZE_PLATFORM_WINDOWS)
+  OutputDebugString(buf);
+  OutputDebugString("\n");
+#endif
+  std::cerr.write(buf, strlen(buf));
+  std::cerr << std::endl;
 }
 
 std::string _log_getvalue(std::string type, float& value)
@@ -76,4 +163,21 @@ std::string _log_getvalue(std::string type, int64_t& value)
 std::string _log_str(const char* s)
 {
   return std::string(s, strlen(s));
+}
+
+
+std::wstring s2ws(const std::string& str)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.from_bytes(str);
+}
+
+std::string ws2s(const std::wstring& wstr)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.to_bytes(wstr);
 }

@@ -12,17 +12,12 @@ WTime::WTime() : start(HighPrecisionClock::now())
   });
 }
 
-WTime::~WTime()
-{
-}
-
 void WTime::firstTick() {
   start = HighPrecisionClock::now();
   timepoint_last = HighPrecisionClock::now();
   deltatime = 0.0f;
   frametime_high = 0;
   frametime_low = INT64_MAX;
-  //frametime_current = 0;
   frames = 0;
 }
 
@@ -32,14 +27,12 @@ void WTime::startFrame()
   timepoint_last = HighPrecisionClock::now();
 }
 
-
 void WTime::tick()
 {
   frames++;
   auto timepoint_now = HighPrecisionClock::now();
   deltatime = (float)std::chrono::duration_cast<std::chrono::microseconds>(timepoint_now - timepoint_last).count();
   frametime_current = std::chrono::duration_cast<std::chrono::nanoseconds>(timepoint_now - timepoint_last).count();
-  //deltatime *= 0.01f;  //seconds
   timepoint_last = timepoint_now;
   lastFrameTimes.push_back(frametime_current);
   if (frametime_current < frametime_low)
@@ -49,7 +42,6 @@ void WTime::tick()
   else if (frametime_current > frametime_high && frames > 1)
   {
     frametime_high = frametime_current;
-    //std::cout << frametime_current* 0.000001f << "ms\n";
   }
 }
 
@@ -100,26 +92,24 @@ float WTime::getframetime_low() {
   return frametime_low * 0.000001f;
 }
 
-void WTime::printStatistics() {
-  F_LOG("Time running: %zu seconds, ", std::chrono::duration_cast<std::chrono::seconds>(timepoint_last - start).count());
-  F_LOG("frames: %zu\n", frames);
-  F_LOG("Fps(min, aveg, high): %f", interpolateFpsFromNanoseconds(frametime_high));
-  F_LOG(" / %f / %f\n", getAverageFps(), interpolateFpsFromNanoseconds(frametime_low));
-  F_LOG("frametimes(min, aveg, high): %fms / %f", getframetime_low(), getAverageFrametime());
-  F_LOG("ms / %fms \n", getframetime_high());
-  /*
-  std::cout << "Time running: " << std::chrono::duration_cast<std::chrono::seconds>(timepoint_last - start).count() << " seconds, ";
-  std::cout << "frames: " << frames << std::endl;
-  std::cout << "Fps(min, aveg, high): " << interpolateFpsFromNanoseconds(frametime_high);
-  std::cout << " / " << getAverageFps() << " / " << interpolateFpsFromNanoseconds(frametime_low) << std::endl;
-  std::cout << "frametimes(min, aveg, high): " << getframetime_low() << "ms / " << getAverageFrametime();
-  std::cout << "ms / " << getframetime_high() << "ms " << std::endl;
-  */
+void WTime::printStatistics()
+{
+  F_SLOG("WTime", "Time running: %.3f seconds, ", std::chrono::duration_cast<std::chrono::milliseconds>(timepoint_last - start).count() / 1000.f);
+  F_LOG_UNFORMATTED("frames: %zu\n", frames);
+  F_SLOG("WTime", "Fps(min, aveg, high): %f", interpolateFpsFromNanoseconds(frametime_high));
+  F_LOG_UNFORMATTED(" / %f / %f\n", getAverageFps(), interpolateFpsFromNanoseconds(frametime_low));
+  F_SLOG("WTime", "frametimes(min, aveg, high): %fms / %f", getframetime_low(), getAverageFrametime());
+  F_LOG_UNFORMATTED("ms / %fms \n", getframetime_high());
 }
 
 int64_t WTime::getCurrentNano()
 {
   return frametime_current;
+}
+
+float WTime::getFTime()
+{
+  return timepoint_last.time_since_epoch().count() * 0.000000001f;
 }
 
 int64_t WTime::getFrame()

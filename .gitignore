@@ -6,6 +6,13 @@ workspace/
 externals/
 package/
 app/external/imgui/
+
+appspace/*.ini
+appspace/*.jpg
+
+appspace/dxil/
+
+.cov/
 *.7z
 *.nvuser
 *.cmd
@@ -15,6 +22,11 @@ app/external/imgui/
 
 # fastbuild db? anyway ignore
 *.fdb
+
+# generated shaders
+*.dxil
+*.dxbc
+*.spv
 
 # ignore all solutions files as they are probably user generated
 *.vcxproj

@@ -1,8 +1,7 @@
 #pragma once
 #include "ringbuffer.hpp"
 #include "fazmesg.hpp"
-#ifdef WIN64
-#define NOMINMAX
+#ifdef FAZE_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
 #include <array>

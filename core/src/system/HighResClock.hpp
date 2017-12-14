@@ -1,5 +1,5 @@
 #pragma once
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include <chrono>
 
 struct HighResClock

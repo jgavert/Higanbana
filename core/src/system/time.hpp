@@ -8,7 +8,7 @@
 #include <iostream>
 #include <algorithm>
 
-#ifdef WIN64
+#ifdef FAZE_PLATFORM_WINDOWS
 #include "HighResClock.hpp"
 typedef HighResClock HighPrecisionClock;
 typedef std::chrono::time_point<HighResClock> timepoint;
@@ -25,7 +25,6 @@ namespace faze
   {
   public:
     WTime();
-    ~WTime();
     void firstTick();
     void startFrame();
     void tick();
@@ -36,19 +35,16 @@ namespace faze
     float getframetime_high();
     float getframetime_low();
     int64_t getCurrentNano();
+    float getFTime();
     void printStatistics();
     int64_t getFrame();
     vec3 analyzeFrames();
   private:
     float interpolateFpsFromNanoseconds(int64_t time);
     float deltatime;
-    //float fps;
     int64_t frames;
-    //float fpsHigh;
-    //float fpsLow;
     int64_t frametime_high;
     int64_t frametime_low;
-    //int64_t frametime_median;
     int64_t frametime_current;
     timepoint start;
     timepoint timepoint_last;
