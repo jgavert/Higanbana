@@ -1,0 +1,32 @@
+#!/usr/bin/bash
+
+cd externals
+rm -rf shaderc_source
+git clone https://github.com/google/shaderc.git shaderc_source
+cd shaderc_source
+cd third_party
+git clone https://github.com/google/googletest.git
+git clone https://github.com/google/glslang.git
+git clone https://github.com/KhronosGroup/SPIRV-Tools.git spirv-tools
+git clone https://github.com/KhronosGroup/SPIRV-Headers.git spirv-tools/external/spirv-headers
+cd ../
+
+mkdir build_debug
+mkdir build_release
+cd build_debug
+cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ../.
+ninja
+cd ..
+cd build_release
+cmake -GNinja -DCMAKE_BUILD_TYPE=Release ../.
+ninja
+cd ../../..
+
+rm -rf externals/shaderc
+mkdir externals/shaderc
+mkdir externals/shaderc/include
+mkdir externals/shaderc/lib
+
+cp externals/shaderc_source/build_debug/libshaderc/libshaderc_combined.a externals/shaderc/lib/libshaderc_combined_d.a
+cp externals/shaderc_source/build_release/libshaderc/libshaderc_combined.a externals/shaderc/lib/libshaderc_combined.a
+cp -r externals/shaderc_source/libshaderc/include/* externals/shaderc/include/.

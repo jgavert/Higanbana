@@ -32,7 +32,7 @@ void HistoPyramid::buildPyramid()
     lowerLevel = higherLevel;
     higherLevel = levelOffset(l);
     higherLevelSize = static_cast<size_t>(std::pow(4, l));
-    for (int i = 0; i < higherLevelSize; ++i)
+    for (size_t i = 0; i < higherLevelSize; ++i)
     {
       size_t workIndex = higherLevel + i;
       size_t pi = lowerLevel + i * 4;
@@ -55,7 +55,7 @@ size_t HistoPyramid::levelOffset(int level)
 
 void HistoPyramid::print(int level)
 {
-  if (level > m_level)
+  if (level > static_cast<int>(m_level))
     level = static_cast<int>(m_level);
   if (level < 0)
     level = 0;

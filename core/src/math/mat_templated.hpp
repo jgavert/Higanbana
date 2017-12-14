@@ -7,32 +7,31 @@
 
 namespace faze
 {
-
   template <typename T, int rows, int cols>
   struct Matrix {
     std::array<Vector<cols, T>, rows> data;
 
     Matrix()
     {
-      for (int i = 0; i < rows*cols; i++)
-      {
-        int row = i / 4;
-        int column = i % 4;
-        data[row][column] = 0.f;
-      }
+      data = {};
     }
 
-    Matrix operator*(Matrix& scnd)
+    template <int rows2, int cols2>
+    Matrix<T, rows, cols2> operator*(Matrix<T, rows2, cols2>& scnd)
     {
-      Matrix mat;
+      Matrix<T, rows, cols2> result;
 
-      for (int i = 0; i < rows*cols; i++)
+      for (int y = 0; y < cols2; ++y)
       {
-        int row = i / 4;
-        int column = i % 4;
-        mat.data[row][column] = data[row][0] * scnd.data[0][column] + data[row][1] * scnd.data[1][column] + data[row][2] * scnd.data[2][column] + data[row][3] * scnd.data[3][column];
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            result[x][y] += data[x][j] * scnd[j][y];
+          }
+        }
       }
-      return mat;
+      return result;
     }
 
     Matrix operator+(Matrix& scnd)
@@ -118,15 +117,14 @@ namespace faze
       return data[i];
     }
 
-
     // TODO: oh fuck
     static Matrix Identity()
     {
       Matrix mat;
       for (int i = 0; i < rows*cols; i++)
       {
-        int row = i / 4;
-        int column = i % 4;
+        int row = i / cols;
+        int column = i % cols;
         mat.data[row][column] = 0.f;
       }
       for (int i = 0; i < std::min(rows, cols); i++)
@@ -135,17 +133,201 @@ namespace faze
       }
       return mat;
     }
-
   };
 
   typedef Matrix<float, 4, 4> mat4;
   typedef Matrix<float, 3, 3> mat3;
-#if defined(PLATFORM_WINDOWS)
+
+  /*
+  template <typename T, int values>
+  struct Vector2
+  {
+    std::array<T, values> data;
+    inline T& operator()(unsigned x)
+    {
+      return data[x];
+    }
+  };
+  */
+#define printMat(input) input.print(#input)
+
+  template <typename T, int rowCount, int columnCount>
+  struct Matrix2 {
+    std::array<T, rowCount*columnCount> data;
+
+    inline T& operator()(unsigned x, unsigned y)
+    {
+      return data[y*rowCount + x];
+    }
+
+    inline T& operator()(unsigned x)
+    {
+      return data[x];
+    }
+
+    inline int rows()
+    {
+      return rowCount;
+    }
+    inline int cols()
+    {
+      return columnCount;
+    }
+
+    void print(const char* name)
+    {
+      F_LOG("\"%s\": matrix2<%d, %d>\n", name, rowCount, columnCount);
+      for (int y = 0; y < rowCount; ++y)
+      {
+        for (int x = 0; x < columnCount; ++x)
+        {
+          F_LOG("%4.10f  ", data[y*columnCount + x]);
+        }
+        F_LOG("\n");
+      }
+    }
+  };
+
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( push )
 #pragma warning( disable : 4505 ) // unreferenced local function has been removed
 #endif
   namespace MatrixMath
   {
+    // new stuff
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline Matrix2<T, 1, rows*cols + rows2*cols2> concatenateToSingleDimension(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
+    {
+      Matrix2<T, 1, rows*cols + rows2*cols2> outResult{};
+      std::copy(std::begin(a.data), std::end(a.data), std::begin(outResult.data));
+      std::copy(std::begin(b.data), std::end(b.data), std::begin(outResult.data) + rows*cols);
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline void extractMatrices(Matrix2<T, 1, rows*cols + rows2*cols2> input, Matrix2<T, rows, cols>& a, Matrix2<T, rows2, cols2>& b)
+    {
+      std::copy_n(std::begin(input.data), rows*cols, std::begin(a.data));
+      std::copy_n(std::begin(input.data) + rows*cols, rows2*cols2, std::begin(b.data));
+    }
+
+    template <typename T, int rows, int cols, int rows2, int cols2>
+    inline Matrix2<T, rows, cols2> mul(Matrix2<T, rows, cols> a, Matrix2<T, rows2, cols2> b)
+    {
+      Matrix2<T, rows, cols2> outResult{};
+      for (int y = 0; y < cols2; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            outResult(x, y) += a(x, j) * b(j, y);
+          }
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> mulScalar(Matrix2<T, rows, cols> a, T b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) * b;
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> sub(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) - b(x, y);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> add(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < cols; ++y)
+      {
+        for (int x = 0; x < rows; ++x)
+        {
+          outResult(x, y) += a(x, y) + b(x, y);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline Matrix2<T, rows, cols> multiplyElementWise(Matrix2<T, rows, cols> a, Matrix2<T, rows, cols> b)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(y, x) = a(y, x) * b(y, x);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    Matrix2<T, cols, rows> transpose(Matrix2<T, rows, cols> value)
+    {
+      Matrix2<T, cols, rows> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(x, y) = value(y, x);
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols, typename Func>
+    inline Matrix2<T, rows, cols> transform(Matrix2<T, rows, cols> value, Func f)
+    {
+      Matrix2<T, rows, cols> outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult(y, x) = f(value(y, x));
+        }
+      }
+      return outResult;
+    }
+
+    template <typename T, int rows, int cols>
+    inline T sum(Matrix2<T, rows, cols> value)
+    {
+      T outResult{};
+      for (int y = 0; y < rows; ++y)
+      {
+        for (int x = 0; x < cols; ++x)
+        {
+          outResult += value(y, x);
+        }
+      }
+      return outResult;
+    }
+
+    // old stuff
+
     const float PI = 3.14159265f;
     static mat4 Translation(float x, float y, float z)
     {
@@ -162,7 +344,7 @@ namespace faze
         return mat4();
       }
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
       float b = 1.0f / std::tanf(fov*(PI / 180.f)*0.5f);
 #else
       float b = 1.0f / tanf(fov*(PI / 180.f)*0.5f);
@@ -252,7 +434,7 @@ namespace faze
     }
   };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( pop )
 #endif
 }

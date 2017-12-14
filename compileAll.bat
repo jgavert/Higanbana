@@ -1,0 +1,1 @@
+CALL FBuild.exe -dist -monitor App-x64

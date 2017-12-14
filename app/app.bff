@@ -6,43 +6,37 @@
 
   // Visual Studio Project Generation
   //--------------------------------------------------------------------------
-
-
-
   VCXProject( '$ProjectName$-proj' )
   {
-    .ProjectOutput          = '$ProjectPath$\$ProjectName$.vcxproj'
-    .ProjectInputPaths      = '$ProjectPath$\'
-    .ProjectBasePath        = '$ProjectPath$\'
-    .OutputDirectory        = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)'
-    .LocalDebuggerCommand   = '^$(SolutionDir)\bin\^$(Platform)-^$(Configuration)\^$(ProjectName)\^$(ProjectName).exe'
-    .LocalDebuggerWorkingDirectory = '^$(SolutionDir)\appspace\'
-    .ProjectConfigs         = .ProjectGfxConfigs
+    .ProjectOutput          = '$ProjectPath$/$ProjectName$.vcxproj'
+    .ProjectInputPaths      = '$ProjectPath$/'
+    .ProjectBasePath        = '$ProjectPath$/'
+    .OutputDirectory        = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+    .LocalDebuggerCommand   = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)/^$(ProjectName).exe'
+    .LocalDebuggerWorkingDirectory = '^$(SolutionDir)/appspace/'
+    .ProjectConfigs         = .ProjectConfigs
   }
 
   // Unity
   //--------------------------------------------------------------------------
-  ForEach( .gfxApi in .GraphicsBackends)
-  {
-    Using( .gfxApi )
-    {
-      // Common options
-      .UnityInputPath             = '$ProjectPath$\'
-      .UnityOutputPath            = '$OutputBase$\Unity\$ProjectPath$-$GraphicsApi$\'
 
-      // Windows
-      Unity( '$ProjectName$-$GraphicsApi$-Unity-Windows' )
-      {
-      }
-      // Linux
-      Unity( '$ProjectName$-$GraphicsApi$-Unity-Linux' )
-      {
-      }
+  {
+    // Common options
+    .UnityInputPath     = '$ProjectPath$/'
+    .UnityOutputPath    = '$OutputBase$/Unity/$ProjectPath$/'
+    .UnityOutputPattern = 'Unity_$ProjectName$.cpp'
+
+    // Windows
+    Unity( '$ProjectName$-Unity-Windows' )
+    {
+    }
+    // Linux
+    Unity( '$ProjectName$-Unity-Linux' )
+    {
     }
   }
   // Windows specials
   .CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
-                      + ' libcmt.lib'
                       + ' kernel32.lib'
                       + ' user32.lib'
                       + ' gdi32.lib'
@@ -55,19 +49,26 @@
                       + ' uuid.lib'
                       + ' odbc32.lib'
                       + ' odbccp32.lib'
-                      + ' libconcrt1.lib'
-                      + ' OLDNAMES.lib'
+                      + ' oldnames.lib'
                       + ' D3d12.lib'
                       + ' Dxgi.lib'
                       + ' atls.lib'
+                      + ' Shcore.lib'
                       + ' D3DCompiler.lib'
-                      + .vulkanlibs
+                      + ' dxguid.lib'
+					  + ' Imm32.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
+					            + ' libcmtd.lib'
                       + ' libucrtd.lib'
                       + ' libvcruntimed.lib'
+					            + ' libconcrtd1.lib'
+                      + .extDebLibs
   .Releaselinkerlibs  = ' libcpmt.lib'
+					            + ' libcmt.lib'
                       + ' libucrt.lib'
                       + ' libvcruntime.lib'
+					            + ' libconcrt1.lib'
+                      + .extRelLibs
   .Profilelinkerlibs  = .Releaselinkerlibs
 
   .X64DebugConfiguration =
@@ -75,8 +76,6 @@
     Using (.X64DebugConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Debuglinkerlibs
-                    + .oculuslibDebug
-
   ]
 
   .X64ProfileConfiguration =
@@ -84,7 +83,6 @@
     Using (.X64ProfileConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Profilelinkerlibs
-                    + .oculuslibRelDeb
   ]
 
   .X64ReleaseConfiguration =
@@ -92,7 +90,6 @@
     Using (.X64ReleaseConfig)
     .LinkerOptions  + .CommonLinkerLibs
                     + .Releaselinkerlibs
-                    + .oculuslibRelease
   ]
 
 
@@ -101,9 +98,10 @@
 
 // linux
   .LinuxCommonLinkerLibs   = ' '
-                      + .vulkanlibs
   .LinuxDebuglinkerlibs    = ' ' // brings thread support
+                           + .extDebLibs
   .LinuxReleaselinkerlibs  = ' '
+                           + .extRelLibs
   .LinuxProfilelinkerlibs  = .LinuxReleaselinkerlibs
 
   .X64LinuxDebugConfiguration =
@@ -111,8 +109,6 @@
     Using (.X64LinuxDebugConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxDebuglinkerlibs
-                    //+ .oculuslibDebug
-
   ]
 
   .X64LinuxProfileConfiguration =
@@ -120,7 +116,6 @@
     Using (.X64LinuxProfileConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxProfilelinkerlibs
-                    //+ .oculuslibRelDeb
   ]
 
   .X64LinuxReleaseConfiguration =
@@ -128,7 +123,6 @@
     Using (.X64LinuxReleaseConfig)
     .LinkerOptions  + .LinuxCommonLinkerLibs
                     + .LinuxReleaselinkerlibs
-                    //+ .oculuslibRelease
   ]
 
 
@@ -137,97 +131,98 @@
 
   // Windows (MSVC)
   //--------------------------------------------------------------------------
-  ForEach( .gfxApi in .GraphicsBackends)
+
+  ForEach( .Config in .Configs_Windows_MSVC2 )
   {
-    Using( .gfxApi )
-    ForEach( .Config in .Configs_Windows_MSVC2 )
+    Using( .Config )
+
+    .OutputBase + '/$Platform$-$Config$'
+
+    // Static Library
+    Library( '$ProjectName$-Lib-$Platform$-$Config$' )
     {
-      Using( .Config )
+      // Unity build
+      .CompilerInputUnity   = '$ProjectName$-Unity-Windows'
+      // Normal build
+      //.CompilerInputPath  = '$ProjectPath$/'
 
-      .CompilerOptions    + .gfxDefines
-      .PCHOptions         + .gfxDefines
-
-      .OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
-      //Print('$LinkerOptions$')
-      //Print('$BaseIncludePaths$')
-      // Static Library
-      Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
-      {
-        // Input (Unity)
-        .CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Windows'
-
-          // Output
-        .CompilerOutputPath   = '$OutputBase$\$ProjectName$\'
-        .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.lib'
-      }
-
-      // Executable
-      Executable( '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' )
-      {
-        .Libraries = {
-          '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-          'core-Lib-$Platform$-$Config$',
-          '$GfxName$-Lib-$Platform$-$Config$'
-        }
-        .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$.exe'
-      }
-      Alias( '$ProjectName$-$Platform$-$GraphicsApi$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' }
-    }
-    ForEach( .Config in .Configs_Linux)
-    {
-      Using( .Config )
-
-      .CompilerOptions    + .gfxDefines
-
-      .OutputBase + '\$Platform$-$GraphicsApi$-$Config$'
-      //Print('$LinkerOptions$')
-      //Print('$BaseIncludePaths$')
-      // Static Library
-      Library( '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$' )
-      {
-        // Input (Unity)
-        .CompilerInputUnity   = '$ProjectName$-$GraphicsApi$-Unity-Linux'
-
-          // Output
-        .CompilerOutputPath   = '$OutputBase$\$ProjectName$\'
-        .LibrarianOutput      = '$OutputBase$\$ProjectName$\$ProjectName$.a'
-      }
-
-      // Executable
-      Executable( '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' )
-      {
-        .Libraries = {
-          '$ProjectName$-Lib-$Platform$-$GraphicsApi$-$Config$',
-          'core-Lib-$Platform$-$Config$',
-          '$GfxName$-Lib-$Platform$-$Config$'
-        }
-        .LinkerOutput = '$OutputBase$\$ProjectName$\$ProjectName$'
-      }
-      Alias( '$ProjectName$-$Platform$-$GraphicsApi$-$Config$' ) { .Targets = '$ProjectName$-Exe-$Platform$-$GraphicsApi$-$Config$' }
+        // Output
+      .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
     }
 
-    // Aliases
-    //--------------------------------------------------------------------------
-    .PlatConfigs = {"X64", "X64Linux"}
-    // Per-Config
-    Alias( '$ProjectName$-$GraphicsApi$-Debug' )    { .Targets = { '$ProjectName$-X64-$GraphicsApi$-Debug'} } // to gather all one platform configs
-    Alias( '$ProjectName$-$GraphicsApi$-Profile' )  { .Targets = { '$ProjectName$-X64-$GraphicsApi$-Profile'} }
-    Alias( '$ProjectName$-$GraphicsApi$-Release' )  { .Targets = { '$ProjectName$-X64-$GraphicsApi$-Release'} }
-
-    // Per-Platform
-    Alias( '$ProjectName$-X64-$GraphicsApi$' )  { .Targets = { '$ProjectName$-X64-$GraphicsApi$-Debug', '$ProjectName$-X64-$GraphicsApi$-Release', '$ProjectName$-X64-$GraphicsApi$-Profile' } }
-
-    Alias( '$ProjectName$-x64Linux-$GraphicsApi$' ) { .Targets = { '$ProjectName$-X64Linux-$GraphicsApi$-Debug', '$ProjectName$-X64Linux-$GraphicsApi$-Release', '$ProjectName$-X64Linux-$GraphicsApi$-Profile' } }
-
-    // All
-    Alias( '$ProjectName$-$GraphicsApi$' )
+    // Executable
+    Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
     {
-      .Targets = { '$ProjectName$-$GraphicsApi$-Debug', '$ProjectName$-$GraphicsApi$-Profile', '$ProjectName$-$GraphicsApi$-Release' }
+      .Libraries = {
+        '$ProjectName$-Lib-$Platform$-$Config$',
+        'graphics-Lib-$Platform$-$Config$',
+        'core-Lib-$Platform$-$Config$'
+      }
+      .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$.exe'
     }
+
+	Copy('$ProjectName$-Exe-$Platform$-$Config$-DLL')
+	{
+	  .Source   = .extRelDlls
+	  .Dest     = '$OutputBase$/$ProjectName$/'
+	}
+
+    Alias( '$ProjectName$-$Platform$-$Config$' )
+	{
+		.Targets = { '$ProjectName$-Exe-$Platform$-$Config$', '$ProjectName$-Exe-$Platform$-$Config$-DLL'}
+	}
+  }
+  ForEach( .Config in .Configs_Linux)
+  {
+    Using( .Config )
+
+    .OutputBase + '/$Platform$-$Config$'
+
+    // Static Library
+    Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+    {
+      // Input (Unity)
+      .CompilerInputUnity   = '$ProjectName$-Unity-Linux'
+
+        // Output
+      .CompilerOutputPath   = '$OutputBase$/$ProjectName$/'
+      .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.a'
+    }
+
+    // Executable
+    Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
+    {
+      .Libraries = {
+        '$ProjectName$-Lib-$Platform$-$Config$',
+        'Graphics-Lib-$Platform$-$Config$'
+        'core-Lib-$Platform$-$Config$',
+      }
+      .LinkerOutput = '$OutputBase$/$ProjectName$/$ProjectName$'
+    }
+
+    Alias( '$ProjectName$-$Platform$-$Config$' )
+	{
+	  .Targets = { '$ProjectName$-Exe-$Platform$-$Config$'}
+	}
   }
 
+  // Aliases
+  //--------------------------------------------------------------------------
+  .PlatConfigs = {"X64", "X64Linux"}
+  // Per-Config
+  Alias( '$ProjectName$-Debug' )    { .Targets = { '$ProjectName$-X64-Debug'} } // to gather all one platform configs
+  Alias( '$ProjectName$-Profile' )  { .Targets = { '$ProjectName$-X64-Profile'} }
+  Alias( '$ProjectName$-Release' )  { .Targets = { '$ProjectName$-X64-Release'} }
+
+  // Per-Platform
+  Alias( '$ProjectName$-X64' )  { .Targets = { '$ProjectName$-X64-Debug', '$ProjectName$-X64-Release', '$ProjectName$-X64-Profile' } }
+
+  Alias( '$ProjectName$-x64Linux' ) { .Targets = { '$ProjectName$-X64Linux-Debug', '$ProjectName$-X64Linux-Release', '$ProjectName$-X64Linux-Profile' } }
+
+  // All
   Alias( '$ProjectName$' )
   {
-    .Targets = {'$ProjectName$-D3D12', '$ProjectName$-Vulkan', '$ProjectName$-Null'}
+    .Targets = { '$ProjectName$-Debug', '$ProjectName$-Profile', '$ProjectName$-Release' }
   }
 }
