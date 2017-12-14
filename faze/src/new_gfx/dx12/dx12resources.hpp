@@ -495,7 +495,7 @@ namespace faze
     class DX12Swapchain : public prototypes::SwapchainImpl
     {
     private:
-      D3D12Swapchain* m_resource;
+      ComPtr<D3D12Swapchain> m_resource;
       DX12GraphicsSurface m_surface;
       HANDLE m_frameLatencyObj;
       int m_backbufferIndex = 0;
@@ -513,7 +513,7 @@ namespace faze
     public:
       DX12Swapchain()
       {}
-      DX12Swapchain(D3D12Swapchain* resource, DX12GraphicsSurface surface, HANDLE frameLatObject)
+      DX12Swapchain(ComPtr<D3D12Swapchain> resource, DX12GraphicsSurface surface, HANDLE frameLatObject)
         : m_resource(resource)
         , m_surface(surface)
         , m_frameLatencyObj(frameLatObject)
@@ -592,7 +592,7 @@ namespace faze
 
       D3D12Swapchain* native()
       {
-        return m_resource;
+        return m_resource.Get();
       }
 
       DX12GraphicsSurface& surface()
@@ -603,6 +603,21 @@ namespace faze
       HANDLE frameLatencyObj()
       {
         return m_frameLatencyObj;
+      }
+
+      void setFrameLatencyObj(HANDLE h)
+      {
+          m_frameLatencyObj = h;
+      }
+
+      void setSwapchain(ComPtr<D3D12Swapchain> h)
+      {
+          m_resource = h;
+      }
+
+      void waitForFrameLatency()
+      {
+        WaitForSingleObjectEx(m_frameLatencyObj, 1000, TRUE);
       }
 
       void setBackbufferIndex(int index)

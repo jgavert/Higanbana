@@ -64,6 +64,10 @@ namespace faze
       FormatType format = FormatType::Unorm8RGBA;
       int bufferCount = 2;
       Colorspace colorSpace = Colorspace::BT709;
+
+      // if supported
+      int frameLatency = 3;
+
     } desc;
     SwapchainDescriptor()
     {}
@@ -86,6 +90,11 @@ namespace faze
     {
       desc.colorSpace = space;
       return *this;
+    }
+    SwapchainDescriptor& frameLatency(int latency)
+    {
+        desc.frameLatency = latency;
+        return *this;
     }
   };
 
