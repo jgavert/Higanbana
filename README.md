@@ -2,7 +2,7 @@
 Name depicts that the projects goal isn't clear, hence its referencing mist.
 It's a collection of libraries to fasten researching or prototyping of multithreaded and/or advanced graphics algorithms.
 
-###Current situation:
+### Current situation:
 Works on Win10, doesn't compile on linux.
 Vulkan isn't up-to-par with dx12.
 Api isn't finalized, need to work on multiple devices and queues.
