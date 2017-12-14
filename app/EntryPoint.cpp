@@ -73,6 +73,8 @@ int EntryPoint::main()
     int64_t frame = 1;
     FileSystem fs;
     WTime time;
+    WTime graphicsCpuTime;
+    WTime CpuTime;
 
     auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
@@ -168,8 +170,11 @@ int EntryPoint::main()
 
         bool closeAnyway = false;
 
+        graphicsCpuTime.firstTick();
+        CpuTime.firstTick();
         while (!window.simpleReadMessages(frame++))
         {
+          CpuTime.startFrame();
           fs.updateWatchedFiles();
           if (window.hasResized() || toggleHDR)
           {
@@ -201,7 +206,9 @@ int EntryPoint::main()
 
           // If you acquire, you must submit it. Next, try to first present empty image.
           // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
+          CpuTime.tick();
           auto backbuffer = dev.acquirePresentableImage(swapchain);
+          graphicsCpuTime.startFrame();
 
           CommandGraph tasks = dev.createGraph();
           /*
@@ -374,6 +381,11 @@ int EntryPoint::main()
               }
 
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
+              auto gfxTime = graphicsCpuTime.getCurrentFps();
+              auto cpuTime = CpuTime.getCurrentFps();
+              ImGui::Text("Graphics Cpu FPS %.2f (%.2fms)", 1000.f / gfxTime, gfxTime);
+              ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
+              ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime+gfxTime), cpuTime + gfxTime);
               ImGui::Text("Swapchain");
               ImGui::Text("format %s", formatToString(scdesc.desc.format));
               if (ImGui::Button(formatToString(FormatType::Unorm8RGBA)))
@@ -513,6 +525,7 @@ int EntryPoint::main()
           dev.submit(swapchain, tasks);
 
           dev.present(swapchain);
+          graphicsCpuTime.tick();
         }
       }
       if (!reInit)
