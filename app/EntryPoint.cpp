@@ -156,6 +156,7 @@ int EntryPoint::main()
           .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
+
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
@@ -426,6 +427,8 @@ int EntryPoint::main()
                 toggleHDR = true;
               }
               ImGui::SliderInt("Buffer count", &scdesc.desc.bufferCount, 2, 8);
+
+              ImGui::SliderInt("latency", &scdesc.desc.frameLatency, 1, 7);
 
               ImGui::Text("raymarch texture size %dx%d", ires.x(), ires.y());
 
