@@ -60,7 +60,7 @@ namespace faze
       , m_dmaQueues(false)
       , m_graphicQueues(false)
       , m_info(info)
-      , m_shaders(fs, "../vkShaders", "spirv")
+      , m_shaders(fs, "../app/shaders", "spirv")
       , m_freeQueueIndexes({})
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
@@ -672,6 +672,39 @@ namespace faze
       return info;
     }
 
+    void VulkanDevice::updatePipeline(GraphicsPipeline& pipe, vk::RenderPass, gfxpacket::Subpass&)
+    {
+      auto d = pipe.descriptor;
+      if (!d.vertexShaderPath.empty())
+      {
+        m_shaders.shader(m_device, d.vertexShaderPath, ShaderStorage::ShaderType::Vertex);
+      }
+
+      if (!d.hullShaderPath.empty())
+      {
+        m_shaders.shader(m_device, d.hullShaderPath, ShaderStorage::ShaderType::TessControl);
+      }
+
+      if (!d.domainShaderPath.empty())
+      {
+        m_shaders.shader(m_device, d.domainShaderPath, ShaderStorage::ShaderType::TessEvaluation);
+      }
+
+      if (!d.geometryShaderPath.empty())
+      {
+        m_shaders.shader(m_device, d.geometryShaderPath, ShaderStorage::ShaderType::Geometry);
+      }
+
+      if (!d.pixelShaderPath.empty())
+      {
+        m_shaders.shader(m_device, d.pixelShaderPath, ShaderStorage::ShaderType::Pixel);
+      }
+    }
+    void VulkanDevice::updatePipeline(ComputePipeline& pipe)
+    {
+      m_shaders.shader(m_device, pipe.descriptor.shader(), ShaderStorage::ShaderType::Compute);
+    }
+
     void VulkanDevice::collectTrash()
     {
     }
@@ -1009,7 +1042,7 @@ namespace faze
     {
       return std::make_shared<VulkanDynamicBufferView>();
     }
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamicImage(MemView<uint8_t> , unsigned )
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamicImage(MemView<uint8_t>, unsigned)
     {
       return std::make_shared<VulkanDynamicBufferView>();
     }
@@ -1196,12 +1229,18 @@ namespace faze
         semaphoreCount = 1;
       }
 
-      m_mainQueue.presentKHR(vk::PresentInfoKHR()
-        .setSwapchainCount(1)
-        .setPSwapchains(&swap)
-        .setPImageIndices(&index)
-        .setWaitSemaphoreCount(semaphoreCount)
-        .setPWaitSemaphores(&renderFinish));
+      try
+      {
+        m_mainQueue.presentKHR(vk::PresentInfoKHR()
+          .setSwapchainCount(1)
+          .setPSwapchains(&swap)
+          .setPImageIndices(&index)
+          .setWaitSemaphoreCount(semaphoreCount)
+          .setPWaitSemaphores(&renderFinish));
+      }
+      catch (...)
+      {
+      }
     };
   }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 #include <atomic>
 
 class allocs

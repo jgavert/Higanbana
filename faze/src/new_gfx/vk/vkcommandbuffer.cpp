@@ -6,7 +6,7 @@ namespace faze
 {
   namespace backend
   {
-    void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
+    void VulkanCommandBuffer::handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
     {
       // step1. check if renderpass is done, otherwise create renderpass
       auto& renderpassbegin = packetRef(gfxpacket::RenderpassBegin, begin);
@@ -192,6 +192,24 @@ namespace faze
       }
       // step2. compile used pipelines against the renderpass (lel, later)
       // ugh! Maybe easy, maybe not...
+      {
+        CommandPacket* subpass = nullptr;
+        for (CommandPacket* current = begin; current != end; current = current->nextPacket())
+        {
+          if (current->type() == CommandPacket::PacketType::Subpass)
+          {
+            subpass = current;
+            continue;
+          }
+          else if (current->type() == CommandPacket::PacketType::GraphicsPipelineBind)
+          {
+            auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, current);
+            F_ASSERT(subpass, "nullptr");
+            device->updatePipeline(ref.pipeline, *rp->native().get(), packetRef(gfxpacket::Subpass, subpass));
+            break;
+          }
+        }
+      }
 
       // step3. collect and register framebuffer to renderpass
 
@@ -272,7 +290,7 @@ namespace faze
       rp->setActiveFramebuffer(hash); // remember to set the current hash as active one.
     }
 
-    void preprocess(VulkanDevice* device, backend::IntermediateList& list)
+    void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
     {
       // find all renderpasses
 
@@ -291,11 +309,17 @@ namespace faze
         }
         case CommandPacket::PacketType::RenderpassEnd:
         {
-          F_ASSERT(beginPass != nullptr && endPass == nullptr, "!?");
+          F_ASSERT(beginPass != nullptr, "!?");
           endPass = packet;
           handleRenderpass(device, list, beginPass, endPass);
           beginPass = nullptr;
           endPass = nullptr;
+          break;
+        }
+        case CommandPacket::PacketType::ComputePipelineBind:
+        {
+          auto& ref = packetRef(gfxpacket::ComputePipelineBind, packet);
+          device->updatePipeline(ref.pipeline);
           break;
         }
         default:

@@ -158,7 +158,6 @@ int EntryPoint::main()
           .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
-
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
@@ -211,13 +210,13 @@ int EntryPoint::main()
           graphicsCpuTime.startFrame();
 
           CommandGraph tasks = dev.createGraph();
-          /*
+
           {
             auto node = tasks.createPass("clear");
             node.clearRT(backbuffer, vec4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
-          }*/
+          }
 
           {
             auto node = tasks.createPass("compute!");
@@ -264,17 +263,17 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
-          //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
+          blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
 
-      /*
-          uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
-          float scale = float(sdim.x()) / float(sdim.y());
+          /*
+              uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
+              float scale = float(sdim.x()) / float(sdim.y());
 
-          float nwidth = float(backbuffer.desc().desc.width)*0.2f;
-          float nheight = nwidth / scale;
+              float nwidth = float(backbuffer.desc().desc.width)*0.2f;
+              float nheight = nwidth / scale;
 
-          blit.blit(dev, tasks, backbuffer, testSrv, { 4, 800 }, int2{ int(nwidth), int(nheight) });
-      */
+              blit.blit(dev, tasks, backbuffer, testSrv, { 4, 800 }, int2{ int(nwidth), int(nheight) });
+          */
 
           {
             ImGuiIO &io = ImGui::GetIO();
@@ -385,7 +384,7 @@ int EntryPoint::main()
               auto cpuTime = CpuTime.getCurrentFps();
               ImGui::Text("Graphics Cpu FPS %.2f (%.2fms)", 1000.f / gfxTime, gfxTime);
               ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
-              ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime+gfxTime), cpuTime + gfxTime);
+              ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime + gfxTime), cpuTime + gfxTime);
               ImGui::Text("Swapchain");
               ImGui::Text("format %s", formatToString(scdesc.desc.format));
               if (ImGui::Button(formatToString(FormatType::Unorm8RGBA)))
@@ -524,8 +523,8 @@ int EntryPoint::main()
 
           dev.submit(swapchain, tasks);
 
-          dev.present(swapchain);
           graphicsCpuTime.tick();
+          dev.present(swapchain);
         }
       }
       if (!reInit)
@@ -542,7 +541,6 @@ int EntryPoint::main()
 
   LBS lbs;
   lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
-  //lbs.addTask("test2", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, false); });
   lbs.sleepTillKeywords({ "test1" });
 
 #endif

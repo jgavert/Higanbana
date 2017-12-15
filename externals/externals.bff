@@ -29,9 +29,11 @@
                   + 'Vulkan-Hpp'
 
 .extVisualStudioDefines + 'VK_USE_PLATFORM_WIN32_KHR;'
+						+ 'VULKAN_HPP_NO_SMART_HANDLE;'
 
 #if __WINDOWS__
 .extDefines       + ' /DVK_USE_PLATFORM_WIN32_KHR'
+				  + ' /DVULKAN_HPP_NO_SMART_HANDLE'
 #endif
 
 //////////////////////////////////////////////

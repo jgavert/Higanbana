@@ -3,7 +3,7 @@
 #include "faze/src/new_gfx/desc/formats.hpp"
 #include "core/src/system/helperMacros.hpp"
 
-#include <vulkan/vulkan.hpp>
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 
 namespace faze
 {

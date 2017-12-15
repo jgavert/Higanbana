@@ -125,6 +125,7 @@ namespace faze
           indexOffset += d.ElemCount;
         }
       }
+      node.endRenderpass();
     }
   }
 }
