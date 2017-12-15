@@ -122,7 +122,7 @@
               + .dxcLibDebug
 
 
-.extRelDlls = "externals/hlsl.bin/Release/bin/dxcompiler.dll"
+.extRelDlls = {"externals/hlsl.bin/Release/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll' }
 
 #if __WINDOWS__
 //.extRelLibs   + .compressLibRelease

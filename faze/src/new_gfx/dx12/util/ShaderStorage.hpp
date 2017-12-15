@@ -290,15 +290,15 @@ namespace faze
         ComPtr<IDxcBlobEncoding> errorblob;
         pResult->GetErrorBuffer(errorblob.GetAddressOf());
 
-        OutputDebugStringA("Error In \"");
-        OutputDebugStringA(shaderPath.c_str());
-        OutputDebugStringA("\": \n");
-        OutputDebugStringW((wchar_t*)errorblob->GetBufferPointer());
-        OutputDebugStringA("\n");
-
-        F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorblob->GetBufferPointer());
         if (FAILED(hr))
         {
+          OutputDebugStringA("Error In \"");
+          OutputDebugStringA(shaderPath.c_str());
+          OutputDebugStringA("\": \n");
+          OutputDebugStringW((wchar_t*)errorblob->GetBufferPointer());
+          OutputDebugStringA("\n");
+
+          F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorblob->GetBufferPointer());
           return false;
         }
         F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
