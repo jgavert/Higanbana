@@ -385,7 +385,7 @@ namespace faze
         break;
       }
 
-      if (colorSpace != sc->nativeColorspace())
+      //if (colorSpace != sc->nativeColorspace())
       {
         UINT colorSpaceSupport = 0;
         if (SUCCEEDED(sc->native()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)) &&

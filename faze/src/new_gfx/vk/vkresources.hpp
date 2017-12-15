@@ -1,6 +1,7 @@
 #pragma once
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
+#include "faze/src/new_gfx/common/commandpackets.hpp"
 
 #include "faze/src/new_gfx/vk/util/AllocStuff.hpp" // refactor
 #include "faze/src/new_gfx/vk/util/ShaderStorage.hpp"
@@ -9,12 +10,13 @@
 
 #include "core/src/system/MemoryPools.hpp"
 
-#include <vulkan/vulkan.hpp>
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 
 namespace faze
 {
   namespace backend
   {
+    class VulkanDevice;
     // implementations
     class VulkanCommandBuffer : public CommandBufferImpl
     {
@@ -26,6 +28,10 @@ namespace faze
         , m_pool(pool)
       {}
 
+    private:
+      void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
+      void preprocess(VulkanDevice* device, backend::IntermediateList& list);
+    public:
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
 
       vk::CommandBuffer list()
@@ -492,6 +498,9 @@ namespace faze
 
       vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
+
+      void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::Subpass& subpass);
+      void updatePipeline(ComputePipeline& pipeline);
 
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;

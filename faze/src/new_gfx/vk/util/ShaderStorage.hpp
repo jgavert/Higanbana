@@ -2,7 +2,7 @@
 
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/global_debug.hpp"
-#include <vulkan/vulkan.hpp>
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 #include <shaderc/shaderc.hpp>
 
 class ShaderStorage
@@ -74,7 +74,7 @@ public:
       F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
       std::string filename(requested_source);
       std::string fullPath = sourcePath + filename;
-      if (filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
+      if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
       {
         fullPath = "/../" + filename;
         if (!m_fs.fileExists(fullPath))
@@ -116,8 +116,10 @@ public:
     std::string text;
     text.resize(view.size());
     memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
+    /*
     printf("%s\n", text.data());
     OutputDebugStringA(text.data());
+    */
     //text.erase(std::remove(text.begin(), text.end(), '\0'), text.end());
 
     shaderc::CompileOptions opt;
@@ -190,6 +192,8 @@ public:
       .setPCode(reinterpret_cast<uint32_t*>(shader.data()))
       .setCodeSize(shader.size());
 
-    return device.createShaderModule(moduleCreate);
+    auto shaderMod = device.createShaderModule(moduleCreate);
+
+    return shaderMod;
   }
 };

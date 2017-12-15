@@ -50,7 +50,7 @@ public:
     else
     {
       finalPath = m_sourcePath + filename;
-      // m_sourcePath + 
+      // m_sourcePath +
     }
     F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
@@ -129,7 +129,7 @@ namespace faze
     class DX12ShaderStorage
     {
     private:
-      FileSystem& m_fs;
+      FileSystem & m_fs;
       std::string sourcePath;
       std::string compiledPath;
       std::string sourceCopyPath;
@@ -287,16 +287,16 @@ namespace faze
         HRESULT hr;
 
         pResult->GetStatus(&hr);
-		ComPtr<IDxcBlobEncoding> errorblob;
-		pResult->GetErrorBuffer(errorblob.GetAddressOf());
+        ComPtr<IDxcBlobEncoding> errorblob;
+        pResult->GetErrorBuffer(errorblob.GetAddressOf());
 
-		OutputDebugStringA("Error In \"");
-		OutputDebugStringA(shaderPath.c_str());
-		OutputDebugStringA("\": \n");
-		OutputDebugStringW((wchar_t*)errorblob->GetBufferPointer());
-		OutputDebugStringA("\n");
+        OutputDebugStringA("Error In \"");
+        OutputDebugStringA(shaderPath.c_str());
+        OutputDebugStringA("\": \n");
+        OutputDebugStringW((wchar_t*)errorblob->GetBufferPointer());
+        OutputDebugStringA("\n");
 
-		F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorblob->GetBufferPointer());
+        F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorblob->GetBufferPointer());
         if (FAILED(hr))
         {
           return false;
@@ -310,7 +310,7 @@ namespace faze
         m_fs.writeFile(dxilPath, viewToBlob);
         return true;
 #else
-        
+
         CShaderInclude include(m_fs, sourcePath);
         auto p = shaderFeature(type);
         UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | /*D3DCOMPILE_WARNINGS_ARE_ERRORS |*/ D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES | D3DCOMPILE_ALL_RESOURCES_BOUND;
@@ -320,7 +320,7 @@ namespace faze
 #if !defined(DEBUG)
         compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
-        
+
         ComPtr<ID3DBlob> shaderBlob;
         ComPtr<ID3DBlob> errorMsg;
 
@@ -336,21 +336,20 @@ namespace faze
         {
           if (errorMsg.Get())
           {
-            
-                OutputDebugStringA("Error In \"");
-                OutputDebugStringA(shaderPath.c_str());
-                OutputDebugStringA("\": \n");
-                OutputDebugStringA((char*)errorMsg->GetBufferPointer());
+            OutputDebugStringA("Error In \"");
+            OutputDebugStringA(shaderPath.c_str());
+            OutputDebugStringA("\": \n");
+            OutputDebugStringA((char*)errorMsg->GetBufferPointer());
 
-                F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
-              }
-              //abort();
-              return false;
-            }
+            F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), (char*)errorMsg->GetBufferPointer());
+          }
+          //abort();
+          return false;
+        }
 
-            F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
-            m_fs.writeFile(dxilPath, faze::reinterpret_memView<const uint8_t>(faze::makeByteView(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize())));
-            return true;
+        F_ILOG("ShaderStorage", "Compiled: \"%s\"", shaderName.c_str());
+        m_fs.writeFile(dxilPath, faze::reinterpret_memView<const uint8_t>(faze::makeByteView(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize())));
+        return true;
 #endif
       }
 
@@ -391,16 +390,16 @@ namespace faze
         return shader;
       }
 
-	  /*
-      ComPtr<ID3DBlob> rootSignature(std::string shaderName, ShaderType type)
-      {
-        auto shd = shader(shaderName, type);
+      /*
+        ComPtr<ID3DBlob> rootSignature(std::string shaderName, ShaderType type)
+        {
+          auto shd = shader(shaderName, type);
 
-        ComPtr<ID3DBlob> rootBlob;
-        // extract root
-        D3DGetBlobPart(shd.data(), shd.size(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.GetAddressOf());
-        return rootBlob;
-      }	 */
+          ComPtr<ID3DBlob> rootBlob;
+          // extract root
+          D3DGetBlobPart(shd.data(), shd.size(), D3D_BLOB_ROOT_SIGNATURE, 0, rootBlob.GetAddressOf());
+          return rootBlob;
+        }	 */
 
       WatchFile watch(std::string shaderName, ShaderType type)
       {
