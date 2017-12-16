@@ -472,6 +472,8 @@ namespace faze
       Rabbitpool2<VulkanCommandBuffer>  m_computeListPool;
       Rabbitpool2<VulkanCommandBuffer>  m_graphicsListPool;
 
+      unordered_map<size_t, std::shared_ptr<vk::RenderPass>> m_renderpasses;
+
       struct FreeQueues
       {
         int universalIndex;
@@ -498,6 +500,8 @@ namespace faze
 
       vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
       vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
+
+      std::shared_ptr<vk::RenderPass> createRenderpass(const vk::RenderPassCreateInfo& info);
 
       void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::Subpass& subpass);
       void updatePipeline(ComputePipeline& pipeline);

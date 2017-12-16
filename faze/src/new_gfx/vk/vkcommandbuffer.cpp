@@ -180,15 +180,9 @@ namespace faze
           .setPDependencies(dependencies.data())
           .setPSubpasses(subpasses.data());
 
-        auto renderpass = device->native().createRenderPass(rpinfo);
-        ;
-        rp->native() = std::shared_ptr<vk::RenderPass>(new vk::RenderPass(renderpass), [dev = device->native()](vk::RenderPass* ptr)
-        {
-          dev.destroyRenderPass(*ptr);
-          delete ptr;
-        });
+        auto rpobj = device->createRenderpass(rpinfo);
 
-        F_LOG("have created a renderpass!\n");
+        rp->native() = rpobj;
       }
       // step2. compile used pipelines against the renderpass (lel, later)
       // ugh! Maybe easy, maybe not...
@@ -263,9 +257,9 @@ namespace faze
         }
       }
 
-      auto hash = HashMemory(attachments.data(), attachments.size());
+      size_t attachmentsHash = HashMemory(attachments.data(), attachments.size());
       auto& fbs = rp->framebuffers();
-      auto* exists = fbs.find(hash);
+      auto* exists = fbs.find(attachmentsHash);
       if (exists == fbs.end())
       {
         vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
@@ -276,7 +270,7 @@ namespace faze
           .setRenderPass(*rp->native())
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()));
 
-        fbs[hash] = std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
+        fbs[attachmentsHash] = std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
         {
           dev.destroyFramebuffer(*ptr);
           delete ptr;
@@ -287,7 +281,7 @@ namespace faze
       {
         //F_LOG("Framebuffer was already found!!!!\n");
       }
-      rp->setActiveFramebuffer(hash); // remember to set the current hash as active one.
+      rp->setActiveFramebuffer(attachmentsHash); // remember to set the current hash as active one.
     }
 
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
