@@ -342,9 +342,7 @@ namespace faze
         F_ASSERT(false, "Was not supported.");
       }
 
-      auto sFormats = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
-
-      for (auto&& f : sFormats)
+      for (auto&& f : formats)
       {
         auto cs = f.colorSpace;
         F_LOG("found surface format %s %s\n", vk::to_string(cs).c_str(), vk::to_string(f.format).c_str());
@@ -387,6 +385,32 @@ namespace faze
       format = (format == FormatType::Unknown) ? natSwapchain->getDesc().format : format;
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
       mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
+
+      auto formats = m_physDevice.getSurfaceFormatsKHR(natSurface.native());
+
+      auto wantedFormat = formatToVkFormat(format).storage;
+      auto backupFormat = vk::Format::eB8G8R8A8Unorm;
+      bool found = false;
+      bool hadBackup = false;
+      for (auto&& fmt : formats)
+      {
+        if (wantedFormat == fmt.format)
+        {
+          found = true;
+        }
+        if (backupFormat == fmt.format)
+        {
+          hadBackup = true;
+        }
+        F_SLOG("Graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
+      }
+
+      if (!found)
+      {
+        F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
+        wantedFormat = backupFormat;
+        format = FormatType::Unorm8BGRA;
+      }
 
       auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
 
@@ -670,6 +694,34 @@ namespace faze
       }
 
       return info;
+    }
+
+    std::shared_ptr<vk::RenderPass> VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
+    {
+      auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount);
+      auto dependencyHash = HashMemory(info.pDependencies, info.dependencyCount);
+      auto subpassHash = HashMemory(info.pSubpasses, info.subpassCount);
+      auto totalHash = hash_combine(hash_combine(attachmentHash, dependencyHash), subpassHash);
+
+      auto found = m_renderpasses.find(totalHash);
+      if (found != m_renderpasses.end())
+      {
+        //GFX_LOG("Reusing old renderpass.\n");
+        return found->second;
+      }
+
+      auto renderpass = m_device.createRenderPass(info);
+
+      auto newRP = std::shared_ptr<vk::RenderPass>(new vk::RenderPass(renderpass), [dev = m_device](vk::RenderPass* ptr)
+      {
+        dev.destroyRenderPass(*ptr);
+        delete ptr;
+      });
+
+      m_renderpasses[totalHash] = newRP;
+
+      GFX_LOG("Created new renderpass object.\n");
+      return newRP;
     }
 
     void VulkanDevice::updatePipeline(GraphicsPipeline& pipe, vk::RenderPass, gfxpacket::Subpass&)
