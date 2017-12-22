@@ -293,7 +293,9 @@ namespace faze
       sc->setBufferMetadata(width, height, descriptor);
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
 
-      ensureSwapchainColorspace(sc, descriptor);
+#if !defined(FAZE_NSIGHT_COMPATIBILITY)
+      ensureSwapchainColorspace(natSwapchain, d);
+#endif
       return sc;
     }
 
@@ -340,7 +342,9 @@ namespace faze
 
       natSwapchain->setBufferMetadata(width, height, d);
 
+#if !defined(FAZE_NSIGHT_COMPATIBILITY)
       ensureSwapchainColorspace(natSwapchain, d);
+#endif
     }
 
     void DX12Device::ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor)
