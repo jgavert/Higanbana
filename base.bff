@@ -17,7 +17,7 @@ Settings
 Compiler( 'Compiler-x64' )
 {
   .Root   = '$VSBasePath$/VC/Tools/MSVC/$VSVersion$/bin/HostX64/x64'
-  .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/onecore/x64/Microsoft.VC150.CRT'
+  .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/x64/Microsoft.VC141.CRT'
   .Executable = '$Root$/cl.exe'
   .ExtraFiles = { '$Root$/c1.dll',
                   '$Root$/atlprov.dll',
