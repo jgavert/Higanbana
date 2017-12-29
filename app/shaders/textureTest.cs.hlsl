@@ -315,8 +315,8 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 
 	//output[id] = float4(sin(iTime)*0.2 + fp.x, cos(iTime)*0.5 + fp.y, 0.f, 1.f);
 
-	float3 position = float3(-3,5.0,0.0);
-  float3 direction = position + float3(0.4 + sin(iTime*0.1)*0.2, .0, 0.99);
+	float3 position = iPos;
+  float3 direction = iDir;
 
   uint index = gid.x + gid.y*8;
 

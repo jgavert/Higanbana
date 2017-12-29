@@ -12,7 +12,9 @@ FAZE_CBUFFER
   float iTimeDelta;
   int	iFrame;
   float2 mouse;
-  uint _padding;
+  float3 iPos;
+  float3 iDir;
+  uint _unused;
 };
 
 FAZE_UAV(RWTexture2D<float4>, output, 0)
