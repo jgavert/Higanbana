@@ -1,4 +1,4 @@
-#!/bin/python3.5
+#!/bin/python3.6
 import os
 
 config = """.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
@@ -6,7 +6,7 @@ config = """.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/fazecache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.65.0'
+.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.65.1'
 #endif
 #if __LINUX__
 .FazEPath = 'CURRENT_DIRECTORY'

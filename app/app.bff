@@ -57,6 +57,9 @@
                       + ' D3DCompiler.lib'
                       + ' dxguid.lib'
 					  + ' Imm32.lib'
+					  + ' xinput.lib'
+					  + ' dinput8.lib'
+					  + ' dxguid.lib'
   .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
 					            + ' libcmtd.lib'
                       + ' libucrtd.lib'

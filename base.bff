@@ -17,9 +17,9 @@ Settings
 Compiler( 'Compiler-x64' )
 {
   .Root   = '$VSBasePath$/VC/Tools/MSVC/$VSVersion$/bin/HostX64/x64'
-  .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/x64/Microsoft.VC141.CRT'
+  .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/onecore/x64/Microsoft.VC150.CRT'
   .Executable = '$Root$/cl.exe'
-  .ExtraFiles = { '$Root$/c1.dll'
+  .ExtraFiles = { '$Root$/c1.dll',
                   '$Root$/atlprov.dll',
                   '$Root$/c1xx.dll',
                   '$Root$/dpcmi.dll',
@@ -36,9 +36,9 @@ Compiler( 'Compiler-x64' )
                   '$Root$/pgort140.dll',
                   '$Root$/vcmeta.dll',
                   '$helperPath$/msvcp140.dll',
-                  '$helperPath$/vcruntime140.dll'
+                  '$helperPath$/vcruntime140.dll',
                   '$helperPath$/vccorlib140.dll',
-                  '$helperPath$/concrt140.dll'
+                  //'$helperPath$/concrt140.dll'
                   }
 
 	//.Root = '$VSBasePath$/VC/ClangC2'
@@ -285,8 +285,8 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .ProjectCommon =
 [
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir)/ &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
   .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
   .Platform                 = 'x64'

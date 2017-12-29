@@ -29,6 +29,8 @@
 #include "faze/src/new_gfx/common/cpuimage.hpp"
 #include "faze/src/new_gfx/common/image_loaders.hpp"
 
+#include "core/src/input/gamepad.hpp"
+
 using namespace faze;
 
 class DynamicScale
@@ -76,6 +78,9 @@ int EntryPoint::main()
     WTime graphicsCpuTime;
     WTime CpuTime;
 
+    gamepad::Fic directInputs;
+    directInputs.enumerateDevices();
+
     auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
 
@@ -112,6 +117,11 @@ int EntryPoint::main()
       float raymarchfpsTarget = 16.666667f;
       float raymarchFpsThr = 0.2f;
       bool raymarchDynamicEnabled = false;
+
+      // position and dir
+      vec3 position;
+      vec3 dir;
+      Quaternion direction;
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
       window.open();
@@ -174,6 +184,42 @@ int EntryPoint::main()
         while (!window.simpleReadMessages(frame++))
         {
           CpuTime.startFrame();
+
+          // update inputs and our position
+          directInputs.pollDevices();
+          {
+            auto input = directInputs.getFirstActiveGamepad();
+
+            vec2 xy{};
+
+            auto floatizeAxises = [](int16_t input, float& output)
+            {
+              constexpr int16_t deadzone = 8000;
+              if (std::abs(input) > deadzone)
+              {
+                constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
+                output = static_cast<float>(std::abs(input) - deadzone) / max;
+                output *= (input < 0) ? -1 : 1;
+              }
+            };
+
+            floatizeAxises(input.lstick[0].value, xy.data[0]);
+            floatizeAxises(input.lstick[1].value, xy.data[1]);
+
+            vec2 rxy{};
+            floatizeAxises(input.rstick[0].value, rxy.data[0]);
+            floatizeAxises(input.rstick[1].value, rxy.data[1]);
+
+            direction = direction * Quaternion::Rotation(rxy.x(), rxy.y(), 0.f);
+
+            dir = rotateVector(vec3{ 0.f, 1.f, 0.f }, Quaternion::Normalize(direction));
+            dir = dir.normalize();
+            position = position + dir*xy.y();
+            F_LOG("getting data %f %f %f dir %f %f %f\n", position.x(), position.y(), position.z(), dir.x(), dir.y(), dir.z());
+          }
+
+
+          // update fs
           fs.updateWatchedFiles();
           if (window.hasResized() || toggleHDR)
           {
@@ -227,6 +273,8 @@ int EntryPoint::main()
             binding.constants.iResolution = iRes;
             binding.constants.iFrame = static_cast<int>(frame);
             binding.constants.iTime = time.getFTime();
+            binding.constants.iPos = position;
+            binding.constants.iDir = dir;
             binding.uav(::shader::TextureTest::output, texUav);
 
             unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x()), 8));
@@ -263,7 +311,7 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
-          blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
+          //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
 
           /*
               uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };

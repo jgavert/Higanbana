@@ -21,6 +21,16 @@ namespace faze
     */
     std::array<VectorType, NUM_ELEMENTS> data;
 
+    inline VectorType length()
+    {
+      VectorType amount = 0;
+      for (int i = 0; i < NUM_ELEMENTS; i++)
+      {
+        amount += data[i] * data[i];
+      }
+      return std::sqrt(amount);
+    }
+
     inline Vector normalize()
     {
       VectorType amount = 0;
@@ -217,7 +227,7 @@ namespace faze
     Vector<4, float> data;
 
     // RotateAxis(1,0,0,amount) -> this would rotate x axis... someway :D?
-    inline Quaternion RotateAxis(float x, float y, float z, float amount)
+    static inline Quaternion RotateAxis(float x, float y, float z, float amount)
     {
       Quaternion local;
       local[0] = cos(amount / 2.f);
@@ -228,7 +238,7 @@ namespace faze
     }
 
     // Use this to do all rotations at once (just does many times the RotateAxis)
-    inline Quaternion Rotation(float x, float y, float z)
+    static inline Quaternion Rotation(float x, float y, float z)
     {
       Quaternion total;
       total = RotateAxis(1.f, 0.f, 0.f, x) * total;
@@ -237,7 +247,7 @@ namespace faze
       return total;
     }
     // operations
-    inline Quaternion Normalize(Quaternion& quat2)
+    static inline Quaternion Normalize(Quaternion& quat2)
     {
       Quaternion ret;
       float magnitude = std::sqrt(std::pow(quat2[0], 2.0f) + std::pow(quat2[1], 2.0f) + std::pow(quat2[2], 2.0f) + std::pow(quat2[3], 2.0f));
@@ -247,7 +257,7 @@ namespace faze
       }
       return ret;
     }
-    inline Quaternion operator*(Quaternion& quat2)
+    inline Quaternion operator*(Quaternion quat2)
     {
       Quaternion retur;
       retur[0] = data[0] * quat2[0];
@@ -265,7 +275,24 @@ namespace faze
     {
       return data[i];
     }
+
+
   };
+
+  inline Vector<3, float> rotateVector(Vector<3, float> v, Quaternion quat)
+  {
+    // Extract the vector part of the quaternion
+    Vector<3, float> u{ quat[1], quat[2], quat[3] };
+
+    // Extract the scalar part of the quaternion
+    float s = quat[0];
+
+    // Do the math
+    vec3 vprime = u * 2.0f * u.dot(v);
+    vprime = vprime + v * (s*s - u.dot(u));
+    vprime = vprime + u.CrossProduct(v) * 2.0f * s;
+    return vprime;
+  }
 
   class vecTemplateTests
   {
