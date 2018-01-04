@@ -62,7 +62,7 @@ namespace faze
       int yPos = GET_Y_LPARAM(lParam);
       if (me)
       {
-        me->m_mouse.m_pos = faze::ivec2{ xPos, yPos };
+        me->m_mouse.m_pos = int2{ xPos, yPos };
       }
       break;
     }

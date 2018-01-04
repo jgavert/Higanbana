@@ -1,22 +1,25 @@
 #include "network.hpp"
-#include "core/src/math/mat_templated.hpp"
+#include "core/src/math/math.hpp"
 #include "core/src/tools/bentsumaakaa.hpp"
+
+
 
 namespace faze
 {
+  using namespace math;
 	void testNetwork(Logger& log)
 	{
 		Bentsumaakaa b;
 		b.start();
 		constexpr static int major = 3;
 		constexpr static int minor = 2;
-		Matrix2<double, major, minor> test;
-		Matrix2<double, minor, major> test2;
+		Matrix<major, minor, double> test;
+		Matrix<minor, major, double> test2;
 		for (int i = 0; i < major; ++i)
 		{
 			for (int k = 0; k < minor; ++k)
 			{
-				test(i,k) = double(i + k);
+				test(k,i) = double(i + k);
 			}
 		}
 		for (int i = 0; i < major; ++i)
@@ -26,22 +29,22 @@ namespace faze
 				test2(k,i) = double(i + k);
 			}
 		}
-		auto res = MatrixMath::mul(test, test2);
+		Matrix<major, major, double> res = mul(test, test2);
 
-		auto vect = MatrixMath::concatenateToSingleDimension(test, test2);
-		for (int i = 0; i < vect.data.size(); ++i)
+		auto vect = concatenateToSingleDimension(test, test2);
+		for (int i = 0; i < vect.size(); ++i)
 		{
 			vect(i) = double(i);
 		}
-		MatrixMath::extractMatrices(vect, test, test2);
+		extractMatrices(vect, test, test2);
 
-		Matrix2<double, 1, 2> input { 1.0, 1.0};
+		Matrix<1, 2, double> input { 1.0, 1.0};
 
 		NeuralNetwork<100, 2, 1, 1> ann;
 		auto result = ann.forward(input);
-		printMat(result);
-		Matrix2<double, 1, 1> expected { 2.0};
-		printMat(expected);
+    F_LOG("%s\n", toString(result).c_str());
+		Matrix<1, 1, double> expected { 2.0};
+    F_LOG("%s\n", toString(expected).c_str());
 		auto oo = ann.costFunction(expected);
 		F_LOG("costFunction: %f\n", oo);
 		//ann.costFunctionPrime(input, expected);
@@ -71,35 +74,35 @@ namespace faze
 			return iter;
 		};
 		uint64_t totalIterations = 0;
-		totalIterations += trainNetwork(ann, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{ 1.0});
-		totalIterations += trainNetwork(ann, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{ 1.0});
+		totalIterations += trainNetwork(ann, Matrix<1, 2, double>{ 0.0, 1.0}, Matrix<1, 1, double>{ 1.0});
+		totalIterations += trainNetwork(ann, Matrix<1, 2, double>{ 1.0, 0.0}, Matrix<1, 1, double>{ 1.0});
 
 		F_LOG("Overall %zu iterations to train the network.\n", totalIterations);
 
-		printMat(ann.forward(Matrix2<double, 1, 2>{ 5, 12}));
-		printMat(ann.forward(Matrix2<double, 1, 2>{ 100, 50}));
-		printMat(ann.forward(Matrix2<double, 1, 2>{ 1, 2}));
-		printMat(ann.forward(Matrix2<double, 1, 2>{ 123456, 234567}));
+		printMat(ann.forward(Matrix<1, 2, double>{ 5, 12}));
+		printMat(ann.forward(Matrix<1, 2, double>{ 100, 50}));
+		printMat(ann.forward(Matrix<1, 2, double>{ 1, 2}));
+		printMat(ann.forward(Matrix<1, 2, double>{ 123456, 234567}));
 		// close perfect answers above.
 
 		// this doesnt really work.
 		NeuralNetwork<10, 2, 1, 1> ann2;
 		totalIterations = 0;
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{0.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 1.0}, Matrix2<double, 1, 1>{1.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 2.0, 4.0}, Matrix2<double, 1, 1>{8.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{0.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 2.0}, Matrix2<double, 1, 1>{8.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 0.0}, Matrix2<double, 1, 1>{0.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 1.0, 1.0}, Matrix2<double, 1, 1>{1.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 2.0, 4.0}, Matrix2<double, 1, 1>{8.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 0.0, 1.0}, Matrix2<double, 1, 1>{0.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 2.0}, Matrix2<double, 1, 1>{8.0});
-		totalIterations += trainNetwork(ann2, Matrix2<double, 1, 2>{ 4.0, 4.0}, Matrix2<double, 1, 1>{16.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 1.0, 0.0}, Matrix<1, 1, double>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 1.0, 1.0}, Matrix<1, 1, double>{1.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 2.0, 4.0}, Matrix<1, 1, double>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 0.0, 1.0}, Matrix<1, 1, double>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 4.0, 2.0}, Matrix<1, 1, double>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 1.0, 0.0}, Matrix<1, 1, double>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 1.0, 1.0}, Matrix<1, 1, double>{1.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 2.0, 4.0}, Matrix<1, 1, double>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 0.0, 1.0}, Matrix<1, 1, double>{0.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 4.0, 2.0}, Matrix<1, 1, double>{8.0});
+		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 4.0, 4.0}, Matrix<1, 1, double>{16.0});
 
-		printMat(ann2.forward(Matrix2<double, 1, 2>{ 4.0, 1.0}));
-		printMat(ann2.forward(Matrix2<double, 1, 2>{ 9.0, 2.0}));
-		printMat(ann2.forward(Matrix2<double, 1, 2>{ 9.0, 9.0}));
+		printMat(ann2.forward(Matrix<1, 2, double>{ 4.0, 1.0}));
+		printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 2.0}));
+		printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 9.0}));
 
 		auto val = b.stop();
 

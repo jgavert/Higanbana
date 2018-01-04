@@ -25,15 +25,15 @@ namespace faze
         return;
       }
       D3D12_VIEWPORT port{};
-      port.Width = float(size.x());
-      port.Height = float(size.y());
+      port.Width = float(size.x);
+      port.Height = float(size.y);
       port.MinDepth = D3D12_MIN_DEPTH;
       port.MaxDepth = D3D12_MAX_DEPTH;
       buffer->RSSetViewports(1, &port);
 
       D3D12_RECT rect{};
-      rect.bottom = size.y();
-      rect.right = size.x();
+      rect.bottom = size.y;
+      rect.right = size.x;
       buffer->RSSetScissorRects(1, &rect);
 
       D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8]{};
@@ -120,10 +120,10 @@ namespace faze
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
     {
       D3D12_RECT rect{};
-      rect.bottom = packet.bottomright.y();
-      rect.right = packet.bottomright.x();
-      rect.top = packet.topleft.y();
-      rect.left = packet.topleft.x();
+      rect.bottom = packet.bottomright.y;
+      rect.right = packet.bottomright.x;
+      rect.top = packet.topleft.y;
+      rect.left = packet.topleft.x;
       buffer->RSSetScissorRects(1, &rect);
     }
 
@@ -156,7 +156,7 @@ namespace faze
     }
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
     {
-      buffer->Dispatch(packet.groups.x(), packet.groups.y(), packet.groups.z());
+      buffer->Dispatch(packet.groups.x, packet.groups.y, packet.groups.z);
     }
 
     UploadBlock DX12CommandList::allocateConstants(size_t size)
@@ -259,7 +259,7 @@ namespace faze
     {
       auto view = std::static_pointer_cast<DX12TextureView>(packet.rtv.native());
       auto texture = std::static_pointer_cast<DX12Texture>(packet.rtv.texture().native());
-      float rgba[4]{ packet.color.x(), packet.color.y(), packet.color.z(), packet.color.w() };
+      float rgba[4]{ packet.color.x, packet.color.y, packet.color.z, packet.color.w};
       buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
     }
 

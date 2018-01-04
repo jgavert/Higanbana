@@ -1,7 +1,7 @@
 #pragma once
 #include "ProgramParams.hpp"
 #include "core/src/input/InputBuffer.hpp"
-#include "core/src/math/vec_templated.hpp"
+#include "core/src/math/math.hpp"
 #include "core/src/datastructures/proxy.hpp"
 
 #include <string>
@@ -55,7 +55,7 @@ public:
 class MouseState
 {
 public:
-  faze::ivec2 m_pos;
+  int2 m_pos;
   int mouseWheel = 0;
   bool captured = true;
 };

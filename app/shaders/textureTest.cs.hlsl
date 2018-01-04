@@ -11,15 +11,15 @@ struct RayData
 
 groupshared RayData rdata[64];
 
-#define MAX_ITER 120.0
+#define MAX_ITER 80.0
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 6.0
+#define MAXREFLECTION 2.0
 // how much object reflects light
 #define REFLECTIVITY 0.3
 // How far rays can travel(applies to first ray only)
-#define MAXLENGTH 140.0
+#define MAXLENGTH 80.0
 // color to red by iteration multiplier
 #define COLORBYITER 0.0
 // This multiplies the one intensity of the light
@@ -181,9 +181,9 @@ float3 shadowray2(float3 hitSpot, float3 lightPos) {
 }
 
 float3 getCameraRay(float3 posi, float3 dir, float2 pos) {
-  float3 camera_right = cross(dir, float3(0.0,1.0,0.0));
-  float3 camera_up = cross(camera_right, dir);
-  float3 image_point = pos.x * camera_right + pos.y*camera_up + posi+dir;
+  float3 camera_right = normalize(cross(dir, iUpDir));
+  float3 camera_up = normalize(cross(dir, camera_right));
+  float3 image_point = pos.x * camera_right + pos.y*camera_up + posi + dir;
   return normalize(image_point-posi);
 }
 
@@ -251,7 +251,7 @@ void castManyRays(in uint index)
   const float epsilon = 0.001;
   const float colorMultiplier = 1.0 / (pow(rayMulti,2.0) + 2.0*rayMulti + 1.0);
   //float3 mixColor = float3(0,0,0);
-  const float3 camDir = normalize(rdata[index].direction-rdata[index].ro);
+  const float3 camDir = normalize(rdata[index].direction);
   for (float x = 0.0; x <= RAYMULTIPLIER-1.0; x++)
   {
 	  for (float y = 0.0; y <= RAYMULTIPLIER-1.0; y++)
@@ -318,11 +318,16 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 	float3 position = iPos;
   float3 direction = iDir;
 
+  direction = normalize(direction);
   uint index = gid.x + gid.y*8;
 
   rdata[index].fragCoord = fp;
   rdata[index].ro = position;
-	rdata[index].direction = direction;
+  //rdata[index].ro = float3(0.f, 0.f, 0.f);
+	//rdata[index].direction = direction;
+  rdata[index].direction = direction;
+  //rdata[index].direction.x = sin(iTime);
+  //rdata[index].direction.z = cos(iTime);
 	rdata[index].mixColor = float3(0.f, 0.f, 0.f);
 	rdata[index].lightPos = float3(-3.4 + sin(iTime*0.3)*0.2,3.0,-1.5);
 	//GroupMemoryBarrierWithGroupSync();

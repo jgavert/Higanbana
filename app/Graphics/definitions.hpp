@@ -3,7 +3,7 @@
 
 #ifdef __cplusplus
 
-#include "core/src/math/vec_templated.hpp"
+#include "core/src/math/math.hpp"
 
 #define FAZE_BEGIN_LAYOUT(signatureName) \
 namespace shader\

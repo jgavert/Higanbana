@@ -1,7 +1,7 @@
 #pragma once
 
 #include "faze/src/new_gfx/common/resource_descriptor.hpp"
-#include "core/src/math/vec_templated.hpp"
+#include "core/src/math/math.hpp"
 #include "core/src/datastructures/proxy.hpp"
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
@@ -85,17 +85,17 @@ namespace faze
       sbinfo info{};
       info.offset = 0;
       info.dim = int3{ static_cast<int>(d.width), static_cast<int>(d.height), static_cast<int>(d.depth) };
-      info.rowPitch = formatSize.pixelSize * info.dim.x();
-      info.slicePitch = info.rowPitch * info.dim.y();
+      info.rowPitch = formatSize.pixelSize * info.dim.x;
+      info.slicePitch = info.rowPitch * info.dim.y;
       mips.push_back(info);
       for (auto mip = 1u; mip < d.miplevels; ++mip)
       {
-        auto mipDim = int3{ std::min(1, info.dim.x() / 2), std::min(1, info.dim.y() / 2), std::min(1, info.dim.z() / 2) };
+        auto mipDim = int3{ std::min(1, info.dim.x / 2), std::min(1, info.dim.y / 2), std::min(1, info.dim.z / 2) };
         info.dim = mipDim;
-        info.rowPitch = formatSize.pixelSize * info.dim.x();
-        info.slicePitch = info.rowPitch * info.dim.y();
+        info.rowPitch = formatSize.pixelSize * info.dim.x;
+        info.slicePitch = info.rowPitch * info.dim.y;
         mips.push_back(info);
-        F_LOG("dim %dx%dx%d\n", mipDim.x(), mipDim.y(), mipDim.z());
+        F_LOG("dim %dx%dx%d\n", mipDim.x, mipDim.y, mipDim.z);
       }
 
       size_t currentOffset = 0;
@@ -119,7 +119,7 @@ namespace faze
       auto resourceID = slice * m_desc.desc.miplevels + mip;
       auto info = m_subresources[resourceID];
 
-      MemView<uint8_t> data(&m_data[info.offset], info.slicePitch * info.dim.z());
+      MemView<uint8_t> data(&m_data[info.offset], info.slicePitch * info.dim.z);
 
       return Subresource(data, info.rowPitch, info.slicePitch, info.dim);
     }

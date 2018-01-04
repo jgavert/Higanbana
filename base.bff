@@ -106,6 +106,7 @@ Compiler( 'Compiler-x64-Linux' )
                       + ' /IGNORE:4001'  // don't complain about linking libs only
                       + ' /IGNORE:4217' // don't complain about locally defined symbols
                       + ' /IGNORE:4049' // urgh
+					  //+ ' /IGNORE:2005' // already defined in anothe library
                       //+ ' /time+' // debug
 
   // Optimizations

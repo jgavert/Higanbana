@@ -47,7 +47,7 @@ namespace faze
       list.insert<gfxpacket::UpdateTexture>(tex, dynBuffer, mip, slice);
     }
 
-    void clearRT(TextureRTV& rtv, vec4 color)
+    void clearRT(TextureRTV& rtv, float4 color)
     {
       list.insert<gfxpacket::ClearRT>(rtv, color);
     }

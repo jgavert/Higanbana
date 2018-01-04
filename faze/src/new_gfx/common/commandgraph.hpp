@@ -22,7 +22,7 @@ namespace faze
     {
     }
 
-    void clearRT(TextureRTV& rtv, vec4 color)
+    void clearRT(TextureRTV& rtv, float4 color)
     {
       list.clearRT(rtv, color);
     }

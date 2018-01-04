@@ -17,7 +17,7 @@
 
 #include <XInput.h>
 
-#include "input_plat_tools.hpp" 
+#include "input_plat_tools.hpp"
 
 #include <mutex>
 #include <algorithm>
@@ -32,8 +32,6 @@ namespace faze
   {
     static std::vector<InputDevice> g_deviceList;
     static std::mutex g_ficGuard;
-
-
 
     const char* toString(InputDevice::Type type)
     {
@@ -185,7 +183,6 @@ namespace faze
     {
       //HWND hDlg = (HWND)pContext;
 
-
       // For axes that are returned, set the DIPROP_RANGE property for the
       // enumerated axis in order to scale min/max values.
       if (pdidoi->dwType & DIDFT_AXIS)
@@ -262,7 +259,6 @@ namespace faze
       pad.lTrigger.value = static_cast<uint16_t>(state.lRx);
       pad.rTrigger.value = static_cast<uint16_t>(state.lRy);
 
-
       BOOL POVCentered = (LOWORD(state.rgdwPOV[0]) == 0xFFFF);
       pad.dpad.up = false;
       pad.dpad.down = false;
@@ -301,7 +297,7 @@ namespace faze
       pad.psLayout.select = state.rgbButtons[9];
       pad.psLayout.l3 = state.rgbButtons[10];
       pad.psLayout.r3 = state.rgbButtons[11];
-#if INPUT_DEBUG 
+#if INPUT_DEBUG
       printf("X-axis: %d ", pad.lstick[0].value);
       printf("Y-axis: %d ", pad.lstick[1].value);
       printf("RX-axis: %d ", pad.rstick[0].value);
@@ -316,7 +312,6 @@ namespace faze
       }
       printf("\n");
 #endif
-
     }
 
     LPDIRECTINPUT8 getDIptr(uintptr_t ptr)

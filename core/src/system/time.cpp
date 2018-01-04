@@ -58,7 +58,7 @@ float WTime::getCurrentFps() {
   return static_cast<float>(count) / static_cast<float>(lastFrameTimes.size())* 0.000001f;
 }
 
-vec3 WTime::analyzeFrames() {
+float3 WTime::analyzeFrames() {
   int64_t count = 0;
   int64_t high = 0;
   int64_t low = INT64_MAX;

@@ -96,7 +96,7 @@ namespace faze
 
       auto binding = node.bind<::shader::ImGui>(pipeline);
 
-      binding.constants.reciprocalResolution = float2{ 1.f, 1.f } / float2{ float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) };
+      binding.constants.reciprocalResolution = math::div(float2{ 1.f, 1.f }, float2{ float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) });
       binding.srv(::shader::ImGui::tex, fontatlasSrv);
 
       for (int i = 0; i < drawData->CmdListsCount; ++i)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ringbuffer.hpp"
-#include "../math/vec_templated.hpp"
+#include "../math/math.hpp"
 
 #include <chrono>
 #include <thread>
@@ -38,7 +38,7 @@ namespace faze
     float getFTime();
     void printStatistics();
     int64_t getFrame();
-    vec3 analyzeFrames();
+    float3 analyzeFrames();
   private:
     float interpolateFpsFromNanoseconds(int64_t time);
     float deltatime;
