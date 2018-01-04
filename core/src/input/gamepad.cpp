@@ -423,9 +423,9 @@ namespace faze
       }
     }
 
-    void Fic::pollDevices()
+    void Fic::pollDevices(PollOptions option)
     {
-      if (m_seeminglyNoConnectedControllers)
+      if (m_seeminglyNoConnectedControllers && option == PollOptions::AllowDeviceEnumeration)
       {
         enumerateDevices();
       }
@@ -465,7 +465,7 @@ namespace faze
       for (int i = 0; i < 4; ++i)
       {
         xinput[i].alive = false;
-        
+
         XINPUT_STATE state{};
         auto res = XInputGetState(i, &state);
         if (ERROR_SUCCESS == res)

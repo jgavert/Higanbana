@@ -111,6 +111,12 @@ namespace faze
     // minimal includes for Compile friendliness, especially leaking windows.h is not nice.
     class Fic // faze input controllers, directinput
     {
+    public:
+      enum class PollOptions
+      {
+        AllowDeviceEnumeration,
+        OnlyPoll
+      };
     private:
       uintptr_t m_DI = 0;
       uint64_t tickCounter = 0;
@@ -123,11 +129,12 @@ namespace faze
 
       bool m_seeminglyNoConnectedControllers = true;
     public:
+
       Fic();
       ~Fic();
       explicit operator bool() const;
       void enumerateDevices();
-      void pollDevices();
+      void pollDevices(PollOptions option);
 
       X360LikePad getFirstActiveGamepad();
     };
