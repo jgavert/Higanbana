@@ -294,7 +294,7 @@ namespace faze
       m_factory->MakeWindowAssociation(natSurface->native(), DXGI_MWA_NO_WINDOW_CHANGES); // if using alt+enter, we would still need to call ResizeBuffers
 
 #if !defined(FAZE_NSIGHT_COMPATIBILITY)
-      ensureSwapchainColorspace(natSwapchain, d);
+      ensureSwapchainColorspace(sc, descriptor);
 #endif
       return sc;
     }
