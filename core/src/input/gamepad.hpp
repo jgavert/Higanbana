@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace faze
@@ -115,9 +116,12 @@ namespace faze
       uint64_t tickCounter = 0;
       bool m_usable = false;
       std::vector<InputDevice> m_seenDevices;
+      std::unordered_set<std::string> m_ignoreList;
       std::unordered_map<std::string, InputDevice> m_devices;
 
       Gamepad xinput[4];
+
+      bool m_seeminglyNoConnectedControllers = true;
     public:
       Fic();
       ~Fic();
