@@ -11,7 +11,7 @@ struct RayData
 
 groupshared RayData rdata[64];
 
-#define MAX_ITER 80.0
+#define MAX_ITER 140.0
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
@@ -19,14 +19,15 @@ groupshared RayData rdata[64];
 // how much object reflects light
 #define REFLECTIVITY 0.3
 // How far rays can travel(applies to first ray only)
-#define MAXLENGTH 80.0
+#define MAXLENGTH 180.0
 // color to red by iteration multiplier
 #define COLORBYITER 0.0
 // This multiplies the one intensity of the light
-#define LIGHTINTENSITY 12.0
+#define LIGHTINTENSITY 10.0
 // this is basically resolution multiplier, one pixel is RAYMULTIPLIER*RAYMULTIPLIER amount of rays
 #define RAYMULTIPLIER 1.0
 // kind of deprecated, adds walls/cube to somewhere.
+
 
 float3 rotateX(float3 p, float phi) {
   float c = cos(phi);
@@ -181,9 +182,7 @@ float3 shadowray2(float3 hitSpot, float3 lightPos) {
 }
 
 float3 getCameraRay(float3 posi, float3 dir, float2 pos) {
-  float3 camera_right = normalize(cross(dir, iUpDir));
-  float3 camera_up = normalize(cross(dir, camera_right));
-  float3 image_point = pos.x * camera_right + pos.y*camera_up + posi + dir;
+  float3 image_point = pos.x * iSideDir + pos.y*iUpDir + posi + dir;
   return normalize(image_point-posi);
 }
 
@@ -199,10 +198,9 @@ float3 getColor(float id)
 }
 
 //float3 calcRay(float3 ro, float3 rd, float3 lightPos)
-float3 calcRay(in uint index, in float3 rd)
+float3 calcRay(in uint index,in float3 ro, in float3 rd)
 {
   float lightMultiplier = 1.0f;
-  float3 ro = rdata[index].ro;
   float3 res = castRay2(ro, rd);
   float iter = res.y;
   float3 aol2 = float3(0.0, 0.0,0.0);
@@ -257,7 +255,7 @@ void castManyRays(in uint index)
 	  for (float y = 0.0; y <= RAYMULTIPLIER-1.0; y++)
 	  {
 		  float3 rd = getCameraRay(rdata[index].ro, camDir, getHigherResolutionPos(rdata[index].fragCoord, x,y));
-		  rdata[index].mixColor += colorMultiplier * calcRay(index, rd);
+		  rdata[index].mixColor += colorMultiplier * calcRay(index,rdata[index].ro, rd);
 		  screenPos.y+=epsilon;
 	  }
 	  screenPos.x+=epsilon;
