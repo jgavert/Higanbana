@@ -31,6 +31,7 @@ namespace faze
   namespace gamepad
   {
     static std::vector<InputDevice> g_deviceList;
+    static std::unordered_set<std::string> g_ignoreList;
     static std::mutex g_ficGuard;
 
     const char* toString(InputDevice::Type type)
@@ -152,21 +153,25 @@ namespace faze
       LPVOID
     )
     {
-      std::wstring prdct = (wchar_t*)lpddi->tszProductName;
-      std::string name = ws2s(prdct);
+      if (g_ignoreList.find(guidToString(&lpddi->guidInstance)) != g_ignoreList.end())
+      {
+        return DIENUM_CONTINUE;
+      }
+      std::string prdct = lpddi->tszProductName;
+      //std::string name = ws2s(prdct);
       auto sg = guidToString(&lpddi->guidInstance);
       //printf("id: %s ", sg.c_str());
       //printf(" type: %s ", devType(lpddi->dwDevType));
       //printf(" device: \"%s\"", name.c_str());
-      std::wstring inst = (wchar_t*)lpddi->tszInstanceName;
-      auto instanceName = ws2s(inst);
+      std::string inst = lpddi->tszInstanceName;
+      //auto instanceName = ws2s(inst);
       //printf(" instance: \"%s\"", instanceName.c_str());
       //printf("\n");
 
       InputDevice dev;
       dev.sguid = sg;
       memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
-      dev.name = instanceName;
+      dev.name = inst;
       dev.type = idevType(lpddi->dwDevType);
 
       dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
@@ -200,7 +205,7 @@ namespace faze
         //  return DIENUM_STOP;
       }
 
-      printf("name \"%s\" ", ws2s((wchar_t*)pdidoi->tszName).c_str());
+      printf("name \"%s\" ", pdidoi->tszName);
 
       printf(" {%d %d %d %d %d %d %d %d %d} ", pdidoi->dwDimension, pdidoi->dwFFForceResolution, pdidoi->dwFFMaxForce, pdidoi->dwFlags, pdidoi->dwOfs, pdidoi->wCollectionNumber, pdidoi->wDesignatorIndex, pdidoi->wReportId, pdidoi->wUsagePage);
 
@@ -252,9 +257,9 @@ namespace faze
     void updatePadState(X360LikePad& pad, DIJOYSTATE2& state)
     {
       int maxVal = std::numeric_limits<int16_t>::max();
-      pad.lstick[0].value = static_cast<int16_t>(std::min(static_cast<int>(state.lX) - maxVal, maxVal) * -1);
+      pad.lstick[0].value = static_cast<int16_t>(std::min(static_cast<int>(state.lX) - maxVal, maxVal));
       pad.lstick[1].value = static_cast<int16_t>(std::min(static_cast<int>(state.lY) - maxVal, maxVal) * -1);
-      pad.rstick[0].value = static_cast<int16_t>(std::min(static_cast<int>(state.lZ) - maxVal, maxVal) * -1);
+      pad.rstick[0].value = static_cast<int16_t>(std::min(static_cast<int>(state.lZ) - maxVal, maxVal));
       pad.rstick[1].value = static_cast<int16_t>(std::min(static_cast<int>(state.lRz) - maxVal, maxVal) * -1);
       pad.lTrigger.value = static_cast<uint16_t>(state.lRx);
       pad.rTrigger.value = static_cast<uint16_t>(state.lRy);
@@ -348,6 +353,7 @@ namespace faze
       {
         std::lock_guard<std::mutex> guard(g_ficGuard);
         g_deviceList.clear();
+        g_ignoreList = m_ignoreList;
         HRESULT hr = ptr->EnumDevices(DI8DEVCLASS_ALL, DIEnumDevicesCallback, 0, DIEDFL_ALLDEVICES);
         if (FAILED(hr))
         {
@@ -355,6 +361,7 @@ namespace faze
           return;
         }
         m_seenDevices = g_deviceList;
+        g_ignoreList.clear();
       }
       for (auto&& dev : m_seenDevices)
       {
@@ -364,6 +371,7 @@ namespace faze
           // new device!
           dev.updated = tickCounter;
           printf("New device: %s type: %s\n", dev.name.c_str(), toString(dev.type));
+          m_ignoreList.insert(dev.sguid);
           if (dev.type == InputDevice::Type::GameController && !dev.xinputDevice)
           {
             GUID desired;
@@ -417,6 +425,10 @@ namespace faze
 
     void Fic::pollDevices()
     {
+      if (m_seeminglyNoConnectedControllers)
+      {
+        enumerateDevices();
+      }
       for (auto&& dev : m_devices)
       {
         if (dev.second.devPtr != 0)
@@ -452,6 +464,8 @@ namespace faze
       bool bCleanupCOM = SUCCEEDED(hr);
       for (int i = 0; i < 4; ++i)
       {
+        xinput[i].alive = false;
+        
         XINPUT_STATE state{};
         auto res = XInputGetState(i, &state);
         if (ERROR_SUCCESS == res)
@@ -527,6 +541,7 @@ namespace faze
 
     X360LikePad Fic::getFirstActiveGamepad()
     {
+      m_seeminglyNoConnectedControllers = false;
       for (auto&& dev : m_devices)
       {
         if (dev.second.devPtr != 0 && !dev.second.lost)
@@ -539,6 +554,8 @@ namespace faze
         if (xinput[i].alive)
           return xinput[i].pad;
       }
+
+      m_seeminglyNoConnectedControllers = true;
       return X360LikePad{};
     }
   }

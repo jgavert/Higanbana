@@ -19,7 +19,7 @@ namespace faze
       int imgX, imgY, channels;
       stbi_set_flip_vertically_on_load(true);
       auto asd = stbi_load_from_memory(view.data(), static_cast<int>(view.size()), &imgX, &imgY, &channels, 4);
-      F_LOG("%dx%d %d\n", imgX, imgY, channels);
+      F_SLOG("CpuImage", "loaded %dx%d %d\n", imgX, imgY, channels);
 
       CpuImage image(ResourceDescriptor()
         .setSize({ imgX, imgY, 1 })
