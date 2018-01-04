@@ -4,7 +4,7 @@
 #include "texture.hpp"
 #include "buffer.hpp"
 #include "renderpass.hpp"
-#include "core/src/math/vec_templated.hpp"
+#include "core/src/math/math.hpp"
 
 #define packetRef(type, packet) *static_cast<type*>(packet)
 #define packetPtr(type, packet) static_cast<type*>(packet)
@@ -68,9 +68,9 @@ namespace faze
     {
     public:
       TextureRTV rtv;
-      vec4 color;
+      float4 color;
 
-      ClearRT(backend::ListAllocator, TextureRTV rtv, vec4 color)
+      ClearRT(backend::ListAllocator, TextureRTV rtv, float4 color)
         : rtv(rtv)
         , color(color)
       {

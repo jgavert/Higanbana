@@ -332,7 +332,7 @@ namespace faze
       buffer.clearColorImage(
         texture->native(),
         vk::ImageLayout::eTransferDstOptimal, // this probably should be somehow in the command, as we hold only old information in "texture"
-        vk::ClearColorValue().setFloat32({ packet.color.x(), packet.color.y(), packet.color.z(), packet.color.w() }),
+        vk::ClearColorValue().setFloat32({ packet.color.x, packet.color.y, packet.color.z, packet.color.w }),
         view->range());
     }
 

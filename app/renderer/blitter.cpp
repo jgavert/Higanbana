@@ -35,10 +35,10 @@ namespace faze
       like so.
       */
 
-      float left = topleft.x();
-      float top = topleft.y();
-      float right = topleft.x() + size.x(); // -0.8f + 1.f
-      float bottom = topleft.y() - size.y(); // 0.8f - 1.f
+      float left = topleft.x;
+      float top = topleft.y;
+      float right = topleft.x + size.x; // -0.8f + 1.f
+      float bottom = topleft.y - size.y; // 0.8f - 1.f
 
       vertices.push_back(float4{ left, bottom,  0.f, 0.f });
       vertices.push_back(float4{ left,  top,    0.f, 1.f });
@@ -64,21 +64,21 @@ namespace faze
 
     void Blitter::blit(GpuDevice& device, CommandGraph& graph, TextureRTV& target, TextureSRV& source, int2 itopleft, int2 isize)
     {
-      float x = float(isize.x()) / float(target.desc().desc.width);
-      float y = float(isize.y()) / float(target.desc().desc.height);
+      float x = float(isize.x) / float(target.desc().desc.width);
+      float y = float(isize.y) / float(target.desc().desc.height);
 
       float2 size = { x, y };
 
-      x = float(itopleft.x()) / float(target.desc().desc.width);
-      y = float(itopleft.y()) / float(target.desc().desc.height);
+      x = float(itopleft.x) / float(target.desc().desc.width);
+      y = float(itopleft.y) / float(target.desc().desc.height);
 
       float2 topleft = { x, y };
 
       vector<float4> vertices;
-      float left = topleft.x() * 2.f - 1.f;
-      float top = 1.f - (topleft.y() * 2.f);
-      float right = left + size.x()*2.f; // -0.8f + 1.f
-      float bottom = top - size.y()*2.f; // 0.8f - 1.f
+      float left = topleft.x * 2.f - 1.f;
+      float top = 1.f - (topleft.y * 2.f);
+      float right = left + size.x*2.f; // -0.8f + 1.f
+      float bottom = top - size.y*2.f; // 0.8f - 1.f
 
       vertices.push_back(float4{ left, bottom,  0.f, 0.f });
       vertices.push_back(float4{ left,  top,    0.f, 1.f });

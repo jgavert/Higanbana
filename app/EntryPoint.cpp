@@ -15,7 +15,7 @@
 #include "core/src/Platform/EntryPoint.hpp"
 #include "core/src/global_debug.hpp"
 
-#include "core/src/math/vec_templated.hpp"
+#include "core/src/math/math.hpp"
 
 #include "shaders/textureTest.if.hpp"
 #include "shaders/triangle.if.hpp"
@@ -68,7 +68,7 @@ public:
 int EntryPoint::main()
 {
   Logger log;
-
+  //testNetwrk(log);
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;
@@ -108,7 +108,7 @@ int EntryPoint::main()
       if (gpus.empty())
         return;
 
-      ivec2 ires = { 200, 100 };
+      int2 ires = { 200, 100 };
 
       int raymarch_Res = 10;
       int raymarch_x = 16;
@@ -119,9 +119,10 @@ int EntryPoint::main()
       bool raymarchDynamicEnabled = false;
 
       // position and dir
-      vec3 position;
-      vec3 dir;
-      Quaternion direction;
+      float3 position{ 0.f, 0.f, 0.f };
+      float3 dir{ 1.f, 0.f, 0.f };
+      float3 updir{ 0.f, 1.f, 0.f };
+      quaternion direction{ 1.f, 0.f, 0.f, 0.f };
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
       window.open();
@@ -150,8 +151,8 @@ int EntryPoint::main()
         auto texture = dev.createTexture(ResourceDescriptor()
           .setName("testTexture")
           .setFormat(FormatType::Unorm16RGBA)
-          .setWidth(ires.x())
-          .setHeight(ires.y())
+          .setWidth(ires.x)
+          .setHeight(ires.y)
           .setMiplevels(4)
           .setDimension(FormatDimension::Texture2D)
           .setUsage(ResourceUsage::RenderTargetRW));
@@ -190,11 +191,11 @@ int EntryPoint::main()
           {
             auto input = directInputs.getFirstActiveGamepad();
 
-            vec2 xy{};
+            float2 xy{ 0 };
 
             auto floatizeAxises = [](int16_t input, float& output)
             {
-              constexpr int16_t deadzone = 8000;
+              constexpr int16_t deadzone = 4000;
               if (std::abs(input) > deadzone)
               {
                 constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
@@ -203,21 +204,51 @@ int EntryPoint::main()
               }
             };
 
-            floatizeAxises(input.lstick[0].value, xy.data[0]);
-            floatizeAxises(input.lstick[1].value, xy.data[1]);
+            floatizeAxises(input.lstick[0].value, xy.x);
+            floatizeAxises(input.lstick[1].value, xy.y);
 
-            vec2 rxy{};
-            floatizeAxises(input.rstick[0].value, rxy.data[0]);
-            floatizeAxises(input.rstick[1].value, rxy.data[1]);
+            float3 rxyz{ 0 };
+            floatizeAxises(input.rstick[0].value, rxyz.x);
+            floatizeAxises(input.rstick[1].value*-1, rxyz.y);
 
-            direction = direction * Quaternion::Rotation(rxy.x(), rxy.y(), 0.f);
+            auto floatizeTriggers = [](uint16_t input, float& output)
+            {
+              constexpr int16_t deadzone = 4000;
+              if (std::abs(input) > deadzone)
+              {
+                constexpr float max = static_cast<float>(std::numeric_limits<uint16_t>::max() - deadzone);
+                output = static_cast<float>(std::abs(input) - deadzone) / max;
+              }
+            };
+            float l{}, r{};
 
-            dir = rotateVector(vec3{ 0.f, 1.f, 0.f }, Quaternion::Normalize(direction));
-            dir = dir.normalize();
-            position = position + dir*xy.y();
-            F_LOG("getting data %f %f %f dir %f %f %f\n", position.x(), position.y(), position.z(), dir.x(), dir.y(), dir.z());
+            floatizeTriggers(input.lTrigger.value, l);
+            floatizeTriggers(input.rTrigger.value, r);
+
+            rxyz.z = l - r;
+
+            rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
+            xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
+            direction = math::mul(direction, math::rotationQuaternionEuler(rxyz.x, rxyz.y, rxyz.z));
+
+            auto rot = math::rotationMatrixRH(direction);
+            auto forward = float4{ 1.f, 0.f, 0.f, 1.f };
+            auto anotherVec = math::mul(forward, rot).row(0).xyz();
+            dir = math::normalize(anotherVec);
+            auto up = math::mul(float4{ 0.f, 1.f, 0.f, 1.f }, rot).row(0);
+            updir = math::normalize(up.xyz());
+            //dir = math::rotateVector(float3{ 1.f, 0.f, 0.f }, math::normalize(direction));
+            anotherVec = math::normalize(anotherVec);
+            position = math::add(position, math::mul(anotherVec, xy.y));
+
+            auto sideVec = math::crossProduct(up, float4(anotherVec, 1.f));
+            sideVec.w = 0.f;
+            sideVec = normalize(sideVec);
+            position = math::add(position, math::mul(sideVec.xyz(), xy.x));
+            position = math::add(position, math::mul(anotherVec, xy.y));
+
+            //F_LOG("getting data %f %f %f dir %f %f %f dir2 %f %f %f\n", position.x, position.y, position.z, dir.x, dir.y, dir.z, anotherVec.x, anotherVec.y, anotherVec.z);
           }
-
 
           // update fs
           fs.updateWatchedFiles();
@@ -259,7 +290,7 @@ int EntryPoint::main()
 
           {
             auto node = tasks.createPass("clear");
-            node.clearRT(backbuffer, vec4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
+            node.clearRT(backbuffer, float4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
@@ -275,10 +306,11 @@ int EntryPoint::main()
             binding.constants.iTime = time.getFTime();
             binding.constants.iPos = position;
             binding.constants.iDir = dir;
+            binding.constants.iUpDir = updir;
             binding.uav(::shader::TextureTest::output, texUav);
 
-            unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x()), 8));
-            unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.y()), 8));
+            unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x), 8));
+            unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.y), 8));
             node.dispatch(binding, uint3{ x, y, 1 });
 
             tasks.addPass(std::move(node));
@@ -334,8 +366,8 @@ int EntryPoint::main()
 
             if (mouse.captured)
             {
-              io.MousePos.x = static_cast<float>(mouse.m_pos.x());
-              io.MousePos.y = static_cast<float>(mouse.m_pos.y());
+              io.MousePos.x = static_cast<float>(mouse.m_pos.x);
+              io.MousePos.y = static_cast<float>(mouse.m_pos.y);
 
               io.MouseWheel = static_cast<float>(mouse.mouseWheel)*0.1f;
             }
@@ -489,7 +521,7 @@ int EntryPoint::main()
 
               ImGui::SliderInt("latency", &scdesc.desc.frameLatency, 1, 7);
 
-              ImGui::Text("raymarch texture size %dx%d", ires.x(), ires.y());
+              ImGui::Text("raymarch texture size %s", math::toString(ires).c_str());
 
               int oldRes = raymarch_Res;
               int oldraymarch_x = raymarch_x;
@@ -582,7 +614,7 @@ int EntryPoint::main()
         reInit = false;
       }
     }
-  };
+      };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
@@ -594,4 +626,4 @@ int EntryPoint::main()
 #endif
   log.update();
   return 1;
-}
+    }
