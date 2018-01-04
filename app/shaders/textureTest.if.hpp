@@ -18,6 +18,8 @@ FAZE_CBUFFER
   float3 iDir;
   uint _unused3;
   float3 iUpDir;
+  uint _unused4;
+  float3 iSideDir;
 };
 
 FAZE_UAV(RWTexture2D<float4>, output, 0)

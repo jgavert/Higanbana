@@ -32,6 +32,7 @@
 #include "core/src/input/gamepad.hpp"
 
 using namespace faze;
+using namespace faze::math;
 
 class DynamicScale
 {
@@ -122,6 +123,7 @@ int EntryPoint::main()
       float3 position{ 0.f, 0.f, 0.f };
       float3 dir{ 1.f, 0.f, 0.f };
       float3 updir{ 0.f, 1.f, 0.f };
+      float3 sideVec{ 0.f, 0.f, 1.f};
       quaternion direction{ 1.f, 0.f, 0.f, 0.f };
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
@@ -195,7 +197,7 @@ int EntryPoint::main()
 
             auto floatizeAxises = [](int16_t input, float& output)
             {
-              constexpr int16_t deadzone = 4000;
+              constexpr int16_t deadzone = 4500;
               if (std::abs(input) > deadzone)
               {
                 constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
@@ -209,7 +211,9 @@ int EntryPoint::main()
 
             float3 rxyz{ 0 };
             floatizeAxises(input.rstick[0].value, rxyz.x);
-            floatizeAxises(input.rstick[1].value*-1, rxyz.y);
+            floatizeAxises(input.rstick[1].value, rxyz.y);
+
+            rxyz = mul(rxyz, float3(-1.f, 1.f, 0));
 
             auto floatizeTriggers = [](uint16_t input, float& output)
             {
@@ -225,12 +229,30 @@ int EntryPoint::main()
             floatizeTriggers(input.lTrigger.value, l);
             floatizeTriggers(input.rTrigger.value, r);
 
-            rxyz.z = l - r;
+            rxyz.z = r - l;
 
             rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
             xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
-            direction = math::mul(direction, math::rotationQuaternionEuler(rxyz.x, rxyz.y, rxyz.z));
 
+            // use our current up and forward vectors and calculate our new up and forward vectors
+            // yaw, pitch, roll
+
+            quaternion yaw = math::rotateAxis(updir, rxyz.x);
+            quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+            quaternion roll = math::rotateAxis(dir, rxyz.z);
+            direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+
+            // bonus
+
+            //direction = mul(normalize(quaternion{ 1.f, rxyz.x, rxyz.y, rxyz.z }), direction);
+
+            //direction = math::mul(direction, math::rotationQuaternionSlow(rxyz.x, rxyz.y, rxyz.z));
+
+            dir = normalize(rotateVector({ 1.f, 0.f, 0.f }, direction));
+            updir = normalize(rotateVector({ 0.f, 1.f, 0.f }, direction));
+            sideVec = normalize(rotateVector({ 0.f, 0.f, 1.f }, direction));
+
+            /*
             auto rot = math::rotationMatrixRH(direction);
             auto forward = float4{ 1.f, 0.f, 0.f, 1.f };
             auto anotherVec = math::mul(forward, rot).row(0).xyz();
@@ -238,14 +260,12 @@ int EntryPoint::main()
             auto up = math::mul(float4{ 0.f, 1.f, 0.f, 1.f }, rot).row(0);
             updir = math::normalize(up.xyz());
             //dir = math::rotateVector(float3{ 1.f, 0.f, 0.f }, math::normalize(direction));
-            anotherVec = math::normalize(anotherVec);
-            position = math::add(position, math::mul(anotherVec, xy.y));
 
-            auto sideVec = math::crossProduct(up, float4(anotherVec, 1.f));
-            sideVec.w = 0.f;
-            sideVec = normalize(sideVec);
-            position = math::add(position, math::mul(sideVec.xyz(), xy.x));
-            position = math::add(position, math::mul(anotherVec, xy.y));
+            sideVec = normalize(math::crossProduct(float3(dir), float3(updir)));
+
+            */
+            position = math::add(position, math::mul(sideVec, xy.x));
+            position = math::add(position, math::mul(dir, xy.y));
 
             //F_LOG("getting data %f %f %f dir %f %f %f dir2 %f %f %f\n", position.x, position.y, position.z, dir.x, dir.y, dir.z, anotherVec.x, anotherVec.y, anotherVec.z);
           }
@@ -307,6 +327,7 @@ int EntryPoint::main()
             binding.constants.iPos = position;
             binding.constants.iDir = dir;
             binding.constants.iUpDir = updir;
+            binding.constants.iSideDir = sideVec;
             binding.uav(::shader::TextureTest::output, texUav);
 
             unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x), 8));
@@ -465,6 +486,30 @@ int EntryPoint::main()
               ImGui::Text("Graphics Cpu FPS %.2f (%.2fms)", 1000.f / gfxTime, gfxTime);
               ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
               ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime + gfxTime), cpuTime + gfxTime);
+
+              ImGui::Text("Position:   %s length:%f", toString(position).c_str(), length(position));
+              ImGui::Text("Forward:    %s length:%f", toString(dir).c_str(), length(dir));
+              ImGui::Text("Side:       %s length:%f", toString(sideVec).c_str(), length(sideVec));
+              ImGui::Text("Up:         %s length:%f", toString(updir).c_str(), length(updir));
+              ImGui::Text("rotation Q: %s", toString(direction).c_str());
+
+              ImGui::Text("reset "); ImGui::SameLine();
+              if (ImGui::Button("position"))
+              {
+                  position =  float3{ 0.f, 0.f, 0.f };
+              } ImGui::SameLine();
+              if (ImGui::Button("direction"))
+              {
+                  direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
+              } ImGui::SameLine();
+              if (ImGui::Button("all"))
+              {
+                  position = float3{ 0.f, 0.f, 0.f };
+                  dir = float3{ 1.f, 0.f, 0.f };
+                  updir = float3{ 0.f, 1.f, 0.f };
+                  direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
+              }
+
               ImGui::Text("Swapchain");
               ImGui::Text("format %s", formatToString(scdesc.desc.format));
               if (ImGui::Button(formatToString(FormatType::Unorm8RGBA)))
