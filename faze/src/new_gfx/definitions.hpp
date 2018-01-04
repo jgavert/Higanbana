@@ -5,7 +5,7 @@
 
 #define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
-#define FAZE_NSIGHT_COMPATIBILITY // disables some colorspace configuration which seems to crash nsight.
+//#define FAZE_NSIGHT_COMPATIBILITY // disables some colorspace configuration which seems to crash nsight.
 
 // Enables GBV validation for DX12, super slow.
 //#define FAZE_GRAPHICS_GPUBASED_VALIDATION
