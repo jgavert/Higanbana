@@ -123,7 +123,7 @@ int EntryPoint::main()
       float3 position{ 0.f, 0.f, 0.f };
       float3 dir{ 1.f, 0.f, 0.f };
       float3 updir{ 0.f, 1.f, 0.f };
-      float3 sideVec{ 0.f, 0.f, 1.f};
+      float3 sideVec{ 0.f, 0.f, 1.f };
       quaternion direction{ 1.f, 0.f, 0.f, 0.f };
 
       Window window(m_params, gpus[chosenGpu].name, 1280, 720, 300, 200);
@@ -189,7 +189,7 @@ int EntryPoint::main()
           CpuTime.startFrame();
 
           // update inputs and our position
-          directInputs.pollDevices();
+          directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
           {
             auto input = directInputs.getFirstActiveGamepad();
 
@@ -496,18 +496,18 @@ int EntryPoint::main()
               ImGui::Text("reset "); ImGui::SameLine();
               if (ImGui::Button("position"))
               {
-                  position =  float3{ 0.f, 0.f, 0.f };
+                position = float3{ 0.f, 0.f, 0.f };
               } ImGui::SameLine();
               if (ImGui::Button("direction"))
               {
-                  direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
+                direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
               } ImGui::SameLine();
               if (ImGui::Button("all"))
               {
-                  position = float3{ 0.f, 0.f, 0.f };
-                  dir = float3{ 1.f, 0.f, 0.f };
-                  updir = float3{ 0.f, 1.f, 0.f };
-                  direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
+                position = float3{ 0.f, 0.f, 0.f };
+                dir = float3{ 1.f, 0.f, 0.f };
+                updir = float3{ 0.f, 1.f, 0.f };
+                direction = quaternion{ 1.f, 0.f, 0.f, 0.f };
               }
 
               ImGui::Text("Swapchain");
@@ -659,7 +659,7 @@ int EntryPoint::main()
         reInit = false;
       }
     }
-      };
+  };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
@@ -671,4 +671,4 @@ int EntryPoint::main()
 #endif
   log.update();
   return 1;
-    }
+}
