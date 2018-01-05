@@ -11,7 +11,7 @@ bool SchedulerTests::Run()
   LBS s;
 	t.addTest("Run a Task", [&]()
 	{
-		s.addTask("task", [](size_t, size_t)
+		s.addTask("task", [](size_t)
 		{
 
 		});
@@ -21,7 +21,7 @@ bool SchedulerTests::Run()
 	t.addTest("mutate something in a task", [&]()
 	{
 		int a = 0;
-		s.addTask("task", [&a](size_t, size_t)
+		s.addTask("task", [&a](size_t)
 		{
 			a = 1;
 		});
@@ -37,7 +37,7 @@ bool SchedulerTests::Run()
 		{
 			v.emplace_back(i);
 		}
-		s.addParallelFor<32>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<32>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = 0;
 		});
@@ -59,7 +59,7 @@ bool SchedulerTests::Run()
 		{
 			v.emplace_back(i);
 		}
-		s.addParallelFor<1024>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<1024>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = 0;
 		});
@@ -81,7 +81,7 @@ bool SchedulerTests::Run()
 		{
 			v.emplace_back(i);
 		}
-		s.addParallelFor<8192>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<8192>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = 0;
 		});
@@ -104,7 +104,7 @@ bool SchedulerTests::Run()
 		{
 			v[i] = i;
 		}
-		s.addParallelFor<1024>("task", { }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<1024>("task", { }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -164,11 +164,11 @@ bool SchedulerTests::Run()
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
-    s.addParallelFor<8>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+    s.addParallelFor<8>("task", {}, {}, 0, testSize, [&v](size_t i)
     {
       v[i] = i;
     });
-    s.addParallelFor<8>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+    s.addParallelFor<8>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
     {
       if (v[i] != i)
         b = false;
@@ -184,11 +184,11 @@ bool SchedulerTests::Run()
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
 
-		s.addParallelFor<32>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<32>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<32>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<32>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -204,11 +204,11 @@ bool SchedulerTests::Run()
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
 
-    s.addParallelFor<64>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+    s.addParallelFor<64>("task", {}, {}, 0, testSize, [&v](size_t i)
     {
       v[i] = i;
     });
-    s.addParallelFor<64>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+    s.addParallelFor<64>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
     {
       if (v[i] != i)
         b = false;
@@ -223,11 +223,11 @@ bool SchedulerTests::Run()
     std::unique_ptr<size_t[]> ptr = std::unique_ptr<size_t[]>(new size_t[testSize]);
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
-    s.addParallelFor<128>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+    s.addParallelFor<128>("task", {}, {}, 0, testSize, [&v](size_t i)
     {
       v[i] = i;
     });
-    s.addParallelFor<128>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+    s.addParallelFor<128>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
     {
       if (v[i] != i)
         b = false;
@@ -243,11 +243,11 @@ bool SchedulerTests::Run()
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
 
-    s.addParallelFor<256>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+    s.addParallelFor<256>("task", {}, {}, 0, testSize, [&v](size_t i)
     {
       v[i] = i;
     });
-    s.addParallelFor<256>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+    s.addParallelFor<256>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
     {
       if (v[i] != i)
         b = false;
@@ -263,11 +263,11 @@ bool SchedulerTests::Run()
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
 
-		s.addParallelFor<1024>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<1024>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<1024>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<1024>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -283,11 +283,11 @@ bool SchedulerTests::Run()
     std::atomic<bool> b(true);
     size_t* v = ptr.get();
 
-		s.addParallelFor<2048>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<2048>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<2048>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<2048>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -303,11 +303,11 @@ bool SchedulerTests::Run()
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();
 
-		s.addParallelFor<8192>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<8192>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<8192>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<8192>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -323,11 +323,11 @@ bool SchedulerTests::Run()
 		std::atomic<bool> b(true);
 		size_t* v = ptr.get();
 
-		s.addParallelFor<65536>("task", {}, {}, 0, testSize, [&v](size_t i, size_t)
+		s.addParallelFor<65536>("task", {}, {}, 0, testSize, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<65536>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i, size_t)
+		s.addParallelFor<65536>("task2", { "task" }, {}, 0, testSize, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -350,11 +350,11 @@ bool SchedulerTests::Run()
 		for (int i = 0; i < splitInN; ++i)
 		{
 
-			s.addParallelFor<768>("task" + std::to_string(i), {}, {}, startPos+i*partSize, partSize, [&v](size_t i, size_t)
+			s.addParallelFor<768>("task" + std::to_string(i), {}, {}, startPos+i*partSize, partSize, [&v](size_t i)
 			{
 				v[i] = i;
 			});
-			s.addParallelFor<768>("task2" + std::to_string(i), { "task" + std::to_string(i)}, {}, startPos+i*partSize, partSize, [&v, &b](size_t i, size_t)
+			s.addParallelFor<768>("task2" + std::to_string(i), { "task" + std::to_string(i)}, {}, startPos+i*partSize, partSize, [&v, &b](size_t i)
 			{
 				if (v[i] != i)
 					b = false;
@@ -362,20 +362,20 @@ bool SchedulerTests::Run()
 			waitFor.emplace_back("task2" + std::to_string(i));
 		}
 		/*
-		s.addParallelFor<1024>("task", {}, {}, 0, testSize/2, [&v](size_t i, size_t)
+		s.addParallelFor<1024>("task", {}, {}, 0, testSize/2, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<1024>("task3", {}, {}, testSize/2, testSize/2, [&v](size_t i, size_t)
+		s.addParallelFor<1024>("task3", {}, {}, testSize/2, testSize/2, [&v](size_t i)
 		{
 			v[i] = i;
 		});
-		s.addParallelFor<1024>("task2", { "task" }, {}, 0, testSize/2, [&v, &b](size_t i, size_t)
+		s.addParallelFor<1024>("task2", { "task" }, {}, 0, testSize/2, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
 		});
-		s.addParallelFor<1024>("task4", { "task3" }, {}, testSize/2, testSize/2, [&v, &b](size_t i, size_t)
+		s.addParallelFor<1024>("task4", { "task3" }, {}, testSize/2, testSize/2, [&v, &b](size_t i)
 		{
 			if (v[i] != i)
 				b = false;
@@ -387,23 +387,23 @@ bool SchedulerTests::Run()
 	t.addTest("Sequential tasks", [&]()
 	{
 		std::vector<size_t> v;
-		s.addTask("task5", { "task4" }, {}, [&v](size_t, size_t)
+		s.addTask("task5", { "task4" }, {}, [&v](size_t)
 		{
 			v.emplace_back(5);
 		});
-		s.addTask("task3", { "task2" }, {}, [&v](size_t, size_t)
+		s.addTask("task3", { "task2" }, {}, [&v](size_t)
 		{
 			v.emplace_back(3);
 		});
-		s.addTask("task4", { "task3" }, {}, [&v](size_t, size_t)
+		s.addTask("task4", { "task3" }, {}, [&v](size_t)
 		{
 			v.emplace_back(4);
 		});
-		s.addTask("task1", {}, {}, [&v](size_t, size_t)
+		s.addTask("task1", {}, {}, [&v](size_t)
 		{
 			v.emplace_back(1);
 		});
-		s.addTask("task2", { "task1" }, {}, [&v](size_t, size_t)
+		s.addTask("task2", { "task1" }, {}, [&v](size_t)
 		{
 			v.emplace_back(2);
 		});

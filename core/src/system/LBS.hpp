@@ -55,6 +55,15 @@ namespace faze
     Requirements m_post;
   };
 
+  static thread_local int t_threadid;
+  static thread_local bool t_reSchedule;
+
+  inline void rescheduleTask()
+  {
+      //F_LOG("rescheduled in thread %d\n", t_threadid);
+      t_reSchedule = true;
+  }
+
   class Task /*TaskDescriptor*/
   {
   public:
@@ -62,19 +71,23 @@ namespace faze
       m_id(0),
       m_iterations(0),
       m_iterID(0),
+        m_originalIterations(m_iterations),
+        m_originalIterID(m_iterID),
       m_ppt(1),
       m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
     {
-      genWorkFunc<1>([](size_t, size_t) {});
+      genWorkFunc<1>([](size_t) {});
     };
     Task(size_t id, size_t start, size_t iterations) :
       m_id(id),
       m_iterations(iterations),
       m_iterID(start),
+      m_originalIterations(m_iterations),
+      m_originalIterID(m_iterID),
       m_ppt(1),
       m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
     {
-      genWorkFunc<1>([](size_t, size_t) {});
+      genWorkFunc<1>([](size_t) {});
       m_sharedWorkCounter->store(m_iterations);
     };
 
@@ -83,10 +96,12 @@ namespace faze
       m_id(id),
       m_iterations(iterations),
       m_iterID(start),
+      m_originalIterations(m_iterations),
+      m_originalIterID(m_iterID),
       m_ppt(1),
       m_sharedWorkCounter(sharedWorkCount)
     {
-      genWorkFunc<1>([](size_t, size_t) {});
+      genWorkFunc<1>([](size_t) {});
     };
   public:
 
@@ -94,17 +109,20 @@ namespace faze
     size_t m_id;
     size_t m_iterations;
     size_t m_iterID;
+    size_t m_originalIterations;
+    size_t m_originalIterID;
     int m_ppt;
+    bool m_reschedule = false;
     std::shared_ptr < std::atomic<size_t> > m_sharedWorkCounter;
 
-    std::function<bool(size_t, size_t&, size_t&)> f_work;
+    std::function<bool(size_t&, size_t&)> f_work;
 
     // Generates ppt sized for -loop lambda inside this work.
     template<size_t ppt, typename Func>
     void genWorkFunc(Func&& func)
     {
       m_ppt = ppt;
-      f_work = [func](size_t threadid, size_t& iterID, size_t& iterations) -> bool
+      f_work = [func](size_t& iterID, size_t& iterations) -> bool
       {
         if (iterations == 0)
         {
@@ -114,7 +132,7 @@ namespace faze
         {
           for (size_t i = 0; i < iterations; ++i)
           {
-            func(iterID, threadid);
+            func(iterID);
             ++iterID;
           }
           iterations = 0;
@@ -123,7 +141,7 @@ namespace faze
         {
           for (size_t i = 0; i < ppt; ++i)
           {
-            func(iterID, threadid);
+            func(iterID);
             ++iterID;
           }
           iterations -= ppt;
@@ -133,9 +151,9 @@ namespace faze
     }
 
     // does ppt amount of work
-    inline bool doWork(size_t threadid)
+    inline bool doWork()
     {
-      return f_work(threadid, m_iterID, m_iterations);
+      return f_work(m_iterID, m_iterations);
     }
 
     inline bool canSplit()
@@ -238,7 +256,6 @@ namespace faze
     };
     waiting2 m_waiting;
     std::atomic<bool> m_mainthreadsleeping;
-
   public:
 
     LBS()
@@ -306,7 +323,7 @@ namespace faze
       StopCondition.store(true);
       for (size_t i = 0; i < m_threads.size(); i++)
       {
-        addTask(static_cast<int>(i%m_threads.size()), "EndThread", [](size_t, size_t) {return; }); // mm
+        addTask(static_cast<int>(i%m_threads.size()), "EndThread", [](size_t) {return; }); // mm
       }
       for (auto& it : m_threads)
       {
@@ -329,7 +346,7 @@ namespace faze
 #endif
       //notifyAll();
       std::unique_lock<std::mutex> lkk(*m_waiting.m);
-      internalAddTask<1>(0, "WakePrincess", req, {}, 0, 1, [&](size_t, size_t)
+      internalAddTask<1>(0, "WakePrincess", req, {}, 0, 1, [&](size_t)
       {
         std::lock_guard<std::mutex> np(*m_waiting.m);
 #ifdef DEBUGTEXT
@@ -623,10 +640,22 @@ namespace faze
       auto currentIterID = p.m_task.m_iterID;
       ThreadStatus[p.m_ID].first = WORKING;
       ThreadStatus[p.m_ID].second = p.m_task.m_id;
-      bool rdy = p.m_task.doWork(p.m_ID);
+      t_threadid = p.m_ID;
+      t_reSchedule = false;
+      bool rdy = p.m_task.doWork();
       ThreadStatus[p.m_ID].first = RUNNINGLOGIC;
       auto amountOfWork = p.m_task.m_iterID - currentIterID;
       didWorkFor(p.m_task, amountOfWork);
+      if (rdy && t_reSchedule)
+      {
+          t_reSchedule = false;
+          auto nTask = Task(p.m_task.m_id, p.m_task.m_originalIterID, p.m_task.m_originalIterations);
+          nTask.f_work = p.m_task.f_work;
+          ThreadData& worker = m_allThreads.at(p.m_ID);
+          std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
+          worker.m_localDeque.push_back(std::move(nTask));
+          worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+      }
       if (rdy)
       {
         // steal work? sleep?
