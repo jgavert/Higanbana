@@ -34,6 +34,42 @@
 using namespace faze;
 using namespace faze::math;
 
+template <typename T>
+class DoubleBuffered
+{
+private:
+    std::atomic<int> m_writer = 2;
+    std::atomic<int> m_reader = 0;
+    T objects[3] = {};
+
+public:
+    T readValue()
+    {
+        int readerIndex = m_reader;
+        auto val = objects[readerIndex];
+        readerIndex = (readerIndex + 1) % 3;
+        int writerIndex = m_writer;
+        if (readerIndex != writerIndex)
+        {
+            m_reader = readerIndex;
+        }
+        return val;
+    }
+
+    void writeValue(T value)
+    {
+        int writeIndex = m_writer;
+        objects[writeIndex] = value;
+
+        writeIndex = (writeIndex + 1) % 3;
+        int readerIndex = m_reader;
+        if (readerIndex != writeIndex)
+        {
+            m_writer = writeIndex;
+        }
+    }
+};
+
 class DynamicScale
 {
 private:
@@ -70,6 +106,9 @@ int EntryPoint::main()
 {
   Logger log;
   //testNetwrk(log);
+
+  LBS lbs;
+
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;
@@ -87,6 +126,19 @@ int EntryPoint::main()
 
     bool explicitID = false;
     int chosenGpu = 0;
+
+    DoubleBuffered<int> zomg;
+
+    int writer = 0;
+    int readerVal = 0;
+
+    lbs.addTask("write!", [&](size_t)
+    {
+        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        writer++;
+        zomg.writeValue(writer);
+        rescheduleTask();
+    });
 
     while (true)
     {
@@ -487,6 +539,9 @@ int EntryPoint::main()
               ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
               ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime + gfxTime), cpuTime + gfxTime);
 
+              int newval = zomg.readValue();
+              ImGui::Text("slow int %d %d", newval, newval - readerVal);
+              readerVal = newval;
               ImGui::Text("Position:   %s length:%f", toString(position).c_str(), length(position));
               ImGui::Text("Forward:    %s length:%f", toString(dir).c_str(), length(dir));
               ImGui::Text("Side:       %s length:%f", toString(sideVec).c_str(), length(sideVec));
@@ -664,8 +719,7 @@ int EntryPoint::main()
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
 
-  LBS lbs;
-  lbs.addTask("test1", [&](size_t, size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
+  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
   lbs.sleepTillKeywords({ "test1" });
 
 #endif
