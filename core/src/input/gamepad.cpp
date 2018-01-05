@@ -417,8 +417,8 @@ namespace faze
         if (!dev.second.lost && tickCounter - dev.second.updated > 0)
         {
           // this device is lost.
-          printf("Lost device: %s type: %s\n", dev.second.name.c_str(), toString(dev.second.type));
-          dev.second.lost = true;
+          //printf("Lost device: %s type: %s\n", dev.second.name.c_str(), toString(dev.second.type));
+          //dev.second.lost = true;
         }
       }
     }

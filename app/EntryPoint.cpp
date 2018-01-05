@@ -38,36 +38,36 @@ template <typename T>
 class DoubleBuffered
 {
 private:
-    std::atomic<int> m_writer = 2;
-    std::atomic<int> m_reader = 0;
-    T objects[3] = {};
+  std::atomic<int> m_writer = 2;
+  std::atomic<int> m_reader = 0;
+  T objects[3] = {};
 
 public:
-    T readValue()
+  T readValue()
+  {
+    int readerIndex = m_reader;
+    auto val = objects[readerIndex];
+    readerIndex = (readerIndex + 1) % 3;
+    int writerIndex = m_writer;
+    if (readerIndex != writerIndex)
     {
-        int readerIndex = m_reader;
-        auto val = objects[readerIndex];
-        readerIndex = (readerIndex + 1) % 3;
-        int writerIndex = m_writer;
-        if (readerIndex != writerIndex)
-        {
-            m_reader = readerIndex;
-        }
-        return val;
+      m_reader = readerIndex;
     }
+    return val;
+  }
 
-    void writeValue(T value)
+  void writeValue(T value)
+  {
+    int writeIndex = m_writer;
+    objects[writeIndex] = value;
+
+    writeIndex = (writeIndex + 1) % 3;
+    int readerIndex = m_reader;
+    if (readerIndex != writeIndex)
     {
-        int writeIndex = m_writer;
-        objects[writeIndex] = value;
-
-        writeIndex = (writeIndex + 1) % 3;
-        int readerIndex = m_reader;
-        if (readerIndex != writeIndex)
-        {
-            m_writer = writeIndex;
-        }
+      m_writer = writeIndex;
     }
+  }
 };
 
 class DynamicScale
@@ -118,27 +118,28 @@ int EntryPoint::main()
     WTime graphicsCpuTime;
     WTime CpuTime;
 
+    WTime logicTime;
+
     gamepad::Fic directInputs;
-    directInputs.enumerateDevices();
+    DoubleBuffered<gamepad::X360LikePad> pad;
+    DoubleBuffered<float> logicFps;
+    bool quit = false;
+    logicTime.firstTick();
+    lbs.addTask("gamepad", [&](size_t)
+    {
+      logicTime.tick();
+      logicFps.writeValue(logicTime.getCurrentFps());
+      if (quit) return;
+      directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
+      pad.writeValue(directInputs.getFirstActiveGamepad());
+      rescheduleTask();
+    });
 
     auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
 
     bool explicitID = false;
     int chosenGpu = 0;
-
-    DoubleBuffered<int> zomg;
-
-    int writer = 0;
-    int readerVal = 0;
-
-    lbs.addTask("write!", [&](size_t)
-    {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        writer++;
-        zomg.writeValue(writer);
-        rescheduleTask();
-    });
 
     while (true)
     {
@@ -241,9 +242,10 @@ int EntryPoint::main()
           CpuTime.startFrame();
 
           // update inputs and our position
-          directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
+          //directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
           {
-            auto input = directInputs.getFirstActiveGamepad();
+            //auto input = directInputs.getFirstActiveGamepad();
+            auto input = pad.readValue();
 
             float2 xy{ 0 };
 
@@ -535,13 +537,12 @@ int EntryPoint::main()
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
               auto gfxTime = graphicsCpuTime.getCurrentFps();
               auto cpuTime = CpuTime.getCurrentFps();
+              auto logic = logicFps.readValue();
               ImGui::Text("Graphics Cpu FPS %.2f (%.2fms)", 1000.f / gfxTime, gfxTime);
               ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
               ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime + gfxTime), cpuTime + gfxTime);
+              ImGui::Text("Logic FPS %.2f (%.2fms)", 1000.f / logic, logic);
 
-              int newval = zomg.readValue();
-              ImGui::Text("slow int %d %d", newval, newval - readerVal);
-              readerVal = newval;
               ImGui::Text("Position:   %s length:%f", toString(position).c_str(), length(position));
               ImGui::Text("Forward:    %s length:%f", toString(dir).c_str(), length(dir));
               ImGui::Text("Side:       %s length:%f", toString(sideVec).c_str(), length(sideVec));
@@ -714,7 +715,9 @@ int EntryPoint::main()
         reInit = false;
       }
     }
-  };
+    quit = true;
+    lbs.sleepTillKeywords({ "gamepad" });
+      };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
@@ -725,4 +728,4 @@ int EntryPoint::main()
 #endif
   log.update();
   return 1;
-}
+    }
