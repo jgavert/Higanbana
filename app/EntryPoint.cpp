@@ -129,7 +129,13 @@ int EntryPoint::main()
     {
       logicTime.tick();
       logicFps.writeValue(logicTime.getCurrentFps());
-      if (quit) return;
+      if (quit)
+      {
+        lbs.addTask("gamepadDone", [&](size_t)
+        {
+        });
+        return;
+      }
       directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
       pad.writeValue(directInputs.getFirstActiveGamepad());
       rescheduleTask();
@@ -235,6 +241,8 @@ int EntryPoint::main()
 
         bool closeAnyway = false;
 
+        bool captureMouse = false;
+
         graphicsCpuTime.firstTick();
         CpuTime.firstTick();
         while (!window.simpleReadMessages(frame++))
@@ -245,83 +253,89 @@ int EntryPoint::main()
           //directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
           {
             //auto input = directInputs.getFirstActiveGamepad();
-            auto input = pad.readValue();
-
-            float2 xy{ 0 };
-
-            auto floatizeAxises = [](int16_t input, float& output)
-            {
-              constexpr int16_t deadzone = 4500;
-              if (std::abs(input) > deadzone)
-              {
-                constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
-                output = static_cast<float>(std::abs(input) - deadzone) / max;
-                output *= (input < 0) ? -1 : 1;
-              }
-            };
-
-            floatizeAxises(input.lstick[0].value, xy.x);
-            floatizeAxises(input.lstick[1].value, xy.y);
 
             float3 rxyz{ 0 };
-            floatizeAxises(input.rstick[0].value, rxyz.x);
-            floatizeAxises(input.rstick[1].value, rxyz.y);
+            float2 xy{ 0 };
 
-            rxyz = mul(rxyz, float3(-1.f, 1.f, 0));
+            auto input = pad.readValue();
 
-            auto floatizeTriggers = [](uint16_t input, float& output)
+            if (input.alive)
             {
-              constexpr int16_t deadzone = 4000;
-              if (std::abs(input) > deadzone)
+              auto floatizeAxises = [](int16_t input, float& output)
               {
-                constexpr float max = static_cast<float>(std::numeric_limits<uint16_t>::max() - deadzone);
-                output = static_cast<float>(std::abs(input) - deadzone) / max;
-              }
-            };
-            float l{}, r{};
+                constexpr int16_t deadzone = 4500;
+                if (std::abs(input) > deadzone)
+                {
+                  constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
+                  output = static_cast<float>(std::abs(input) - deadzone) / max;
+                  output *= (input < 0) ? -1 : 1;
+                }
+              };
 
-            floatizeTriggers(input.lTrigger.value, l);
-            floatizeTriggers(input.rTrigger.value, r);
+              floatizeAxises(input.lstick[0].value, xy.x);
+              floatizeAxises(input.lstick[1].value, xy.y);
 
-            rxyz.z = r - l;
+              floatizeAxises(input.rstick[0].value, rxyz.x);
+              floatizeAxises(input.rstick[1].value, rxyz.y);
 
-            rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
-            xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
+              rxyz = mul(rxyz, float3(-1.f, 1.f, 0));
+
+              auto floatizeTriggers = [](uint16_t input, float& output)
+              {
+                constexpr int16_t deadzone = 4000;
+                if (std::abs(input) > deadzone)
+                {
+                  constexpr float max = static_cast<float>(std::numeric_limits<uint16_t>::max() - deadzone);
+                  output = static_cast<float>(std::abs(input) - deadzone) / max;
+                }
+              };
+              float l{}, r{};
+
+              floatizeTriggers(input.lTrigger.value, l);
+              floatizeTriggers(input.rTrigger.value, r);
+
+              rxyz.z = r - l;
+
+              rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
+              xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
+
+              quaternion yaw = math::rotateAxis(updir, rxyz.x);
+              quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+              quaternion roll = math::rotateAxis(dir, rxyz.z);
+              direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+            }
+            else if (captureMouse)
+            {
+              auto m = window.mouse();
+              auto p = m.m_pos;
+              auto floatizeMouse = [](int input, float& output)
+              {
+                constexpr float max = static_cast<float>(100);
+                output = std::min(static_cast<float>(std::abs(input)) / max, max);
+                output *= (input < 0) ? -1 : 1;
+              };
+
+              floatizeMouse(p.x, rxyz.x);
+              floatizeMouse(p.y, rxyz.y);
+
+              rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
+              //xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
+
+              quaternion yaw = math::rotateAxis(updir, rxyz.x);
+              quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+              //quaternion roll = math::rotateAxis(dir, rxyz.z);
+              direction = math::mul(math::mul(yaw, direction), pitch);
+            }
 
             // use our current up and forward vectors and calculate our new up and forward vectors
             // yaw, pitch, roll
-
-            quaternion yaw = math::rotateAxis(updir, rxyz.x);
-            quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
-            quaternion roll = math::rotateAxis(dir, rxyz.z);
-            direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-            // bonus
-
-            //direction = mul(normalize(quaternion{ 1.f, rxyz.x, rxyz.y, rxyz.z }), direction);
-
-            //direction = math::mul(direction, math::rotationQuaternionSlow(rxyz.x, rxyz.y, rxyz.z));
 
             dir = normalize(rotateVector({ 1.f, 0.f, 0.f }, direction));
             updir = normalize(rotateVector({ 0.f, 1.f, 0.f }, direction));
             sideVec = normalize(rotateVector({ 0.f, 0.f, 1.f }, direction));
 
-            /*
-            auto rot = math::rotationMatrixRH(direction);
-            auto forward = float4{ 1.f, 0.f, 0.f, 1.f };
-            auto anotherVec = math::mul(forward, rot).row(0).xyz();
-            dir = math::normalize(anotherVec);
-            auto up = math::mul(float4{ 0.f, 1.f, 0.f, 1.f }, rot).row(0);
-            updir = math::normalize(up.xyz());
-            //dir = math::rotateVector(float3{ 1.f, 0.f, 0.f }, math::normalize(direction));
-
-            sideVec = normalize(math::crossProduct(float3(dir), float3(updir)));
-
-            */
             position = math::add(position, math::mul(sideVec, xy.x));
             position = math::add(position, math::mul(dir, xy.y));
-
-            //F_LOG("getting data %f %f %f dir %f %f %f dir2 %f %f %f\n", position.x, position.y, position.z, dir.x, dir.y, dir.z, anotherVec.x, anotherVec.y, anotherVec.z);
           }
 
           // update fs
@@ -334,13 +348,15 @@ int EntryPoint::main()
           }
           auto& inputs = window.inputs();
 
-          if (inputs.isPressedThisFrame(112, 1))
+          if (inputs.isPressedThisFrame(VK_F1, 1))
           {
             window.captureMouse(true);
+            captureMouse = true;
           }
-          if (inputs.isPressedThisFrame(113, 1))
+          if (inputs.isPressedThisFrame(VK_F2, 1))
           {
             window.captureMouse(false);
+            captureMouse = false;
           }
 
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('1', 1))
@@ -716,8 +732,8 @@ int EntryPoint::main()
       }
     }
     quit = true;
-    lbs.sleepTillKeywords({ "gamepad" });
-      };
+    lbs.sleepTillKeywords({ "gamepadDone" });
+  };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
@@ -728,4 +744,4 @@ int EntryPoint::main()
 #endif
   log.update();
   return 1;
-    }
+}
