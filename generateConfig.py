@@ -23,18 +23,21 @@ VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
 
 with open('config.bff', 'w') as out:
   out.write(""".VSBasePath = '""")
-  if os.path.isdir('C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional'):
-    VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
-  else:
-    VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Community"""
+  if os.name == 'nt':
+    if os.path.isdir('C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional'):
+      VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
+    else:
+      VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Community"""
 
   out.write(VSPath)
   out.write("""'""")
   out.write("\n")
-  
 
-  VSVersion = sorted(next(os.walk(VSPath+"""/VC/Tools/MSVC/"""))[1], reverse=True)[0]
-  VSRedist = sorted(next(os.walk(VSPath+"""/VC/Redist/MSVC/"""))[1], reverse=True)[0]
+  VSVersion = "100"
+  VSRedist = "100"
+  if os.name == 'nt':
+    VSVersion = sorted(next(os.walk(VSPath+"""/VC/Tools/MSVC/"""))[1], reverse=True)[0]
+    VSRedist = sorted(next(os.walk(VSPath+"""/VC/Redist/MSVC/"""))[1], reverse=True)[0]
 
   out.write(""".VSVersion  = '""")
   out.write(VSVersion)
@@ -46,8 +49,10 @@ with open('config.bff', 'w') as out:
   out.write("""'""")
   out.write("\n")
 
-  sdkVersionList = sorted(next(os.walk('C:/Program Files (x86)/Windows Kits/10/Include'))[1], reverse=True)
-  ourSdk = sdkVersionList[0]
+  ourSdk = "100"
+  if os.name == 'nt':
+    sdkVersionList = sorted(next(os.walk('C:/Program Files (x86)/Windows Kits/10/Include'))[1], reverse=True)
+    ourSdk = sdkVersionList[0]
 
   out.write(""".WindowsSDKSubVersion = '""")
   out.write(ourSdk)
@@ -57,7 +62,7 @@ with open('config.bff', 'w') as out:
   #print(ourSdk)
   #print(VSVersion[0])
   #print(VSRedist[0])
-  
+
   out.write(config)
 
 
