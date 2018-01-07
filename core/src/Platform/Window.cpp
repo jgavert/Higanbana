@@ -198,10 +198,12 @@ namespace faze
   {
     if (val)
     {
+      while (ShowCursor(FALSE) >= 0);
       SetCapture(m_window->getHWND());
     }
     else
     {
+      while (ShowCursor(TRUE) < 0);
       ReleaseCapture();
     }
   }

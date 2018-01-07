@@ -48,9 +48,9 @@ namespace faze
     // as some controllers are somewhat standardized by the amount of buttons
     // I will make assumption that I want mostly those layouts.
     // Think of, playstation controller or fighting stick (usually made to work with consoles)
-    // XInput devices should be handled with different library :(.
     struct X360LikePad
     {
+      bool alive = true;
       // sticks
       CAxis lstick[2] = {}; // normal X/Y
       CAxis rstick[2] = {}; // rotation X/Y

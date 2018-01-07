@@ -556,7 +556,9 @@ namespace faze
       }
 
       m_seeminglyNoConnectedControllers = true;
-      return X360LikePad{};
+      auto pad = X360LikePad{};
+      pad.alive = false;
+      return pad;
     }
   }
 }
