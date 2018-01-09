@@ -173,9 +173,20 @@ int EntryPoint::main()
 
       int2 ires = { 200, 100 };
 
-      int raymarch_Res = 10;
+      int raymarch_Res = 600;
       int raymarch_x = 16;
       int raymarch_y = 9;
+
+      if (raymarch_x > raymarch_y)
+      {
+        ires.data[0] = raymarch_Res;
+        ires.data[1] = static_cast<int>(static_cast<float>(raymarch_y) / static_cast<float>(raymarch_x) * static_cast<float>(raymarch_Res));
+      }
+      else
+      {
+        ires.data[1] = raymarch_Res;
+        ires.data[0] = static_cast<int>(static_cast<float>(raymarch_x) / static_cast<float>(raymarch_y) * static_cast<float>(raymarch_Res));
+      }
 
       float raymarchfpsTarget = 16.666667f;
       float raymarchFpsThr = 0.2f;
