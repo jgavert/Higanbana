@@ -70,10 +70,12 @@ namespace faze
         vType data[2];
       };
 
-      constexpr inline Vector() {}
+      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)) {}
       constexpr inline Vector(vType v) : x(v), y(v) {}
       constexpr inline Vector(vType x, vType y) : x(x), y(y) {}
       constexpr inline Vector(const Vector& o) : x(o.x), y(o.y) {}
+      template<typename vTypeAnother>
+      constexpr inline Vector(const Vector<2, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)) {}
 
       constexpr inline vType& operator()(unsigned index)
       {
@@ -97,11 +99,13 @@ namespace faze
         vType data[3];
       };
 
-      constexpr inline Vector() {}
+      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)) {}
       constexpr inline Vector(vType v) : x(v), y(v), z(v) {}
       constexpr inline Vector(vType x, vType y, vType z) : x(x), y(y), z(z) {}
       constexpr inline Vector(Vector<2, vType> o, vType v) : x(o.x), y(o.y), z(v) {}
       constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z) {}
+      template<typename vTypeAnother>
+      constexpr inline Vector(const Vector<3, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)) {}
 
       constexpr inline vType& operator()(unsigned index)
       {
@@ -130,11 +134,13 @@ namespace faze
         vType data[4];
       };
 
-      constexpr inline Vector() {}
+      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)), w(static_cast<vType>(0)) {}
       constexpr inline Vector(vType v) : x(v), y(v), z(v), w(v) {}
       constexpr inline Vector(vType x, vType y, vType z, vType w) : x(x), y(y), z(z), w(w) {}
       constexpr inline Vector(Vector<3, vType> o, vType v) : x(o.x), y(o.y), z(o.z), w(v) {}
       constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z), w(o.w) {}
+      template<typename vTypeAnother>
+      constexpr inline Vector(const Vector<4, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)), w(static_cast<vType>(o.w)) {}
 
       constexpr inline vType& operator()(unsigned index)
       {

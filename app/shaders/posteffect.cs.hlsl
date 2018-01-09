@@ -3,7 +3,21 @@
 CS_SIGNATURE
 void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 {
-  float4 val = source[id];
-  val.x += 1.f;
-  target[id] = val;
+	uint column = id.x;
+
+	float4 lastPixel = float4(0,0,0,0);
+
+	if (id.y == 0)
+	{
+		for (uint y = 0; y < sourceRes.y; ++y)
+		{
+			uint2 vec = uint2(column, sourceRes.y - y);
+	  	float4 val = source[vec];
+	  	val *= 0.1f;
+	  	val += lastPixel * 0.9f;
+	  	//val.x += 0.1f;
+	  	lastPixel = val;
+	  	target[vec] = val;
+	  }
+  }
 }

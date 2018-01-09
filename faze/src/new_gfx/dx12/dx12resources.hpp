@@ -810,17 +810,17 @@ namespace faze
     class DX12Heap : public prototypes::HeapImpl
     {
     private:
-      ID3D12Heap* heap;
+        ComPtr<ID3D12Heap> heap;
 
     public:
       DX12Heap()
       {}
-      DX12Heap(ID3D12Heap* heap)
+      DX12Heap(ComPtr<ID3D12Heap> heap)
         : heap(heap)
       {}
       ID3D12Heap* native()
       {
-        return heap;
+        return heap.Get();
       }
     };
 

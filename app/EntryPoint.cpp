@@ -228,8 +228,14 @@ int EntryPoint::main()
         auto texture2 = dev.createTexture(testDesc
           .setName("postEffect")
           .setMiplevels(1));
-        auto texSrv2 = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-        auto texUav2 = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        auto texSrv2 = dev.createTextureSRV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        auto texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+
+        auto texture3 = dev.createTexture(testDesc
+            .setName("postEffect2")
+            .setMiplevels(1));
+        auto texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        auto texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
         Renderpass triangleRenderpass = dev.createRenderpass();
 
@@ -243,7 +249,8 @@ int EntryPoint::main()
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
-        renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(8, 8, 1));
+        renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(64, 1, 1));
+        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffectLDS", uint3(64, 1, 1));
         renderer::Blitter blit(dev);
         renderer::ImGui imgRenderer(dev);
 
@@ -419,7 +426,10 @@ int EntryPoint::main()
           }
           //if (inputs.isPressedThisFrame('3', 2))
 
+          iRes.y = 1;
           postPass.compute(tasks, texUav2, texSrv, iRes);
+          iRes.x *= 64;
+          postPass2.compute(tasks, texUav3, texSrv, iRes);
 
           {
             // we have pulsing red color background, draw a triangle on top of it !
@@ -441,13 +451,17 @@ int EntryPoint::main()
             binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
             binding.constants.colorspace = static_cast<int>(swapchain.impl()->displayCurve());
             binding.srv(::shader::Triangle::vertices, verts);
-            binding.srv(::shader::Triangle::yellow, texSrv2);
+            binding.srv(::shader::Triangle::yellow, texSrv);
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
           }
           //float heightMulti = 1.f; // float(testSrv.desc().desc.height) / float(testSrv.desc().desc.width);
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
+
+          auto bpos = div(uint2(backbuffer.desc().desc.width, backbuffer.desc().desc.height), 2u);
+          blit.blit(dev, tasks, backbuffer, texSrv2, int2(bpos), int2(bpos));
+          blit.blit(dev, tasks, backbuffer, texSrv3, int2(bpos.x, 0), int2(bpos));
 
           /*
               uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
@@ -723,8 +737,14 @@ int EntryPoint::main()
                 texture2 = dev.createTexture(testDesc
                   .setName("postEffect")
                   .setMiplevels(1));
-                texSrv2 = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-                texUav2 = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texSrv2 = dev.createTextureSRV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+
+                texture3 = dev.createTexture(testDesc
+                    .setName("postEffect2")
+                    .setMiplevels(1));
+                texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
               }
 
               ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));

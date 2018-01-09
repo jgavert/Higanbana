@@ -186,7 +186,7 @@ namespace faze
         dxdesc.Alignment = 0; // D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
         dxdesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
       }
-      dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      dxdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
 
       switch (desc.dimension)
       {
@@ -643,7 +643,7 @@ namespace faze
 
       for (auto&& it : *pipeline.m_pipelines)
       {
-        if (it.hash == hash)
+        if (it.hash == hash)                                                 
         {
           missing = false;
           ptr = &it;
@@ -859,15 +859,15 @@ namespace faze
         dxdesc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags);
       }
 
-      ID3D12Heap* heap;
-      m_device->CreateHeap(&dxdesc, IID_PPV_ARGS(&heap));
+      ComPtr<ID3D12Heap> heap;
+      m_device->CreateHeap(&dxdesc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf()));
       return GpuHeap(std::make_shared<DX12Heap>(heap), std::move(heapDesc));
     }
 
-    void DX12Device::destroyHeap(GpuHeap heap)
+    void DX12Device::destroyHeap(GpuHeap )
     {
-      auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
-      native->native()->Release();
+      //auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
+      //native->native()->Release();
     }
 
     std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
