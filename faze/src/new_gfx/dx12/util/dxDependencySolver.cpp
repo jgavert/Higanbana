@@ -172,6 +172,11 @@ namespace faze
       {
         auto tesState = m_resourceStates[id];
         auto flags = tesState.state->flags;
+        for (auto&& flag : flags)
+        {
+            //if (flag != D3D12_RESOURCE_STATE_COPY_DEST)
+                flag = D3D12_RESOURCE_STATE_COMMON;
+        }
         m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, flags };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
@@ -230,6 +235,7 @@ namespace faze
               int16_t mipLevels = resource->second.mips;
               int16_t subresourceIndex;
 
+              bool uav = false;
               for (int16_t mip = job.range.mipOffset; mip < job.range.mipOffset + job.range.mipLevels; ++mip)
               {
                 for (int16_t slice = job.range.sliceOffset; slice < job.range.sliceOffset + job.range.arraySize; ++slice)
@@ -237,9 +243,19 @@ namespace faze
                   subresourceIndex = slice * mipLevels + mip;
                   auto& state = resource->second.states[subresourceIndex];
 
-                  if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+                  if (D3D12_RESOURCE_STATE_UNORDERED_ACCESS == state && D3D12_RESOURCE_STATE_UNORDERED_ACCESS == job.access)
                   {
                     m_uavCache.emplace(resource->second.image);
+                  }
+
+                  if (state == D3D12_RESOURCE_STATE_COMMON)
+                  {
+                      auto mask = (D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_RENDER_TARGET);
+                      if ((job.access & mask) == 0)
+                      {
+                          state = job.access;
+                          continue;
+                      }
                   }
 
                   if (state != job.access)
@@ -248,7 +264,7 @@ namespace faze
                       D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
                       D3D12_RESOURCE_BARRIER_FLAG_NONE,
                       resource->second.image,
-                      static_cast<UINT>(-1),
+                      static_cast<UINT>(subresourceIndex),
                       state,
                       jobResAccess });
                     state = jobResAccess;
@@ -256,18 +272,16 @@ namespace faze
                   }
                 }
               }
+              if (uav)
+              {
+                  barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                      D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                      D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                      resource->second.image });
+                  ++barriersOffset;
+              }
             }
           }
-
-          for (auto&& it : m_uavCache)
-          {
-            barriers.emplace_back(D3D12_RESOURCE_BARRIER{
-              D3D12_RESOURCE_BARRIER_TYPE_UAV,
-              D3D12_RESOURCE_BARRIER_FLAG_NONE,
-              it });
-            ++barriersOffset;
-          }
-
           ++jobIndex;
         }
       }

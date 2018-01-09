@@ -412,7 +412,7 @@ namespace faze
             solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
           }
 
-          for (size_t i = srvCount; i < uavCount; ++i)
+          for (size_t i = srvCount; i < srvCount+uavCount; ++i)
           {
             solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
           }
