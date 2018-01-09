@@ -64,11 +64,12 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 	  // first load to lds
 
 		uint2 vec = uint2(column, y * FAZE_THREADGROUP_X + gid.x*2);
+    GroupMemoryBarrierWithGroupSync();
   	storePixel(gid.x*2+0, source[vec]);
   	vec.y += 1;
   	storePixel(gid.x*2+1, source[vec]);
 
-  	GroupMemoryBarrier();
+  	GroupMemoryBarrierWithGroupSync();
 
   	float4 res = float4(0,0,0,1);
   	//float multi = 1.f / SAMPLES;
