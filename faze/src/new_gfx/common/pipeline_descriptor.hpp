@@ -1,13 +1,16 @@
 #pragma once
 #include "faze/src/new_gfx/desc/formats.hpp"
+#include "core/src/math/math.hpp"
 #include <string>
 #include <array>
+
 namespace faze
 {
   class ComputePipelineDescriptor
   {
   public:
     std::string shaderSourcePath;
+    uint3 shaderGroups;
 
     ComputePipelineDescriptor()
     {
@@ -18,9 +21,15 @@ namespace faze
       return shaderSourcePath.c_str();
     }
 
-    ComputePipelineDescriptor& shader(std::string path)
+    ComputePipelineDescriptor& setShader(std::string path)
     {
       shaderSourcePath = path;
+      return *this;
+    }
+
+    ComputePipelineDescriptor& setThreadGroups(uint3 val)
+    {
+      shaderGroups = val;
       return *this;
     }
   };

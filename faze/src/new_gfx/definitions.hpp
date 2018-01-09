@@ -1,7 +1,7 @@
 #pragma once
 
 // Enables debug validation layers for dx12/vulkan
-//#define FAZE_GRAPHICS_VALIDATION_LAYER
+#define FAZE_GRAPHICS_VALIDATION_LAYER
 
 #define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
