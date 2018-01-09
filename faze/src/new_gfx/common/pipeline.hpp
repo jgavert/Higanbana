@@ -16,6 +16,9 @@ namespace faze
     std::shared_ptr<WatchFile> m_update;
     ComputePipelineDescriptor descriptor;
 
+    ComputePipeline()
+    {}
+
     ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, ComputePipelineDescriptor desc)
       : impl(impl)
       , m_update(std::make_shared<WatchFile>())

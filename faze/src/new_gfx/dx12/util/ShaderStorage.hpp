@@ -240,7 +240,7 @@ namespace faze
         m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
       }
 
-      bool compileShader(std::string shaderName, ShaderType type)
+      bool compileShader(std::string shaderName, ShaderType type, uint3 tgs)
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
 #if defined(FAZE_DX12_DXIL)
@@ -255,6 +255,11 @@ namespace faze
         memcpy(reinterpret_cast<char*>(&text[0]), view.data(), view.size());
         //printf("%s\n", text.data());
         // we got shader in "text"
+
+        auto TGS_X = std::to_string(tgs.x);
+        auto TGS_Y = std::to_string(tgs.y);
+        auto TGS_Z = std::to_string(tgs.z);
+
 #if defined(FAZE_DX12_DXIL)
         ComPtr<IDxcLibrary> pLibrary;
         ComPtr<IDxcBlobEncoding> pSource;
@@ -268,7 +273,12 @@ namespace faze
         LPCWSTR ppArgs[] = { L"/Zi", L"/WX", L"/Od", L"/Ges", L"/enable_unbounded_descriptor_tables", L"/all_resources_bound" }; // debug info
         ComPtr<IDxcCompiler> pCompiler;
         DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
-        DxcDefine defs[] = { DxcDefine{ L"FAZE_DX12", nullptr } };
+
+        DxcDefine defs[] = {
+          DxcDefine{ L"FAZE_DX12", nullptr },
+          DxcDefine{ L"FAZE_THREADGROUP_X", TGS_X.c_str() },
+          DxcDefine{ L"FAZE_THREADGROUP_Y", TGS_Y.c_str() },
+          DxcDefine{ L"FAZE_THREADGROUP_Z", TGS_Z.c_str() } };
         ComPtr<IDxcOperationResult> pResult;
 
         std::wstring kek = s2ws(shaderName);
@@ -327,6 +337,9 @@ namespace faze
         D3D_SHADER_MACRO macros[] =
         {
           D3D_SHADER_MACRO{"FAZE_DX12", nullptr },
+          D3D_SHADER_MACRO{"FAZE_THREADGROUP_X", TGS_X.c_str() },
+          D3D_SHADER_MACRO{"FAZE_THREADGROUP_Y", TGS_Y.c_str() },
+          D3D_SHADER_MACRO{"FAZE_THREADGROUP_Z", TGS_Z.c_str() },
           D3D_SHADER_MACRO{nullptr, nullptr }
         };
 
@@ -353,7 +366,7 @@ namespace faze
 #endif
       }
 
-      faze::MemoryBlob shader(const std::string& shaderName, ShaderType type)
+      faze::MemoryBlob shader(const std::string& shaderName, ShaderType type, uint3 tgs = uint3(1, 1, 1))
       {
         auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
 #if defined(FAZE_DX12_DXIL)
@@ -365,8 +378,8 @@ namespace faze
         if (!m_fs.fileExists(dxilPath))
         {
           //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
-          F_ASSERT(compileShader(shaderName, type), "ups");
-        }
+          F_ASSERT(compileShader(shaderName, type, tgs), "ups");
+      }
         if (m_fs.fileExists(dxilPath) && m_fs.fileExists(shaderPath))
         {
           auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
@@ -378,7 +391,7 @@ namespace faze
           if (shaderTime > dxilTime || shaderInterfaceTime > dxilTime)
           {
             //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
-            bool result = compileShader(shaderName, type);
+            bool result = compileShader(shaderName, type, tgs);
             if (!result)
             {
               F_ILOG("DX12", "Shader compile failed.\n");
@@ -388,7 +401,7 @@ namespace faze
         F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
         auto shader = m_fs.readFile(dxilPath);
         return shader;
-      }
+    }
 
       /*
         ComPtr<ID3DBlob> rootSignature(std::string shaderName, ShaderType type)
@@ -410,6 +423,6 @@ namespace faze
         }
         return WatchFile{};
       }
-    };
-  }
+  };
+}
 }

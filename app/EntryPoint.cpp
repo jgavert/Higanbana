@@ -18,10 +18,13 @@
 #include "core/src/math/math.hpp"
 
 #include "shaders/textureTest.if.hpp"
+#include "shaders/posteffect.if.hpp"
 #include "shaders/triangle.if.hpp"
 
 #include "renderer/blitter.hpp"
 #include "renderer/imgui_renderer.hpp"
+
+#include "renderer/texture_pass.hpp"
 
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 #include "core/src/external/imgiu/imgui.h"
@@ -209,17 +212,24 @@ int EntryPoint::main()
         auto testImage = dev.createTexture(image);
         auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
-        auto texture = dev.createTexture(ResourceDescriptor()
+        auto testDesc = ResourceDescriptor()
           .setName("testTexture")
           .setFormat(FormatType::Unorm16RGBA)
           .setWidth(ires.x)
           .setHeight(ires.y)
           .setMiplevels(4)
           .setDimension(FormatDimension::Texture2D)
-          .setUsage(ResourceUsage::RenderTargetRW));
+          .setUsage(ResourceUsage::RenderTargetRW);
+        auto texture = dev.createTexture(testDesc);
         auto texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
         auto texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
         auto texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+
+        auto texture2 = dev.createTexture(testDesc
+          .setName("postEffect")
+          .setMiplevels(1));
+        auto texSrv2 = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        auto texUav2 = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
         Renderpass triangleRenderpass = dev.createRenderpass();
 
@@ -233,11 +243,13 @@ int EntryPoint::main()
         GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
+        renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(8, 8, 1));
         renderer::Blitter blit(dev);
         renderer::ImGui imgRenderer(dev);
 
         ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
-          .shader("textureTest"));
+          .setShader("textureTest")
+          .setThreadGroups(uint3(8, 8, 1)));
 
         bool closeAnyway = false;
 
@@ -384,13 +396,12 @@ int EntryPoint::main()
             //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
             tasks.addPass(std::move(node));
           }
-
+          uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
           {
             auto node = tasks.createPass("compute!");
 
             auto binding = node.bind<::shader::TextureTest>(testCompute);
             binding.constants = {};
-            uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
             binding.constants.iResolution = iRes;
             binding.constants.iFrame = static_cast<int>(frame);
             binding.constants.iTime = time.getFTime();
@@ -407,6 +418,8 @@ int EntryPoint::main()
             tasks.addPass(std::move(node));
           }
           //if (inputs.isPressedThisFrame('3', 2))
+
+          postPass.compute(tasks, texUav2, texSrv, iRes);
 
           {
             // we have pulsing red color background, draw a triangle on top of it !
@@ -428,7 +441,7 @@ int EntryPoint::main()
             binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
             binding.constants.colorspace = static_cast<int>(swapchain.impl()->displayCurve());
             binding.srv(::shader::Triangle::vertices, verts);
-            binding.srv(::shader::Triangle::yellow, texSrv);
+            binding.srv(::shader::Triangle::yellow, texSrv2);
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
@@ -692,18 +705,26 @@ int EntryPoint::main()
               {
                 ires.data[0] = std::max(ires.data[0], 1);
                 ires.data[1] = std::max(ires.data[1], 1);
-                texture = dev.createTexture(ResourceDescriptor()
+
+                testDesc = ResourceDescriptor()
                   .setName("testTexture")
                   .setFormat(FormatType::Unorm16RGBA)
                   .setWidth(ires.data[0])
                   .setHeight(ires.data[1])
                   .setMiplevels(4)
                   .setDimension(FormatDimension::Texture2D)
-                  .setUsage(ResourceUsage::RenderTargetRW));
+                  .setUsage(ResourceUsage::RenderTargetRW);
+                texture = dev.createTexture(testDesc);
 
                 texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
                 texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
                 texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+
+                texture2 = dev.createTexture(testDesc
+                  .setName("postEffect")
+                  .setMiplevels(1));
+                texSrv2 = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texUav2 = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
               }
 
               ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));

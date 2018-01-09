@@ -771,7 +771,7 @@ namespace faze
           F_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
         }
 
-        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
+        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute, pipeline.descriptor.shaderGroups);
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
 
         D3D12_SHADER_BYTECODE byte;

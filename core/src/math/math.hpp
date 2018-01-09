@@ -100,6 +100,7 @@ namespace faze
       constexpr inline Vector() {}
       constexpr inline Vector(vType v) : x(v), y(v), z(v) {}
       constexpr inline Vector(vType x, vType y, vType z) : x(x), y(y), z(z) {}
+      constexpr inline Vector(Vector<2, vType> o, vType v) : x(o.x), y(o.y), z(v) {}
       constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z) {}
 
       constexpr inline vType& operator()(unsigned index)
@@ -110,6 +111,11 @@ namespace faze
       constexpr inline const vType& operator()(unsigned index) const
       {
         return data[index];
+      }
+
+      constexpr inline Vector<2, vType> xy() const
+      {
+        return Vector<2, vType>(x, y);
       }
     };
 
@@ -390,7 +396,7 @@ namespace faze
       constexpr inline Vector<columnCount, vType> row(unsigned y)
       {
         Vector<columnCount, vType> v1{};
-        for (int i = 0; i<columnCount; ++i)
+        for (int i = 0; i < columnCount; ++i)
         {
           v1(i) = data[y*columnCount + i];
         }
@@ -524,7 +530,6 @@ namespace faze
 
       return add(mul(2.0f * dot(u, v), u), add(mul((s*s - dot(u, u)), v), mul(2.0f, mul(s, crossProduct(u, v)))));
     }
-
 
     typedef Matrix<3, 3, float> float3x3;
     typedef Matrix<4, 4, float> float4x4;
@@ -698,7 +703,6 @@ namespace faze
       memcpy(outResult.data + (rows*cols), b.data, rows2*cols2 * sizeof(vType));
       return outResult;
     }
-
 
     template <typename vType, int rows, int cols, int rows2, int cols2>
     constexpr inline void extractMatrices(Matrix<1, rows*cols + rows2 * cols2, vType> input, Matrix<rows, cols, vType>& out1, Matrix<rows2, cols2, vType> out2)

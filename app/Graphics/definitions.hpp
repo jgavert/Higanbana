@@ -15,7 +15,7 @@ namespace shader\
 };
 
 #define FAZE_CBUFFER \
-    struct Constants 
+    struct Constants
 
 #define FAZE_SRV(type, name, index) \
 	static constexpr int name = index;
