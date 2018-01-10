@@ -106,10 +106,35 @@ public:
     }
   };
 
-  bool compileShader(std::string shaderName, ShaderType type)
+  std::string sourcePathCombiner(std::string shaderName, ShaderType type)
   {
-    auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
-    auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
+    return sourcePath + shaderName + "." + shaderFileType(type);
+  }
+
+  std::string binaryPathCombiner(std::string shaderName, ShaderType type, uint3 tgs)
+  {
+    std::string binType = "Release/";
+#if defined(DEBUG)
+    binType = "Debug/";
+#endif
+
+    std::string additionalBinInfo = "";
+
+    if (type == ShaderType::Compute)
+    {
+      additionalBinInfo += ".";
+      additionalBinInfo += std::to_string(tgs.x) + "_";
+      additionalBinInfo += std::to_string(tgs.y) + "_";
+      additionalBinInfo += std::to_string(tgs.z);
+    }
+
+    return compiledPath + binType + shaderName + additionalBinInfo + "." + shaderFileType(type) + ".spv";
+  }
+
+  bool compileShader(std::string shaderName, ShaderType type, uint3 tgs)
+  {
+    auto shaderPath = sourcePathCombiner(shaderName, type);
+    auto spvPath = binaryPathCombiner(shaderName, type, tgs);
 
     F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %c\n", shaderPath.c_str());
     auto view = m_fs.viewToFile(shaderPath);
@@ -128,6 +153,13 @@ public:
     //opt.SetForcedVersionProfile(450, shaderc_profile_none);
     //opt.SetTargetEnvironment(shaderc_target_env_vulkan, 100);
     opt.AddMacroDefinition("FAZE_VULKAN");
+
+    auto TGS_X = std::to_string(tgs.x);
+    auto TGS_Y = std::to_string(tgs.y);
+    auto TGS_Z = std::to_string(tgs.z);
+    opt.AddMacroDefinition("FAZE_THREADGROUP_X", TGS_X);
+    opt.AddMacroDefinition("FAZE_THREADGROUP_Y", TGS_Y);
+    opt.AddMacroDefinition("FAZE_THREADGROUP_Z", TGS_Z);
     shaderc::Compiler compiler;
     auto something = compiler.CompileGlslToSpv(text, static_cast<shaderc_shader_kind>(type), "main", opt);
     if (something.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -162,15 +194,15 @@ public:
     return true;
   }
 
-  vk::ShaderModule shader(vk::Device& device, std::string shaderName, ShaderType type)
+  vk::ShaderModule shader(vk::Device& device, std::string shaderName, ShaderType type, uint3 tgs = uint3(1, 1, 1))
   {
-    auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
-    auto spvPath = compiledPath + shaderName + "." + shaderFileType(type) + ".spv";
+    auto shaderPath = sourcePathCombiner(shaderName, type);
+    auto spvPath = binaryPathCombiner(shaderName, type, tgs);
 
     if (!m_fs.fileExists(spvPath))
     {
       //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
-      F_ASSERT(compileShader(shaderName, type), "ups");
+      F_ASSERT(compileShader(shaderName, type, tgs), "ups");
     }
     if (m_fs.fileExists(spvPath))
     {
@@ -183,7 +215,7 @@ public:
       if (shaderTime > spirvTime || shaderInterfaceTime > spirvTime)
       {
         //        F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
-        F_ASSERT(compileShader(shaderName, type), "ups");
+        F_ASSERT(compileShader(shaderName, type, tgs), "ups");
       }
     }
     F_ASSERT(m_fs.fileExists(spvPath), "wtf???");

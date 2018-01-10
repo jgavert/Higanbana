@@ -10,7 +10,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4100)
 #include <dxc/Support/microcom.h>
-#pragma warning( pop ) 
+#pragma warning( pop )
 #else
 #include <D3Dcompiler.h>
 #endif

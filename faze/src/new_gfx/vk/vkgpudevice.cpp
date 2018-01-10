@@ -240,6 +240,7 @@ namespace faze
       m_copyListPool.clear();
       m_computeListPool.clear();
       m_graphicsListPool.clear();
+      m_renderpasses.clear();
       m_device.destroy();
     }
 
@@ -729,32 +730,38 @@ namespace faze
       auto d = pipe.descriptor;
       if (!d.vertexShaderPath.empty())
       {
-        m_shaders.shader(m_device, d.vertexShaderPath, ShaderStorage::ShaderType::Vertex);
+        auto shader = m_shaders.shader(m_device, d.vertexShaderPath, ShaderStorage::ShaderType::Vertex);
+        m_device.destroyShaderModule(shader);
       }
 
       if (!d.hullShaderPath.empty())
       {
-        m_shaders.shader(m_device, d.hullShaderPath, ShaderStorage::ShaderType::TessControl);
+        auto shader = m_shaders.shader(m_device, d.hullShaderPath, ShaderStorage::ShaderType::TessControl);
+        m_device.destroyShaderModule(shader);
       }
 
       if (!d.domainShaderPath.empty())
       {
-        m_shaders.shader(m_device, d.domainShaderPath, ShaderStorage::ShaderType::TessEvaluation);
+        auto shader = m_shaders.shader(m_device, d.domainShaderPath, ShaderStorage::ShaderType::TessEvaluation);
+        m_device.destroyShaderModule(shader);
       }
 
       if (!d.geometryShaderPath.empty())
       {
-        m_shaders.shader(m_device, d.geometryShaderPath, ShaderStorage::ShaderType::Geometry);
+        auto shader = m_shaders.shader(m_device, d.geometryShaderPath, ShaderStorage::ShaderType::Geometry);
+        m_device.destroyShaderModule(shader);
       }
 
       if (!d.pixelShaderPath.empty())
       {
-        m_shaders.shader(m_device, d.pixelShaderPath, ShaderStorage::ShaderType::Pixel);
+        auto shader = m_shaders.shader(m_device, d.pixelShaderPath, ShaderStorage::ShaderType::Pixel);
+        m_device.destroyShaderModule(shader);
       }
     }
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {
-      m_shaders.shader(m_device, pipe.descriptor.shader(), ShaderStorage::ShaderType::Compute);
+      auto shader = m_shaders.shader(m_device, pipe.descriptor.shader(), ShaderStorage::ShaderType::Compute, pipe.descriptor.shaderGroups);
+      m_device.destroyShaderModule(shader);
     }
 
     void VulkanDevice::collectTrash()
