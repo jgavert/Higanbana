@@ -240,14 +240,43 @@ namespace faze
         m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
       }
 
+      std::string sourcePathCombiner(std::string shaderName, ShaderType type)
+      {
+        return sourcePath + shaderName + "." + shaderFileType(type);
+      }
+
+      std::string binaryPathCombiner(std::string shaderName, ShaderType type, uint3 tgs)
+      {
+        std::string shaderBinType = "dxbc/";
+        std::string shaderExtension = ".dxbc";
+#if defined(FAZE_DX12_DXIL)
+        shaderBinType = "dxil/";
+        shaderExtension = ".dxil";
+#endif
+
+        std::string binType = "Release/";
+#if defined(DEBUG)
+        binType = "Debug/";
+#endif
+
+        std::string additionalBinInfo = "";
+
+        if (type == ShaderType::Compute)
+        {
+          additionalBinInfo += ".";
+          additionalBinInfo += std::to_string(tgs.x) + "_";
+          additionalBinInfo += std::to_string(tgs.y) + "_";
+          additionalBinInfo += std::to_string(tgs.z);
+        }
+
+        return compiledPath + shaderBinType + binType + shaderName + additionalBinInfo + "." + shaderFileType(type) + shaderExtension;
+      }
+
       bool compileShader(std::string shaderName, ShaderType type, uint3 tgs)
       {
-        auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
-#if defined(FAZE_DX12_DXIL)
-        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
-#else
-        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxbc";
-#endif
+        auto shaderPath = sourcePathCombiner(shaderName, type);
+        auto dxilPath = binaryPathCombiner(shaderName, type, tgs);
+
         F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
         auto view = m_fs.viewToFile(shaderPath);
         std::string text;
@@ -256,11 +285,11 @@ namespace faze
         //printf("%s\n", text.data());
         // we got shader in "text"
 
-        auto TGS_X = std::to_string(tgs.x);
-        auto TGS_Y = std::to_string(tgs.y);
-        auto TGS_Z = std::to_string(tgs.z);
-
 #if defined(FAZE_DX12_DXIL)
+        auto TGS_X = s2ws(std::to_string(tgs.x));
+        auto TGS_Y = s2ws(std::to_string(tgs.y));
+        auto TGS_Z = s2ws(std::to_string(tgs.z));
+
         ComPtr<IDxcLibrary> pLibrary;
         ComPtr<IDxcBlobEncoding> pSource;
         DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
@@ -320,6 +349,9 @@ namespace faze
         m_fs.writeFile(dxilPath, viewToBlob);
         return true;
 #else
+        auto TGS_X = std::to_string(tgs.x);
+        auto TGS_Y = std::to_string(tgs.y);
+        auto TGS_Z = std::to_string(tgs.z);
 
         CShaderInclude include(m_fs, sourcePath);
         auto p = shaderFeature(type);
@@ -368,18 +400,14 @@ namespace faze
 
       faze::MemoryBlob shader(const std::string& shaderName, ShaderType type, uint3 tgs = uint3(1, 1, 1))
       {
-        auto shaderPath = sourcePath + shaderName + "." + shaderFileType(type);
-#if defined(FAZE_DX12_DXIL)
-        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxil";
-#else
-        auto dxilPath = compiledPath + shaderName + "." + shaderFileType(type) + ".dxbc";
-#endif
+        auto shaderPath = sourcePathCombiner(shaderName, type);
+        auto dxilPath = binaryPathCombiner(shaderName, type, tgs);
 
         if (!m_fs.fileExists(dxilPath))
         {
           //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
           F_ASSERT(compileShader(shaderName, type, tgs), "ups");
-      }
+        }
         if (m_fs.fileExists(dxilPath) && m_fs.fileExists(shaderPath))
         {
           auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
@@ -401,7 +429,7 @@ namespace faze
         F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
         auto shader = m_fs.readFile(dxilPath);
         return shader;
-    }
+      }
 
       /*
         ComPtr<ID3DBlob> rootSignature(std::string shaderName, ShaderType type)
@@ -423,6 +451,6 @@ namespace faze
         }
         return WatchFile{};
       }
-  };
-}
+    };
+  }
 }

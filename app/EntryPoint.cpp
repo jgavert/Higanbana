@@ -243,8 +243,8 @@ int EntryPoint::main()
         auto texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
         auto texture3 = dev.createTexture(testDesc
-            .setName("postEffect2")
-            .setMiplevels(1));
+          .setName("postEffect2")
+          .setMiplevels(1));
         auto texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
         auto texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
@@ -752,8 +752,8 @@ int EntryPoint::main()
                 texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
                 texture3 = dev.createTexture(testDesc
-                    .setName("postEffect2")
-                    .setMiplevels(1));
+                  .setName("postEffect2")
+                  .setMiplevels(1));
                 texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
                 texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
               }
