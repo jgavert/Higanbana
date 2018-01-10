@@ -58,7 +58,7 @@ namespace faze
 
   struct GpuHeapAllocation
   {
-    int index;
+    uint64_t index;
     int alignment;
     int64_t heapType;
     PageBlock block;
@@ -68,7 +68,7 @@ namespace faze
 
   class Buffer;
   class Texture;
-  
+
   class BufferSRV;
   class BufferUAV;
   class TextureSRV;
@@ -124,7 +124,7 @@ namespace faze
     {
       struct HeapBlock
       {
-        int index;
+        uint64_t index;
         FixedSizeAllocator allocator;
         GpuHeap heap;
       };
@@ -138,6 +138,9 @@ namespace faze
 
       vector<HeapVector> m_heaps;
       const int64_t m_minimumHeapSize = 16 * 1024 * 1024;
+      uint64_t m_heapIndex = 0;
+
+      uint64_t m_totalMemory = 0;
     public:
 
       HeapAllocation allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements);

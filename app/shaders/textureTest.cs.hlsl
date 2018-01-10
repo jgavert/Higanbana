@@ -17,13 +17,13 @@ groupshared RayData rdata[64];
 // how many reflections
 #define MAXREFLECTION 2.0
 // how much object reflects light
-#define REFLECTIVITY 0.3
+#define REFLECTIVITY 0.02
 // How far rays can travel(applies to first ray only)
 #define MAXLENGTH 180.0
 // color to red by iteration multiplier
 #define COLORBYITER 0.0
 // This multiplies the one intensity of the light
-#define LIGHTINTENSITY 10.0
+#define LIGHTINTENSITY 60.0
 // this is basically resolution multiplier, one pixel is RAYMULTIPLIER*RAYMULTIPLIER amount of rays
 #define RAYMULTIPLIER 1.0
 // kind of deprecated, adds walls/cube to somewhere.
@@ -194,7 +194,7 @@ float3 getColor(float id)
     return float3(0.0,1.0,0.0);
   else if (id == 3.0)
     return float3(0.0,0.0,1.0);
-  return float3 (0.2,0.2,0.2);
+  return float3 (0.7,0.1,0.2);
 }
 
 //float3 calcRay(float3 ro, float3 rd, float3 lightPos)
