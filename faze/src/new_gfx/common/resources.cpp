@@ -425,7 +425,7 @@ namespace faze
       GpuHeapAllocation alloc{};
       alloc.alignment = static_cast<int>(requirements.alignment);
       alloc.heapType = requirements.heapType;
-      auto createHeapBlock = [&](prototypes::DeviceImpl* dev, int index, MemoryRequirements& requirements)
+      auto createHeapBlock = [&](prototypes::DeviceImpl* dev, uint64_t index, MemoryRequirements& requirements)
       {
         auto minSize = std::min(m_minimumHeapSize, static_cast<int64_t>(128 * 32 * requirements.alignment));
         auto sizeToCreate = roundUpMultiplePowerOf2(minSize, requirements.alignment);
@@ -439,13 +439,16 @@ namespace faze
         name += std::to_string(requirements.heapType);
         name += "a";
         name += std::to_string(requirements.alignment);
+
+        m_totalMemory += sizeToCreate;
+
         HeapDescriptor desc = HeapDescriptor()
           .setSizeInBytes(sizeToCreate)
           .setHeapType(HeapType::Custom)
           .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
-        F_SLOG("Graphics", "Created heap \"%s\" size %.2fMB (%zu) \n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate);
+        F_SLOG("Graphics", "Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB \n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
         return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
@@ -473,7 +476,7 @@ namespace faze
         if (!block.valid())
         {
           // create correct sized heap and allocate from it.
-          auto newHeap = createHeapBlock(device, static_cast<int>(vectorPtr->heaps.size()), requirements);
+          auto newHeap = createHeapBlock(device, m_heapIndex++, requirements);
           alloc.block = newHeap.allocator.allocate(requirements.bytes);
           alloc.index = newHeap.index;
           auto heap = newHeap.heap;
@@ -482,7 +485,7 @@ namespace faze
         }
       }
       HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>() };
-      auto newHeap = createHeapBlock(device, 0, requirements);
+      auto newHeap = createHeapBlock(device, m_heapIndex++, requirements);
       alloc.block = newHeap.allocator.allocate(requirements.bytes);
       alloc.index = newHeap.index;
       auto heap = newHeap.heap;
@@ -519,17 +522,24 @@ namespace faze
           if (iter->allocator.empty())
           {
             emptyHeaps.emplace_back(iter->heap);
-
-            F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu\n", iter->index, it.type, it.alignment, iter->allocator.size());
+            m_totalMemory -= iter->allocator.size();
+            F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB\n", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
           }
         }
-        auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
+        for (;;)
         {
-          return vec.allocator.empty();
-        });
-        if (removables != it.heaps.end())
-        {
-          it.heaps.erase(removables);
+          auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
+          {
+            return vec.allocator.empty();
+          });
+          if (removables != it.heaps.end())
+          {
+            it.heaps.erase(removables);
+          }
+          else
+          {
+            break;
+          }
         }
       }
 
