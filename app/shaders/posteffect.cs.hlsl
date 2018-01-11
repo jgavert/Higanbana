@@ -12,6 +12,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 		for (uint y = 0; y < sourceRes.y; ++y)
 		{
 			uint2 vec = uint2(column, sourceRes.y - y);
+			vec.y = min(max(vec.y, 0), sourceRes.y);
 	  	float4 val = source[vec];
 	  	val *= 0.1f;
 	  	val += lastPixel * 0.9f;
