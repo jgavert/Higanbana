@@ -430,6 +430,9 @@ namespace faze
         {
           drawIndex = solver->addDrawCall(packet->type());
           auto& p = packetRef(gfxpacket::ResourceBinding, packet);
+
+          auto readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
             F_ASSERT(subpass, "nullptr");
@@ -442,6 +445,7 @@ namespace faze
             {
               solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
             }
+            readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
           }
 
           auto srvCount = p.srvs.size();
@@ -449,7 +453,7 @@ namespace faze
 
           for (size_t i = 0; i < srvCount; ++i)
           {
-            solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            solver->addResource(drawIndex, p.resources[i], readState);
           }
 
           for (size_t i = srvCount; i < srvCount + uavCount; ++i)
@@ -462,7 +466,7 @@ namespace faze
         case CommandPacket::PacketType::DrawIndexed:
         {
           auto& p = packetRef(gfxpacket::DrawIndexed, packet);
-          solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+          solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER);
           break;
         }
         case CommandPacket::PacketType::PrepareForPresent:

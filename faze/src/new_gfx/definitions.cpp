@@ -8,7 +8,7 @@ namespace faze
     {
       // barrier booleans, toggle to control. Nothing thread safe here.
       // cannot toggle per window... I guess.
-      bool GraphicsEnableReadStateCombining = false;
+      bool GraphicsEnableReadStateCombining = true;
       bool GraphicsEnableHandleCommonState = false;
       bool GraphicsEnableSplitBarriers = true;
     }
