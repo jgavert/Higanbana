@@ -2,7 +2,10 @@
 #include "util/dxDependencySolver.hpp"
 #include "util/formats.hpp"
 
+#undef PROFILE
+#define PROFILE
 #include <WinPixEventRuntime/pix3.h>
+#undef PROFILE
 
 #include <algorithm>
 

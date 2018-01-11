@@ -1,7 +1,7 @@
 #pragma once
 
 // Enables debug validation layers for dx12/vulkan
-#define FAZE_GRAPHICS_VALIDATION_LAYER
+//#define FAZE_GRAPHICS_VALIDATION_LAYER
 
 #define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
@@ -21,9 +21,9 @@ namespace faze
     {
       // barrier booleans, toggle to control. Nothing thread safe here.
       // cannot toggle per window... I guess.
-      static bool GraphicsEnableReadStateCombining = false;
-      static bool GraphicsEnableHandleCommonState = false;
-      static bool GraphicsEnableSplitBarriers = false;
+      extern bool GraphicsEnableReadStateCombining;
+      extern bool GraphicsEnableHandleCommonState;
+      extern bool GraphicsEnableSplitBarriers;
     }
   }
 }
