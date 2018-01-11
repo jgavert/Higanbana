@@ -13,7 +13,7 @@ namespace faze
     class CommandPacket
     {
     private:
-      CommandPacket* m_nextPacket = nullptr;
+      CommandPacket * m_nextPacket = nullptr;
     public:
 
       enum class PacketType
@@ -30,9 +30,9 @@ namespace faze
         ComputePipelineBind,
         ResourceBinding,
         Draw,
-		DrawIndexed,
-		DrawDynamicIndexed,
-		SetScissorRect
+        DrawIndexed,
+        DrawDynamicIndexed,
+        SetScissorRect
       };
 
       CommandPacket();
@@ -140,7 +140,7 @@ namespace faze
         typedef typename CommandPacket* value_type;
         typedef std::forward_iterator_tag iterator_category; //or another tag
       private:
-        CommandPacket* item = nullptr;
+        CommandPacket * item = nullptr;
       public:
 
         iterator() {}
@@ -184,7 +184,7 @@ namespace faze
         typedef typename CommandPacket* value_type;
         typedef std::forward_iterator_tag iterator_category; //or another tag
       private:
-        CommandPacket* item = nullptr;
+        CommandPacket * item = nullptr;
       public:
 
         const_iterator() {}

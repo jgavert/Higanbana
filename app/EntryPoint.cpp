@@ -20,6 +20,7 @@
 #include "shaders/textureTest.if.hpp"
 #include "shaders/posteffect.if.hpp"
 #include "shaders/triangle.if.hpp"
+#include "shaders/buffertest.if.hpp"
 
 #include "renderer/blitter.hpp"
 #include "renderer/imgui_renderer.hpp"
@@ -215,10 +216,28 @@ int EntryPoint::main()
         auto bufferdesc = ResourceDescriptor()
           .setName("testBufferTarget")
           .setFormat(FormatType::Float32)
-          .setWidth(100)
-          .setDimension(FormatDimension::Buffer);
+          .setWidth(32)
+          .setDimension(FormatDimension::Buffer)
+          .setUsage(ResourceUsage::GpuRW);
 
         auto buffer = dev.createBuffer(bufferdesc);
+        auto bufferSRV = dev.createBufferSRV(buffer);
+        auto bufferUAV = dev.createBufferUAV(buffer);
+
+        auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+          .setName("testBufferTarget2");
+
+        auto buffer2 = dev.createBuffer(bufferdesc2);
+        auto bufferUAV2 = dev.createBufferUAV(buffer2);
+
+        auto brbdesc = ResourceDescriptor(bufferdesc)
+          .setName("testBufferReadback")
+          .setUsage(ResourceUsage::Readback);
+        auto bufferrb = dev.createBuffer(brbdesc);
+
+        ComputePipeline testBufferCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+          .setShader("buffertest")
+          .setThreadGroups(uint3(32, 1, 1)));
 
         auto testImage = dev.createTexture(image);
         auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
@@ -483,6 +502,32 @@ int EntryPoint::main()
 
               blit.blit(dev, tasks, backbuffer, testSrv, { 4, 800 }, int2{ int(nwidth), int(nheight) });
           */
+
+          {
+            auto& node = tasks.createPass2("Buffertest");
+
+            vector<float> vertices;
+            for (int i = 0; i < 32; ++i)
+            {
+              vertices.push_back(static_cast<float>(i));
+            }
+
+            auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32);
+
+            {
+              auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+              binding.srv(::shader::BufferTest::input, verts);
+              binding.uav(::shader::BufferTest::output, bufferUAV);
+              node.dispatch(binding, uint3(1));
+            }
+            {
+              auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+              binding.srv(::shader::BufferTest::input, bufferSRV);
+              binding.uav(::shader::BufferTest::output, bufferUAV2);
+              node.dispatch(binding, uint3(1));
+            }
+            node.copy(bufferrb, buffer2);
+          }
 
           {
             ImGuiIO &io = ImGui::GetIO();

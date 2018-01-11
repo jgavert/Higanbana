@@ -643,7 +643,7 @@ namespace faze
 
       for (auto&& it : *pipeline.m_pipelines)
       {
-        if (it.hash == hash)                                                 
+        if (it.hash == hash)
         {
           missing = false;
           ptr = &it;
@@ -864,7 +864,7 @@ namespace faze
       return GpuHeap(std::make_shared<DX12Heap>(heap), std::move(heapDesc));
     }
 
-    void DX12Device::destroyHeap(GpuHeap )
+    void DX12Device::destroyHeap(GpuHeap)
     {
       //auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
       //native->native()->Release();
@@ -930,6 +930,17 @@ namespace faze
 
       auto descriptor = m_generics.allocate();
 
+      auto sizeElements = viewDesc.m_elementCount;
+      if (sizeElements == -1)
+      {
+        sizeElements = bufferDesc.desc.width;
+      }
+
+      if (viewDesc.m_format != FormatType::Unknown)
+      {
+        sizeElements = sizeElements * bufferDesc.desc.stride / formatSizeInfo(viewDesc.m_format).pixelSize;
+      }
+
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
         D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
@@ -937,7 +948,7 @@ namespace faze
         natDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
         natDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-        natDesc.Buffer.NumElements = viewDesc.m_elementCount;
+        natDesc.Buffer.NumElements = sizeElements;
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
         m_device->CreateShaderResourceView(native->native(), &natDesc, descriptor.cpu);
@@ -948,7 +959,7 @@ namespace faze
         natDesc.Format = formatTodxFormat(format).view;
         natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
         natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-        natDesc.Buffer.NumElements = viewDesc.m_elementCount;
+        natDesc.Buffer.NumElements = sizeElements;
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
         natDesc.Buffer.CounterOffsetInBytes = 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;

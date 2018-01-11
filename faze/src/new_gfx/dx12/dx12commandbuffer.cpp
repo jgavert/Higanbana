@@ -110,6 +110,11 @@ namespace faze
       buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
     }
 
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCopy& packet)
+    {
+      buffer->CopyResource(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), reinterpret_cast<ID3D12Resource*>(packet.source.resPtr));
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
     {
       auto pipeline = std::static_pointer_cast<DX12Pipeline>(packet.pipeline.impl);
@@ -259,7 +264,7 @@ namespace faze
     {
       auto view = std::static_pointer_cast<DX12TextureView>(packet.rtv.native());
       auto texture = std::static_pointer_cast<DX12Texture>(packet.rtv.texture().native());
-      float rgba[4]{ packet.color.x, packet.color.y, packet.color.z, packet.color.w};
+      float rgba[4]{ packet.color.x, packet.color.y, packet.color.z, packet.color.w };
       buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
     }
 
@@ -280,6 +285,13 @@ namespace faze
         {
           solver->runBarrier(buffer, drawIndex);
           handle(buffer, packetRef(gfxpacket::UpdateTexture, packet), m_upload->native());
+          drawIndex++;
+          break;
+        }
+        case CommandPacket::PacketType::BufferCopy:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::BufferCopy, packet));
           drawIndex++;
           break;
         }
@@ -374,6 +386,14 @@ namespace faze
           solver->addResource(drawIndex, p.dst.dependency(), D3D12_RESOURCE_STATE_COPY_DEST, range);
           break;
         }
+        case CommandPacket::PacketType::BufferCopy:
+        {
+          auto& p = packetRef(gfxpacket::BufferCopy, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
+          solver->addResource(drawIndex, p.source, D3D12_RESOURCE_STATE_COPY_SOURCE);
+          break;
+        }
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
@@ -412,7 +432,7 @@ namespace faze
             solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
           }
 
-          for (size_t i = srvCount; i < srvCount+uavCount; ++i)
+          for (size_t i = srvCount; i < srvCount + uavCount; ++i)
           {
             solver->addResource(drawIndex, p.resources[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
           }

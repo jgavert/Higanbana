@@ -24,6 +24,11 @@ namespace faze
       , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
       , m_dependency(impl->dependency())
     {
+      m_dependency.storeSubresourceRange(
+        static_cast<unsigned>(0),
+        static_cast<unsigned>(1),
+        static_cast<unsigned>(0),
+        static_cast<unsigned>(1));
     }
 
     ResourceDescriptor& desc()
@@ -75,11 +80,11 @@ namespace faze
       return buf;
     }
 
-    backend::RawView view()
+    backend::RawView view() const
     {
       return m_view;
     }
-    backend::TrackedState dependency()
+    backend::TrackedState dependency() const
     {
       return m_dependency;
     }
@@ -141,9 +146,9 @@ namespace faze
       return impl->offset();
     }
 
-	std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> native()
-	{
-		return impl;
-	}
+    std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> native()
+    {
+      return impl;
+    }
   };
 };
