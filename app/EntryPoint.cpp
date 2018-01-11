@@ -644,6 +644,11 @@ int EntryPoint::main()
                 faze::globalconfig::graphics::GraphicsEnableSplitBarriers = faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? false : true;
               }
 
+              if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? "ReadStateCombining enabled" : "ReadStateCombining disabled"))
+              {
+                faze::globalconfig::graphics::GraphicsEnableReadStateCombining = faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? false : true;
+              }
+
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
               auto gfxTime = graphicsCpuTime.getCurrentFps();
               auto cpuTime = CpuTime.getCurrentFps();
@@ -841,7 +846,7 @@ int EntryPoint::main()
     }
     quit = true;
     lbs.sleepTillKeywords({ "gamepadDone" });
-  };
+      };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
@@ -861,4 +866,4 @@ int EntryPoint::main()
 
   log.update();
   return 1;
-  }
+    }

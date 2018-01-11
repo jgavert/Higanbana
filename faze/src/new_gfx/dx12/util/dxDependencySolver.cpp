@@ -236,6 +236,34 @@ namespace faze
 
                   if (state != job.access)
                   {
+                    if (globalconfig::graphics::GraphicsEnableReadStateCombining && getUsageFromAccessFlags(state) == DX12DependencySolver::UsageHint::read && getUsageFromAccessFlags(job.access) == DX12DependencySolver::UsageHint::read)
+                    {
+                      auto lastUsed = resource->second.lastModified[subresourceIndex];
+                      auto offset = m_barriersOffsets[lastUsed];
+                      auto end = m_barriersOffsets[lastUsed + 1];
+                      for (int i = offset; i < end; ++i)
+                      {
+                        if (barriers[i].Transition.pResource == resource->second.image)
+                        {
+                          state |= job.access;
+                          barriers[i].Transition.StateAfter = state;
+                          if (barriers[i].Type == D3D12_RESOURCE_BARRIER_FLAG_END_ONLY)
+                          {
+                            for (int k = std::max(i - 1, 0); k >= 0; --k)
+                            {
+                              if (barriers[k].Transition.pResource == resource->second.image && barriers[k].Type == D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY)
+                              {
+                                barriers[k].Transition.StateAfter = state;
+                                break;
+                              }
+                            }
+                          }
+                          break;
+                        }
+                      }
+                      continue;
+                    }
+
                     auto beginDrawIndex = resource->second.lastModified[subresourceIndex] + 1;
                     if (globalconfig::graphics::GraphicsEnableSplitBarriers && beginDrawIndex < drawIndex)
                     {
@@ -316,6 +344,8 @@ namespace faze
           globalState[i] = localState[i];
         }
       }
+
+      //GFX_LOG("Barriers: %d\n", barriersOffset);
       // function ends
     }
 
