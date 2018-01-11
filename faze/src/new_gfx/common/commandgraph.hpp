@@ -79,10 +79,10 @@ namespace faze
       return Binding<Shader>();
     }
 
-	void setScissor(int2 tl, int2 br)
-	{
-	  list.setScissorRect(tl, br);
-	}
+    void setScissor(int2 tl, int2 br)
+    {
+      list.setScissorRect(tl, br);
+    }
 
     // draws/dispatches
 
@@ -132,6 +132,11 @@ namespace faze
     {
       list.bindComputeResources(binding.bResources(), binding.bConstants(), binding.bSrvs(), binding.bUavs());
       list.dispatch(groups);
+    }
+
+    void copy(Buffer target, Buffer source)
+    {
+      list.copy(target, source);
     }
   };
 

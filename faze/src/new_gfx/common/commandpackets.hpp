@@ -55,7 +55,6 @@ namespace faze
         , mip(mip)
         , slice(slice)
       {
-
       }
 
       PacketType type() override
@@ -229,23 +228,23 @@ namespace faze
       }
     };
 
-	class SetScissorRect : public backend::CommandPacket
-	{
-	public:
-		int2 topleft;
-		int2 bottomright;
+    class SetScissorRect : public backend::CommandPacket
+    {
+    public:
+      int2 topleft;
+      int2 bottomright;
 
-		SetScissorRect(backend::ListAllocator, int2 topleft, int2 bottomright)
-			: topleft(topleft)
-			, bottomright(bottomright)
-		{
-		}
+      SetScissorRect(backend::ListAllocator, int2 topleft, int2 bottomright)
+        : topleft(topleft)
+        , bottomright(bottomright)
+      {
+      }
 
-		PacketType type() override
-		{
-			return PacketType::SetScissorRect;
-		}
-	};
+      PacketType type() override
+      {
+        return PacketType::SetScissorRect;
+      }
+    };
 
     class Draw : public backend::CommandPacket
     {
@@ -273,71 +272,69 @@ namespace faze
       }
     };
 
-	class DrawIndexed : public backend::CommandPacket
-	{
-	public:
-		BufferIBV ib;
-		unsigned IndexCountPerInstance;
-		unsigned instanceCount;
-		unsigned StartIndexLocation;
-		int BaseVertexLocation;
-		unsigned StartInstanceLocation;
+    class DrawIndexed : public backend::CommandPacket
+    {
+    public:
+      BufferIBV ib;
+      unsigned IndexCountPerInstance;
+      unsigned instanceCount;
+      unsigned StartIndexLocation;
+      int BaseVertexLocation;
+      unsigned StartInstanceLocation;
 
-		DrawIndexed(backend::ListAllocator,
-			BufferIBV ib,
-			unsigned IndexCountPerInstance,
-			unsigned instanceCount,
-			unsigned StartIndexLocation,
-			int BaseVertexLocation,
-			unsigned StartInstanceLocation)
-			: ib(ib)
-			, IndexCountPerInstance(IndexCountPerInstance)
-			, instanceCount(instanceCount)
-			, StartIndexLocation(StartIndexLocation)
-			, BaseVertexLocation(BaseVertexLocation)
-			, StartInstanceLocation(StartInstanceLocation)
-		{
-		}
+      DrawIndexed(backend::ListAllocator,
+        BufferIBV ib,
+        unsigned IndexCountPerInstance,
+        unsigned instanceCount,
+        unsigned StartIndexLocation,
+        int BaseVertexLocation,
+        unsigned StartInstanceLocation)
+        : ib(ib)
+        , IndexCountPerInstance(IndexCountPerInstance)
+        , instanceCount(instanceCount)
+        , StartIndexLocation(StartIndexLocation)
+        , BaseVertexLocation(BaseVertexLocation)
+        , StartInstanceLocation(StartInstanceLocation)
+      {
+      }
 
-		PacketType type() override
-		{
-			return PacketType::DrawIndexed;
-		}
-	};
+      PacketType type() override
+      {
+        return PacketType::DrawIndexed;
+      }
+    };
 
-	class DrawDynamicIndexed : public backend::CommandPacket
-	{
-	public:
-		DynamicBufferView ib;
-		unsigned IndexCountPerInstance;
-		unsigned instanceCount;
-		unsigned StartIndexLocation;
-		int BaseVertexLocation;
-		unsigned StartInstanceLocation;
+    class DrawDynamicIndexed : public backend::CommandPacket
+    {
+    public:
+      DynamicBufferView ib;
+      unsigned IndexCountPerInstance;
+      unsigned instanceCount;
+      unsigned StartIndexLocation;
+      int BaseVertexLocation;
+      unsigned StartInstanceLocation;
 
-		DrawDynamicIndexed(backend::ListAllocator,
-			DynamicBufferView ib,
-			unsigned IndexCountPerInstance,
-			unsigned instanceCount,
-			unsigned StartIndexLocation,
-			int BaseVertexLocation,
-			unsigned StartInstanceLocation)
-			: ib(ib)
-			, IndexCountPerInstance(IndexCountPerInstance)
-			, instanceCount(instanceCount)
-			, StartIndexLocation(StartIndexLocation)
-			, BaseVertexLocation(BaseVertexLocation)
-			, StartInstanceLocation(StartInstanceLocation)
-		{
-		}
+      DrawDynamicIndexed(backend::ListAllocator,
+        DynamicBufferView ib,
+        unsigned IndexCountPerInstance,
+        unsigned instanceCount,
+        unsigned StartIndexLocation,
+        int BaseVertexLocation,
+        unsigned StartInstanceLocation)
+        : ib(ib)
+        , IndexCountPerInstance(IndexCountPerInstance)
+        , instanceCount(instanceCount)
+        , StartIndexLocation(StartIndexLocation)
+        , BaseVertexLocation(BaseVertexLocation)
+        , StartInstanceLocation(StartInstanceLocation)
+      {
+      }
 
-		PacketType type() override
-		{
-			return PacketType::DrawDynamicIndexed;
-		}
-	};
-
-
+      PacketType type() override
+      {
+        return PacketType::DrawDynamicIndexed;
+      }
+    };
 
     class Dispatch : public backend::CommandPacket
     {
@@ -352,6 +349,24 @@ namespace faze
       PacketType type() override
       {
         return PacketType::Dispatch;
+      }
+    };
+
+    class BufferCopy : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      backend::TrackedState source;
+
+      BufferCopy(backend::ListAllocator, Buffer& target, Buffer& source)
+        : target(target.dependency())
+        , source(source.dependency())
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::BufferCopy;
       }
     };
   }

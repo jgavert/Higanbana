@@ -105,10 +105,10 @@ namespace faze
         resources, constants, srvs, uavs);
     }
 
-	void setScissorRect(int2 topLeft, int2 bottomRight)
-	{
-		list.insert<gfxpacket::SetScissorRect>(topLeft, bottomRight);
-	}
+    void setScissorRect(int2 topLeft, int2 bottomRight)
+    {
+      list.insert<gfxpacket::SetScissorRect>(topLeft, bottomRight);
+    }
 
     void draw(
       unsigned vertexCountPerInstance,
@@ -120,7 +120,7 @@ namespace faze
     }
 
     void drawIndexed(
-	  BufferIBV& buffer,
+      BufferIBV& buffer,
       unsigned IndexCountPerInstance,
       unsigned instanceCount,
       unsigned StartIndexLocation,
@@ -130,21 +130,26 @@ namespace faze
       list.insert<gfxpacket::DrawIndexed>(buffer, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
-	void drawDynamicIndexed(
-		DynamicBufferView& buffer,
-		unsigned IndexCountPerInstance,
-		unsigned instanceCount,
-		unsigned StartIndexLocation,
-		int BaseVertexLocation,
-		unsigned StartInstanceLocation)
-	{
-		list.insert<gfxpacket::DrawDynamicIndexed>(buffer, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
-	}
+    void drawDynamicIndexed(
+      DynamicBufferView& buffer,
+      unsigned IndexCountPerInstance,
+      unsigned instanceCount,
+      unsigned StartIndexLocation,
+      int BaseVertexLocation,
+      unsigned StartInstanceLocation)
+    {
+      list.insert<gfxpacket::DrawDynamicIndexed>(buffer, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+    }
 
     void dispatch(
       uint3 groups)
     {
       list.insert<gfxpacket::Dispatch>(groups);
+    }
+
+    void copy(Buffer& target, Buffer& source)
+    {
+      list.insert<gfxpacket::BufferCopy>(target, source);
     }
   };
 }
