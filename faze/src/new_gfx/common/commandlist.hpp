@@ -42,6 +42,11 @@ namespace faze
     friend struct backend::DeviceData;
   public:
 
+    void renderTask(std::string name)
+    {
+      list.insert<gfxpacket::RenderBlock>(name);
+    }
+
     void updateTexture(Texture& tex, DynamicBufferView& dynBuffer, int mip, int slice)
     {
       list.insert<gfxpacket::UpdateTexture>(tex, dynBuffer, mip, slice);

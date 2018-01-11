@@ -110,6 +110,19 @@
 .stbInclude = .extIncludeDir
                   + "stb"
 
+// winpixeventruntime
+#if __WINDOWS__
+.pixInclude = .extIncludeDir
+            + "winpixeventruntime/include"
+
+.pixLibPath = .extBasePath
+            + "winpixeventruntime/lib"
+            + .extEndBasePath
+
+.pixLib  = .extLibPrefix
+         + 'WinPixEventRuntime'
+         + .extLibPostfix
+#endif
 
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
@@ -122,11 +135,11 @@
               + .dxcLibDebug
 
 
-.extRelDlls = {"externals/hlsl.bin/Release/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll' }
+.extRelDlls = {"externals/hlsl.bin/Release/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/lib/WinPixEventRuntime.dll", }
 
 #if __WINDOWS__
-//.extRelLibs   + .compressLibRelease
-//.extDebLibs   + .compressLibDebug
+.extRelLibs   + .pixLib
+.extDebLibs   + .pixLib
 #endif
 
 // these 2 are automatically in right place
@@ -134,6 +147,7 @@
 .extLibPaths  + .vulkanLibPath
               + .shadercLibPath
               + .dxcLibPath
+              + .pixLibPath
               //+ .compressLibPath
 #endif
 #if __LINUX__
@@ -145,6 +159,11 @@
 //                  + ' /I^"$compressInclude$"'
                   + ' /I^"$renderdocInclude$"'
                   + ' /I^"$stbInclude$"'
+#if __WINDOWS__
+                  + ' /I^"$pixInclude$"'
+#endif
+
+
 #if __LINUX__
 .externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
@@ -157,3 +176,6 @@
 //                              + '$compressInclude$;'
                               + '$renderdocInclude$;'
                               + '$stbInclude$;'
+#if __WINDOWS__
+                              + '$pixInclude$;'
+#endif

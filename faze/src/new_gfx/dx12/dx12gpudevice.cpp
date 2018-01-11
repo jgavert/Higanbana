@@ -896,6 +896,9 @@ namespace faze
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
 
+      auto wstr = s2ws(desc.desc.name);
+      buffer->SetName(wstr.c_str());
+
       std::weak_ptr<Garbage> weak = m_trash;
 
       return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
@@ -1038,6 +1041,9 @@ namespace faze
 
       ID3D12Resource* texture;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture));
+
+      auto wstr = s2ws(desc.desc.name);
+      texture->SetName(wstr.c_str());
 
       std::weak_ptr<Garbage> weak = m_trash;
 

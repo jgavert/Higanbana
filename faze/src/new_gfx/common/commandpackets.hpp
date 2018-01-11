@@ -41,6 +41,22 @@ namespace faze
 
     // packets
 
+    class RenderBlock : public backend::CommandPacket
+    {
+    public:
+      std::string name;
+
+      RenderBlock(backend::ListAllocator, std::string name)
+        : name(name)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::RenderBlock;
+      }
+    };
+
     class UpdateTexture : public backend::CommandPacket
     {
     public:

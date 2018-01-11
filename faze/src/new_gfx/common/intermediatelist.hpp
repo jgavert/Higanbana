@@ -18,6 +18,7 @@ namespace faze
 
       enum class PacketType
       {
+        RenderBlock,
         BufferCopy,
         UpdateTexture,
         Dispatch,
