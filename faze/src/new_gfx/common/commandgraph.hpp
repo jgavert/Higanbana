@@ -20,6 +20,7 @@ namespace faze
     CommandGraphNode(std::string name)
       : name(name)
     {
+      list.renderTask(name);
     }
 
     void clearRT(TextureRTV& rtv, float4 color)

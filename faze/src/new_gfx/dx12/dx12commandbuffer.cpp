@@ -2,6 +2,8 @@
 #include "util/dxDependencySolver.hpp"
 #include "util/formats.hpp"
 
+#include <WinPixEventRuntime/pix3.h>
+
 #include <algorithm>
 
 namespace faze
@@ -276,11 +278,26 @@ namespace faze
       buffer->SetDescriptorHeaps(1, heaps);
 
       size_t currentActiveSubpassHash = 0;
+      bool startedPixBeginEvent = false;
 
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
         {
+        case CommandPacket::PacketType::RenderBlock:
+        {
+          auto p = packetRef(gfxpacket::RenderBlock, packet);
+          if (!startedPixBeginEvent)
+          {
+            startedPixBeginEvent = true;
+          }
+          else
+          {
+            PIXEndEvent(buffer);
+          }
+          PIXBeginEvent(buffer, 0, p.name.c_str());
+          break;
+        }
         case CommandPacket::PacketType::UpdateTexture:
         {
           solver->runBarrier(buffer, drawIndex);
