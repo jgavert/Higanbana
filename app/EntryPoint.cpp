@@ -106,54 +106,9 @@ public:
   }
 };
 
-SubresourceRange getRightSide(SubresourceRange range, SubresourceRange splitWithThis)
+void printRange(const SubresourceRange& range)
 {
-    int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset - range.sliceOffset), 0));
-    return { range.mipOffset, range.mipLevels, range.sliceOffset, arraySize };
-}
-
-SubresourceRange getLeftSide(SubresourceRange range, SubresourceRange splitWithThis)
-{
-    int16_t arraySlice = splitWithThis.sliceOffset + splitWithThis.arraySize;
-    int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>((range.sliceOffset + range.arraySize) - (splitWithThis.sliceOffset + splitWithThis.arraySize)), 0));
-    return { range.mipOffset, range.mipLevels, arraySlice, arraySize };
-}
-
-SubresourceRange getBottomSide(SubresourceRange range, SubresourceRange splitWithThis)
-{
-    int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.mipOffset - range.mipOffset), 0));
-    int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
-    return { range.mipOffset, miplevels, splitWithThis.sliceOffset, arraySize };
-}
-
-SubresourceRange getUpSide(SubresourceRange range, SubresourceRange splitWithThis)
-{
-    int16_t mipOffset = splitWithThis.mipOffset + splitWithThis.mipLevels;
-    int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(range.mipOffset + range.mipLevels - (splitWithThis.mipOffset + splitWithThis.mipLevels)), 0));
-    int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
-    return { mipOffset, miplevels, splitWithThis.sliceOffset, arraySize };
-}
-
-bool emptyRange(SubresourceRange range)
-{
-    return (range.arraySize == 0 || range.mipLevels == 0) ? true : false;
-}
-
-void splitTest(SubresourceRange range, SubresourceRange splitWithThis)
-{
-    F_LOG("splitting\n");
-    SubresourceRange range1 = getRightSide(range, splitWithThis);
-    SubresourceRange range2 = getLeftSide(range, splitWithThis);
-    if (!emptyRange(range1))
-        F_LOG("1. (%d, %d)(%d, %d)\n", range1.mipOffset, range1.mipLevels, range1.sliceOffset, range1.arraySize);
-    if (!emptyRange(range2))
-        F_LOG("2. (%d, %d)(%d, %d)\n", range2.mipOffset, range2.mipLevels, range2.sliceOffset, range2.arraySize);
-    SubresourceRange range3 = getBottomSide(range, splitWithThis);
-    SubresourceRange range4 = getUpSide(range, splitWithThis);
-    if (!emptyRange(range3))
-        F_LOG("3. (%d, %d)(%d, %d)\n", range3.mipOffset, range3.mipLevels, range3.sliceOffset, range3.arraySize);
-    if (!emptyRange(range4))
-        F_LOG("4. (%d, %d)(%d, %d)\n", range4.mipOffset, range4.mipLevels, range4.sliceOffset, range4.arraySize);
+    F_LOG("(%d, %d)(%d, %d)\n", range.mipOffset, range.mipLevels, range.sliceOffset, range.arraySize);
 }
 
 int EntryPoint::main()
@@ -885,16 +840,18 @@ int EntryPoint::main()
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
 
-  //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
-  //lbs.sleepTillKeywords({ "test1" });
+  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
+  lbs.sleepTillKeywords({ "test1" });
 
 #endif
-  splitTest({0, 5, 0, 4}, {2, 1, 1, 2});
-  splitTest({0, 5, 1, 2}, {2, 1, 0, 5});
-  splitTest({1, 2, 0, 4}, {0, 5, 1, 2});
-  splitTest({2, 1, 1, 2}, {0, 5, 0, 4});
-
-  splitTest({ 0, 2, 0, 2 }, { 1, 1, 1, 1 });
+  /*
+  RangeMath::difference({ 0, 5, 0, 4 }, { 2, 1, 1, 2 }, [](SubresourceRange r) {printRange(r);});
+  RangeMath::difference({0, 5, 1, 2}, {2, 1, 0, 5}, [](SubresourceRange r) {printRange(r);});
+  RangeMath::difference({1, 2, 0, 4}, {0, 5, 1, 2}, [](SubresourceRange r) {printRange(r);});
+  RangeMath::difference({2, 1, 1, 2}, {0, 5, 0, 4}, [](SubresourceRange r) {printRange(r);});
+  RangeMath::difference({ 0, 2, 0, 2 }, { 1, 1, 1, 1 }, [](SubresourceRange r) {printRange(r);});
+  RangeMath::difference({ 0, 1, 0, 1 }, { 1, 1, 1, 1 }, [](SubresourceRange r) {printRange(r);});
+  */
 
   log.update();
   return 1;

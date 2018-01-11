@@ -13,15 +13,16 @@ namespace faze
     private:
       using ResourceUniqueId = size_t;
 
+      using DrawCallIndex = int;
+
       struct ResourceDependency
       {
         ResourceUniqueId uniqueId;
         ID3D12Resource* texture;
         int16_t mips;
-        DX12ResourceState* state;
+        DX12ResourceState* state; 
       };
 
-      using DrawCallIndex = int;
 
       enum class UsageHint : unsigned char
       {
@@ -83,6 +84,7 @@ namespace faze
         ID3D12Resource* image;
         int16_t mips;
         vector<D3D12_RESOURCE_STATES> states;
+        vector<DrawCallIndex> lastModified;
       };
 
       unordered_map<ResourceUniqueId, SmallResource> m_resourceCache;
