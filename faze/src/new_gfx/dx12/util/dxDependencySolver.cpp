@@ -172,11 +172,16 @@ namespace faze
       {
         auto tesState = m_resourceStates[id];
         auto flags = tesState.state->flags;
+
+        /*
+        auto commonDecayMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         for (auto&& flag : flags)
         {
-            //if (flag != D3D12_RESOURCE_STATE_COPY_DEST)
+
+            if ((flag & commonDecayMask) == flag) // if survives decayMask, it can be decayed.
                 flag = D3D12_RESOURCE_STATE_COMMON;
         }
+        */
         m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, flags };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
@@ -194,40 +199,10 @@ namespace faze
         }
         drawIndex = draw;
 
-        m_uavCache.clear();
-
         while (jobIndex < jobsSize && m_jobs[jobIndex].drawIndex == draw)
         {
           auto& job = m_jobs[jobIndex];
           auto jobResAccess = job.access;
-          /*
-          if (job.type == ResourceType::buffer)
-          {
-            auto resource = m_bufferCache.find(job.resource);
-            if (resource != m_bufferCache.end())
-            {
-              auto lastAccess = resource->second.flags;
-
-              if (lastAccess & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) // everytime the last access was unordered access, make uav barrier.
-              {
-                m_uavCache.emplace(resource->second.buffer);
-              }
-
-              if (jobResAccess != lastAccess)
-              {
-                barriers.emplace_back(D3D12_RESOURCE_BARRIER{
-                  D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                  D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                  resource->second.buffer,
-                  static_cast<UINT>(-1),
-                  lastAccess,
-                  jobResAccess });
-                resource->second.flags = jobResAccess;
-                ++barriersOffset;
-              }
-            }
-          }
-          else*/
           {
             auto resource = m_resourceCache.find(job.resource);
             if (resource != m_resourceCache.end())
@@ -245,13 +220,13 @@ namespace faze
 
                   if (D3D12_RESOURCE_STATE_UNORDERED_ACCESS == state && D3D12_RESOURCE_STATE_UNORDERED_ACCESS == job.access)
                   {
-                    m_uavCache.emplace(resource->second.image);
+                      uav = true;
                   }
 
                   if (state == D3D12_RESOURCE_STATE_COMMON)
                   {
-                      auto mask = (D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_RENDER_TARGET);
-                      if ((job.access & mask) == 0)
+                      auto mask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                      if ((job.access & mask) == job.access)
                       {
                           state = job.access;
                           continue;

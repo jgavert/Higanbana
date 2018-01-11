@@ -34,7 +34,7 @@ namespace faze
       {
         DrawCallIndex drawIndex;
         ResourceUniqueId resource;
-        D3D12_RESOURCE_STATES access;
+        D3D12_RESOURCE_STATES access; // state required for this draw, so this is either split_end or immediate barrier, so the begin packet either happens or doesn't.
         SubresourceRange range;
       };
 
@@ -86,7 +86,6 @@ namespace faze
       };
 
       unordered_map<ResourceUniqueId, SmallResource> m_resourceCache;
-      unordered_set<ID3D12Resource*> m_uavCache;
     public:
       DX12DependencySolver() {}
 

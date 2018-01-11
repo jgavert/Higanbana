@@ -186,7 +186,7 @@ namespace faze
         dxdesc.Alignment = 0; // D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
         dxdesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
       }
-      dxdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+      dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
       switch (desc.dimension)
       {
