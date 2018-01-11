@@ -70,100 +70,6 @@ namespace faze
       m_uniqueResourcesThisChain.insert(uniqueID);
     }
 
-    // buffers
-    /*
-    void DX12DependencySolver::addBuffer(int drawCallIndex, int64_t, DX12Buffer& buffer, D3D12_RESOURCE_STATES flags)
-    {
-      size_t uniqueID = reinterpret_cast<size_t>(buffer.native());
-      if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining) // disable optimization, merges last seen usages to existing. Default on. Combines only reads.
-      {
-        auto currentUsage = getUsageFromAccessFlags(flags);
-        if (currentUsage == UsageHint::read)
-        {
-          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-          if (obj)
-          {
-            if (obj->second.type == currentUsage)
-            {
-              // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
-              auto* jobIndex = m_drawCallJobOffsets.find(obj->second.index);
-              if (jobIndex)
-              {
-                int index = jobIndex->second;
-                while (index < static_cast<int>(m_jobs.size()) && obj->second.index == m_jobs[index].drawIndex)
-                {
-                  if (m_jobs[index].resource == uniqueID)
-                  {
-                    break;
-                  }
-                  index++;
-                }
-                m_jobs[index].access |= flags;
-                return; // found and could merge... or rather forcefully merged.
-              }
-            }
-          }
-        }
-        m_resourceUsageInLastAdd[uniqueID] = LastSeenUsage{ currentUsage, drawCallIndex };
-      }
-
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::buffer,
-        flags, SubresourceRange{} });
-
-      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
-      {
-        TextureDependency d;
-        d.uniqueId = uniqueID;
-        d.mips = 1;
-        d.texture = buffer.native();
-        d.state = buffer.state().get();
-        m_resourceStates[uniqueID] = std::move(d);
-      }
-      m_uniqueBuffersThisChain.insert(uniqueID);
-    }
-    */
-    // textures
-    /*
-    void DX12DependencySolver::addTexture(int drawCallIndex, int64_t, DX12Texture& texture, DX12TextureView& view, int16_t mips, D3D12_RESOURCE_STATES flags)
-    {
-      auto uniqueID = reinterpret_cast<size_t>(texture.native());
-
-      if (faze::globalconfig::graphics::GraphicsEnableReadStateCombining)
-      {
-        auto currentUsage = getUsageFromAccessFlags(flags);
-        if (currentUsage == UsageHint::read)
-        {
-          auto* obj = m_resourceUsageInLastAdd.find(uniqueID);
-          if (obj)
-          {
-            if (obj->second.type != currentUsage)
-            {
-              F_SLOG("DependencySolver", "Possible optimization here!\n");
-              // Try to recognize here that last time we saw the same id, we already used it in read/write state, combine the states.
-              // Texture... needs to look at all the subresources seen before and combine their state... ugh, this looks not to be easy.
-            }
-          }
-        }
-        m_resourceUsageInLastAdd[uniqueID] = LastSeenUsage{ currentUsage, drawCallIndex };
-      }
-
-      m_jobs.emplace_back(DependencyPacket{ drawCallIndex, uniqueID, ResourceType::texture,
-        flags, view.range() });
-
-      if (m_resourceStates.find(uniqueID) == m_resourceStates.end())
-      {
-        TextureDependency d;
-        d.uniqueId = uniqueID;
-        d.mips = mips;
-        d.texture = texture.native();
-        d.state = texture.state().get();
-        m_resourceStates[uniqueID] = std::move(d);
-      }
-
-      m_uniqueResourcesThisChain.insert(uniqueID);
-    }
-    */
-
     void DX12DependencySolver::makeAllBarriers()
     {
       m_resourceCache.clear();
@@ -378,11 +284,14 @@ namespace faze
     void DX12DependencySolver::reset()
     {
       m_drawCallInfo.clear();
+      m_drawCallJobOffsets.clear();
       m_jobs.clear();
       m_schedulingResult.clear();
       m_barriersOffsets.clear();
       barriers.clear();
       m_uniqueResourcesThisChain.clear();
+      m_resourceCache.clear();
+      drawCallsAdded = 0;
     }
   }
 }

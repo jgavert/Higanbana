@@ -20,9 +20,8 @@ namespace faze
         ResourceUniqueId uniqueId;
         ID3D12Resource* texture;
         int16_t mips;
-        DX12ResourceState* state; 
+        DX12ResourceState* state;
       };
-
 
       enum class UsageHint : unsigned char
       {
@@ -76,8 +75,6 @@ namespace faze
         ResourceUniqueId resource;
         DrawCallIndex draw;
       };
-      vector<WriteCall> m_cacheWrites;
-      vector<int> m_readRes;
 
       struct SmallResource
       {

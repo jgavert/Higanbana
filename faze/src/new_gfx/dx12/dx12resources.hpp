@@ -351,13 +351,10 @@ namespace faze
       ComPtr<ID3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       bool closedList = false;
+      std::shared_ptr<DX12DependencySolver> m_solver;
     public:
       //DX12CommandBuffer() {}
-      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
-        : commandList(commandList)
-        , commandListAllocator(commandListAllocator)
-      {
-      }
+      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator);
 
       DX12CommandBuffer(DX12CommandBuffer&& other) = default;
       DX12CommandBuffer(const DX12CommandBuffer& other) = delete;
@@ -365,30 +362,11 @@ namespace faze
       DX12CommandBuffer& operator=(DX12CommandBuffer&& other) = default;
       DX12CommandBuffer& operator=(const DX12CommandBuffer& other) = delete;
 
-      ID3D12GraphicsCommandList* list()
-      {
-        return commandList.Get();
-      }
-
-      void closeList()
-      {
-        commandList->Close();
-        closedList = true;
-      }
-
-      void resetList()
-      {
-        if (!closedList)
-          commandList->Close();
-        commandListAllocator->Reset();
-        commandList->Reset(commandListAllocator.Get(), nullptr);
-        closedList = false;
-      }
-
-      bool closed() const
-      {
-        return closedList;
-      }
+      ID3D12GraphicsCommandList* list();
+      DX12DependencySolver* solver();
+      void closeList();
+      void resetList();
+      bool closed() const;
     };
 
     class DX12CommandList : public CommandBufferImpl
@@ -607,12 +585,12 @@ namespace faze
 
       void setFrameLatencyObj(HANDLE h)
       {
-          m_frameLatencyObj = h;
+        m_frameLatencyObj = h;
       }
 
       void setSwapchain(ComPtr<D3D12Swapchain> h)
       {
-          m_resource = h;
+        m_resource = h;
       }
 
       void waitForFrameLatency()
@@ -634,7 +612,7 @@ namespace faze
     class DX12Texture : public prototypes::TextureImpl
     {
     private:
-      ID3D12Resource* resource = nullptr;
+      ID3D12Resource * resource = nullptr;
       std::shared_ptr<DX12ResourceState> statePtr = nullptr;
 
     public:
@@ -697,7 +675,7 @@ namespace faze
     class DX12Buffer : public prototypes::BufferImpl
     {
     private:
-      ID3D12Resource* resource;
+      ID3D12Resource * resource;
       std::shared_ptr<DX12ResourceState> statePtr = nullptr;
 
     public:
@@ -810,7 +788,7 @@ namespace faze
     class DX12Heap : public prototypes::HeapImpl
     {
     private:
-        ComPtr<ID3D12Heap> heap;
+      ComPtr<ID3D12Heap> heap;
 
     public:
       DX12Heap()
