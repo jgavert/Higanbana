@@ -11,6 +11,8 @@
 
 #include "faze/src/new_gfx/dx12/util/pipeline_helpers.hpp"
 
+#include "faze/src/new_gfx/dx12/util/dxDependencySolver.hpp"
+
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
 #endif

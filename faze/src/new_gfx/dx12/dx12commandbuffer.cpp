@@ -13,6 +13,44 @@ namespace faze
 {
   namespace backend
   {
+    DX12CommandBuffer::DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
+      : commandList(commandList)
+      , commandListAllocator(commandListAllocator)
+      , m_solver(std::make_shared<DX12DependencySolver>())
+    {
+    }
+
+    ID3D12GraphicsCommandList* DX12CommandBuffer::list()
+    {
+      return commandList.Get();
+    }
+
+    DX12DependencySolver* DX12CommandBuffer::solver()
+    {
+      return m_solver.get();
+    }
+
+    void DX12CommandBuffer::closeList()
+    {
+      commandList->Close();
+      closedList = true;
+    }
+
+    void DX12CommandBuffer::resetList()
+    {
+      if (!closedList)
+        commandList->Close();
+      commandListAllocator->Reset();
+      commandList->Reset(commandListAllocator.Get(), nullptr);
+      m_solver->reset();
+      closedList = false;
+    }
+
+    bool DX12CommandBuffer::closed() const
+    {
+      return closedList;
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
     {
       // set viewport and rendertargets
@@ -518,13 +556,17 @@ namespace faze
     // implementations
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
-      DX12DependencySolver solver;
-
       DX12Device* dev = static_cast<DX12Device*>(device.get());
-
+#if 1
+      addDepedencyDataAndSolve(m_buffer->solver(), list);
+      processRenderpasses(dev, list);
+      addCommands(dev, m_buffer->list(), m_buffer->solver(), list);
+#else
+      DX12DependencySolver solver;
       addDepedencyDataAndSolve(&solver, list);
       processRenderpasses(dev, list);
       addCommands(dev, m_buffer->list(), &solver, list);
+#endif
 
       m_buffer->closeList();
     }
