@@ -177,12 +177,11 @@ namespace faze
         auto commonDecayMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         for (auto&& flag : flags)
         {
-
             if ((flag & commonDecayMask) == flag) // if survives decayMask, it can be decayed.
                 flag = D3D12_RESOURCE_STATE_COMMON;
         }
         */
-        vector<DrawCallIndex> lm(flags.size(), 0);
+        vector<DrawCallIndex> lm(flags.size(), -1);
         m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, flags, lm };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
@@ -221,51 +220,78 @@ namespace faze
 
                   if (D3D12_RESOURCE_STATE_UNORDERED_ACCESS == state && D3D12_RESOURCE_STATE_UNORDERED_ACCESS == job.access)
                   {
-                      uav = true;
+                    uav = true;
                   }
                   if (state == D3D12_RESOURCE_STATE_COMMON)
                   {
-                      constexpr const auto mask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-                      if ((job.access & mask) == job.access)
-                      {
-                          if (drawIndex - resource->second.lastModified[subresourceIndex] > 0)
-                          {
-                              F_LOG("found possible splitbarrier pos lm: %d draw: %d dist: %d resource: %zu subresource: %d\n", resource->second.lastModified[subresourceIndex], drawIndex, drawIndex - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
-                          }
-                          resource->second.lastModified[subresourceIndex] = drawIndex;
-                          F_LOG("modified draw: %d resource: %zu subresource: %d\n", drawIndex, job.resource, subresourceIndex);
-                          state = job.access;
-                          continue;
-                      }
+                    constexpr const auto mask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                    if ((job.access & mask) == job.access)
+                    {
+                      resource->second.lastModified[subresourceIndex] = drawIndex;
+                      //GFX_ILOG("common modified draw: %d resource: %zu subresource: %d", drawIndex, job.resource, subresourceIndex);
+                      state = job.access;
+                      continue;
+                    }
                   }
 
                   if (state != job.access)
                   {
-                    barriers.emplace_back(D3D12_RESOURCE_BARRIER{
-                      D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                      D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                      resource->second.image,
-                      static_cast<UINT>(subresourceIndex),
-                      state,
-                      jobResAccess });
-                    state = jobResAccess;
-                    if (drawIndex - resource->second.lastModified[subresourceIndex] > 0)
+                    auto beginDrawIndex = resource->second.lastModified[subresourceIndex] + 1;
+                    if (globalconfig::graphics::GraphicsEnableSplitBarriers && beginDrawIndex < drawIndex)
                     {
-                        F_LOG("found possible splitbarrier pos lm: %d draw: %d dist: %d resource: %zu subresource: %d\n", resource->second.lastModified[subresourceIndex], drawIndex, drawIndex - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
+                      //GFX_ILOG("found possible splitbarrier pos: %d draw: %d dist: %d resource: %zu subresource: %d", resource->second.lastModified[subresourceIndex] + 1, drawIndex, drawIndex - 1 - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
+                      auto barrierOffsetForDrawIndex = m_barriersOffsets[beginDrawIndex + 1];
+                      auto bar = D3D12_RESOURCE_BARRIER{
+                        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                        D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY,
+                        resource->second.image,
+                        static_cast<UINT>(subresourceIndex),
+                        state,
+                        jobResAccess };
+                      ++barriersOffset;
+                      barriers.insert(barriers.begin() + barrierOffsetForDrawIndex, bar);
+
+                      for (auto iter = beginDrawIndex + 1; iter < m_barriersOffsets.size(); ++iter)
+                      {
+                        m_barriersOffsets[iter] += 1;
+                      }
+                      // end barrier
+                      barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                        D3D12_RESOURCE_BARRIER_FLAG_END_ONLY,
+                        resource->second.image,
+                        static_cast<UINT>(subresourceIndex),
+                        state,
+                        jobResAccess });
+                      //GFX_ILOG("begin %d end: %d resource: %zu subresource: %d before: 0x%09x after: 0x%09x", beginDrawIndex, drawIndex, job.resource, subresourceIndex, state, job.access);
                     }
+                    else
+                    {
+                      barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                        D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                        resource->second.image,
+                        static_cast<UINT>(subresourceIndex),
+                        state,
+                        jobResAccess });
+                      //GFX_ILOG("modified draw: %d resource: %zu subresource: %d before: 0x%09x after: 0x%09x", drawIndex, job.resource, subresourceIndex, state, job.access);
+                    }
+                    state = jobResAccess;
                     resource->second.lastModified[subresourceIndex] = drawIndex;
-                    F_LOG("modified draw: %d resource: %zu subresource: %d\n", drawIndex, job.resource, subresourceIndex);
                     ++barriersOffset;
                   }
+
+                  //GFX_ILOG("required by draw: %d resource: %zu subresource: %d state: 0x%09x", drawIndex, job.resource, subresourceIndex, state);
+                  resource->second.lastModified[subresourceIndex] = drawIndex;
                 }
               }
               if (uav)
               {
-                  barriers.emplace_back(D3D12_RESOURCE_BARRIER{
-                      D3D12_RESOURCE_BARRIER_TYPE_UAV,
-                      D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                      resource->second.image });
-                  ++barriersOffset;
+                barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                    D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                    D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                    resource->second.image });
+                ++barriersOffset;
               }
             }
           }

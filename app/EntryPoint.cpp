@@ -35,6 +35,8 @@
 
 #include "core/src/input/gamepad.hpp"
 
+#include "faze/src/new_gfx/definitions.hpp"
+
 using namespace faze;
 using namespace faze::math;
 
@@ -108,7 +110,7 @@ public:
 
 void printRange(const SubresourceRange& range)
 {
-    F_LOG("(%d, %d)(%d, %d)\n", range.mipOffset, range.mipLevels, range.sliceOffset, range.arraySize);
+  F_LOG("(%d, %d)(%d, %d)\n", range.mipOffset, range.mipLevels, range.sliceOffset, range.arraySize);
 }
 
 int EntryPoint::main()
@@ -637,6 +639,10 @@ int EntryPoint::main()
                 }
                 ImGui::EndPopup();
               }
+              if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? "Splitbarriers enabled" : "Splitbarriers disabled"))
+              {
+                faze::globalconfig::graphics::GraphicsEnableSplitBarriers = faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? false : true;
+              }
 
               ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
               auto gfxTime = graphicsCpuTime.getCurrentFps();
@@ -855,4 +861,4 @@ int EntryPoint::main()
 
   log.update();
   return 1;
-}
+  }
