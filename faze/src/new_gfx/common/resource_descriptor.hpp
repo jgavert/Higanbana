@@ -3,6 +3,7 @@
 #include "core/src/math/math.hpp"
 #include <string>
 #include <array>
+#include <algorithm>
 
 namespace faze
 {
@@ -15,12 +16,12 @@ namespace faze
     int16_t sliceOffset = -1;
     int16_t arraySize = -1;
   private:
-    inline bool overlapRange(int16_t xoffset, int16_t xsize, int16_t yoffset, int16_t ysize)
+    inline bool overlapRange(int16_t xoffset, int16_t xsize, int16_t yoffset, int16_t ysize) const
     {
       return xoffset < yoffset + ysize && yoffset < xoffset + xsize;
     }
   public:
-    bool overlap(SubresourceRange other)
+    bool overlap(SubresourceRange other) const
     {
       if (mipOffset == SubresourceRange::WholeResource || other.mipOffset == SubresourceRange::WholeResource)
         return true;
@@ -28,6 +29,92 @@ namespace faze
         && overlapRange(sliceOffset, arraySize, other.sliceOffset, other.arraySize); // otherwise also arrays need to match.
     }
   };
+
+  namespace RangeMath
+  {
+      inline SubresourceRange getRightSide(SubresourceRange range, SubresourceRange splitWithThis)
+      {
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset - range.sliceOffset), 0));
+          return { range.mipOffset, range.mipLevels, range.sliceOffset, arraySize };
+      }
+
+      inline SubresourceRange getLeftSide(SubresourceRange range, SubresourceRange splitWithThis)
+      {
+          int16_t arraySlice = splitWithThis.sliceOffset + splitWithThis.arraySize;
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>((range.sliceOffset + range.arraySize) - (splitWithThis.sliceOffset + splitWithThis.arraySize)), 0));
+          return { range.mipOffset, range.mipLevels, arraySlice, arraySize };
+      }
+
+      inline SubresourceRange getBottomSide(SubresourceRange range, SubresourceRange splitWithThis)
+      {
+          int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.mipOffset - range.mipOffset), 0));
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
+          return { range.mipOffset, miplevels, splitWithThis.sliceOffset, arraySize };
+      }
+
+      inline SubresourceRange getUpSide(SubresourceRange range, SubresourceRange splitWithThis)
+      {
+          int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(range.mipOffset + range.mipLevels - (splitWithThis.mipOffset + splitWithThis.mipLevels)), 0));
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
+          int16_t mipOffset = splitWithThis.mipOffset + splitWithThis.mipLevels;
+          return { mipOffset, miplevels, splitWithThis.sliceOffset, arraySize };
+      }
+
+      template <typename Func>
+      void getRightSideFunc(const SubresourceRange& range, const SubresourceRange& splitWithThis, Func&& f)
+      {
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset - range.sliceOffset), 0));
+          if (arraySize > 0 && range.mipLevels > 0)
+              f(SubresourceRange{ range.mipOffset, range.mipLevels, range.sliceOffset, arraySize });
+      }
+
+      template <typename Func>
+      void getLeftSideFunc(const SubresourceRange& range, const SubresourceRange& splitWithThis, Func&& f)
+      {
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>((range.sliceOffset + range.arraySize) - (splitWithThis.sliceOffset + splitWithThis.arraySize)), 0));
+          if (arraySize > 0 && range.mipLevels > 0)
+          {
+              int16_t arraySlice = splitWithThis.sliceOffset + splitWithThis.arraySize;
+              f(SubresourceRange{ range.mipOffset, range.mipLevels, arraySlice, arraySize });
+          }
+      }
+
+      template <typename Func>
+      void getBottomSideFunc(const SubresourceRange& range, const SubresourceRange& splitWithThis, Func&& f)
+      {
+          int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.mipOffset - range.mipOffset), 0));
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
+          if (arraySize > 0 && miplevels > 0)
+          {
+              f(SubresourceRange{ range.mipOffset, miplevels, splitWithThis.sliceOffset, arraySize });
+          }
+      }
+
+      template <typename Func>
+      void getUpSideFunc(const SubresourceRange& range, const SubresourceRange& splitWithThis, Func&& f)
+      {
+          int16_t miplevels = static_cast<int16_t>(std::max(static_cast<int>(range.mipOffset + range.mipLevels - (splitWithThis.mipOffset + splitWithThis.mipLevels)), 0));
+          int16_t arraySize = static_cast<int16_t>(std::max(static_cast<int>(splitWithThis.sliceOffset + splitWithThis.arraySize - splitWithThis.sliceOffset), 0));
+          if (arraySize > 0 && miplevels > 0)
+          {
+              int16_t mipOffset = splitWithThis.mipOffset + splitWithThis.mipLevels;
+              f(SubresourceRange{ mipOffset, miplevels, splitWithThis.sliceOffset, arraySize });
+          }
+      }
+
+      inline bool emptyRange(SubresourceRange range)
+      {
+          return (range.arraySize == 0 || range.mipLevels == 0) ? true : false;
+      }
+      template <typename Func>
+      void difference(const SubresourceRange& range, const SubresourceRange& splitWithThis, Func&& f)
+      {
+          RangeMath::getRightSideFunc(range, splitWithThis, f);
+          RangeMath::getLeftSideFunc(range, splitWithThis, f);
+          RangeMath::getBottomSideFunc(range, splitWithThis, f);
+          RangeMath::getUpSideFunc(range, splitWithThis, f);
+      }
+  }
 
   enum class PresentMode
   {
