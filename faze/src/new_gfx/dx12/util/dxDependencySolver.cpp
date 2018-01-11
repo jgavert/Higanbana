@@ -218,11 +218,6 @@ namespace faze
                 {
                   subresourceIndex = slice * mipLevels + mip;
                   auto& state = resource->second.states[subresourceIndex];
-                  
-                  if (drawIndex - resource->second.lastModified[subresourceIndex] > 1)
-                  {
-                      F_LOG("found possible splitbarrier pos lm: %d draw: %d dist: %d resource: %zu subresource: %d\n", resource->second.lastModified[subresourceIndex], drawIndex, drawIndex - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
-                  }
 
                   if (D3D12_RESOURCE_STATE_UNORDERED_ACCESS == state && D3D12_RESOURCE_STATE_UNORDERED_ACCESS == job.access)
                   {
@@ -233,6 +228,10 @@ namespace faze
                       constexpr const auto mask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
                       if ((job.access & mask) == job.access)
                       {
+                          if (drawIndex - resource->second.lastModified[subresourceIndex] > 0)
+                          {
+                              F_LOG("found possible splitbarrier pos lm: %d draw: %d dist: %d resource: %zu subresource: %d\n", resource->second.lastModified[subresourceIndex], drawIndex, drawIndex - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
+                          }
                           resource->second.lastModified[subresourceIndex] = drawIndex;
                           F_LOG("modified draw: %d resource: %zu subresource: %d\n", drawIndex, job.resource, subresourceIndex);
                           state = job.access;
@@ -250,6 +249,10 @@ namespace faze
                       state,
                       jobResAccess });
                     state = jobResAccess;
+                    if (drawIndex - resource->second.lastModified[subresourceIndex] > 0)
+                    {
+                        F_LOG("found possible splitbarrier pos lm: %d draw: %d dist: %d resource: %zu subresource: %d\n", resource->second.lastModified[subresourceIndex], drawIndex, drawIndex - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
+                    }
                     resource->second.lastModified[subresourceIndex] = drawIndex;
                     F_LOG("modified draw: %d resource: %zu subresource: %d\n", drawIndex, job.resource, subresourceIndex);
                     ++barriersOffset;
