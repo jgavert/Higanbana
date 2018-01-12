@@ -292,6 +292,7 @@ namespace faze
       m_uniqueResourcesThisChain.clear();
       m_resourceCache.clear();
       drawCallsAdded = 0;
+      m_resourceStates.clear();
     }
   }
 }
