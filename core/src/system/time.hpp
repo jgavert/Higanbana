@@ -29,6 +29,7 @@ namespace faze
     void startFrame();
     void tick();
     float getCurrentFps();
+    float getMaxFps();
     float getAverageFps();
     float getFrameTimeDelta();
     float getAverageFrametime();

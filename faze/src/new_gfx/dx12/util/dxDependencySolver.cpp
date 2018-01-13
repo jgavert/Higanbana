@@ -174,30 +174,70 @@ namespace faze
                     if (globalconfig::graphics::GraphicsEnableSplitBarriers && beginDrawIndex < drawIndex)
                     {
                       //GFX_ILOG("found possible splitbarrier pos: %d draw: %d dist: %d resource: %zu subresource: %d", resource->second.lastModified[subresourceIndex] + 1, drawIndex, drawIndex - 1 - resource->second.lastModified[subresourceIndex], job.resource, subresourceIndex);
-                      auto barrierOffsetForDrawIndex = m_barriersOffsets[beginDrawIndex + 1];
-                      auto bar = D3D12_RESOURCE_BARRIER{
-                        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                        D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY,
-                        resource->second.image,
-                        static_cast<UINT>(subresourceIndex),
-                        state,
-                        jobResAccess };
-                      ++barriersOffset;
-                      barriers.insert(barriers.begin() + barrierOffsetForDrawIndex, bar);
+                      auto barrierOffsetForDrawIndex = beginDrawIndex;
+                      bool foundBarrierOffset = false;
 
-                      for (auto iter = beginDrawIndex + 1; iter < m_barriersOffsets.size(); ++iter)
+                      if (faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
                       {
-                        m_barriersOffsets[iter] += 1;
+                          for (int pdidx = barrierOffsetForDrawIndex;pdidx < drawIndex; ++pdidx)
+                          {
+                              auto possibleOffset = m_barriersOffsets[pdidx];
+                              auto maxDrawOffset = (pdidx + 1 >= m_barriersOffsets.size()) ? barriers.size() : m_barriersOffsets[pdidx + 1];
+                              for (int barrIdx = possibleOffset; barrIdx < maxDrawOffset; ++barrIdx)
+                              {
+                                  if (barriers[barrIdx].Flags == D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY || barriers[barrIdx].Flags == D3D12_RESOURCE_BARRIER_FLAG_NONE)
+                                  {
+                                      barrierOffsetForDrawIndex = pdidx;
+                                      foundBarrierOffset = true;
+                                      break;
+                                  }
+                              }
+                              if (foundBarrierOffset)
+                                  break;
+                          }
                       }
-                      // end barrier
-                      barriers.emplace_back(D3D12_RESOURCE_BARRIER{
-                        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                        D3D12_RESOURCE_BARRIER_FLAG_END_ONLY,
-                        resource->second.image,
-                        static_cast<UINT>(subresourceIndex),
-                        state,
-                        jobResAccess });
-                      //GFX_ILOG("begin %d end: %d resource: %zu subresource: %d before: 0x%09x after: 0x%09x", beginDrawIndex, drawIndex, job.resource, subresourceIndex, state, job.access);
+                      else
+                      {
+                          foundBarrierOffset = true;
+                      }
+                      if (foundBarrierOffset)
+                      {
+                          auto bar = D3D12_RESOURCE_BARRIER{
+                            D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                            D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY,
+                            resource->second.image,
+                            static_cast<UINT>(subresourceIndex),
+                            state,
+                            jobResAccess };
+                          ++barriersOffset;
+                          auto barrierOffset = m_barriersOffsets[barrierOffsetForDrawIndex];
+                          barriers.insert(barriers.begin() + barrierOffset, bar);
+
+                          for (auto iter = barrierOffsetForDrawIndex + 1; iter < m_barriersOffsets.size(); ++iter)
+                          {
+                              m_barriersOffsets[iter] += 1;
+                          }
+                          // end barrier
+                          barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                            D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                            D3D12_RESOURCE_BARRIER_FLAG_END_ONLY,
+                            resource->second.image,
+                            static_cast<UINT>(subresourceIndex),
+                            state,
+                            jobResAccess });
+                          //GFX_ILOG("begin %d end: %d resource: %zu subresource: %d before: 0x%09x after: 0x%09x", beginDrawIndex, drawIndex, job.resource, subresourceIndex, state, job.access);
+                      }
+                      else
+                      {
+                          barriers.emplace_back(D3D12_RESOURCE_BARRIER{
+                              D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                              D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                              resource->second.image,
+                              static_cast<UINT>(subresourceIndex),
+                              state,
+                              jobResAccess });
+                          //GFX_ILOG("modified draw: %d resource: %zu subresource: %d before: 0x%09x after: 0x%09x", drawIndex, job.resource, subresourceIndex, state, job.access);
+                      }
                     }
                     else
                     {
@@ -257,26 +297,47 @@ namespace faze
 
     void DX12DependencySolver::runBarrier(ID3D12GraphicsCommandList* gfx, int nextDrawCall)
     {
-      if (nextDrawCall == 0)
-      {
-        int barrierSize = (m_barriersOffsets.size() > 1 && m_barriersOffsets[1] > 0) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
+        if (nextDrawCall == 0)
+        {
+            int barrierSize = (m_barriersOffsets.size() > 1 && m_barriersOffsets[1] > 0) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
+            if (barrierSize == 0)
+            {
+                return;
+            }
+            gfx->ResourceBarrier(barrierSize, barriers.data());
+            return;
+        }
+
+        // after first and second, nextDrawCall == 1
+        // so we need barriers from offset 0
+        int barrierOffset = m_barriersOffsets[nextDrawCall];
+        int barrierSize = m_barriersOffsets[nextDrawCall + 1] - barrierOffset;
+
         if (barrierSize == 0)
         {
-          return;
+            return;
         }
-        gfx->ResourceBarrier(barrierSize, barriers.data());
-        return;
-      }
+#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+        if (faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
+        {
+            bool hasBegin = false;
+            bool hasOther = false;
+            for (int i = barrierOffset; i < barrierOffset + barrierSize; ++i)
+            {
+                if (barriers[i].Flags == D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY)
+                {
+                    hasBegin = true;
+                }
+                else
+                {
+                    hasOther = true;
+                }
 
-      // after first and second, nextDrawCall == 1
-      // so we need barriers from offset 0
-      int barrierOffset = m_barriersOffsets[nextDrawCall];
-      int barrierSize = m_barriersOffsets[nextDrawCall + 1] - barrierOffset;
+            }
 
-      if (barrierSize == 0)
-      {
-        return;
-      }
+            F_ASSERT(!(hasBegin && !hasOther), "Unoptimal barrier");
+        }
+#endif
 
       gfx->ResourceBarrier(barrierSize, barriers.data() + barrierOffset);
     }

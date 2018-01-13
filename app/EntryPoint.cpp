@@ -287,7 +287,7 @@ int EntryPoint::main()
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(64, 1, 1));
-        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffectLDS", uint3(64, 1, 1));
+        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffect", uint3(64, 1, 1));
         renderer::Blitter blit(dev);
         renderer::ImGui imgRenderer(dev);
 
@@ -464,8 +464,8 @@ int EntryPoint::main()
           //if (inputs.isPressedThisFrame('3', 2))
 
           iRes.y = 1;
+          //iRes.x *= 64;
           postPass.compute(tasks, texUav2, texSrv, iRes);
-          iRes.x *= 64;
           postPass2.compute(tasks, texUav3, texSrv, iRes);
 
           {
@@ -644,12 +644,17 @@ int EntryPoint::main()
                 faze::globalconfig::graphics::GraphicsEnableSplitBarriers = faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? false : true;
               }
 
+              if (ImGui::Button(faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? "SplitBarriersPlaceBeginsOnExistingPoints enabled" : "SplitBarriersPlaceBeginsOnExistingPoints disabled"))
+              {
+                  faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? false : true;
+              }
+
               if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? "ReadStateCombining enabled" : "ReadStateCombining disabled"))
               {
                 faze::globalconfig::graphics::GraphicsEnableReadStateCombining = faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? false : true;
               }
 
-              ImGui::Text("FPS %.2f", 1000.f / time.getCurrentFps());
+              ImGui::Text("FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
               auto gfxTime = graphicsCpuTime.getCurrentFps();
               auto cpuTime = CpuTime.getCurrentFps();
               auto logic = logicFps.readValue();

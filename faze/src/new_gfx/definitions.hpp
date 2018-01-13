@@ -24,6 +24,7 @@ namespace faze
       extern bool GraphicsEnableReadStateCombining;
       extern bool GraphicsEnableHandleCommonState;
       extern bool GraphicsEnableSplitBarriers;
+      extern bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints;
     }
   }
 }

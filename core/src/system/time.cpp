@@ -58,6 +58,15 @@ float WTime::getCurrentFps() {
   return static_cast<float>(count) / static_cast<float>(lastFrameTimes.size())* 0.000001f;
 }
 
+float WTime::getMaxFps() {
+    int64_t count = 999999999999999999ll;
+    lastFrameTimes.forEach([&](int64_t& data)
+    {
+        count = std::min(count, data);
+    });
+    return static_cast<float>(count)* 0.000001f;
+}
+
 float3 WTime::analyzeFrames() {
   int64_t count = 0;
   int64_t high = 0;
