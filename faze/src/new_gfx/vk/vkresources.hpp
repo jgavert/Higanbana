@@ -616,6 +616,7 @@ namespace faze
         "VK_EXT_shader_subgroup_ballot",
         "VK_EXT_shader_subgroup_vote",
         "VK_KHR_maintenance1",
+        "VK_KHR_maintenance2",
         "VK_KHR_swapchain"
       };
     public:
