@@ -1,5 +1,5 @@
 #include "input_plat_tools.hpp"
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 
 #include <wbemidl.h>
 #include <cwchar>
@@ -8,9 +8,9 @@
 #include <codecvt>
 
 //-----------------------------------------------------------------------------
-// Enum each PNP device using WMI and check each device ID to see if it contains 
+// Enum each PNP device using WMI and check each device ID to see if it contains
 // "IG_" (ex. "VID_045E&PID_028E&IG_00").  If it does, then it's an XInput device
-// Unfortunately this information can not be found by just using DirectInput 
+// Unfortunately this information can not be found by just using DirectInput
 //-----------------------------------------------------------------------------
 BOOL IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 {
@@ -44,13 +44,13 @@ BOOL IsXInputDevice(const GUID* pGuidProductFromDirectInput)
   bstrClassName = SysAllocString(L"Win32_PNPEntity");   if (bstrClassName == NULL) goto LCleanup;
   bstrDeviceID = SysAllocString(L"DeviceID");          if (bstrDeviceID == NULL)  goto LCleanup;
 
-  // Connect to WMI 
+  // Connect to WMI
   hr = pIWbemLocator->ConnectServer(bstrNamespace, NULL, NULL, 0L,
     0L, NULL, NULL, &pIWbemServices);
   if (FAILED(hr) || pIWbemServices == NULL)
     goto LCleanup;
 
-  // Switch security level to IMPERSONATE. 
+  // Switch security level to IMPERSONATE.
   CoSetProxyBlanket(pIWbemServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
     RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
 
@@ -68,14 +68,14 @@ BOOL IsXInputDevice(const GUID* pGuidProductFromDirectInput)
     if (uReturned == 0)
       break;
 
-    for (iDevice = 0; iDevice<uReturned; iDevice++)
+    for (iDevice = 0; iDevice < uReturned; iDevice++)
     {
       // For each device, get its device ID
       hr = pDevices[iDevice]->Get(bstrDeviceID, 0L, &var, NULL, NULL);
       if (SUCCEEDED(hr) && var.vt == VT_BSTR && var.bstrVal != NULL)
       {
         // Check if the device ID contains "IG_".  If it does, then it's an XInput device
-        // This information can not be found from DirectInput 
+        // This information can not be found from DirectInput
         if (wcsstr(var.bstrVal, L"IG_"))
         {
           // If it does, then get the VID/PID from var.bstrVal
@@ -107,7 +107,7 @@ LCleanup:
     SysFreeString(bstrDeviceID);
   if (bstrClassName)
     SysFreeString(bstrClassName);
-  for (iDevice = 0; iDevice<20; iDevice++)
+  for (iDevice = 0; iDevice < 20; iDevice++)
     SAFE_RELEASE(pDevices[iDevice]);
   SAFE_RELEASE(pEnumDevices);
   SAFE_RELEASE(pIWbemLocator);
@@ -118,3 +118,4 @@ LCleanup:
 
   return bIsXinputDevice;
 }
+#endif
