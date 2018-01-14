@@ -13,6 +13,15 @@ inline unsigned long long __builtin_ctzll(unsigned long long x) { unsigned long 
 
 namespace faze
 {
+  namespace bitOps
+  {
+    bool checkbit(const __m128i& vec, int n);
+    void setbit(__m128i& vec, int n);
+    void clearbit(__m128i& vec, int n);
+    void togglebit(__m128i& vec, int n);
+    size_t popcount(const __m128i& v);
+  }
+
   namespace bitfieldUtils
   {
     void setZero(__m128i* data, int count);
@@ -65,15 +74,6 @@ namespace faze
       }
       return res;
     }
-  }
-
-  namespace bitOps
-  {
-    bool checkbit(const __m128i& vec, int n);
-    void setbit(__m128i& vec, int n);
-    void clearbit(__m128i& vec, int n);
-    void togglebit(__m128i& vec, int n);
-    size_t popcount(const __m128i& v);
   }
 
   template <size_t rsize>
