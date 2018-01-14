@@ -8,7 +8,7 @@
     {
       void setZero(__m128i* data, int count)
       {
-        for (size_t i = 0; i < count; ++i)
+        for (size_t i = 0; i < static_cast<size_t>(count); ++i)
         {
           _mm_store_si128(data + i, _mm_setzero_si128());
         }
@@ -16,7 +16,7 @@
 
       void setFull(__m128i* data, int count)
       {
-        for (size_t i = 0; i < count; ++i)
+        for (size_t i = 0; i < static_cast<size_t>(count); ++i)
         {
           _mm_store_si128(data + i, _mm_sub_epi64(_mm_set_epi64x(0LL, 0LL), _mm_set_epi64x(1LL, 1LL)));
         }

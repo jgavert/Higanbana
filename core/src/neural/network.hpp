@@ -189,11 +189,11 @@ namespace faze
         while (doOnce || (prevCost > targetError && iter < 1000000))
         {
           doOnce = false;
-          for (int i = 0; i < m_w1.size(); ++i)
+          for (int i = 0; i < static_cast<int>(m_w1.size()); ++i)
           {
             learn(m_w1(i));
           }
-          for (int i = 0; i < m_w2.size(); ++i)
+          for (int i = 0; i < static_cast<int>(m_w2.size()); ++i)
           {
             learn(m_w2(i));
           }

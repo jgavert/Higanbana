@@ -403,7 +403,7 @@ namespace faze
       size_t innerIdx = 0;
       if (offset < 64)
       {
-        for (int i = 0; i < offset; ++i)
+        for (size_t i = 0; i < offset; ++i)
         {
           a &= ~(1LL << (i));
         }
@@ -415,7 +415,7 @@ namespace faze
           innerIdx = __builtin_ctzll(a);
         }
       }
-      for (int i = 0; i < offset - 64; ++i)
+      for (size_t i = 0; i < offset - 64; ++i)
       {
         b &= ~(1LL << (i));
       }
