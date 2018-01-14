@@ -1,5 +1,5 @@
 #include "gamepad.hpp"
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #define DIRECTINPUT_VERSION 0x0800
 #define _CRT_SECURE_NO_DEPRECATE
 #ifndef _WIN32_DCOM
@@ -562,3 +562,39 @@ namespace faze
     }
   }
 }
+#else
+
+namespace faze
+{
+  namespace gamepad
+  {
+    Fic::Fic()
+    {
+    }
+
+    void Fic::enumerateDevices()
+    {
+    }
+
+    void Fic::pollDevices(PollOptions)
+    {
+    }
+
+    Fic::~Fic()
+    {
+    }
+
+    Fic::operator bool() const
+    {
+      return m_usable;
+    }
+
+    X360LikePad Fic::getFirstActiveGamepad()
+    {
+      auto pad = X360LikePad{};
+      pad.alive = false;
+      return pad;
+    }
+  }
+}
+#endif
