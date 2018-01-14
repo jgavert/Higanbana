@@ -161,6 +161,11 @@ namespace faze
       S().submit(swapchain, graph);
     }
 
+    void submit(CommandGraph graph)
+    {
+      S().submit(graph);
+    }
+
     void present(Swapchain& swapchain)
     {
       S().present(swapchain);
@@ -169,6 +174,11 @@ namespace faze
     void garbageCollection()
     {
       S().garbageCollection();
+    }
+
+    void waitGpuIdle()
+    {
+      S().waitGpuIdle();
     }
   };
 };
