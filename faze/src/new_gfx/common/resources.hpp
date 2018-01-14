@@ -201,6 +201,7 @@ namespace faze
 
       // commandgraph
       void submit(Swapchain& swapchain, CommandGraph graph);
+      void submit(CommandGraph graph);
       void present(Swapchain& swapchain);
     };
 

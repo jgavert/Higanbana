@@ -410,6 +410,34 @@ namespace faze
       gc();
     }
 
+    void DeviceData::submit(CommandGraph graph)
+    {
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        auto& firstList = nodes[0];
+        for (int i = 1; i < static_cast<int>(nodes.size()); ++i)
+        {
+          firstList.list.list.append(std::move(nodes[i].list.list));
+        }
+
+        auto nativeList = m_impl->createGraphicsList();
+        nativeList->fillWith(m_impl, firstList.list.list);
+        LiveCommandBuffer buffer{};
+        buffer.lists.emplace_back(nativeList);
+
+        buffer.fence = m_impl->createFence();
+        buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+        buffer.intermediateLists->emplace_back(std::move(firstList.list.list));
+
+        m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
+        m_buffers.emplace_back(buffer);
+      }
+
+      gc();
+    }
+
     void DeviceData::garbageCollection()
     {
       m_impl->collectTrash();
