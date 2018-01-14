@@ -9,34 +9,59 @@
 // App
 #include "app/app.bff"
 
-// Aliases : All-$Platform$-$Config$
-//------------------------------------------------------------------------------
+// graphics tests with google test
+
+#include "gtest/graphics/graphics_tests.bff"
+#include "gtest/core/core_tests.bff"
 
 ForEach( .Config in .Configs )
 {
 	Using( .Config )
 
-	Alias( 'All-$Platform$-$Config$' )
+	Alias( 'Tests-$Platform$-$Config$' )
 	{
-		.Targets    = { // tests
-					  // executables
-					  'App-Exe-$Platform$-$Config$'
-
-					  // Clang(windows) doesn't link at the moment, so we need list all the libs manually
-					  //'Core-$Platform$-$Config$'
+		.Targets    = {
+					'core_tests-$Platform$-$Config$',
+					'graphics_tests-$Platform$-$Config$'
 					  }
 	}
 }
 
-.Platforms = { 'x64', 'x64Linux' }
-ForEach( .Platform in .Platforms )
+ForEach( .Config in .Configs )
 {
-	Alias( 'All-$Platform$' )
+	Using( .Config )
+
+	Alias( 'Tests-$Platform$-$Config$-run' )
 	{
-		.Targets	= {
-						'All-$Platform$-Debug',
-						'All-$Platform$-Profile',
-						'All-$Platform$-Release'
+		.Targets    = {
+					'core_tests-$Platform$-$Config$-run',
+					'graphics_tests-$Platform$-$Config$-run'
+					  }
+	}
+}
+
+.testPlatform = 'x64Linux'
+#if __WINDOWS__
+.testPlatform = 'x64'
+#endif
+.testConfigs = { 'debug', 'profile', 'release' }
+ForEach( .Config in .testConfigs )
+{
+	Alias( 'Tests-$Config$' )
+	{
+		.Targets    = {
+					'core_tests-$testPlatform$-$Config$',
+					'graphics_tests-$testPlatform$-$Config$'
+					  }
+	}
+}
+ForEach( .Config in .testConfigs )
+{
+	Alias( 'Tests-$Config$-run' )
+	{
+		.Targets    = {
+					'core_tests-$testPlatform$-$Config$-run',
+					'graphics_tests-$testPlatform$-$Config$-run'
 					  }
 	}
 }
@@ -44,30 +69,37 @@ ForEach( .Platform in .Platforms )
 // Aliases : All
 //------------------------------------------------------------------------------
 #if __WINDOWS__
-    Alias( 'All' )
+    Alias( 'Apps' )
     {
-        .Targets    = { 'All-x64' }
+        .Targets    = { 'App-x64'}
     }
+	Alias( 'Tests' )
+    {
+        .Targets    = { 'core_tests-x64-run', 'graphics_tests-x64-run'}
+    }
+
 #endif
 #if __LINUX__
-    Alias( 'All' )
+    Alias( 'Apps' )
     {
-        .Targets    = { 'All-x64Linux' }
+        .Targets    = { 'App-x64Linux'}
+    }
+	Alias( 'Tests' )
+    {
+        .Targets    = { 'core_tests-x64Linux-run', 'graphics_tests-x64Linux-run'}
     }
 #endif
 
-//#if __WINDOWS__
-//    Alias( 'Tests' )
-//    {
-//        .Targets    = { }
-//    }
-//#endif
+	Alias( 'All' )
+    {
+        .Targets    = { 'Apps' }
+    }
 
 // Aliases : All+Tests
 //------------------------------------------------------------------------------
 Alias( 'All+Tests' )
 {
-  .Targets    = { 'All' }
+  .Targets    = { 'All', 'Tests' }
 }
 
 // Aliases : proj (all projects)
@@ -79,7 +111,9 @@ Alias( 'proj' )
 				  'All-proj',
 				  'Core-proj',
 				  'App-proj',
-				  'Graphics-proj'
+				  'Graphics-proj',
+				  'graphics_tests-proj',
+				  'core_tests-proj'
 				}
 }
 
