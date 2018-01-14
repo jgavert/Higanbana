@@ -113,8 +113,9 @@ bool FileSystem::fileExists(std::string path)
 bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
 {
   // convert all \ to /
+#if defined(FAZE_PLATFORM_WINDOWS)
   std::replace(path.begin(), path.end(), '/', '\\');
-
+#endif
   auto fp = fopen(path.c_str(), "rb");
   fseek(fp, 0L, SEEK_END);
   auto fsize = ftell(fp);
