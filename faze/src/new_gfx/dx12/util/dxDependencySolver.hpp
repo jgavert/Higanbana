@@ -1,5 +1,5 @@
 #pragma once
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "core/src/datastructures/proxy.hpp"
 #include "faze/src/new_gfx/common/commandpackets.hpp"
 #include "faze/src/new_gfx/dx12/dx12resources.hpp"
@@ -103,3 +103,4 @@ namespace faze
     };
   }
 }
+#endif

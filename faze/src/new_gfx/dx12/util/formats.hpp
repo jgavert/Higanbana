@@ -1,5 +1,5 @@
 #pragma once
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/desc/formats.hpp"
 #include "core/src/system/helperMacros.hpp"
 #include "faze/src/new_gfx/dx12/dx12.hpp"
@@ -20,3 +20,4 @@ namespace faze
     FormatDX12Conversion formatTodxFormat(FormatType format);
   }
 }
+#endif

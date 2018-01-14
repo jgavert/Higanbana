@@ -1,4 +1,5 @@
 #include "dx12resources.hpp"
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "util/dxDependencySolver.hpp"
 #include "util/formats.hpp"
 
@@ -572,3 +573,4 @@ namespace faze
     }
   }
 }
+#endif
