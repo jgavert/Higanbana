@@ -1,4 +1,7 @@
 #include "windowMain.hpp"
+
+#if defined(FAZE_PLATFORM_WINDOWS)
+
 #include "core/src/neural/network.hpp"
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/time.hpp"
@@ -864,3 +867,5 @@ void mainWindow(ProgramParams& params)
 
   log.update();
 }
+
+#endif

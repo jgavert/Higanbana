@@ -55,6 +55,7 @@ namespace faze
       fontatlas = device.createTexture(image);
       fontatlasSrv = device.createTextureSRV(fontatlas);
 
+#if defined(FAZE_PLATFORM_WINDOWS)
       io.KeyMap[ImGuiKey_Tab] = VK_TAB;
       io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
       io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
@@ -68,6 +69,7 @@ namespace faze
       io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
       io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
       io.KeyMap[ImGuiKey_Escape] = VK_ESCAPE;
+#endif
       io.KeyMap[ImGuiKey_A] = 'A';
       io.KeyMap[ImGuiKey_C] = 'C';
       io.KeyMap[ImGuiKey_V] = 'V';
