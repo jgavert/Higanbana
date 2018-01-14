@@ -56,16 +56,6 @@ namespace faze
     int64_t heapType;
   };
 
-  struct GpuHeapAllocation
-  {
-    uint64_t index;
-    int alignment;
-    int64_t heapType;
-    PageBlock block;
-
-    bool valid() { return alignment != -1 && index != -1; }
-  };
-
   class Buffer;
   class Texture;
 
