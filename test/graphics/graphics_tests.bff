@@ -16,7 +16,9 @@
   .AppSpecificReleaseExternalLibPaths = {.gtestRelLibPath}
 
   .AppSpecificAdditionalWarningDisables = ' /wd4100 /wd4244'
-  //.AppSpecificMain = ' /SUBSYSTEM:CONSOLE'
+  .AppSpecificMain = ' /SUBSYSTEM:CONSOLE'
+
+  .AppSpecificBuildFromObjects = true;
 
   #include "../../app_template.bff" 
   #include "../../app_template_add_tests.bff"
