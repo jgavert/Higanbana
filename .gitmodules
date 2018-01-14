@@ -13,3 +13,6 @@
 [submodule "externals/Vulkan-Hpp"]
 	path = externals/Vulkan-Hpp
 	url = https://github.com/KhronosGroup/Vulkan-Hpp.git
+[submodule "externals/googletest"]
+	path = externals/googletest
+	url = https://github.com/google/googletest.git
