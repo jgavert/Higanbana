@@ -6,6 +6,7 @@
 .AppSpecificReleaseExternalLibPaths = {}
 .AppSpecificAdditionalWarningDisables = ''
 .AppSpecificMain = ' /SUBSYSTEM:WINDOWS'
+.AppSpecificBuildFromObjects = false
 
 // Core
 
