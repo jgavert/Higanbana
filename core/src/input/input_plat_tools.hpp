@@ -1,5 +1,5 @@
 #pragma once
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #define DIRECTINPUT_VERSION 0x0800
 #define _CRT_SECURE_NO_DEPRECATE
 #ifndef _WIN32_DCOM
@@ -17,3 +17,4 @@
 #define SAFE_RELEASE(p) { if(p) { (p)->Release(); (p)=nullptr; } }
 
 BOOL IsXInputDevice(const GUID* pGuidProductFromDirectInput);
+#endif
