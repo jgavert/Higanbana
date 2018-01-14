@@ -149,9 +149,9 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Werror'      // warnings as errors
                           + ' -Wfatal-errors'
                           + ' -Wno-missing-braces' // strange warning
-                          + ' -Wno-unused-private-field'
                           + ' -Wno-unused-variable'
                           + ' -Wno-unused-function'
+                          + ' -Wno-error=maybe-uninitialized'
                           + ' -Wno-ignored-attributes'
                           + ' -Wno-error=unknown-pragmas'
                           + ' -m64'         // x86-64
