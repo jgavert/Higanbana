@@ -11,7 +11,7 @@ namespace faze
   namespace backend
   {
     SubsystemData::SubsystemData(GraphicsApi api, const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
-      : impl(std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion))
+      : impl(nullptr)
       , appName(appName)
       , appVersion(appVersion)
       , engineName(engineName)
@@ -377,7 +377,7 @@ namespace faze
       if (!nodes.empty())
       {
         auto& firstList = nodes[0];
-        for (int i = 1; i < nodes.size(); ++i)
+        for (int i = 1; i < static_cast<int>(nodes.size()); ++i)
         {
           firstList.list.list.append(std::move(nodes[i].list.list));
         }

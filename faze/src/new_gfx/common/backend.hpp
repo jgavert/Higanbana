@@ -19,7 +19,7 @@ namespace faze
     int64_t heapType;
     PageBlock block;
 
-    bool valid() { return alignment != -1 && index != -1; }
+    bool valid() { return alignment != -1 && index != static_cast<uint64_t>(-1);}
   };
 
   namespace backend
@@ -161,7 +161,7 @@ namespace faze
 
       std::shared_ptr<int64_t> makeTracker(int64_t id, GpuHeapAllocation allocation, std::shared_ptr<TrackedResource> resourceToTrack)
       {
-        auto dest = shared_from_this();
+        auto dest = this->shared_from_this();
         return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, allocation, dest](int64_t* t)
         {
           std::lock_guard<std::mutex> lock(dest->m_lock);
@@ -173,7 +173,7 @@ namespace faze
 
       std::shared_ptr<int64_t> makeTracker(int64_t id, std::shared_ptr<TrackedResource> resourceToTrack)
       {
-        auto dest = shared_from_this();
+        auto dest = this->shared_from_this();
         return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, dest](int64_t* t)
         {
           std::lock_guard<std::mutex> lock(dest->m_lock);
