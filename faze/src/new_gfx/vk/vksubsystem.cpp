@@ -17,9 +17,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   // Supressing unnecessary log messages.
 
   std::string msgType = "";
-#if defined(FAZE_PLATFORM_WINDOWS)
   bool breakOn = false;
-#endif
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
   {
     msgType = "ERROR:";
@@ -266,7 +264,7 @@ namespace faze
           break;
         }
 
-       
+
         info.apiVersion = stuff.apiVersion;
         info.apiVersionStr += std::to_string(VK_VERSION_MAJOR(stuff.apiVersion));
         info.apiVersionStr += ".";
@@ -364,6 +362,7 @@ namespace faze
       return GpuDevice(DeviceData(impl));
     }
 
+#if defined(FAZE_PLATFORM_WINDOWS)
     GraphicsSurface VulkanSubsystem::createSurface(Window& window)
     {
       vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()
@@ -382,5 +381,17 @@ namespace faze
 
       return GraphicsSurface(std::make_shared<VulkanGraphicsSurface>(khrSur));
     }
+#else
+    GraphicsSurface VulkanSubsystem::createSurface(Window&)
+    {
+
+      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(), [](vk::SurfaceKHR* ist)
+      {
+        delete ist;
+      });
+
+      return GraphicsSurface(std::make_shared<VulkanGraphicsSurface>(khrSur));
+    }
+#endif
   }
 }

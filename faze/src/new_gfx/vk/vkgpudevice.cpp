@@ -954,7 +954,7 @@ namespace faze
       auto image = m_device.createImage(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
-      auto req = m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
+      m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
       m_device.bindImageMemory(image, native->native(), size);
 
       vector<TextureStateFlags> state;
