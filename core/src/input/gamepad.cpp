@@ -157,13 +157,13 @@ namespace faze
       {
         return DIENUM_CONTINUE;
       }
-      std::string prdct = lpddi->tszProductName;
+      std::wstring prdct = lpddi->tszProductName;
       //std::string name = ws2s(prdct);
       auto sg = guidToString(&lpddi->guidInstance);
       //printf("id: %s ", sg.c_str());
       //printf(" type: %s ", devType(lpddi->dwDevType));
       //printf(" device: \"%s\"", name.c_str());
-      std::string inst = lpddi->tszInstanceName;
+      std::wstring inst = lpddi->tszInstanceName;
       //auto instanceName = ws2s(inst);
       //printf(" instance: \"%s\"", instanceName.c_str());
       //printf("\n");
@@ -171,7 +171,7 @@ namespace faze
       InputDevice dev;
       dev.sguid = sg;
       memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
-      dev.name = inst;
+      dev.name = ws2s(inst);
       dev.type = idevType(lpddi->dwDevType);
 
       dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
@@ -204,8 +204,8 @@ namespace faze
         //if (FAILED(g_pJoystick->SetProperty(DIPROP_RANGE, &diprg.diph)))
         //  return DIENUM_STOP;
       }
-
-      printf("name \"%s\" ", pdidoi->tszName);
+      std::string nam = ws2s(pdidoi->tszName);
+      printf("name \"%s\" ", nam.c_str());
 
       printf(" {%d %d %d %d %d %d %d %d %d} ", pdidoi->dwDimension, pdidoi->dwFFForceResolution, pdidoi->dwFFMaxForce, pdidoi->dwFlags, pdidoi->dwOfs, pdidoi->wCollectionNumber, pdidoi->wDesignatorIndex, pdidoi->wReportId, pdidoi->wUsagePage);
 

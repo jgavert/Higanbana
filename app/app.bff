@@ -5,5 +5,10 @@
 
   .OutputApp = 'bin'
 
+  .AppSpecificLibraryTargets = {'graphics', 'core'}
+
+  .AppSpecificExternalIncludes = {}
+  .AppSpecificExternalLibPaths = {}
+
   #include "../app_template.bff"
 }

@@ -4,14 +4,14 @@ ForEach( .Config in .Configs )
 
   Test( '$ProjectName$-$Platform$-$Config$-Actual-Test' )
   {
-	.TestExecutable = '$ProjectName$-Exe-$Platform$-$Config$' // Must be previously defined with Executable()
-	.TestOutput = 'gtest/test_output_$ProjectName$-$Platform$-$Config$'
-	.TestWorkingDir = .WorkspacePath
+    .TestExecutable = '$ProjectName$-Exe-$Platform$-$Config$' // Must be previously defined with Executable()
+    .TestOutput = 'test/test_output_$ProjectName$-$Platform$-$Config$'
+    .TestWorkingDir = .WorkspacePath
   }
 
   Alias( '$ProjectName$-$Platform$-$Config$-Run' )
   {
-	.Targets = { '$ProjectName$-$Platform$-$Config$', '$ProjectName$-$Platform$-$Config$-Actual-Test'} 
+    .Targets = { '$ProjectName$-$Platform$-$Config$', '$ProjectName$-$Platform$-$Config$-Actual-Test'} 
   }
 }
 

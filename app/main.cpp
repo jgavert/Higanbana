@@ -7,7 +7,6 @@
 #include "core/src/Platform/ProgramParams.hpp"
 #include "core/src/Platform/EntryPoint.hpp" // client entrypoint
 
-
 #ifdef FAZE_PLATFORM_WINDOWS
 int WINAPI WinMain(HINSTANCE hInstance,
   HINSTANCE hPrevInstance,

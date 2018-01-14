@@ -4,7 +4,7 @@ using namespace faze;
 
 Logger::Logger() : m_readerIndex(0), m_writerIndex(1), unhandled_buffer_size(0)
 {
-  buffer.forEach([](logdata& data){
+  buffer.forEach([](logdata& data) {
     data.m_array.fill('\0');
   });
 }
@@ -46,7 +46,7 @@ void Logger::update()
     }
     //TODO: this has had problems
 #ifdef FAZE_PLATFORM_WINDOWS
-    OutputDebugString(buffer[m_readerIndex].m_array.data());
+    OutputDebugStringA(buffer[m_readerIndex].m_array.data());
 #endif
     std::cout.write(buffer[m_readerIndex].m_array.data(), buffer[m_readerIndex].m_size);
     unhandled_buffer_size--; m_readerIndex++;

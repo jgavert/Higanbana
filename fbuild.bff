@@ -1,5 +1,12 @@
 #include "base.bff"
 
+.AppSpecificLibraryTargets = {}
+.AppSpecificExternalIncludes = {}
+.AppSpecificDebugExternalLibPaths = {}
+.AppSpecificReleaseExternalLibPaths = {}
+.AppSpecificAdditionalWarningDisables = ''
+.AppSpecificMain = ' /SUBSYSTEM:WINDOWS'
+
 // Core
 
 #include "core/core.bff"
@@ -11,8 +18,8 @@
 
 // graphics tests with google test
 
-#include "gtest/graphics/graphics_tests.bff"
-#include "gtest/core/core_tests.bff"
+#include "test/graphics/graphics_tests.bff"
+#include "test/core/core_tests.bff"
 
 ForEach( .Config in .Configs )
 {
