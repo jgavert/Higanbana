@@ -219,13 +219,13 @@ namespace faze
 
 #endif
 
+#if defined(FAZE_PLATFORM_WINDOWS)
   // Initializes the window and shows it
   Window::Window(ProgramParams params, std::string windowname, int width, int height, int offsetX, int offsetY)
     : m_width(width)
     , m_height(height)
     , m_name(windowname)
   {
-#if defined(FAZE_PLATFORM_WINDOWS)
     WNDCLASSEX wc;
     HWND hWnd;
     ZeroMemory(&hWnd, sizeof(HWND));
@@ -263,8 +263,15 @@ namespace faze
 
     // clean messages away
     simpleReadMessages(-1);
-#endif
   }
+#else
+  Window::Window(ProgramParams, std::string windowname, int width, int height, int, int)
+    : m_width(width)
+    , m_height(height)
+    , m_name(windowname)
+  {
+  }
+#endif
 
   bool Window::open()
   {
@@ -282,13 +289,16 @@ namespace faze
     CloseWindow(m_window->hWnd);
 #endif
   }
-
+#if defined(FAZE_PLATFORM_WINDOWS)
   void Window::cursorHidden(bool enabled)
   {
-#if defined(FAZE_PLATFORM_WINDOWS)
     ShowCursor(enabled);
-#endif
   }
+#else
+  void Window::cursorHidden(bool)
+  {
+  }
+#endif
 
   void Window::toggleBorderlessFullscreen()
   {
@@ -347,6 +357,7 @@ namespace faze
 
   void Window::updateInputs()
   {
+#if defined(FAZE_PLATFORM_WINDOWS)
     if (GetFocus() == m_window->hWnd)
     {
       BYTE cur[256]{};
@@ -393,5 +404,6 @@ namespace faze
       }
       memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
     }
+#endif
   }
 }
