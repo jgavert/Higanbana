@@ -1,0 +1,23 @@
+{
+  .ProjectName  = 'graphics_tests'
+  .ProjectPath  = 'test/graphics'
+  .WorkspacePath = 'test/workspace'
+
+  .OutputApp = 'test/bin'
+
+    .AppSpecificLibraryTargets = {'core', 'graphics'}
+
+  .extRelLibs   + .gtestRelLib
+  .extDebLibs   + .gtestDebLib
+
+  .AppSpecificExternalIncludes = { .gtestInclude, .gtest2Include }
+
+  .AppSpecificDebugExternalLibPaths = {.gtestDebLibPath}
+  .AppSpecificReleaseExternalLibPaths = {.gtestRelLibPath}
+
+  .AppSpecificAdditionalWarningDisables = ' /wd4100 /wd4244'
+  //.AppSpecificMain = ' /SUBSYSTEM:CONSOLE'
+
+  #include "../../app_template.bff" 
+  #include "../../app_template_add_tests.bff"
+}

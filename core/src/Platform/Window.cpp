@@ -233,13 +233,15 @@ namespace faze
 
     std::string classname = (windowname + "class");
 
+    std::wstring cnw = s2ws(classname);
+
     wc.cbSize = sizeof(WNDCLASSEX);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = params.m_hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-    wc.lpszClassName = classname.c_str();
+    wc.lpszClassName = cnw.c_str();
     RegisterClassEx(&wc);
 
     RECT wr = { offsetX, offsetY, offsetX + width, offsetY + height };
@@ -251,7 +253,7 @@ namespace faze
       F_SLOG("Window", "Tried to set dpi awareness.\n");
     }
 
-    hWnd = CreateWindowEx(NULL, classname.c_str(), windowname.c_str(), m_baseWindowFlags, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
+    hWnd = CreateWindowEx(NULL, cnw.c_str(), cnw.c_str(), m_baseWindowFlags, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
     if (hWnd == NULL)
     {
       printf("wtf window null\n");

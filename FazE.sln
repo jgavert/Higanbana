@@ -15,9 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gtest", "gtest", "{B0E6E870
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{5A7769B5-1692-4081-9D44-74EA8C624EDD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "graphics_tests", "gtest\graphics\graphics_tests.vcxproj", "{F791C751-6C94-4F93-BC2A-7F5284B7D434}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "graphics_tests", "test\graphics\graphics_tests.vcxproj", "{F791C751-6C94-4F93-BC2A-7F5284B7D434}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core_tests", "gtest\core\core_tests.vcxproj", "{487F2EB3-6C94-4F93-BC2A-7F5284B7D434}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core_tests", "test\core\core_tests.vcxproj", "{487F2EB3-6C94-4F93-BC2A-7F5284B7D434}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

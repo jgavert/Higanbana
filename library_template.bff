@@ -1,8 +1,40 @@
+//------------------------------------------------------------------------------
+// VisualStudio Project Generation
+//------------------------------------------------------------------------------
+.ProjectCommon =
+[
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .Platform                 = 'x64'
+  .PlatformToolset          = 'v141'
+  .IncludeSearchPath        = '^$(SolutionDir);./;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
+                            + '$externalIncludesVisualStudio$'
+
+  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;_UNICODE;UNICODE;'
+							              + 'FAZE_PLATFORM_WINDOWS;'
+                            + '$extVisualStudioDefines$'
+  .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
+  .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
+  .ReleaseDefines           = 'RELEASE'
+]
+// not everything needs graphics targets
+.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
+.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
+.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
+
+.ProjectConfigs2 = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
+
 VCXProject( '$ProjectName$-proj' )
 {
 .ProjectOutput        = '$ProjectPath$/$ProjectName$.vcxproj'
 .ProjectInputPaths    = '$ProjectPath$/'
 .ProjectBasePath      = '$ProjectPath$/'
+.ProjectConfigs       = .ProjectConfigs2
 }
 
 // Unity
@@ -29,31 +61,36 @@ VCXProject( '$ProjectName$-proj' )
 //--------------------------------------------------------------------------
 ForEach( .Config in .Configs_Windows_MSVC )
 {
-Using( .Config )
-.OutputBase + '/$Platform$-$Config$'
+  Using( .Config )
+  .OutputBase + '/$Platform$-$Config$'
 
-// Static Library
-Library( '$ProjectName$-Lib-$Platform$-$Config$' )
-{
-  // Precompiled Header Creation/Use
-  //.PCHInputFile       = '$ProjectPath$/$PCHName$.cpp'
-  //.PCHOutputFile        = '$OutputBase$/$ProjectName$/$PCHName$.pch'
-  //.PCHOptions         + ' /Yc"$ProjectPath$/$PCHName$.h"'
-  //.CompilerOptions      + ' /Yu"$ProjectPath$/$PCHName$.h" /Fp"$PCHOutputFile$"'
+    .PCHOptions         = .BaseCompilerOptions
+                        + .BaseDefinitions
+                        + '$extDefines$'
+                        + ' /Fp"%2" /Fo"%3"'
+                        + .BaseIncludePaths
+                        + .externalIncludes
 
-  // Extra Include paths
-  //.CompilerOptions      + .LZ4IncludePaths
+    .CompilerOptions    = .BaseCompilerOptions
+                        + .BaseDefinitions
+                        + '$extDefines$' 
+                        + ' /Fo"%2"'
+                        + .BaseIncludePaths
+                        + .externalIncludes
 
-  // Unity build
-  .CompilerInputUnity     = '$ProjectName$-Unity-Windows'
-  // Normal build
-  //.CompilerInputPath  = '$ProjectPath$/'
+  // Static Library
+  Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+  {
+    // Unity build
+    .CompilerInputUnity     = '$ProjectName$-Unity-Windows'
+    // Normal build
+    //.CompilerInputPath  = '$ProjectPath$/'
 
-  // Output
-  .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
-  .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
-}
-Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
+    // Output
+    .CompilerOutputPath     = '$OutputBase$/$ProjectName$/'
+    .LibrarianOutput      = '$OutputBase$/$ProjectName$/$ProjectName$.lib'
+  }
+  Alias( '$ProjectName$-$Platform$-$Config$' ) { .Targets = '$ProjectName$-Lib-$Platform$-$Config$' }
 }
 
 // Limux

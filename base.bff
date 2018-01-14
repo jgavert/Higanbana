@@ -81,32 +81,31 @@ Compiler( 'Compiler-x64-Linux' )
                        + ' /wd4505' // 'vk::getString': unreferenced local function has been removed
                        + ' /wd4065' // switch statement contains 'default' but no 'case' labels
                        + ' /wd4714' // function 'function' marked as __forceinline not inlined
+                       + ' /wd4201'
 
-  .CompilerOptions    = '"%1" /Z7 /nologo /c /W4 /std:c++latest'
-                      + ' /WX' // warnings as errors, also required as fastbuild hides warnings
-					            //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
-                      + ' /TP' // compile as c++
-                      + ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
-                      + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
-                      + .AdditionalWarnings
-                      + ' /fp:fast'
-					            // generic windows defines
-                      + ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /DWIN64 /D__WINDOWS__ /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /D_WINSOCK_DEPRECATED_NO_WARNINGS'
-                      //+ ' /D_WIN32_WINNT_WIN10'
-                      // + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
-                      // + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
-                      //+ ' /showIncludes'
-                      + ' /Gd'
-                      + '$extDefines$'
-  .PCHOptions         = .CompilerOptions
-                      + ' /Fp"%2" /Fo"%3"'
-  .CompilerOptions    + ' /Fo"%2"'
+  .BaseCompilerOptions    = '"%1" /Z7 /nologo /c /W4 /std:c++latest'
+                          + ' /WX' // warnings as errors, also required as fastbuild hides warnings
+                          //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
+                          + ' /TP' // compile as c++
+                        //+ ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
+                          + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)
+                          + .AdditionalWarnings
+                          + ' /fp:fast'
+                          // generic windows defines
+                          //+ ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /DWIN64 /D__WINDOWS__ /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /D_WINSOCK_DEPRECATED_NO_WARNINGS'
+                          //+ ' /D_WIN32_WINNT_WIN10'
+                          // + ' /D_CRT_SECURE_NO_WARNINGS' // don't warn about unsafe functions
+                          // + ' /D_WINSOCK_DEPRECATED_NO_WARNINGS' // don't warn about deprecated winsock functions - TODO:C Update API use
+                          + ' /Gd'
+
+  .BaseDefinitions   = ' /DWIN32_LEAN_AND_MEAN /D_WIN32 /DWIN64 /D_UNICODE /DUNICODE /D__WINDOWS__ /DNOMINMAX /D_CONSOLE /D_CRT_SECURE_NO_WARNINGS /D_WINSOCK_DEPRECATED_NO_WARNINGS'
+
   .LibrarianOptions   = ' /NODEFAULTLIB /NOLOGO /OUT:"%2" "%1"'
   .LinkerOptions      = ' /NODEFAULTLIB /NOLOGO /DEBUG:FASTLINK /OPT:NOREF /OPT:NOICF /OUT:"%2" "%1"'
                       + ' /IGNORE:4001'  // don't complain about linking libs only
                       + ' /IGNORE:4217' // don't complain about locally defined symbols
                       + ' /IGNORE:4049' // urgh
-					  //+ ' /IGNORE:2005' // already defined in anothe library
+					            //+ ' /IGNORE:2005' // already defined in anothe library
                       //+ ' /time+' // debug
 
   // Optimizations
@@ -127,10 +126,19 @@ Compiler( 'Compiler-x64-Linux' )
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um"'
                       + ' /I"$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt"'
-                      + .externalIncludes
+                      
 
-  .CompilerOptions    + .BaseIncludePaths
-  .PCHOptions         + .BaseIncludePaths
+  //.PCHOptions         = .BaseCompilerOptions
+  //                    + '$extDefines$'
+  //                    + ' /Fp"%2" /Fo"%3"'
+  //                    + .BaseIncludePaths
+  //                    + .externalIncludes
+
+  //.CompilerOptions    = .BaseCompilerOptions
+  //                    + '$extDefines$' 
+  //                    + ' /Fo"%2"'
+  //                    + .BaseIncludePaths
+  //                    + .externalIncludes
 
   .WindowsLibPaths10  = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/ucrt'
   .WindowsLibPaths10d = '$WindowsSDKBasePath10$/lib/$WindowsSDKSubVersion$/um/'
@@ -188,8 +196,9 @@ Compiler( 'Compiler-x64-Linux' )
   .Compiler           = 'Compiler-x64'
   .Librarian          = '$ToolsBasePath$/lib.exe'
   .Linker             = '$ToolsBasePath$/link.exe'
-  .CompilerOptions    + ' /DFAZE_PLATFORM_WINDOWS'
-  .PCHOptions         + ' /DFAZE_PLATFORM_WINDOWS'
+  .BaseDefinitions    + ' /DFAZE_PLATFORM_WINDOWS'
+  //.CompilerOptions    + ' /DFAZE_PLATFORM_WINDOWS'
+  //.PCHOptions         + ' /DFAZE_PLATFORM_WINDOWS'
   .LinkerOptions      + ' /MACHINE:X64'
   .Platform           = 'x64'
   .LinkerOptions      + ' /LIBPATH:"$WindowsLibPaths10$/x64"'
@@ -204,11 +213,11 @@ Compiler( 'Compiler-x64-Linux' )
 .X64DebugConfig =
 [
   Using( .X64BaseConfig )
-  .Config             = 'Debug'
-  .CompilerOptions    + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
-                      + .CompilerDebugOptimizations
-  .PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
-                      + .CompilerDebugOptimizations
+  .Config              = 'Debug'
+  .BaseDefinitions     + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
+  .BaseCompilerOptions + .CompilerDebugOptimizations
+  //.PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
+  //                    + .CompilerDebugOptimizations
   .LibrarianOptions   + .LibrarianDebugOptimizations
   .LinkerOptions      + .LinkerDebugOptimizations
 ]
@@ -216,17 +225,18 @@ Compiler( 'Compiler-x64-Linux' )
 .X64ReleaseConfig =
 [
   Using( .X64BaseConfig )
-  .Config             = 'Release'
-  .CompilerOptions    + ' /Zc:inline /DRELEASE'
-  .PCHOptions         + ' /DRELEASE'
+  .Config              = 'Release'
+  .BaseDefinitions     + ' /DRELEASE'
+  .BaseCompilerOptions + ' /Zc:inline'
+  //.PCHOptions         + ' /DRELEASE'
 
   // Setup de-optimization options (FASTBUILD_DEOPTIMIZE_OBJECT)
   .DeoptimizeWritableFilesWithToken   = true
-  .CompilerOptionsDeoptimized         = '$CompilerOptions$ /Od'
-  .PCHOptionsDeoptimized              = '$PCHOptions$ /Od'
+  .CompilerOptionsDeoptimized         = '$BaseCompilerOptions$ /Od'
+  .PCHOptionsDeoptimized              = '$BaseCompilerOptions$ /Od'
 
-  .CompilerOptions    + .CompilerReleaseOptimizations
-  .PCHOptions         + .CompilerReleaseOptimizations
+  .BaseCompilerOptions    + .CompilerReleaseOptimizations
+  //.PCHOptions         + .CompilerReleaseOptimizations
   .LibrarianOptions   + .LibrarianReleaseOptimizations
   .LinkerOptions      + .LinkerReleaseOptimizations
 ]
@@ -235,8 +245,8 @@ Compiler( 'Compiler-x64-Linux' )
 [
   Using( .X64ReleaseConfig ) // Note: based on Release config
   .Config             = 'Profile'
-  .CompilerOptions    + ' /DPROFILING_ENABLED'
-  .PCHOptions         + ' /DPROFILING_ENABLED'
+  .BaseDefinitions    + ' /DPROFILING_ENABLED'
+  //.PCHOptions         + ' /DPROFILING_ENABLED'
   .LinkerOptions      + ' /Profile'
 
   .DeoptimizeWritableFilesWithToken = false
@@ -283,35 +293,7 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 .UnityInputIsolateWritableFiles = false
 
-//------------------------------------------------------------------------------
-// VisualStudio Project Generation
-//------------------------------------------------------------------------------
-.ProjectCommon =
-[
-  .ProjectBuildCommand      = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .ProjectRebuildCommand    = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
-  .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
-  .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
-  .Platform                 = 'x64'
-  .PlatformToolset          = 'v141'
-  .IncludeSearchPath        = '^$(SolutionDir);./;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
-                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
-                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
-                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
-                            + '$externalIncludesVisualStudio$'
-  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;'
-							              + 'FAZE_PLATFORM_WINDOWS;'
-                            + '$extVisualStudioDefines$'
-  .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
-  .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
-  .ReleaseDefines           = 'RELEASE'
-]
-// not everything needs graphics targets
-.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
-.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
-.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
 
-.ProjectConfigs = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
 
 
 VCXProject( 'All-proj' )

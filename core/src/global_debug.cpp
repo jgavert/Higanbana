@@ -36,9 +36,9 @@ void log_adv(const char *fn, int ln, const char* format, ...)
 
   va_start(args, format);
 #if defined(FAZE_PLATFORM_WINDOWS)
-  _vsnprintf(&buf[n], sizeof(buf)-n, format, args);
+  _vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #else
-  vsnprintf(&buf[n], sizeof(buf)-n, format, args);
+  vsnprintf(&buf[n], sizeof(buf) - n, format, args);
 #endif
   va_end(args);
 
@@ -73,11 +73,11 @@ void log_imSys(const char* prefix, const char* format, ...)
 #endif
   va_end(args);
 #if defined(FAZE_PLATFORM_WINDOWS)
-  OutputDebugString("[");
-  OutputDebugString(prefix);
-  OutputDebugString("] ");
-  OutputDebugString(buf);
-  OutputDebugString("\n");
+  OutputDebugStringA("[");
+  OutputDebugStringA(prefix);
+  OutputDebugStringA("] ");
+  OutputDebugStringA(buf);
+  OutputDebugStringA("\n");
 #endif
   std::cerr << "[" << prefix << "] ";
   std::cerr.write(buf, strlen(buf));
@@ -119,8 +119,8 @@ void log_immideateAssert(const char *fn, int ln, const char* format, ...)
   va_end(args);
 
 #if defined(FAZE_PLATFORM_WINDOWS)
-  OutputDebugString(buf);
-  OutputDebugString("\n");
+  OutputDebugStringA(buf);
+  OutputDebugStringA("\n");
 #endif
   std::cerr.write(buf, strlen(buf));
   std::cerr << std::endl;
@@ -141,8 +141,8 @@ void log_immideate(const char *fn, int ln, const char* format, ...)
   va_end(args);
 
 #if defined(FAZE_PLATFORM_WINDOWS)
-  OutputDebugString(buf);
-  OutputDebugString("\n");
+  OutputDebugStringA(buf);
+  OutputDebugStringA("\n");
 #endif
   std::cerr.write(buf, strlen(buf));
   std::cerr << std::endl;
@@ -165,19 +165,18 @@ std::string _log_str(const char* s)
   return std::string(s, strlen(s));
 }
 
-
 std::wstring s2ws(const std::string& str)
 {
-	using convert_typeX = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_typeX, wchar_t> converterX;
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
 
-	return converterX.from_bytes(str);
+  return converterX.from_bytes(str);
 }
 
 std::string ws2s(const std::wstring& wstr)
 {
-	using convert_typeX = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_typeX, wchar_t> converterX;
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
 
-	return converterX.to_bytes(wstr);
+  return converterX.to_bytes(wstr);
 }

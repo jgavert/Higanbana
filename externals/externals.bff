@@ -124,6 +124,37 @@
          + .extLibPostfix
 #endif
 
+// googletest, not global.
+
+.gtestInclude = .extIncludeDir
+              + "googletest/googletest/include"
+
+.gtest2Include = .extIncludeDir
+              + "googletest/googletest"
+
+.gtestDebLibPath = .extBasePath
+            + "gtest_build/googletest/Debug"
+            + .extEndBasePath
+
+.gtestRelLibPath = .extBasePath
+            + "gtest_build/googletest/RelWithDebInfo"
+            + .extEndBasePath
+
+.gtestRelLib  = .extLibPrefix
+//           + 'gtest_main'
+//           + .extLibPostfix
+//           + .extLibPrefix
+           + 'gtest'
+           + .extLibPostfix
+
+.gtestDebLib  = .extLibPrefix
+//           + 'gtest_maind'
+//           + .extLibPostfix
+//           + .extLibPrefix
+           + 'gtestd'
+           + .extLibPostfix
+
+
 ///////////////////////////////////
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////

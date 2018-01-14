@@ -1,93 +1,146 @@
 
+//------------------------------------------------------------------------------
+// VisualStudio Project Generation
+//------------------------------------------------------------------------------
+.ProjectCommon =
+[
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel ^$(ProjectName)-^$(Platform)-^$(Configuration)'
+  .OutputDirectory          = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .IntermediateDirectory    = '^$(SolutionDir)/bin/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .Platform                 = 'x64'
+  .PlatformToolset          = 'v141'
+  .IncludeSearchPath        = '^$(SolutionDir);./;$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/um;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/shared;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/ucrt;'
+                            + '$WindowsSDKBasePath10$/include/$WindowsSDKSubVersion$/winrt;'
+                            + '$externalIncludesVisualStudio$'
+  ForEach( .extraInclude in .AppSpecificExternalIncludes)
+  {
+    ^IncludeSearchPath  + '$extraInclude$;'
+  }
+  Print(.IncludeSearchPath)
+  .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;_UNICODE;UNICODE;'
+							              + 'FAZE_PLATFORM_WINDOWS;'
+                            + '$extVisualStudioDefines$'
+  .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_CRTDBG_MAP_ALLOC;_DEBUG'
+  .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
+  .ReleaseDefines           = 'RELEASE'
+]
+// not everything needs graphics targets
+.ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]
+.ProjectX64Profile    = [ Using( .ProjectCommon ) .Config = 'Profile' .PreprocessorDefinitions = .X64Defines + .ProfileDefines ]
+.ProjectX64Release    = [ Using( .ProjectCommon ) .Config = 'Release' .PreprocessorDefinitions = .X64Defines + .ReleaseDefines ]
+
+.ProjectConfigs2 = {.ProjectX64Debug, .ProjectX64Profile, .ProjectX64Release}
+
 // Visual Studio Project Generation
 //--------------------------------------------------------------------------
 VCXProject( '$ProjectName$-proj' )
 {
-.ProjectOutput          = '$ProjectPath$/$ProjectName$.vcxproj'
-.ProjectInputPaths      = '$ProjectPath$/'
-.ProjectBasePath        = '$ProjectPath$/'
-.OutputDirectory        = '^$(SolutionDir)/$OutputApp$/^$(Platform)-^$(Configuration)/^$(ProjectName)'
-.LocalDebuggerCommand   = '^$(SolutionDir)/$OutputApp$/^$(Platform)-^$(Configuration)/^$(ProjectName)/^$(ProjectName).exe'
-.LocalDebuggerWorkingDirectory = '^$(SolutionDir)/$WorkspacePath$/'
-.ProjectConfigs         = .ProjectConfigs
+  .ProjectOutput          = '$ProjectPath$/$ProjectName$.vcxproj'
+  .ProjectInputPaths      = '$ProjectPath$/'
+  .ProjectBasePath        = '$ProjectPath$/'
+  .OutputDirectory        = '^$(SolutionDir)/$OutputApp$/^$(Platform)-^$(Configuration)/^$(ProjectName)'
+  .LocalDebuggerCommand   = '^$(SolutionDir)/$OutputApp$/^$(Platform)-^$(Configuration)/^$(ProjectName)/^$(ProjectName).exe'
+  .LocalDebuggerWorkingDirectory = '^$(SolutionDir)/$WorkspacePath$/'
+  .ProjectConfigs         = .ProjectConfigs2
 }
 
 // Unity
 //--------------------------------------------------------------------------
 
 {
-// Common options
-.UnityInputPath     = '$ProjectPath$/'
-.UnityOutputPath    = '$OutputApp$/Unity/$ProjectPath$/'
-.UnityOutputPattern = 'Unity_$ProjectName$.cpp'
+  // Common options
+  .UnityInputPath     = '$ProjectPath$/'
+  .UnityOutputPath    = '$OutputApp$/Unity/$ProjectPath$/'
+  .UnityOutputPattern = 'Unity_$ProjectName$.cpp'
 
-// Windows
-Unity( '$ProjectName$-Unity-Windows' )
-{
+  // Windows
+  Unity( '$ProjectName$-Unity-Windows' )
+  {
+
+  }
+  // Linux
+  Unity( '$ProjectName$-Unity-Linux' )
+  {
+  }
 }
-// Linux
-Unity( '$ProjectName$-Unity-Linux' )
-{
-}
-}
+
+
+
 // Windows specials
-.CommonLinkerLibs   = ' /SUBSYSTEM:WINDOWS'
-				  + ' kernel32.lib'
-				  + ' user32.lib'
-				  + ' gdi32.lib'
-				  + ' winspool.lib'
-				  + ' comdlg32.lib'
-				  + ' advapi32.lib'
-				  + ' shell32.lib'
-				  + ' ole32.lib'
-				  + ' oleaut32.lib'
-				  + ' uuid.lib'
-				  + ' odbc32.lib'
-				  + ' odbccp32.lib'
-				  + ' oldnames.lib'
-				  + ' D3d12.lib'
-				  + ' Dxgi.lib'
-				  + ' atls.lib'
-				  + ' Shcore.lib'
-				  + ' D3DCompiler.lib'
-				  + ' dxguid.lib'
-				  + ' Imm32.lib'
-				  + ' xinput.lib'
-				  + ' dinput8.lib'
-				  + ' dxguid.lib'
+.CommonLinkerLibs   = .AppSpecificMain 
+                    + ' kernel32.lib'
+                    + ' user32.lib'
+                    + ' gdi32.lib'
+                    + ' winspool.lib'
+                    + ' comdlg32.lib'
+                    + ' advapi32.lib'
+                    + ' shell32.lib'
+                    + ' ole32.lib'
+                    + ' oleaut32.lib'
+                    + ' uuid.lib'
+                    + ' odbc32.lib'
+                    + ' odbccp32.lib'
+                    + ' oldnames.lib'
+                    + ' D3d12.lib'
+                    + ' Dxgi.lib'
+                    + ' atls.lib'
+                    + ' Shcore.lib'
+                    + ' D3DCompiler.lib'
+                    + ' dxguid.lib'
+                    + ' Imm32.lib'
+                    + ' xinput.lib'
+                    + ' dinput8.lib'
+                    + ' dxguid.lib'
 .Debuglinkerlibs    = ' libcpmtd.lib' // brings thread support
-				  + ' libcmtd.lib'
-				  + ' libucrtd.lib'
-				  + ' libvcruntimed.lib'
-				  + ' libconcrtd1.lib'
-				  + .extDebLibs
+                    + ' libcmtd.lib'
+                    + ' libucrtd.lib'
+                    + ' libvcruntimed.lib'
+                    + ' libconcrtd1.lib'
+                    + .extDebLibs
 .Releaselinkerlibs  = ' libcpmt.lib'
-				  + ' libcmt.lib'
-				  + ' libucrt.lib'
-				  + ' libvcruntime.lib'
-				  + ' libconcrt1.lib'
-				  + .extRelLibs
+                    + ' libcmt.lib'
+                    + ' libucrt.lib'
+                    + ' libvcruntime.lib'
+                    + ' libconcrt1.lib'
+                    + .extRelLibs
 .Profilelinkerlibs  = .Releaselinkerlibs
 
 .X64DebugConfiguration =
 [
-Using (.X64DebugConfig)
-.LinkerOptions  + .CommonLinkerLibs
-				+ .Debuglinkerlibs
+  Using (.X64DebugConfig)
+
+  ForEach(.LibPath in .AppSpecificDebugExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+
+  .LinkerOptions  + .CommonLinkerLibs
+                  + .Debuglinkerlibs
 ]
 
 .X64ProfileConfiguration =
 [
-Using (.X64ProfileConfig)
-.LinkerOptions  + .CommonLinkerLibs
-				+ .Profilelinkerlibs
+  Using (.X64ProfileConfig)
+  ForEach(.LibPath in .AppSpecificReleaseExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+  .LinkerOptions  + .CommonLinkerLibs
+                  + .Profilelinkerlibs
 ]
 
 .X64ReleaseConfiguration =
 [
-Using (.X64ReleaseConfig)
-.LinkerOptions  + .CommonLinkerLibs
-				+ .Releaselinkerlibs
+  Using (.X64ReleaseConfig)
+  ForEach(.LibPath in .AppSpecificReleaseExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+  .LinkerOptions  + .CommonLinkerLibs
+                  + .Releaselinkerlibs
 ]
 
 
@@ -97,30 +150,43 @@ Using (.X64ReleaseConfig)
 // linux
 .LinuxCommonLinkerLibs   = ' '
 .LinuxDebuglinkerlibs    = ' ' // brings thread support
-					   + .extDebLibs
+                         + .extDebLibs
 .LinuxReleaselinkerlibs  = ' '
-					   + .extRelLibs
+                         + .extRelLibs
 .LinuxProfilelinkerlibs  = .LinuxReleaselinkerlibs
 
 .X64LinuxDebugConfiguration =
 [
-Using (.X64LinuxDebugConfig)
-.LinkerOptions  + .LinuxCommonLinkerLibs
-				+ .LinuxDebuglinkerlibs
+  Using (.X64LinuxDebugConfig)
+  ForEach(.LibPath in .AppSpecificDebugExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+  .LinkerOptions  + .LinuxCommonLinkerLibs
+                  + .LinuxDebuglinkerlibs
+
 ]
 
 .X64LinuxProfileConfiguration =
 [
-Using (.X64LinuxProfileConfig)
-.LinkerOptions  + .LinuxCommonLinkerLibs
-				+ .LinuxProfilelinkerlibs
+  Using (.X64LinuxProfileConfig)
+  ForEach(.LibPath in .AppSpecificReleaseExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+  .LinkerOptions  + .LinuxCommonLinkerLibs
+                  + .LinuxProfilelinkerlibs
 ]
 
 .X64LinuxReleaseConfiguration =
 [
-Using (.X64LinuxReleaseConfig)
-.LinkerOptions  + .LinuxCommonLinkerLibs
-				+ .LinuxReleaselinkerlibs
+  Using (.X64LinuxReleaseConfig)
+  ForEach(.LibPath in .AppSpecificReleaseExternalLibPaths)
+  {
+    ^LinkerOptions + .LibPath
+  }
+  .LinkerOptions  + .LinuxCommonLinkerLibs
+                  + .LinuxReleaselinkerlibs
 ]
 
 
@@ -132,77 +198,114 @@ Using (.X64LinuxReleaseConfig)
 
 ForEach( .Config in .Configs_Windows_MSVC2 )
 {
-Using( .Config )
+  Using( .Config )
 
-.OutputApp + '/$Platform$-$Config$'
+  .OutputApp + '/$Platform$-$Config$'
 
-// Static Library
-Library( '$ProjectName$-Lib-$Platform$-$Config$' )
-{
-  // Unity build
-  .CompilerInputUnity   = '$ProjectName$-Unity-Windows'
-  // Normal build
-  //.CompilerInputPath  = '$ProjectPath$/'
-
-	// Output
-  .CompilerOutputPath   = '$OutputApp$/$ProjectName$/'
-  .LibrarianOutput      = '$OutputApp$/$ProjectName$/$ProjectName$.lib'
-}
-
-// Executable
-Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
-{
-  .Libraries = {
-	'$ProjectName$-Lib-$Platform$-$Config$',
-	'graphics-Lib-$Platform$-$Config$',
-	'core-Lib-$Platform$-$Config$'
+  ForEach( .extraInclude in .AppSpecificExternalIncludes)
+  {
+    ^externalIncludes    + ' /I^"$extraInclude$"'
   }
-  .LinkerOutput = '$OutputApp$/$ProjectName$/$ProjectName$.exe'
+
+  .PCHOptions         = .BaseCompilerOptions
+                      + .AppSpecificAdditionalWarningDisables
+                      + .BaseDefinitions
+                      + '$extDefines$'
+                      + ' /Fp"%2" /Fo"%3"'
+                      + .BaseIncludePaths
+                      + .externalIncludes
+
+  .CompilerOptions    = .BaseCompilerOptions
+                      + .AppSpecificAdditionalWarningDisables
+                      + .BaseDefinitions
+                      + '$extDefines$' 
+                      + ' /Fo"%2"'
+                      + .BaseIncludePaths
+                      + .externalIncludes
+
+  .LinkerOptions + " /TLBID:1"
+
+  // Static Library
+  Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+  {
+    // Unity build
+    //.CompilerInputUnity   = '$ProjectName$-Unity-Windows'
+    // Normal build
+    .CompilerInputPath  = '$ProjectPath$/'
+
+
+    // Output
+    .CompilerOutputPath   = '$OutputApp$/$ProjectName$/'
+    .LibrarianOutput      = '$OutputApp$/$ProjectName$/$ProjectName$.lib'
+  }
+
+  // Executable
+  Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
+  {
+    .Libraries = { '$ProjectName$-Lib-$Platform$-$Config$' }
+    ForEach(.LibTarget in .AppSpecificLibraryTargets)
+    {
+      ^Libraries + {'$LibTarget$-Lib-$Platform$-$Config$'}
+    }
+
+    .LinkerLinkObjects = true
+
+    .LinkerOutput = '$OutputApp$/$ProjectName$/$ProjectName$.exe'
+  }
+
+  Copy('$ProjectName$-Exe-$Platform$-$Config$-DLL')
+  {
+    .Source   = .extRelDlls
+    .Dest     = '$OutputApp$/$ProjectName$/'
+  }
+
+  Alias( '$ProjectName$-$Platform$-$Config$' )
+  {
+    .Targets = { '$ProjectName$-Exe-$Platform$-$Config$', '$ProjectName$-Exe-$Platform$-$Config$-DLL'}
+  }
 }
 
-Copy('$ProjectName$-Exe-$Platform$-$Config$-DLL')
-{
-  .Source   = .extRelDlls
-  .Dest     = '$OutputApp$/$ProjectName$/'
-}
+// Linux
+//--------------------------------------------------------------------------
 
-Alias( '$ProjectName$-$Platform$-$Config$' )
-{
-	.Targets = { '$ProjectName$-Exe-$Platform$-$Config$', '$ProjectName$-Exe-$Platform$-$Config$-DLL'}
-}
-}
 ForEach( .Config in .Configs_Linux)
 {
-Using( .Config )
+  Using( .Config )
 
-.OutputApp + '/$Platform$-$Config$'
+  .OutputApp + '/$Platform$-$Config$'
 
-// Static Library
-Library( '$ProjectName$-Lib-$Platform$-$Config$' )
-{
-  // Input (Unity)
-  .CompilerInputUnity   = '$ProjectName$-Unity-Linux'
-
-	// Output
-  .CompilerOutputPath   = '$OutputApp$/$ProjectName$/'
-  .LibrarianOutput      = '$OutputApp$/$ProjectName$/$ProjectName$.a'
-}
-
-// Executable
-Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
-{
-  .Libraries = {
-	'$ProjectName$-Lib-$Platform$-$Config$',
-	'Graphics-Lib-$Platform$-$Config$'
-	'core-Lib-$Platform$-$Config$',
+  ForEach( .extraInclude in .AppSpecificExternalIncludes)
+  {
+    ^CompilerOptions    + ' -isystem ^"$extraInclude$"'
   }
-  .LinkerOutput = '$OutputApp$/$ProjectName$/$ProjectName$'
-}
 
-Alias( '$ProjectName$-$Platform$-$Config$' )
-{
-  .Targets = { '$ProjectName$-Exe-$Platform$-$Config$'}
-}
+  // Static Library
+  Library( '$ProjectName$-Lib-$Platform$-$Config$' )
+  {
+    // Input (Unity)
+    .CompilerInputUnity   = '$ProjectName$-Unity-Linux'
+
+    // Output
+    .CompilerOutputPath   = '$OutputApp$/$ProjectName$/'
+    .LibrarianOutput      = '$OutputApp$/$ProjectName$/$ProjectName$.a'
+  }
+
+  // Executable
+  Executable( '$ProjectName$-Exe-$Platform$-$Config$' )
+  {
+    .Libraries = { '$ProjectName$-Lib-$Platform$-$Config$' }
+    ForEach(.LibTarget in .AppSpecificLibraryTargets)
+    {
+      ^Libraries + {'$LibTarget$-Lib-$Platform$-$Config$'}
+    }
+
+    .LinkerOutput = '$OutputApp$/$ProjectName$/$ProjectName$'
+  }
+
+  Alias( '$ProjectName$-$Platform$-$Config$' )
+  {
+    .Targets = { '$ProjectName$-Exe-$Platform$-$Config$'}
+  }
 }
 
 // Aliases
