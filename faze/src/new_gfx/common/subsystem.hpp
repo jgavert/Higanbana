@@ -19,6 +19,19 @@ namespace faze
     }
     std::string gfxApi() { return S().gfxApi(); }
     vector<GpuInfo> availableGpus() { return S().availableGpus(); }
+    GpuInfo getVendorDevice(VendorID id)
+    {
+      auto gpus = availableGpus();
+      int chosenGpu = 0;
+      for (auto&& it : gpus)
+      {
+        if (it.vendor == id)
+        {
+          chosenGpu = it.id;
+        }
+      }
+      return gpus[chosenGpu];
+    }
     GpuDevice createDevice(FileSystem& fs, GpuInfo gpu) { return GpuDevice(S().createDevice(fs, gpu)); }
     GraphicsSurface createSurface(Window& window) { return S().createSurface(window); }
   };

@@ -5,6 +5,16 @@
 
 #include <experimental/filesystem>
 
+#define FAZE_FS_EXTRA_INFO 0
+
+#if FAZE_FS_EXTRA_INFO
+#define FS_ILOG(msg, ...) F_ILOG("Filesystem", msg, ##__VA_ARGS__)
+#define FS_LOG(msg, ...) F_SLOG("Filesystem", msg, ##__VA_ARGS__)
+#else
+#define FS_ILOG(msg, ...)
+#define FS_LOG(msg, ...)
+#endif
+
 namespace system_fs = std::experimental::filesystem;
 using namespace faze;
 
@@ -122,7 +132,7 @@ bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
   fclose(fp);
   //contents.resize(size - leftToRead);
   auto time = static_cast<size_t>(system_fs::last_write_time(path).time_since_epoch().count());
-  F_ILOG("FileSystem", "found file %s(%zu), loading %.2fMB(%ld)...", path.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
+  FS_ILOG("found file %s(%zu), loading %.2fMB(%ld)...", path.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
   m_files[path] = FileObj{ time, contents };
   size = fsize;
   return true;
@@ -141,26 +151,26 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
     loadFileFromHDD(it, fileSize);
     allSize += fileSize;
   }
-  F_ILOG("FileSystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
+  FS_ILOG("found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
 }
 
 // SLOW
 void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func)
 {
-	std::lock_guard<std::mutex> guard(m_lock);
-	const auto currentPath = system_fs::current_path().string();
-	auto fullPath = currentPath + path;
-	std::vector<std::string> files;
-	getFilesRecursive(fullPath.c_str(), files);
-	for (auto&& it : files)
-	{
-		auto f = m_files.find(it);
-		if (f != m_files.end())
-		{
-			auto localPath = it.substr(fullPath.size());
-			func(localPath, faze::MemView<const uint8_t>(f->second.data));
-		}
-	}
+  std::lock_guard<std::mutex> guard(m_lock);
+  const auto currentPath = system_fs::current_path().string();
+  auto fullPath = currentPath + path;
+  std::vector<std::string> files;
+  getFilesRecursive(fullPath.c_str(), files);
+  for (auto&& it : files)
+  {
+    auto f = m_files.find(it);
+    if (f != m_files.end())
+    {
+      auto localPath = it.substr(fullPath.size());
+      func(localPath, faze::MemView<const uint8_t>(f->second.data));
+    }
+  }
 }
 
 MemoryBlob FileSystem::readFile(std::string path)
@@ -229,7 +239,7 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
     return false;
   }
   auto file = fopen(fullPath.string().c_str(), "wb");
-  F_SLOG("FileSystem", "writing out file %s\n", fullPath.string().c_str());
+  FS_LOG("writing out file %s\n", fullPath.string().c_str());
   size_t leftToWrite = size;
   size_t offset = 0;
   while (leftToWrite > 0)
