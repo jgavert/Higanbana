@@ -9,7 +9,6 @@
 
 using namespace faze;
 
-namespace {
   // To use a test fixture, derive a class from testing::Test.
   class Graphics : public testing::Test {
   protected:
@@ -39,4 +38,3 @@ namespace {
     // virtual void TearDown() {
     // }
   };
-}
