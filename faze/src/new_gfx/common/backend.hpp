@@ -1,6 +1,7 @@
 #pragma once
 
 #include "resource_descriptor.hpp"
+#include "core/src/system/PageAllocator.hpp"
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -11,7 +12,15 @@ namespace faze
 {
   class GpuDevice;
 
-  struct GpuHeapAllocation;
+  struct GpuHeapAllocation
+  {
+    uint64_t index;
+    int alignment;
+    int64_t heapType;
+    PageBlock block;
+
+    bool valid() { return alignment != -1 && index != -1; }
+  };
 
   namespace backend
   {
