@@ -454,7 +454,7 @@ namespace faze
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
-        return vec.alignment == requirements.alignment
+        return vec.alignment == static_cast<int>(requirements.alignment)
           && vec.type == requirements.heapType;
       });
       if (vectorPtr != m_heaps.end()) // found alignment

@@ -324,7 +324,7 @@ namespace faze
       {
         auto& globalState = m_textureStates[obj].state->flags;
         auto& localState = m_imageCache[obj].states;
-        auto globalSize = globalState.size();
+        int globalSize = static_cast<int>(globalState.size());
         for (int i = 0; i < globalSize; ++i)
         {
           globalState[i].access = localState[i].access;
