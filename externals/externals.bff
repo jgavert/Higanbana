@@ -129,10 +129,14 @@
 ///////////////////////////////////
 .extRelLibs   + .vulkanlibs
               + .shadercLibRelease
+#if __WINDOWS__
               + .dxcLibRelease
+#endif
 .extDebLibs   + .vulkanlibs
               + .shadercLibDebug
+#if __WINDOWS__
               + .dxcLibDebug
+#endif
 
 
 .extRelDlls = {"externals/hlsl.bin/Release/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/lib/WinPixEventRuntime.dll", }

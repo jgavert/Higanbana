@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/src/external/SpookyV2.h"
+#include "core/src/external/SpookyV2.hpp"
 #include "core/src/external/robinhashmap.hpp"
 #include <unordered_map>
 #include <unordered_set>
