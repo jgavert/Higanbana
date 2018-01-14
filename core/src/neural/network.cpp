@@ -29,10 +29,10 @@ namespace faze
 				test2(k,i) = double(i + k);
 			}
 		}
-		Matrix<major, major, double> res = mul(test, test2);
+		mul(test, test2);
 
 		auto vect = concatenateToSingleDimension(test, test2);
-		for (int i = 0; i < vect.size(); ++i)
+		for (int i = 0; i < static_cast<int>(vect.size()); ++i)
 		{
 			vect(i) = double(i);
 		}

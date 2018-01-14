@@ -153,6 +153,7 @@ Compiler( 'Compiler-x64-Linux' )
                           + ' -Wno-unused-variable'
                           + ' -Wno-unused-function'
                           + ' -Wno-ignored-attributes'
+                          + ' -Wno-error=unknown-pragmas'
                           + ' -m64'         // x86-64
                           + ' -std=c++14'   // allow C++14 features
                           + ' -msse4.2'     // SSE4.2
@@ -279,7 +280,7 @@ Compiler( 'Compiler-x64-Linux' )
 //------------------------------------------------------------------------------
 // Unity/Blob files (shared across configs)
 //------------------------------------------------------------------------------
-.UnityInputIsolateWritableFiles = false 
+.UnityInputIsolateWritableFiles = false
 
 //------------------------------------------------------------------------------
 // VisualStudio Project Generation
