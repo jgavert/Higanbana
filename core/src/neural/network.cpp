@@ -26,7 +26,7 @@ namespace faze
 		{
 			for (int k = 0; k < minor; ++k)
 			{
-				test2(k,i) = double(i + k);
+				test2(i,k) = double(i + k);
 			}
 		}
 		mul(test, test2);
