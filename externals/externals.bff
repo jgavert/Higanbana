@@ -133,6 +133,20 @@
               + "googletest/googletest"
 
 .gtestDebLibPath = .extBasePath
+            + "gtest_build/googlemock/gtest"
+            + .extEndBasePath
+
+.gtestRelLibPath = .gtestDebLibPath
+
+.gtestRelLib  = .extLibPrefix
+              + 'gtest'
+              + .extLibPostfix
+
+.gtestDebLib  = .extLibPrefix
+              + 'gtest'
+              + .extLibPostfix
+#if __WINDOWS__
+.gtestDebLibPath = .extBasePath
             + "gtest_build/googletest/Debug"
             + .extEndBasePath
 
@@ -140,19 +154,10 @@
             + "gtest_build/googletest/RelWithDebInfo"
             + .extEndBasePath
 
-.gtestRelLib  = .extLibPrefix
-//           + 'gtest_main'
-//           + .extLibPostfix
-//           + .extLibPrefix
-           + 'gtest'
-           + .extLibPostfix
-
 .gtestDebLib  = .extLibPrefix
-//           + 'gtest_maind'
-//           + .extLibPostfix
-//           + .extLibPrefix
-           + 'gtestd'
-           + .extLibPostfix
+              + 'gtestd'
+              + .extLibPostfix
+#endif
 
 
 ///////////////////////////////////

@@ -7,7 +7,7 @@ externals/
 package/
 app/external/imgui/
 
-gtest/test_output_*
+test/test_output_*
 
 appspace/*.ini
 appspace/*.jpg
