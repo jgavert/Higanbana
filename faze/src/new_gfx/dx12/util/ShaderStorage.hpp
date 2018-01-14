@@ -1,5 +1,5 @@
 #pragma once
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/global_debug.hpp"
 
@@ -454,3 +454,4 @@ namespace faze
     };
   }
 }
+#endif

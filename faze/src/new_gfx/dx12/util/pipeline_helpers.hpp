@@ -1,5 +1,5 @@
 #pragma once
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 #include "faze/src/new_gfx/dx12/dx12.hpp"
 #include "faze/src/new_gfx/common/pipeline_descriptor.hpp"
 
@@ -25,6 +25,7 @@ namespace faze
 
     // misc
     D3D12_PRIMITIVE_TOPOLOGY_TYPE convertPrimitiveTopologyType(PrimitiveTopology topology);
-	D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology);
+    D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology);
   }
 }
+#endif

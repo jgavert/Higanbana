@@ -1,5 +1,5 @@
 #include "formats.hpp"
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 namespace faze
 {
   namespace backend
@@ -67,3 +67,4 @@ namespace faze
     }
   }
 }
+#endif

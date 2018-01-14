@@ -1,5 +1,5 @@
 #include "faze/src/new_gfx/dx12/util/pipeline_helpers.hpp"
-
+#if defined(FAZE_PLATFORM_WINDOWS)
 namespace faze
 {
   namespace backend
@@ -240,23 +240,24 @@ namespace faze
       return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
     }
 
-	D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology)
-	{
-		switch (topology)
-		{
-		case PrimitiveTopology::Undefined:
-			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-		case PrimitiveTopology::Point:
-			return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-		case PrimitiveTopology::Line:
-			return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-		case PrimitiveTopology::Triangle:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		case PrimitiveTopology::Patch:
-		default:
-			break;
-		}
-		return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
-	}
+    D3D12_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology)
+    {
+      switch (topology)
+      {
+      case PrimitiveTopology::Undefined:
+        return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+      case PrimitiveTopology::Point:
+        return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+      case PrimitiveTopology::Line:
+        return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+      case PrimitiveTopology::Triangle:
+        return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+      case PrimitiveTopology::Patch:
+      default:
+        break;
+      }
+      return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+    }
   }
 }
+#endif
