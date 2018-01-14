@@ -275,7 +275,7 @@ void FileSystem::updateWatchedFiles()
   {
     return;
   }
-  if (rollingUpdate >= m_watchedFiles.size())
+  if (rollingUpdate >= static_cast<int>(m_watchedFiles.size()))
   {
     rollingUpdate = 0;
   }

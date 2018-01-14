@@ -19,7 +19,7 @@ namespace RobinHoodInfobytePairNoOverflow {
       // bits: | 7 | 6   5   4   3   2   1   0|
       //       | ^ |         offset           |
       //         |
-      //       full? 
+      //       full?
       typedef uint8_t InfoType;
       static constexpr InfoType IS_BUCKET_TAKEN_MASK = 1 << 7;
       static constexpr std::size_t INITIAL_ELEMENTS = 32;
@@ -31,7 +31,7 @@ namespace RobinHoodInfobytePairNoOverflow {
       // bits: | 7 | 6   5   4   3   2   1   0|
       //       | ^ |         offset           |
       //         |
-      //       full? 
+      //       full?
       typedef uint8_t InfoType;
       static constexpr InfoType IS_BUCKET_TAKEN_MASK = 1 << 7;
       static constexpr std::size_t INITIAL_ELEMENTS = 32;
@@ -46,7 +46,7 @@ namespace RobinHoodInfobytePairNoOverflow {
   /// representation for each entry.
   ///
   ///
-  /// The goal is to create a hashmap that is 
+  /// The goal is to create a hashmap that is
   /// * more memory efficient than std::unordered_map
   /// * faster for insert, find, delete.
   template<
@@ -236,7 +236,7 @@ namespace RobinHoodInfobytePairNoOverflow {
         }
 
         if (0 == info) {
-          // Overflow! This is bad, shouldn't happen. 
+          // Overflow! This is bad, shouldn't happen.
           increase_size();
           insert(std::move(keyval));
           return;
@@ -346,7 +346,7 @@ namespace RobinHoodInfobytePairNoOverflow {
         return 0 == _num_elements;
       }
 
-      inline void max_load_factor() const {
+      inline float max_load_factor() const {
         return _max_load_factor;
       }
 
