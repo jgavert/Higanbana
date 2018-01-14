@@ -138,7 +138,7 @@ namespace faze
       class iterator {
       public:
         typedef typename std::ptrdiff_t difference_type;
-        typedef typename CommandPacket* value_type;
+        typedef CommandPacket* value_type;
         typedef std::forward_iterator_tag iterator_category; //or another tag
       private:
         CommandPacket * item = nullptr;
@@ -182,7 +182,7 @@ namespace faze
       class const_iterator {
       public:
         typedef typename std::ptrdiff_t difference_type;
-        typedef typename CommandPacket* value_type;
+        typedef CommandPacket* value_type;
         typedef std::forward_iterator_tag iterator_category; //or another tag
       private:
         CommandPacket * item = nullptr;

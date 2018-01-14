@@ -56,8 +56,8 @@ namespace faze
   public:
     LinearAllocator() {}
     LinearAllocator(size_t size)
-      : m_size(static_cast<int64_t>(size))
-	  , m_current(0)
+	    : m_current(0)
+      , m_size(static_cast<int64_t>(size))
     {}
 
     int64_t allocate(size_t size, size_t alignment = 1)
