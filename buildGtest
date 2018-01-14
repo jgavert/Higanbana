@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cd externals
+
+rm -rf gtest_build
+mkdir gtest_build
+cd gtest_build
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_GTEST=true ../googletest
+make -j4
+
+
