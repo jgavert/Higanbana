@@ -1,0 +1,7 @@
+#!/bin/bash
+
+./fbuild graphics_tests-debug
+if [ $? -eq 0 ]; then
+  cd test/workspace
+  gdb ./../bin/x64Linux-Debug/graphics_tests/graphics_tests
+fi

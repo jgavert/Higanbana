@@ -73,27 +73,37 @@ void* allocs::pfnReallocation(
   info->normalUse.fetch_add(size, std::memory_order_relaxed);
   return _aligned_realloc(pOriginal, size, alignment);
 #else
-  uint32_t sizeOld = 0;
-  uint32_t alignOld = 0;
-  getPtrInfo(pOriginal, sizeOld, alignOld);
-  size_t offset_last = calcOffset(alignOld);
-  size_t offset = calcOffset(alignment);
-  void* origPtr = reinterpret_cast<void*>(reinterpret_cast<uint8_t*>(pOriginal) - offset_last);
   void* ptr = nullptr;
-  ptr = realloc(origPtr, size + offset);
-  if (!isAligned(ptr, alignment))
+  if (pOriginal != nullptr)
   {
-    auto aligPtr = aligned_alloc(alignment, size + offset);
-    auto realPtr = insertSizeAndReturn(aligPtr, size, alignment, offset);
-    memcpy(realPtr, ptr, sizeOld);
-    free(ptr);
-    ptr = realPtr;
+    uint32_t sizeOld = 0;
+    uint32_t alignOld = 0;
+    getPtrInfo(pOriginal, sizeOld, alignOld);
+    size_t offset_last = calcOffset(alignOld);
+    size_t offset = calcOffset(alignment);
+    void* origPtr = reinterpret_cast<void*>(reinterpret_cast<uint8_t*>(pOriginal) - offset_last);
+    ptr = realloc(origPtr, size + offset);
+    if (!isAligned(ptr, alignment))
+    {
+      auto aligPtr = aligned_alloc(alignment, size + offset);
+      auto realPtr = insertSizeAndReturn(aligPtr, size, alignment, offset);
+      memcpy(realPtr, ptr, sizeOld);
+      free(ptr);
+      ptr = realPtr;
+    }
+    else
+    {
+      ptr = insertSizeAndReturn(ptr, size, alignment, offset);
+    }
+    info->normalUse.fetch_add(static_cast<int>(size + offset) - static_cast<int>(sizeOld + offset_last), std::memory_order_relaxed);
   }
   else
   {
-    ptr = insertSizeAndReturn(ptr, size, alignment, offset);
+    size_t offset = calcOffset(alignment);
+    info->normalUse.fetch_add(size + offset, std::memory_order_relaxed);
+    ptr = aligned_alloc(alignment, size + offset);
+    ptr = insertSizeAndReturn(ptr, static_cast<uint32_t>(size), static_cast<uint8_t>(alignment), offset);
   }
-  info->normalUse.fetch_add(static_cast<int>(size + offset) - static_cast<int>(sizeOld + offset_last), std::memory_order_relaxed);
   return ptr;
 #endif
 };

@@ -5,7 +5,7 @@
 
 #include <experimental/filesystem>
 
-#define FAZE_FS_EXTRA_INFO 0
+#define FAZE_FS_EXTRA_INFO 1
 
 #if FAZE_FS_EXTRA_INFO
 #define FS_ILOG(msg, ...) F_ILOG("Filesystem", msg, ##__VA_ARGS__)
@@ -106,7 +106,9 @@ bool FileSystem::fileExists(std::string path)
 {
   std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+#if defined(FAZE_PLATFORM_WINDOWS)
   std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
+#endif
   return (m_files.find(fullPath) != m_files.end());
 }
 
