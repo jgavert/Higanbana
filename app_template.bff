@@ -20,7 +20,7 @@
     ^IncludeSearchPath  + '$extraInclude$;'
   }
   .IncludeSearchPath + '$WorkspacePath$;'
-  
+
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;_UNICODE;UNICODE;'
 							              + 'FAZE_PLATFORM_WINDOWS;'
                             + '$extVisualStudioDefines$'
@@ -71,7 +71,7 @@ VCXProject( '$ProjectName$-proj' )
 
 
 // Windows specials
-.CommonLinkerLibs   = .AppSpecificMain 
+.CommonLinkerLibs   = .AppSpecificMain
                     + ' kernel32.lib'
                     + ' user32.lib'
                     + ' gdi32.lib'
@@ -221,7 +221,7 @@ ForEach( .Config in .Configs_Windows_MSVC2 )
   .CompilerOptions    = .BaseCompilerOptions
                       + .AppSpecificAdditionalWarningDisables
                       + .BaseDefinitions
-                      + '$extDefines$' 
+                      + '$extDefines$'
                       + ' /Fo"%2"'
                       + .BaseIncludePaths
                       + .externalIncludes
@@ -281,7 +281,7 @@ ForEach( .Config in .Configs_Linux)
   {
     ^CompilerOptions    + ' -isystem ^"$extraInclude$"'
   }
-  .externalIncludes + ' -i ^"$WorkspacePath$"'
+  .CompilerOptions + ' -I ^"$WorkspacePath$"'
 
   // Static Library
   Library( '$ProjectName$-Lib-$Platform$-$Config$' )
