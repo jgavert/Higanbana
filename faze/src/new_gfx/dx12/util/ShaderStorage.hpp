@@ -8,14 +8,6 @@
 #include <fstream>
 #include <string>
 
-/*
-IDxcIncludeHandler : public IUnknown {
-virtual HRESULT STDMETHODCALLTYPE LoadSource(
-_In_ LPCWSTR pFilename,                                   // Candidate filename.
-_COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
-) = 0;
-};
-*/
 #if defined(FAZE_DX12_DXIL)
 class DXCIncludeHandler : public IDxcIncludeHandler
 {
@@ -41,17 +33,7 @@ public:
     F_LOG("DXCIncludeHandler %s\n", filename.c_str());
 
     std::string finalPath;
-    if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
-    {
-      finalPath = "/../" + filename;
-      if (!m_fs.fileExists(finalPath))
-        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-    }
-    else
-    {
-      finalPath = m_sourcePath + filename;
-      // m_sourcePath +
-    }
+    finalPath = m_sourcePath + filename;
     F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     auto shader = m_fs.viewToFile(finalPath);
@@ -86,24 +68,15 @@ public:
   {
     std::string filename(pFileName);
     std::string finalPath;
-    if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
-    {
-      finalPath = "/../" + filename;
-      if (!m_fs.fileExists(finalPath))
-        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-    }
-    else
-    {
-      switch (IncludeType) {
-      case D3D_INCLUDE_LOCAL:
-        finalPath = m_sourcePath + filename;
-        break;
-      case D3D_INCLUDE_SYSTEM:
-        finalPath = m_sourcePath + filename;
-        break;
-      default:
-        assert(0);
-      }
+    switch (IncludeType) {
+    case D3D_INCLUDE_LOCAL:
+      finalPath = m_sourcePath + filename;
+      break;
+    case D3D_INCLUDE_SYSTEM:
+      finalPath = m_sourcePath + filename;
+      break;
+    default:
+      assert(0);
     }
     F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
@@ -111,7 +84,7 @@ public:
     *ppData = shader.data();
     *pBytes = static_cast<UINT>(shader.size());
     return S_OK;
-  }
+}
   HRESULT __stdcall Close(LPCVOID) {
     return S_OK;
   }
@@ -132,7 +105,6 @@ namespace faze
       FileSystem & m_fs;
       std::string sourcePath;
       std::string compiledPath;
-      std::string sourceCopyPath;
     public:
       enum class ShaderType
       {
@@ -212,32 +184,8 @@ namespace faze
         : m_fs(fs)
         , sourcePath("/" + shaderPath + "/")
         , compiledPath("/" + binaryPath + "/")
-        , sourceCopyPath(compiledPath + "source/")
       {
         m_fs.loadDirectoryContentsRecursive(sourcePath);
-        // we could compile all shaders that don't have spv ahead of time
-        // requires support from filesystem
-        vector<std::pair<std::string, MemView<const uint8_t>>> filesToCopy;
-        m_fs.getFilesWithinDir(sourcePath, [&](std::string& path, MemView<const uint8_t> data)
-        {
-          //F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
-          filesToCopy.emplace_back(std::make_pair(path, data));
-        });
-        m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-        m_fs.getFilesWithinDir("/../app/graphics/", [&](std::string& path, MemView<const uint8_t> data)
-        {
-          if (path.compare("definitions.hpp") == 0)
-          {
-            //F_LOG("shader source found %s, would like to copy to %s\n", path.c_str(), sourceCopyPath.c_str());
-            filesToCopy.emplace_back(std::make_pair(path, data));
-          }
-        });
-        for (auto&& file : filesToCopy)
-        {
-          auto finalPath = sourceCopyPath + file.first;
-          m_fs.writeFile(finalPath, file.second);
-        }
-        m_fs.loadDirectoryContentsRecursive(sourceCopyPath);
       }
 
       std::string sourcePathCombiner(std::string shaderName, ShaderType type)
@@ -373,7 +321,7 @@ namespace faze
           D3D_SHADER_MACRO{"FAZE_THREADGROUP_Y", TGS_Y.c_str() },
           D3D_SHADER_MACRO{"FAZE_THREADGROUP_Z", TGS_Z.c_str() },
           D3D_SHADER_MACRO{nullptr, nullptr }
-        };
+      };
 
         HRESULT hr = D3DCompile(text.data(), text.size(), shaderName.c_str(), macros, &include, "main", p, compileFlags, 0, shaderBlob.GetAddressOf(), errorMsg.GetAddressOf());
         // https://msdn.microsoft.com/en-us/library/dn859356(v=vs.85).aspx
@@ -396,7 +344,7 @@ namespace faze
         m_fs.writeFile(dxilPath, faze::reinterpret_memView<const uint8_t>(faze::makeByteView(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize())));
         return true;
 #endif
-      }
+    }
 
       faze::MemoryBlob shader(const std::string& shaderName, ShaderType type, uint3 tgs = uint3(1, 1, 1))
       {
@@ -451,7 +399,7 @@ namespace faze
         }
         return WatchFile{};
       }
-    };
-  }
+  };
+}
 }
 #endif

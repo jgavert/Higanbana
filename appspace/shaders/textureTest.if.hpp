@@ -1,7 +1,7 @@
 #ifndef TEXTURETEST_HLSL
 #define TEXTURETEST_HLSL
 
-#include "app/graphics/definitions.hpp"
+#include "definitions.hpp"
 
 FAZE_BEGIN_LAYOUT(TextureTest)
 

@@ -60,7 +60,7 @@ namespace faze
       , m_dmaQueues(false)
       , m_graphicQueues(false)
       , m_info(info)
-      , m_shaders(fs, "../app/shaders", "spirv")
+      , m_shaders(fs, "shaders", "shaders/spirv")
       , m_freeQueueIndexes({})
     {
       // try to figure out unique queues, abort or something when finding unsupported count.

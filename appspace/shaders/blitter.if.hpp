@@ -1,18 +1,17 @@
-#ifndef TRIANGLE_HLSL
-#define TRIANGLE_HLSL
+#ifndef BLITTER_HLSL
+#define BLITTER_HLSL
 
-#include "app/graphics/definitions.hpp"
+#include "definitions.hpp"
 
-FAZE_BEGIN_LAYOUT(Triangle)
+FAZE_BEGIN_LAYOUT(Blitter)
 
 FAZE_CBUFFER
 {
-  float4 color;
   int colorspace;
 };
 
 FAZE_SRV(Buffer<float4>, vertices, 0)
-FAZE_SRV(Texture2D<float4>, yellow, 1)
+FAZE_SRV(Texture2D<float4>, source, 1)
 
 FAZE_SAMPLER_POINT(staSam)
 

@@ -1,7 +1,7 @@
 #ifndef POSTEFFECT_HLSL
 #define POSTEFFECT_HLSL
 
-#include "app/graphics/definitions.hpp"
+#include "definitions.hpp"
 
 FAZE_BEGIN_LAYOUT(PostEffect)
 

@@ -19,6 +19,7 @@
   {
     ^IncludeSearchPath  + '$extraInclude$;'
   }
+  .IncludeSearchPath + '$WorkspacePath$;'
   
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;_UNICODE;UNICODE;'
 							              + 'FAZE_PLATFORM_WINDOWS;'
@@ -207,6 +208,8 @@ ForEach( .Config in .Configs_Windows_MSVC2 )
     ^externalIncludes    + ' /I^"$extraInclude$"'
   }
 
+  .externalIncludes + ' /I^"$WorkspacePath$"'
+
   .PCHOptions         = .BaseCompilerOptions
                       + .AppSpecificAdditionalWarningDisables
                       + .BaseDefinitions
@@ -278,6 +281,7 @@ ForEach( .Config in .Configs_Linux)
   {
     ^CompilerOptions    + ' -isystem ^"$extraInclude$"'
   }
+  .externalIncludes + ' -i ^"$WorkspacePath$"'
 
   // Static Library
   Library( '$ProjectName$-Lib-$Platform$-$Config$' )

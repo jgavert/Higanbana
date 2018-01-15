@@ -1,7 +1,7 @@
 #ifndef BUFFERTEST_HLSL
 #define BUFFERTEST_HLSL
 
-#include "app/graphics/definitions.hpp"
+#include "definitions.hpp"
 
 FAZE_BEGIN_LAYOUT(BufferTest)
 

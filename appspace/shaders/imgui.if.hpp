@@ -1,7 +1,7 @@
 #ifndef IMGUI_HLSL
 #define IMGUI_HLSL
 
-#include "app/graphics/definitions.hpp"
+#include "definitions.hpp"
 
 FAZE_BEGIN_LAYOUT(ImGui)
 
