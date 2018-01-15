@@ -379,9 +379,14 @@ namespace faze
         return -1;
       }
 
-      int64_t offset() override
+      uint64_t offset() override
       {
-        return -1;
+        return 0;
+      }
+
+      uint64_t size() override
+      {
+        return 0;
       }
     };
 

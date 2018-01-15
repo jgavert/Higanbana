@@ -139,6 +139,11 @@ namespace faze
     {
       list.copy(target, source);
     }
+
+    void copy(Buffer target, DynamicBufferView source)
+    {
+      list.copy(target, source);
+    }
   };
 
   class CommandGraph

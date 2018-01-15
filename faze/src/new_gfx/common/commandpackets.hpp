@@ -368,6 +368,26 @@ namespace faze
       }
     };
 
+    class BufferCpuToGpuCopy : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      uint64_t offset;
+      uint64_t size;
+
+      BufferCpuToGpuCopy(backend::ListAllocator, Buffer& target, DynamicBufferView& source)
+        : target(target.dependency())
+        , offset(static_cast<uint64_t>(source.native()->offset()))
+        , size(std::min(static_cast<uint64_t>(target.desc().desc.width * target.desc().desc.stride), source.native()->size()))
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::BufferCpuToGpuCopy;
+      }
+    };
+
     class BufferCopy : public backend::CommandPacket
     {
     public:

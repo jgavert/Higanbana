@@ -156,5 +156,10 @@ namespace faze
     {
       list.insert<gfxpacket::BufferCopy>(target, source);
     }
+
+    void copy(Buffer& target, DynamicBufferView& source)
+    {
+      list.insert<gfxpacket::BufferCpuToGpuCopy>(target, source);
+    }
   };
 }

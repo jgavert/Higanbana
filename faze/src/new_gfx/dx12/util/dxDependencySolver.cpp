@@ -300,7 +300,7 @@ namespace faze
     {
       if (nextDrawCall == 0)
       {
-        int barrierSize = (m_barriersOffsets.size() > 1 && m_barriersOffsets[1] > 0) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
+        int barrierSize = (m_barriersOffsets.size() > 1) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
         if (barrierSize == 0)
         {
           return;

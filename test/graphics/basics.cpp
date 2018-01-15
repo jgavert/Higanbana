@@ -1,7 +1,10 @@
 #include "graphicsFixture.hpp"
 
 #include "shaders/textureTest.if.hpp"
+#include "shaders/buffertest.if.hpp"
+
 using namespace faze;
+
 TEST_F(Graphics, BufferCreation)
 {
   auto bufferdesc = ResourceDescriptor()
@@ -30,6 +33,50 @@ TEST_F(Graphics, TextureCreation)
   auto texRtv = gpu.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
   auto texSrv = gpu.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
   auto texUav = gpu.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+}
+
+TEST_F(Graphics, ModifyBufferDispatch)
+{
+  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+    .setShader("buffertest")
+    .setThreadGroups(uint3(32, 1, 1)));
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Float32)
+    .setWidth(32)
+    .setDimension(FormatDimension::Buffer)
+    .setUsage(ResourceUsage::GpuRW);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+  auto bufferSRV = gpu.createBufferSRV(buffer);
+  auto bufferUAV = gpu.createBufferUAV(buffer);
+
+  CommandGraph tasks = gpu.createGraph();
+  {
+    auto& node = tasks.createPass2("Buffertest");
+
+    vector<float> vertices;
+    for (int i = 0; i < 32; ++i)
+    {
+      vertices.push_back(static_cast<float>(i));
+    }
+
+    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Float32);
+
+    node.copy(buffer, verts);
+
+    {
+      auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+      binding.srv(::shader::BufferTest::input, verts);
+      binding.uav(::shader::BufferTest::output, bufferUAV);
+      node.dispatch(binding, uint3(1));
+    }
+    //node.copy(bufferrb, buffer);
+  }
+
+  gpu.submit(tasks);
+  gpu.waitGpuIdle();
 }
 
 TEST_F(Graphics, RaymarchShader)

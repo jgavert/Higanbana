@@ -734,6 +734,7 @@ namespace faze
       DX12CPUDescriptor resource;
       DXGI_FORMAT format;
       int m_rowPitch = -1;
+      unsigned m_stride = 0;
       friend class DX12Device;
     public:
       DX12DynamicBufferView()
@@ -746,10 +747,11 @@ namespace faze
       {
       }
 
-      DX12DynamicBufferView(UploadBlock block, DX12CPUDescriptor resource, DXGI_FORMAT format)
+      DX12DynamicBufferView(UploadBlock block, DX12CPUDescriptor resource, DXGI_FORMAT format, unsigned stride)
         : block(block)
         , resource(resource)
         , format(format)
+        , m_stride(stride)
       {
       }
 
@@ -779,9 +781,14 @@ namespace faze
         return m_rowPitch;
       }
 
-      int64_t offset() override
+      uint64_t offset() override
       {
-        return block.block.offset;
+        return static_cast<uint64_t>(block.block.offset) / m_stride;
+      }
+
+      uint64_t size() override
+      {
+        return static_cast<uint64_t>(block.block.size) / m_stride;
       }
     };
 
