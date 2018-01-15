@@ -16,6 +16,7 @@ using namespace faze;
     faze::FileSystem fs;
     faze::GraphicsSubsystem graphics;
     faze::GpuDevice gpu;
+    Logger log;
 
     Graphics()
       :graphics(GraphicsApi::DX12, "faze")
@@ -28,13 +29,17 @@ using namespace faze;
     // virtual void SetUp() will be called before each test is run.  You
     // should define it if you need to initialize the variables.
     // Otherwise, this can be skipped.
-    virtual void SetUp() {
+    virtual void SetUp()
+    {
+      log.update();
     }
 
     // virtual void TearDown() will be called after each test is run.
     // You should define it if there is cleanup work to do.  Otherwise,
     // you don't have to provide it.
     //
-    // virtual void TearDown() {
-    // }
+    virtual void TearDown()
+    {
+      log.update();
+    }
   };
