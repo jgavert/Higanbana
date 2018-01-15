@@ -20,6 +20,7 @@ namespace faze
       {
         RenderBlock,
         BufferCopy,
+        BufferCpuToGpuCopy,
         UpdateTexture,
         Dispatch,
         ClearRT,

@@ -98,16 +98,6 @@ namespace faze
         dsvPtr = &dsv;
       }
       buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
-      // TODO: fix barriers to happen or detect this case.
-      /*
-      for (auto&& rtv : packet.rtvs)
-      {
-        if (rtv.loadOp() == LoadOp::Clear)
-        {
-          FLOAT color[4] = { 0.f, 0.f, 0.f, 0.f };
-          buffer->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv.view().view }, color, 0, nullptr);
-        }
-      }*/
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
@@ -157,6 +147,11 @@ namespace faze
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCopy& packet)
     {
       buffer->CopyResource(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), reinterpret_cast<ID3D12Resource*>(packet.source.resPtr));
+    }
+
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCpuToGpuCopy& packet, ID3D12Resource* upload)
+    {
+      buffer->CopyBufferRegion(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), 0, upload, packet.offset, packet.size);
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
@@ -322,6 +317,33 @@ namespace faze
       size_t currentActiveSubpassHash = 0;
       bool startedPixBeginEvent = false;
 
+      CommandPacket* subpass = nullptr;
+      bool subpassCommandsHandled = false;
+
+      auto subpassClears = [&]()
+      {
+        if (!subpassCommandsHandled)
+        {
+          auto& ref = packetRef(gfxpacket::Subpass, subpass);
+          for (auto&& rtv : ref.rtvs)
+          {
+            if (rtv.loadOp() == LoadOp::Clear)
+            {
+              FLOAT color[4] = { 0.f, 0.f, 0.f, 0.f };
+              buffer->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv.view().view }, color, 0, nullptr);
+            }
+          }
+          for (auto&& dsv : ref.dsvs)
+          {
+            if (dsv.loadOp() == LoadOp::Clear)
+            {
+              buffer->ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE{ dsv.view().view }, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.f, 0, 0, nullptr);
+            }
+          }
+          subpassCommandsHandled = true;
+        }
+      };
+
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
@@ -354,10 +376,19 @@ namespace faze
           drawIndex++;
           break;
         }
+        case CommandPacket::PacketType::BufferCpuToGpuCopy:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::BufferCpuToGpuCopy, packet), m_upload->native());
+          drawIndex++;
+          break;
+        }
         case CommandPacket::PacketType::Subpass:
         {
           currentActiveSubpassHash = (packetRef(gfxpacket::Subpass, packet)).hash;
           handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          subpass = packet;
+          subpassCommandsHandled = false;
           break;
         }
         case CommandPacket::PacketType::ResourceBinding:
@@ -374,16 +405,19 @@ namespace faze
         }
         case CommandPacket::PacketType::DrawIndexed:
         {
+          subpassClears();
           handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
           break;
         }
         case CommandPacket::PacketType::DrawDynamicIndexed:
         {
+          subpassClears();
           handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
           break;
         }
         case CommandPacket::PacketType::Draw:
         {
+          subpassClears();
           handle(buffer, packetRef(gfxpacket::Draw, packet));
           break;
         }
@@ -443,6 +477,13 @@ namespace faze
           range.mipOffset = static_cast<int16_t>(p.mip);
           range.sliceOffset = static_cast<int16_t>(p.slice);
           solver->addResource(drawIndex, p.dst.dependency(), D3D12_RESOURCE_STATE_COPY_DEST, range);
+          break;
+        }
+        case CommandPacket::PacketType::BufferCpuToGpuCopy:
+        {
+          auto& p = packetRef(gfxpacket::BufferCpuToGpuCopy, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
           break;
         }
         case CommandPacket::PacketType::BufferCopy:

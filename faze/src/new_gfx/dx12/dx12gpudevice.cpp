@@ -1176,7 +1176,7 @@ namespace faze
       m_trash->dynamicBuffers.emplace_back(upload);
       m_trash->genericDescriptors.emplace_back(descriptor);
 
-      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format);
+      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format, stride);
     }
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, unsigned stride)
     {
@@ -1201,7 +1201,7 @@ namespace faze
       m_trash->dynamicBuffers.emplace_back(upload);
       m_trash->genericDescriptors.emplace_back(descriptor);
 
-      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN);
+      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN, stride);
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch)
