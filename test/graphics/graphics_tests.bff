@@ -5,7 +5,7 @@
 
   .OutputApp = 'test/bin'
 
-    .AppSpecificLibraryTargets = {'core', 'graphics'}
+  .AppSpecificLibraryTargets = {'core', 'graphics'}
 
   .extRelLibs   + .gtestRelLib
   .extDebLibs   + .gtestDebLib

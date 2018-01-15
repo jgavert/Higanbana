@@ -1,6 +1,6 @@
 #include "blitter.hpp"
 
-#include "app/shaders/blitter.if.hpp"
+#include "shaders/blitter.if.hpp"
 
 namespace faze
 {

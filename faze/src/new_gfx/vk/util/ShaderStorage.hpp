@@ -74,12 +74,6 @@ public:
       F_ILOG("ShaderStorage", "Includer: Requested source \"%s\" include_type: %d requesting_source: \"%s\" include_depth: %zu", requested_source, type, requesting_source, include_depth);
       std::string filename(requested_source);
       std::string fullPath = sourcePath + filename;
-      if (filename.size() > 15 && filename.compare(filename.size() - 15, 15, "definitions.hpp") == 0)
-      {
-        fullPath = "/../" + filename;
-        if (!m_fs.fileExists(fullPath))
-          m_fs.loadDirectoryContentsRecursive("/../app/graphics/");
-      }
       F_ASSERT(m_fs.fileExists(fullPath), "File has to exist. for now.");
 
       auto sourceView = m_fs.viewToFile(fullPath);

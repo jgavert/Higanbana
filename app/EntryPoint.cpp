@@ -1,6 +1,6 @@
 #include "core/src/Platform/EntryPoint.hpp"
 
-//#include "windowMain.hpp"
+#include "windowMain.hpp"
 
 #include "core/src/system/LBS.hpp"
 #include "core/src/system/time.hpp"
@@ -12,7 +12,7 @@ using namespace faze::math;
 
 int EntryPoint::main()
 {
-  //mainWindow(m_params);
+  mainWindow(m_params);
   Logger log;
   FileSystem fs;
   GraphicsSubsystem graphics(GraphicsApi::DX12, "faze");

@@ -26,7 +26,7 @@ namespace faze
       , m_device(device)
       , m_factory(factory)
       , m_fs(fs)
-      , m_shaders(fs, "../app/shaders", "dxil")
+      , m_shaders(fs, "shaders", "shaders")
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
       , m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)

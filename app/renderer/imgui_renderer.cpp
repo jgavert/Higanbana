@@ -1,6 +1,6 @@
 #include "imgui_renderer.hpp"
 
-#include "app/shaders/imgui.if.hpp"
+#include "shaders/imgui.if.hpp"
 
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 #include "core/src/external/imgiu/imgui.h"

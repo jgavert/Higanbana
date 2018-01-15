@@ -231,7 +231,7 @@ namespace faze
     ZeroMemory(&hWnd, sizeof(HWND));
     ZeroMemory(&wc, sizeof(WNDCLASSEX));
 
-    std::string classname = (windowname + "class");
+    std::string classname = (windowname);
 
     std::wstring cnw = s2ws(classname);
 
