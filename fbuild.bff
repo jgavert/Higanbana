@@ -53,6 +53,19 @@ ForEach( .Config in .Configs )
 .testPlatform = 'x64'
 #endif
 .testConfigs = { 'debug', 'profile', 'release' }
+
+ForEach( .Config in .testConfigs )
+{
+	Alias( 'All-$Config$' )
+	{
+		.Targets    = {
+          'app-$testPlatform$-$Config$',
+					'core_tests-$testPlatform$-$Config$',
+					'graphics_tests-$testPlatform$-$Config$'
+					  }
+	}
+}
+
 ForEach( .Config in .testConfigs )
 {
 	Alias( 'Tests-$Config$' )

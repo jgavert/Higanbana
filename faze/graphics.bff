@@ -4,5 +4,7 @@
   .ProjectName    = 'graphics'
   .ProjectPath    = 'faze'
   
+  .UnityInputIsolateWritableFiles = true
+
   #include "../library_template.bff"
 }

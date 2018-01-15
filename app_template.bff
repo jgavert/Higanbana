@@ -19,7 +19,7 @@
   {
     ^IncludeSearchPath  + '$extraInclude$;'
   }
-  .IncludeSearchPath + '$WorkspacePath$;'
+  .IncludeSearchPath + '$FazEPath$/$WorkspacePath$;'
 
   .X64Defines               = 'WIN32_LEAN_AND_MEAN;_WIN32;__WINDOWS__;NOMINMAX;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;__cplusplus;_UNICODE;UNICODE;'
 							              + 'FAZE_PLATFORM_WINDOWS;'
@@ -288,6 +288,7 @@ ForEach( .Config in .Configs_Linux)
   {
     // Input (Unity)
     .CompilerInputUnity   = '$ProjectName$-Unity-Linux'
+    //.CompilerInputPath  = '$ProjectPath$/'
 
     // Output
     .CompilerOutputPath   = '$OutputApp$/$ProjectName$/'

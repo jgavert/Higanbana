@@ -5,7 +5,7 @@
 
 #include <experimental/filesystem>
 
-#define FAZE_FS_EXTRA_INFO 1
+#define FAZE_FS_EXTRA_INFO 0
 
 #if FAZE_FS_EXTRA_INFO
 #define FS_ILOG(msg, ...) F_ILOG("Filesystem", msg, ##__VA_ARGS__)

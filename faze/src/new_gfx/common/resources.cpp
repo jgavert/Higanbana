@@ -476,7 +476,7 @@ namespace faze
           .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
-        F_SLOG("Graphics", "Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB \n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
+        GFX_LOG("Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
         return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
@@ -551,7 +551,7 @@ namespace faze
           {
             emptyHeaps.emplace_back(iter->heap);
             m_totalMemory -= iter->allocator.size();
-            F_SLOG("Graphics", "Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB\n", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
+            GFX_LOG("Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
           }
         }
         for (;;)

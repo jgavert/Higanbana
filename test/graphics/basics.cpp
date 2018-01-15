@@ -1,7 +1,7 @@
 #include "graphicsFixture.hpp"
 
 #include "shaders/textureTest.if.hpp"
-
+using namespace faze;
 TEST_F(Graphics, BufferCreation)
 {
   auto bufferdesc = ResourceDescriptor()

@@ -180,5 +180,10 @@ namespace faze
     {
       S().waitGpuIdle();
     }
+
+    bool alive()
+    {
+      return valid();
+    }
   };
 };
