@@ -19,7 +19,7 @@ namespace faze
     int64_t heapType;
     PageBlock block;
 
-    bool valid() { return alignment != -1 && index != static_cast<uint64_t>(-1);}
+    bool valid() { return alignment != -1 && index != static_cast<uint64_t>(-1); }
   };
 
   namespace backend

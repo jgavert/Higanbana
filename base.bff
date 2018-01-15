@@ -299,8 +299,11 @@ Compiler( 'Compiler-x64-Linux' )
 VCXProject( 'All-proj' )
 {
   .ProjectOutput    = './All.vcxproj'
-  .ProjectFiles     = { './fbuild.bff', './base.bff', './externals/externals.bff', './config.bff' }
+  .ProjectFiles     = { './fbuild.bff', './base.bff', './externals/externals.bff', './config.bff', './library_template.bff','./app_template.bff', './app_template_add_tests.bff' }
   .ProjectBasePath  = './'
+
+  .ProjectBuildCommand      = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -nosummaryonerror -fastcancel All-^$(Configuration)'
+  .ProjectRebuildCommand    = 'cd ^$(SolutionDir) &amp; fbuild -ide -dist -monitor -cache -clean -nosummaryonerror -fastcancel All-^$(Configuration)'
 }
 
 // helper definitions

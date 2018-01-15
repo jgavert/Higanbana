@@ -19,13 +19,13 @@ namespace faze
     }
     std::string gfxApi() { return S().gfxApi(); }
     vector<GpuInfo> availableGpus() { return S().availableGpus(); }
-    GpuInfo getVendorDevice(VendorID id)
+    GpuInfo getVendorDevice(VendorID id = VendorID::Unknown)
     {
       auto gpus = availableGpus();
       int chosenGpu = 0;
       for (auto&& it : gpus)
       {
-        if (it.vendor == id)
+        if (it.vendor == id && id == VendorID::Unknown)
         {
           chosenGpu = it.id;
         }
