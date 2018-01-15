@@ -1,5 +1,3 @@
-#pragma once
-
 #include "gpudevice.hpp"
 
 namespace faze
