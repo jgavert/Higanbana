@@ -35,7 +35,110 @@ TEST_F(Graphics, TextureCreation)
   auto texUav = gpu.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 }
 
-TEST_F(Graphics, ModifyBufferDispatch)
+TEST_F(Graphics, UploadAndReadbackTest)
+{
+  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+    .setShader("buffertest")
+    .setThreadGroups(uint3(32, 1, 1)));
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Uint32)
+    .setWidth(32)
+    .setDimension(FormatDimension::Buffer)
+    .setUsage(ResourceUsage::GpuRW);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+
+  bool WasReadback = false;
+
+  CommandGraph tasks = gpu.createGraph();
+  {
+    auto& node = tasks.createPass2("Buffertest");
+
+    vector<unsigned> vertices;
+    for (unsigned i = 0; i < 32; ++i)
+    {
+      vertices.push_back(i);
+    }
+
+    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+    node.copy(buffer, verts);
+
+    node.readback(buffer, [&WasReadback](MemView<uint8_t> view)
+    {
+      auto asd = reinterpret_memView<unsigned>(view);
+
+      for (unsigned i = 0; i < 32; ++i)
+      {
+        EXPECT_EQ(i, asd[i]);
+      }
+      EXPECT_EQ(32, asd.size());
+      WasReadback = true;
+    });
+  }
+
+  gpu.submit(tasks);
+  gpu.waitGpuIdle();
+
+  EXPECT_EQ(true, WasReadback);
+}
+
+TEST_F(Graphics, readbackOffsetTest)
+{
+  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+    .setShader("buffertest")
+    .setThreadGroups(uint3(32, 1, 1)));
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Uint32)
+    .setWidth(64)
+    .setDimension(FormatDimension::Buffer)
+    .setUsage(ResourceUsage::GpuRW);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+
+  CommandGraph tasks = gpu.createGraph();
+  {
+    auto& node = tasks.createPass2("Buffertest");
+
+    vector<unsigned> vertices;
+    for (unsigned i = 0; i < 16; ++i)
+    {
+      vertices.push_back(static_cast<unsigned>(-1));
+    }
+    for (unsigned i = 0; i < 32; ++i)
+    {
+      vertices.push_back(i);
+    }
+    for (unsigned i = 0; i < 16; ++i)
+    {
+      vertices.push_back(static_cast<unsigned>(-1));
+    }
+
+    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+    node.copy(buffer, verts);
+
+    node.readback(buffer, 16, 32, [](MemView<uint8_t> view)
+    {
+      auto asd = reinterpret_memView<unsigned>(view);
+
+      for (unsigned i = 0; i < 32; ++i)
+      {
+        EXPECT_EQ(i, asd[i]);
+      }
+      EXPECT_EQ(32, asd.size());
+    });
+  }
+
+  gpu.submit(tasks);
+  gpu.waitGpuIdle();
+}
+
+TEST_F(Graphics, ModifyDataInShaderAndReadback)
 {
   ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
     .setShader("buffertest")
