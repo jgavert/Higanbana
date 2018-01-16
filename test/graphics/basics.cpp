@@ -43,7 +43,7 @@ TEST_F(Graphics, ModifyBufferDispatch)
 
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
-    .setFormat(FormatType::Float32)
+    .setFormat(FormatType::Uint32)
     .setWidth(32)
     .setDimension(FormatDimension::Buffer)
     .setUsage(ResourceUsage::GpuRW);
@@ -52,27 +52,43 @@ TEST_F(Graphics, ModifyBufferDispatch)
   auto bufferSRV = gpu.createBufferSRV(buffer);
   auto bufferUAV = gpu.createBufferUAV(buffer);
 
+  auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+    .setName("testBufferTarget2");
+
+  auto buffer2 = gpu.createBuffer(bufferdesc2);
+  auto bufferUAV2 = gpu.createBufferUAV(buffer2);
+
   CommandGraph tasks = gpu.createGraph();
   {
     auto& node = tasks.createPass2("Buffertest");
 
-    vector<float> vertices;
-    for (int i = 0; i < 32; ++i)
+    vector<unsigned> vertices;
+    for (unsigned i = 0; i < 32; ++i)
     {
-      vertices.push_back(static_cast<float>(i));
+      vertices.push_back(i);
     }
 
-    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Float32);
+    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
 
     node.copy(buffer, verts);
 
     {
       auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
-      binding.srv(::shader::BufferTest::input, verts);
-      binding.uav(::shader::BufferTest::output, bufferUAV);
+      binding.srv(::shader::BufferTest::input, bufferSRV);
+      binding.uav(::shader::BufferTest::output, bufferUAV2);
       node.dispatch(binding, uint3(1));
     }
-    //node.copy(bufferrb, buffer);
+
+    node.readback(buffer2, [](MemView<uint8_t> view)
+    {
+      auto asd = reinterpret_memView<unsigned>(view);
+
+      for (unsigned i = 0; i < 32; ++i)
+      {
+        EXPECT_EQ(i * 2, asd[i]);
+      }
+      EXPECT_EQ(32, asd.size());
+    });
   }
 
   gpu.submit(tasks);

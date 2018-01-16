@@ -304,6 +304,116 @@ namespace faze
       }
     };
 
+    struct ReadbackBlock
+    {
+      D3D12_GPU_VIRTUAL_ADDRESS m_resourceAddress;
+      PageBlock block;
+      size_t m_size;
+
+      D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress()
+      {
+        return m_resourceAddress + block.offset;
+      }
+
+      size_t targetSize() const
+      {
+        return m_size;
+      }
+
+      size_t size() const
+      {
+        return block.size;
+      }
+
+      explicit operator bool() const
+      {
+        return size() > 0;
+      }
+    };
+
+    class DX12ReadbackHeap
+    {
+      FixedSizeAllocator allocator;
+      ComPtr<ID3D12Resource> resource;
+      unsigned fixedSize = 1;
+      unsigned size = 1;
+
+      uint8_t* data = nullptr;
+      D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
+
+      D3D12_RANGE range{};
+    public:
+      DX12ReadbackHeap() : allocator(1, 1) {}
+      DX12ReadbackHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
+        : allocator(allocationSize, allocationCount)
+        , fixedSize(allocationSize)
+        , size(allocationSize*allocationCount)
+      {
+        {
+          D3D12_RESOURCE_DESC dxdesc{};
+
+          dxdesc.Width = allocationSize * allocationCount;
+          dxdesc.Height = 1;
+          dxdesc.DepthOrArraySize = 1;
+          dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+          dxdesc.Format = DXGI_FORMAT_UNKNOWN;
+          dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+          dxdesc.MipLevels = 1;
+          dxdesc.SampleDesc.Count = 1;
+          dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+          D3D12_HEAP_PROPERTIES heap{};
+          heap.Type = D3D12_HEAP_TYPE_READBACK;
+          heap.CreationNodeMask = 0;
+
+          FAZE_CHECK_HR(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &dxdesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource)));
+
+          gpuAddr = resource->GetGPUVirtualAddress();
+        }
+
+        range.End = allocationSize * allocationCount;
+      }
+
+      ReadbackBlock allocate(size_t bytes)
+      {
+        auto dip = allocator.allocate(bytes);
+        F_ASSERT(dip.offset != -1, "No space left, make bigger DX12ReadbackHeap :) %d", size);
+        return ReadbackBlock{ gpuAddr,  dip, bytes };
+      }
+
+      void release(ReadbackBlock desc)
+      {
+        allocator.release(desc.block);
+      }
+
+      void map()
+      {
+        FAZE_CHECK_HR(resource->Map(0, &range, reinterpret_cast<void**>(&data)));
+      }
+
+      void unmap()
+      {
+        D3D12_RANGE range2{};
+        resource->Unmap(0u, &range2);
+      }
+
+      faze::MemView<uint8_t> getView(ReadbackBlock block)
+      {
+        return faze::MemView<uint8_t>(data + block.block.offset, block.targetSize());
+      }
+
+      ID3D12Resource* native()
+      {
+        return resource.Get();
+      }
+    };
+
+    struct DX12ReadbackLambda
+    {
+      ReadbackBlock dataLocation;
+      std::function<void(MemView<uint8_t>)> func;
+    };
+
     class DX12Fence : public FenceImpl, public SemaphoreImpl
     {
     public:
@@ -368,24 +478,24 @@ namespace faze
       void resetList();
       bool closed() const;
     };
-
+    struct FreeableResources
+    {
+      vector<UploadBlock> uploadBlocks;
+      vector<DynamicDescriptorBlock> descriptorBlocks;
+      vector<DX12ReadbackLambda> readbacks;
+    };
     class DX12CommandList : public CommandBufferImpl
     {
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
       std::shared_ptr<DX12UploadHeap> m_upload;
+      std::shared_ptr<DX12ReadbackHeap> m_readback;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
 
       UploadLinearAllocator m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
-
-      struct FreeableResources
-      {
-        vector<UploadBlock> uploadBlocks;
-        vector<DynamicDescriptorBlock> descriptorBlocks;
-      };
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
@@ -400,12 +510,14 @@ namespace faze
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
         std::shared_ptr<DX12UploadHeap> dynamicUpload,
+        std::shared_ptr<DX12ReadbackHeap> readback,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
         DX12CPUDescriptor nullBufferUAV,
         DX12CPUDescriptor nullBufferSRV)
         : m_buffer(buffer)
         , m_constants(constants)
         , m_upload(dynamicUpload)
+        , m_readback(readback)
         , m_descriptors(descriptors)
         , m_nullBufferUAV(nullBufferUAV)
         , m_nullBufferSRV(nullBufferSRV)
@@ -415,7 +527,7 @@ namespace faze
         std::weak_ptr<DX12UploadHeap> consts = m_constants;
         std::weak_ptr<DX12DynamicDescriptorHeap> descriptrs = m_descriptors;
 
-        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs](FreeableResources* ptr)
+        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs, readback](FreeableResources* ptr)
         {
           if (auto constants = consts.lock())
           {
@@ -431,6 +543,19 @@ namespace faze
             {
               descriptors->release(it);
             }
+          }
+
+          // handle readbacks
+
+          if (!ptr->readbacks.empty())
+          {
+            readback->map();
+            for (auto&& it : ptr->readbacks)
+            {
+              it.func(readback->getView(it.dataLocation));
+              readback->release(it.dataLocation);
+            }
+            readback->unmap();
           }
 
           delete ptr;
@@ -868,6 +993,7 @@ namespace faze
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
+      std::shared_ptr<DX12ReadbackHeap> m_dynamicReadback;
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 

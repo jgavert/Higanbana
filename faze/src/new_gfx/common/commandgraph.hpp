@@ -144,6 +144,11 @@ namespace faze
     {
       list.copy(target, source);
     }
+
+    void readback(Buffer buffer, std::function<void(MemView<uint8_t>)> func)
+    {
+      list.readback(buffer, 0, buffer.desc().desc.width, func);
+    }
   };
 
   class CommandGraph

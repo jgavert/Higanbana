@@ -84,6 +84,23 @@ void log_imSys(const char* prefix, const char* format, ...)
   std::cerr << std::endl;
 }
 
+void log_im(const char* format, ...)
+{
+  va_list args;
+  char buf[1024];
+  va_start(args, format);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  _vsnprintf(&buf[0], sizeof(buf), format, args);
+#else
+  vsnprintf(&buf[0], sizeof(buf), format, args);
+#endif
+  va_end(args);
+#if defined(FAZE_PLATFORM_WINDOWS)
+  OutputDebugStringA(buf);
+#endif
+  std::cerr.write(buf, strlen(buf));
+}
+
 void log_sys(const char* prefix, const char* format, ...)
 {
   va_list args;

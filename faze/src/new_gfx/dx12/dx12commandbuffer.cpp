@@ -154,6 +154,13 @@ namespace faze
       buffer->CopyBufferRegion(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), 0, upload, packet.offset, packet.size);
     }
 
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Readback& packet, DX12ReadbackHeap* readback, FreeableResources* free)
+    {
+      auto rb = readback->allocate(packet.size);
+      free->readbacks.push_back(DX12ReadbackLambda{ rb, packet.func });
+      buffer->CopyBufferRegion(readback->native(), 0, reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), packet.offset, packet.size);
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
     {
       auto pipeline = std::static_pointer_cast<DX12Pipeline>(packet.pipeline.impl);
@@ -383,6 +390,13 @@ namespace faze
           drawIndex++;
           break;
         }
+        case CommandPacket::PacketType::Readback:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::Readback, packet), m_readback.get(), m_freeResources.get());
+          drawIndex++;
+          break;
+        }
         case CommandPacket::PacketType::Subpass:
         {
           currentActiveSubpassHash = (packetRef(gfxpacket::Subpass, packet)).hash;
@@ -477,6 +491,13 @@ namespace faze
           range.mipOffset = static_cast<int16_t>(p.mip);
           range.sliceOffset = static_cast<int16_t>(p.slice);
           solver->addResource(drawIndex, p.dst.dependency(), D3D12_RESOURCE_STATE_COPY_DEST, range);
+          break;
+        }
+        case CommandPacket::PacketType::Readback:
+        {
+          auto& p = packetRef(gfxpacket::Readback, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_SOURCE);
           break;
         }
         case CommandPacket::PacketType::BufferCpuToGpuCopy:

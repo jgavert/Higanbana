@@ -161,5 +161,10 @@ namespace faze
     {
       list.insert<gfxpacket::BufferCpuToGpuCopy>(target, source);
     }
+
+    void readback(Buffer& buffer, uint startElement, uint size, std::function<void(MemView<uint8_t>)> func)
+    {
+      list.insert<gfxpacket::Readback>(buffer, startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride, func);
+    }
   };
 }
