@@ -986,6 +986,7 @@ namespace faze
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
 
+      Rabbitpool2<DX12ReadbackHeap> m_readbacks;
       Rabbitpool2<DX12CommandBuffer> m_copyListPool;
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
@@ -993,7 +994,6 @@ namespace faze
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
-      std::shared_ptr<DX12ReadbackHeap> m_dynamicReadback;
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 
