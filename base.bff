@@ -205,7 +205,6 @@ Compiler( 'Compiler-x64-Linux' )
                       + ' /LIBPATH:"$WindowsLibPaths10d$/x64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/lib/x64"'
                       + ' /LIBPATH:"$VSBasePath$/VC/Tools/MSVC/$VSVersion$/atlmfc/lib/x64"'
-                      + .extLibPaths
 
   //Print('$LinkerOptions$')
 ]
@@ -219,7 +218,8 @@ Compiler( 'Compiler-x64-Linux' )
   //.PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
   //                    + .CompilerDebugOptimizations
   .LibrarianOptions   + .LibrarianDebugOptimizations
-  .LinkerOptions      + .LinkerDebugOptimizations
+  .LinkerOptions      + .extDebLibPaths
+				      + .LinkerDebugOptimizations
 ]
 
 .X64ReleaseConfig =
@@ -238,7 +238,8 @@ Compiler( 'Compiler-x64-Linux' )
   .BaseCompilerOptions    + .CompilerReleaseOptimizations
   //.PCHOptions         + .CompilerReleaseOptimizations
   .LibrarianOptions   + .LibrarianReleaseOptimizations
-  .LinkerOptions      + .LinkerReleaseOptimizations
+  .LinkerOptions      + .extRelLibPaths
+					  + .LinkerReleaseOptimizations
 ]
 
 .X64ProfileConfig =
@@ -259,7 +260,6 @@ Compiler( 'Compiler-x64-Linux' )
 [
     Using( .LinuxBaseConfig )
     .Platform               = 'x64Linux'
-    .LinkerOptions          + .extLibPaths
 ]
 .X64LinuxDebugConfig =
 [
@@ -268,7 +268,8 @@ Compiler( 'Compiler-x64-Linux' )
     .CompilerOptions        + ' -DDEBUG -DPROFILING_ENABLED'
                             + .CompilerDebugOptimizations
     .LibrarianOptions       + .LibrarianDebugOptimizations
-    .LinkerOptions          + .LinkerDebugOptimizations
+    .LinkerOptions          + .extDebLibPaths
+	                        + .LinkerDebugOptimizations
 ]
 .X64LinuxReleaseConfig =
 [
@@ -277,7 +278,8 @@ Compiler( 'Compiler-x64-Linux' )
     .CompilerOptions        + ' -DRELEASE'
                             + .CompilerReleaseOptimizations
     .LibrarianOptions       + .LibrarianReleaseOptimizations
-    .LinkerOptions          + .LinkerReleaseOptimizations
+    .LinkerOptions          + .extRelLibPaths
+	                        + .LinkerReleaseOptimizations
 ]
 .X64LinuxProfileConfig =
 [

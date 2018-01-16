@@ -179,7 +179,7 @@ void mainWindow(ProgramParams& params)
 
       int2 ires = { 200, 100 };
 
-      int raymarch_Res = 600;
+      int raymarch_Res = 1400;
       int raymarch_x = 16;
       int raymarch_y = 9;
 
@@ -643,17 +643,40 @@ void mainWindow(ProgramParams& params)
                 }
                 ImGui::EndPopup();
               }
-              if (ImGui::Button("Splitbarriers"))
+              if (ImGui::Button("barrier tactic"))
+                  ImGui::OpenPopup("select barrier tactic2");
+              if (ImGui::BeginPopup("select barrier tactic2"))
               {
-                faze::globalconfig::graphics::GraphicsEnableSplitBarriers = faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? false : true;
+                  if (ImGui::Selectable("Immediate barriers"))
+                  {
+                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = false;
+                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
+                  }
+                  if (ImGui::Selectable("Split barriers"))
+                  {
+                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
+                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
+                  }
+                  if (ImGui::Selectable("Split barriers with questionable tactic"))
+                  {
+                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
+                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = true;
+                  }
+                  ImGui::EndPopup();
               }
-              ImGui::SameLine(); ImGui::Text(faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? "enabled" : "disabled");
-
-              if (ImGui::Button("Place split begin barriers on existing sync points"))
+              ImGui::SameLine();
+              if (!faze::globalconfig::graphics::GraphicsEnableSplitBarriers && !faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
               {
-                faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? false : true;
+                  ImGui::Text("Immediate barriers");
               }
-              ImGui::SameLine(); ImGui::Text(faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? "enabled" : "disabled");
+              if (faze::globalconfig::graphics::GraphicsEnableSplitBarriers && !faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
+              {
+                  ImGui::Text("Split barriers");
+              }
+              if (faze::globalconfig::graphics::GraphicsEnableSplitBarriers && faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
+              {
+                  ImGui::Text("Split barriers where split begin barriers are placed in sync points");
+              }
 
               /*  Unimplemented
               if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? "ReadStateCombining enabled" : "ReadStateCombining disabled"))

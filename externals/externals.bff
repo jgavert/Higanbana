@@ -13,7 +13,8 @@
 .extIncludeDir            = '$FazEPath$/externals/'
 .extVisualStudioDefines   = ''
 .extDefines               = ''
-.extLibPaths              = ''
+.extRelLibPaths              = ''
+.extDebLibPaths              = ''
 
 .extRelLibs               = ''
 .extDebLibs               = ''
@@ -72,8 +73,11 @@
 
 // dxcompiler
 
-.dxcLibPath = .extBasePath
+.dxcDebLibPath = .extBasePath
             + "hlsl.bin/Debug/lib"
+            + .extEndBasePath
+.dxcRelLibPath = .extBasePath
+            + "hlsl.bin/Release/lib"
             + .extEndBasePath
 .dxcInclude = .extIncludeDir
             + "DirectXShaderCompiler/include"
@@ -186,14 +190,20 @@
 
 // these 2 are automatically in right place
 #if __WINDOWS__
-.extLibPaths  + .vulkanLibPath
+.extDebLibPaths  + .vulkanLibPath
               + .shadercLibPath
-              + .dxcLibPath
+              + .dxcDebLibPath
               + .pixLibPath
+              //+ .compressLibPath
+.extRelLibPaths  + .vulkanLibPath
+                 + .shadercLibPath
+                 + .dxcRelLibPath
+                 + .pixLibPath
               //+ .compressLibPath
 #endif
 #if __LINUX__
-.extLibPaths  + .shadercLibPath
+.extDebLibPaths  + .shadercLibPath
+.extRelLibPaths  + .shadercLibPath
 #endif
 .externalIncludes = ' /I^"$vulkanInclude$"'
                   + ' /I^"$shadercInclude$"'
