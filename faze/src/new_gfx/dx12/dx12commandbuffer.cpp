@@ -158,7 +158,7 @@ namespace faze
     {
       auto rb = readback->allocate(packet.size);
       free->readbacks.push_back(DX12ReadbackLambda{ rb, packet.func });
-      buffer->CopyBufferRegion(readback->native(), 0, reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), packet.offset, packet.size);
+      buffer->CopyBufferRegion(readback->native(), rb.offset, reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), packet.offset, packet.size);
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
@@ -351,6 +351,15 @@ namespace faze
         }
       };
 
+      DX12Query activeQuery{};
+
+      std::function<void(MemView<std::pair<std::string, double>>)> queryCallback;
+      bool queriesWanted = false;
+
+      DX12Query fullFrameQuery = m_queryheap->allocate();
+      buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.beginIndex);
+      m_freeResources->queries.push_back(QueryBracket{ fullFrameQuery , "Commandlist" });
+
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
@@ -365,8 +374,12 @@ namespace faze
           else
           {
             PIXEndEvent(buffer);
+            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
           }
           PIXBeginEvent(buffer, 0, p.name.c_str());
+          activeQuery = m_queryheap->allocate();
+          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.beginIndex);
+          m_freeResources->queries.push_back(QueryBracket{ activeQuery , p.name });
           break;
         }
         case CommandPacket::PacketType::UpdateTexture:
@@ -465,9 +478,46 @@ namespace faze
           drawIndex++;
           break;
         }
+        case CommandPacket::PacketType::QueryCounters:
+        {
+          queryCallback = (packetRef(gfxpacket::QueryCounters, packet)).func;
+          queriesWanted = true;
+          break;
+        }
         default:
           break;
         }
+      }
+
+      if (startedPixBeginEvent)
+      {
+          PIXEndEvent(buffer);
+          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
+      }
+
+      buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.endIndex);
+
+      if (queriesWanted)
+      {
+          auto rb = m_readback->allocate(m_queryheap->size()*m_queryheap->counterSize());
+
+          auto rbfunc = [queries = m_freeResources->queries, queryCallback, ticksPerSecond = m_queryheap->getGpuTicksPerSecond()](faze::MemView<uint8_t> view)
+          {
+              auto properView = reinterpret_memView<uint64_t>(view);
+              vector<std::pair<std::string, double>> data;
+              for (auto&& it : queries)
+              {
+                  auto begin = properView[it.query.beginIndex];
+                  auto end = properView[it.query.endIndex];
+                  double delta = static_cast<double>(end - begin);
+                  data.emplace_back(it.name, (delta / double(ticksPerSecond)) * 1000.0);
+                  //queryCallback(it.name.c_str(), static_cast<uint64_t>((delta / double(ticksPerSecond)) * 10000000.0));
+              }
+              queryCallback(data);
+          };
+
+          m_freeResources->readbacks.push_back(DX12ReadbackLambda{ rb, rbfunc });
+          buffer->ResolveQueryData(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, 0, static_cast<UINT>(m_queryheap->size()), m_readback->native(), rb.offset);
       }
     }
 

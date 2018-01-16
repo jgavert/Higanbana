@@ -166,5 +166,10 @@ namespace faze
     {
       list.insert<gfxpacket::Readback>(buffer, startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride, func);
     }
+
+    void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)
+    {
+        list.insert<gfxpacket::QueryCounters>(func);
+    }
   };
 }

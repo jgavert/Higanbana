@@ -61,9 +61,14 @@ namespace faze
 
       m_deviceFence = createNativeFence();
 
-      m_readbacks = Rabbitpool2<DX12ReadbackHeap>([&]()
+      m_queryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return DX12ReadbackHeap(m_device.Get(), 256 * 10, 1024 * 4); // maybe 10 megs of readback?
+          return createQueryHeap(128); // maybe 10 megs of readback?
+      });
+
+      m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
+      {
+        return createReadback(256 * 10, 1024 * 4); // maybe 10 megs of readback?
       });
 
       m_copyListPool = Rabbitpool2<DX12CommandBuffer>([&]()
@@ -775,7 +780,7 @@ namespace faze
         m_trash->roots.emplace_back(ptr->root);
         if (pipeline.m_update->updated())
         {
-          F_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
+          GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
         }
 
         auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute, pipeline.descriptor.shaderGroups);
@@ -1234,6 +1239,16 @@ namespace faze
       return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
     }
 
+    DX12QueryHeap DX12Device::createQueryHeap(unsigned counters)
+    {
+        return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
+    }
+
+    DX12ReadbackHeap DX12Device::createReadback(unsigned pages, unsigned pageSize)
+    {
+        return DX12ReadbackHeap(m_device.Get(), pages, pageSize);
+    }
+
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -1256,7 +1271,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbacks.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1271,7 +1286,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbacks.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1285,7 +1300,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbacks.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {

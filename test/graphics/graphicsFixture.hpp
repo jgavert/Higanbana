@@ -18,7 +18,7 @@ protected:
 
   Graphics()
     :graphics(faze::GraphicsApi::DX12, "faze")
-    , gpu(graphics.createDevice(fs, graphics.getVendorDevice(faze::VendorID::Amd)))
+    , gpu(graphics.createDevice(fs, graphics.getVendorDevice(faze::VendorID::Nvidia)))
   {
   }
   // You should make the members protected s.t. they can be

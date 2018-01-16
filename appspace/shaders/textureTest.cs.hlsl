@@ -15,9 +15,9 @@ groupshared RayData rdata[64];
 #define EPSILON 0.000005
 #define PII 3.14
 // how many reflections
-#define MAXREFLECTION 1.0
+#define MAXREFLECTION 2.0
 // how much object reflects light
-#define REFLECTIVITY 0.02
+#define REFLECTIVITY 0.05
 // How far rays can travel(applies to first ray only)
 #define MAXLENGTH 180.0
 // color to red by iteration multiplier

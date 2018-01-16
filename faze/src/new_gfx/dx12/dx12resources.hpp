@@ -306,34 +306,94 @@ namespace faze
 
     struct ReadbackBlock
     {
-      D3D12_GPU_VIRTUAL_ADDRESS m_resourceAddress;
-      PageBlock block;
+      size_t offset;
       size_t m_size;
-
-      D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress()
-      {
-        return m_resourceAddress + block.offset;
-      }
-
-      size_t targetSize() const
-      {
-        return m_size;
-      }
 
       size_t size() const
       {
-        return block.size;
+        return m_size;
       }
-
       explicit operator bool() const
       {
         return size() > 0;
       }
     };
 
+    struct DX12Query
+    {
+        unsigned beginIndex;
+        unsigned endIndex;
+    };
+
+    struct QueryBracket
+    {
+        DX12Query query;
+        std::string name;
+    };
+
+    class DX12QueryHeap
+    {
+        LinearAllocator allocator;
+        ComPtr<ID3D12QueryHeap> heap;
+        int m_size = 0;
+        uint64_t m_gpuTicksPerSecond = 0;
+    public:
+        DX12QueryHeap() : allocator(1) {}
+        DX12QueryHeap(ID3D12Device* device, ID3D12CommandQueue* queue, unsigned counterCount)
+            : allocator(counterCount)
+            , m_size(counterCount)
+        {
+
+            static int queryHeapCount = 0;
+
+            D3D12_QUERY_HEAP_DESC desc{};
+            desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+            desc.Count = counterCount;
+            desc.NodeMask = 0;
+
+            FAZE_CHECK_HR(device->CreateQueryHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+            auto name = s2ws("QueryHeap" + std::to_string(queryHeapCount));
+            heap->SetName(name.c_str());
+
+            FAZE_CHECK_HR(queue->GetTimestampFrequency(&m_gpuTicksPerSecond));
+        }
+
+        uint64_t getGpuTicksPerSecond() const
+        {
+            return m_gpuTicksPerSecond;
+        }
+
+        void reset()
+        {
+            allocator = LinearAllocator(m_size);
+        }
+
+        DX12Query allocate()
+        {
+            auto dip = allocator.allocate(2);
+            F_ASSERT(dip != -1, "Queryheap out of queries.");
+            return DX12Query{ static_cast<unsigned>(dip),  static_cast<unsigned>(dip+1) };
+        }
+
+        ID3D12QueryHeap* native()
+        {
+            return heap.Get();
+        }
+
+        size_t size()
+        {
+            return m_size;
+        }
+
+        size_t counterSize()
+        {
+            return sizeof(uint64_t);
+        }
+    };
+
     class DX12ReadbackHeap
     {
-      FixedSizeAllocator allocator;
+      LinearAllocator allocator;
       ComPtr<ID3D12Resource> resource;
       unsigned fixedSize = 1;
       unsigned size = 1;
@@ -343,9 +403,9 @@ namespace faze
 
       D3D12_RANGE range{};
     public:
-      DX12ReadbackHeap() : allocator(1, 1) {}
+      DX12ReadbackHeap() : allocator(1) {}
       DX12ReadbackHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
-        : allocator(allocationSize, allocationCount)
+        : allocator(allocationSize * allocationCount)
         , fixedSize(allocationSize)
         , size(allocationSize*allocationCount)
       {
@@ -376,14 +436,14 @@ namespace faze
 
       ReadbackBlock allocate(size_t bytes)
       {
-        auto dip = allocator.allocate(bytes);
-        F_ASSERT(dip.offset != -1, "No space left, make bigger DX12ReadbackHeap :) %d", size);
-        return ReadbackBlock{ gpuAddr,  dip, bytes };
+        auto dip = allocator.allocate(bytes, 512);
+        F_ASSERT(dip != -1, "No space left, make bigger DX12ReadbackHeap :) %d", bytes);
+        return ReadbackBlock{ static_cast<size_t>(dip),  bytes};
       }
 
-      void release(ReadbackBlock desc)
+      void reset()
       {
-        allocator.release(desc.block);
+          allocator = LinearAllocator(size);
       }
 
       void map()
@@ -399,7 +459,7 @@ namespace faze
 
       faze::MemView<uint8_t> getView(ReadbackBlock block)
       {
-        return faze::MemView<uint8_t>(data + block.block.offset, block.targetSize());
+        return faze::MemView<uint8_t>(data + block.offset, block.m_size);
       }
 
       ID3D12Resource* native()
@@ -483,6 +543,7 @@ namespace faze
       vector<UploadBlock> uploadBlocks;
       vector<DynamicDescriptorBlock> descriptorBlocks;
       vector<DX12ReadbackLambda> readbacks;
+      vector<QueryBracket> queries;
     };
     class DX12CommandList : public CommandBufferImpl
     {
@@ -490,6 +551,7 @@ namespace faze
       std::shared_ptr<DX12UploadHeap> m_constants;
       std::shared_ptr<DX12UploadHeap> m_upload;
       std::shared_ptr<DX12ReadbackHeap> m_readback;
+      std::shared_ptr<DX12QueryHeap> m_queryheap;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
@@ -506,11 +568,12 @@ namespace faze
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
-      DX12CommandList(
+        DX12CommandList(
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
         std::shared_ptr<DX12UploadHeap> dynamicUpload,
         std::shared_ptr<DX12ReadbackHeap> readback,
+        std::shared_ptr<DX12QueryHeap> queryheap,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
         DX12CPUDescriptor nullBufferUAV,
         DX12CPUDescriptor nullBufferSRV)
@@ -518,16 +581,20 @@ namespace faze
         , m_constants(constants)
         , m_upload(dynamicUpload)
         , m_readback(readback)
+        , m_queryheap(queryheap)
         , m_descriptors(descriptors)
         , m_nullBufferUAV(nullBufferUAV)
         , m_nullBufferSRV(nullBufferSRV)
       {
         m_buffer->resetList();
+        m_readback->reset();
+        m_queryheap->reset();
 
         std::weak_ptr<DX12UploadHeap> consts = m_constants;
         std::weak_ptr<DX12DynamicDescriptorHeap> descriptrs = m_descriptors;
+        std::weak_ptr<DX12ReadbackHeap> read = readback;
 
-        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs, readback](FreeableResources* ptr)
+        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs, read](FreeableResources* ptr)
         {
           if (auto constants = consts.lock())
           {
@@ -546,16 +613,17 @@ namespace faze
           }
 
           // handle readbacks
-
-          if (!ptr->readbacks.empty())
+          if (auto readback = read.lock())
           {
-            readback->map();
-            for (auto&& it : ptr->readbacks)
-            {
-              it.func(readback->getView(it.dataLocation));
-              readback->release(it.dataLocation);
-            }
-            readback->unmap();
+              if (!ptr->readbacks.empty())
+              {
+                  readback->map();
+                  for (auto&& it : ptr->readbacks)
+                  {
+                      it.func(readback->getView(it.dataLocation));
+                  }
+                  readback->unmap();
+              }
           }
 
           delete ptr;
@@ -859,7 +927,7 @@ namespace faze
       DX12CPUDescriptor resource;
       DXGI_FORMAT format;
       int m_rowPitch = -1;
-      unsigned m_stride = 0;
+      unsigned m_stride = 1;
       friend class DX12Device;
     public:
       DX12DynamicBufferView()
@@ -986,7 +1054,8 @@ namespace faze
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
 
-      Rabbitpool2<DX12ReadbackHeap> m_readbacks;
+      Rabbitpool2<DX12ReadbackHeap> m_readbackPool; // make this a new kind of pool, which keeps alive recently used.
+      Rabbitpool2<DX12QueryHeap> m_queryHeapPool;
       Rabbitpool2<DX12CommandBuffer> m_copyListPool;
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
@@ -1062,6 +1131,8 @@ namespace faze
       void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
+      DX12QueryHeap createQueryHeap(unsigned counters);
+      DX12ReadbackHeap createReadback(unsigned pages, unsigned pageSize);
       DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
       DX12Fence         createNativeFence();
       std::shared_ptr<CommandBufferImpl> createDMAList() override;

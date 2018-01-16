@@ -18,6 +18,7 @@ namespace faze
 
       enum class PacketType
       {
+        QueryCounters,
         RenderBlock,
         BufferCopy,
         BufferCpuToGpuCopy,
