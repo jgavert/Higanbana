@@ -33,6 +33,8 @@
 
 #include "faze/src/new_gfx/definitions.hpp"
 
+#include <tuple>
+
 using namespace faze;
 using namespace faze::math;
 
@@ -148,7 +150,7 @@ void mainWindow(ProgramParams& params)
       rescheduleTask();
     });
 
-    auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
+    //auto image = textureUtils::loadImageFromFilesystem(fs, "/simple.jpg");
     log.update();
 
     bool explicitID = false;
@@ -211,7 +213,7 @@ void mainWindow(ProgramParams& params)
       time.firstTick();
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709).bufferCount(3);
+        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709).bufferCount(3).presentMode(PresentMode::Fifo);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
@@ -242,8 +244,8 @@ void mainWindow(ProgramParams& params)
           .setShader("buffertest")
           .setThreadGroups(uint3(32, 1, 1)));
 
-        auto testImage = dev.createTexture(image);
-        auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        //auto testImage = dev.createTexture(image);
+        //auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
         auto testDesc = ResourceDescriptor()
           .setName("testTexture")
@@ -283,7 +285,7 @@ void mainWindow(ProgramParams& params)
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
         renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(64, 1, 1));
-        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffect", uint3(64, 1, 1));
+        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffectLDS", uint3(64, 1, 1));
         renderer::Blitter blit(dev);
         renderer::ImGui imgRenderer(dev);
 
@@ -294,6 +296,11 @@ void mainWindow(ProgramParams& params)
         bool closeAnyway = false;
 
         bool captureMouse = false;
+
+        bool controllerConnected = false;
+
+        vector<std::pair<std::string, double>> counters;
+        float gpuFrameTime = -1.f;
 
         graphicsCpuTime.firstTick();
         CpuTime.firstTick();
@@ -310,9 +317,10 @@ void mainWindow(ProgramParams& params)
             float2 xy{ 0 };
 
             auto input = pad.readValue();
-
+            controllerConnected = false;
             if (input.alive)
             {
+              controllerConnected = true;
               auto floatizeAxises = [](int16_t input, float& output)
               {
                 constexpr int16_t deadzone = 4500;
@@ -460,15 +468,15 @@ void mainWindow(ProgramParams& params)
           //if (inputs.isPressedThisFrame('3', 2))
 
           iRes.y = 1;
-          //iRes.x *= 64;
           postPass.compute(tasks, texUav2, texSrv, iRes);
+          iRes.x *= 64;
           postPass2.compute(tasks, texUav3, texSrv, iRes);
 
           {
             // we have pulsing red color background, draw a triangle on top of it !
             auto node = tasks.createPass("Triangle!");
             node.renderpass(triangleRenderpass);
-            backbuffer.setOp(LoadOp::Clear);
+            backbuffer.setOp(LoadOp::DontCare);
             node.subpass(backbuffer);
             backbuffer.setOp(LoadOp::DontCare);
 
@@ -635,29 +643,45 @@ void mainWindow(ProgramParams& params)
                 }
                 ImGui::EndPopup();
               }
-              if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? "Splitbarriers enabled" : "Splitbarriers disabled"))
+              if (ImGui::Button("Splitbarriers"))
               {
                 faze::globalconfig::graphics::GraphicsEnableSplitBarriers = faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? false : true;
               }
+              ImGui::SameLine(); ImGui::Text(faze::globalconfig::graphics::GraphicsEnableSplitBarriers ? "enabled" : "disabled");
 
-              if (ImGui::Button(faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? "SplitBarriersPlaceBeginsOnExistingPoints enabled" : "SplitBarriersPlaceBeginsOnExistingPoints disabled"))
+              if (ImGui::Button("Place split begin barriers on existing sync points"))
               {
                 faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? false : true;
               }
+              ImGui::SameLine(); ImGui::Text(faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints ? "enabled" : "disabled");
 
+              /*  Unimplemented
               if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? "ReadStateCombining enabled" : "ReadStateCombining disabled"))
               {
                 faze::globalconfig::graphics::GraphicsEnableReadStateCombining = faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? false : true;
+              } */
+
+              ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
+              ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+
+
+              if (!counters.empty())
+              {
+                  ImGui::Text("%s total %.2fms", counters[0].first.c_str(), counters[0].second);
+                  gpuFrameTime = static_cast<float>(counters[0].second);
+                  for (int idx = 1; idx != counters.size(); ++idx)
+                  {
+                      ImGui::Text("     %.3fms [%s]", counters[idx].second, counters[idx].first.c_str());
+                  }
               }
 
-              ImGui::Text("FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
               auto gfxTime = graphicsCpuTime.getCurrentFps();
               auto cpuTime = CpuTime.getCurrentFps();
               auto logic = logicFps.readValue();
-              ImGui::Text("Graphics Cpu FPS %.2f (%.2fms)", 1000.f / gfxTime, gfxTime);
-              ImGui::Text("Cpu before FPS %.2f (%.2fms)", 1000.f / cpuTime, cpuTime);
-              ImGui::Text("total CpuTime FPS %.2f (%.2fms)", 1000.f / (cpuTime + gfxTime), cpuTime + gfxTime);
-              ImGui::Text("Logic FPS %.2f (%.2fms)", 1000.f / logic, logic);
+              ImGui::Text("\nGraphics Cpu %.2fms", gfxTime);
+              ImGui::Text("Cpu before %.2fms", cpuTime);
+              ImGui::Text("total CpuTime %.2fms", cpuTime + gfxTime);
+              ImGui::Text("Logic %.2fms Controller status: %s", logic, (controllerConnected) ? "Connected, directinput has priority" : "searching for directinput and xinput devices");
 
               ImGui::Text("Position:   %s length:%f", toString(position).c_str(), length(position));
               ImGui::Text("Forward:    %s length:%f", toString(dir).c_str(), length(dir));
@@ -768,12 +792,12 @@ void mainWindow(ProgramParams& params)
                 raymarchfpsTarget = 16.666667f / 2.f;
               }
 
-              if (raymarchDynamicEnabled)
+              if (raymarchDynamicEnabled && gpuFrameTime > 0.f)
               {
                 if (frame % 30 == 0)
                 {
                   DynamicScale raymarchDynamicScale(raymarch_Res, raymarchfpsTarget, raymarchFpsThr);
-                  raymarch_Res = raymarchDynamicScale.tick(time.getCurrentFps());
+                  raymarch_Res = raymarchDynamicScale.tick(gpuFrameTime);
                 }
               }
 
@@ -820,7 +844,7 @@ void mainWindow(ProgramParams& params)
                 texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
               }
 
-              ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));
+              //ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));
             }
             ImGui::End();
 
@@ -828,7 +852,15 @@ void mainWindow(ProgramParams& params)
           }
 
           {
-            auto& node = tasks.createPass2("present");
+            auto& node = tasks.createPass2("present barrier");
+            node.queryCounters([&](MemView<std::pair<std::string, double>> view)
+            {
+                counters.clear();
+                for (auto&& it : view)
+                {
+                    counters.push_back(std::make_pair(it.first, it.second));
+                }
+            });
             node.prepareForPresent(backbuffer);
           }
 

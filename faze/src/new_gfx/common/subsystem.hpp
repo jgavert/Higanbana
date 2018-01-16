@@ -25,7 +25,7 @@ namespace faze
       int chosenGpu = 0;
       for (auto&& it : gpus)
       {
-        if (it.vendor == id && id == VendorID::Unknown)
+        if (it.vendor == id || id == VendorID::Unknown)
         {
           chosenGpu = it.id;
         }

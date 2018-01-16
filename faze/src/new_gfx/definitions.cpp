@@ -11,7 +11,7 @@ namespace faze
       bool GraphicsEnableReadStateCombining = false;
       bool GraphicsEnableHandleCommonState = false;
       bool GraphicsEnableSplitBarriers = true;
-      bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints = true;
+      bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
     }
   }
 }

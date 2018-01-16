@@ -390,6 +390,22 @@ namespace faze
       }
     };
 
+    class QueryCounters : public backend::CommandPacket
+    {
+    public:
+        std::function<void(MemView<std::pair<std::string, double>>)> func;
+
+        QueryCounters(backend::ListAllocator, std::function<void(MemView<std::pair<std::string, double>>)>& func)
+            : func(func)
+        {
+        }
+
+        PacketType type() override
+        {
+            return PacketType::QueryCounters;
+        }
+    };
+
     class BufferCpuToGpuCopy : public backend::CommandPacket
     {
     public:

@@ -154,6 +154,11 @@ namespace faze
     {
       list.readback(buffer, startElement, size, func);
     }
+
+    void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)
+    {
+      list.queryCounters(func);
+    }
   };
 
   class CommandGraph
