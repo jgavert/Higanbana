@@ -1,6 +1,6 @@
 #pragma once
 #if defined(FAZE_PLATFORM_WINDOWS)
-#define FAZE_DX12_DXIL
+//#define FAZE_DX12_DXIL
 
 #include <DXGI.h>
 #include <dxgi1_6.h>
