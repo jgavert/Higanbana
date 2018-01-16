@@ -644,38 +644,38 @@ void mainWindow(ProgramParams& params)
                 ImGui::EndPopup();
               }
               if (ImGui::Button("barrier tactic"))
-                  ImGui::OpenPopup("select barrier tactic2");
+                ImGui::OpenPopup("select barrier tactic2");
               if (ImGui::BeginPopup("select barrier tactic2"))
               {
-                  if (ImGui::Selectable("Immediate barriers"))
-                  {
-                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = false;
-                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
-                  }
-                  if (ImGui::Selectable("Split barriers"))
-                  {
-                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
-                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
-                  }
-                  if (ImGui::Selectable("Split barriers with questionable tactic"))
-                  {
-                      faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
-                      faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = true;
-                  }
-                  ImGui::EndPopup();
+                if (ImGui::Selectable("Immediate barriers"))
+                {
+                  faze::globalconfig::graphics::GraphicsEnableSplitBarriers = false;
+                  faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
+                }
+                if (ImGui::Selectable("Split barriers"))
+                {
+                  faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
+                  faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
+                }
+                if (ImGui::Selectable("Split barriers with questionable tactic"))
+                {
+                  faze::globalconfig::graphics::GraphicsEnableSplitBarriers = true;
+                  faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints = true;
+                }
+                ImGui::EndPopup();
               }
               ImGui::SameLine();
               if (!faze::globalconfig::graphics::GraphicsEnableSplitBarriers && !faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
               {
-                  ImGui::Text("Immediate barriers");
+                ImGui::Text("Immediate barriers");
               }
               if (faze::globalconfig::graphics::GraphicsEnableSplitBarriers && !faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
               {
-                  ImGui::Text("Split barriers");
+                ImGui::Text("Split barriers");
               }
               if (faze::globalconfig::graphics::GraphicsEnableSplitBarriers && faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
               {
-                  ImGui::Text("Split barriers where split begin barriers are placed in sync points");
+                ImGui::Text("Split barriers where split begin barriers are placed in sync points");
               }
 
               /*  Unimplemented
@@ -687,15 +687,14 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
               ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
 
-
               if (!counters.empty())
               {
-                  ImGui::Text("%s total %.2fms", counters[0].first.c_str(), counters[0].second);
-                  gpuFrameTime = static_cast<float>(counters[0].second);
-                  for (int idx = 1; idx != counters.size(); ++idx)
-                  {
-                      ImGui::Text("     %.3fms [%s]", counters[idx].second, counters[idx].first.c_str());
-                  }
+                ImGui::Text("%s total %.2fms", counters[0].first.c_str(), counters[0].second);
+                gpuFrameTime = static_cast<float>(counters[0].second);
+                for (int idx = 1; idx != counters.size(); ++idx)
+                {
+                  ImGui::Text("     %.3fms [%s]", counters[idx].second, counters[idx].first.c_str());
+                }
               }
 
               auto gfxTime = graphicsCpuTime.getCurrentFps();
@@ -878,11 +877,11 @@ void mainWindow(ProgramParams& params)
             auto& node = tasks.createPass2("present barrier");
             node.queryCounters([&](MemView<std::pair<std::string, double>> view)
             {
-                counters.clear();
-                for (auto&& it : view)
-                {
-                    counters.push_back(std::make_pair(it.first, it.second));
-                }
+              counters.clear();
+              for (auto&& it : view)
+              {
+                counters.push_back(std::make_pair(it.first, it.second));
+              }
             });
             node.prepareForPresent(backbuffer);
           }
@@ -921,6 +920,12 @@ void mainWindow(ProgramParams& params)
   */
 
   log.update();
+}
+
+#else
+
+void mainWindow(ProgramParams&)
+{
 }
 
 #endif
