@@ -21,6 +21,7 @@ namespace faze
         RenderBlock,
         BufferCopy,
         BufferCpuToGpuCopy,
+        Readback,
         UpdateTexture,
         Dispatch,
         ClearRT,

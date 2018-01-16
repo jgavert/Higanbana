@@ -22,6 +22,7 @@
 
 #define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 #define F_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
+#define F_LOGi(msg, ...) log_im(msg, ##__VA_ARGS__)
 #define F_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
 #define F_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
 #define F_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
@@ -89,6 +90,7 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...);
 
 void log_adv(const char *fn, int ln, const char* format, ...);
 void log_def(const char* format, ...);
+void log_im(const char* format, ...);
 void log_imSys(const char* prefix, const char* format, ...);
 void log_sys(const char* prefix, const char* format, ...);
 

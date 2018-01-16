@@ -368,6 +368,28 @@ namespace faze
       }
     };
 
+    class Readback : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      uint64_t offset;
+      uint64_t size;
+      std::function<void(MemView<uint8_t>)> func;
+
+      Readback(backend::ListAllocator, Buffer& target, uint64_t startIndex, uint64_t size, std::function<void(MemView<uint8_t>)> func)
+        : target(target.dependency())
+        , offset(startIndex)
+        , size(size)
+        , func(func)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::Readback;
+      }
+    };
+
     class BufferCpuToGpuCopy : public backend::CommandPacket
     {
     public:

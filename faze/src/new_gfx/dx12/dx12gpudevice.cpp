@@ -34,6 +34,7 @@ namespace faze
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024 * 4)) // we have room 64megs of dynamic buffers
+      , m_dynamicReadback(std::make_shared<DX12ReadbackHeap>(device.Get(), 256 * 256, 1024 * 4)) // we have room 64megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
       , m_trash(std::make_shared<Garbage>())
       , m_seqTracker(std::make_shared<SequenceTracker>())
@@ -1251,7 +1252,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicReadback, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1266,7 +1267,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicReadback, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1280,7 +1281,7 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_dynamicReadback, m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
