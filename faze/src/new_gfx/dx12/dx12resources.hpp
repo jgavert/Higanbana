@@ -1050,7 +1050,7 @@ namespace faze
       DX12Fence m_deviceFence;
 
       StagingDescriptorHeap m_generics;
-      StagingDescriptorHeap m_samplers;
+      //StagingDescriptorHeap m_samplers;
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
 
