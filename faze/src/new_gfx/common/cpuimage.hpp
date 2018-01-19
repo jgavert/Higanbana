@@ -90,7 +90,7 @@ namespace faze
       mips.push_back(info);
       for (auto mip = 1u; mip < d.miplevels; ++mip)
       {
-        auto mipDim = int3{ std::min(1, info.dim.x / 2), std::min(1, info.dim.y / 2), std::min(1, info.dim.z / 2) };
+        auto mipDim = int3{ std::max(1, info.dim.x / 2), std::max(1, info.dim.y / 2), std::max(1, info.dim.z / 2) };
         info.dim = mipDim;
         info.rowPitch = formatSize.pixelSize * info.dim.x;
         info.slicePitch = info.rowPitch * info.dim.y;

@@ -80,6 +80,7 @@ namespace faze
       {
         ID3D12Resource* image;
         int16_t mips;
+        bool commonPromotable;
         vector<D3D12_RESOURCE_STATES> states;
         vector<DrawCallIndex> lastModified;
       };
@@ -99,7 +100,8 @@ namespace faze
       void reset();
 
     private:
-      UsageHint getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags);
+      inline UsageHint getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags) const;
+      inline bool promoteFromCommon(D3D12_RESOURCE_STATES targetState, bool bufferOrSimultaneousTexture) const;
     };
   }
 }

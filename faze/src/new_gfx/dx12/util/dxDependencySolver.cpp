@@ -7,7 +7,7 @@ namespace faze
 {
   namespace backend
   {
-    DX12DependencySolver::UsageHint DX12DependencySolver::getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags)
+    DX12DependencySolver::UsageHint DX12DependencySolver::getUsageFromAccessFlags(D3D12_RESOURCE_STATES flags) const
     {
       int32_t writeMask = D3D12_RESOURCE_STATE_UNORDERED_ACCESS | D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_RENDER_TARGET
         | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_RESOLVE_DEST;
@@ -17,6 +17,23 @@ namespace faze
         return DX12DependencySolver::UsageHint::write;
       }
       return DX12DependencySolver::UsageHint::read;
+    }
+
+    bool DX12DependencySolver::promoteFromCommon(D3D12_RESOURCE_STATES targetState, bool bufferOrSimultaneousTexture) const
+    {
+        if (bufferOrSimultaneousTexture)
+        {
+            constexpr auto promoteMask = ~(D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ);
+            if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
+                return true;
+        }
+        else
+        {
+            constexpr auto promoteMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
+                return true;
+        }
+        return false;
     }
 
     int DX12DependencySolver::addDrawCall(CommandPacket::PacketType name)
@@ -80,16 +97,20 @@ namespace faze
         auto tesState = m_resourceStates[id];
         auto flags = tesState.state->flags;
 
-        /*
-        auto commonDecayMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        for (auto&& flag : flags)
+        
+        if (globalconfig::graphics::GraphicsEnableHandleCommonState)
         {
-            if ((flag & commonDecayMask) == flag) // if survives decayMask, it can be decayed.
-                flag = D3D12_RESOURCE_STATE_COMMON;
+            if (tesState.state->commonStateOptimisation)
+            {
+                for (auto&& flag : flags)
+                {
+                    flag = D3D12_RESOURCE_STATE_COMMON;
+                }
+            }
         }
-        */
+        
         vector<DrawCallIndex> lm(flags.size(), -1);
-        m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, flags, lm };
+        m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, tesState.state->commonStateOptimisation, flags, lm };
       }
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -129,19 +150,11 @@ namespace faze
                   {
                     uav = true;
                   }
-                  if (state == D3D12_RESOURCE_STATE_COMMON)
+                  if (globalconfig::graphics::GraphicsEnableHandleCommonState && state == D3D12_RESOURCE_STATE_COMMON && promoteFromCommon(job.access, resource->second.commonPromotable))
                   {
-                    constexpr const auto mask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-                    if ((job.access & mask) == job.access)
-                    {
-                      resource->second.lastModified[subresourceIndex] = drawIndex;
-                      //GFX_ILOG("common modified draw: %d resource: %zu subresource: %d", drawIndex, job.resource, subresourceIndex);
-                      state = job.access;
-                      continue;
-                    }
+                    state = job.access;
                   }
-
-                  if (state != job.access)
+                  else if (state != job.access)
                   {
                     if (globalconfig::graphics::GraphicsEnableReadStateCombining && getUsageFromAccessFlags(state) == DX12DependencySolver::UsageHint::read && getUsageFromAccessFlags(job.access) == DX12DependencySolver::UsageHint::read)
                     {
@@ -318,26 +331,6 @@ namespace faze
       {
         return;
       }
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-      if (faze::globalconfig::graphics::GraphicsSplitBarriersPlaceBeginsOnExistingPoints)
-      {
-        bool hasBegin = false;
-        bool hasOther = false;
-        for (int i = barrierOffset; i < barrierOffset + barrierSize; ++i)
-        {
-          if (barriers[i].Flags == D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY)
-          {
-            hasBegin = true;
-          }
-          else
-          {
-            hasOther = true;
-          }
-        }
-
-        F_ASSERT(!(hasBegin && !hasOther), "Unoptimal barrier");
-      }
-#endif
 
       gfx->ResourceBarrier(barrierSize, barriers.data() + barrierOffset);
     }

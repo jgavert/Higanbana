@@ -2,6 +2,7 @@
 
 #include "shaders/textureTest.if.hpp"
 #include "shaders/buffertest.if.hpp"
+#include "shaders/triangle.if.hpp"
 
 using namespace faze;
 
@@ -82,15 +83,11 @@ TEST_F(Graphics, UploadAndReadbackTest)
   gpu.submit(tasks);
   gpu.waitGpuIdle();
 
-  EXPECT_EQ(true, WasReadback);
+  EXPECT_TRUE(WasReadback);
 }
 
 TEST_F(Graphics, readbackOffsetTest)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
-    .setShader("buffertest")
-    .setThreadGroups(uint3(32, 1, 1)));
-
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
     .setFormat(FormatType::Uint32)
@@ -99,6 +96,8 @@ TEST_F(Graphics, readbackOffsetTest)
     .setUsage(ResourceUsage::GpuRW);
 
   auto buffer = gpu.createBuffer(bufferdesc);
+
+  bool WasReadback = false;
 
   CommandGraph tasks = gpu.createGraph();
   {
@@ -122,7 +121,7 @@ TEST_F(Graphics, readbackOffsetTest)
 
     node.copy(buffer, verts);
 
-    node.readback(buffer, 16, 32, [](MemView<uint8_t> view)
+    node.readback(buffer, 16, 32, [&WasReadback](MemView<uint8_t> view)
     {
       auto asd = reinterpret_memView<unsigned>(view);
 
@@ -131,11 +130,15 @@ TEST_F(Graphics, readbackOffsetTest)
         EXPECT_EQ(i, asd[i]);
       }
       EXPECT_EQ(32, asd.size());
+
+      WasReadback = true;
     });
   }
 
   gpu.submit(tasks);
   gpu.waitGpuIdle();
+
+  EXPECT_TRUE(WasReadback);
 }
 
 TEST_F(Graphics, ModifyDataInShaderAndReadback)
@@ -161,6 +164,8 @@ TEST_F(Graphics, ModifyDataInShaderAndReadback)
   auto buffer2 = gpu.createBuffer(bufferdesc2);
   auto bufferUAV2 = gpu.createBufferUAV(buffer2);
 
+  bool WasReadback = false;
+
   CommandGraph tasks = gpu.createGraph();
   {
     auto& node = tasks.createPass2("Buffertest");
@@ -182,7 +187,7 @@ TEST_F(Graphics, ModifyDataInShaderAndReadback)
       node.dispatch(binding, uint3(1));
     }
 
-    node.readback(buffer2, [](MemView<uint8_t> view)
+    node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
     {
       auto asd = reinterpret_memView<unsigned>(view);
 
@@ -191,11 +196,15 @@ TEST_F(Graphics, ModifyDataInShaderAndReadback)
         EXPECT_EQ(i * 2, asd[i]);
       }
       EXPECT_EQ(32, asd.size());
+
+      WasReadback = true;
     });
   }
 
   gpu.submit(tasks);
   gpu.waitGpuIdle();
+
+  EXPECT_TRUE(WasReadback);
 }
 
 TEST_F(Graphics, RaymarchShader)
@@ -243,4 +252,558 @@ TEST_F(Graphics, RaymarchShader)
 
   gpu.submit(tasks);
   gpu.waitGpuIdle();
+}
+
+TEST_F(Graphics, ModifyDataInComputeQueue)
+{
+    ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+        .setShader("buffertest")
+        .setThreadGroups(uint3(32, 1, 1)));
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Uint32)
+        .setWidth(32)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+    auto bufferUAV = gpu.createBufferUAV(buffer);
+
+    auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+        .setName("testBufferTarget2");
+
+    auto buffer2 = gpu.createBuffer(bufferdesc2);
+    auto bufferUAV2 = gpu.createBufferUAV(buffer2);
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("Buffertest", CommandGraphNode::NodeType::Compute);
+
+        vector<unsigned> vertices;
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            vertices.push_back(i);
+        }
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+
+        {
+            auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+            binding.srv(::shader::BufferTest::input, bufferSRV);
+            binding.uav(::shader::BufferTest::output, bufferUAV2);
+            node.dispatch(binding, uint3(1));
+        }
+
+        node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<unsigned>(view);
+
+            for (unsigned i = 0; i < 32; ++i)
+            {
+                EXPECT_EQ(i * 2, asd[i]);
+            }
+            EXPECT_EQ(32, asd.size());
+
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+
+    EXPECT_TRUE(WasReadback);
+}
+
+TEST_F(Graphics, CopyDataInDMA)
+{
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Uint32)
+        .setWidth(64)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("Buffertest", CommandGraphNode::NodeType::DMA);
+
+        vector<unsigned> vertices;
+        for (unsigned i = 0; i < 16; ++i)
+        {
+            vertices.push_back(static_cast<unsigned>(-1));
+        }
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            vertices.push_back(i);
+        }
+        for (unsigned i = 0; i < 16; ++i)
+        {
+            vertices.push_back(static_cast<unsigned>(-1));
+        }
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+
+        node.readback(buffer, 16, 32, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<unsigned>(view);
+
+            for (unsigned i = 0; i < 32; ++i)
+            {
+                EXPECT_EQ(i, asd[i]);
+            }
+            EXPECT_EQ(32, asd.size());
+
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+
+    EXPECT_TRUE(WasReadback);
+}
+
+TEST_F(Graphics, ComputetoDMA)
+{
+    ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+        .setShader("buffertest")
+        .setThreadGroups(uint3(32, 1, 1)));
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Uint32)
+        .setWidth(32)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+    auto bufferUAV = gpu.createBufferUAV(buffer);
+
+    auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+        .setName("testBufferTarget2");
+
+    auto buffer2 = gpu.createBuffer(bufferdesc2);
+    auto bufferUAV2 = gpu.createBufferUAV(buffer2);
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("compute", CommandGraphNode::NodeType::Compute);
+
+        vector<unsigned> vertices;
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            vertices.push_back(i);
+        }
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+        {
+            auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+            binding.srv(::shader::BufferTest::input, bufferSRV);
+            binding.uav(::shader::BufferTest::output, bufferUAV2);
+            node.dispatch(binding, uint3(1));
+        }
+    }
+    {
+        auto& node = tasks.createPass2("readback", CommandGraphNode::NodeType::DMA);
+        node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<unsigned>(view);
+
+            for (unsigned i = 0; i < 32; ++i)
+            {
+                EXPECT_EQ(i * 2, asd[i]);
+            }
+            EXPECT_EQ(32, asd.size());
+
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+
+    EXPECT_TRUE(WasReadback);
+}
+
+TEST_F(Graphics, DMAtoCompute)
+{
+    ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+        .setShader("buffertest")
+        .setThreadGroups(uint3(32, 1, 1)));
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Uint32)
+        .setWidth(32)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+    auto bufferUAV = gpu.createBufferUAV(buffer);
+
+    auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+        .setName("testBufferTarget2");
+
+    auto buffer2 = gpu.createBuffer(bufferdesc2);
+    auto bufferUAV2 = gpu.createBufferUAV(buffer2);
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("uploadThroughDMA", CommandGraphNode::NodeType::DMA);
+
+        vector<unsigned> vertices;
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            vertices.push_back(i);
+        }
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+    }
+    {
+        auto& node = tasks.createPass2("uploadThroughDMA", CommandGraphNode::NodeType::Compute);
+        {
+            auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+            binding.srv(::shader::BufferTest::input, bufferSRV);
+            binding.uav(::shader::BufferTest::output, bufferUAV2);
+            node.dispatch(binding, uint3(1));
+        }
+
+        node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<unsigned>(view);
+
+            for (unsigned i = 0; i < 32; ++i)
+            {
+                EXPECT_EQ(i * 2, asd[i]);
+            }
+            EXPECT_EQ(32, asd.size());
+
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+
+    EXPECT_TRUE(WasReadback);
+}
+
+TEST_F(Graphics, DMAtoComputetoDMA)
+{
+    ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+        .setShader("buffertest")
+        .setThreadGroups(uint3(32, 1, 1)));
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Uint32)
+        .setWidth(32)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+    auto bufferUAV = gpu.createBufferUAV(buffer);
+
+    auto bufferdesc2 = ResourceDescriptor(bufferdesc)
+        .setName("testBufferTarget2");
+
+    auto buffer2 = gpu.createBuffer(bufferdesc2);
+    auto bufferUAV2 = gpu.createBufferUAV(buffer2);
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("uploadThroughDMA", CommandGraphNode::NodeType::DMA);
+
+        vector<unsigned> vertices;
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            vertices.push_back(i);
+        }
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+    }
+    {
+        auto& node = tasks.createPass2("doCompute", CommandGraphNode::NodeType::Compute);
+        {
+            auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
+            binding.srv(::shader::BufferTest::input, bufferSRV);
+            binding.uav(::shader::BufferTest::output, bufferUAV2);
+            node.dispatch(binding, uint3(1));
+        }
+    }
+    {
+        auto& node = tasks.createPass2("readback", CommandGraphNode::NodeType::DMA);
+        node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<unsigned>(view);
+
+            for (unsigned i = 0; i < 32; ++i)
+            {
+                EXPECT_EQ(i * 2, asd[i]);
+            }
+            EXPECT_EQ(32, asd.size());
+
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+
+    EXPECT_TRUE(WasReadback);
+}
+
+TEST_F(Graphics, Triangle)
+{
+    Renderpass triangleRenderpass = gpu.createRenderpass();
+
+    auto pipelineDescriptor = GraphicsPipelineDescriptor()
+        .setVertexShader("triangle")
+        .setPixelShader("triangle")
+        .setPrimitiveTopology(PrimitiveTopology::Triangle)
+        .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false));
+
+    GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Float32RGBA)
+        .setWidth(3)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+
+    auto testDesc = ResourceDescriptor()
+        .setName("testTexture")
+        .setFormat(FormatType::Unorm16RGBA)
+        .setWidth(400)
+        .setHeight(400)
+        .setMiplevels(4)
+        .setDimension(FormatDimension::Texture2D)
+        .setUsage(ResourceUsage::RenderTargetRW);
+    auto texture = gpu.createTexture(testDesc);
+    auto texRtv = gpu.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("upload");
+
+        vector<float4> vertices;
+        vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+        vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+        vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+    }
+    {
+        // we have pulsing red color background, draw a triangle on top of it !
+        auto node = tasks.createPass("Triangle!");
+        node.renderpass(triangleRenderpass);
+        node.subpass(texRtv);
+        texRtv.setOp(LoadOp::Clear);
+
+        auto binding = node.bind<::shader::Triangle>(trianglePipe);
+        //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+        binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
+        binding.srv(::shader::Triangle::vertices, bufferSRV);
+        node.draw(binding, 3, 1);
+        node.endRenderpass();
+        tasks.addPass(std::move(node));
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+}
+
+TEST_F(Graphics, DMAtoGraphics)
+{
+    Renderpass triangleRenderpass = gpu.createRenderpass();
+
+    auto pipelineDescriptor = GraphicsPipelineDescriptor()
+        .setVertexShader("triangle")
+        .setPixelShader("triangle")
+        .setPrimitiveTopology(PrimitiveTopology::Triangle)
+        .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false));
+
+    GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Float32RGBA)
+        .setWidth(3)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+
+    auto testDesc = ResourceDescriptor()
+        .setName("testTexture")
+        .setFormat(FormatType::Unorm16RGBA)
+        .setWidth(400)
+        .setHeight(400)
+        .setMiplevels(4)
+        .setDimension(FormatDimension::Texture2D)
+        .setUsage(ResourceUsage::RenderTargetRW);
+    auto texture = gpu.createTexture(testDesc);
+    auto texRtv = gpu.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("uploadThroughDMA", CommandGraphNode::NodeType::DMA);
+
+        vector<float4> vertices;
+        vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+        vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+        vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+    }
+    {
+        // we have pulsing red color background, draw a triangle on top of it !
+        auto node = tasks.createPass("Triangle!");
+        node.renderpass(triangleRenderpass);
+        node.subpass(texRtv);
+        texRtv.setOp(LoadOp::Clear);
+
+        auto binding = node.bind<::shader::Triangle>(trianglePipe);
+        //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+        binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
+        binding.srv(::shader::Triangle::vertices, bufferSRV);
+        node.draw(binding, 3, 1);
+        node.endRenderpass();
+        tasks.addPass(std::move(node));
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+}
+
+TEST_F(Graphics, GraphicstoDMA)
+{
+    Renderpass triangleRenderpass = gpu.createRenderpass();
+
+    auto pipelineDescriptor = GraphicsPipelineDescriptor()
+        .setVertexShader("triangle")
+        .setPixelShader("triangle")
+        .setPrimitiveTopology(PrimitiveTopology::Triangle)
+        .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false));
+
+    GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+
+    auto bufferdesc = ResourceDescriptor()
+        .setName("testBufferTarget")
+        .setFormat(FormatType::Float32RGBA)
+        .setWidth(3)
+        .setDimension(FormatDimension::Buffer)
+        .setUsage(ResourceUsage::GpuRW);
+
+    auto buffer = gpu.createBuffer(bufferdesc);
+    auto bufferSRV = gpu.createBufferSRV(buffer);
+
+    auto testDesc = ResourceDescriptor()
+        .setName("testTexture")
+        .setFormat(FormatType::Unorm16RGBA)
+        .setWidth(400)
+        .setHeight(400)
+        .setMiplevels(4)
+        .setDimension(FormatDimension::Texture2D)
+        .setUsage(ResourceUsage::RenderTargetRW);
+    auto texture = gpu.createTexture(testDesc);
+    auto texRtv = gpu.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+
+    bool WasReadback = false;
+
+    CommandGraph tasks = gpu.createGraph();
+    {
+        auto& node = tasks.createPass2("uploadThroughDMA");
+
+        vector<float4> vertices;
+        vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+        vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+        vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
+
+        auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+        node.copy(buffer, verts);
+        // we have pulsing red color background, draw a triangle on top of it !
+    }
+    {
+        auto node = tasks.createPass("Triangle!");
+        node.renderpass(triangleRenderpass);
+        node.subpass(texRtv);
+        texRtv.setOp(LoadOp::Clear);
+
+        auto binding = node.bind<::shader::Triangle>(trianglePipe);
+        //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+        binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
+        binding.srv(::shader::Triangle::vertices, bufferSRV);
+        node.draw(binding, 3, 1);
+        node.endRenderpass();
+        tasks.addPass(std::move(node));
+    }
+    {
+        auto& node = tasks.createPass2("readback", CommandGraphNode::NodeType::DMA);
+        node.readback(buffer, [&WasReadback](MemView<uint8_t> view)
+        {
+            auto asd = reinterpret_memView<float4>(view);
+
+            vector<float4> vertices;
+            vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+            vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+            vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
+
+            for (int i = 0; i < vertices.size(); ++i)
+            {
+                EXPECT_FLOAT_EQ(vertices[i].x, asd[i].x);
+                EXPECT_FLOAT_EQ(vertices[i].y, asd[i].y);
+                EXPECT_FLOAT_EQ(vertices[i].z, asd[i].z);
+                EXPECT_FLOAT_EQ(vertices[i].w, asd[i].w);
+            }
+            
+            
+            WasReadback = true;
+        });
+    }
+
+    gpu.submit(tasks);
+    gpu.waitGpuIdle();
+    EXPECT_TRUE(WasReadback);
 }

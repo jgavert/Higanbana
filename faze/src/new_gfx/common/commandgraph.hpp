@@ -11,14 +11,26 @@ namespace faze
 {
   class CommandGraphNode
   {
+  public:
+      enum class NodeType
+      {
+          Graphics,
+          Compute,
+          DMA
+      };
+  private:
     CommandList list;
     std::string name;
     friend struct backend::DeviceData;
     int subpassIndex = 0;
+    NodeType type;
+
+
   public:
     CommandGraphNode() {}
-    CommandGraphNode(std::string name)
+    CommandGraphNode(std::string name, NodeType type)
       : name(name)
+      , type(type)
     {
       list.renderTask(name);
     }
@@ -170,9 +182,9 @@ namespace faze
       : m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
     {}
 
-    CommandGraphNode createPass(std::string name)
+    CommandGraphNode createPass(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
     {
-      return CommandGraphNode(name);
+      return CommandGraphNode(name, type);
     }
 
     void addPass(CommandGraphNode&& node)
@@ -180,9 +192,9 @@ namespace faze
       m_nodes->emplace_back(std::move(node));
     }
 
-    CommandGraphNode& createPass2(std::string name)
+    CommandGraphNode& createPass2(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
     {
-      m_nodes->emplace_back(name);
+      m_nodes->emplace_back(name, type);
       return m_nodes->back();
     }
   };
