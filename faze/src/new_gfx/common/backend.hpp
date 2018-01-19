@@ -146,6 +146,11 @@ namespace faze
       {
         return static_cast<unsigned>((additionalInfo >> (arrayBits + arrayBits + mipBits + mipBits)) & createMaskWithNBitsSet(mipBits));
       }
+
+      bool operator==(const TrackedState& a) const noexcept
+      {
+        return resPtr == a.resPtr;
+      }
     };
 
     template <typename TrackedResource>

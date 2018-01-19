@@ -203,8 +203,12 @@ public:
       auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
 
       auto shaderTime = m_fs.timeModified(shaderPath);
-      auto shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
       auto spirvTime = m_fs.timeModified(spvPath);
+      auto shaderInterfaceTime = spirvTime;
+      if (m_fs.fileExists(shaderInterfacePath))
+      {
+        shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
+      }
 
       if (shaderTime > spirvTime || shaderInterfaceTime > spirvTime)
       {

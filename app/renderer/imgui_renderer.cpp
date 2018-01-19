@@ -86,13 +86,12 @@ namespace faze
       ::ImGui::NewFrame();
     }
 
-    void ImGui::endFrame(GpuDevice& device, CommandGraph& graph, TextureRTV& target)
+    void ImGui::endFrame(GpuDevice& device, CommandGraphNode& node, TextureRTV& target)
     {
       ::ImGui::Render();
       auto drawData = ::ImGui::GetDrawData();
       F_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
 
-      auto& node = graph.createPass2("ImGui");
       node.renderpass(renderpass);
       node.subpass(target);
 

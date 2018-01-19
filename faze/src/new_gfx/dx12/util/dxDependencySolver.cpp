@@ -311,19 +311,6 @@ namespace faze
 
     void DX12DependencySolver::runBarrier(ID3D12GraphicsCommandList* gfx, int nextDrawCall)
     {
-      if (nextDrawCall == 0)
-      {
-        int barrierSize = (m_barriersOffsets.size() > 1) ? m_barriersOffsets[1] : static_cast<int>(barriers.size());
-        if (barrierSize == 0)
-        {
-          return;
-        }
-        gfx->ResourceBarrier(barrierSize, barriers.data());
-        return;
-      }
-
-      // after first and second, nextDrawCall == 1
-      // so we need barriers from offset 0
       int barrierOffset = m_barriersOffsets[nextDrawCall];
       int barrierSize = m_barriersOffsets[nextDrawCall + 1] - barrierOffset;
 
