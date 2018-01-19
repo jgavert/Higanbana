@@ -427,7 +427,7 @@ namespace faze
 
         vector<PreparedCommandlist> lists;
 
-        while (i < nodes.size())
+        while (i < static_cast<int>(nodes.size()))
         {
           auto* firstList = &nodes[i];
 
@@ -678,7 +678,7 @@ namespace faze
 
         vector<PreparedCommandlist> lists;
 
-        while (i < nodes.size())
+        while (i < static_cast<int>(nodes.size()))
         {
           auto* firstList = &nodes[i];
 
