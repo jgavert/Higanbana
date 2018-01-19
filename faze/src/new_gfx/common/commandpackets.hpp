@@ -113,6 +113,22 @@ namespace faze
       }
     };
 
+    class PrepareForQueueSwitch : public backend::CommandPacket
+    {
+    public:
+      unordered_set<backend::TrackedState> deps;
+
+      PrepareForQueueSwitch(backend::ListAllocator, unordered_set<backend::TrackedState>& deps)
+        : deps(deps)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::PrepareForQueueSwitch;
+      }
+    };
+
     // renderpass related packets
 
     class RenderpassBegin : public backend::CommandPacket
@@ -393,17 +409,17 @@ namespace faze
     class QueryCounters : public backend::CommandPacket
     {
     public:
-        std::function<void(MemView<std::pair<std::string, double>>)> func;
+      std::function<void(MemView<std::pair<std::string, double>>)> func;
 
-        QueryCounters(backend::ListAllocator, std::function<void(MemView<std::pair<std::string, double>>)>& func)
-            : func(func)
-        {
-        }
+      QueryCounters(backend::ListAllocator, std::function<void(MemView<std::pair<std::string, double>>)>& func)
+        : func(func)
+      {
+      }
 
-        PacketType type() override
-        {
-            return PacketType::QueryCounters;
-        }
+      PacketType type() override
+      {
+        return PacketType::QueryCounters;
+      }
     };
 
     class BufferCpuToGpuCopy : public backend::CommandPacket

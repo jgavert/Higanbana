@@ -372,6 +372,7 @@ namespace faze
 
     void DeviceData::submit(Swapchain& swapchain, CommandGraph graph)
     {
+#if 0 // old
       auto& nodes = *graph.m_nodes;
 
       if (!nodes.empty())
@@ -406,6 +407,145 @@ namespace faze
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
       }
+#else
+
+      struct PreparedCommandlist
+      {
+        CommandGraphNode::NodeType type;
+        CommandList list;
+        unordered_set<backend::TrackedState> requirements;
+        std::shared_ptr<SemaphoreImpl> sema;
+        bool presents = false;
+        bool isLastList = false;
+      };
+
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        int i = 0;
+
+        vector<PreparedCommandlist> lists;
+
+        while (i < nodes.size())
+        {
+          auto* firstList = &nodes[i];
+
+          PreparedCommandlist plist{};
+          plist.type = firstList->type;
+          plist.list = std::move(nodes[i].list);
+          plist.requirements = nodes[i].needsResources();
+          plist.sema = nodes[i].acquireSemaphore;
+          plist.presents = nodes[i].preparesPresent;
+
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != plist.type)
+              break;
+            plist.list.list.append(std::move(nodes[i].list.list));
+            const auto& ref = nodes[i].needsResources();
+            plist.requirements.insert(ref.begin(), ref.end());
+            if (!plist.sema)
+            {
+              plist.sema = nodes[i].acquireSemaphore;
+            }
+            if (!plist.presents)
+            {
+              plist.presents = nodes[i].preparesPresent;
+            }
+          }
+
+          lists.emplace_back(std::move(plist));
+        }
+
+        lists[lists.size() - 1].isLastList = true;
+
+        std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+
+        for (auto&& list : lists)
+        {
+          if (!list.requirements.empty())
+          {
+            list.list.prepareForQueueSwitch(list.requirements);
+          }
+
+          std::shared_ptr<CommandBufferImpl> nativeList;
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            nativeList = m_impl->createDMAList();
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            nativeList = m_impl->createComputeList();
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            nativeList = m_impl->createGraphicsList();
+          }
+
+          nativeList->fillWith(m_impl, list.list.list);
+
+          LiveCommandBuffer buffer{};
+          buffer.lists.emplace_back(nativeList);
+
+          buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+          buffer.intermediateLists->emplace_back(std::move(list.list.list));
+
+          if (optionalWaitSemaphore)
+          {
+            buffer.wait.push_back(optionalWaitSemaphore);
+          }
+
+          if (list.sema)
+          {
+            buffer.wait.push_back(list.sema);
+          }
+
+          if (!list.isLastList)
+          {
+            optionalWaitSemaphore = m_impl->createSemaphore();
+            buffer.signal.push_back(optionalWaitSemaphore);
+          }
+
+          if (list.presents)
+          {
+            auto presenene = swapchain.impl()->renderSemaphore();
+            if (presenene)
+            {
+              buffer.signal.push_back(presenene);
+            }
+          }
+
+          if (list.isLastList)
+          {
+            buffer.fence = m_impl->createFence();
+          }
+
+          MemView<std::shared_ptr<FenceImpl>> viewToFences;
+
+          if (buffer.fence)
+          {
+            viewToFences = buffer.fence;
+          }
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            m_impl->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+          }
+          m_buffers.emplace_back(buffer);
+        }
+      }
+#endif
 
       gc();
     }
@@ -435,91 +575,202 @@ namespace faze
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
       }
-#else
-        auto& nodes = *graph.m_nodes;
+#elif 0
+      auto& nodes = *graph.m_nodes;
 
-        if (!nodes.empty())
+      if (!nodes.empty())
+      {
+        int i = 0;
+
+        std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+
+        while (i < nodes.size())
         {
-            int i = 0;
+          auto* firstList = &nodes[i];
+          auto currentListType = firstList->type;
 
-            std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != currentListType)
+              break;
+            firstList->list.list.append(std::move(nodes[i].list.list));
+          }
 
-            while (i < nodes.size())
-            {
-                auto* firstList = &nodes[i];
-                auto currentListType = firstList->type;
+          bool isLastList = i >= nodes.size();
 
-                i += 1;
-                for (; i < static_cast<int>(nodes.size()); ++i)
-                {
-                    if (nodes[i].type != currentListType)
-                        break;
-                    firstList->list.list.append(std::move(nodes[i].list.list));
-                }
+          std::shared_ptr<CommandBufferImpl> nativeList;
 
-                bool isLastList = i >= nodes.size();
+          switch (currentListType)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            nativeList = m_impl->createDMAList();
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            nativeList = m_impl->createComputeList();
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            nativeList = m_impl->createGraphicsList();
+          }
 
-                std::shared_ptr<CommandBufferImpl> nativeList;
+          nativeList->fillWith(m_impl, firstList->list.list);
 
-                switch (currentListType)
-                {
-                case CommandGraphNode::NodeType::DMA:
-                    nativeList = m_impl->createDMAList();
-                    break;
-                case CommandGraphNode::NodeType::Compute:
-                    nativeList = m_impl->createComputeList();
-                    break;
-                case CommandGraphNode::NodeType::Graphics:
-                default:
-                    nativeList = m_impl->createGraphicsList();
-                }
+          LiveCommandBuffer buffer{};
+          buffer.lists.emplace_back(nativeList);
 
-                nativeList->fillWith(m_impl, firstList->list.list);
+          buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+          buffer.intermediateLists->emplace_back(std::move(firstList->list.list));
 
-                LiveCommandBuffer buffer{};
-                buffer.lists.emplace_back(nativeList);
+          if (optionalWaitSemaphore)
+          {
+            buffer.wait.push_back(optionalWaitSemaphore);
+          }
 
-                buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
-                buffer.intermediateLists->emplace_back(std::move(firstList->list.list));
+          if (!isLastList)
+          {
+            optionalWaitSemaphore = m_impl->createSemaphore();
+            buffer.signal.push_back(optionalWaitSemaphore);
+          }
 
-                if (optionalWaitSemaphore)
-                {
-                    buffer.wait.push_back(optionalWaitSemaphore);
-                }
+          if (isLastList)
+          {
+            buffer.fence = m_impl->createFence();
+          }
 
-                if (!isLastList)
-                {
-                    optionalWaitSemaphore = m_impl->createSemaphore();
-                    buffer.signal.push_back(optionalWaitSemaphore);
-                }
+          MemView<std::shared_ptr<FenceImpl>> viewToFences;
 
-                if (isLastList)
-                {
-                    buffer.fence = m_impl->createFence();
-                }
+          if (buffer.fence)
+          {
+            viewToFences = buffer.fence;
+          }
 
-                MemView<std::shared_ptr<FenceImpl>> viewToFences;
-
-                if (buffer.fence)
-                {
-                    viewToFences = buffer.fence;
-                }
-
-                switch (currentListType)
-                {
-                case CommandGraphNode::NodeType::DMA:
-                    m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
-                    break;
-                case CommandGraphNode::NodeType::Compute:
-                    m_impl->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
-                    break;
-                case CommandGraphNode::NodeType::Graphics:
-                default:
-                    m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
-                }
-                m_buffers.emplace_back(buffer);
-            }
+          switch (currentListType)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            m_impl->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+          }
+          m_buffers.emplace_back(buffer);
         }
+      }
+#else
+
+      struct PreparedCommandlist
+      {
+        CommandGraphNode::NodeType type;
+        CommandList list;
+        unordered_set<backend::TrackedState> requirements;
+        bool isLastList = false;
+      };
+
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        int i = 0;
+
+        vector<PreparedCommandlist> lists;
+
+        while (i < nodes.size())
+        {
+          auto* firstList = &nodes[i];
+
+          PreparedCommandlist plist{};
+          plist.type = firstList->type;
+          plist.list = std::move(nodes[i].list);
+          plist.requirements = nodes[i].needsResources();
+
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != plist.type)
+              break;
+            plist.list.list.append(std::move(nodes[i].list.list));
+            const auto& ref = nodes[i].needsResources();
+            plist.requirements.insert(ref.begin(), ref.end());
+          }
+
+          lists.emplace_back(std::move(plist));
+        }
+
+        lists[lists.size() - 1].isLastList = true;
+
+        std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+
+        for (auto&& list : lists)
+        {
+          if (!list.requirements.empty())
+          {
+            list.list.prepareForQueueSwitch(list.requirements);
+          }
+          std::shared_ptr<CommandBufferImpl> nativeList;
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            nativeList = m_impl->createDMAList();
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            nativeList = m_impl->createComputeList();
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            nativeList = m_impl->createGraphicsList();
+          }
+
+          nativeList->fillWith(m_impl, list.list.list);
+
+          LiveCommandBuffer buffer{};
+          buffer.lists.emplace_back(nativeList);
+
+          buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+          buffer.intermediateLists->emplace_back(std::move(list.list.list));
+
+          if (optionalWaitSemaphore)
+          {
+            buffer.wait.push_back(optionalWaitSemaphore);
+          }
+
+          if (!list.isLastList)
+          {
+            optionalWaitSemaphore = m_impl->createSemaphore();
+            buffer.signal.push_back(optionalWaitSemaphore);
+          }
+
+          if (list.isLastList)
+          {
+            buffer.fence = m_impl->createFence();
+          }
+
+          MemView<std::shared_ptr<FenceImpl>> viewToFences;
+
+          if (buffer.fence)
+          {
+            viewToFences = buffer.fence;
+          }
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            m_impl->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+          }
+          m_buffers.emplace_back(buffer);
+        }
+      }
 #endif
 
       gc();

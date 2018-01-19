@@ -5,16 +5,16 @@ namespace faze
 {
   namespace renderer
   {
-    class ImGui 
+    class ImGui
     {
       GraphicsPipeline pipeline;
       Renderpass renderpass;
-	  Texture fontatlas;
-	  TextureSRV fontatlasSrv;
+      Texture fontatlas;
+      TextureSRV fontatlasSrv;
     public:
       ImGui(GpuDevice& device);
       void beginFrame(TextureRTV& target);
-      void endFrame(GpuDevice& device, CommandGraph& graph, TextureRTV& target);
+      void endFrame(GpuDevice& device, CommandGraphNode& graph, TextureRTV& target);
     };
   }
 }

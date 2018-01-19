@@ -63,6 +63,11 @@ namespace faze
       list.insert<gfxpacket::PrepareForPresent>(tex);
     }
 
+    void prepareForQueueSwitch(unordered_set<backend::TrackedState>& deps)
+    {
+      list.insert<gfxpacket::PrepareForQueueSwitch>(deps);
+    }
+
     void renderpass(Renderpass& pass)
     {
       list.insert<gfxpacket::RenderpassBegin>(pass);
@@ -169,7 +174,7 @@ namespace faze
 
     void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)
     {
-        list.insert<gfxpacket::QueryCounters>(func);
+      list.insert<gfxpacket::QueryCounters>(func);
     }
   };
 }

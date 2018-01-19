@@ -494,6 +494,12 @@ namespace faze
           drawIndex++;
           break;
         }
+        case CommandPacket::PacketType::PrepareForQueueSwitch:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          drawIndex++;
+          break;
+        }
         case CommandPacket::PacketType::QueryCounters:
         {
           if (!m_buffer->dma())
@@ -645,6 +651,19 @@ namespace faze
           auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
           drawIndex = solver->addDrawCall(packet->type());
           solver->addResource(drawIndex, p.texture.dependency(), D3D12_RESOURCE_STATE_PRESENT);
+          break;
+        }
+        case CommandPacket::PacketType::PrepareForQueueSwitch:
+        {
+          auto& p = packetRef(gfxpacket::PrepareForQueueSwitch, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          for (auto&& res : p.deps)
+          {
+            if (!reinterpret_cast<DX12ResourceState*>(res.statePtr)->commonStateOptimisation)
+            {
+              solver->addResource(drawIndex, res, D3D12_RESOURCE_STATE_COMMON);
+            }
+          }
           break;
         }
         default:

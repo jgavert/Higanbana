@@ -361,8 +361,13 @@ namespace faze
           auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
 
           auto shaderTime = m_fs.timeModified(shaderPath);
-          auto shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
           auto dxilTime = m_fs.timeModified(dxilPath);
+          auto shaderInterfaceTime = dxilTime;
+
+          if (m_fs.fileExists(shaderInterfacePath))
+          {
+            shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
+          }
 
           if (shaderTime > dxilTime || shaderInterfaceTime > dxilTime)
           {

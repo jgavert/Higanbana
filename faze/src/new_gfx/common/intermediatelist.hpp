@@ -36,7 +36,8 @@ namespace faze
         Draw,
         DrawIndexed,
         DrawDynamicIndexed,
-        SetScissorRect
+        SetScissorRect,
+        PrepareForQueueSwitch
       };
 
       CommandPacket();

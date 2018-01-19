@@ -33,6 +33,8 @@
 
 #include "faze/src/new_gfx/definitions.hpp"
 
+#include "faze/src/helpers/pingpongTexture.hpp"
+
 #include <tuple>
 
 using namespace faze;
@@ -247,26 +249,23 @@ void mainWindow(ProgramParams& params)
         //auto testImage = dev.createTexture(image);
         //auto testSrv = dev.createTextureSRV(testImage, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
-        auto testDesc = ResourceDescriptor()
-          .setName("testTexture")
+        auto raymarchedDesc = ResourceDescriptor()
+          .setName("raymarchedDesc")
           .setFormat(FormatType::Unorm16RGBA)
           .setWidth(ires.x)
           .setHeight(ires.y)
-          .setMiplevels(4)
+          .setMiplevels(1)
           .setDimension(FormatDimension::Texture2D)
           .setUsage(ResourceUsage::RenderTargetRW);
-        auto texture = dev.createTexture(testDesc);
-        auto texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
-        auto texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-        auto texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+        PingPongTexture raymarched(dev, raymarchedDesc);
 
-        auto texture2 = dev.createTexture(testDesc
+        auto texture2 = dev.createTexture(raymarchedDesc
           .setName("postEffect")
           .setMiplevels(1));
         auto texSrv2 = dev.createTextureSRV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
         auto texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
 
-        auto texture3 = dev.createTexture(testDesc
+        auto texture3 = dev.createTexture(raymarchedDesc
           .setName("postEffect2")
           .setMiplevels(1));
         auto texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
@@ -299,6 +298,8 @@ void mainWindow(ProgramParams& params)
 
         bool controllerConnected = false;
 
+        bool enableAsyncCompute = false;
+        vector<std::pair<std::string, double>> asyncCompute;
         vector<std::pair<std::string, double>> counters;
         float gpuFrameTime = -1.f;
 
@@ -433,20 +434,21 @@ void mainWindow(ProgramParams& params)
           // If you acquire, you must submit it. Next, try to first present empty image.
           // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
           CpuTime.tick();
-          auto backbuffer = dev.acquirePresentableImage(swapchain);
+          TextureRTV backbuffer = dev.acquirePresentableImage(swapchain);
           graphicsCpuTime.startFrame();
 
           CommandGraph tasks = dev.createGraph();
 
+          raymarched.next();
+          uint2 iRes = uint2{ raymarched.desc().desc.width, raymarched.desc().desc.height };
           {
-            auto node = tasks.createPass("clear");
-            node.clearRT(backbuffer, float4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
-            //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
-            tasks.addPass(std::move(node));
-          }
-          uint2 iRes = uint2{ texUav.desc().desc.width, texUav.desc().desc.height };
-          {
-            auto node = tasks.createPass("compute!");
+            auto type = CommandGraphNode::NodeType::Graphics;
+            if (enableAsyncCompute)
+            {
+              type = CommandGraphNode::NodeType::Compute;
+            }
+
+            auto node = tasks.createPass("compute!", type);
 
             auto binding = node.bind<::shader::TextureTest>(testCompute);
             binding.constants = {};
@@ -457,20 +459,40 @@ void mainWindow(ProgramParams& params)
             binding.constants.iDir = dir;
             binding.constants.iUpDir = updir;
             binding.constants.iSideDir = sideVec;
-            binding.uav(::shader::TextureTest::output, texUav);
+            binding.uav(::shader::TextureTest::output, raymarched.uav());
 
             unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x), 8));
             unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.y), 8));
             node.dispatch(binding, uint3{ x, y, 1 });
 
+            if (enableAsyncCompute)
+            {
+              node.queryCounters([&](MemView<std::pair<std::string, double>> view)
+              {
+                asyncCompute.clear();
+                for (auto&& it : view)
+                {
+                  asyncCompute.push_back(std::make_pair(it.first, it.second));
+                }
+              });
+            }
+
             tasks.addPass(std::move(node));
           }
           //if (inputs.isPressedThisFrame('3', 2))
 
+          {
+            auto node = tasks.createPass("clear");
+            node.acquirePresentableImage(swapchain);
+            node.clearRT(backbuffer, float4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
+            //node.clearRT(texRtv, vec4{ std::sin(float(frame)*0.01f)*.5f + .5f, std::sin(float(frame)*0.01f)*.5f + .5f, 0.f, 1.f });
+            tasks.addPass(std::move(node));
+          }
+
           iRes.y = 1;
-          postPass.compute(tasks, texUav2, texSrv, iRes);
+          postPass.compute(tasks, texUav2, raymarched.srv(), iRes);
           iRes.x *= 64;
-          postPass2.compute(tasks, texUav3, texSrv, iRes);
+          postPass2.compute(tasks, texUav3, raymarched.srv(), iRes);
 
           {
             // we have pulsing red color background, draw a triangle on top of it !
@@ -492,7 +514,7 @@ void mainWindow(ProgramParams& params)
             binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
             binding.constants.colorspace = static_cast<int>(swapchain.impl()->displayCurve());
             binding.srv(::shader::Triangle::vertices, verts);
-            binding.srv(::shader::Triangle::yellow, texSrv);
+            binding.srv(::shader::Triangle::yellow, raymarched.srv());
             node.draw(binding, 3, 1);
             node.endRenderpass();
             tasks.addPass(std::move(node));
@@ -681,19 +703,35 @@ void mainWindow(ProgramParams& params)
               if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableHandleCommonState ? "CommonState Optimization enabled" : "CommonState Optimization disabled"))
               {
                 faze::globalconfig::graphics::GraphicsEnableHandleCommonState = faze::globalconfig::graphics::GraphicsEnableHandleCommonState ? false : true;
-              } 
+              }
 
               ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
               ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
 
+              if (ImGui::Button("Toggle AsyncCompute"))
+              {
+                enableAsyncCompute = enableAsyncCompute ? false : true;
+              }
+
+              if (enableAsyncCompute && !asyncCompute.empty())
+              {
+                ImGui::Text("async %s total %.2fms", asyncCompute[0].first.c_str(), asyncCompute[0].second);
+                for (int idx = 1; idx != asyncCompute.size(); ++idx)
+                {
+                  ImGui::Text("     %.3fms [%s]", asyncCompute[idx].second, asyncCompute[idx].first.c_str());
+                }
+              }
+
               if (!counters.empty())
               {
                 ImGui::Text("%s total %.2fms", counters[0].first.c_str(), counters[0].second);
-                gpuFrameTime = static_cast<float>(counters[0].second);
                 for (int idx = 1; idx != counters.size(); ++idx)
                 {
                   ImGui::Text("     %.3fms [%s]", counters[idx].second, counters[idx].first.c_str());
                 }
+                gpuFrameTime = static_cast<float>(counters[0].second);
+                if (!asyncCompute.empty())
+                  gpuFrameTime += static_cast<float>(asyncCompute[0].second);
               }
 
               auto gfxTime = graphicsCpuTime.getCurrentFps();
@@ -838,42 +876,29 @@ void mainWindow(ProgramParams& params)
                 ires.data[0] = std::max(ires.data[0], 1);
                 ires.data[1] = std::max(ires.data[1], 1);
 
-                testDesc = ResourceDescriptor()
-                  .setName("testTexture")
-                  .setFormat(FormatType::Unorm16RGBA)
+                raymarchedDesc = raymarchedDesc
                   .setWidth(ires.data[0])
-                  .setHeight(ires.data[1])
-                  .setMiplevels(4)
-                  .setDimension(FormatDimension::Texture2D)
-                  .setUsage(ResourceUsage::RenderTargetRW);
-                texture = dev.createTexture(testDesc);
+                  .setHeight(ires.data[1]);
+                raymarched.resize(dev, raymarchedDesc);
 
-                texRtv = dev.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
-                texSrv = dev.createTextureSRV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-                texUav = dev.createTextureUAV(texture, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texture2 = dev.createTexture(raymarchedDesc
+                  .setName("postEffect"));
+                texSrv2 = dev.createTextureSRV(texture2);
+                texUav2 = dev.createTextureUAV(texture2);
 
-                texture2 = dev.createTexture(testDesc
-                  .setName("postEffect")
-                  .setMiplevels(1));
-                texSrv2 = dev.createTextureSRV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-                texUav2 = dev.createTextureUAV(texture2, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-
-                texture3 = dev.createTexture(testDesc
-                  .setName("postEffect2")
-                  .setMiplevels(1));
-                texSrv3 = dev.createTextureSRV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
-                texUav3 = dev.createTextureUAV(texture3, ShaderViewDescriptor().setMostDetailedMip(0).setMipLevels(1));
+                texture3 = dev.createTexture(raymarchedDesc
+                  .setName("postEffect2"));
+                texSrv3 = dev.createTextureSRV(texture3);
+                texUav3 = dev.createTextureUAV(texture3);
               }
 
               //ImGui::PlotLines("graph test", [](void*, int idx) {return 1.f / float(idx); }, nullptr, 100, 0, "Zomg", 0.f, 1.f, ImVec2(500, 400));
             }
             ImGui::End();
-
-            imgRenderer.endFrame(dev, tasks, backbuffer);
-          }
-
-          {
-            auto& node = tasks.createPass2("present barrier");
+            auto& node = tasks.createPass2("ImGui");
+            imgRenderer.endFrame(dev, node, backbuffer);
+            node.prepareForPresent(backbuffer);
+            node.resetState(raymarched.srv().texture());
             node.queryCounters([&](MemView<std::pair<std::string, double>> view)
             {
               counters.clear();
@@ -882,7 +907,6 @@ void mainWindow(ProgramParams& params)
                 counters.push_back(std::make_pair(it.first, it.second));
               }
             });
-            node.prepareForPresent(backbuffer);
           }
 
           dev.submit(swapchain, tasks);
@@ -919,7 +943,7 @@ void mainWindow(ProgramParams& params)
   */
 
   log.update();
-}
+  }
 
 #else
 

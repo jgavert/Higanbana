@@ -4,6 +4,7 @@
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
 #include "binding.hpp"
+#include "swapchain.hpp"
 
 #include <string>
 
@@ -12,20 +13,27 @@ namespace faze
   class CommandGraphNode
   {
   public:
-      enum class NodeType
-      {
-          Graphics,
-          Compute,
-          DMA
-      };
+    enum class NodeType
+    {
+      Graphics,
+      Compute,
+      DMA
+    };
   private:
     CommandList list;
     std::string name;
     friend struct backend::DeviceData;
     int subpassIndex = 0;
     NodeType type;
+    std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
+    bool preparesPresent = false;
 
+    unordered_set<backend::TrackedState> needSpecialAttention;
 
+    unordered_set<backend::TrackedState>& needsResources()
+    {
+      return needSpecialAttention;
+    }
   public:
     CommandGraphNode() {}
     CommandGraphNode(std::string name, NodeType type)
@@ -33,6 +41,16 @@ namespace faze
       , type(type)
     {
       list.renderTask(name);
+    }
+
+    void resetState(Texture& tex)
+    {
+      needSpecialAttention.insert(tex.dependency());
+    }
+
+    void acquirePresentableImage(Swapchain& swapchain)
+    {
+      acquireSemaphore = swapchain.impl()->acquireSemaphore();
     }
 
     void clearRT(TextureRTV& rtv, float4 color)
@@ -43,6 +61,7 @@ namespace faze
     void prepareForPresent(TextureRTV& rtv)
     {
       list.prepareForPresent(rtv);
+      preparesPresent = true;
     }
 
     void renderpass(Renderpass& pass)
