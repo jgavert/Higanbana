@@ -522,9 +522,11 @@ namespace faze
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       bool closedList = false;
       std::shared_ptr<DX12DependencySolver> m_solver;
+
+      bool dmaList;
     public:
       //DX12CommandBuffer() {}
-      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator);
+      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma);
 
       DX12CommandBuffer(DX12CommandBuffer&& other) = default;
       DX12CommandBuffer(const DX12CommandBuffer& other) = delete;
@@ -537,6 +539,7 @@ namespace faze
       void closeList();
       void resetList();
       bool closed() const;
+      bool dma() const;
     };
     struct FreeableResources
     {
@@ -799,6 +802,7 @@ namespace faze
 
     struct DX12ResourceState
     {
+      bool commonStateOptimisation;
       vector<D3D12_RESOURCE_STATES> flags; // subresource count
     };
 

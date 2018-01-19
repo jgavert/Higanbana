@@ -678,11 +678,10 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("Split barriers where split begin barriers are placed in sync points");
               }
 
-              /*  Unimplemented
-              if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? "ReadStateCombining enabled" : "ReadStateCombining disabled"))
+              if (ImGui::Button(faze::globalconfig::graphics::GraphicsEnableHandleCommonState ? "CommonState Optimization enabled" : "CommonState Optimization disabled"))
               {
-                faze::globalconfig::graphics::GraphicsEnableReadStateCombining = faze::globalconfig::graphics::GraphicsEnableReadStateCombining ? false : true;
-              } */
+                faze::globalconfig::graphics::GraphicsEnableHandleCommonState = faze::globalconfig::graphics::GraphicsEnableHandleCommonState ? false : true;
+              } 
 
               ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
               ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());

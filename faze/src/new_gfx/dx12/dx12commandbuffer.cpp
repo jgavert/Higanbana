@@ -14,10 +14,11 @@ namespace faze
 {
   namespace backend
   {
-    DX12CommandBuffer::DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator)
+    DX12CommandBuffer::DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma)
       : commandList(commandList)
       , commandListAllocator(commandListAllocator)
       , m_solver(std::make_shared<DX12DependencySolver>())
+      , dmaList(isDma)
     {
     }
 
@@ -50,6 +51,11 @@ namespace faze
     bool DX12CommandBuffer::closed() const
     {
       return closedList;
+    }
+
+    bool DX12CommandBuffer::dma() const
+    {
+        return dmaList;
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
@@ -317,9 +323,12 @@ namespace faze
     void DX12CommandList::addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
-
-      ID3D12DescriptorHeap* heaps[] = { m_descriptors->native() };
-      buffer->SetDescriptorHeaps(1, heaps);
+                         
+      if (!m_buffer->dma())
+      {
+          ID3D12DescriptorHeap* heaps[] = { m_descriptors->native() };
+          buffer->SetDescriptorHeaps(1, heaps);
+      }
 
       size_t currentActiveSubpassHash = 0;
       bool startedPixBeginEvent = false;
@@ -356,9 +365,13 @@ namespace faze
       std::function<void(MemView<std::pair<std::string, double>>)> queryCallback;
       bool queriesWanted = false;
 
-      DX12Query fullFrameQuery = m_queryheap->allocate();
-      buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.beginIndex);
-      m_freeResources->queries.push_back(QueryBracket{ fullFrameQuery , "Commandlist" });
+      DX12Query fullFrameQuery;
+      if (!m_buffer->dma())
+      {
+          fullFrameQuery = m_queryheap->allocate();
+          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.beginIndex);
+          m_freeResources->queries.push_back(QueryBracket{ fullFrameQuery , "Commandlist" });
+      }
 
       for (CommandPacket* packet : list)
       {
@@ -366,20 +379,23 @@ namespace faze
         {
         case CommandPacket::PacketType::RenderBlock:
         {
-          auto p = packetRef(gfxpacket::RenderBlock, packet);
-          if (!startedPixBeginEvent)
-          {
-            startedPixBeginEvent = true;
-          }
-          else
-          {
-            PIXEndEvent(buffer);
-            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
-          }
-          PIXBeginEvent(buffer, 0, p.name.c_str());
-          activeQuery = m_queryheap->allocate();
-          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.beginIndex);
-          m_freeResources->queries.push_back(QueryBracket{ activeQuery , p.name });
+            if (!m_buffer->dma())
+            {
+                auto p = packetRef(gfxpacket::RenderBlock, packet);
+                if (!startedPixBeginEvent)
+                {
+                    startedPixBeginEvent = true;
+                }
+                else
+                {
+                    PIXEndEvent(buffer);
+                    buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
+                }
+                PIXBeginEvent(buffer, 0, p.name.c_str());
+                activeQuery = m_queryheap->allocate();
+                buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.beginIndex);
+                m_freeResources->queries.push_back(QueryBracket{ activeQuery , p.name });
+            }
           break;
         }
         case CommandPacket::PacketType::UpdateTexture:
@@ -480,8 +496,11 @@ namespace faze
         }
         case CommandPacket::PacketType::QueryCounters:
         {
-          queryCallback = (packetRef(gfxpacket::QueryCounters, packet)).func;
-          queriesWanted = true;
+            if (!m_buffer->dma())
+            {
+                queryCallback = (packetRef(gfxpacket::QueryCounters, packet)).func;
+                queriesWanted = true;
+            }
           break;
         }
         default:
@@ -494,9 +513,10 @@ namespace faze
           PIXEndEvent(buffer);
           buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
       }
-
-      buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.endIndex);
-
+      if (!m_buffer->dma())
+      {
+          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.endIndex);
+      }
       if (queriesWanted)
       {
           auto rb = m_readback->allocate(m_queryheap->size()*m_queryheap->counterSize());
@@ -596,8 +616,8 @@ namespace faze
             {
               solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
             }
+            readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
           }
-          readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
           auto srvCount = p.srvs.size();
           auto uavCount = p.uavs.size();

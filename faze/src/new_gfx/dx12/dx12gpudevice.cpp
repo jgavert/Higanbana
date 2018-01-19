@@ -415,8 +415,6 @@ namespace faze
 
     void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-      //auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      //native->native()->Release();
     }
 
     vector<std::shared_ptr<prototypes::TextureImpl>> DX12Device::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
@@ -426,7 +424,8 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
       textures.resize(native->getDesc().descriptor.desc.bufferCount);
 
-      DX12ResourceState state;
+      DX12ResourceState state{0};
+      state.commonStateOptimisation = false;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
       std::weak_ptr<Garbage> weak = m_trash;
@@ -903,7 +902,8 @@ namespace faze
       default:
         break;
       }
-      DX12ResourceState state;
+      DX12ResourceState state{ 0 };
+      state.commonStateOptimisation = true;
       state.flags.emplace_back(startState);
       ID3D12Resource* buffer;
       m_device->CreatePlacedResource(native->native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
@@ -1019,7 +1019,8 @@ namespace faze
         break;
       }
 
-      DX12ResourceState state;
+      DX12ResourceState state{ 0 };
+      state.commonStateOptimisation = false; // usually false, to get those layout optimisations.
       for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
       {
         for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
@@ -1256,7 +1257,7 @@ namespace faze
       FAZE_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
       FAZE_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
 
-      return DX12CommandBuffer(commandList, commandListAllocator);
+      return DX12CommandBuffer(commandList, commandListAllocator, type == D3D12_COMMAND_LIST_TYPE_COPY);
     }
 
     DX12Fence DX12Device::createNativeFence()
