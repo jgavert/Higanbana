@@ -792,7 +792,7 @@ TEST_F(Graphics, GraphicstoDMA)
       vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
       vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
 
-      for (int i = 0; i < vertices.size(); ++i)
+      for (size_t i = 0; i < vertices.size(); ++i)
       {
         EXPECT_FLOAT_EQ(vertices[i].x, asd[i].x);
         EXPECT_FLOAT_EQ(vertices[i].y, asd[i].y);
