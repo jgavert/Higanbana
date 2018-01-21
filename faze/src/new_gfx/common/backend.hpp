@@ -164,25 +164,13 @@ namespace faze
       {
       }
 
-      std::shared_ptr<int64_t> makeTracker(int64_t id, GpuHeapAllocation allocation, std::shared_ptr<TrackedResource> resourceToTrack)
+      std::shared_ptr<int64_t> makeTracker(int64_t id, GpuHeapAllocation allocation)
       {
         auto dest = this->shared_from_this();
-        return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, allocation, dest](int64_t* t)
+        return std::shared_ptr<int64_t>(new int64_t(id), [allocation, dest](int64_t* t)
         {
           std::lock_guard<std::mutex> lock(dest->m_lock);
-          dest->m_disposableObjects.emplace_back(resourceToTrack);
           dest->m_disposableMemory.emplace_back(allocation);
-          delete t;
-        });
-      }
-
-      std::shared_ptr<int64_t> makeTracker(int64_t id, std::shared_ptr<TrackedResource> resourceToTrack)
-      {
-        auto dest = this->shared_from_this();
-        return std::shared_ptr<int64_t>(new int64_t(id), [resourceToTrack, dest](int64_t* t)
-        {
-          std::lock_guard<std::mutex> lock(dest->m_lock);
-          dest->m_disposableObjects.emplace_back(resourceToTrack);
           delete t;
         });
       }

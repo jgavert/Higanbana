@@ -9,7 +9,7 @@
 
 using namespace faze;
 
-TEST_F(Graphics, BufferCreation)
+TEST_F(Graphics, TexelStorageBuffer)
 {
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
@@ -21,6 +21,66 @@ TEST_F(Graphics, BufferCreation)
   auto buffer = gpu.createBuffer(bufferdesc);
   auto bufferSRV = gpu.createBufferSRV(buffer);
   auto bufferUAV = gpu.createBufferUAV(buffer);
+}
+
+TEST_F(Graphics, TexelBuffer)
+{
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Float32)
+    .setWidth(32);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+  auto bufferSRV = gpu.createBufferSRV(buffer);
+}
+
+TEST_F(Graphics, StorageBuffer)
+{
+  struct Lel
+  {
+    float a;
+    int b;
+    unsigned c;
+  };
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setStructured<Lel>()
+    .setWidth(32);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+  auto bufferSRV = gpu.createBufferSRV(buffer);
+}
+
+TEST_F(Graphics, StorageBufferRW)
+{
+  struct Lel
+  {
+    float a;
+    int b;
+    unsigned c;
+  };
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setStructured<Lel>()
+    .setWidth(32)
+    .setUsage(ResourceUsage::GpuRW);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+  auto bufferSRV = gpu.createBufferSRV(buffer);
+  auto bufferUAV = gpu.createBufferUAV(buffer);
+}
+
+TEST_F(Graphics, IndexBuffer)
+{
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Uint16)
+    .setWidth(32)
+    .setIndexBuffer();
+
+  auto buffer = gpu.createBuffer(bufferdesc);
 }
 
 TEST_F(Graphics, TextureCreation)

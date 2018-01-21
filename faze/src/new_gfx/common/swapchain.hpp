@@ -10,15 +10,13 @@ namespace faze
   class Swapchain : public backend::GpuDeviceChild
   {
     std::shared_ptr<backend::prototypes::SwapchainImpl> m_impl;
-    std::shared_ptr<int64_t> m_id;
     vector<TextureRTV> m_backbuffers;
 
   public:
     Swapchain() = default;
 
-    Swapchain(std::shared_ptr<backend::prototypes::SwapchainImpl> impl, std::shared_ptr<int64_t> id)
+    Swapchain(std::shared_ptr<backend::prototypes::SwapchainImpl> impl)
       : m_impl(impl)
-      , m_id(id)
     {
     }
 

@@ -321,74 +321,73 @@ namespace faze
 
     struct DX12Query
     {
-        unsigned beginIndex;
-        unsigned endIndex;
+      unsigned beginIndex;
+      unsigned endIndex;
     };
 
     struct QueryBracket
     {
-        DX12Query query;
-        std::string name;
+      DX12Query query;
+      std::string name;
     };
 
     class DX12QueryHeap
     {
-        LinearAllocator allocator;
-        ComPtr<ID3D12QueryHeap> heap;
-        int m_size = 0;
-        uint64_t m_gpuTicksPerSecond = 0;
+      LinearAllocator allocator;
+      ComPtr<ID3D12QueryHeap> heap;
+      int m_size = 0;
+      uint64_t m_gpuTicksPerSecond = 0;
     public:
-        DX12QueryHeap() : allocator(1) {}
-        DX12QueryHeap(ID3D12Device* device, ID3D12CommandQueue* queue, unsigned counterCount)
-            : allocator(counterCount)
-            , m_size(counterCount)
-        {
+      DX12QueryHeap() : allocator(1) {}
+      DX12QueryHeap(ID3D12Device* device, ID3D12CommandQueue* queue, unsigned counterCount)
+        : allocator(counterCount)
+        , m_size(counterCount)
+      {
+        static int queryHeapCount = 0;
 
-            static int queryHeapCount = 0;
+        D3D12_QUERY_HEAP_DESC desc{};
+        desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        desc.Count = counterCount;
+        desc.NodeMask = 0;
 
-            D3D12_QUERY_HEAP_DESC desc{};
-            desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-            desc.Count = counterCount;
-            desc.NodeMask = 0;
+        FAZE_CHECK_HR(device->CreateQueryHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+        auto name = s2ws("QueryHeap" + std::to_string(queryHeapCount));
+        heap->SetName(name.c_str());
 
-            FAZE_CHECK_HR(device->CreateQueryHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
-            auto name = s2ws("QueryHeap" + std::to_string(queryHeapCount));
-            heap->SetName(name.c_str());
+        FAZE_CHECK_HR(queue->GetTimestampFrequency(&m_gpuTicksPerSecond));
+      }
 
-            FAZE_CHECK_HR(queue->GetTimestampFrequency(&m_gpuTicksPerSecond));
-        }
+      uint64_t getGpuTicksPerSecond() const
+      {
+        return m_gpuTicksPerSecond;
+      }
 
-        uint64_t getGpuTicksPerSecond() const
-        {
-            return m_gpuTicksPerSecond;
-        }
+      void reset()
+      {
+        allocator = LinearAllocator(m_size);
+      }
 
-        void reset()
-        {
-            allocator = LinearAllocator(m_size);
-        }
+      DX12Query allocate()
+      {
+        auto dip = allocator.allocate(2);
+        F_ASSERT(dip != -1, "Queryheap out of queries.");
+        return DX12Query{ static_cast<unsigned>(dip),  static_cast<unsigned>(dip + 1) };
+      }
 
-        DX12Query allocate()
-        {
-            auto dip = allocator.allocate(2);
-            F_ASSERT(dip != -1, "Queryheap out of queries.");
-            return DX12Query{ static_cast<unsigned>(dip),  static_cast<unsigned>(dip+1) };
-        }
+      ID3D12QueryHeap* native()
+      {
+        return heap.Get();
+      }
 
-        ID3D12QueryHeap* native()
-        {
-            return heap.Get();
-        }
+      size_t size()
+      {
+        return m_size;
+      }
 
-        size_t size()
-        {
-            return m_size;
-        }
-
-        size_t counterSize()
-        {
-            return sizeof(uint64_t);
-        }
+      size_t counterSize()
+      {
+        return sizeof(uint64_t);
+      }
     };
 
     class DX12ReadbackHeap
@@ -438,12 +437,12 @@ namespace faze
       {
         auto dip = allocator.allocate(bytes, 512);
         F_ASSERT(dip != -1, "No space left, make bigger DX12ReadbackHeap :) %d", bytes);
-        return ReadbackBlock{ static_cast<size_t>(dip),  bytes};
+        return ReadbackBlock{ static_cast<size_t>(dip),  bytes };
       }
 
       void reset()
       {
-          allocator = LinearAllocator(size);
+        allocator = LinearAllocator(size);
       }
 
       void map()
@@ -571,7 +570,7 @@ namespace faze
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
-        DX12CommandList(
+      DX12CommandList(
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
         std::shared_ptr<DX12UploadHeap> dynamicUpload,
@@ -618,15 +617,15 @@ namespace faze
           // handle readbacks
           if (auto readback = read.lock())
           {
-              if (!ptr->readbacks.empty())
+            if (!ptr->readbacks.empty())
+            {
+              readback->map();
+              for (auto&& it : ptr->readbacks)
               {
-                  readback->map();
-                  for (auto&& it : ptr->readbacks)
-                  {
-                      it.func(readback->getView(it.dataLocation));
-                  }
-                  readback->unmap();
+                it.func(readback->getView(it.dataLocation));
               }
+              readback->unmap();
+            }
           }
 
           delete ptr;
@@ -1106,7 +1105,6 @@ namespace faze
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
       void ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor);
-      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
@@ -1117,7 +1115,6 @@ namespace faze
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
-      void destroyHeap(GpuHeap heap) override;
 
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
@@ -1127,12 +1124,6 @@ namespace faze
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
-
-      // empty, these don't do anything.
-      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
-      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
-      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
-      void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
       DX12QueryHeap createQueryHeap(unsigned counters);

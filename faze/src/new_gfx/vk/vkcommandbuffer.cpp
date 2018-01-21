@@ -420,16 +420,16 @@ namespace faze
       preprocess(nat.get(), list);
 
       VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
-      m_cmdBuffer.begin(vk::CommandBufferBeginInfo()
+      m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
 
       addDepedencyDataAndSolve(solver, list);
 
       // add commands to list while also adding barriers
-      addCommands(m_cmdBuffer, solver, list);
+      addCommands(m_list->list(), solver, list);
 
-      m_cmdBuffer.end();
+      m_list->list().end();
     }
   }
 }

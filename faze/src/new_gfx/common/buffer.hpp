@@ -50,16 +50,14 @@ namespace faze
   {
     Buffer buf;
     std::shared_ptr<backend::prototypes::BufferViewImpl> impl;
-    std::shared_ptr<int64_t> id;
     backend::RawView m_view;
     backend::TrackedState m_dependency;
   public:
     BufferView() = default;
 
-    BufferView(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
+    BufferView(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
       : buf(buf)
       , impl(impl)
-      , id(id)
       , m_view(impl->view())
       , m_dependency(buf.dependency())
     {
@@ -94,8 +92,8 @@ namespace faze
   {
   public:
     BufferSRV() = default;
-    BufferSRV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
-      : BufferView(buf, impl, id)
+    BufferSRV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
+      : BufferView(buf, impl)
     {
     }
   };
@@ -104,8 +102,8 @@ namespace faze
   {
   public:
     BufferUAV() = default;
-    BufferUAV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
-      : BufferView(buf, impl, id)
+    BufferUAV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
+      : BufferView(buf, impl)
     {
     }
   };
@@ -114,8 +112,8 @@ namespace faze
   {
   public:
     BufferIBV() = default;
-    BufferIBV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl, std::shared_ptr<int64_t> id)
-      : BufferView(buf, impl, id)
+    BufferIBV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
+      : BufferView(buf, impl)
     {
     }
   };
