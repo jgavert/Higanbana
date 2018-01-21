@@ -138,7 +138,6 @@ namespace faze
         // swapchain
         virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) = 0;
         virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, SwapchainDescriptor descriptor) = 0;
-        virtual void destroySwapchain(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
@@ -148,17 +147,11 @@ namespace faze
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
-        virtual void destroyHeap(GpuHeap heap) = 0;
 
         virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual void destroyBuffer(std::shared_ptr<BufferImpl> buffer) = 0;
         virtual std::shared_ptr<BufferViewImpl> createBufferView(std::shared_ptr<BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
-        virtual void destroyBufferView(std::shared_ptr<BufferViewImpl> buffer) = 0;
-
         virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual void destroyTexture(std::shared_ptr<TextureImpl> buffer) = 0;
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
-        virtual void destroyTextureView(std::shared_ptr<TextureViewImpl> buffer) = 0;
 
         // create dynamic resources
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;

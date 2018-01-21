@@ -62,6 +62,8 @@ namespace faze
       , m_info(info)
       , m_shaders(fs, "shaders", "shaders/spirv")
       , m_freeQueueIndexes({})
+      , m_seqTracker(std::make_shared<SequenceTracker>())
+      , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
       // universal
@@ -211,9 +213,9 @@ namespace faze
           delete ptr;
         }));
       });
-      m_copyListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_copyQueueIndex); });
-      m_computeListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_computeQueueIndex); });
-      m_graphicsListPool = Rabbitpool2<VulkanCommandBuffer>([&]() {return createCommandBuffer(m_mainQueueIndex); });
+      m_copyListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_copyQueueIndex); });
+      m_computeListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_computeQueueIndex); });
+      m_graphicsListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_mainQueueIndex); });
 
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
@@ -235,6 +237,7 @@ namespace faze
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
+      collectTrash();
       m_fences.clear();
       m_semaphores.clear();
       m_copyListPool.clear();
@@ -367,8 +370,12 @@ namespace faze
         .setClipped(false);
 
       auto swapchain = m_device.createSwapchainKHR(info);
-      auto sc = std::make_shared<VulkanSwapchain>(swapchain, *natSurface, m_semaphores.allocate());
-
+      auto sc = std::shared_ptr<VulkanSwapchain>(new VulkanSwapchain(swapchain, *natSurface, m_semaphores.allocate()),
+        [dev = m_device](VulkanSwapchain* ptr)
+      {
+        dev.destroySwapchainKHR(ptr->native());
+        delete ptr;
+      });
       sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
       return sc;
     }
@@ -471,12 +478,6 @@ namespace faze
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
     }
 
-    void VulkanDevice::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
-    {
-      auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
-      m_device.destroySwapchainKHR(native->native());
-    }
-
     vector<std::shared_ptr<prototypes::TextureImpl>> VulkanDevice::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc)
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
@@ -522,6 +523,16 @@ namespace faze
         .setSharingMode(vk::SharingMode::eExclusive);
 
       vk::BufferUsageFlags usageBits;
+
+      if (desc.format != FormatType::Unknown)
+      {
+        usageBits = vk::BufferUsageFlagBits::eUniformTexelBuffer;
+      }
+      else
+      {
+        usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
+      }
+
       if (desc.usage == ResourceUsage::GpuRW)
       {
         if (desc.format != FormatType::Unknown)
@@ -766,6 +777,45 @@ namespace faze
 
     void VulkanDevice::collectTrash()
     {
+      auto latestSequenceStarted = m_seqTracker->lastSequence();
+
+      m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
+      m_trash->buffers.clear();
+      m_trash->textures.clear();
+      m_trash->bufferviews.clear();
+      m_trash->textureviews.clear();
+      m_trash->heaps.clear();
+
+      while (!m_collectableTrash.empty())
+      {
+        auto&& it = m_collectableTrash.front();
+        if (!m_seqTracker->hasCompletedTill(it.first))
+        {
+          break;
+        }
+        for (auto&& tex : it.second.textureviews)
+        {
+          m_device.destroyImageView(tex);
+        }
+        for (auto&& tex : it.second.textures)
+        {
+          m_device.destroyImage(tex);
+        }
+        for (auto&& descriptor : it.second.bufferviews)
+        {
+          m_device.destroyBufferView(descriptor);
+        }
+        for (auto&& descriptor : it.second.buffers)
+        {
+          m_device.destroyBuffer(descriptor);
+        }
+        for (auto&& descriptor : it.second.heaps)
+        {
+          m_device.freeMemory(descriptor);
+        }
+
+        m_collectableTrash.pop_front();
+      }
     }
 
     void VulkanDevice::waitGpuIdle()
@@ -883,14 +933,20 @@ namespace faze
         .setMemoryTypeIndex(index);
 
       auto memory = m_device.allocateMemory(allocInfo);
-
-      return GpuHeap(std::make_shared<VulkanHeap>(memory), std::move(heapDesc));
-    }
-
-    void VulkanDevice::destroyHeap(GpuHeap heap)
-    {
-      auto native = std::static_pointer_cast<VulkanHeap>(heap.impl);
-      m_device.freeMemory(native->native());
+      std::weak_ptr<Garbage> weak = m_trash;
+      return GpuHeap(std::shared_ptr<VulkanHeap>(new VulkanHeap(memory),
+        [weak, dev = m_device](VulkanHeap* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->heaps.emplace_back(ptr->native());
+        }
+        else
+        {
+          dev.freeMemory(ptr->native());
+        }
+        delete ptr;
+      }), std::move(heapDesc));
     }
 
     std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
@@ -904,14 +960,20 @@ namespace faze
 
       VulkanBufferState state{};
       state.queueIndex = m_mainQueueIndex;
-
-      return std::make_shared<VulkanBuffer>(buffer, std::make_shared<VulkanBufferState>(state));
-    }
-
-    void VulkanDevice::destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer)
-    {
-      auto native = std::static_pointer_cast<VulkanBuffer>(buffer);
-      m_device.destroyBuffer(native->native());
+      std::weak_ptr<Garbage> weak = m_trash;
+      return std::shared_ptr<VulkanBuffer>(new VulkanBuffer(buffer, std::make_shared<VulkanBufferState>(state)),
+        [weak, dev = m_device](VulkanBuffer* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->buffers.emplace_back(ptr->native());
+        }
+        else
+        {
+          dev.destroyBuffer(ptr->native());
+        }
+        delete ptr;
+      });
     }
 
     std::shared_ptr<prototypes::BufferViewImpl> VulkanDevice::createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
@@ -943,11 +1005,6 @@ namespace faze
         , type);
     }
 
-    void VulkanDevice::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl>)
-    {
-      // craak craak
-    }
-
     std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto vkdesc = fillImageInfo(desc);
@@ -965,15 +1022,20 @@ namespace faze
           state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
         }
       }
-
-      return std::make_shared<VulkanTexture>(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state }));
-    }
-
-    void VulkanDevice::destroyTexture(std::shared_ptr<prototypes::TextureImpl> texture)
-    {
-      auto native = std::static_pointer_cast<VulkanTexture>(texture);
-      if (native->canRelease())
-        m_device.destroyImage(native->native());
+      std::weak_ptr<Garbage> weak = m_trash;
+      return std::shared_ptr<VulkanTexture>(new VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state })),
+        [weak, dev = m_device](VulkanTexture* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->textures.emplace_back(ptr->native());
+        }
+        else
+        {
+          dev.destroyImage(ptr->native());
+        }
+        delete ptr;
+      });
     }
 
     std::shared_ptr<prototypes::TextureViewImpl> VulkanDevice::createTextureView(
@@ -1083,14 +1145,20 @@ namespace faze
       range.mipLevels = static_cast<int16_t>(subResourceRange.levelCount);
       range.sliceOffset = static_cast<int16_t>(subResourceRange.baseArrayLayer);
       range.arraySize = static_cast<int16_t>(subResourceRange.layerCount);
-
-      return std::make_shared<VulkanTextureView>(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
-    }
-
-    void VulkanDevice::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> view)
-    {
-      auto native = std::static_pointer_cast<VulkanTextureView>(view);
-      m_device.destroyImageView(native->native().view);
+      std::weak_ptr<Garbage> weak = m_trash;
+      return std::shared_ptr<VulkanTextureView>(new VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags),
+        [weak, dev = m_device](VulkanTextureView* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->textureviews.emplace_back(ptr->native().view);
+        }
+        else
+        {
+          dev.destroyImageView(ptr->native().view);
+        }
+        delete ptr;
+      });
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t>, FormatType)
@@ -1106,7 +1174,7 @@ namespace faze
       return std::make_shared<VulkanDynamicBufferView>();
     }
 
-    VulkanCommandBuffer VulkanDevice::createCommandBuffer(int queueIndex)
+    VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)
     {
       vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
@@ -1123,29 +1191,62 @@ namespace faze
         delete ptr;
       });
 
-      return VulkanCommandBuffer(buffer[0], ptr);
+      return VulkanCommandList(buffer[0], ptr);
     }
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+
       auto list = m_copyListPool.allocate();
       resetListNative(*list);
-      return list;
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
+        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete buffer;
+      });
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return list;
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
+        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete buffer;
+      });
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
+      auto seqNumber = m_seqTracker->next();
+      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+
       auto list = m_graphicsListPool.allocate();
       resetListNative(*list);
-      return list;
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
+        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      {
+        if (auto seqTracker = tracker.lock())
+        {
+          seqTracker->complete(seqNumber);
+        }
+        delete buffer;
+      });
     }
 
-    void VulkanDevice::resetListNative(VulkanCommandBuffer list)
+    void VulkanDevice::resetListNative(VulkanCommandList list)
     {
       m_device.resetCommandPool(list.pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
     }

@@ -17,7 +17,7 @@ protected:
   faze::Logger log;
 
   Graphics()
-    :graphics(faze::GraphicsApi::DX12, "faze")
+    :graphics(faze::GraphicsApi::Vulkan, "faze")
     , gpu(graphics.createDevice(fs, graphics.getVendorDevice(faze::VendorID::Nvidia)))
   {
   }

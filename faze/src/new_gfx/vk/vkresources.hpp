@@ -9,6 +9,7 @@
 #include "faze/src/new_gfx/definitions.hpp"
 
 #include "core/src/system/MemoryPools.hpp"
+#include "core/src/system/SequenceTracker.hpp"
 
 #include "faze/src/new_gfx/vk/vulkan.hpp"
 
@@ -18,21 +19,15 @@ namespace faze
   {
     class VulkanDevice;
     // implementations
-    class VulkanCommandBuffer : public CommandBufferImpl
+    class VulkanCommandList
     {
       vk::CommandBuffer  m_cmdBuffer;
       std::shared_ptr<vk::CommandPool>    m_pool;
     public:
-      VulkanCommandBuffer(vk::CommandBuffer cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
+      VulkanCommandList(vk::CommandBuffer cmdBuffer, std::shared_ptr<vk::CommandPool> pool)
         : m_cmdBuffer(cmdBuffer)
         , m_pool(pool)
       {}
-
-    private:
-      void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
-      void preprocess(VulkanDevice* device, backend::IntermediateList& list);
-    public:
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
 
       vk::CommandBuffer list()
       {
@@ -449,6 +444,26 @@ namespace faze
       }
     };
 
+    class VulkanCommandBuffer : public CommandBufferImpl
+    {
+      std::shared_ptr<VulkanCommandList> m_list;
+
+    public:
+      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list)
+        : m_list(list)
+      {}
+    private:
+      void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
+      void preprocess(VulkanDevice* device, backend::IntermediateList& list);
+    public:
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
+
+      vk::CommandBuffer list()
+      {
+        return m_list->list();
+      }
+    };
+
     class VulkanDevice : public prototypes::DeviceImpl
     {
     private:
@@ -473,9 +488,9 @@ namespace faze
 
       Rabbitpool2<VulkanSemaphore>      m_semaphores;
       Rabbitpool2<VulkanFence>          m_fences;
-      Rabbitpool2<VulkanCommandBuffer>  m_copyListPool;
-      Rabbitpool2<VulkanCommandBuffer>  m_computeListPool;
-      Rabbitpool2<VulkanCommandBuffer>  m_graphicsListPool;
+      Rabbitpool2<VulkanCommandList>  m_copyListPool;
+      Rabbitpool2<VulkanCommandList>  m_computeListPool;
+      Rabbitpool2<VulkanCommandList>  m_graphicsListPool;
 
       unordered_map<size_t, std::shared_ptr<vk::RenderPass>> m_renderpasses;
 
@@ -491,6 +506,21 @@ namespace faze
         std::vector<uint32_t> dma;
       } m_freeQueueIndexes;
 
+      // new stuff
+
+      std::shared_ptr<SequenceTracker> m_seqTracker;
+
+      struct Garbage
+      {
+        vector<vk::Image> textures;
+        vector<vk::Buffer> buffers;
+        vector<vk::ImageView> textureviews;
+        vector<vk::BufferView> bufferviews;
+        vector<vk::DeviceMemory> heaps;
+      };
+
+      std::shared_ptr<Garbage> m_trash;
+      deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
     public:
       VulkanDevice(
         vk::Device device,
@@ -514,7 +544,6 @@ namespace faze
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
-      void destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
@@ -526,27 +555,22 @@ namespace faze
       std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
-      void destroyHeap(GpuHeap heap) override;
 
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void destroyBuffer(std::shared_ptr<prototypes::BufferImpl> buffer) override;
 
       std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      void destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl> buffer) override;
 
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void destroyTexture(std::shared_ptr<prototypes::TextureImpl> buffer) override;
 
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      void destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl> buffer) override;
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // commandlist stuff
-      VulkanCommandBuffer createCommandBuffer(int queueIndex);
-      void resetListNative(VulkanCommandBuffer list);
+      VulkanCommandList createCommandBuffer(int queueIndex);
+      void resetListNative(VulkanCommandList list);
       std::shared_ptr<CommandBufferImpl> createDMAList() override;
       std::shared_ptr<CommandBufferImpl> createComputeList() override;
       std::shared_ptr<CommandBufferImpl> createGraphicsList() override;

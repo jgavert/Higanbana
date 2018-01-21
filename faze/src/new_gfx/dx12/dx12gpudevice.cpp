@@ -63,7 +63,7 @@ namespace faze
 
       m_queryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-          return createQueryHeap(128); // maybe 10 megs of readback?
+        return createQueryHeap(128); // maybe 10 megs of readback?
       });
 
       m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
@@ -413,10 +413,6 @@ namespace faze
       }
     }
 
-    void DX12Device::destroySwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
-    {
-    }
-
     vector<std::shared_ptr<prototypes::TextureImpl>> DX12Device::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
@@ -424,7 +420,7 @@ namespace faze
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
       textures.resize(native->getDesc().descriptor.desc.bufferCount);
 
-      DX12ResourceState state{0};
+      DX12ResourceState state{ 0 };
       state.commonStateOptimisation = false;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
@@ -875,12 +871,6 @@ namespace faze
       return GpuHeap(std::make_shared<DX12Heap>(heap), std::move(heapDesc));
     }
 
-    void DX12Device::destroyHeap(GpuHeap)
-    {
-      //auto native = std::static_pointer_cast<DX12Heap>(heap.impl);
-      //native->native()->Release();
-    }
-
     std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
@@ -926,10 +916,6 @@ namespace faze
         }
         delete ptr;
       });
-    }
-
-    void DX12Device::destroyBuffer(std::shared_ptr<prototypes::BufferImpl>)
-    {
     }
 
     std::shared_ptr<prototypes::BufferViewImpl> DX12Device::createBufferView(
@@ -992,10 +978,6 @@ namespace faze
         }
         delete ptr;
       });
-    }
-
-    void DX12Device::destroyBufferView(std::shared_ptr<prototypes::BufferViewImpl>)
-    {
     }
 
     std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
@@ -1075,10 +1057,6 @@ namespace faze
       });
     }
 
-    void DX12Device::destroyTexture(std::shared_ptr<prototypes::TextureImpl>)
-    {
-    }
-
     std::shared_ptr<prototypes::TextureViewImpl> DX12Device::createTextureView(
       std::shared_ptr<prototypes::TextureImpl> texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
@@ -1154,10 +1132,6 @@ namespace faze
         }
         delete ptr;
       });
-    }
-
-    void DX12Device::destroyTextureView(std::shared_ptr<prototypes::TextureViewImpl>)
-    {
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)
@@ -1242,12 +1216,12 @@ namespace faze
 
     DX12QueryHeap DX12Device::createQueryHeap(unsigned counters)
     {
-        return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
+      return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
     }
 
     DX12ReadbackHeap DX12Device::createReadback(unsigned pages, unsigned pageSize)
     {
-        return DX12ReadbackHeap(m_device.Get(), pages, pageSize);
+      return DX12ReadbackHeap(m_device.Get(), pages, pageSize);
     }
 
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
@@ -1272,7 +1246,16 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_copyListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        m_copyListPool.allocate(),
+        m_constantsUpload,
+        m_dynamicUpload,
+        m_readbackPool.allocate(),
+        m_queryHeapPool.allocate(),
+        m_dynamicGpuDescriptors,
+        m_nullBufferUAV,
+        m_nullBufferSRV),
+        [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1287,7 +1270,16 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_computeListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        m_computeListPool.allocate(),
+        m_constantsUpload,
+        m_dynamicUpload,
+        m_readbackPool.allocate(),
+        m_queryHeapPool.allocate(),
+        m_dynamicGpuDescriptors,
+        m_nullBufferUAV,
+        m_nullBufferSRV),
+        [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {
@@ -1301,7 +1293,16 @@ namespace faze
     {
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(m_graphicsListPool.allocate(), m_constantsUpload, m_dynamicUpload, m_readbackPool.allocate(), m_queryHeapPool.allocate(), m_dynamicGpuDescriptors, m_nullBufferUAV, m_nullBufferSRV), [tracker, seqNumber](DX12CommandList* ptr)
+      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        m_graphicsListPool.allocate(),
+        m_constantsUpload,
+        m_dynamicUpload,
+        m_readbackPool.allocate(),
+        m_queryHeapPool.allocate(),
+        m_dynamicGpuDescriptors,
+        m_nullBufferUAV,
+        m_nullBufferSRV),
+        [tracker, seqNumber](DX12CommandList* ptr)
       {
         if (auto seqTracker = tracker.lock())
         {

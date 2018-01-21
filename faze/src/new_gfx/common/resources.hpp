@@ -155,9 +155,6 @@ namespace faze
 
       std::shared_ptr<ResourceTracker<prototypes::BufferImpl>> m_trackerbuffers;
       std::shared_ptr<ResourceTracker<prototypes::TextureImpl>> m_trackertextures;
-      std::shared_ptr<ResourceTracker<prototypes::SwapchainImpl>> m_trackerswapchains;
-      std::shared_ptr<ResourceTracker<prototypes::BufferViewImpl>> m_trackerbufferViews;
-      std::shared_ptr<ResourceTracker<prototypes::TextureViewImpl>> m_trackertextureViews;
 
       std::shared_ptr<std::atomic<int64_t>> m_idGenerator;
       deque<LiveCommandBuffer> m_buffers;
