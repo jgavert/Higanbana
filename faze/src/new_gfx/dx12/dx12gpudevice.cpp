@@ -63,7 +63,12 @@ namespace faze
 
       m_queryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createQueryHeap(128); // maybe 10 megs of readback?
+        return createGraphicsQueryHeap(128); // maybe 10 megs of readback?
+      });
+
+      m_computeQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
+      {
+        return createComputeQueryHeap(128); // maybe 10 megs of readback?
       });
 
       m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
@@ -1214,9 +1219,14 @@ namespace faze
       return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
     }
 
-    DX12QueryHeap DX12Device::createQueryHeap(unsigned counters)
+    DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)
     {
       return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
+    }
+
+    DX12QueryHeap DX12Device::createComputeQueryHeap(unsigned counters)
+    {
+      return DX12QueryHeap(m_device.Get(), m_computeQueue.Get(), counters);
     }
 
     DX12ReadbackHeap DX12Device::createReadback(unsigned pages, unsigned pageSize)
@@ -1275,7 +1285,7 @@ namespace faze
         m_constantsUpload,
         m_dynamicUpload,
         m_readbackPool.allocate(),
-        m_queryHeapPool.allocate(),
+        m_computeQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
         m_nullBufferSRV),

@@ -1059,6 +1059,7 @@ namespace faze
 
       Rabbitpool2<DX12ReadbackHeap> m_readbackPool; // make this a new kind of pool, which keeps alive recently used.
       Rabbitpool2<DX12QueryHeap> m_queryHeapPool;
+      Rabbitpool2<DX12QueryHeap> m_computeQueryHeapPool;
       Rabbitpool2<DX12CommandBuffer> m_copyListPool;
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
@@ -1126,7 +1127,9 @@ namespace faze
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-      DX12QueryHeap createQueryHeap(unsigned counters);
+      DX12QueryHeap createGraphicsQueryHeap(unsigned counters);
+      DX12QueryHeap createComputeQueryHeap(unsigned counters);
+
       DX12ReadbackHeap createReadback(unsigned pages, unsigned pageSize);
       DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
       DX12Fence         createNativeFence();
