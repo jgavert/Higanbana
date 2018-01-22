@@ -164,6 +164,11 @@ namespace faze
       dxdesc.SampleDesc.Count = 1;
       dxdesc.SampleDesc.Quality = 0;
       dxdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      
+      if (desc.allowCrossAdapter)
+      {
+          dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+      }
 
       switch (desc.usage)
       {
@@ -261,6 +266,11 @@ namespace faze
       }
       default:
         break;
+      }
+
+      if (desc.allowCrossAdapter)
+      {
+          dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
       }
 
       return dxdesc;
@@ -534,6 +544,13 @@ namespace faze
         {
           flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
         }
+      }
+
+      // see https://msdn.microsoft.com/en-us/library/windows/desktop/mt186623(v=vs.85).aspx
+      // overrides bunch of requirements.
+      if (desc.desc.allowCrossAdapter)
+      {
+          flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES | D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER;
       }
 
       requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
@@ -876,6 +893,42 @@ namespace faze
       return GpuHeap(std::make_shared<DX12Heap>(heap), std::move(heapDesc));
     }
 
+    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(ResourceDescriptor& desc)
+    {
+        auto dxDesc = fillPlacedBufferInfo(desc);
+
+        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+        DX12ResourceState state{ 0 };
+        state.commonStateOptimisation = true;
+        state.flags.emplace_back(startState);
+        ID3D12Resource* buffer;
+
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+
+        auto wstr = s2ws(desc.desc.name);
+        buffer->SetName(wstr.c_str());
+
+        std::weak_ptr<Garbage> weak = m_trash;
+
+        return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
+            [weak](DX12Buffer* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->resources.emplace_back(ptr->native());
+                trash->resStates.emplace_back(ptr->state());
+            }
+            else
+            {
+                ptr->native()->Release();
+            }
+            delete ptr;
+        });
+    }
+
     std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
@@ -909,18 +962,19 @@ namespace faze
       std::weak_ptr<Garbage> weak = m_trash;
 
       return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
-        [weak](DX12Buffer* ptr)
+          [weak](DX12Buffer* ptr)
       {
-        if (auto trash = weak.lock())
-        {
-          trash->resources.emplace_back(ptr->native());
-        }
-        else
-        {
-          ptr->native()->Release();
-        }
-        delete ptr;
-      });
+          if (auto trash = weak.lock())
+          {
+              trash->resources.emplace_back(ptr->native());
+              trash->resStates.emplace_back(ptr->state());
+          }
+          else
+          {
+              ptr->native()->Release();
+          }
+          delete ptr;
+      });;
     }
 
     std::shared_ptr<prototypes::BufferViewImpl> DX12Device::createBufferView(
@@ -983,6 +1037,74 @@ namespace faze
         }
         delete ptr;
       });
+    }
+
+    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(ResourceDescriptor& desc)
+    {
+        auto dxDesc = fillPlacedTextureInfo(desc);
+        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+
+        DX12ResourceState state{ 0 };
+        state.commonStateOptimisation = false; // usually false, to get those layout optimisations.
+        for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
+        {
+            for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
+            {
+                state.flags.emplace_back(startState);
+            }
+        }
+
+        D3D12_CLEAR_VALUE clear;
+        clear.Format = formatTodxFormat(desc.desc.format).view;
+        D3D12_CLEAR_VALUE* clearPtr = nullptr;
+        switch (desc.desc.usage)
+        {
+        case ResourceUsage::DepthStencil:
+        case ResourceUsage::DepthStencilRW:
+            clear.DepthStencil.Depth = 0.f;
+            clear.DepthStencil.Stencil = 0;
+            clearPtr = &clear;
+            break;
+        case ResourceUsage::RenderTarget:
+        case ResourceUsage::RenderTargetRW:
+            clear.Color[0] = 0.f;
+            clear.Color[1] = 0.f;
+            clear.Color[2] = 0.f;
+            clear.Color[3] = 0.f;
+            clearPtr = &clear;
+            break;
+        default:
+            break;
+        }
+
+        ID3D12Resource* texture;
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        dxDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // forced
+
+        m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
+
+        auto wstr = s2ws(desc.desc.name);
+        texture->SetName(wstr.c_str());
+
+        std::weak_ptr<Garbage> weak = m_trash;
+
+
+        return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
+            [weak](DX12Texture* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->resources.emplace_back(ptr->native());
+                trash->resStates.emplace_back(ptr->state());
+            }
+            else
+            {
+                ptr->native()->Release();
+            }
+            delete ptr;
+        });
     }
 
     std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
@@ -1048,17 +1170,19 @@ namespace faze
       std::weak_ptr<Garbage> weak = m_trash;
 
       return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
-        [weak](DX12Texture* ptr)
+          [weak](DX12Texture* ptr)
       {
-        if (auto trash = weak.lock())
-        {
-          trash->resources.emplace_back(ptr->native());
-        }
-        else
-        {
-          ptr->native()->Release();
-        }
-        delete ptr;
+          if (auto trash = weak.lock())
+          {
+              trash->resources.emplace_back(ptr->native());
+              trash->resStates.emplace_back(ptr->state());
+              ptr->resetState();
+          }
+          else
+          {
+              ptr->native()->Release();
+          }
+          delete ptr;
       });
     }
 
@@ -1430,6 +1554,107 @@ namespace faze
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       unsigned syncInterval = (native->getDesc().descriptor.desc.mode == PresentMode::Fifo) ? 1 : 0;
       FAZE_CHECK_HR(native->native()->Present(syncInterval, 0));
+    }
+
+    std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(HeapAllocation heapAllocation)
+    {
+        auto native = std::static_pointer_cast<DX12Heap>(heapAllocation.heap.impl);
+
+        HANDLE h;
+
+        FAZE_CHECK_HR(m_device->CreateSharedHandle(native->native(), nullptr, GENERIC_ALL, L"sharedHandle_heap_Faze", &h));
+
+        return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+        {
+            CloseHandle(ptr->handle);
+            delete ptr;
+        });
+    }
+
+    std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource)
+    {
+        auto native = std::static_pointer_cast<DX12Texture>(resource);
+
+        HANDLE h;
+
+        FAZE_CHECK_HR(m_device->CreateSharedHandle(native->native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
+
+        return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+        {
+            CloseHandle(ptr->handle);
+            delete ptr;
+        });
+    }
+    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBufferFromHandle(std::shared_ptr<SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc)
+    {
+        ID3D12Heap* heap;
+        m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(&heap));
+
+        auto dxDesc = fillPlacedBufferInfo(desc);
+
+        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+        DX12ResourceState state{ 0 };
+        state.commonStateOptimisation = true;
+        state.flags.emplace_back(startState);
+        ID3D12Resource* buffer;
+        m_device->CreatePlacedResource(heap, heapAllocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+
+        auto wstr = s2ws(desc.desc.name);
+        buffer->SetName(wstr.c_str());
+
+        std::weak_ptr<Garbage> weak = m_trash;
+
+        return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
+            [weak](DX12Buffer* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->resources.emplace_back(ptr->native());
+                trash->resStates.emplace_back(ptr->state());
+            }
+            else
+            {
+                ptr->native()->Release();
+            }
+            delete ptr;
+        });
+    }
+    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc)
+    {
+        ID3D12Resource* texture;
+        m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(&texture));
+
+        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+
+        DX12ResourceState state{ 0 };
+        state.commonStateOptimisation = false; // usually false, to get those layout optimisations.
+        for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
+        {
+            for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
+            {
+                state.flags.emplace_back(startState);
+            }
+        }
+
+        auto wstr = s2ws(desc.desc.name);
+        texture->SetName(wstr.c_str());
+
+        std::weak_ptr<Garbage> weak = m_trash;
+
+        return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
+            [weak](DX12Texture* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->resources.emplace_back(ptr->native());
+                trash->resStates.emplace_back(ptr->state());
+            }
+            else
+            {
+                ptr->native()->Release();
+            }
+            delete ptr;
+        });;
     }
   }
 }

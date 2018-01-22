@@ -56,6 +56,7 @@ namespace faze
     int64_t heapType;
   };
 
+  class SharedBuffer;
   class Buffer;
   class Texture;
 
@@ -91,6 +92,18 @@ namespace faze
       class SwapchainImpl;
       class GraphicsSurfaceImpl;
     }
+
+#if defined(FAZE_PLATFORM_WINDOWS)
+    struct SharedHandle
+    {
+        void* handle;
+    };
+#else
+    struct SharedHandle
+    {
+        int woot;
+    };
+#endif
 
     struct GpuHeap
     {
@@ -181,6 +194,7 @@ namespace faze
       GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
       Buffer createBuffer(ResourceDescriptor desc);
+      SharedBuffer createSharedBuffer(DeviceData& secondary, ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
 
       BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc);

@@ -12,7 +12,7 @@ namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
-  class GraphicsSurface;
+  class GraphicsSurface; 
 
   // descriptors
   class SwapchainDescriptor;
@@ -23,6 +23,7 @@ namespace faze
 
   namespace backend
   {
+    struct SharedHandle;
     struct TrackedState;
     struct RawView;
     struct GpuHeap;
@@ -148,10 +149,16 @@ namespace faze
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
 
+        virtual std::shared_ptr<BufferImpl> createBuffer(ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<BufferViewImpl> createBufferView(std::shared_ptr<BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual std::shared_ptr<TextureImpl> createTexture(ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+
+        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
+        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<TextureImpl> resource) = 0;
+        virtual std::shared_ptr<BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
 
         // create dynamic resources
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;

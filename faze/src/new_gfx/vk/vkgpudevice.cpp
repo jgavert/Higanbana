@@ -949,6 +949,60 @@ namespace faze
       }), std::move(heapDesc));
     }
 
+    std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(ResourceDescriptor& desc)
+    {
+        auto vkdesc = fillBufferInfo(desc);
+        auto buffer = m_device.createBuffer(vkdesc);
+        /*
+        vk::MemoryDedicatedAllocateInfoKHR dediInfo;
+        dediInfo.setBuffer(buffer);
+
+        auto bufMemReq = m_device.getBufferMemoryRequirements2KHR(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer));
+        auto memProp = m_physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(desc.desc.usage);
+        auto index = FindProperties(memProp, bufMemReq.memoryRequirements.memoryTypeBits, searchProperties.optimal);
+
+        auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
+
+        m_device.bindBufferMemory(buffer, res.operator VkDeviceMemory(), 0);
+       
+        VulkanBufferState state{};
+        state.queueIndex = m_mainQueueIndex;
+        std::weak_ptr<Garbage> weak = m_trash;
+        return std::shared_ptr<VulkanBuffer>(new VulkanBuffer(buffer, std::make_shared<VulkanBufferState>(state)),
+            [weak, dev = m_device, mem = res.operator VkDeviceMemory()](VulkanBuffer* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->buffers.emplace_back(ptr->native());
+                trash->heaps.emplace_back(mem);
+            }
+            else
+            {
+                dev.destroyBuffer(ptr->native());
+                dev.freeMemory(mem);
+            }
+            delete ptr;
+        });
+        */
+        VulkanBufferState state{};
+        state.queueIndex = m_mainQueueIndex;
+        std::weak_ptr<Garbage> weak = m_trash;
+        return std::shared_ptr<VulkanBuffer>(new VulkanBuffer(buffer, std::make_shared<VulkanBufferState>(state)),
+            [weak, dev = m_device](VulkanBuffer* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->buffers.emplace_back(ptr->native());
+            }
+            else
+            {
+                dev.destroyBuffer(ptr->native());
+            }
+            delete ptr;
+        });
+    }
+
     std::shared_ptr<prototypes::BufferImpl> VulkanDevice::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto vkdesc = fillBufferInfo(desc);
@@ -1003,6 +1057,74 @@ namespace faze
         .setOffset(firstElement)
         .setRange(maxRange)
         , type);
+    }
+
+    std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(ResourceDescriptor& desc)
+    {
+        auto vkdesc = fillImageInfo(desc);
+        auto image = m_device.createImage(vkdesc);
+        /*
+        m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
+
+        vk::MemoryDedicatedAllocateInfoKHR dediInfo;
+        dediInfo.setImage(image);
+
+        auto bufMemReq = m_device.getImageMemoryRequirements2KHR(vk::ImageMemoryRequirementsInfo2KHR().setImage(image));
+        auto memProp = m_physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(desc.desc.usage);
+        auto index = FindProperties(memProp, bufMemReq.memoryRequirements.memoryTypeBits, searchProperties.optimal);
+
+        auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
+
+        m_device.bindImageMemory(image, res.operator VkDeviceMemory(), 0);
+
+        
+        vector<TextureStateFlags> state;
+        for (uint32_t slice = 0; slice < vkdesc.arrayLayers; ++slice)
+        {
+            for (uint32_t mip = 0; mip < vkdesc.mipLevels; ++mip)
+            {
+                state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
+            }
+        }
+        std::weak_ptr<Garbage> weak = m_trash;
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state })),
+            [weak, dev = m_device, mem = res.operator VkDeviceMemory()](VulkanTexture* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->textures.emplace_back(ptr->native());
+                trash->heaps.emplace_back(mem);
+            }
+            else
+            {
+                dev.destroyImage(ptr->native());
+                dev.freeMemory(mem);
+            }
+            delete ptr;
+        });  */
+        vector<TextureStateFlags> state;
+        for (uint32_t slice = 0; slice < vkdesc.arrayLayers; ++slice)
+        {
+            for (uint32_t mip = 0; mip < vkdesc.mipLevels; ++mip)
+            {
+                state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
+            }
+        }
+        std::weak_ptr<Garbage> weak = m_trash;
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state })),
+            [weak, dev = m_device](VulkanTexture* ptr)
+        {
+            if (auto trash = weak.lock())
+            {
+                trash->textures.emplace_back(ptr->native());
+            }
+            else
+            {
+                dev.destroyImage(ptr->native());
+            }
+            delete ptr;
+        });
     }
 
     std::shared_ptr<prototypes::TextureImpl> VulkanDevice::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)

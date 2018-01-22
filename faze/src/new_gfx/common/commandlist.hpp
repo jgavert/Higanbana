@@ -159,7 +159,7 @@ namespace faze
 
     void copy(Buffer& target, Buffer& source)
     {
-      list.insert<gfxpacket::BufferCopy>(target, source);
+      list.insert<gfxpacket::BufferCopy>(target.dependency(), source.dependency());
     }
 
     void copy(Buffer& target, DynamicBufferView& source)

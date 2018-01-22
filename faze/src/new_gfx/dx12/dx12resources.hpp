@@ -515,6 +515,27 @@ namespace faze
       }
     };
 
+    class DX12Semaphore : public SemaphoreImpl
+    {
+    public:
+        ComPtr<ID3D12Fence> fence = nullptr;
+        std::shared_ptr<uint64_t> value = nullptr;
+
+        DX12Semaphore()
+        {}
+
+        DX12Semaphore(ComPtr<ID3D12Fence> fence)
+            : fence(fence)
+            , value(std::make_shared<uint64_t>(0))
+        {
+        }
+
+        uint64_t start()
+        {
+            return ++(*value);
+        }
+    };
+
     class DX12CommandBuffer
     {
       ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -809,7 +830,7 @@ namespace faze
     {
     private:
       ID3D12Resource * resource = nullptr;
-      std::shared_ptr<DX12ResourceState> statePtr = nullptr;
+      std::shared_ptr<DX12ResourceState> statePtr;
 
     public:
       DX12Texture()
@@ -826,6 +847,11 @@ namespace faze
       std::shared_ptr<DX12ResourceState> state()
       {
         return statePtr;
+      }
+
+      void resetState()
+      {
+          statePtr = nullptr;
       }
 
       backend::TrackedState dependency() override
@@ -872,7 +898,7 @@ namespace faze
     {
     private:
       ID3D12Resource * resource;
-      std::shared_ptr<DX12ResourceState> statePtr = nullptr;
+      std::shared_ptr<DX12ResourceState> statePtr;
 
     public:
       DX12Buffer()
@@ -888,6 +914,11 @@ namespace faze
       std::shared_ptr<DX12ResourceState> state()
       {
         return statePtr;
+      }
+
+      void resetState()
+      {
+          statePtr = nullptr;
       }
       backend::TrackedState dependency() override
       {
@@ -1082,6 +1113,7 @@ namespace faze
         vector<DX12CPUDescriptor> rtvsDescriptors;
         vector<DX12CPUDescriptor> dsvsDescriptors;
         vector<ID3D12Resource*> resources;
+        vector<std::shared_ptr<DX12ResourceState>> resStates;
         vector<ComPtr<ID3D12PipelineState>> pipelines;
         vector<ComPtr<ID3D12RootSignature>> roots;
       };
@@ -1117,10 +1149,17 @@ namespace faze
 
       GpuHeap createHeap(HeapDescriptor desc) override;
 
+      std::shared_ptr<prototypes::BufferImpl> createBuffer(ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      std::shared_ptr<prototypes::TextureImpl> createTexture(ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+
+      std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
+      std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource) override;
+      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
+      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc);
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;

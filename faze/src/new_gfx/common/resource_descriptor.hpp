@@ -329,12 +329,42 @@ namespace faze
       return *this;
     }
 
+    ResourceDescriptor& setSize(int2 size)
+    {
+        if (desc.dimension == FormatDimension::Unknown)
+            desc.dimension = FormatDimension::Texture2D;
+        desc.width = size.x;
+        desc.height = size.y;
+        return *this;
+    }
+
     ResourceDescriptor& setSize(int3 size)
     {
+        if (desc.dimension == FormatDimension::Unknown)
+            desc.dimension = FormatDimension::Texture3D;
       desc.width = size.x;
       desc.height = size.y;
       desc.depth = size.z;
       return *this;
+    }
+
+    ResourceDescriptor& setSize(uint2 size)
+    {
+        if (desc.dimension == FormatDimension::Unknown)
+            desc.dimension = FormatDimension::Texture2D;
+        desc.width = size.x;
+        desc.height = size.y;
+        return *this;
+    }
+
+    ResourceDescriptor& setSize(uint3 size)
+    {
+        if (desc.dimension == FormatDimension::Unknown)
+            desc.dimension = FormatDimension::Texture3D;
+        desc.width = size.x;
+        desc.height = size.y;
+        desc.depth = size.z;
+        return *this;
     }
 
     ResourceDescriptor& setWidth(unsigned size)
