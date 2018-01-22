@@ -194,7 +194,19 @@ namespace faze
       auto allo = m_heaps.allocate(m_impl.get(), memRes);
       auto data = m_impl->createBuffer(allo, desc);
       auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
-      return Buffer(data, tracker, desc);
+      return Buffer(data, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
+    }
+
+    SharedBuffer DeviceData::createSharedBuffer(DeviceData& secondary, ResourceDescriptor desc)
+    {
+        desc = desc.setDimension(FormatDimension::Buffer);
+        auto memRes = m_impl->getReqs(desc);
+        auto allo = m_heaps.allocate(m_impl.get(), memRes);
+        auto data = m_impl->createBuffer(allo, desc);
+        auto handle = m_impl->openSharedHandle(allo);
+        auto secondaryData = secondary.m_impl->createBufferFromHandle(handle, allo, desc);
+        auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
+        return SharedBuffer(data, secondaryData, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
     }
 
     Texture DeviceData::createTexture(ResourceDescriptor desc)

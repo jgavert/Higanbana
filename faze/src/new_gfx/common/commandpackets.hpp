@@ -448,9 +448,9 @@ namespace faze
       backend::TrackedState target;
       backend::TrackedState source;
 
-      BufferCopy(backend::ListAllocator, Buffer& target, Buffer& source)
-        : target(target.dependency())
-        , source(source.dependency())
+      BufferCopy(backend::ListAllocator, backend::TrackedState target, backend::TrackedState source)
+        : target(target)
+        , source(source)
       {
       }
 

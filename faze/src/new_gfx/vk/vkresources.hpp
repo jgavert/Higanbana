@@ -556,13 +556,16 @@ namespace faze
 
       GpuHeap createHeap(HeapDescriptor desc) override;
 
+      std::shared_ptr<prototypes::BufferImpl> createBuffer(ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
-
       std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-
+      std::shared_ptr<prototypes::TextureImpl> createTexture(ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
-
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+
+      std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation ) override { return nullptr; };
+      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl>) override { return nullptr; };
+      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<SharedHandle> , HeapAllocation,  ResourceDescriptor& ) override { return nullptr; };
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
@@ -646,7 +649,8 @@ namespace faze
         "VK_EXT_shader_subgroup_vote",
         "VK_KHR_maintenance1",
         "VK_KHR_maintenance2",
-        "VK_KHR_swapchain"
+        "VK_KHR_swapchain",
+        "VK_KHR_dedicated_allocation"
       };
     public:
       VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);

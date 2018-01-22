@@ -44,9 +44,8 @@ namespace faze
       io.Fonts->GetTexDataAsAlpha8(&pixels, &x, &y);
 
       CpuImage image(ResourceDescriptor()
-        .setSize({ x, y, 1 })
+        .setSize(int2{ x, y })
         .setFormat(FormatType::Unorm8)
-        .setDimension(FormatDimension::Texture2D)
         .setName("ImGui Font Atlas")
         .setUsage(ResourceUsage::GpuReadOnly));
       auto sr = image.subresource(0, 0);

@@ -22,8 +22,7 @@ namespace faze
       F_SLOG("CpuImage", "loaded %dx%d %d\n", imgX, imgY, channels);
 
       CpuImage image(ResourceDescriptor()
-        .setSize({ imgX, imgY, 1 })
-        .setDimension(FormatDimension::Texture2D)
+        .setSize(int2(imgX, imgY))
         .setFormat(FormatType::Unorm8RGBA)
         .setName(path)
         .setUsage(ResourceUsage::GpuReadOnly));

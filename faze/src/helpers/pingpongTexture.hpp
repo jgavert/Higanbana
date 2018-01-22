@@ -10,7 +10,7 @@ namespace faze
     vector<TextureUAV> uavs;
     vector<TextureRTV> rtvs;
     int currentIndex = 0;
-    int maxTextures = 3;
+    int maxTextures = 7;
   public:
 
     PingPongTexture(GpuDevice gpu, const ResourceDescriptor& desc)
