@@ -1042,6 +1042,76 @@ namespace faze
         delete ptr;
       });
     }
+#define DX12CheckSupport1(s) checkSupport1(#s, s)
+#define DX12CheckSupport2(s) checkSupport2(#s, s)
+    void checkFormatOperationSupport(ID3D12Device* dev, FormatType format)
+    {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT data{};
+        data.Format = formatTodxFormat(format).view;
+
+        HRESULT hr = dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &data, sizeof(data));
+        if (hr == S_OK)
+        {
+            std::string output = "";
+            std::string output2 = "";
+            auto checkSupport1 = [&](const char* s, D3D12_FORMAT_SUPPORT1 mask)
+            {
+                if (data.Support1 & mask)
+                {
+                    output += s;
+                    output += "\n";
+                }
+            };
+            auto checkSupport2 = [&](const char* s, D3D12_FORMAT_SUPPORT2 mask)
+            {
+                if (data.Support2 & mask)
+                {
+                    output2 += s;
+                    output2 += "\n";
+                }
+            };
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DISPLAY);
+            /*
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE1D);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE2D);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE3D);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURECUBE);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_LOAD);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_COMPARISON);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_MONO_TEXT);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MIP);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_RENDER_TARGET);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BLENDABLE);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE);
+            
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_CAST_WITHIN_BIT_LAYOUT);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BACK_BUFFER_CAST);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER_COMPARISON);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DECODER_OUTPUT);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_OUTPUT);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_INPUT);
+            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_ENCODER);
+
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_ADD);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_BITWISE_OPS);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_COMPARE_STORE_OR_COMPARE_EXCHANGE);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_EXCHANGE);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_SIGNED_MIN_OR_MAX);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_UNSIGNED_MIN_OR_MAX);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_TILED);
+            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_MULTIPLANE_OVERLAY);  */
+            F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
+        }
+    }
 
     std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(ResourceDescriptor& desc)
     {
@@ -1086,6 +1156,13 @@ namespace faze
       prop.Type = D3D12_HEAP_TYPE_DEFAULT;
 
       dxDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // forced
+
+      for (int i = 0; i < static_cast<int>(FormatType::Count); ++i)
+      {
+          checkFormatOperationSupport(m_device.Get(), static_cast<FormatType>(i));
+      }
+
+      dxDesc.Format = formatTodxFormat(desc.desc.format).storage;
 
       m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
 
