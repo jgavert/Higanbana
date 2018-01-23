@@ -7,8 +7,6 @@
 
 namespace faze
 {
-
-
   class Buffer
   {
     std::shared_ptr<backend::prototypes::BufferImpl> impl;
@@ -154,36 +152,36 @@ namespace faze
 
   class SharedBuffer
   {
-      std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl;
-      std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl;
-      std::shared_ptr<int64_t> id;
-      std::shared_ptr<ResourceDescriptor> m_desc;
+    std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl;
+    std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl;
+    std::shared_ptr<int64_t> id;
+    std::shared_ptr<ResourceDescriptor> m_desc;
   public:
-      SharedBuffer()
-          : m_desc(std::make_shared<ResourceDescriptor>())
-      {
-      }
-      SharedBuffer(std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl, std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
-          : primaryImpl(primaryImpl)
-          , secondaryImpl(secondaryImpl)
-          , id(id)
-          , m_desc(desc)
-      {
-      }
+    SharedBuffer()
+      : m_desc(std::make_shared<ResourceDescriptor>())
+    {
+    }
+    SharedBuffer(std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl, std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
+      : primaryImpl(primaryImpl)
+      , secondaryImpl(secondaryImpl)
+      , id(id)
+      , m_desc(desc)
+    {
+    }
 
-      Buffer getPrimaryBuffer()
-      {
-          return Buffer(primaryImpl, id, m_desc);
-      }
+    Buffer getPrimaryBuffer()
+    {
+      return Buffer(primaryImpl, id, m_desc);
+    }
 
-      Buffer getSecondaryBuffer()
-      {
-          return Buffer(secondaryImpl, id, m_desc);
-      }
+    Buffer getSecondaryBuffer()
+    {
+      return Buffer(secondaryImpl, id, m_desc);
+    }
 
-      ResourceDescriptor& desc()
-      {
-          return *m_desc;
-      }
+    ResourceDescriptor& desc()
+    {
+      return *m_desc;
+    }
   };
 };

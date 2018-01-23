@@ -28,10 +28,10 @@ namespace faze
     {
     }
 
-    Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, ResourceDescriptor desc)
+    Texture(std::shared_ptr<backend::prototypes::TextureImpl> impl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
       : impl(impl)
       , m_id(id)
-      , m_desc(std::make_shared<ResourceDescriptor>(std::move(desc)))
+      , m_desc(desc)
       , m_dependency(impl->dependency())
     {
       m_dependency.storeSubresourceRange(0, m_desc->desc.miplevels, 0, m_desc->desc.arraySize);
@@ -241,6 +241,41 @@ namespace faze
     {
       setOp(op);
       return *this;
+    }
+  };
+
+  class SharedTexture
+  {
+    std::shared_ptr<backend::prototypes::TextureImpl> primaryImpl;
+    std::shared_ptr<backend::prototypes::TextureImpl> secondaryImpl;
+    std::shared_ptr<int64_t> id;
+    std::shared_ptr<ResourceDescriptor> m_desc;
+  public:
+    SharedTexture()
+      : m_desc(std::make_shared<ResourceDescriptor>())
+    {
+    }
+    SharedTexture(std::shared_ptr<backend::prototypes::TextureImpl> primaryImpl, std::shared_ptr<backend::prototypes::TextureImpl> secondaryImpl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
+      : primaryImpl(primaryImpl)
+      , secondaryImpl(secondaryImpl)
+      , id(id)
+      , m_desc(desc)
+    {
+    }
+
+    Texture getPrimaryTexture()
+    {
+      return Texture(primaryImpl, id, m_desc);
+    }
+
+    Texture getSecondaryTexture()
+    {
+      return Texture(secondaryImpl, id, m_desc);
+    }
+
+    ResourceDescriptor& desc()
+    {
+      return *m_desc;
     }
   };
 };

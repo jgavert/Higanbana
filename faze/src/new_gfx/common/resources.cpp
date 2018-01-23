@@ -133,7 +133,7 @@ namespace faze
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
-        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), swapchain.impl()->desc());
+        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(swapchain.impl()->desc()));
         backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
       }
       swapchain.setBackbuffers(backbuffers);
@@ -158,7 +158,7 @@ namespace faze
       backbuffers.resize(buffers.size());
       for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
       {
-        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), swapchain.impl()->desc());
+        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(swapchain.impl()->desc()));
         backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
       }
       swapchain.setBackbuffers(backbuffers);
@@ -215,7 +215,15 @@ namespace faze
       auto allo = m_heaps.allocate(m_impl.get(), memRes);
       auto data = m_impl->createTexture(allo, desc);
       auto tracker = m_trackertextures->makeTracker(newId(), allo.allocation);
-      return Texture(data, tracker, desc);
+      return Texture(data, tracker, std::make_shared<ResourceDescriptor>(desc));
+    }
+
+    SharedTexture DeviceData::createSharedTexture(DeviceData& secondary, ResourceDescriptor desc)
+    {
+      auto data = m_impl->createTexture(desc);
+      auto handle = m_impl->openSharedHandle(data);
+      auto secondaryData = secondary.m_impl->createTextureFromHandle(handle, desc);
+      return SharedTexture(data, secondaryData, std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(std::move(desc)));
     }
 
     BufferSRV DeviceData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
@@ -379,7 +387,7 @@ namespace faze
 
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
-  }
+      }
 #else
 
       struct PreparedCommandlist
@@ -521,7 +529,7 @@ namespace faze
 #endif
 
       gc();
-}
+    }
 
     void DeviceData::submit(CommandGraph graph)
     {
