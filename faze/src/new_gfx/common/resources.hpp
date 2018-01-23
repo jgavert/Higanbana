@@ -56,9 +56,10 @@ namespace faze
     int64_t heapType;
   };
 
-  class SharedBuffer;
   class Buffer;
+  class SharedBuffer;
   class Texture;
+  class SharedTexture;
 
   class BufferSRV;
   class BufferUAV;
@@ -96,12 +97,12 @@ namespace faze
 #if defined(FAZE_PLATFORM_WINDOWS)
     struct SharedHandle
     {
-        void* handle;
+      void* handle;
     };
 #else
     struct SharedHandle
     {
-        int woot;
+      int woot;
     };
 #endif
 
@@ -196,6 +197,7 @@ namespace faze
       Buffer createBuffer(ResourceDescriptor desc);
       SharedBuffer createSharedBuffer(DeviceData& secondary, ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
+      SharedTexture createSharedTexture(DeviceData& secondary, ResourceDescriptor desc);
 
       BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc);
       BufferUAV createBufferUAV(Buffer texture, ShaderViewDescriptor viewDesc);

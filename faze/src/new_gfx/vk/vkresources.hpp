@@ -563,9 +563,10 @@ namespace faze
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
-      std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation ) override { return nullptr; };
+      std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override { return nullptr; };
       std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl>) override { return nullptr; };
-      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<SharedHandle> , HeapAllocation,  ResourceDescriptor& ) override { return nullptr; };
+      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return nullptr; };
+      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return nullptr; };
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;

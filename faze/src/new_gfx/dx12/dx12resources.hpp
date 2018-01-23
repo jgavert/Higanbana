@@ -518,22 +518,22 @@ namespace faze
     class DX12Semaphore : public SemaphoreImpl
     {
     public:
-        ComPtr<ID3D12Fence> fence = nullptr;
-        std::shared_ptr<uint64_t> value = nullptr;
+      ComPtr<ID3D12Fence> fence = nullptr;
+      std::shared_ptr<uint64_t> value = nullptr;
 
-        DX12Semaphore()
-        {}
+      DX12Semaphore()
+      {}
 
-        DX12Semaphore(ComPtr<ID3D12Fence> fence)
-            : fence(fence)
-            , value(std::make_shared<uint64_t>(0))
-        {
-        }
+      DX12Semaphore(ComPtr<ID3D12Fence> fence)
+        : fence(fence)
+        , value(std::make_shared<uint64_t>(0))
+      {
+      }
 
-        uint64_t start()
-        {
-            return ++(*value);
-        }
+      uint64_t start()
+      {
+        return ++(*value);
+      }
     };
 
     class DX12CommandBuffer
@@ -851,7 +851,7 @@ namespace faze
 
       void resetState()
       {
-          statePtr = nullptr;
+        statePtr = nullptr;
       }
 
       backend::TrackedState dependency() override
@@ -918,7 +918,7 @@ namespace faze
 
       void resetState()
       {
-          statePtr = nullptr;
+        statePtr = nullptr;
       }
       backend::TrackedState dependency() override
       {
@@ -1159,7 +1159,7 @@ namespace faze
       std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource) override;
       std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc);
+      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) override;
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;

@@ -36,14 +36,20 @@ namespace faze
 
     SharedBuffer createSharedBuffer(GpuDevice& secondary, ResourceDescriptor descriptor)
     {
-        auto buf = S().createSharedBuffer(secondary.S(), descriptor);
-        return buf;
+      auto buf = S().createSharedBuffer(secondary.S(), descriptor);
+      return buf;
     }
 
     Texture createTexture(ResourceDescriptor descriptor)
     {
       auto tex = S().createTexture(descriptor);
       return tex;
+    }
+
+    SharedTexture createSharedTexture(GpuDevice& secondary, ResourceDescriptor descriptor)
+    {
+      auto buf = S().createSharedTexture(secondary.S(), descriptor);
+      return buf;
     }
 
     Texture createTexture(CpuImage& image)

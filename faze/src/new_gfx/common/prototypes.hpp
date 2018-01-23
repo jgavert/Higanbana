@@ -12,7 +12,7 @@ namespace faze
 {
   struct GpuInfo;
   class GpuDevice;
-  class GraphicsSurface; 
+  class GraphicsSurface;
 
   // descriptors
   class SwapchainDescriptor;
@@ -159,6 +159,7 @@ namespace faze
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<TextureImpl> resource) = 0;
         virtual std::shared_ptr<BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
+        virtual std::shared_ptr<TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) = 0;
 
         // create dynamic resources
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;

@@ -186,6 +186,22 @@ namespace faze
       return asd;
     }
 
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::TextureCopy& packet)
+    {
+      auto src = locationFromTexture(packet.source, 0, 0);
+      auto dst = locationFromTexture(packet.target, 0, 0);
+      for (int slice = packet.range.sliceOffset; slice < packet.range.arraySize; ++slice)
+      {
+        for (int mip = packet.range.mipOffset; mip < packet.range.mipLevels; ++mip)
+        {
+          auto subresourceIndex = slice * packet.source.totalMipLevels() + mip;
+          dst.SubresourceIndex = subresourceIndex;
+          src.SubresourceIndex = subresourceIndex;
+          buffer->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+        }
+      }
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ReadbackTexture& packet, DX12ReadbackHeap* readback, FreeableResources* free)
     {
       auto dim = sub(packet.srcbox.rightBottomBack, packet.srcbox.leftTopFront);
@@ -453,7 +469,13 @@ namespace faze
           drawIndex++;
           break;
         }
-
+        case CommandPacket::PacketType::TextureCopy:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::TextureCopy, packet));
+          drawIndex++;
+          break;
+        }
         case CommandPacket::PacketType::BufferCopy:
         {
           solver->runBarrier(buffer, drawIndex);
@@ -646,6 +668,14 @@ namespace faze
           solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
           break;
         }
+        case CommandPacket::PacketType::TextureCopy:
+        {
+          auto& p = packetRef(gfxpacket::TextureCopy, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
+          solver->addResource(drawIndex, p.source, D3D12_RESOURCE_STATE_COPY_SOURCE);
+          break;
+        }
         case CommandPacket::PacketType::BufferCopy:
         {
           auto& p = packetRef(gfxpacket::BufferCopy, packet);
@@ -784,7 +814,7 @@ namespace faze
 #endif
 
       m_buffer->closeList();
-    }
   }
 }
+    }
 #endif
