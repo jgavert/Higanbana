@@ -166,6 +166,25 @@ namespace faze
       list.dispatch(groups);
     }
 
+    void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
+    {
+      auto lol = source.dependency();
+      auto mipDim = calculateMipDim(source.desc().size(), source.desc().desc.format, sub.mipLevel);
+      Box srcBox(uint3(0), mipDim);
+      list.copy(target, elementOffset, source, sub, srcBox);
+    }
+
+    void copy(Texture target, Texture source)
+    {
+      auto lol = source.dependency();
+      SubresourceRange range{
+        static_cast<int16_t>(lol.mip()),
+        static_cast<int16_t>(lol.mipLevels()),
+        static_cast<int16_t>(lol.slice()),
+        static_cast<int16_t>(lol.arraySize()) };
+      list.copy(target, source, range);
+    }
+
     void copy(Buffer target, Buffer source)
     {
       list.copy(target, source);
@@ -174,6 +193,14 @@ namespace faze
     void copy(Buffer target, DynamicBufferView source)
     {
       list.copy(target, source);
+    }
+
+    void readback(Texture tex, Subresource resource, std::function<void(SubresourceData)> func)
+    {
+      auto lol = tex.dependency();
+      auto mipDim = calculateMipDim(tex.desc().size(), tex.desc().desc.format, resource.mipLevel);
+      Box srcBox(uint3(0), mipDim);
+      list.readback(tex, resource, srcBox, func);
     }
 
     void readback(Buffer buffer, std::function<void(MemView<uint8_t>)> func)

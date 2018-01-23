@@ -157,6 +157,21 @@ namespace faze
       list.insert<gfxpacket::Dispatch>(groups);
     }
 
+    void copy(Buffer& target, int64_t targetOffset, Texture& source, Subresource subresource, Box srcbox)
+    {
+      list.insert<gfxpacket::TextureToBufferCopy>(target.dependency(), targetOffset, source.dependency(), subresource, srcbox);
+    }
+
+    void copy(Texture& target, int3 dstPos, Texture& source, Subresource subresource, Box srcbox)
+    {
+      list.insert<gfxpacket::TextureAdvCopy>(target.dependency(), dstPos, source.dependency(), subresource, srcbox);
+    }
+
+    void copy(Texture& target, Texture& source, SubresourceRange range)
+    {
+      list.insert<gfxpacket::TextureCopy>(target.dependency(), source.dependency(), range);
+    }
+
     void copy(Buffer& target, Buffer& source)
     {
       list.insert<gfxpacket::BufferCopy>(target.dependency(), source.dependency());
@@ -165,6 +180,11 @@ namespace faze
     void copy(Buffer& target, DynamicBufferView& source)
     {
       list.insert<gfxpacket::BufferCpuToGpuCopy>(target, source);
+    }
+
+    void readback(Texture& texture, Subresource range, Box srcbox, std::function<void(SubresourceData)> func)
+    {
+      list.insert<gfxpacket::ReadbackTexture>(texture, range, srcbox, texture.desc().desc.format, func);
     }
 
     void readback(Buffer& buffer, uint startElement, uint size, std::function<void(MemView<uint8_t>)> func)

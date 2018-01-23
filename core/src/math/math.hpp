@@ -918,6 +918,39 @@ typedef faze::math::Matrix<3, 3, float> float3x3;
 typedef faze::math::Matrix<4, 4, float> float4x4;
 
 typedef faze::math::Quaternion quaternion;
+
+namespace faze
+{
+  struct Rect
+  {
+    uint2 leftTop;
+    uint2 rightBottom;
+
+    Rect()
+      : leftTop(0)
+      , rightBottom(0)
+    {}
+    Rect(uint2 start, uint2 size)
+      : leftTop(start)
+      , rightBottom(add(start, size))
+    {}
+  };
+
+  struct Box
+  {
+    uint3 leftTopFront;
+    uint3 rightBottomBack;
+
+    Box()
+      : leftTopFront(0)
+      , rightBottomBack(0)
+    {}
+    Box(uint3 start, uint3 size)
+      : leftTopFront(start)
+      , rightBottomBack(add(start, size))
+    {}
+  };
+}
 #if defined(FAZE_PLATFORM_WINDOWS)
 #pragma warning( pop )
 #endif

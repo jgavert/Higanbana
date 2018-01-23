@@ -384,6 +384,30 @@ namespace faze
       }
     };
 
+    class ReadbackTexture : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      Subresource resource;
+      Box srcbox;
+      FormatType format;
+      std::function<void(SubresourceData)> func;
+
+      ReadbackTexture(backend::ListAllocator, Texture& target, Subresource resource, Box srcbox, FormatType format, std::function<void(SubresourceData)> func)
+        : target(target.dependency())
+        , resource(resource)
+        , srcbox(srcbox)
+        , format(format)
+        , func(func)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::ReadbackTexture;
+      }
+    };
+
     class Readback : public backend::CommandPacket
     {
     public:
@@ -439,6 +463,74 @@ namespace faze
       PacketType type() override
       {
         return PacketType::BufferCpuToGpuCopy;
+      }
+    };
+
+    class TextureToBufferCopy : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      backend::TrackedState source;
+      int64_t targetoffset;
+      Subresource subresource;
+      Box srcbox;
+
+      TextureToBufferCopy(backend::ListAllocator, backend::TrackedState target, int64_t targetOffset, backend::TrackedState source, Subresource subresource, Box srcbox)
+        : target(target)
+        , source(source)
+        , targetoffset(targetOffset)
+        , subresource(subresource)
+        , srcbox(srcbox)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::TextureToBufferCopy;
+      }
+    };
+
+    class TextureCopy : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      backend::TrackedState source;
+      SubresourceRange range;
+
+      TextureCopy(backend::ListAllocator, backend::TrackedState target, backend::TrackedState source, SubresourceRange range)
+        : target(target)
+        , source(source)
+        , range(range)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::TextureCopy;
+      }
+    };
+
+    class TextureAdvCopy : public backend::CommandPacket
+    {
+    public:
+      backend::TrackedState target;
+      int3 dstPos;
+      backend::TrackedState source;
+      Subresource subresource;
+      Box srcbox;
+
+      TextureAdvCopy(backend::ListAllocator, backend::TrackedState target, int3 dst, backend::TrackedState source, Subresource subresource, Box srcbox)
+        : target(target)
+        , dstPos(dst)
+        , source(source)
+        , subresource(subresource)
+        , srcbox(srcbox)
+      {
+      }
+
+      PacketType type() override
+      {
+        return PacketType::TextureAdvCopy;
       }
     };
 

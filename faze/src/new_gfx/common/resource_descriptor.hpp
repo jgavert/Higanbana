@@ -1,6 +1,7 @@
 #pragma once
 #include "faze/src/new_gfx/desc/formats.hpp"
 #include "core/src/math/math.hpp"
+#include "core/src/system/memview.hpp"
 #include <string>
 #include <array>
 #include <algorithm>
@@ -8,6 +9,24 @@
 namespace faze
 {
   // todo move this to somewhere else.
+  struct Subresource
+  {
+    int16_t mipLevel = 0;
+    int16_t arraySlice = 0;
+
+    Subresource() {}
+    Subresource& mip(int mip)
+    {
+      mipLevel = static_cast<int16_t>(mip);
+      return *this;
+    }
+    Subresource& slice(int slice)
+    {
+      arraySlice = static_cast<int16_t>(slice);
+      return *this;
+    }
+  };
+
   struct SubresourceRange
   {
     static constexpr const int16_t WholeResource = -1;
@@ -114,6 +133,83 @@ namespace faze
       RangeMath::getBottomSideFunc(range, splitWithThis, f);
       RangeMath::getUpSideFunc(range, splitWithThis, f);
     }
+  }
+
+  class SubresourceData
+  {
+    MemView<uint8_t> m_data;
+    size_t m_rowPitch;
+    size_t m_slicePitch;
+    int3 m_dim;
+  public:
+    SubresourceData(MemView<uint8_t> data, size_t rowPitch, size_t slicePitch, int3 dim)
+      : m_data(data)
+      , m_rowPitch(rowPitch)
+      , m_slicePitch(slicePitch)
+      , m_dim(dim)
+    {
+    }
+
+    size_t rowPitch()
+    {
+      return m_rowPitch;
+    }
+
+    size_t slicePitch()
+    {
+      return m_rowPitch;
+    }
+
+    uint8_t* data()
+    {
+      return m_data.data();
+    }
+
+    const uint8_t* data() const
+    {
+      return m_data.data();
+    }
+
+    size_t size()
+    {
+      return m_data.size();
+    }
+
+    size_t size() const
+    {
+      return m_data.size();
+    }
+
+    int3 dim() const
+    {
+      return m_dim;
+    }
+  };
+
+  inline int3 calculateMipDim(int3 size, FormatType type, unsigned mipOffset)
+  {
+    int3 dim = size;
+    auto pixelSize = formatSizeInfo(type).pixelSize;
+    auto rowPitch = pixelSize * dim.x;
+    auto slicePitch = rowPitch * dim.y;
+
+    for (auto mip = 1u; mip <= mipOffset; ++mip)
+    {
+      auto mipDim = int3{ std::max(1, dim.x / 2), std::max(1, dim.y / 2), std::max(1, dim.z / 2) };
+      dim = mipDim;
+      rowPitch = pixelSize * dim.x;
+      slicePitch = rowPitch * dim.y;
+    }
+    return dim;
+  }
+
+  inline int calculatePitch(int3 size, FormatType type)
+  {
+    int3 dim = size;
+    auto pixelSize = formatSizeInfo(type).pixelSize;
+    auto rowPitch = pixelSize * dim.x;
+    auto slicePitch = rowPitch * dim.y;
+    return slicePitch * dim.z;
   }
 
   enum class PresentMode
@@ -331,17 +427,17 @@ namespace faze
 
     ResourceDescriptor& setSize(int2 size)
     {
-        if (desc.dimension == FormatDimension::Unknown)
-            desc.dimension = FormatDimension::Texture2D;
-        desc.width = size.x;
-        desc.height = size.y;
-        return *this;
+      if (desc.dimension == FormatDimension::Unknown)
+        desc.dimension = FormatDimension::Texture2D;
+      desc.width = size.x;
+      desc.height = size.y;
+      return *this;
     }
 
     ResourceDescriptor& setSize(int3 size)
     {
-        if (desc.dimension == FormatDimension::Unknown)
-            desc.dimension = FormatDimension::Texture3D;
+      if (desc.dimension == FormatDimension::Unknown)
+        desc.dimension = FormatDimension::Texture3D;
       desc.width = size.x;
       desc.height = size.y;
       desc.depth = size.z;
@@ -350,21 +446,21 @@ namespace faze
 
     ResourceDescriptor& setSize(uint2 size)
     {
-        if (desc.dimension == FormatDimension::Unknown)
-            desc.dimension = FormatDimension::Texture2D;
-        desc.width = size.x;
-        desc.height = size.y;
-        return *this;
+      if (desc.dimension == FormatDimension::Unknown)
+        desc.dimension = FormatDimension::Texture2D;
+      desc.width = size.x;
+      desc.height = size.y;
+      return *this;
     }
 
     ResourceDescriptor& setSize(uint3 size)
     {
-        if (desc.dimension == FormatDimension::Unknown)
-            desc.dimension = FormatDimension::Texture3D;
-        desc.width = size.x;
-        desc.height = size.y;
-        desc.depth = size.z;
-        return *this;
+      if (desc.dimension == FormatDimension::Unknown)
+        desc.dimension = FormatDimension::Texture3D;
+      desc.width = size.x;
+      desc.height = size.y;
+      desc.depth = size.z;
+      return *this;
     }
 
     ResourceDescriptor& setWidth(unsigned size)
@@ -423,6 +519,11 @@ namespace faze
     {
       desc.allowSimultaneousAccess = true;
       return *this;
+    }
+
+    int3 size() const
+    {
+      return int3(desc.width, desc.height, desc.depth);
     }
   };
 }
