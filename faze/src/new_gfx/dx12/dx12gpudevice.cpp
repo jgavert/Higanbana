@@ -1119,7 +1119,8 @@ namespace faze
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
 
       DX12ResourceState state{ 0 };
-      state.commonStateOptimisation = false; // usually false, to get those layout optimisations.
+      state.commonStateOptimisation = true; // usually false, to get those layout optimisations.
+      dxDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
       for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
       {
         for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
