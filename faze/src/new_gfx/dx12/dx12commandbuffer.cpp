@@ -120,12 +120,12 @@ namespace faze
       }
     }
 
-    D3D12_TEXTURE_COPY_LOCATION locationFromTexture(Texture& tex, int mip, int slice)
+    D3D12_TEXTURE_COPY_LOCATION locationFromTexture(TrackedState tex, int mip, int slice)
     {
       D3D12_TEXTURE_COPY_LOCATION loc{};
       loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-      loc.SubresourceIndex = tex.dependency().totalMipLevels() * slice + mip;
-      loc.pResource = reinterpret_cast<ID3D12Resource*>(tex.dependency().resPtr);
+      loc.SubresourceIndex = tex.totalMipLevels() * slice + mip;
+      loc.pResource = reinterpret_cast<ID3D12Resource*>(tex.resPtr);
       return loc;
     }
 
@@ -143,9 +143,23 @@ namespace faze
       return loc;
     }
 
+    D3D12_TEXTURE_COPY_LOCATION locationFromReadback(ID3D12Resource* readback, int3 src, FormatType type, size_t rowPitch, uint64_t offset)
+    {
+      D3D12_TEXTURE_COPY_LOCATION loc{};
+      loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      loc.PlacedFootprint.Footprint.Width = src.x;
+      loc.PlacedFootprint.Footprint.Height = src.y;
+      loc.PlacedFootprint.Footprint.Depth = src.z;
+      loc.PlacedFootprint.Footprint.Format = backend::formatTodxFormat(type).storage;
+      loc.PlacedFootprint.Footprint.RowPitch = static_cast<unsigned>(rowPitch); // ???
+      loc.PlacedFootprint.Offset = offset; // ???
+      loc.pResource = readback;
+      return loc;
+    }
+
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::UpdateTexture& packet, ID3D12Resource* upload)
     {
-      D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(packet.dst, packet.mip, packet.slice);
+      D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(packet.dst.dependency(), packet.mip, packet.slice);
       D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(upload, packet.src, packet.dst);
       buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
     }
@@ -158,6 +172,40 @@ namespace faze
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCpuToGpuCopy& packet, ID3D12Resource* upload)
     {
       buffer->CopyBufferRegion(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), 0, upload, packet.offset, packet.size);
+    }
+
+    D3D12_BOX toBox(Box box)
+    {
+      D3D12_BOX asd;
+      asd.left = box.leftTopFront.x;
+      asd.top = box.leftTopFront.y;
+      asd.front = box.leftTopFront.z;
+      asd.right = box.rightBottomBack.x;
+      asd.bottom = box.rightBottomBack.y;
+      asd.back = box.rightBottomBack.z;
+      return asd;
+    }
+
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ReadbackTexture& packet, DX12ReadbackHeap* readback, FreeableResources* free)
+    {
+      auto dim = sub(packet.srcbox.rightBottomBack, packet.srcbox.leftTopFront);
+      int size = calculatePitch(dim, packet.format);
+      auto rb = readback->allocate(size);
+
+      int rowPitch = calculatePitch(int3(dim.x, 1, 1), packet.format);
+      int slicePitch = calculatePitch(dim, packet.format);
+      const auto requiredRowPitch = roundUpMultiplePowerOf2(rowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+      D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromReadback(readback->native(), dim, packet.format, requiredRowPitch, rb.offset);
+      D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(packet.target, packet.resource.mipLevel, packet.resource.arraySlice);
+      D3D12_BOX box = toBox(packet.srcbox);
+      buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, &box);
+
+      auto rbFunc = [fun = packet.func, rowPitch, slicePitch, dim](MemView<uint8_t> view)
+      {
+        SubresourceData data(view, rowPitch, slicePitch, dim);
+        fun(data);
+      };
+      free->readbacks.push_back(DX12ReadbackLambda{ rb, rbFunc });
     }
 
     void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Readback& packet, DX12ReadbackHeap* readback, FreeableResources* free)
@@ -405,6 +453,7 @@ namespace faze
           drawIndex++;
           break;
         }
+
         case CommandPacket::PacketType::BufferCopy:
         {
           solver->runBarrier(buffer, drawIndex);
@@ -416,6 +465,13 @@ namespace faze
         {
           solver->runBarrier(buffer, drawIndex);
           handle(buffer, packetRef(gfxpacket::BufferCpuToGpuCopy, packet), m_upload->native());
+          drawIndex++;
+          break;
+        }
+        case CommandPacket::PacketType::ReadbackTexture:
+        {
+          solver->runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::ReadbackTexture, packet), m_readback.get(), m_freeResources.get());
           drawIndex++;
           break;
         }
@@ -572,6 +628,13 @@ namespace faze
         case CommandPacket::PacketType::Readback:
         {
           auto& p = packetRef(gfxpacket::Readback, packet);
+          drawIndex = solver->addDrawCall(packet->type());
+          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_SOURCE);
+          break;
+        }
+        case CommandPacket::PacketType::ReadbackTexture:
+        {
+          auto& p = packetRef(gfxpacket::ReadbackTexture, packet);
           drawIndex = solver->addDrawCall(packet->type());
           solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_SOURCE);
           break;

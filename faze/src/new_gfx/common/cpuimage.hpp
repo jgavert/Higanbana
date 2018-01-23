@@ -10,53 +10,6 @@
 
 namespace faze
 {
-  class Subresource
-  {
-    MemView<uint8_t> m_data;
-    size_t m_rowPitch;
-    size_t m_slicePitch;
-    int3 m_dim;
-  public:
-    Subresource(MemView<uint8_t> data, size_t rowPitch, size_t slicePitch, int3 dim)
-      : m_data(data)
-      , m_rowPitch(rowPitch)
-      , m_slicePitch(slicePitch)
-      , m_dim(dim)
-    {
-
-    }
-
-    size_t rowPitch()
-    {
-      return m_rowPitch;
-    }
-
-    size_t slicePitch()
-    {
-      return m_rowPitch;
-    }
-
-    uint8_t* data()
-    {
-      return m_data.data();
-    }
-
-    const uint8_t* data() const
-    {
-      return m_data.data();
-    }
-
-    size_t size()
-    {
-      return m_data.size();
-    }
-
-    size_t size() const
-    {
-      return m_data.size();
-    }
-  };
-
   /*
   CpuImage is meant to hold image data in tightly packed array with functions to ease access to the data.
   */
@@ -114,14 +67,14 @@ namespace faze
       m_data.resize(currentOffset);
     }
 
-    Subresource subresource(int mip, int slice)
+    SubresourceData subresource(int mip, int slice)
     {
       auto resourceID = slice * m_desc.desc.miplevels + mip;
       auto info = m_subresources[resourceID];
 
       MemView<uint8_t> data(&m_data[info.offset], info.slicePitch * info.dim.z);
 
-      return Subresource(data, info.rowPitch, info.slicePitch, info.dim);
+      return SubresourceData(data, info.rowPitch, info.slicePitch, info.dim);
     }
 
     const ResourceDescriptor& desc() const

@@ -199,14 +199,14 @@ namespace faze
 
     SharedBuffer DeviceData::createSharedBuffer(DeviceData& secondary, ResourceDescriptor desc)
     {
-        desc = desc.setDimension(FormatDimension::Buffer);
-        auto memRes = m_impl->getReqs(desc);
-        auto allo = m_heaps.allocate(m_impl.get(), memRes);
-        auto data = m_impl->createBuffer(allo, desc);
-        auto handle = m_impl->openSharedHandle(allo);
-        auto secondaryData = secondary.m_impl->createBufferFromHandle(handle, allo, desc);
-        auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
-        return SharedBuffer(data, secondaryData, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
+      desc = desc.setDimension(FormatDimension::Buffer);
+      auto memRes = m_impl->getReqs(desc);
+      auto allo = m_heaps.allocate(m_impl.get(), memRes);
+      auto data = m_impl->createBuffer(allo, desc);
+      auto handle = m_impl->openSharedHandle(allo);
+      auto secondaryData = secondary.m_impl->createBufferFromHandle(handle, allo, desc);
+      auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
+      return SharedBuffer(data, secondaryData, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
     }
 
     Texture DeviceData::createTexture(ResourceDescriptor desc)
@@ -323,9 +323,12 @@ namespace faze
           DynamicBufferView dynBuffer = m_impl->dynamicImage(makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
           list.updateTexture(tex, dynBuffer, mip, slice);
         }
+        unordered_set<TrackedState> lols;
+        lols.insert(tex.dependency());
+        list.prepareForQueueSwitch(lols);
 
         // just submit the list
-        auto nativeList = m_impl->createGraphicsList();
+        auto nativeList = m_impl->createDMAList();
         nativeList->fillWith(m_impl, list.list);
         LiveCommandBuffer buffer{};
         buffer.lists.emplace_back(nativeList);
@@ -334,7 +337,7 @@ namespace faze
         buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
         buffer.intermediateLists->emplace_back(std::move(list.list));
 
-        m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
+        m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
       }
       return true;
@@ -376,7 +379,7 @@ namespace faze
 
         m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
         m_buffers.emplace_back(buffer);
-      }
+  }
 #else
 
       struct PreparedCommandlist
@@ -518,7 +521,7 @@ namespace faze
 #endif
 
       gc();
-    }
+}
 
     void DeviceData::submit(CommandGraph graph)
     {

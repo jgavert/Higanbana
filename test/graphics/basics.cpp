@@ -955,3 +955,43 @@ TEST_F(Graphics, GraphicstoComputeToGraphics)
   gpu.submit(tasks);
   gpu.waitGpuIdle();
 }
+
+TEST_F(Graphics, TextureReadbackTest)
+{
+  CpuImage image(ResourceDescriptor()
+    .setSize(int2(32, 32))
+    .setFormat(FormatType::Uint32)
+    .setName("test")
+    .setUsage(ResourceUsage::GpuReadOnly));
+
+  auto sr = image.subresource(0, 0);
+
+  vector<uint> dataLol;
+  dataLol.resize(32 * 32, 1337);
+
+  memcpy(sr.data(), dataLol.data(), sr.size());
+
+  bool WasReadback = false;
+
+  auto testImage = gpu.createTexture(image);
+
+  CommandGraph tasks = gpu.createGraph();
+  {
+    auto& node = tasks.createPass2("Buffertest");
+
+    node.readback(testImage, Subresource(), [&WasReadback](SubresourceData data)
+    {
+      F_LOG("zomg! %d %d %d\n", data.dim().x, data.dim().y, data.dim().z);
+      EXPECT_EQ(32, data.dim().x);
+      EXPECT_EQ(32, data.dim().y);
+      EXPECT_EQ(1, data.dim().z);
+      EXPECT_EQ(1337u, *reinterpret_cast<const unsigned*>(data.data()));
+      WasReadback = true;
+    });
+  }
+
+  gpu.submit(tasks);
+  gpu.waitGpuIdle();
+
+  EXPECT_TRUE(WasReadback);
+}
