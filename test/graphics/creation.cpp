@@ -130,7 +130,7 @@ TEST(GraphicsSubsystem, CrossAdapterShenigans_textureCopies)
     {
       auto imDesc = ResourceDescriptor()
         .setSize(int2(32, 32))
-        .setFormat(FormatType::Uint32)
+        .setFormat(FormatType::Unorm8RGBA)
         .setName("test")
         .setUsage(ResourceUsage::GpuReadOnly);
 
