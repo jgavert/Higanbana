@@ -76,6 +76,9 @@ namespace faze
   class CommandGraph;
   class CpuImage;
 
+  class GpuSemaphore;
+  class GpuSharedSemaphore;
+
   namespace backend
   {
     class FenceImpl;
@@ -206,6 +209,9 @@ namespace faze
       TextureRTV createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc);
       TextureDSV createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc);
 
+      GpuSemaphore createSemaphore();
+      GpuSharedSemaphore createSharedSemaphore(DeviceData& secondary);
+
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, FormatType type);
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, unsigned stride);
       // streaming
@@ -215,6 +221,7 @@ namespace faze
       // commandgraph
       void submit(Swapchain& swapchain, CommandGraph graph);
       void submit(CommandGraph graph);
+      void explicitSubmit(CommandGraph graph);
       void present(Swapchain& swapchain);
     };
 

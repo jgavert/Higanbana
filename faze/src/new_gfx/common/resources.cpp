@@ -2,6 +2,7 @@
 #include "gpudevice.hpp"
 #include "graphicssurface.hpp"
 #include "implementation.hpp"
+#include "semaphore.hpp"
 #include "faze/src/new_gfx/common/cpuimage.hpp"
 
 #include "core/src/math/utils.hpp"
@@ -349,6 +350,19 @@ namespace faze
         m_buffers.emplace_back(buffer);
       }
       return true;
+    }
+
+    GpuSemaphore DeviceData::createSemaphore()
+    {
+      return GpuSemaphore(m_impl->createSemaphore());
+    }
+
+    GpuSharedSemaphore DeviceData::createSharedSemaphore(DeviceData& secondaryGpu)
+    {
+      auto primary = m_impl->createSharedSemaphore();
+      auto handle = m_impl->openSharedHandle(primary);
+      auto secondary = secondaryGpu.m_impl->createSemaphoreFromHandle(handle);
+      return GpuSharedSemaphore(primary, secondary);
     }
 
     void DeviceData::submit(Swapchain& swapchain, CommandGraph graph)
@@ -753,6 +767,117 @@ namespace faze
         }
       }
 #endif
+
+      gc();
+    }
+
+    void DeviceData::explicitSubmit(CommandGraph graph)
+    {
+      struct PreparedCommandlist
+      {
+        CommandGraphNode::NodeType type;
+        CommandList list;
+        unordered_set<backend::TrackedState> requirements;
+        vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
+        vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
+        bool isLastList = false;
+      };
+
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        int i = 0;
+
+        vector<PreparedCommandlist> lists;
+
+        while (i < static_cast<int>(nodes.size()))
+        {
+          auto* firstList = &nodes[i];
+
+          PreparedCommandlist plist{};
+          plist.type = firstList->type;
+          plist.list = std::move(nodes[i].list);
+          plist.requirements = nodes[i].needsResources();
+          plist.wait = std::move(nodes[i].m_wait);
+          plist.signal = std::move(nodes[i].m_signal);
+
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != plist.type)
+              break;
+            if (!nodes[i].m_wait.empty())
+              break;
+            plist.list.list.append(std::move(nodes[i].list.list));
+            const auto& ref = nodes[i].needsResources();
+            plist.requirements.insert(ref.begin(), ref.end());
+            plist.signal.insert(std::end(plist.signal), std::begin(nodes[i].m_signal), std::end(nodes[i].m_signal));
+          }
+
+          lists.emplace_back(std::move(plist));
+        }
+
+        lists[lists.size() - 1].isLastList = true;
+
+        for (auto&& list : lists)
+        {
+          if (!list.requirements.empty())
+          {
+            list.list.prepareForQueueSwitch(list.requirements);
+          }
+          std::shared_ptr<CommandBufferImpl> nativeList;
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            nativeList = m_impl->createDMAList();
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            nativeList = m_impl->createComputeList();
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            nativeList = m_impl->createGraphicsList();
+          }
+
+          nativeList->fillWith(m_impl, list.list.list);
+
+          LiveCommandBuffer buffer{};
+          buffer.lists.emplace_back(nativeList);
+
+          buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+          buffer.intermediateLists->emplace_back(std::move(list.list.list));
+          buffer.wait = std::move(list.wait);
+          buffer.signal = std::move(list.signal);
+
+          if (list.isLastList)
+          {
+            buffer.fence = m_impl->createFence();
+          }
+
+          MemView<std::shared_ptr<FenceImpl>> viewToFences;
+
+          if (buffer.fence)
+          {
+            viewToFences = buffer.fence;
+          }
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            m_impl->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            m_impl->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+          }
+          m_buffers.emplace_back(buffer);
+        }
+      }
 
       gc();
     }

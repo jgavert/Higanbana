@@ -473,7 +473,7 @@ namespace faze
       std::function<void(MemView<uint8_t>)> func;
     };
 
-    class DX12Fence : public FenceImpl, public SemaphoreImpl
+    class DX12Fence : public FenceImpl
     {
     public:
       ComPtr<ID3D12Fence> fence = nullptr;
@@ -1095,6 +1095,7 @@ namespace faze
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
       Rabbitpool2<DX12Fence> m_fencePool;
+      Rabbitpool2<DX12Semaphore> m_semaPool;
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
@@ -1156,8 +1157,12 @@ namespace faze
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
+      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
+
+      std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl>) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource) override;
+      std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle>) override;
       std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) override;
 
@@ -1172,6 +1177,7 @@ namespace faze
       DX12ReadbackHeap createReadback(unsigned pages, unsigned pageSize);
       DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
       DX12Fence         createNativeFence();
+      DX12Semaphore createNativeSemaphore();
       std::shared_ptr<CommandBufferImpl> createDMAList() override;
       std::shared_ptr<CommandBufferImpl> createComputeList() override;
       std::shared_ptr<CommandBufferImpl> createGraphicsList() override;

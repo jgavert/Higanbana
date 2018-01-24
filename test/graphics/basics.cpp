@@ -599,8 +599,10 @@ TEST_F(Graphics, DMAtoComputetoDMA)
   bool WasReadback = false;
 
   CommandGraph tasks = gpu.createGraph();
+
+  auto dmaSema = gpu.createSemaphore();
   {
-    auto& node = tasks.createPass2("uploadThroughDMA", CommandGraphNode::NodeType::DMA);
+    auto& node = tasks.createPass2("uploadThroughDMA", {}, dmaSema, CommandGraphNode::NodeType::DMA);
 
     vector<unsigned> vertices;
     for (unsigned i = 0; i < 32; ++i)
@@ -612,8 +614,10 @@ TEST_F(Graphics, DMAtoComputetoDMA)
 
     node.copy(buffer, verts);
   }
+
+  auto computeSema = gpu.createSemaphore();
   {
-    auto& node = tasks.createPass2("doCompute", CommandGraphNode::NodeType::Compute);
+    auto& node = tasks.createPass2("doCompute", dmaSema, computeSema, CommandGraphNode::NodeType::Compute);
     {
       auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
       binding.srv(::shader::BufferTest::input, bufferSRV);
@@ -622,7 +626,7 @@ TEST_F(Graphics, DMAtoComputetoDMA)
     }
   }
   {
-    auto& node = tasks.createPass2("readback", CommandGraphNode::NodeType::DMA);
+    auto& node = tasks.createPass2("readback", computeSema, {}, CommandGraphNode::NodeType::DMA);
     node.readback(buffer2, [&WasReadback](MemView<uint8_t> view)
     {
       auto asd = reinterpret_memView<unsigned>(view);
@@ -637,7 +641,7 @@ TEST_F(Graphics, DMAtoComputetoDMA)
     });
   }
 
-  gpu.submit(tasks);
+  gpu.explicitSubmit(tasks);
   gpu.waitGpuIdle();
 
   EXPECT_TRUE(WasReadback);

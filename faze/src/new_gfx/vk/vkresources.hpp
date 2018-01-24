@@ -563,8 +563,12 @@ namespace faze
       std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
       std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
+      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override { return nullptr; };
+
+      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<SemaphoreImpl>) override { return nullptr; };
       std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override { return nullptr; };
       std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl>) override { return nullptr; };
+      std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override { return nullptr; };
       std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return nullptr; };
       std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return nullptr; };
 

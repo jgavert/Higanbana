@@ -143,12 +143,14 @@ TEST(GraphicsSubsystem, CrossAdapterShenigans_textureCopies)
 
       auto sharedTexture = primaryGpu.createSharedTexture(secondaryGpu, imDesc.setName("shared").allowCrossAdapter().setUsage(ResourceUsage::GpuReadOnly));
 
+      auto sharedSemaphore = primaryGpu.createSharedSemaphore(secondaryGpu);
+
       {
         bool WasReadback = false;
 
         CommandGraph secondaryTasks = secondaryGpu.createGraph();
         {
-          auto& node = secondaryTasks.createPass2("TextureGenerated", CommandGraphNode::NodeType::DMA);
+          auto& node = secondaryTasks.createPass2("TextureGenerated", {}, sharedSemaphore.secondary(), CommandGraphNode::NodeType::DMA);
 
           node.copy(sharedTexture.getSecondaryTexture(), testImage);
 
@@ -164,7 +166,7 @@ TEST(GraphicsSubsystem, CrossAdapterShenigans_textureCopies)
         }
         CommandGraph primaryTasks = primaryGpu.createGraph();
         {
-          auto& node = primaryTasks.createPass2("TextureDownloaded", CommandGraphNode::NodeType::DMA);
+          auto& node = primaryTasks.createPass2("TextureDownloaded", sharedSemaphore.primary(), {}, CommandGraphNode::NodeType::DMA);
           node.readback(sharedTexture.getPrimaryTexture(), Subresource(), [&WasReadback](SubresourceData data)
           {
             F_LOG("zomg! %d %d %d\n", data.dim().x, data.dim().y, data.dim().z);
@@ -178,11 +180,10 @@ TEST(GraphicsSubsystem, CrossAdapterShenigans_textureCopies)
 
         // so question is, how to make these tasks nice...
 
-        secondaryGpu.submit(secondaryTasks);
-        secondaryGpu.waitGpuIdle();
-
-        primaryGpu.submit(primaryTasks);
+        secondaryGpu.explicitSubmit(secondaryTasks);
+        primaryGpu.explicitSubmit(primaryTasks);
         primaryGpu.waitGpuIdle();
+        secondaryGpu.waitGpuIdle();
 
         EXPECT_TRUE(WasReadback);
       }

@@ -95,6 +95,11 @@ namespace faze
       {
         return createNativeFence();
       });
+      m_semaPool = Rabbitpool2<DX12Semaphore>([&]()
+      {
+        return createNativeSemaphore();
+      });
+
       /*
       D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS data{};
       for (int i = 0; i < 64; ++i)
@@ -1046,71 +1051,71 @@ namespace faze
 #define DX12CheckSupport2(s) checkSupport2(#s, s)
     void checkFormatOperationSupport(ID3D12Device* dev, FormatType format)
     {
-        D3D12_FEATURE_DATA_FORMAT_SUPPORT data{};
-        data.Format = formatTodxFormat(format).view;
+      D3D12_FEATURE_DATA_FORMAT_SUPPORT data{};
+      data.Format = formatTodxFormat(format).view;
 
-        HRESULT hr = dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &data, sizeof(data));
-        if (hr == S_OK)
+      HRESULT hr = dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &data, sizeof(data));
+      if (hr == S_OK)
+      {
+        std::string output = "";
+        std::string output2 = "";
+        auto checkSupport1 = [&](const char* s, D3D12_FORMAT_SUPPORT1 mask)
         {
-            std::string output = "";
-            std::string output2 = "";
-            auto checkSupport1 = [&](const char* s, D3D12_FORMAT_SUPPORT1 mask)
-            {
-                if (data.Support1 & mask)
-                {
-                    output += s;
-                    output += "\n";
-                }
-            };
-            auto checkSupport2 = [&](const char* s, D3D12_FORMAT_SUPPORT2 mask)
-            {
-                if (data.Support2 & mask)
-                {
-                    output2 += s;
-                    output2 += "\n";
-                }
-            };
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DISPLAY);
-            /*
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE1D);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE2D);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE3D);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURECUBE);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_LOAD);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_COMPARISON);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_MONO_TEXT);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MIP);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_RENDER_TARGET);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BLENDABLE);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE);
-            
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_CAST_WITHIN_BIT_LAYOUT);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BACK_BUFFER_CAST);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER_COMPARISON);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DECODER_OUTPUT);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_OUTPUT);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_INPUT);
-            DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_ENCODER);
+          if (data.Support1 & mask)
+          {
+            output += s;
+            output += "\n";
+          }
+        };
+        auto checkSupport2 = [&](const char* s, D3D12_FORMAT_SUPPORT2 mask)
+        {
+          if (data.Support2 & mask)
+          {
+            output2 += s;
+            output2 += "\n";
+          }
+        };
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DISPLAY);
+        /*
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE1D);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE2D);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURE3D);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TEXTURECUBE);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_LOAD);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_COMPARISON);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE_MONO_TEXT);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MIP);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_RENDER_TARGET);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BLENDABLE);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE);
 
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_ADD);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_BITWISE_OPS);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_COMPARE_STORE_OR_COMPARE_EXCHANGE);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_EXCHANGE);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_SIGNED_MIN_OR_MAX);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_UNSIGNED_MIN_OR_MAX);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_TILED);
-            DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_MULTIPLANE_OVERLAY);  */
-            F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
-        }
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_CAST_WITHIN_BIT_LAYOUT);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_BACK_BUFFER_CAST);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_SHADER_GATHER_COMPARISON);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_DECODER_OUTPUT);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_OUTPUT);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_PROCESSOR_INPUT);
+        DX12CheckSupport1(D3D12_FORMAT_SUPPORT1_VIDEO_ENCODER);
+
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_ADD);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_BITWISE_OPS);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_COMPARE_STORE_OR_COMPARE_EXCHANGE);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_EXCHANGE);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_SIGNED_MIN_OR_MAX);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_UNSIGNED_MIN_OR_MAX);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_TILED);
+        DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_MULTIPLANE_OVERLAY);  */
+        F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
+      }
     }
 
     std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(ResourceDescriptor& desc)
@@ -1160,7 +1165,7 @@ namespace faze
 
       for (int i = 0; i < static_cast<int>(FormatType::Count); ++i)
       {
-          checkFormatOperationSupport(m_device.Get(), static_cast<FormatType>(i));
+        checkFormatOperationSupport(m_device.Get(), static_cast<FormatType>(i));
       }
 
       dxDesc.Format = formatTodxFormat(desc.desc.format).storage;
@@ -1456,6 +1461,13 @@ namespace faze
       return DX12Fence(fence);
     }
 
+    DX12Semaphore DX12Device::createNativeSemaphore()
+    {
+      ComPtr<ID3D12Fence> fence;
+      FAZE_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
+      return DX12Semaphore(fence);
+    }
+
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
@@ -1530,7 +1542,7 @@ namespace faze
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSemaphore()
     {
-      return m_fencePool.allocate();
+      return m_semaPool.allocate();
     }
     std::shared_ptr<FenceImpl> DX12Device::createFence()
     {
@@ -1548,7 +1560,7 @@ namespace faze
       {
         for (auto&& sema : wait)
         {
-          auto native = std::static_pointer_cast<DX12Fence>(sema);
+          auto native = std::static_pointer_cast<DX12Semaphore>(sema);
           queue->Wait(native->fence.Get(), *native->value);
         }
       }
@@ -1571,7 +1583,7 @@ namespace faze
       {
         for (auto&& sema : signal)
         {
-          auto native = std::static_pointer_cast<DX12Fence>(sema);
+          auto native = std::static_pointer_cast<DX12Semaphore>(sema);
           queue->Signal(native->fence.Get(), native->start());
         }
       }
@@ -1629,7 +1641,7 @@ namespace faze
     {
       if (renderingFinished)
       {
-        auto native = std::static_pointer_cast<DX12Fence>(renderingFinished);
+        auto native = std::static_pointer_cast<DX12Semaphore>(renderingFinished);
         m_graphicsQueue->Wait(native->fence.Get(), *native->value);
       }
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
@@ -1637,6 +1649,27 @@ namespace faze
       FAZE_CHECK_HR(native->native()->Present(syncInterval, 0));
     }
 
+    std::shared_ptr<SemaphoreImpl> DX12Device::createSharedSemaphore()
+    {
+      ComPtr<ID3D12Fence> fence;
+      FAZE_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER | D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
+      return std::make_shared<DX12Semaphore>(fence);
+    }
+
+    std::shared_ptr<backend::SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> sema)
+    {
+      auto native = std::static_pointer_cast<DX12Semaphore>(sema);
+
+      HANDLE h;
+
+      FAZE_CHECK_HR(m_device->CreateSharedHandle(native->fence.Get(), nullptr, GENERIC_ALL, L"sharedHandle_semaphore_Faze", &h));
+
+      return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+      {
+        CloseHandle(ptr->handle);
+        delete ptr;
+      });
+    }
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(HeapAllocation heapAllocation)
     {
       auto native = std::static_pointer_cast<DX12Heap>(heapAllocation.heap.impl);
@@ -1651,7 +1684,6 @@ namespace faze
         delete ptr;
       });
     }
-
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource)
     {
       auto native = std::static_pointer_cast<DX12Texture>(resource);
@@ -1665,6 +1697,12 @@ namespace faze
         CloseHandle(ptr->handle);
         delete ptr;
       });
+    }
+    std::shared_ptr<backend::SemaphoreImpl> DX12Device::createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle)
+    {
+      ComPtr<ID3D12Fence> fence;
+      m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(fence.GetAddressOf()));
+      return std::make_shared<DX12Semaphore>(fence);
     }
     std::shared_ptr<prototypes::BufferImpl> DX12Device::createBufferFromHandle(std::shared_ptr<SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc)
     {
