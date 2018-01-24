@@ -3,6 +3,7 @@
 #include "core/src/datastructures/proxy.hpp"
 #include "core/src/system/memview.hpp"
 #include "core/src/global_debug.hpp"
+#include "semaphore.hpp"
 #include "binding.hpp"
 #include "swapchain.hpp"
 
@@ -34,6 +35,9 @@ namespace faze
     {
       return needSpecialAttention;
     }
+
+    vector<std::shared_ptr<backend::SemaphoreImpl>> m_wait;
+    vector<std::shared_ptr<backend::SemaphoreImpl>> m_signal;
   public:
     CommandGraphNode() {}
     CommandGraphNode(std::string name, NodeType type)
@@ -41,6 +45,23 @@ namespace faze
       , type(type)
     {
       list.renderTask(name);
+    }
+
+    CommandGraphNode(std::string name, NodeType type, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal)
+      : name(name)
+      , type(type)
+    {
+      list.renderTask(name);
+
+      for (auto&& it : wait)
+      {
+        m_wait.push_back(it.native());
+      }
+
+      for (auto&& it : signal)
+      {
+        m_signal.push_back(it.native());
+      }
     }
 
     void resetState(Texture& tex)
@@ -233,6 +254,11 @@ namespace faze
       return CommandGraphNode(name, type);
     }
 
+    CommandGraphNode createPass(std::string name, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
+    {
+      return CommandGraphNode(name, type, wait, signal);
+    }
+
     void addPass(CommandGraphNode&& node)
     {
       m_nodes->emplace_back(std::move(node));
@@ -241,6 +267,12 @@ namespace faze
     CommandGraphNode& createPass2(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
     {
       m_nodes->emplace_back(name, type);
+      return m_nodes->back();
+    }
+
+    CommandGraphNode& createPass2(std::string name, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
+    {
+      m_nodes->emplace_back(name, type, wait, signal);
       return m_nodes->back();
     }
   };

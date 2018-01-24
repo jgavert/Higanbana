@@ -54,7 +54,8 @@
           { \
             _com_error err(hr); \
             LPCTSTR errMsg = err.ErrorMessage(); \
-            log_immideateAssert(__FILE__, __LINE__, "[SYSTEM/fail]: HRESULT: \"%s\"", errMsg); \
+            std::string _msg = ws2s(errMsg); \
+            log_immideateAssert(__FILE__, __LINE__, "[SYSTEM/fail]: HRESULT: \"%s\"", _msg.c_str()); \
             if (IsDebuggerPresent()) \
               __debugbreak(); \
             abort();\

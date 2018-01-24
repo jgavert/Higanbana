@@ -156,8 +156,12 @@ namespace faze
         virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
 
+        virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
+
+        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> semaphore) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<TextureImpl> resource) = 0;
+        virtual std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle) = 0;
         virtual std::shared_ptr<BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
         virtual std::shared_ptr<TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) = 0;
 

@@ -4,6 +4,7 @@
 #include "resource_descriptor.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "semaphore.hpp"
 #include "swapchain.hpp"
 #include "commandgraph.hpp"
 #include "commandlist.hpp"
@@ -168,6 +169,16 @@ namespace faze
       return S().acquirePresentableImage(swapchain);
     }
 
+    GpuSemaphore createSemaphore()
+    {
+      return S().createSemaphore();
+    }
+
+    GpuSharedSemaphore createSharedSemaphore(GpuDevice& secondary)
+    {
+      return S().createSharedSemaphore(secondary.S());
+    }
+
     void submit(Swapchain& swapchain, CommandGraph graph)
     {
       S().submit(swapchain, graph);
@@ -176,6 +187,11 @@ namespace faze
     void submit(CommandGraph graph)
     {
       S().submit(graph);
+    }
+
+    void explicitSubmit(CommandGraph graph)
+    {
+      S().explicitSubmit(graph);
     }
 
     void present(Swapchain& swapchain)
