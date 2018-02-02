@@ -21,6 +21,13 @@
 //#define DEBUG
 //#define DEADLOCKCHECK // this should be cheap to keep on, not
 
+#if defined(FAZE_PLATFORM_WINDOWS)
+#undef PROFILE
+#define PROFILE
+#include <WinPixEventRuntime/pix3.h>
+#undef PROFILE
+#endif
+
 namespace faze
 {
   struct Requirements
@@ -36,15 +43,12 @@ namespace faze
     Requirements(std::initializer_list<std::string>&& args)
       : m_regs(std::forward<std::initializer_list<std::string>>(args))
     {
-
     }
 
-	Requirements(std::vector<std::string>&& args)
-		: m_regs(std::forward<std::vector<std::string>>(args))
-	{
-
-	}
-
+    Requirements(std::vector<std::string>&& args)
+      : m_regs(std::forward<std::vector<std::string>>(args))
+    {
+    }
   };
 
   struct TaskInfo
@@ -60,8 +64,8 @@ namespace faze
 
   inline void rescheduleTask()
   {
-      //F_LOG("rescheduled in thread %d\n", t_threadid);
-      t_reSchedule = true;
+    //F_LOG("rescheduled in thread %d\n", t_threadid);
+    t_reSchedule = true;
   }
 
   class Task /*TaskDescriptor*/
@@ -71,8 +75,8 @@ namespace faze
       m_id(0),
       m_iterations(0),
       m_iterID(0),
-        m_originalIterations(m_iterations),
-        m_originalIterID(m_iterID),
+      m_originalIterations(m_iterations),
+      m_originalIterID(m_iterID),
       m_ppt(1),
       m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
     {
@@ -104,7 +108,6 @@ namespace faze
       genWorkFunc<1>([](size_t) {});
     };
   public:
-
 
     size_t m_id;
     size_t m_iterations;
@@ -176,21 +179,20 @@ namespace faze
   class ThreadData
   {
   public:
-    ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0))  { }
+    ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)) { }
     ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)) {  }
 
-	ThreadData(const ThreadData&) = delete;
-	ThreadData(ThreadData&&) = default;
+    ThreadData(const ThreadData&) = delete;
+    ThreadData(ThreadData&&) = default;
 
-	ThreadData& operator=(const ThreadData&) = delete;
-	ThreadData& operator=(ThreadData&&) = default;
+    ThreadData& operator=(const ThreadData&) = delete;
+    ThreadData& operator=(ThreadData&&) = default;
 
     //void setGlobalID() { G_ID = m_ID;}
     int m_ID = 0;
     Task m_task;
-	std::shared_ptr<std::atomic<int64_t>> m_localQueueSize;
+    std::shared_ptr<std::atomic<int64_t>> m_localQueueSize;
     std::deque< Task > m_localDeque;
-
   };
 
   namespace desc
@@ -337,7 +339,6 @@ namespace faze
       return m_threads.size();
     }
 
-
     // Princess sleeps here
     void sleepTillKeywords(Requirements req)
     {
@@ -383,7 +384,6 @@ namespace faze
     {
       internalAddTask<1>(0, name, pre, post, 0, 1, std::forward<Func>(func));
     }
-
 
     template <typename Func>
     void addTask(const desc::Task& desc, Func&& func)
@@ -438,7 +438,7 @@ namespace faze
         std::unique_lock<std::mutex> u2(*m_mutexes[ThreadID], std::adopt_lock);
 
         worker.m_localDeque.push_front(std::move(newTask));
-		worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+        worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
         TaskInfo asd(name, {});
         m_taskInfos.insert({ newId, std::move(asd) });
         u1.unlock();
@@ -470,7 +470,7 @@ namespace faze
           m_taskInfos.insert({ newId, std::move(asd) });
           ThreadData& worker = m_allThreads.at(ThreadID);
           worker.m_localDeque.push_front(std::move(newTask));
-		  worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+          worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
         }
         else  // wtf add to WAITING FOR REQUIREMENTS
         {
@@ -515,8 +515,8 @@ namespace faze
       return data.m_regs.size() == 0;
     }
 
-	// Checks and does all postTask related work.
-	// Includes adding new tasks that are waiting for the reported task.
+    // Checks and does all postTask related work.
+    // Includes adding new tasks that are waiting for the reported task.
     void postTaskWork(size_t taskID)
     {
 #ifdef DEBUGTEXT
@@ -543,10 +543,10 @@ namespace faze
           m_taskInfos.erase(it->first);
         }
       }
-	  if (taskname.length() == 0)
-	  {
-		return;
-	  }
+      if (taskname.length() == 0)
+      {
+        return;
+      }
       informTaskFinished(taskname);
     }
 
@@ -600,7 +600,7 @@ namespace faze
         for (auto& it : addable)
         {
           worker.m_localDeque.push_front(std::move(it));
-		  worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+          worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
           notifyAll();
         }
       }
@@ -622,7 +622,7 @@ namespace faze
             {
               std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
               p.m_localDeque.push_back(p.m_task.split()); // push back
-			  p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+              p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
             }
             notifyAll();
             continue;
@@ -642,19 +642,35 @@ namespace faze
       ThreadStatus[p.m_ID].second = p.m_task.m_id;
       t_threadid = p.m_ID;
       t_reSchedule = false;
+#if defined(FAZE_PLATFORM_WINDOWS)
+      auto it = m_taskInfos.find(p.m_task.m_id);
+      const char* name = "";
+      if (it != m_taskInfos.end())
+      {
+        name = it->second.m_name.c_str();
+        //PIXBeginEvent()
+      }
+      PIXBeginEvent(PIX_COLOR_INDEX(static_cast<BYTE>(p.m_task.m_id)), name);
+#endif
       bool rdy = p.m_task.doWork();
+#if defined(FAZE_PLATFORM_WINDOWS)
+
+      PIXEndEvent();
+#endif
       ThreadStatus[p.m_ID].first = RUNNINGLOGIC;
       auto amountOfWork = p.m_task.m_iterID - currentIterID;
+      if (t_reSchedule)
+        p.m_task.m_sharedWorkCounter->operator++();
       didWorkFor(p.m_task, amountOfWork);
       if (rdy && t_reSchedule)
       {
-          t_reSchedule = false;
-          auto nTask = Task(p.m_task.m_id, p.m_task.m_originalIterID, p.m_task.m_originalIterations);
-          nTask.f_work = p.m_task.f_work;
-          ThreadData& worker = m_allThreads.at(p.m_ID);
-          std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
-          worker.m_localDeque.push_back(std::move(nTask));
-          worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+        t_reSchedule = false;
+        auto nTask = Task(p.m_task.m_id, p.m_task.m_originalIterID, p.m_task.m_originalIterations);
+        nTask.f_work = p.m_task.f_work;
+        ThreadData& worker = m_allThreads.at(p.m_ID);
+        std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
+        worker.m_localDeque.push_front(std::move(nTask));
+        worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
       }
       if (rdy)
       {
@@ -663,7 +679,7 @@ namespace faze
       }
     }
 
-	// Goes through all the ways to get work and sleeps if nothing is found.
+    // Goes through all the ways to get work and sleeps if nothing is found.
     inline void stealOrWait(ThreadData& p)
     {
 #ifdef DEBUGTEXT
@@ -682,7 +698,7 @@ namespace faze
           {
             p.m_task = std::move(p.m_localDeque.back());
             p.m_localDeque.pop_back();
-			p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+            p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order::memory_order_relaxed);
             return;
           }
         }
@@ -698,7 +714,7 @@ namespace faze
             {
               p.m_task = it.m_localDeque.front();
               it.m_localDeque.pop_front();
-			  it.m_localQueueSize->store(it.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+              it.m_localQueueSize->store(it.m_localDeque.size(), std::memory_order::memory_order_relaxed);
               return;
             }
           }
@@ -750,7 +766,7 @@ namespace faze
       }
     }
 
-	// unused broken deadlock checker, Tries to detect user errors.
+    // unused broken deadlock checker, Tries to detect user errors.
     inline void checkDeadlock(int myID) // called by threads, must make seperate
     {
       std::cerr << m_threads.size() << " " << idle_threads.load() << std::endl;
@@ -804,7 +820,5 @@ namespace faze
         return;
       }
     }
-
   };
-
 }
