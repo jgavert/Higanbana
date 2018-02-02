@@ -32,7 +32,22 @@ void fighterWindow(ProgramParams& params)
   Logger log;
   LBS lbs;
 
-  auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
+  std::atomic<bool> quitLogging = false;
+  lbs.addTask("background log log", [&](size_t)
+  {
+    if (quitLogging)
+    {
+      lbs.addTask("logging finished", [&](size_t)
+      {
+      });
+      return;
+    }
+    log.update();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    rescheduleTask();
+  });
+
+  auto main = [&](GraphicsApi api, VendorID preferredVendor)
   {
     int64_t frame = 1;
     FileSystem fs;
@@ -41,9 +56,9 @@ void fighterWindow(ProgramParams& params)
 
     gamepad::Fic directInputs;
     AtomicDoubleBuffered<gamepad::X360LikePad> pad;
-    bool quit = false;
+    std::atomic<bool> quit = false;
     controllerTime.firstTick();
-    lbs.addTask("gamepad", [&](size_t)
+    lbs.addTask("gamepad update", [&](size_t)
     {
       controllerTime.tick();
       if (quit)
@@ -58,19 +73,6 @@ void fighterWindow(ProgramParams& params)
       rescheduleTask();
     });
 
-    lbs.addTask("loglog", [&](size_t)
-    {
-      if (quit)
-      {
-        lbs.addTask("loggingDone", [&](size_t)
-        {
-        });
-        return;
-      }
-      log.update();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      rescheduleTask();
-    });
     GraphicsSubsystem graphics(api, "faze");
     F_LOG("Using api %s\n", graphics.gfxApi().c_str());
     F_ASSERT(!graphics.availableGpus().empty(), "No valid gpu's available.\n");
@@ -85,7 +87,7 @@ void fighterWindow(ProgramParams& params)
 
     FighterRenderer rend(surface, dev);
 
-    lbs.addTask("rendRend", [&](size_t)
+    lbs.addTask("game rendering", [&](size_t)
     {
       if (quit)
       {
@@ -132,7 +134,6 @@ void fighterWindow(ProgramParams& params)
         {
           quit = true;
         }
-        if (updateLog) log.update();
 
         // If you acquire, you must submit it. Next, try to first present empty image.
         // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
@@ -140,23 +141,18 @@ void fighterWindow(ProgramParams& params)
         //end of mainloop
         if (quit)
         {
-          quit = true;
           lbs.sleepTillKeywords({ "gamepadDone", "renderingDone" });
           break;
         }
       }
     }
-    lbs.sleepTillKeywords({ "loggingDone" });
   };
-#if 0
-  main(GraphicsApi::DX12, VendorID::Amd, true);
-#else
 
-  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
-  lbs.sleepTillKeywords({ "test1" });
+  // start the app
+  main(GraphicsApi::DX12, VendorID::Amd);
 
-#endif
-
+  quitLogging = true;
+  lbs.sleepTillKeywords({ "logging finished" });
   log.update();
 }
 

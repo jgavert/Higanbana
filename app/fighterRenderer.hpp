@@ -98,7 +98,7 @@ namespace faze
         auto& node = graph.createPass2("change color");
         auto tex = gpu.acquirePresentableImage(swap);
 
-        auto some = std::sin(float(timer.getFrame())*0.01f);
+        auto some = std::sin(float(timer.getFrame())*0.05f);
 
         node.clearRT(tex, float4(some, 0.f, 0.f, 1.f));
         node.prepareForPresent(tex);
