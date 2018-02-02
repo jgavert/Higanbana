@@ -138,6 +138,7 @@ namespace faze
       constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)), w(static_cast<vType>(0)) {}
       constexpr inline Vector(vType v) : x(v), y(v), z(v), w(v) {}
       constexpr inline Vector(vType x, vType y, vType z, vType w) : x(x), y(y), z(z), w(w) {}
+      constexpr inline Vector(Vector<2, vType> o, vType z, vType w) : x(o.x), y(o.y), z(z), w(w) {}
       constexpr inline Vector(Vector<3, vType> o, vType v) : x(o.x), y(o.y), z(o.z), w(v) {}
       constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z), w(o.w) {}
       template<typename vTypeAnother>
