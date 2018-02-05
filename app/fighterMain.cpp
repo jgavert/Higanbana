@@ -113,6 +113,8 @@ void fighterWindow(ProgramParams& params)
       fighter::Player p2;
       p2.position = double2(0.35, 0);
 
+      constexpr double LogicMultiplier = 0.1;
+
       auto lastUpdated = HighPrecisionClock::now();
       while (true)
       {
@@ -121,7 +123,7 @@ void fighterWindow(ProgramParams& params)
         // timer shenigans for 60fps logic update
         auto currentTime = HighPrecisionClock::now();
         auto difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
-        while (difference < 16667)
+        while (difference < static_cast<long long>(static_cast<double>(16667) * LogicMultiplier))
         {
           currentTime = HighPrecisionClock::now();
           difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
@@ -158,6 +160,7 @@ void fighterWindow(ProgramParams& params)
           }
           // update player position
 
+          p1.velocity = mul(p1.velocity, LogicMultiplier);
           p1.position = add(p1.position, mul(p1.direction, p1.velocity));
 
           p1.velocity = double2(0.0);
