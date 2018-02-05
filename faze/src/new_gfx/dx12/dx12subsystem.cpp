@@ -23,6 +23,7 @@ namespace faze
 
     vector<GpuInfo> DX12Subsystem::availableGpus()
     {
+      vAdapters.clear();
       UINT i = 0;
       ComPtr<IDXGIAdapter1> pAdapter;
       while (pFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND)
