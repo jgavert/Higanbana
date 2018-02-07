@@ -44,7 +44,7 @@ void fighterWindow(ProgramParams& params)
       return;
     }
     log.update();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     rescheduleTask();
   });
 
@@ -99,11 +99,11 @@ void fighterWindow(ProgramParams& params)
       }
       if (window.hasResized())
       {
-          rend.resize();
-          window.resizeHandled();
+        rend.resize();
+        window.resizeHandled();
       }
       rend.render();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(1));
       rescheduleTask();
     });
 
@@ -124,95 +124,95 @@ void fighterWindow(ProgramParams& params)
 
       lbs.addTask("logic update", [&](size_t)
       {
-          if (quit)
+        if (quit)
+        {
+          lbs.addTask("logicFinished", [&](size_t)
           {
-              lbs.addTask("logicFinished", [&](size_t)
-              {
-              });
-              return;
+          });
+          return;
+        }
+
+        {
+          auto currentTime = HighPrecisionClock::now();
+          auto difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
+          while (difference < static_cast<long long>(static_cast<double>(16667) * LogicMultiplier))
+          {
+            currentTime = HighPrecisionClock::now();
+            difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
           }
+          lastUpdated = currentTime;
 
           {
-              auto currentTime = HighPrecisionClock::now();
-              auto difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
-              while (difference < static_cast<long long>(static_cast<double>(16667) * LogicMultiplier))
+            auto input = pad.readValue();
+            controllerConnected = false;
+            if (input.alive)
+            {
+              auto extractAxises = [](int16_t input, int& output)
               {
-                  currentTime = HighPrecisionClock::now();
-                  difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
-              }
-              lastUpdated = currentTime;
+                constexpr int16_t deadzone = 4500;
+                if (std::abs(input) > deadzone)
+                {
+                  output = (input > 0) ? 1 : -1;
+                }
+              };
+              int2 xy;
+              extractAxises(input.lstick[0].value, xy.x);
+              extractAxises(input.lstick[1].value, xy.y);
 
+              if (p1.position.y == 0.0)
               {
-                  auto input = pad.readValue();
-                  controllerConnected = false;
-                  if (input.alive)
-                  {
-                      auto extractAxises = [](int16_t input, int& output)
-                      {
-                          constexpr int16_t deadzone = 4500;
-                          if (std::abs(input) > deadzone)
-                          {
-                              output = (input > 0) ? 1 : -1;
-                          }
-                      };
-                      int2 xy;
-                      extractAxises(input.lstick[0].value, xy.x);
-                      extractAxises(input.lstick[1].value, xy.y);
+                // can jump! or move!
 
-                      if (p1.position.y == 0.0)
-                      {
-                          // can jump! or move!
-
-                          if (std::abs(xy.x) > 0)
-                          {
-                              p1.direction = xy.x;
-                              p1.velocity.x = 0.02;
-                          }
-                      }
-                  }
-                  // update player position
-
-                  p1.velocity = mul(p1.velocity, LogicMultiplier);
-                  p1.position = add(p1.position, mul(p1.direction, p1.velocity));
-
-                  p1.velocity = double2(0.0);
-
-                  if (p1.position.y < 0.0)
-                      p1.position.y = 0.0;
-
-                  if (p1.position.x > 1.0 - 0.15)
-                      p1.position.x = 1.0 - 0.15;
-
-                  if (p1.position.x < -1.0)
-                      p1.position.x = -1.0;
-
-                  vector<ColoredRect> renderables;
-
-                  {
-                      ColoredRect r{};
-                      r.topleft = add(p1.position, double2(0, 0.65));
-                      r.rightBottom = add(p1.position, double2(0.15, 0));
-                      r.color = float3(0.f, 0.15f, 0.55f);
-
-                      renderables.push_back(r);
-                  }
-
-                  {
-                      ColoredRect r{};
-                      r.topleft = add(p2.position, double2(0, 0.65));
-                      r.rightBottom = add(p2.position, double2(0.15, 0));
-                      r.color = float3(0.f, 0.15f, 0.55f);
-
-                      renderables.push_back(r);
-                  }
-
-                  rend.updateBoxes(renderables);
+                if (std::abs(xy.x) > 0)
+                {
+                  p1.direction = xy.x;
+                  p1.velocity.x = 0.02;
+                }
               }
+            }
+            // update player position
+
+            p1.velocity = mul(p1.velocity, LogicMultiplier);
+            p1.position = add(p1.position, mul(p1.direction, p1.velocity));
+
+            p1.velocity = double2(0.0);
+
+            if (p1.position.y < 0.0)
+              p1.position.y = 0.0;
+
+            if (p1.position.x > 1.0 - 0.15)
+              p1.position.x = 1.0 - 0.15;
+
+            if (p1.position.x < -1.0)
+              p1.position.x = -1.0;
+
+            vector<ColoredRect> renderables;
+
+            {
+              ColoredRect r{};
+              r.topleft = add(p1.position, double2(0, 0.65));
+              r.rightBottom = add(p1.position, double2(0.15, 0));
+              r.color = float3(0.f, 0.15f, 0.55f);
+
+              renderables.push_back(r);
+            }
+
+            {
+              ColoredRect r{};
+              r.topleft = add(p2.position, double2(0, 0.65));
+              r.rightBottom = add(p2.position, double2(0.15, 0));
+              r.color = float3(0.f, 0.15f, 0.55f);
+
+              renderables.push_back(r);
+            }
+
+            rend.updateBoxes(renderables);
           }
+        }
 
-          rescheduleTask();
+        rescheduleTask();
       });
-      
+
       while (true)
       {
         if (window.simpleReadMessages(frame++))
