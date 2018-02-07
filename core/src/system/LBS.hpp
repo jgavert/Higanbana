@@ -667,10 +667,13 @@ namespace faze
         t_reSchedule = false;
         auto nTask = Task(p.m_task.m_id, p.m_task.m_originalIterID, p.m_task.m_originalIterations);
         nTask.f_work = p.m_task.f_work;
-        ThreadData& worker = m_allThreads.at(p.m_ID);
-        std::lock_guard<std::mutex> guard(*m_mutexes.at(p.m_ID));
-        worker.m_localDeque.push_front(std::move(nTask));
-        worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+        {
+          ThreadData& worker = m_allThreads.at(0);
+          std::lock_guard<std::mutex> guard(*m_mutexes.at(0));
+          worker.m_localDeque.push_front(std::move(nTask));
+          worker.m_localQueueSize->store(worker.m_localDeque.size(), std::memory_order::memory_order_relaxed);
+        }
+        notifyAll();
       }
       if (rdy)
       {
@@ -744,7 +747,7 @@ namespace faze
         }
         ThreadStatus[p.m_ID].first = RUNNINGLOGIC;
       }
-    }
+  }
 
     // Reports the amount of task done and does post task work if was last.
     inline void didWorkFor(Task& task, size_t amount) // Task specific counter this time
@@ -764,7 +767,7 @@ namespace faze
         // todo: write postrequirement code here.
         postTaskWork(task.m_id);
       }
-    }
+      }
 
     // unused broken deadlock checker, Tries to detect user errors.
     inline void checkDeadlock(int myID) // called by threads, must make seperate
@@ -820,5 +823,5 @@ namespace faze
         return;
       }
     }
-  };
+    };
 }
