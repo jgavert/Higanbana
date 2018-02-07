@@ -1,6 +1,9 @@
 #include "Window.hpp"
 
 #include "core/src/global_debug.hpp"
+
+#define DEBUG_LOG_RESIZE 0
+
 namespace faze
 {
 #if defined(FAZE_PLATFORM_WINDOWS)
@@ -26,7 +29,7 @@ namespace faze
     {
       if (me)
       {
-        me->resizing = true;
+        //me->resizing = true;
       }
       break;
     }
@@ -168,12 +171,21 @@ namespace faze
     return CallNextHookEx(NULL, nCode, wParam, lParam);
   }
 
+#if DEBUG_LOG_RESIZE
   void Window::resizeEvent(const char* eventName)
+#else
+  void Window::resizeEvent(const char* )
+#endif
   {
     if ((m_width != m_resizeWidth || m_height != m_resizeHeight) && !m_minimized)
     {
+#if DEBUG_LOG_RESIZE
       F_SLOG("Window", "%s: %s %dx%d\n", m_name.c_str(), eventName, m_resizeWidth, m_resizeHeight);
+#endif
       needToResize = true;
+
+      m_width = m_resizeWidth;
+      m_height = m_resizeHeight;
     }
   }
 
@@ -190,8 +202,6 @@ namespace faze
   void Window::resizeHandled()
   {
     needToResize = false;
-    m_width = m_resizeWidth;
-    m_height = m_resizeHeight;
   }
 
   void Window::captureMouse(bool val)
@@ -340,6 +350,7 @@ namespace faze
     MSG msg;
     m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, Window::LowLevelKeyboardHook, m_window->hInstance, 0);
     m_characterInput.clear();
+
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
     {
       if (msg.message == WM_QUIT)
