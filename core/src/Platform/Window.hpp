@@ -6,6 +6,9 @@
 
 #include <string>
 #include <memory>
+
+#include <atomic>
+
 namespace faze
 {
 #ifdef FAZE_PLATFORM_WINDOWS
@@ -68,12 +71,12 @@ namespace faze
     int m_width;
     int m_height;
     std::string m_name;
-    bool needToResize = false;
+    std::atomic<bool> needToResize = false;
     bool resizing = false;
     int m_resizeWidth = 0;
     int m_resizeHeight = 0;
     unsigned m_dpi = 96;
-    bool m_minimized = false;
+    std::atomic<bool>  m_minimized = false;
     bool m_windowVisible = false;
     bool m_borderlessFullscreen = false;
     RECT m_windowRect;
