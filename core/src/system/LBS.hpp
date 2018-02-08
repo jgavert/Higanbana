@@ -325,7 +325,7 @@ namespace faze
       StopCondition.store(true);
       for (size_t i = 0; i < m_threads.size(); i++)
       {
-        addTask(static_cast<int>(i%m_threads.size()), "EndThread", [](size_t) {return; }); // mm
+          addTask(static_cast<int>(i%m_threads.size()), "EndThread", [](size_t) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); return; }); // mm
       }
       for (auto& it : m_threads)
       {

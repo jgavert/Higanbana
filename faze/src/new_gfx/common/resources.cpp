@@ -173,6 +173,14 @@ namespace faze
       return swapchain.buffers()[index];
     }
 
+    TextureRTV* DeviceData::tryAcquirePresentableImage(Swapchain& swapchain)
+    {
+        int index = m_impl->tryAcquirePresentableImage(swapchain.impl());
+        if (index == -1)
+            return nullptr;
+        return &(swapchain.buffers()[index]);
+    }
+
     Renderpass DeviceData::createRenderpass()
     {
       return Renderpass(m_impl->createRenderpass());

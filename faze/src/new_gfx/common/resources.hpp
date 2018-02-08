@@ -192,6 +192,7 @@ namespace faze
       Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
       void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor);
       TextureRTV acquirePresentableImage(Swapchain& swapchain);
+      TextureRTV* tryAcquirePresentableImage(Swapchain& swapchain);
 
       Renderpass createRenderpass();
       ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);

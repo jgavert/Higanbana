@@ -809,9 +809,16 @@ namespace faze
         m_resource = h;
       }
 
+      bool checkFrameLatency()
+      {
+          auto result = WaitForSingleObjectEx(m_frameLatencyObj, 0, FALSE);
+
+        return result == WAIT_OBJECT_0;
+      }
+
       void waitForFrameLatency()
       {
-        WaitForSingleObjectEx(m_frameLatencyObj, 1000, TRUE);
+          WaitForSingleObjectEx(m_frameLatencyObj, 1000, TRUE);
       }
 
       void setBackbufferIndex(int index)
@@ -1140,6 +1147,7 @@ namespace faze
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
       void ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor);
       vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void collectTrash() override;

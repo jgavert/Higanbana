@@ -169,6 +169,11 @@ namespace faze
       return S().acquirePresentableImage(swapchain);
     }
 
+    TextureRTV* tryAcquirePresentableImage(Swapchain& swapchain)
+    {
+        return S().tryAcquirePresentableImage(swapchain);
+    }
+
     GpuSemaphore createSemaphore()
     {
       return S().createSemaphore();

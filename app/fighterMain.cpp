@@ -31,7 +31,7 @@ using namespace faze::math;
 void fighterWindow(ProgramParams& params)
 {
   Logger log;
-  LBS lbs;
+  LBS lbs(2);
 
   std::atomic<bool> quitLogging = false;
   lbs.addTask("background log log", [&](size_t)
@@ -44,7 +44,6 @@ void fighterWindow(ProgramParams& params)
       return;
     }
     log.update();
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     rescheduleTask();
   });
 
@@ -103,7 +102,6 @@ void fighterWindow(ProgramParams& params)
         window.resizeHandled();
       }
       rend.render();
-      //std::this_thread::sleep_for(std::chrono::milliseconds(1));
       rescheduleTask();
     });
 
@@ -131,14 +129,15 @@ void fighterWindow(ProgramParams& params)
           });
           return;
         }
-
+        rescheduleTask();
         {
           auto currentTime = HighPrecisionClock::now();
           auto difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
-          while (difference < static_cast<long long>(static_cast<double>(16667) * LogicMultiplier))
+          if (difference < static_cast<long long>(static_cast<double>(16667) * LogicMultiplier))
           {
-            currentTime = HighPrecisionClock::now();
-            difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
+              return;
+            //currentTime = HighPrecisionClock::now();
+            //difference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastUpdated).count();
           }
           lastUpdated = currentTime;
 
@@ -209,8 +208,6 @@ void fighterWindow(ProgramParams& params)
             rend.updateBoxes(renderables);
           }
         }
-
-        rescheduleTask();
       });
 
       while (true)
