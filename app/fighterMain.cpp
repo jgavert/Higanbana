@@ -43,8 +43,8 @@ void fighterWindow(ProgramParams& params)
       });
       return;
     }
-    log.update();
     rescheduleTask();
+    log.update();
   });
 
   auto main = [&](GraphicsApi api, VendorID preferredVendor)
@@ -68,9 +68,9 @@ void fighterWindow(ProgramParams& params)
         });
         return;
       }
+      rescheduleTask();
       directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
       pad.writeValue(directInputs.getFirstActiveGamepad());
-      rescheduleTask();
     });
 
     GraphicsSubsystem graphics(api, "faze");
@@ -96,13 +96,13 @@ void fighterWindow(ProgramParams& params)
         });
         return;
       }
+      rescheduleTask();
       if (window.hasResized())
       {
         rend.resize();
         window.resizeHandled();
       }
       rend.render();
-      rescheduleTask();
     });
 
     time.firstTick();
