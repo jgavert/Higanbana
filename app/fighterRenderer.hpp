@@ -88,22 +88,27 @@ namespace faze
         gpu.adjustSwapchain(swap, swapdesc);
         m_resize--;
       }
+      auto tex = gpu.tryAcquirePresentableImage(swap);
+      if (tex == nullptr)
+      {
+          return;
+      }
 
       auto graph = gpu.createGraph();
-      auto tex = gpu.acquirePresentableImage(swap);
+
       {
         auto& node = graph.createPass2("background");
 
         auto some = std::sin(timer.getFTime())*0.05f + 0.2f;
 
-        node.clearRT(tex, sub(float4(1.f), float4(some, some + 0.04f, some + 0.09f, 0.f)));
+        node.clearRT(*tex, sub(float4(1.f), float4(some, some + 0.04f, some + 0.09f, 0.f)));
       }
       {
         auto& node = graph.createPass2("boxes");
 
         auto vec = boxes.readValue();
         node.renderpass(fighterRenderpass);
-        node.subpass(tex);
+        node.subpass(*tex);
 
         constexpr const float thickness = 0.01f;
         auto createQuad = [](vector<float4>& vertices, float2 leftTop, float2 rightBottom)
@@ -165,7 +170,7 @@ namespace faze
       }
       {
         auto& node = graph.createPass2("background");
-        node.prepareForPresent(tex);
+        node.prepareForPresent(*tex);
       }
 
       gpu.submit(swap, graph);

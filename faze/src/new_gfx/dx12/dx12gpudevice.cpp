@@ -468,6 +468,16 @@ namespace faze
       return textures;
     }
 
+    int DX12Device::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    {
+        auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+        if (!native->checkFrameLatency())
+            return -1;
+        int index = native->native()->GetCurrentBackBufferIndex();
+        native->setBackbufferIndex(index);
+        return index;
+    }
+
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);

@@ -495,6 +495,24 @@ namespace faze
       return textures;
     }
 
+    int VulkanDevice::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    {
+        auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
+
+        std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
+        auto res = m_device.acquireNextImageKHR(native->native(), 0, freeSemaphore->native(), nullptr);
+
+        if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
+        {
+            F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+            return -1;
+        }
+        native->setCurrentPresentableImageIndex(res.value);
+        native->setAcquireSemaphore(freeSemaphore);
+
+        return res.value;
+    }
+
     // TODO: add fence here, so that we can detect that "we cannot render yet, do something else". Bonus thing honestly.
     int VulkanDevice::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> sc)
     {
