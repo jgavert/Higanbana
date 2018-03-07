@@ -175,10 +175,10 @@ namespace faze
 
     TextureRTV* DeviceData::tryAcquirePresentableImage(Swapchain& swapchain)
     {
-        int index = m_impl->tryAcquirePresentableImage(swapchain.impl());
-        if (index == -1)
-            return nullptr;
-        return &(swapchain.buffers()[index]);
+      int index = m_impl->tryAcquirePresentableImage(swapchain.impl());
+      if (index == -1)
+        return nullptr;
+      return &(swapchain.buffers()[index]);
     }
 
     Renderpass DeviceData::createRenderpass()
@@ -928,7 +928,7 @@ namespace faze
           .setHeapTypeSpecific(requirements.heapType)
           .setHeapAlignment(requirements.alignment)
           .setName(name);
-        GFX_LOG("Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
+        GFX_LOG("Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB\n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
         return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
       };
 
