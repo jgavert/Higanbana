@@ -1,4 +1,5 @@
 #pragma once
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 #include "faze/src/new_gfx/common/prototypes.hpp"
 #include "faze/src/new_gfx/common/resources.hpp"
 #include "faze/src/new_gfx/common/commandpackets.hpp"
@@ -10,8 +11,6 @@
 
 #include "core/src/system/MemoryPools.hpp"
 #include "core/src/system/SequenceTracker.hpp"
-
-#include "faze/src/new_gfx/vk/vulkan.hpp"
 
 namespace faze
 {

@@ -1,8 +1,4 @@
 // entrypoint.cpp
-#ifdef FAZE_PLATFORM_WINDOWS
-#include <stdlib.h>
-#include <crtdbg.h>
-#endif
 
 #include "core/src/Platform/ProgramParams.hpp"
 #include "core/src/Platform/EntryPoint.hpp" // client entrypoint
@@ -43,4 +39,4 @@ int main(int argc, char** argv)
   //_CrtDumpMemoryLeaks(); // finds my hack message class thingies from globalspace.
 #endif
   return returnValue;
-}
+  }

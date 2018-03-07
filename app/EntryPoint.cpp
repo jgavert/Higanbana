@@ -1,6 +1,6 @@
 #include "core/src/Platform/EntryPoint.hpp"
 
-//#include "windowMain.hpp"
+#include "windowMain.hpp"
 #include "fighterMain.hpp"
 
 #include "core/src/system/LBS.hpp"
@@ -13,7 +13,8 @@ using namespace faze::math;
 
 int EntryPoint::main()
 {
-  fighterWindow(m_params);
+  mainWindow(m_params);
+  //fighterWindow(m_params);
 
   return 0;
 }
