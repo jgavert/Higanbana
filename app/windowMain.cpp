@@ -546,7 +546,7 @@ void mainWindow(ProgramParams& params)
             }
 
             auto verts = dev.dynamicBuffer(makeMemView(vertices), FormatType::Float32);
-
+            node.copy(buffer, verts);
             {
               auto binding = node.bind<::shader::BufferTest>(testBufferCompute);
               binding.srv(::shader::BufferTest::input, verts);
@@ -943,7 +943,7 @@ void mainWindow(ProgramParams& params)
   */
 
   log.update();
-  }
+}
 
 #else
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "core/src/system/helperMacros.hpp"
-#include <stddef.h>
 
 namespace faze
 {
@@ -47,7 +46,7 @@ namespace faze
     Depth32,
     Depth32_Stencil8,
     Uint8,
-	Unorm8,
+    Unorm8,
     Count
   };
 

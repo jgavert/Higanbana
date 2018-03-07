@@ -21,19 +21,19 @@ namespace faze
 
     bool DX12DependencySolver::promoteFromCommon(D3D12_RESOURCE_STATES targetState, bool bufferOrSimultaneousTexture) const
     {
-        if (bufferOrSimultaneousTexture)
-        {
-            constexpr auto promoteMask = ~(D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ);
-            if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
-                return true;
-        }
-        else
-        {
-            constexpr auto promoteMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
-                return true;
-        }
-        return false;
+      if (bufferOrSimultaneousTexture)
+      {
+        constexpr auto promoteMask = ~(D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ);
+        if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
+          return true;
+      }
+      else
+      {
+        constexpr auto promoteMask = (D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        if ((targetState & promoteMask) == targetState) // if survives promoteMask, it can be promoted.
+          return true;
+      }
+      return false;
     }
 
     int DX12DependencySolver::addDrawCall(CommandPacket::PacketType name)
@@ -67,6 +67,16 @@ namespace faze
         m_resourceStates[uniqueID] = std::move(d);
       }
       m_uniqueResourcesThisChain.insert(uniqueID);
+
+      auto lf = m_resourceLFS.find(uniqueID);
+      if (lf == m_resourceLFS.end())
+      {
+        m_resourceLFS[uniqueID] = { drawCallIndex, drawCallIndex };
+      }
+      else
+      {
+        lf->second.end = drawCallIndex;
+      }
     }
 
     void DX12DependencySolver::addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags, SubresourceRange range)
@@ -86,29 +96,74 @@ namespace faze
         m_resourceStates[uniqueID] = std::move(d);
       }
       m_uniqueResourcesThisChain.insert(uniqueID);
+
+      auto lf = m_resourceLFS.find(uniqueID);
+      if (lf == m_resourceLFS.end())
+      {
+        m_resourceLFS[uniqueID] = { drawCallIndex, drawCallIndex };
+      }
+      else
+      {
+        lf->second.end = drawCallIndex;
+      }
     }
 
     void DX12DependencySolver::makeAllBarriers()
     {
       m_resourceCache.clear();
+      /*
+      F_LOG("Begin transient resources\n");
+      struct OrderedLifetimes
+      {
+        size_t id;
+        ResourceLifetime lf;
+      };
+
+      vector<OrderedLifetimes> lol2;
+      for (auto&& id : m_uniqueResourcesThisChain)
+      {
+        auto lf = m_resourceLFS[id];
+
+        lol2.emplace_back(OrderedLifetimes{ id, lf });
+      }
+
+      std::sort(lol2.begin(), lol2.end(), [](OrderedLifetimes a, OrderedLifetimes b)
+      {
+        return a.lf.begin < b.lf.begin;
+      });
+
+      for (auto&& olf : lol2)
+      {
+        std::string lol = "";
+        for (int i = 0; i < olf.lf.begin; ++i)
+        {
+          lol += " ";
+        }
+        for (int i = olf.lf.begin; i <= olf.lf.end; ++i)
+        {
+          lol += "x";
+        }
+        F_LOG("%zu: %5d %5d [%s\n", olf.id, olf.lf.begin, olf.lf.end, lol.c_str());
+      }
+      F_LOG("End transient resources\n");
+      */
 
       for (auto&& id : m_uniqueResourcesThisChain)
       {
         auto tesState = m_resourceStates[id];
         auto flags = tesState.state->flags;
 
-        
         if (globalconfig::graphics::GraphicsEnableHandleCommonState)
         {
-            if (tesState.state->commonStateOptimisation)
+          if (tesState.state->commonStateOptimisation)
+          {
+            for (auto&& flag : flags)
             {
-                for (auto&& flag : flags)
-                {
-                    flag = D3D12_RESOURCE_STATE_COMMON;
-                }
+              flag = D3D12_RESOURCE_STATE_COMMON;
             }
+          }
         }
-        
+
         vector<DrawCallIndex> lm(flags.size(), -1);
         m_resourceCache[id] = SmallResource{ tesState.texture, tesState.mips, tesState.state->commonStateOptimisation, flags, lm };
       }

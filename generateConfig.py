@@ -6,7 +6,7 @@ config = """.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/fazecache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/1.0.68.0'
+.VulkanSDKBasePath = 'C:/VulkanSDK/1.1.70.0'
 #endif
 #if __LINUX__
 .FazEPath = 'CURRENT_DIRECTORY'

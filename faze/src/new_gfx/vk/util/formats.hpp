@@ -1,9 +1,8 @@
 #pragma once
 
+#include "faze/src/new_gfx/vk/vulkan.hpp"
 #include "faze/src/new_gfx/desc/formats.hpp"
 #include "core/src/system/helperMacros.hpp"
-
-#include "faze/src/new_gfx/vk/vulkan.hpp"
 
 namespace faze
 {

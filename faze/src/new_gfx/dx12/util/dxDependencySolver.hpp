@@ -15,6 +15,12 @@ namespace faze
 
       using DrawCallIndex = int;
 
+      struct ResourceLifetime
+      {
+        DrawCallIndex begin;
+        DrawCallIndex end;
+      };
+
       struct ResourceDependency
       {
         ResourceUniqueId uniqueId;
@@ -52,6 +58,7 @@ namespace faze
 
       unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
       unordered_map<ResourceUniqueId, ResourceDependency> m_resourceStates;
+      unordered_map<ResourceUniqueId, ResourceLifetime> m_resourceLFS;
 
       // actual jobs used to generate DAG
       vector<DependencyPacket> m_jobs;

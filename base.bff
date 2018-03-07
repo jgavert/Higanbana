@@ -213,9 +213,9 @@ Compiler( 'Compiler-x64-Linux' )
 [
   Using( .X64BaseConfig )
   .Config              = 'Debug'
-  .BaseDefinitions     + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
+  .BaseDefinitions     + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED'
   .BaseCompilerOptions + .CompilerDebugOptimizations
-  //.PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED /D_CRTDBG_MAP_ALLOC'
+  //.PCHOptions         + ' /DDEBUG /D_DEBUG /DPROFILING_ENABLED'
   //                    + .CompilerDebugOptimizations
   .LibrarianOptions   + .LibrarianDebugOptimizations
   .LinkerOptions      + .extDebLibPaths
