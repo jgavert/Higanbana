@@ -66,8 +66,14 @@
 .shadercLibDebug  = .extLibPrefix
                   + 'shaderc_combined_d'
                   + .extLibPostfix
+                  + .extLibPrefix
+                  + 'shaderc_d'
+                  + .extLibPostfix
 .shadercLibRelease  = .extLibPrefix
                     + 'shaderc_combined_r'
+                    + .extLibPostfix
+                    + .extLibPrefix
+                    + 'shaderc_r'
                     + .extLibPostfix
 
 

@@ -790,7 +790,7 @@ namespace faze
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {
       auto shader = m_shaders.shader(m_device, pipe.descriptor.shader(), ShaderStorage::ShaderType::Compute, pipe.descriptor.shaderGroups);
-
+      /*
       auto bind = vk::DescriptorSetLayoutBinding();
       bind.setBinding(0).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setStageFlags(vk::ShaderStageFlagBits::eCompute);
 
@@ -806,12 +806,13 @@ namespace faze
         .setStage(vk::PipelineShaderStageCreateInfo().setModule(shader).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute))
         .setLayout(layout);
 
-      auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
+      auto result = m_device.createComputePipeline(nullptr, pipelineDesc);*/
       m_device.destroyShaderModule(shader);
+      /*
       if (result)
       {
         m_device.destroyPipeline(result.operator VkPipeline());
-      }
+      }*/
     }
 
     void VulkanDevice::collectTrash()
