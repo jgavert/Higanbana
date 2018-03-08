@@ -5,6 +5,8 @@
 #include "faze/src/new_gfx/vk/vulkan.hpp"
 #include <shaderc/shaderc.hpp>
 
+#include "faze/src/new_gfx/vk/spirv-cross/spirv_cross.hpp"
+
 class ShaderStorage
 {
 private:
@@ -221,6 +223,80 @@ public:
     vk::ShaderModuleCreateInfo moduleCreate = vk::ShaderModuleCreateInfo()
       .setPCode(reinterpret_cast<uint32_t*>(shader.data()))
       .setCodeSize(shader.size());
+
+#if 1
+    spirv_cross::Compiler comp(reinterpret_cast<uint32_t*>(shader.data()), shader.size() / 4);
+
+    auto resources = comp.get_shader_resources();
+    for (auto &u : resources.uniform_buffers)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found UBO %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.push_constant_buffers)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found push_constant_buffers %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+    for (auto &u : resources.separate_images)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found separate_images %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.separate_samplers)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found samplers %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.sampled_images)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found sampled_images %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.storage_buffers)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found storage_buffers %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.storage_images)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found storage_images %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.stage_inputs)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found stage_inputs %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.stage_outputs)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_LOG("spirv_cross", "Found stage_outputs %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+
+    for (auto &u : resources.subpass_inputs)
+    {
+      uint32_t set = comp.get_decoration(u.id, spv::DecorationDescriptorSet);
+      uint32_t binding = comp.get_decoration(u.id, spv::DecorationBinding);
+      F_ILOG("spirv_cross", "Found subpass_inputs %s at set = %u, binding = %u!\n", u.name.c_str(), set, binding);
+    }
+#endif
 
     auto shaderMod = device.createShaderModule(moduleCreate);
 

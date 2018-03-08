@@ -40,21 +40,21 @@ namespace shader\
 #define FAZE_END_LAYOUT
 
 #define FAZE_CBUFFER \
-    cbuffer _constants : register( b0 )
+    [[vk::binding(0, 0)]] cbuffer _constants : register( b0, space0 )
 
 #define FAZE_SRV(type, name, index) \
-	type name : register(t##index);
+	[[vk::binding(index, 1)]] type name : register(t##index, space0);
 
 #define FAZE_UAV(type, name, index) \
-	type name : register(u##index);
+	[[vk::binding(index, 2)]] type name : register(u##index, space0);
 
 #define FAZE_SRV_TABLE(size)
 #define FAZE_UAV_TABLE(size)
 
-#define FAZE_SAMPLER_BILINEAR(name) SamplerState name : register( s0 );
-#define FAZE_SAMPLER_POINT(name) SamplerState name : register( s1 );
-#define FAZE_SAMPLER_BILINEAR_WRAP(name) SamplerState name : register( s2 );
-#define FAZE_SAMPLER_POINT_WRAP(name) SamplerState name : register( s3 );
+#define FAZE_SAMPLER_BILINEAR(name) [[vk::binding(1, 0)]] SamplerState name : register( s0, space0);
+#define FAZE_SAMPLER_POINT(name) [[vk::binding(2, 0)]] SamplerState name : register( s1, space0 );
+#define FAZE_SAMPLER_BILINEAR_WRAP(name) [[vk::binding(3, 0)]] SamplerState name : register( s2, space0 );
+#define FAZE_SAMPLER_POINT_WRAP(name) [[vk::binding(4, 0)]] SamplerState name : register( s3, space0 );
 
 #ifdef FAZE_DX12
 #define ROOTSIG "RootFlags(0), " \
