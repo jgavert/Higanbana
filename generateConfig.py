@@ -6,7 +6,7 @@ config = """.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
 #if __WINDOWS__
 .FazEPath = 'CURRENT_DIRECTORY'
 .FBuildCache = 'C:/temp/fazecache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/1.1.70.0'
+.VulkanSDKBasePath = 'C:/VulkanSDK/VULKAN_VERSION'
 #endif
 #if __LINUX__
 .FazEPath = 'CURRENT_DIRECTORY'
@@ -20,6 +20,11 @@ print("current directory: " + curDir)
 config = config.replace("CURRENT_DIRECTORY", curDir)
 
 VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
+
+VulkanVersion = sorted(next(os.walk("""C:/VulkanSDK/"""))[1], reverse=True)[0]
+print("vulkan version: " + VulkanVersion)
+
+config = config.replace("VULKAN_VERSION", VulkanVersion)
 
 with open('config.bff', 'w') as out:
   out.write(""".VSBasePath = '""")

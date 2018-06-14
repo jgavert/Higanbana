@@ -1375,8 +1375,12 @@ namespace faze
       desc.Buffer.NumElements = static_cast<unsigned>(view.size() / stride);
       desc.Buffer.FirstElement = upload.block.offset / stride;
       desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+      if (type == FormatType::Raw32)
+        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
       desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+      
 
       F_ASSERT(upload.block.offset % stride == 0, "oh no");
 

@@ -103,7 +103,7 @@ namespace faze
       {
         auto list = drawData->CmdLists[i];
         // 5x 32bit thing...
-        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Uint32);
+        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Raw32);
         auto ibv = device.dynamicBuffer(makeByteView(list->IdxBuffer.Data, list->IdxBuffer.size() * sizeof(list->IdxBuffer[0])), FormatType::Uint16);
 
         binding.srv(::shader::ImGui::vertices, vbv);
