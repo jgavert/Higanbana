@@ -339,10 +339,13 @@ namespace faze
       else
       {
         m_usable = true;
-        enumerateDevices();
+        // first call to enumerateDevices is absurdly slow, better call it asynchronously and not block the startup
+        // enumerateDevices();
       }
     }
 
+    // first call might be super slow, like 10 seconds
+    // thanks to microsoft's "is this a xinput?" function
     void Fic::enumerateDevices()
     {
       if (m_DI == 0)
