@@ -1,5 +1,6 @@
 #pragma once
 #include "faze/src/new_gfx/desc/formats.hpp"
+#include "faze/src/new_gfx/common/descriptor_layout.hpp"
 #include "core/src/math/math.hpp"
 #include <string>
 #include <array>
@@ -10,6 +11,8 @@ namespace faze
   {
   public:
     std::string shaderSourcePath;
+    std::string rootSignature;
+    backend::DescriptorLayout layout;
     uint3 shaderGroups;
 
     ComputePipelineDescriptor()
@@ -433,7 +436,8 @@ namespace faze
   public:
     struct Desc
     {
-      std::string rootDescPath;
+      std::string rootSignature;
+      backend::DescriptorLayout layout;
       std::string vertexShaderPath;
       std::string pixelShaderPath;
       std::string domainShaderPath;
@@ -457,9 +461,10 @@ namespace faze
       }
     }
 
-    GraphicsPipelineDescriptor& setRootDesc(std::string path)
+    template <typename Shader>
+    GraphicsPipelineDescriptor& setRS()
     {
-      desc.rootDescPath = path;
+      rootSignature = Shader::rootSignature();
       return *this;
     }
     GraphicsPipelineDescriptor& setVertexShader(std::string path)

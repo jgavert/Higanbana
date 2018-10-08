@@ -72,6 +72,7 @@ namespace faze
     int m_height;
     std::string m_name;
     std::atomic<bool> needToResize = false;
+    std::atomic<bool> resetMousePosToMiddle = false;
     bool resizing = false;
     int m_resizeWidth = 0;
     int m_resizeHeight = 0;
@@ -90,6 +91,80 @@ namespace faze
     faze::InputBuffer m_inputs;
     vector<wchar_t> m_characterInput;
     MouseState m_mouse;
+
+    // touch
+    struct TouchEvent
+    {
+      int uid = -1;
+      int x = -1;
+      int y = -1;
+      int index = -1;
+      bool touched = false;
+    };
+
+    vector<TouchEvent> touchEvents;
+
+    void prepareTouchInputs()
+    {
+      for (auto&& it : touchEvents)
+      {
+        it.touched = false;
+      }
+    }
+
+    void cleanTouchInputs()
+    {
+      touchEvents.erase(std::remove_if(touchEvents.begin(),
+        touchEvents.end(),
+        [](TouchEvent x) {return !x.touched; }),
+        touchEvents.end());
+    }
+
+    void updateTouchInput(int uid, int x, int y)
+    {
+      bool found = false;
+      for (auto&& it : touchEvents)
+      {
+        if (it.uid == uid)
+        {
+          it.x = x;
+          it.y = y;
+          it.touched = true;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+      {
+        auto id = findUnusedIndex();
+        touchEvents.push_back({uid, x, y, id, true});
+      }
+    }
+
+    int findUnusedIndex()
+    {
+      int index = 0;
+      bool used = true;
+      while (used)
+      {
+        used = false;
+        for (auto&& it : touchEvents)
+        {
+          if (it.index == index)
+          {
+            index++;
+            used = true;
+            break;
+          }
+        }
+      }
+      return index;
+    }
+
+    UINT cInputs;
+    TOUCHINPUT pInputs;
+    POINT ptInput;
 
     void keyDown(int key);
     void keyUp(int key);

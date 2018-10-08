@@ -19,7 +19,7 @@ groupshared RayData rdata[64];
 // how much object reflects light
 #define REFLECTIVITY 0.05
 // How far rays can travel(applies to first ray only)
-#define MAXLENGTH 180.0
+#define MAXLENGTH 40.0
 // color to red by iteration multiplier
 #define COLORBYITER 0.0
 // This multiplies the one intensity of the light
@@ -317,7 +317,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   float3 direction = iDir;
 
   direction = normalize(direction);
-  uint index = gid.x + gid.y*8;
+  uint index = gid.x + gid.y*FAZE_THREADGROUP_X;
 
   rdata[index].fragCoord = fp;
   rdata[index].ro = position;

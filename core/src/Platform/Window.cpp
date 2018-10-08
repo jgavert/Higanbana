@@ -65,8 +65,26 @@ namespace faze
       int yPos = GET_Y_LPARAM(lParam);
       if (me)
       {
-        me->m_mouse.m_pos = int2{ xPos, yPos };
+        if (me->resetMousePosToMiddle)
+        {
+          auto xMiddle = me->m_width / 2;
+          auto yMiddle = me->m_height / 2;
+
+          POINT asd;
+          asd.x = me->m_width / 2;
+          asd.y = me->m_height / 2;
+          ClientToScreen(me->m_window->getHWND(), &asd);
+          
+          SetCursorPos(asd.x, asd.y);
+
+          me->m_mouse.m_pos = int2{ xMiddle - xPos, yMiddle - yPos };
+        }
+        else
+        {
+          me->m_mouse.m_pos = int2{ xPos, yPos };
+        }
       }
+      return 0;
       break;
     }
     case WM_SIZE:
@@ -96,6 +114,7 @@ namespace faze
           me->m_minimized = false;
           me->resizeEvent("Restored");
         }
+        return 0;
       }
     }
     case WM_DPICHANGED:
@@ -107,6 +126,7 @@ namespace faze
           break;
         me->setDpi(dpi);
         //RECT* lprcNewScale = reinterpret_cast<RECT*>(lParam);
+        return 0;
       }
     }
     case WM_CHAR:
@@ -118,14 +138,46 @@ namespace faze
         {
           me->m_characterInput.emplace_back(ch);
         }
+        return 0;
       }
     }
     case WM_MOUSEWHEEL:
       if (me)
       {
         me->m_mouse.mouseWheel += GET_WHEEL_DELTA_WPARAM(wParam);
+        return 0;
       }
       break;
+    case WM_TOUCH:
+    {
+      if (me)
+      {
+        unsigned numInputs = static_cast<unsigned>(wParam);
+        PTOUCHINPUT ti = new TOUCHINPUT[numInputs];
+
+        if (ti)
+        {
+          me->prepareTouchInputs();
+
+          if (GetTouchInputInfo((HTOUCHINPUT)lParam, numInputs, ti, sizeof(TOUCHINPUT)))
+          {
+            for (int i = 0; i < static_cast<INT>(numInputs); i++)
+            {
+              me->ptInput.x = TOUCH_COORD_TO_PIXEL(ti[i].x);
+              me->ptInput.y = TOUCH_COORD_TO_PIXEL(ti[i].y);
+              ScreenToClient(hWnd, &me->ptInput);
+              me->updateTouchInput(ti[i].dwID, me->ptInput.x, me->ptInput.y);
+            }
+          }
+
+          me->cleanTouchInputs();
+          CloseTouchInputHandle((HTOUCHINPUT)lParam);
+
+          return 0;
+        }
+      }
+      break;
+    }
     default:
       break;
     }
@@ -210,11 +262,20 @@ namespace faze
     {
       while (ShowCursor(FALSE) >= 0);
       SetCapture(m_window->getHWND());
+      resetMousePosToMiddle = true;
+
+      POINT asd;
+      asd.x = m_width / 2;
+      asd.y = m_height / 2;
+      ClientToScreen(m_window->getHWND(), &asd);
+
+      SetCursorPos(asd.x, asd.y);
     }
     else
     {
       while (ShowCursor(TRUE) < 0);
       ReleaseCapture();
+      resetMousePosToMiddle = false;
     }
   }
 
@@ -263,11 +324,15 @@ namespace faze
       F_SLOG("Window", "Tried to set dpi awareness.\n");
     }
 
+
     hWnd = CreateWindowEx(NULL, cnw.c_str(), cnw.c_str(), m_baseWindowFlags, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
     if (hWnd == NULL)
     {
       printf("wtf window null\n");
     }
+
+    RegisterTouchWindow(hWnd, 0);
+
     SetWindowLongPtr(hWnd, GWLP_USERDATA, (size_t)this);
 
     std::string lol = (windowname + "class");

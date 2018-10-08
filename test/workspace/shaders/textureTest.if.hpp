@@ -5,13 +5,17 @@
 
 FAZE_BEGIN_LAYOUT(TextureTest)
 
+FAZE_BEGIN_DESCRIPTOR_LAYOUT
+FAZE_RWTEXTURES(1)
+FAZE_END_DESCRIPTOR_LAYOUT
+
 FAZE_CBUFFER
 {
   uint2 iResolution;
   float iTime;
   float iTimeDelta;
-  int	iFrame;
   float2 mouse;
+  int	iFrame;
   uint _unused;
   float3 iPos;
   uint _unused2;
@@ -23,9 +27,6 @@ FAZE_CBUFFER
 };
 
 FAZE_UAV(RWTexture2D<float4>, output, 0)
-
-FAZE_SRV_TABLE(0)
-FAZE_UAV_TABLE(1)
 
 FAZE_END_LAYOUT
 

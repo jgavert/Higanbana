@@ -80,10 +80,10 @@
 // dxcompiler
 
 .dxcDebLibPath = .extBasePath
-            + "hlsl.bin/Debug/lib"
+            + "dxc-artifacts/lib"
             + .extEndBasePath
 .dxcRelLibPath = .extBasePath
-            + "hlsl.bin/Release/lib"
+            + "dxc-artifacts/lib"
             + .extEndBasePath
 .dxcInclude = .extIncludeDir
             + "DirectXShaderCompiler/include"
@@ -157,11 +157,11 @@
               + .extLibPostfix
 #if __WINDOWS__
 .gtestDebLibPath = .extBasePath
-            + "gtest_build/googletest/Debug"
+            + "googletest/build/googlemock/gtest/Debug"
             + .extEndBasePath
 
 .gtestRelLibPath = .extBasePath
-            + "gtest_build/googletest/RelWithDebInfo"
+            + "googletest/build/googlemock/gtest/Release"
             + .extEndBasePath
 
 .gtestDebLib  = .extLibPrefix
@@ -186,7 +186,7 @@
 
 .extRelDlls = {}
 #if __WINDOWS__
-.extRelDlls = {"externals/hlsl.bin/Release/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/bin/WinPixEventRuntime.dll", }
+.extRelDlls = {"externals/dxc-artifacts/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/bin/WinPixEventRuntime.dll", }
 #endif
 
 #if __WINDOWS__

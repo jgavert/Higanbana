@@ -56,7 +56,7 @@ namespace faze
       , swap(gpu.createSwapchain(surface, swapdesc))
       , blitter(gpu)
       , fighterRenderpass(gpu.createRenderpass())
-      , fighterPipe(gpu.createGraphicsPipeline(GraphicsPipelineDescriptor()
+      , fighterPipe(gpu.createGraphicsPipeline<::shader::RectShader>(GraphicsPipelineDescriptor()
         .setVertexShader("rectRenderer")
         .setPixelShader("rectRenderer")
         .setPrimitiveTopology(PrimitiveTopology::Triangle)

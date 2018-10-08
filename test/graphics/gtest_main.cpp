@@ -28,11 +28,63 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
+#include <Windows.h>
 
 #include "gtest/gtest.h"
+
+// Provides alternative output mode which produces minimal amount of
+// information about tests.
+class TersePrinter : public ::testing::EmptyTestEventListener {
+  void outDebugStringA(const char *format, ...)
+  {
+    va_list args;
+    va_start(args, format);
+    int len = _vscprintf(format, args) + 1;
+    char *str = new char[len * sizeof(char)];
+    vsprintf(str, format, args);
+    OutputDebugStringA(str);
+    delete[] str;
+  }
+
+  // Called after all test activities have ended.
+  virtual void OnTestProgramEnd(const ::testing::UnitTest& unit_test) {
+    outDebugStringA("TEST %s\n", unit_test.Passed() ? "PASSED" : "FAILED");
+  }
+
+  // Called before a test starts.
+  virtual void OnTestStart(const ::testing::TestInfo& test_info) {
+    outDebugStringA(
+      "*** Test %s.%s starting.\n",
+      test_info.test_case_name(),
+      test_info.name());
+  }
+
+  // Called after a failed assertion or a SUCCEED() invocation.
+  virtual void OnTestPartResult(const ::testing::TestPartResult& test_part_result) {
+    outDebugStringA(
+      "%s in %s:%d\n%s\n",
+      test_part_result.failed() ? "*** Failure" : "Success",
+      test_part_result.file_name(),
+      test_part_result.line_number(),
+      test_part_result.summary());
+  }
+
+  // Called after a test ends.
+  virtual void OnTestEnd(const ::testing::TestInfo& test_info) {
+    outDebugStringA(
+      "*** Test %s.%s ending.\n",
+      test_info.test_case_name(),
+      test_info.name());
+  }
+};  // class TersePrinter
 
 GTEST_API_ int main(int argc, char **argv) {
   printf("Running main() from gtest_main.cc\n");
   testing::InitGoogleTest(&argc, argv);
+
+  testing::UnitTest& unit_test = *testing::UnitTest::GetInstance();
+  testing::TestEventListeners& listeners = unit_test.listeners();
+  listeners.Append(new TersePrinter);
+
   return RUN_ALL_TESTS();
 }

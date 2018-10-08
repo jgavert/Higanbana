@@ -390,6 +390,16 @@ namespace faze
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
+          /*
+        case CommandPacket::PacketType::BufferCopy:
+        {
+          auto& p = packetRef(gfxpacket::BufferCopy, packet);
+          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eAllCommands);
+          solver.addBuffer(drawIndex, p.source.,  )
+          drawIndex++;
+          break;
+        }
+        */
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);

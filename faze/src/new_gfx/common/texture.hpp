@@ -57,6 +57,11 @@ namespace faze
     {
       return m_dependency;
     }
+
+    int3 size3D()
+    {
+      return int3(m_desc->desc.width, m_desc->desc.height, m_desc->desc.depth);
+    }
   };
 
   class TextureView
@@ -153,6 +158,7 @@ namespace faze
     {
       return m_format;
     }
+
   };
 
   class TextureSRV : public TextureView

@@ -5,7 +5,7 @@
 #include "faze/src/new_gfx/common/commandpackets.hpp"
 
 #include "faze/src/new_gfx/vk/util/AllocStuff.hpp" // refactor
-#include "faze/src/new_gfx/vk/util/ShaderStorage.hpp"
+#include "faze/src/new_gfx/shaders/ShaderStorage.hpp"
 
 #include "faze/src/new_gfx/definitions.hpp"
 
@@ -16,6 +16,18 @@ namespace faze
 {
   namespace backend
   {
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
+    vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
+    int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties);
+
+    struct MemoryPropertySearch
+    {
+      vk::MemoryPropertyFlags optimal;
+      vk::MemoryPropertyFlags def;
+    };
+
+    MemoryPropertySearch getMemoryProperties(ResourceUsage usage);
+
     class VulkanDevice;
     // implementations
     class VulkanCommandList
@@ -238,7 +250,11 @@ namespace faze
 
       backend::TrackedState dependency() override
       {
-        return backend::TrackedState{};
+        backend::TrackedState state{};
+        state.resPtr = reinterpret_cast<size_t>(&resource);
+        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
+        state.additionalInfo = 0;
+        return state;
       }
     };
 
@@ -313,7 +329,7 @@ namespace faze
 
       backend::TrackedState dependency() override
       {
-        return backend::TrackedState{};
+        return backend::TrackedState{ reinterpret_cast<size_t>(&resource), reinterpret_cast<size_t>(statePtr.get()), 0 };
       }
     };
 
@@ -343,20 +359,48 @@ namespace faze
       }
     };
 
+    struct VkUploadBlock
+    {
+      uint8_t* m_data;
+      vk::Buffer m_buffer;
+      PageBlock block;
+
+      uint8_t* data()
+      {
+        return m_data + block.offset;
+      }
+
+      vk::Buffer buffer()
+      {
+        return m_buffer;
+      }
+
+      size_t size()
+      {
+        return block.size;
+      }
+
+      explicit operator bool() const
+      {
+        return m_data != nullptr;
+      }
+    };
+
     class VulkanDynamicBufferView : public prototypes::DynamicBufferViewImpl
     {
     private:
       struct Info
       {
-        vk::DescriptorBufferInfo bufferInfo;
-        vk::DescriptorType type;
+        vk::Buffer buffer;
+        vk::BufferView bufferInfo;
+        VkUploadBlock block;
       } m;
 
     public:
       VulkanDynamicBufferView()
       {}
-      VulkanDynamicBufferView(vk::DescriptorBufferInfo info, vk::DescriptorType type)
-        : m{ info, type }
+      VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView view, VkUploadBlock block)
+        : m{ buffer, view, block }
       {}
       Info& native()
       {
@@ -375,12 +419,12 @@ namespace faze
 
       uint64_t offset() override
       {
-        return 0;
+        return m.block.block.offset;
       }
 
       uint64_t size() override
       {
-        return 0;
+        return m.block.block.size;
       }
     };
 
@@ -403,8 +447,12 @@ namespace faze
     class VulkanPipeline : public prototypes::PipelineImpl
     {
       vk::Pipeline            m_pipeline;
-      vk::PipelineLayout      m_pipelineLayout;
+    };
+
+    class VulkanDescriptorLayout : public prototypes::DescriptorLayoutImpl
+    {
       vk::DescriptorSetLayout m_descriptorSetLayout;
+      vk::PipelineLayout      m_pipelineLayout;
     };
 
     class VulkanRenderpass : public prototypes::RenderpassImpl
@@ -440,6 +488,101 @@ namespace faze
       vk::Framebuffer getActiveFramebuffer()
       {
         return *m_framebuffers[m_activeHash];
+      }
+    };
+
+    class VulkanUploadLinearAllocator
+    {
+      LinearAllocator allocator;
+      VkUploadBlock block;
+
+    public:
+      VulkanUploadLinearAllocator() {}
+      VulkanUploadLinearAllocator(VkUploadBlock block)
+        : allocator(block.size())
+        , block(block)
+      {
+      }
+
+      VkUploadBlock allocate(size_t bytes, size_t alignment)
+      {
+        auto offset = allocator.allocate(bytes, alignment);
+        if (offset < 0)
+          return VkUploadBlock{ nullptr, nullptr, PageBlock{} };
+
+        VkUploadBlock b = block;
+        b.block.offset += offset;
+        b.block.size = roundUpMultipleInt(bytes, alignment);
+        return b;
+      }
+    };
+
+    class VulkanUploadHeap
+    {
+      FixedSizeAllocator allocator;
+      unsigned fixedSize = 1;
+      unsigned size = 1;
+      vk::Buffer m_buffer;
+      vk::DeviceMemory m_memory;
+      vk::Device m_device;
+
+      uint8_t* data = nullptr;
+    public:
+      VulkanUploadHeap() : allocator(1, 1) {}
+      VulkanUploadHeap(vk::Device device
+                     , vk::PhysicalDevice physDevice
+                     , unsigned allocationSize
+                     , unsigned allocationCount)
+        : allocator(allocationSize, allocationCount)
+        , fixedSize(allocationSize)
+        , size(allocationSize*allocationCount)
+        , m_device(device)
+      {
+        auto bufDesc = ResourceDescriptor()
+          .setWidth(allocationSize*allocationCount)
+          .setFormat(FormatType::Uint8)
+          .setUsage(ResourceUsage::Upload)
+          .setName("DynUpload");
+
+        auto natBufferInfo = fillBufferInfo(bufDesc);
+
+        m_buffer = device.createBuffer(natBufferInfo);
+
+        vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_buffer);
+        auto memProp = physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
+        auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+        F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+
+        vk::MemoryAllocateInfo allocInfo;
+
+        allocInfo = vk::MemoryAllocateInfo()
+          .setAllocationSize(bufDesc.desc.width)
+          .setMemoryTypeIndex(index);
+
+        m_memory = device.allocateMemory(allocInfo);
+        device.bindBufferMemory(m_buffer, m_memory, 0);
+        // we should have cpu UploadBuffer created above and bound, lets map it.
+
+        data = reinterpret_cast<uint8_t*>(device.mapMemory(m_memory, 0, allocationSize*allocationCount));
+      }
+
+      ~VulkanUploadHeap()
+      {
+        m_device.destroyBuffer(m_buffer);
+        m_device.freeMemory(m_memory);
+      }
+
+      VkUploadBlock allocate(size_t bytes)
+      {
+        auto dip = allocator.allocate(bytes);
+        F_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        return VkUploadBlock{ data, m_buffer,  dip };
+      }
+
+      void release(VkUploadBlock desc)
+      {
+        allocator.release(desc.block);
       }
     };
 
@@ -485,8 +628,13 @@ namespace faze
       vk::Queue                   m_computeQueue;
       vk::Queue                   m_copyQueue;
 
-      Rabbitpool2<VulkanSemaphore>      m_semaphores;
-      Rabbitpool2<VulkanFence>          m_fences;
+      vk::Sampler                 m_bilinearSampler;
+      vk::Sampler                 m_pointSampler;
+      vk::Sampler                 m_bilinearSamplerWrap;
+      vk::Sampler                 m_pointSamplerWrap;
+
+      Rabbitpool2<VulkanSemaphore>    m_semaphores;
+      Rabbitpool2<VulkanFence>        m_fences;
       Rabbitpool2<VulkanCommandList>  m_copyListPool;
       Rabbitpool2<VulkanCommandList>  m_computeListPool;
       Rabbitpool2<VulkanCommandList>  m_graphicsListPool;
@@ -508,9 +656,11 @@ namespace faze
       // new stuff
 
       std::shared_ptr<SequenceTracker> m_seqTracker;
+      std::shared_ptr<VulkanUploadHeap> m_dynamicUpload;
 
       struct Garbage
       {
+        vector<VkUploadBlock> dynamicBuffers;
         vector<vk::Image> textures;
         vector<vk::Buffer> buffers;
         vector<vk::ImageView> textureviews;
@@ -532,9 +682,6 @@ namespace faze
 
       vk::Device native() { return m_device; }
 
-      vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
-      vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
-
       std::shared_ptr<vk::RenderPass> createRenderpass(const vk::RenderPassCreateInfo& info);
 
       void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::Subpass& subpass);
@@ -553,6 +700,9 @@ namespace faze
 
       std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
       std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
+
+      std::shared_ptr<prototypes::DescriptorLayoutImpl> createDescriptorLayout(GraphicsPipelineDescriptor desc) override;
+      std::shared_ptr<prototypes::DescriptorLayoutImpl> createDescriptorLayout(ComputePipelineDescriptor desc) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
 

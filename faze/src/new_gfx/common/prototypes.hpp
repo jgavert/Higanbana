@@ -4,6 +4,8 @@
 #include "core/src/datastructures/proxy.hpp"
 
 #include "faze/src/new_gfx/common/resource_descriptor.hpp"
+#include "faze/src/new_gfx/common/pipeline_descriptor.hpp"
+#include "faze/src/new_gfx/common/descriptor_layout.hpp"
 
 #include <string>
 #include <memory>
@@ -66,6 +68,12 @@ namespace faze
       {
       public:
         virtual ~PipelineImpl() = default;
+      };
+
+      class DescriptorLayoutImpl
+      {
+      public:
+        virtual ~DescriptorLayoutImpl() = default;
       };
 
       class GraphicsSurfaceImpl
@@ -146,6 +154,10 @@ namespace faze
         // pipeline related
         virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
         virtual std::shared_ptr<PipelineImpl> createPipeline() = 0;
+
+        // descriptor stuff
+        virtual std::shared_ptr<DescriptorLayoutImpl> createDescriptorLayout(GraphicsPipelineDescriptor desc) = 0;
+        virtual std::shared_ptr<DescriptorLayoutImpl> createDescriptorLayout(ComputePipelineDescriptor desc) = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;

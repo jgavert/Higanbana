@@ -10,7 +10,8 @@
 
 #include "dx12.hpp"
 
-#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
+#include "faze/src/new_gfx/shaders/ShaderStorage.hpp"
+//#include "faze/src/new_gfx/dx12/util/ShaderStorage.hpp"
 
 #include "faze/src/new_gfx/definitions.hpp"
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
@@ -856,7 +857,7 @@ namespace faze
         return statePtr;
       }
 
-      void resetState()
+      void resetState() // wtf is this?? kind of understand but still.
       {
         statePtr = nullptr;
       }
@@ -1082,7 +1083,7 @@ namespace faze
       ComPtr<IDXGIFactory4> m_factory;
 
       FileSystem& m_fs;
-      DX12ShaderStorage m_shaders;
+      ShaderStorage m_shaders;
 
       UINT m_nodeMask;
       ComPtr<ID3D12CommandQueue> m_graphicsQueue;
@@ -1142,6 +1143,9 @@ namespace faze
 
       // impl
       std::shared_ptr<prototypes::PipelineImpl> createPipeline() override;
+
+      std::shared_ptr<prototypes::DescriptorLayoutImpl> createDescriptorLayout(GraphicsPipelineDescriptor layout) override;
+      std::shared_ptr<prototypes::DescriptorLayoutImpl> createDescriptorLayout(ComputePipelineDescriptor layout) override;
 
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;

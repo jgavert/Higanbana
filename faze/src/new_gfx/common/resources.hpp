@@ -33,7 +33,7 @@ namespace faze
   {
     Amd, // = 4098,
     Nvidia, // = 4318,
-    Intel, // implemented but lol number
+    Intel, // = 32902
     Unknown
   };
 

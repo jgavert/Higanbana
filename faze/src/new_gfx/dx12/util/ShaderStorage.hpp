@@ -4,6 +4,7 @@
 #include "core/src/global_debug.hpp"
 
 #include "faze/src/new_gfx/dx12/dx12.hpp"
+#include "faze/src/new_gfx/shaders/DXCompiler.hpp"
 
 #include <fstream>
 #include <string>
@@ -106,38 +107,8 @@ namespace faze
       std::string sourcePath;
       std::string compiledPath;
     public:
-      enum class ShaderType
-      {
-        Vertex,
-        Pixel,
-        Compute,
-        Geometry,
-        TessControl,
-        TessEvaluation
-      };
-    private:
 
-      const char* shaderFileType(ShaderType type)
-      {
-        switch (type)
-        {
-        case ShaderType::Vertex:
-          return "vs.hlsl";
-        case ShaderType::Pixel:
-          return "ps.hlsl";
-        case ShaderType::Compute:
-          return "cs.hlsl";
-        case ShaderType::Geometry:
-          return "gs.hlsl";
-        case ShaderType::TessControl: // hull?
-          return "tc.hlsl";
-        case ShaderType::TessEvaluation: // domain?
-          return "te.hlsl";
-        default:
-          F_ASSERT(false, "Unknown ShaderType");
-        }
-        return "";
-      }
+    private:
 
       const char* shaderFeature(ShaderType type)
       {
