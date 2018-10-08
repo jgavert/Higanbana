@@ -15,7 +15,7 @@ namespace faze
         .setDepthStencil(DepthStencilDescriptor()
           .setDepthEnable(false));
 
-      pipeline = device.createGraphicsPipeline(pipelineDescriptor);
+      pipeline = device.createGraphicsPipeline<::shader::Blitter>(pipelineDescriptor);
       renderpass = device.createRenderpass();
     }
 

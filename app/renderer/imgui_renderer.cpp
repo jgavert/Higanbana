@@ -33,7 +33,7 @@ namespace faze
             .setBlendOpAlpha(BlendOp::Add)))
         ;
 
-      pipeline = device.createGraphicsPipeline(pipelineDescriptor);
+      pipeline = device.createGraphicsPipeline<::shader::ImGui>(pipelineDescriptor);
       renderpass = device.createRenderpass();
 
       uint8_t *pixels = nullptr;

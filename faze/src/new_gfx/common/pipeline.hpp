@@ -13,14 +13,16 @@ namespace faze
   {
   public:
     std::shared_ptr<backend::prototypes::PipelineImpl> impl;
+    std::shared_ptr<backend::prototypes::DescriptorLayoutImpl> m_layout;
     std::shared_ptr<WatchFile> m_update;
     ComputePipelineDescriptor descriptor;
 
     ComputePipeline()
     {}
 
-    ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, ComputePipelineDescriptor desc)
+    ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, std::shared_ptr<backend::prototypes::DescriptorLayoutImpl> layout, ComputePipelineDescriptor desc)
       : impl(impl)
+      , m_layout(layout)
       , m_update(std::make_shared<WatchFile>())
       , descriptor(desc)
     {}
@@ -57,15 +59,18 @@ namespace faze
     };
 
     std::shared_ptr<vector<FullPipeline>> m_pipelines;
+    std::shared_ptr<backend::prototypes::DescriptorLayoutImpl> m_layout;
 
     GraphicsPipeline()
       : descriptor()
       , m_pipelines(nullptr)
+      , m_layout(nullptr)
     {}
 
-    GraphicsPipeline(GraphicsPipelineDescriptor desc)
+    GraphicsPipeline(std::shared_ptr<backend::prototypes::DescriptorLayoutImpl> layout, GraphicsPipelineDescriptor desc)
       : descriptor(desc.desc)
       , m_pipelines(std::make_shared<vector<FullPipeline>>())
+      , m_layout(layout)
     {}
   };
 }

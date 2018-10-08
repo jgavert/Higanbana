@@ -143,7 +143,11 @@ namespace faze
 
     void DeviceData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor)
     {
-      // stop gpu
+      // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
+      auto fenceForSwapchain = m_impl->createFence();
+      // assuming that only graphics queue accesses swapchain resources.
+      m_impl->submitGraphics({}, {}, {}, fenceForSwapchain);
+      m_impl->waitFence(fenceForSwapchain);
       waitGpuIdle();
       // wait all idle work.
       // release current swapchain backbuffers
@@ -188,12 +192,14 @@ namespace faze
 
     ComputePipeline DeviceData::createComputePipeline(ComputePipelineDescriptor desc)
     {
-      return ComputePipeline(m_impl->createPipeline(), desc);
+      auto layout = m_impl->createDescriptorLayout(desc);
+      return ComputePipeline(m_impl->createPipeline(), layout, desc);
     }
 
     GraphicsPipeline DeviceData::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
     {
-      return GraphicsPipeline(desc);
+      auto layout = m_impl->createDescriptorLayout(desc);
+      return GraphicsPipeline(layout, desc);
     }
 
     Buffer DeviceData::createBuffer(ResourceDescriptor desc)
@@ -1003,7 +1009,7 @@ namespace faze
           {
             emptyHeaps.emplace_back(iter->heap);
             m_totalMemory -= iter->allocator.size();
-            GFX_LOG("Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
+            GFX_LOG("Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB\n", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
           }
         }
         for (;;)

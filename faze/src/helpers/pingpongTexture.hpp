@@ -32,7 +32,8 @@ namespace faze
         auto res = gpu.createTexture(desc);
         srvs.push_back(gpu.createTextureSRV(res));
         uavs.push_back(gpu.createTextureUAV(res));
-        rtvs.push_back(gpu.createTextureRTV(res));
+        if (desc.desc.usage == ResourceUsage::RenderTarget || desc.desc.usage == ResourceUsage::RenderTargetRW)
+          rtvs.push_back(gpu.createTextureRTV(res));
       }
     }
 
@@ -59,6 +60,11 @@ namespace faze
     TextureRTV& rtv()
     {
       return rtvs[currentIndex];
+    }
+
+    Texture& texture()
+    {
+      return srvs[currentIndex].texture();
     }
   };
 }

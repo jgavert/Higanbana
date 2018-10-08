@@ -190,7 +190,7 @@ namespace faze
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
       auto lol = source.dependency();
-      auto mipDim = calculateMipDim(source.desc().size(), source.desc().desc.format, sub.mipLevel);
+      auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.copy(target, elementOffset, source, sub, srcBox);
     }
@@ -219,7 +219,7 @@ namespace faze
     void readback(Texture tex, Subresource resource, std::function<void(SubresourceData)> func)
     {
       auto lol = tex.dependency();
-      auto mipDim = calculateMipDim(tex.desc().size(), tex.desc().desc.format, resource.mipLevel);
+      auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.readback(tex, resource, srcBox, func);
     }

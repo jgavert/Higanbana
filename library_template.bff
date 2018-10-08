@@ -21,6 +21,7 @@
   .DebugDefines             = 'DEBUG;PROFILING_ENABLED;_DEBUG'
   .ProfileDefines           = 'RELEASE;PROFILING_ENABLED'
   .ReleaseDefines           = 'RELEASE'
+  .AdditionalOptions        = '/W4 /std:c++latest'
 ]
 // not everything needs graphics targets
 .ProjectX64Debug      = [ Using( .ProjectCommon ) .Config = 'Debug'   .PreprocessorDefinitions = .X64Defines + .DebugDefines ]

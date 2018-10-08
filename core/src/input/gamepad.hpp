@@ -50,7 +50,7 @@ namespace faze
     // Think of, playstation controller or fighting stick (usually made to work with consoles)
     struct X360LikePad
     {
-      bool alive = true;
+      bool alive = false;
       // sticks
       CAxis lstick[2] = {}; // normal X/Y
       CAxis rstick[2] = {}; // rotation X/Y

@@ -26,7 +26,7 @@ namespace faze
       , m_device(device)
       , m_factory(factory)
       , m_fs(fs)
-      , m_shaders(fs, "shaders", "shaders")
+      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::DXIL)
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024) // lol 1024, right.
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
@@ -597,6 +597,16 @@ namespace faze
       return std::make_shared<DX12Pipeline>();
     }
 
+    std::shared_ptr<prototypes::DescriptorLayoutImpl> DX12Device::createDescriptorLayout(GraphicsPipelineDescriptor)
+    {
+      return nullptr;
+    }
+
+    std::shared_ptr<prototypes::DescriptorLayoutImpl> DX12Device::createDescriptorLayout(ComputePipelineDescriptor)
+    {
+      return nullptr;
+    }
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
     {
       D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
@@ -715,67 +725,67 @@ namespace faze
         vector<MemoryBlob> blobs;
         if (!d.vertexShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.vertexShaderPath, DX12ShaderStorage::ShaderType::Vertex);
+          auto shader = m_shaders.shader(d.vertexShaderPath, ShaderType::Vertex, d.rootSignature);
           blobs.emplace_back(shader);
           desc.VS.BytecodeLength = blobs.back().size();
           desc.VS.pShaderBytecode = blobs.back().data();
 
           if (ptr->vs.empty())
           {
-            ptr->vs = m_shaders.watch(d.vertexShaderPath, DX12ShaderStorage::ShaderType::Vertex);
+            ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
           }
           ptr->vs.react();
         }
 
         if (!d.hullShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.hullShaderPath, DX12ShaderStorage::ShaderType::TessControl);
+          auto shader = m_shaders.shader(d.hullShaderPath, ShaderType::TessControl, d.rootSignature);
           blobs.emplace_back(shader);
           desc.HS.BytecodeLength = blobs.back().size();
           desc.HS.pShaderBytecode = blobs.back().data();
 
           if (ptr->hs.empty())
           {
-            ptr->hs = m_shaders.watch(d.hullShaderPath, DX12ShaderStorage::ShaderType::TessControl);
+            ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
           }
           ptr->hs.react();
         }
 
         if (!d.domainShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.domainShaderPath, DX12ShaderStorage::ShaderType::TessEvaluation);
+          auto shader = m_shaders.shader(d.domainShaderPath, ShaderType::TessEvaluation, d.rootSignature);
           blobs.emplace_back(shader);
           desc.DS.BytecodeLength = blobs.back().size();
           desc.DS.pShaderBytecode = blobs.back().data();
           if (ptr->ds.empty())
           {
-            ptr->ds = m_shaders.watch(d.domainShaderPath, DX12ShaderStorage::ShaderType::TessEvaluation);
+            ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
           }
           ptr->ds.react();
         }
 
         if (!d.geometryShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.geometryShaderPath, DX12ShaderStorage::ShaderType::Geometry);
+          auto shader = m_shaders.shader(d.geometryShaderPath, ShaderType::Geometry, d.rootSignature);
           blobs.emplace_back(shader);
           desc.GS.BytecodeLength = blobs.back().size();
           desc.GS.pShaderBytecode = blobs.back().data();
           if (ptr->gs.empty())
           {
-            ptr->gs = m_shaders.watch(d.geometryShaderPath, DX12ShaderStorage::ShaderType::Geometry);
+            ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
           }
           ptr->gs.react();
         }
 
         if (!d.pixelShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.pixelShaderPath, DX12ShaderStorage::ShaderType::Pixel);
+          auto shader = m_shaders.shader(d.pixelShaderPath, ShaderType::Pixel, d.rootSignature);
           blobs.emplace_back(shader);
           desc.PS.BytecodeLength = blobs.back().size();
           desc.PS.pShaderBytecode = blobs.back().data();
           if (ptr->ps.empty())
           {
-            ptr->ps = m_shaders.watch(d.pixelShaderPath, DX12ShaderStorage::ShaderType::Pixel);
+            ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
           }
           ptr->ps.react();
         }
@@ -819,7 +829,7 @@ namespace faze
           GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
         }
 
-        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute, pipeline.descriptor.shaderGroups);
+        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, ShaderType::Compute, pipeline.descriptor.rootSignature, {}, pipeline.descriptor.shaderGroups);
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
 
         D3D12_SHADER_BYTECODE byte;
@@ -828,7 +838,7 @@ namespace faze
 
         if (pipeline.m_update->empty())
         {
-          *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, DX12ShaderStorage::ShaderType::Compute);
+          *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, ShaderType::Compute);
         }
         pipeline.m_update->react();
 
@@ -1124,7 +1134,7 @@ namespace faze
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP);
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_TILED);
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_MULTIPLANE_OVERLAY);  */
-        F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
+        //F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
       }
     }
 
@@ -1380,10 +1390,7 @@ namespace faze
       desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-      
-
       F_ASSERT(upload.block.offset % stride == 0, "oh no");
-
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
       // will be collected promtly

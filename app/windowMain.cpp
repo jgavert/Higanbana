@@ -20,6 +20,8 @@
 
 #include "renderer/blitter.hpp"
 #include "renderer/imgui_renderer.hpp"
+#include "renderer/mipmapper.hpp"
+#include "renderer/postprocess.hpp"
 
 #include "renderer/texture_pass.hpp"
 
@@ -172,7 +174,7 @@ void mainWindow(ProgramParams& params)
           {
             chosenGpu = it.id;
           }
-          F_LOG("\t%d. %s (memory: %zd, api: %s)\n", it.id, it.name.c_str(), it.memory, it.apiVersionStr.c_str());
+          F_LOG("\t%d. %s (memory: %zdMB, api: %s)\n", it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
       if (updateLog) log.update();
@@ -181,7 +183,7 @@ void mainWindow(ProgramParams& params)
 
       int2 ires = { 200, 100 };
 
-      int raymarch_Res = 1400;
+      int raymarch_Res = 600;
       int raymarch_x = 16;
       int raymarch_y = 9;
 
@@ -242,7 +244,7 @@ void mainWindow(ProgramParams& params)
           .setUsage(ResourceUsage::Readback);
         auto bufferrb = dev.createBuffer(brbdesc);
 
-        ComputePipeline testBufferCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+        ComputePipeline testBufferCompute = dev.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
           .setShader("buffertest")
           .setThreadGroups(uint3(32, 1, 1)));
 
@@ -256,8 +258,24 @@ void mainWindow(ProgramParams& params)
           .setHeight(ires.y)
           .setMiplevels(1)
           .setDimension(FormatDimension::Texture2D)
-          .setUsage(ResourceUsage::RenderTargetRW);
+          .setUsage(ResourceUsage::GpuRW);
         PingPongTexture raymarched(dev, raymarchedDesc);
+
+
+        auto startDim = calculateMipDim(int3(ires.x, ires.y, 1), 1);
+        auto maxMips = calculateMaxMipLevels(int3(startDim.x, startDim.y, 1));
+        Texture mipMap = dev.createTexture(ResourceDescriptor()
+          .setName("raymarchedDesc_mipmapped")
+          .setFormat(FormatType::Unorm16RGBA)
+          .setWidth(startDim.x)
+          .setHeight(startDim.y)
+          .setMiplevels(maxMips)
+          .setDimension(FormatDimension::Texture2D)
+          .setUsage(ResourceUsage::GpuRW));
+
+        auto mipMapSRV = dev.createTextureSRV(mipMap, ShaderViewDescriptor().setMostDetailedMip(2).setMipLevels(1));
+        auto onePixelSRV = dev.createTextureSRV(mipMap, ShaderViewDescriptor().setMostDetailedMip(maxMips - 1).setMipLevels(1));
+
 
         auto texture2 = dev.createTexture(raymarchedDesc
           .setName("postEffect")
@@ -280,17 +298,21 @@ void mainWindow(ProgramParams& params)
           .setDepthStencil(DepthStencilDescriptor()
             .setDepthEnable(false));
 
-        GraphicsPipeline trianglePipe = dev.createGraphicsPipeline(pipelineDescriptor);
+        GraphicsPipeline trianglePipe = dev.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
         F_LOG("%d\n", trianglePipe.descriptor.sampleCount);
 
-        renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(64, 1, 1));
-        renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffectLDS", uint3(64, 1, 1));
+        //renderer::TexturePass<::shader::PostEffect> postPass(dev, "posteffect", uint3(8, 8, 1));
+        //renderer::TexturePass<::shader::PostEffect> postPass2(dev, "posteffectLDS", uint3(64, 1, 1));
         renderer::Blitter blit(dev);
         renderer::ImGui imgRenderer(dev);
+        renderer::Mipmapper mips(dev);
+        renderer::Postprocess posti(dev);
 
-        ComputePipeline testCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+        uint testmul = 4;
+
+        ComputePipeline testCompute = dev.createComputePipeline<::shader::TextureTest>(ComputePipelineDescriptor()
           .setShader("textureTest")
-          .setThreadGroups(uint3(8, 8, 1)));
+          .setThreadGroups(uint3(testmul, testmul, 1)));
 
         bool closeAnyway = false;
 
@@ -368,6 +390,7 @@ void mainWindow(ProgramParams& params)
             else if (captureMouse)
             {
               auto m = window.mouse();
+              //F_LOG("print mouse %d %d\n", m.m_pos.x, m.m_pos.y);
               auto p = m.m_pos;
               auto floatizeMouse = [](int input, float& output)
               {
@@ -379,13 +402,50 @@ void mainWindow(ProgramParams& params)
               floatizeMouse(p.x, rxyz.x);
               floatizeMouse(p.y, rxyz.y);
 
+              auto& inputs = window.inputs();
+
+              if (inputs.isPressedThisFrame('Q', 2))
+              {
+                rxyz.z = -1.f;
+              }
+              if (inputs.isPressedThisFrame('E', 2))
+              {
+                rxyz.z = 1.f;
+              }
+
               rxyz = math::mul(rxyz, std::max(time.getFrameTimeDelta(), 0.001f));
               //xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
 
+              /*
+               basic fps control .... idea
               quaternion yaw = math::rotateAxis(updir, rxyz.x);
               quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
               //quaternion roll = math::rotateAxis(dir, rxyz.z);
               direction = math::mul(math::mul(yaw, direction), pitch);
+              */
+
+              quaternion yaw = math::rotateAxis(updir, rxyz.x);
+              quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+              quaternion roll = math::rotateAxis(dir, rxyz.z);
+              direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+
+              if (inputs.isPressedThisFrame('W', 2))
+              {
+                xy.y = 1.f;
+              }
+              if (inputs.isPressedThisFrame('S', 2))
+              {
+                xy.y = -1.f;
+              }
+              if (inputs.isPressedThisFrame('D', 2))
+              {
+                xy.x = 1.f;
+              }
+              if (inputs.isPressedThisFrame('A', 2))
+              {
+                xy.x = -1.f;
+              }
+              xy = math::mul(xy, std::max(time.getFrameTimeDelta(), 0.001f));
             }
 
             // use our current up and forward vectors and calculate our new up and forward vectors
@@ -461,8 +521,8 @@ void mainWindow(ProgramParams& params)
             binding.constants.iSideDir = sideVec;
             binding.uav(::shader::TextureTest::output, raymarched.uav());
 
-            unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x), 8));
-            unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.y), 8));
+            unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.x), testmul));
+            unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(iRes.y), testmul));
             node.dispatch(binding, uint3{ x, y, 1 });
 
             if (enableAsyncCompute)
@@ -482,6 +542,18 @@ void mainWindow(ProgramParams& params)
           //if (inputs.isPressedThisFrame('3', 2))
 
           {
+            auto node = tasks.createPass("mipmap raymarched texture for aveg luminance");
+            mips.generateMipLevelsTo(dev, node, mipMap, raymarched.texture(), 0);
+            tasks.addPass(std::move(node));
+          }
+
+          {
+            auto node = tasks.createPass("postprocess");
+            posti.postprocess(node, texUav2, raymarched.srv(), onePixelSRV);
+            tasks.addPass(std::move(node));
+          }
+
+          {
             auto node = tasks.createPass("clear");
             node.acquirePresentableImage(swapchain);
             node.clearRT(backbuffer, float4{ std::sin(time.getFTime())*.5f + .5f, 0.f, 0.f, 0.f });
@@ -489,10 +561,12 @@ void mainWindow(ProgramParams& params)
             tasks.addPass(std::move(node));
           }
 
-          iRes.y = 1;
-          postPass.compute(tasks, texUav2, raymarched.srv(), iRes);
-          iRes.x *= 64;
-          postPass2.compute(tasks, texUav3, raymarched.srv(), iRes);
+
+
+          //iRes.y = 1;
+          //postPass.compute(tasks, texUav2, raymarched.srv(), iRes);
+          //iRes.x *= 64;
+          //postPass2.compute(tasks, texUav3, raymarched.srv(), iRes);
 
           {
             // we have pulsing red color background, draw a triangle on top of it !
@@ -523,8 +597,8 @@ void mainWindow(ProgramParams& params)
           //blit.blitImage(dev, tasks, backbuffer, testSrv, renderer::Blitter::FitMode::Fit);
 
           auto bpos = div(uint2(backbuffer.desc().desc.width, backbuffer.desc().desc.height), 2u);
-          blit.blit(dev, tasks, backbuffer, texSrv2, int2(bpos), int2(bpos));
-          blit.blit(dev, tasks, backbuffer, texSrv3, int2(bpos.x, 0), int2(bpos));
+          blit.blit(dev, tasks, backbuffer, mipMapSRV, int2(bpos), int2(bpos));
+          blit.blit(dev, tasks, backbuffer, texSrv2, int2(bpos.x, 0), int2(bpos));
 
           /*
           uint2 sdim = { testSrv.desc().desc.width, testSrv.desc().desc.height };
@@ -878,8 +952,23 @@ void mainWindow(ProgramParams& params)
 
                 raymarchedDesc = raymarchedDesc
                   .setWidth(ires.data[0])
-                  .setHeight(ires.data[1]);
+                  .setHeight(ires.data[1])
+                  .setMiplevels(calculateMaxMipLevels(int3(ires.x, ires.y, 1)));
                 raymarched.resize(dev, raymarchedDesc);
+
+                startDim = calculateMipDim(int3(ires.x, ires.y, 1), 1);
+                maxMips = calculateMaxMipLevels(int3(startDim.x, startDim.y, 1));
+                mipMap = dev.createTexture(ResourceDescriptor()
+                  .setName("raymarchedDesc_mipmapped")
+                  .setFormat(FormatType::Unorm16RGBA)
+                  .setWidth(startDim.x)
+                  .setHeight(startDim.y)
+                  .setMiplevels(maxMips)
+                  .setDimension(FormatDimension::Texture2D)
+                  .setUsage(ResourceUsage::GpuRW));
+
+                mipMapSRV = dev.createTextureSRV(mipMap, ShaderViewDescriptor().setMostDetailedMip(2).setMipLevels(1));
+                onePixelSRV = dev.createTextureSRV(mipMap, ShaderViewDescriptor().setMostDetailedMip(maxMips - 1).setMipLevels(1));
 
                 texture2 = dev.createTexture(raymarchedDesc
                   .setName("postEffect"));

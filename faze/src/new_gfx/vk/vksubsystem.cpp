@@ -71,17 +71,19 @@ namespace faze
       auto layersInfos = vk::enumerateInstanceLayerProperties();
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
+      /*
       GFX_ILOG("Available layers for instance:");
       for (auto&& it : layersInfos)
       {
         GFX_ILOG("\t\t%s", it.layerName);
       }
+      */
 #endif
 
       std::vector<const char*> layers;
       {
         // lunargvalidation list order
-        GFX_ILOG("Enabled Vulkan debug layers:");
+        //GFX_ILOG("Enabled Vulkan debug layers:");
         for (auto&& it : layerOrder)
         {
           auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
@@ -92,11 +94,11 @@ namespace faze
           {
             layers.push_back(it.c_str());
             m_layers.push_back(*found);
-            GFX_ILOG("\t\t%s", found->layerName);
+            //GFX_ILOG("\t\t%s", found->layerName);
           }
           else
           {
-            GFX_ILOG("not enabled %s", it.c_str());
+            //GFX_ILOG("not enabled %s", it.c_str());
           }
         }
       }
@@ -105,17 +107,19 @@ namespace faze
       std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
+      /*
       GFX_ILOG("Available extensions for instance:");
       for (auto&& it : extInfos)
       {
         GFX_ILOG("\t\t%s", it.extensionName);
       }
+      */
 #endif
 
       std::vector<const char*> extensions;
       {
         // lunargvalidation list order
-        GFX_ILOG("Enabled Vulkan extensions:");
+        //GFX_ILOG("Enabled Vulkan extensions:");
 
         for (auto&& it : extOrder)
         {
@@ -127,11 +131,11 @@ namespace faze
           {
             extensions.push_back(it.c_str());
             m_extensions.push_back(*found);
-            GFX_ILOG("\t\t%s", found->extensionName);
+            //GFX_ILOG("\t\t%s", found->extensionName);
           }
           else
           {
-            GFX_ILOG("not enabled %s", it.c_str());
+            //GFX_ILOG("not enabled %s", it.c_str());
           }
         }
       }
@@ -301,14 +305,16 @@ namespace faze
       std::vector<const char*> extensions;
       {
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
+        /*
         GFX_ILOG("Available extensions for device:");
         for (auto&& it : devExts)
         {
           GFX_ILOG("\t\t%s", it.extensionName);
         }
+        */
 #endif
         // lunargvalidation list order
-        GFX_ILOG("Enabled Vulkan extensions for device:");
+        //GFX_ILOG("Enabled Vulkan extensions for device:");
 
         for (auto&& it : devExtOrder)
         {
@@ -320,7 +326,7 @@ namespace faze
           {
             extensions.push_back(it.c_str());
             m_extensions.push_back(*found);
-            GFX_ILOG("\t\t%s", found->extensionName);
+            //GFX_ILOG("\t\t%s", found->extensionName);
           }
         }
       }

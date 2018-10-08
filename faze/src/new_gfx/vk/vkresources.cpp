@@ -4,10 +4,250 @@
 #include "core/src/system/bitpacking.hpp"
 #include "core/src/global_debug.hpp"
 
+#include <optional>
+
 namespace faze
 {
   namespace backend
   {
+    int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties)
+    {
+      for (int32_t i = 0; i < static_cast<int32_t>(memprop.memoryTypeCount); ++i)
+      {
+        if ((memoryTypeBits & (1 << i)) &&
+          ((memprop.memoryTypes[i].propertyFlags & properties) == properties))
+          return i;
+      }
+      return -1;
+    }
+
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor)
+    {
+      auto desc = descriptor.desc;
+      auto bufSize = desc.stride*desc.width;
+      F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
+      vk::BufferCreateInfo info = vk::BufferCreateInfo()
+        .setSharingMode(vk::SharingMode::eExclusive);
+
+      vk::BufferUsageFlags usageBits;
+
+      if (desc.format != FormatType::Unknown)
+      {
+        usageBits = vk::BufferUsageFlagBits::eUniformTexelBuffer;
+      }
+      else
+      {
+        usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
+      }
+
+      if (desc.usage == ResourceUsage::GpuRW)
+      {
+        if (desc.format != FormatType::Unknown)
+        {
+          usageBits = vk::BufferUsageFlagBits::eStorageTexelBuffer;
+        }
+        else
+        {
+          usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
+        }
+      }
+
+      if (desc.indirect)
+      {
+        usageBits |= vk::BufferUsageFlagBits::eIndirectBuffer;
+      }
+
+      if (desc.index)
+      {
+        usageBits |= vk::BufferUsageFlagBits::eIndexBuffer;
+      }
+
+      auto usage = desc.usage;
+      if (usage == ResourceUsage::Readback)
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+      }
+      else if (usage == ResourceUsage::Upload)
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+      }
+      else
+      {
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
+        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
+      }
+      info = info.setUsage(usageBits);
+      info = info.setSize(bufSize);
+      return info;
+    }
+
+    vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor)
+    {
+      auto desc = descriptor.desc;
+
+      vk::ImageType ivt;
+      vk::ImageCreateFlags flags;
+      flags |= vk::ImageCreateFlagBits::eMutableFormat; //???
+      switch (desc.dimension)
+      {
+      case FormatDimension::Texture1D:
+        ivt = vk::ImageType::e1D;
+        break;
+      case FormatDimension::Texture2D:
+        ivt = vk::ImageType::e2D;
+        break;
+      case FormatDimension::Texture3D:
+        ivt = vk::ImageType::e3D;
+        break;
+      case FormatDimension::TextureCube:
+        ivt = vk::ImageType::e2D;
+        flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+        break;
+      default:
+        ivt = vk::ImageType::e2D;
+        break;
+      }
+
+      int mipLevels = desc.miplevels;
+
+      vk::ImageUsageFlags usage;
+      usage |= vk::ImageUsageFlagBits::eTransferDst;
+      usage |= vk::ImageUsageFlagBits::eTransferSrc;
+      usage |= vk::ImageUsageFlagBits::eSampled;
+
+      switch (desc.usage)
+      {
+      case ResourceUsage::GpuReadOnly:
+      {
+        break;
+      }
+      case ResourceUsage::GpuRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        break;
+      }
+      case ResourceUsage::RenderTarget:
+      {
+        usage |= vk::ImageUsageFlagBits::eColorAttachment;
+        break;
+      }
+      case ResourceUsage::RenderTargetRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eColorAttachment;
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        break;
+      }
+      case ResourceUsage::DepthStencil:
+      {
+        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      case ResourceUsage::DepthStencilRW:
+      {
+        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        usage |= vk::ImageUsageFlagBits::eStorage;
+        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        break;
+      }
+      case ResourceUsage::Upload:
+      {
+        usage = vk::ImageUsageFlagBits::eTransferSrc;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        usage = vk::ImageUsageFlagBits::eTransferDst;
+        break;
+      }
+      default:
+        break;
+      }
+
+      vk::SampleCountFlagBits sampleFlags = vk::SampleCountFlagBits::e1;
+
+      if (desc.msCount > 32)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e64;
+      }
+      else if (desc.msCount > 16)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e32;
+      }
+      else if (desc.msCount > 8)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e16;
+      }
+      else if (desc.msCount > 4)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e8;
+      }
+      else if (desc.msCount > 2)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e4;
+      }
+      else if (desc.msCount > 1)
+      {
+        sampleFlags = vk::SampleCountFlagBits::e2;
+      }
+
+      vk::ImageCreateInfo info = vk::ImageCreateInfo()
+        .setArrayLayers(desc.arraySize)
+        .setExtent(vk::Extent3D()
+          .setWidth(desc.width)
+          .setHeight(desc.height)
+          .setDepth(desc.depth))
+        .setFlags(flags)
+        .setFormat(formatToVkFormat(desc.format).storage)
+        .setImageType(ivt)
+        .setInitialLayout(vk::ImageLayout::eUndefined)
+        .setMipLevels(desc.miplevels)
+        .setSamples(sampleFlags)
+        .setTiling(vk::ImageTiling::eOptimal) // TODO: hmm
+        .setUsage(usage)
+        .setSharingMode(vk::SharingMode::eExclusive); // TODO: hmm
+
+      if (desc.dimension == FormatDimension::TextureCube)
+      {
+        info = info.setArrayLayers(desc.arraySize * 6);
+      }
+
+      return info;
+    }
+
+    MemoryPropertySearch getMemoryProperties(ResourceUsage usage)
+    {
+      MemoryPropertySearch ret{};
+      switch (usage)
+      {
+      case ResourceUsage::Upload:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
+        break;
+      }
+      case ResourceUsage::Readback:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostCached;
+        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
+        break;
+      }
+      case ResourceUsage::GpuReadOnly:
+      case ResourceUsage::GpuRW:
+      case ResourceUsage::RenderTarget:
+      case ResourceUsage::DepthStencil:
+      case ResourceUsage::RenderTargetRW:
+      case ResourceUsage::DepthStencilRW:
+      default:
+      {
+        ret.optimal = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        ret.def = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        break;
+      }
+      }
+      return ret;
+    }
+
     void printMemoryTypeInfos(vk::PhysicalDeviceMemoryProperties prop)
     {
       auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
@@ -60,9 +300,10 @@ namespace faze
       , m_dmaQueues(false)
       , m_graphicQueues(false)
       , m_info(info)
-      , m_shaders(fs, "shaders", "shaders/spirv")
+      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 256, 1024 * 4)) // TODO: implement dynamically adjusted
       , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
@@ -213,6 +454,11 @@ namespace faze
           delete ptr;
         }));
       });
+
+      // If we didn't have the queues, we don't really have anything for the lists either.
+      m_copyQueueIndex = m_copyQueueIndex != -1 ? m_copyQueueIndex : m_mainQueueIndex;
+      m_computeQueueIndex = m_computeQueueIndex != -1 ? m_computeQueueIndex : m_mainQueueIndex;
+
       m_copyListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_copyQueueIndex); });
       m_computeListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_computeQueueIndex); });
       m_graphicsListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_mainQueueIndex); });
@@ -232,6 +478,28 @@ namespace faze
                   ((prop.persistentContent) ? " Persistent Content " : ""));
           }
       }*/
+
+      // lets make some immutable samplers for shaders...
+
+      vk::SamplerCreateInfo s0 = vk::SamplerCreateInfo()
+        .setMagFilter(vk::Filter::eLinear)
+        .setMinFilter(vk::Filter::eLinear);
+      vk::SamplerCreateInfo s1 = vk::SamplerCreateInfo()
+        .setMagFilter(vk::Filter::eNearest)
+        .setMinFilter(vk::Filter::eNearest);
+      vk::SamplerCreateInfo s2 = vk::SamplerCreateInfo()
+        .setMagFilter(vk::Filter::eLinear)
+        .setMinFilter(vk::Filter::eLinear)
+        .setAddressModeU(vk::SamplerAddressMode::eRepeat);
+      vk::SamplerCreateInfo s3 = vk::SamplerCreateInfo()
+        .setMagFilter(vk::Filter::eNearest)
+        .setMinFilter(vk::Filter::eNearest)
+        .setAddressModeU(vk::SamplerAddressMode::eRepeat);
+
+      m_bilinearSampler = m_device.createSampler(s0);
+      m_pointSampler = m_device.createSampler(s1);
+      m_bilinearSamplerWrap = m_device.createSampler(s2);
+      m_pointSamplerWrap = m_device.createSampler(s3);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -244,6 +512,13 @@ namespace faze
       m_computeListPool.clear();
       m_graphicsListPool.clear();
       m_renderpasses.clear();
+      m_dynamicUpload.reset();
+
+      m_device.destroySampler(m_bilinearSampler);
+      m_device.destroySampler(m_pointSampler);
+      m_device.destroySampler(m_bilinearSamplerWrap);
+      m_device.destroySampler(m_pointSamplerWrap);
+
       m_device.destroy();
     }
 
@@ -532,200 +807,6 @@ namespace faze
       return res.value;
     }
 
-    vk::BufferCreateInfo VulkanDevice::fillBufferInfo(ResourceDescriptor descriptor)
-    {
-      auto desc = descriptor.desc;
-      auto bufSize = desc.stride*desc.width;
-      F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
-      vk::BufferCreateInfo info = vk::BufferCreateInfo()
-        .setSharingMode(vk::SharingMode::eExclusive);
-
-      vk::BufferUsageFlags usageBits;
-
-      if (desc.format != FormatType::Unknown)
-      {
-        usageBits = vk::BufferUsageFlagBits::eUniformTexelBuffer;
-      }
-      else
-      {
-        usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
-      }
-
-      if (desc.usage == ResourceUsage::GpuRW)
-      {
-        if (desc.format != FormatType::Unknown)
-        {
-          usageBits = vk::BufferUsageFlagBits::eStorageTexelBuffer;
-        }
-        else
-        {
-          usageBits = vk::BufferUsageFlagBits::eStorageBuffer;
-        }
-      }
-
-      if (desc.indirect)
-      {
-        usageBits |= vk::BufferUsageFlagBits::eIndirectBuffer;
-      }
-
-      if (desc.index)
-      {
-        usageBits |= vk::BufferUsageFlagBits::eIndexBuffer;
-      }
-
-      auto usage = desc.usage;
-      if (usage == ResourceUsage::Readback)
-      {
-        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
-      }
-      else if (usage == ResourceUsage::Upload)
-      {
-        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
-      }
-      else
-      {
-        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferSrc;
-        usageBits = usageBits | vk::BufferUsageFlagBits::eTransferDst;
-      }
-      info = info.setUsage(usageBits);
-      info = info.setSize(bufSize);
-      return info;
-    }
-
-    vk::ImageCreateInfo VulkanDevice::fillImageInfo(ResourceDescriptor descriptor)
-    {
-      auto desc = descriptor.desc;
-
-      vk::ImageType ivt;
-      vk::ImageCreateFlags flags;
-      flags |= vk::ImageCreateFlagBits::eMutableFormat; //???
-      switch (desc.dimension)
-      {
-      case FormatDimension::Texture1D:
-        ivt = vk::ImageType::e1D;
-        break;
-      case FormatDimension::Texture2D:
-        ivt = vk::ImageType::e2D;
-        break;
-      case FormatDimension::Texture3D:
-        ivt = vk::ImageType::e3D;
-        break;
-      case FormatDimension::TextureCube:
-        ivt = vk::ImageType::e2D;
-        flags |= vk::ImageCreateFlagBits::eCubeCompatible;
-        break;
-      default:
-        ivt = vk::ImageType::e2D;
-        break;
-      }
-
-      int mipLevels = desc.miplevels;
-
-      vk::ImageUsageFlags usage;
-      usage |= vk::ImageUsageFlagBits::eTransferDst;
-      usage |= vk::ImageUsageFlagBits::eTransferSrc;
-      usage |= vk::ImageUsageFlagBits::eSampled;
-
-      switch (desc.usage)
-      {
-      case ResourceUsage::GpuReadOnly:
-      {
-        break;
-      }
-      case ResourceUsage::GpuRW:
-      {
-        usage |= vk::ImageUsageFlagBits::eStorage;
-        break;
-      }
-      case ResourceUsage::RenderTarget:
-      {
-        usage |= vk::ImageUsageFlagBits::eColorAttachment;
-        break;
-      }
-      case ResourceUsage::RenderTargetRW:
-      {
-        usage |= vk::ImageUsageFlagBits::eColorAttachment;
-        usage |= vk::ImageUsageFlagBits::eStorage;
-        break;
-      }
-      case ResourceUsage::DepthStencil:
-      {
-        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
-        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
-        break;
-      }
-      case ResourceUsage::DepthStencilRW:
-      {
-        usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
-        usage |= vk::ImageUsageFlagBits::eStorage;
-        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
-        break;
-      }
-      case ResourceUsage::Upload:
-      {
-        usage = vk::ImageUsageFlagBits::eTransferSrc;
-        break;
-      }
-      case ResourceUsage::Readback:
-      {
-        usage = vk::ImageUsageFlagBits::eTransferDst;
-        break;
-      }
-      default:
-        break;
-      }
-
-      vk::SampleCountFlagBits sampleFlags = vk::SampleCountFlagBits::e1;
-
-      if (desc.msCount > 32)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e64;
-      }
-      else if (desc.msCount > 16)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e32;
-      }
-      else if (desc.msCount > 8)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e16;
-      }
-      else if (desc.msCount > 4)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e8;
-      }
-      else if (desc.msCount > 2)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e4;
-      }
-      else if (desc.msCount > 1)
-      {
-        sampleFlags = vk::SampleCountFlagBits::e2;
-      }
-
-      vk::ImageCreateInfo info = vk::ImageCreateInfo()
-        .setArrayLayers(desc.arraySize)
-        .setExtent(vk::Extent3D()
-          .setWidth(desc.width)
-          .setHeight(desc.height)
-          .setDepth(desc.depth))
-        .setFlags(flags)
-        .setFormat(formatToVkFormat(desc.format).storage)
-        .setImageType(ivt)
-        .setInitialLayout(vk::ImageLayout::eUndefined)
-        .setMipLevels(desc.miplevels)
-        .setSamples(sampleFlags)
-        .setTiling(vk::ImageTiling::eOptimal) // TODO: hmm
-        .setUsage(usage)
-        .setSharingMode(vk::SharingMode::eExclusive); // TODO: hmm
-
-      if (desc.dimension == FormatDimension::TextureCube)
-      {
-        info = info.setArrayLayers(desc.arraySize * 6);
-      }
-
-      return info;
-    }
-
     std::shared_ptr<vk::RenderPass> VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
     {
       auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount);
@@ -759,37 +840,37 @@ namespace faze
       auto d = pipe.descriptor;
       if (!d.vertexShaderPath.empty())
       {
-        auto shader = m_shaders.shader(m_device, d.vertexShaderPath, ShaderStorage::ShaderType::Vertex);
-        m_device.destroyShaderModule(shader);
+        auto shader = m_shaders.shader(d.vertexShaderPath, ShaderType::Vertex, d.rootSignature);
+        //m_device.destroyShaderModule(shader);
       }
 
       if (!d.hullShaderPath.empty())
       {
-        auto shader = m_shaders.shader(m_device, d.hullShaderPath, ShaderStorage::ShaderType::TessControl);
-        m_device.destroyShaderModule(shader);
+        auto shader = m_shaders.shader(d.hullShaderPath, ShaderType::TessControl, d.rootSignature);
+        //m_device.destroyShaderModule(shader);
       }
 
       if (!d.domainShaderPath.empty())
       {
-        auto shader = m_shaders.shader(m_device, d.domainShaderPath, ShaderStorage::ShaderType::TessEvaluation);
-        m_device.destroyShaderModule(shader);
+        auto shader = m_shaders.shader(d.domainShaderPath, ShaderType::TessEvaluation, d.rootSignature);
+        //m_device.destroyShaderModule(shader);
       }
 
       if (!d.geometryShaderPath.empty())
       {
-        auto shader = m_shaders.shader(m_device, d.geometryShaderPath, ShaderStorage::ShaderType::Geometry);
-        m_device.destroyShaderModule(shader);
+        auto shader = m_shaders.shader(d.geometryShaderPath, ShaderType::Geometry, d.rootSignature);
+        //m_device.destroyShaderModule(shader);
       }
 
       if (!d.pixelShaderPath.empty())
       {
-        auto shader = m_shaders.shader(m_device, d.pixelShaderPath, ShaderStorage::ShaderType::Pixel);
-        m_device.destroyShaderModule(shader);
+        auto shader = m_shaders.shader(d.pixelShaderPath, ShaderType::Pixel, d.rootSignature);
+        //m_device.destroyShaderModule(shader);
       }
     }
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {
-      auto shader = m_shaders.shader(m_device, pipe.descriptor.shader(), ShaderStorage::ShaderType::Compute, pipe.descriptor.shaderGroups);
+      auto shader = m_shaders.shader(pipe.descriptor.shader(), ShaderType::Compute, pipe.descriptor.rootSignature, {}, pipe.descriptor.shaderGroups);
       /*
       auto bind = vk::DescriptorSetLayoutBinding();
       bind.setBinding(0).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setStageFlags(vk::ShaderStageFlagBits::eCompute);
@@ -807,7 +888,7 @@ namespace faze
         .setLayout(layout);
 
       auto result = m_device.createComputePipeline(nullptr, pipelineDesc);*/
-      m_device.destroyShaderModule(shader);
+      //m_device.destroyShaderModule(shader);
       /*
       if (result)
       {
@@ -820,6 +901,7 @@ namespace faze
       auto latestSequenceStarted = m_seqTracker->lastSequence();
 
       m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
+      m_trash->dynamicBuffers.clear();
       m_trash->buffers.clear();
       m_trash->textures.clear();
       m_trash->bufferviews.clear();
@@ -832,6 +914,10 @@ namespace faze
         if (!m_seqTracker->hasCompletedTill(it.first))
         {
           break;
+        }
+        for (auto&& upload : it.second.dynamicBuffers)
+        {
+          m_dynamicUpload->release(upload);
         }
         for (auto&& tex : it.second.textureviews)
         {
@@ -861,56 +947,6 @@ namespace faze
     void VulkanDevice::waitGpuIdle()
     {
       m_device.waitIdle();
-    }
-
-    int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties)
-    {
-      for (int32_t i = 0; i < static_cast<int32_t>(memprop.memoryTypeCount); ++i)
-      {
-        if ((memoryTypeBits & (1 << i)) &&
-          ((memprop.memoryTypes[i].propertyFlags & properties) == properties))
-          return i;
-      }
-      return -1;
-    }
-
-    struct MemoryPropertySearch
-    {
-      vk::MemoryPropertyFlags optimal;
-      vk::MemoryPropertyFlags def;
-    };
-
-    MemoryPropertySearch getMemoryProperties(ResourceUsage usage)
-    {
-      MemoryPropertySearch ret{};
-      switch (usage)
-      {
-      case ResourceUsage::Upload:
-      {
-        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
-        break;
-      }
-      case ResourceUsage::Readback:
-      {
-        ret.optimal = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostCached;
-        ret.def = vk::MemoryPropertyFlagBits::eHostVisible;
-        break;
-      }
-      case ResourceUsage::GpuReadOnly:
-      case ResourceUsage::GpuRW:
-      case ResourceUsage::RenderTarget:
-      case ResourceUsage::DepthStencil:
-      case ResourceUsage::RenderTargetRW:
-      case ResourceUsage::DepthStencilRW:
-      default:
-      {
-        ret.optimal = vk::MemoryPropertyFlagBits::eDeviceLocal;
-        ret.def = vk::MemoryPropertyFlagBits::eDeviceLocal;
-        break;
-      }
-      }
-      return ret;
     }
 
     MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
@@ -957,6 +993,84 @@ namespace faze
     std::shared_ptr<prototypes::PipelineImpl> VulkanDevice::createPipeline()
     {
       return std::make_shared<VulkanPipeline>();
+    }
+
+    std::shared_ptr<prototypes::DescriptorLayoutImpl> VulkanDevice::createDescriptorLayout(GraphicsPipelineDescriptor /*layout*/)
+    {
+      return std::make_shared<VulkanDescriptorLayout>();
+    }
+
+    std::shared_ptr<prototypes::DescriptorLayoutImpl> VulkanDevice::createDescriptorLayout(ComputePipelineDescriptor desc)
+    {
+      auto layout = desc.layout;
+
+      vector<vk::DescriptorSetLayoutBinding> bindings;
+
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(0).setDescriptorCount(0)
+        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+        .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+
+      int slot = 1;
+
+      auto createDescriptorSetLayoutBinding = [&](vk::DescriptorType type, int count)
+      {
+        for (int i = 0; i < count; ++i)
+        {
+          bindings.push_back(vk::DescriptorSetLayoutBinding()
+            .setBinding(slot)
+            .setDescriptorCount(1)
+            .setDescriptorType(type)
+            .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+          slot++;
+        }
+      };
+
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageBuffer, layout.byteAddressBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eUniformTexelBuffer, layout.texelBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageBuffer, layout.storageBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eSampledImage, layout.textures);
+      
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageBuffer, layout.rwByteAddressBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageTexelBuffer, layout.rwTexelBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageBuffer, layout.rwStorageBuffers);
+      createDescriptorSetLayoutBinding(vk::DescriptorType::eStorageImage, layout.rwTextures);
+
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_bilinearSampler)
+        .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_pointSampler)
+        .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_bilinearSamplerWrap)
+        .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_pointSamplerWrap)
+        .setStageFlags(vk::ShaderStageFlagBits::eCompute));
+
+      vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
+        .setBindingCount(static_cast<uint32_t>(bindings.size()))
+        .setPBindings(bindings.data());
+
+      auto setlayout = m_device.createDescriptorSetLayout(info);
+
+      auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
+        .setSetLayoutCount(1)
+        .setPSetLayouts(&setlayout));
+
+      m_device.destroyDescriptorSetLayout(setlayout);
+      m_device.destroyPipelineLayout(pipelineLayout);
+
+      return std::make_shared<VulkanDescriptorLayout>();
     }
 
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
@@ -1172,7 +1286,7 @@ namespace faze
       auto image = m_device.createImage(vkdesc);
       auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getImageMemoryRequirements(image); // Only to silence the debug layers
+      m_device.getImageMemoryRequirements(image); // Only to silence the debug layers, we've already done this with same description.
       m_device.bindImageMemory(image, native->native(), size);
 
       vector<TextureStateFlags> state;
@@ -1183,6 +1297,7 @@ namespace faze
           state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
         }
       }
+
       std::weak_ptr<Garbage> weak = m_trash;
       return std::shared_ptr<VulkanTexture>(new VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state })),
         [weak, dev = m_device](VulkanTexture* ptr)
@@ -1322,12 +1437,37 @@ namespace faze
       });
     }
 
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t>, FormatType)
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
-      return std::make_shared<VulkanDynamicBufferView>();
+      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      F_ASSERT(upload, "Halp");
+      memcpy(upload.data(), dataRange.data(), dataRange.size());
+
+      auto format = formatToVkFormat(desiredFormat).view;
+      //auto stride = formatSizeInfo(desiredFormat).pixelSize;
+
+      vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
+        .setBuffer(upload.buffer())
+        .setFormat(format)
+        .setOffset(upload.block.offset)
+        .setRange(upload.block.size);
+
+      auto view = m_device.createBufferView(desc);
+
+      // will be collected promtly
+      m_trash->dynamicBuffers.emplace_back(upload);
+      m_trash->bufferviews.emplace_back(view);
+      return std::make_shared<VulkanDynamicBufferView>(upload.buffer(), view, upload);
     }
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t>, unsigned)
+    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> , unsigned)
     {
+      /*
+      vk::BufferViewCreateInfo info = vk::BufferViewCreateInfo()
+        .setOffset(0) // dynamic offset here?
+        .setFormat(vk::Format::eR8Unorm)
+        .setRange(1) // dynamic size here
+        .setBuffer(vk::Buffer()); // ? Lets look at spec
+        */
       return std::make_shared<VulkanDynamicBufferView>();
     }
     std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamicImage(MemView<uint8_t>, unsigned)

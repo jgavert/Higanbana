@@ -327,51 +327,51 @@ namespace faze
           buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
         }
       }
+      UINT rootIndex = 1;
+      if (ding.srvs.size() > 0)
       {
-        auto descriptors = allocateDescriptors(32);
+        const unsigned srvCount = static_cast<unsigned>(ding.srvs.size());
+        auto descriptors = allocateDescriptors(srvCount);
         auto start = descriptors.offset(0);
-        unsigned destSizes[1] = { 32 };
-        vector<unsigned> srcSizes(32, 1);
-
-        vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvs(32, m_nullBufferSRV.cpu);
-        memcpy(srvs.data(), ding.srvs.data(), ding.srvs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+        unsigned destSizes[1] = { srvCount };
+        vector<unsigned> srcSizes(srvCount, 1);
 
         dev->m_device->CopyDescriptors(
           1, &(start.cpu), destSizes,
-          32, srvs.data(), srcSizes.data(),
+          srvCount, reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.srvs.data()), srcSizes.data(),
           D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
         {
-          buffer->SetGraphicsRootDescriptorTable(1, start.gpu);
+          buffer->SetGraphicsRootDescriptorTable(rootIndex, start.gpu);
         }
         else
         {
-          buffer->SetComputeRootDescriptorTable(1, start.gpu);
+          buffer->SetComputeRootDescriptorTable(rootIndex, start.gpu);
         }
+        rootIndex++;
       }
-
+      if (ding.uavs.size() > 0)
       {
-        auto descriptors = allocateDescriptors(8);
+        const unsigned uavCount = static_cast<unsigned>(ding.uavs.size());
+        auto descriptors = allocateDescriptors(uavCount);
         auto start = descriptors.offset(0);
 
-        vector<D3D12_CPU_DESCRIPTOR_HANDLE> uavs(8, m_nullBufferUAV.cpu);
-        memcpy(uavs.data(), ding.uavs.data(), ding.uavs.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
-        unsigned destSizes[1] = { 8 };
-        vector<unsigned> srcSizes(8, 1);
+        unsigned destSizes[1] = { uavCount };
+        vector<unsigned> srcSizes(uavCount, 1);
 
         dev->m_device->CopyDescriptors(
           1, &(start.cpu), destSizes,
-          8, uavs.data(), srcSizes.data(),
+          uavCount, reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(ding.uavs.data()), srcSizes.data(),
           D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
         {
-          buffer->SetGraphicsRootDescriptorTable(2, start.gpu);
+          buffer->SetGraphicsRootDescriptorTable(rootIndex, start.gpu);
         }
         else
         {
-          buffer->SetComputeRootDescriptorTable(2, start.gpu);
+          buffer->SetComputeRootDescriptorTable(rootIndex, start.gpu);
         }
       }
     }

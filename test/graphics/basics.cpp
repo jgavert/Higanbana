@@ -101,7 +101,7 @@ TEST_F(Graphics, TextureCreation)
 
 TEST_F(Graphics, UploadAndReadbackTest)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -206,7 +206,7 @@ TEST_F(Graphics, readbackOffsetTest)
 
 TEST_F(Graphics, ModifyDataInShaderAndReadback)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -272,7 +272,7 @@ TEST_F(Graphics, ModifyDataInShaderAndReadback)
 
 TEST_F(Graphics, RaymarchShader)
 {
-  ComputePipeline testCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testCompute = gpu.createComputePipeline<::shader::TextureTest>(ComputePipelineDescriptor()
     .setShader("textureTest")
     .setThreadGroups(uint3(8, 8, 1)));
 
@@ -319,7 +319,7 @@ TEST_F(Graphics, RaymarchShader)
 
 TEST_F(Graphics, ModifyDataInComputeQueue)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -440,7 +440,7 @@ TEST_F(Graphics, CopyDataInDMA)
 
 TEST_F(Graphics, ComputetoDMA)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -507,7 +507,7 @@ TEST_F(Graphics, ComputetoDMA)
 
 TEST_F(Graphics, DMAtoCompute)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -575,7 +575,7 @@ TEST_F(Graphics, DMAtoCompute)
 
 TEST_F(Graphics, DMAtoComputetoDMA)
 {
-  ComputePipeline testBufferCompute = gpu.createComputePipeline(ComputePipelineDescriptor()
+  ComputePipeline testBufferCompute = gpu.createComputePipeline<::shader::BufferTest>(ComputePipelineDescriptor()
     .setShader("buffertest")
     .setThreadGroups(uint3(32, 1, 1)));
 
@@ -658,7 +658,74 @@ TEST_F(Graphics, Triangle)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
+
+  auto bufferdesc = ResourceDescriptor()
+    .setName("testBufferTarget")
+    .setFormat(FormatType::Float32RGBA)
+    .setWidth(3)
+    .setDimension(FormatDimension::Buffer)
+    .setUsage(ResourceUsage::GpuRW);
+
+  auto buffer = gpu.createBuffer(bufferdesc);
+  auto bufferSRV = gpu.createBufferSRV(buffer);
+
+  auto testDesc = ResourceDescriptor()
+    .setName("testTexture")
+    .setFormat(FormatType::Unorm16RGBA)
+    .setWidth(400)
+    .setHeight(400)
+    .setMiplevels(4)
+    .setDimension(FormatDimension::Texture2D)
+    .setUsage(ResourceUsage::RenderTargetRW);
+  auto texture = gpu.createTexture(testDesc);
+  auto texRtv = gpu.createTextureRTV(texture, ShaderViewDescriptor().setMostDetailedMip(0));
+
+  CommandGraph tasks = gpu.createGraph();
+  {
+    auto& node = tasks.createPass2("upload");
+
+    vector<float4> vertices;
+    vertices.push_back(float4{ -1.f, -1.f, 1.f, 1.f });
+    vertices.push_back(float4{ -1.0f, 3.f, 1.f, 1.f });
+    vertices.push_back(float4{ 3.f, -1.f, 1.f, 1.f });
+
+    auto verts = gpu.dynamicBuffer(makeMemView(vertices), FormatType::Uint32);
+
+    node.copy(buffer, verts);
+  }
+  {
+    // we have pulsing red color background, draw a triangle on top of it !
+    auto node = tasks.createPass("Triangle!");
+    node.renderpass(triangleRenderpass);
+    node.subpass(texRtv);
+    texRtv.setOp(LoadOp::Clear);
+
+    auto binding = node.bind<::shader::Triangle>(trianglePipe);
+    //binding.constants.color = float4{ 0.f, 0.f, std::sin(float(frame)*0.01f + 1.0f)*.5f + .5f, 1.f };
+    binding.constants.color = float4{ 0.f, 0.f, 0.f, 1.f };
+    binding.srv(::shader::Triangle::vertices, bufferSRV);
+    node.draw(binding, 3, 1);
+    node.endRenderpass();
+    tasks.addPass(std::move(node));
+  }
+
+  gpu.submit(tasks);
+  gpu.waitGpuIdle();
+}
+
+TEST_F(Graphics, TriangleNew)
+{
+  Renderpass triangleRenderpass = gpu.createRenderpass();
+
+  auto pipelineDescriptor = GraphicsPipelineDescriptor()
+    .setVertexShader("triangle")
+    .setPixelShader("triangle")
+    .setPrimitiveTopology(PrimitiveTopology::Triangle)
+    .setDepthStencil(DepthStencilDescriptor()
+      .setDepthEnable(false));
+
+  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
 
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
@@ -725,7 +792,7 @@ TEST_F(Graphics, DMAtoGraphics)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
 
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
@@ -792,7 +859,7 @@ TEST_F(Graphics, GraphicstoDMA)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
 
   auto bufferdesc = ResourceDescriptor()
     .setName("testBufferTarget")
@@ -884,7 +951,7 @@ TEST_F(Graphics, GraphicstoComputeToGraphics)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline(pipelineDescriptor);
+  GraphicsPipeline trianglePipe = gpu.createGraphicsPipeline<::shader::Triangle>(pipelineDescriptor);
 
   renderer::TexturePass<::shader::PostEffect> postPassLDS(gpu, "posteffectLDS", uint3(64, 1, 1));
   renderer::Blitter blit(gpu);

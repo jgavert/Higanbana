@@ -1,23 +1,23 @@
-#ifndef POSTEFFECT_HLSL
-#define POSTEFFECT_HLSL
+#ifndef POSTPROCESS_HLSL
+#define POSTPROCESS_HLSL
 
 #include "definitions.hpp"
 
-FAZE_BEGIN_LAYOUT(PostEffect)
+FAZE_BEGIN_LAYOUT(Postprocess)
 
 FAZE_BEGIN_DESCRIPTOR_LAYOUT
-FAZE_TEXTURES(1)
+FAZE_TEXTURES(2)
 FAZE_RWTEXTURES(1)
 FAZE_END_DESCRIPTOR_LAYOUT
 
 FAZE_CBUFFER
 {
-  uint2 sourceRes;
-  uint2 targetRes;
+	int lol;
 };
 
 FAZE_SRV(Texture2D<float4>, source, 0)
-FAZE_UAV(RWTexture2D<float4>, target, 0)
+FAZE_SRV(Texture2D<float4>, luminance, 1)
+FAZE_UAV(RWTexture2D<float4>, output, 0)
 
 FAZE_END_LAYOUT
 

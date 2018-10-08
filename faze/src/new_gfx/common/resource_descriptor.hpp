@@ -186,21 +186,28 @@ namespace faze
     }
   };
 
-  inline int3 calculateMipDim(int3 size, FormatType type, unsigned mipOffset)
+  inline int3 calculateMipDim(int3 size, unsigned mipOffset)
   {
     int3 dim = size;
-    auto pixelSize = formatSizeInfo(type).pixelSize;
-    auto rowPitch = pixelSize * dim.x;
-    auto slicePitch = rowPitch * dim.y;
 
     for (auto mip = 1u; mip <= mipOffset; ++mip)
     {
       auto mipDim = int3{ std::max(1, dim.x / 2), std::max(1, dim.y / 2), std::max(1, dim.z / 2) };
       dim = mipDim;
-      rowPitch = pixelSize * dim.x;
-      slicePitch = rowPitch * dim.y;
     }
     return dim;
+  }
+
+  inline int calculateMaxMipLevels(int3 size)
+  {
+    int mipLevels = 0;
+    while (!(size.x == 1 && size.y == 1 && size.z == 1))
+    {
+      mipLevels++;
+      size = calculateMipDim(size, 1);
+    }
+    mipLevels++;
+    return mipLevels;
   }
 
   inline int calculatePitch(int3 size, FormatType type)

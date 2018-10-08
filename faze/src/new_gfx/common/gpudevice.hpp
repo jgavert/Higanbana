@@ -137,13 +137,19 @@ namespace faze
       return S().createRenderpass();
     }
 
+    template <typename Shader>
     ComputePipeline createComputePipeline(ComputePipelineDescriptor desc)
     {
+      desc.rootSignature = Shader::rootSignature();
+      desc.layout = Shader::createDescriptorLayout();
       return S().createComputePipeline(desc);
     }
 
+    template <typename Shader>
     GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc)
     {
+      desc.desc.rootSignature = Shader::rootSignature();
+      desc.desc.layout = Shader::createDescriptorLayout();
       return S().createGraphicsPipeline(desc);
     }
 

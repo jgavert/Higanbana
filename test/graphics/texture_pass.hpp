@@ -21,7 +21,7 @@ namespace faze
         , threadGroups(threadGroupCounts)
       {
         faze::ComputePipelineDescriptor dsc = faze::ComputePipelineDescriptor().setShader(shaderName).setThreadGroups(threadGroupCounts);
-        pipeline = device.createComputePipeline(dsc);
+        pipeline = device.createComputePipeline<Shader>(dsc);
       }
 
       void compute(CommandGraphNode& node, TextureUAV& target, TextureSRV& source, uint2 shaderThreads)
