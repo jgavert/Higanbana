@@ -52,10 +52,10 @@ namespace faze
       return compiledPath + shaderBinType + binType + shaderName + additionalBinInfo + "." + shaderFileType(type) + shaderExtension;
     }
 
-    faze::MemoryBlob ShaderStorage::shader(const std::string& shaderName, ShaderType type, std::string rootSignature, std::vector<std::string> definitions, uint3 tgs)
+    faze::MemoryBlob ShaderStorage::shader(ShaderCreateInfo info)
     {
-      auto shaderPath = sourcePathCombiner(shaderName, type);
-      auto dxilPath = binaryPathCombiner(shaderName, type, tgs, definitions);
+      auto shaderPath = sourcePathCombiner(info.desc.shaderName, info.desc.type);
+      auto dxilPath = binaryPathCombiner(info.desc.shaderName, info.desc.type, info.desc.tgs, info.desc.definitions);
 
       auto func = [](std::string filename)
       {
@@ -67,11 +67,16 @@ namespace faze
         //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
         //F_ASSERT(compileShader(shaderName, type, tgs), "ups");
         F_ASSERT(m_compiler, "no compiler");
-        F_ASSERT(m_compiler->compileShader(m_type, shaderName, shaderPath, dxilPath, type, tgs, definitions, rootSignature, func), "ups");
+        F_ASSERT(m_compiler->compileShader(
+          m_type,
+          shaderPath,
+          dxilPath,
+          info,
+          func), "ups");
       }
       if (m_fs.fileExists(dxilPath) && m_fs.fileExists(shaderPath))
       {
-        auto shaderInterfacePath = sourcePath + shaderName + ".if.hpp";
+        auto shaderInterfacePath = sourcePath + info.desc.shaderName + ".if.hpp";
 
         auto shaderTime = m_fs.timeModified(shaderPath);
         auto dxilTime = m_fs.timeModified(dxilPath);
@@ -85,7 +90,12 @@ namespace faze
         if (m_compiler && (shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
         {
           // F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
-          bool result = m_compiler->compileShader(m_type, shaderName, shaderPath, dxilPath, type, tgs, definitions, rootSignature, func);
+          bool result = m_compiler->compileShader(
+            m_type,
+            shaderPath,
+            dxilPath,
+            info,
+            func);
           if (!result)
           {
             F_ILOG("DX12", "Shader compile failed.\n");

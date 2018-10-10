@@ -80,13 +80,13 @@
 // dxcompiler
 
 .dxcDebLibPath = .extBasePath
-            + "dxc-artifacts/lib"
+            + "dxc-bin/lib"
             + .extEndBasePath
 .dxcRelLibPath = .extBasePath
-            + "dxc-artifacts/lib"
+            + "dxc-bin/lib"
             + .extEndBasePath
 .dxcInclude = .extIncludeDir
-            + "DirectXShaderCompiler/include"
+            + "dxc-bin/include"
 
 .dxcLibDebug  = .extLibPrefix
               + 'dxcompiler'

@@ -451,8 +451,17 @@ namespace faze
 
     class VulkanDescriptorLayout : public prototypes::DescriptorLayoutImpl
     {
+    public:
       vk::DescriptorSetLayout m_descriptorSetLayout;
       vk::PipelineLayout      m_pipelineLayout;
+
+      VulkanDescriptorLayout() {}
+
+      VulkanDescriptorLayout(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout)
+        : m_descriptorSetLayout(descriptorSetLayout)
+        , m_pipelineLayout(pipelineLayout)
+      {}
+
     };
 
     class VulkanRenderpass : public prototypes::RenderpassImpl

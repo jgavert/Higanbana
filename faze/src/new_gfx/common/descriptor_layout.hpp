@@ -14,6 +14,16 @@ namespace faze
         int rwTexelBuffers = 0;
         int rwStorageBuffers = 0;
         int rwTextures = 0;
+
+        int srvCount()
+        {
+          return byteAddressBuffers + texelBuffers + storageBuffers + textures;
+        }
+
+        int uavCount()
+        {
+          return rwByteAddressBuffers + rwTexelBuffers + rwStorageBuffers + rwTextures;
+        }
     };
   }
 }
