@@ -30,7 +30,7 @@ namespace faze
       ShaderStorage(FileSystem& fs, std::shared_ptr<ShaderCompiler> compiler, std::string shaderPath, std::string binaryPath, ShaderBinaryType type);
       std::string sourcePathCombiner(std::string shaderName, ShaderType type);
       std::string binaryPathCombiner(std::string shaderName, ShaderType type, uint3 tgs, std::vector<std::string> definitions);
-      faze::MemoryBlob shader(const std::string& shaderName, ShaderType type, std::string rootSignature, std::vector<std::string> definitions = {}, uint3 tgs = uint3(1, 1, 1));
+      faze::MemoryBlob shader(ShaderCreateInfo info);
       WatchFile watch(std::string shaderName, ShaderType type);
     };
   }

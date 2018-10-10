@@ -3,6 +3,9 @@
 #include "core/src/filesystem/filesystem.hpp"
 #include "core/src/math/math.hpp"
 #include "core/src/global_debug.hpp"
+#include "faze/src/new_gfx/common/descriptor_layout.hpp"
+
+
 
 #include <dxc/dxcapi.h>
 #pragma warning( push )
@@ -18,6 +21,7 @@
 
 template <typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
+
 
 class DXCIncludeHandler2 : public IDxcIncludeHandler
 {
@@ -118,6 +122,64 @@ namespace faze
       DXIL
     };
 
+    struct ShaderCreateInfo
+    {
+      struct Descriptor
+      {
+        std::string shaderName = "";
+        ShaderType type = ShaderType::Compute;
+        std::vector<std::string> definitions = {};
+        uint3 tgs = uint3(1,1,1);
+        std::string rootSignature = "";
+        int srvOffset = 0;
+        int uavOffset = 0;
+        int samplerOffset = 0;
+      } desc;
+
+      ShaderCreateInfo(std::string shaderName, ShaderType type)
+      {
+        desc.shaderName = shaderName;
+        desc.type = type;
+      }
+      ShaderCreateInfo& setRootSignature(std::string value)
+      {
+        desc.rootSignature = value;
+        return *this;
+      }
+      ShaderCreateInfo& setLayoutOffsets(DescriptorLayout layout)
+      {
+        desc.srvOffset = 1;
+        desc.uavOffset = desc.srvOffset + layout.srvCount();
+        desc.samplerOffset = desc.uavOffset + layout.uavCount();
+        return *this;
+      }
+      ShaderCreateInfo& setSRVOffset(int value)
+      {
+        desc.srvOffset = value;
+        return *this;
+      }
+      ShaderCreateInfo& setUAVOffset(int value)
+      {
+        desc.uavOffset = value;
+        return *this;
+      }
+      ShaderCreateInfo& setSamplerOffset(int value)
+      {
+        desc.samplerOffset = value;
+        return *this;
+      }
+      ShaderCreateInfo& setDefinitions(std::vector<std::string> value)
+      {
+        desc.definitions = value;
+        return *this;
+      }
+      ShaderCreateInfo& setComputeGroups(uint3 value)
+      {
+        desc.tgs = value;
+        return *this;
+      }
+    };
+
     const char* shaderFileType(ShaderType type);
 
     class ShaderCompiler
@@ -125,13 +187,9 @@ namespace faze
     public:
       virtual bool compileShader(
         ShaderBinaryType binType,
-        std::string shaderName,
         std::string shaderSourcePath,
         std::string shaderBinaryPath,
-        ShaderType type,
-        uint3 tgs,
-        std::vector<std::string> definitions,
-        std::string rootSignature,
+        ShaderCreateInfo info,
         std::function<void(std::string)> includeCallback) = 0;
     };
 
@@ -167,13 +225,9 @@ namespace faze
 
       virtual bool compileShader(
         ShaderBinaryType binType,
-        std::string shaderName,
         std::string shaderSourcePath,
         std::string shaderBinaryPath,
-        ShaderType type,
-        uint3 tgs,
-        std::vector<std::string> definitions,
-        std::string rootSignature,
+        ShaderCreateInfo info,
         std::function<void(std::string)> includeCallback);
     };
   }

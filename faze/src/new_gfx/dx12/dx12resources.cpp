@@ -725,7 +725,8 @@ namespace faze
         vector<MemoryBlob> blobs;
         if (!d.vertexShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.vertexShaderPath, ShaderType::Vertex, d.rootSignature);
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex)
+            .setRootSignature(d.rootSignature));
           blobs.emplace_back(shader);
           desc.VS.BytecodeLength = blobs.back().size();
           desc.VS.pShaderBytecode = blobs.back().data();
@@ -739,7 +740,8 @@ namespace faze
 
         if (!d.hullShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.hullShaderPath, ShaderType::TessControl, d.rootSignature);
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl)
+            .setRootSignature(d.rootSignature));
           blobs.emplace_back(shader);
           desc.HS.BytecodeLength = blobs.back().size();
           desc.HS.pShaderBytecode = blobs.back().data();
@@ -753,7 +755,8 @@ namespace faze
 
         if (!d.domainShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.domainShaderPath, ShaderType::TessEvaluation, d.rootSignature);
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation)
+            .setRootSignature(d.rootSignature));
           blobs.emplace_back(shader);
           desc.DS.BytecodeLength = blobs.back().size();
           desc.DS.pShaderBytecode = blobs.back().data();
@@ -766,7 +769,8 @@ namespace faze
 
         if (!d.geometryShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.geometryShaderPath, ShaderType::Geometry, d.rootSignature);
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry)
+            .setRootSignature(d.rootSignature));
           blobs.emplace_back(shader);
           desc.GS.BytecodeLength = blobs.back().size();
           desc.GS.pShaderBytecode = blobs.back().data();
@@ -779,7 +783,8 @@ namespace faze
 
         if (!d.pixelShaderPath.empty())
         {
-          auto shader = m_shaders.shader(d.pixelShaderPath, ShaderType::Pixel, d.rootSignature);
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel)
+            .setRootSignature(d.rootSignature));
           blobs.emplace_back(shader);
           desc.PS.BytecodeLength = blobs.back().size();
           desc.PS.pShaderBytecode = blobs.back().data();
@@ -829,7 +834,11 @@ namespace faze
           GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
         }
 
-        auto thing = m_shaders.shader(pipeline.descriptor.shaderSourcePath, ShaderType::Compute, pipeline.descriptor.rootSignature, {}, pipeline.descriptor.shaderGroups);
+        ShaderCreateInfo sci = ShaderCreateInfo(pipeline.descriptor.shaderSourcePath, ShaderType::Compute)
+          .setRootSignature(pipeline.descriptor.rootSignature)
+          .setComputeGroups(pipeline.descriptor.shaderGroups);
+
+        auto thing = m_shaders.shader(sci);
         FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
 
         D3D12_SHADER_BYTECODE byte;

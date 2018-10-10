@@ -840,60 +840,70 @@ namespace faze
       auto d = pipe.descriptor;
       if (!d.vertexShaderPath.empty())
       {
-        auto shader = m_shaders.shader(d.vertexShaderPath, ShaderType::Vertex, d.rootSignature);
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Pixel)
+          .setRootSignature(pipe.descriptor.rootSignature)
+          .setLayoutOffsets(pipe.descriptor.layout));
         //m_device.destroyShaderModule(shader);
       }
 
       if (!d.hullShaderPath.empty())
       {
-        auto shader = m_shaders.shader(d.hullShaderPath, ShaderType::TessControl, d.rootSignature);
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl)
+          .setRootSignature(pipe.descriptor.rootSignature)
+          .setLayoutOffsets(pipe.descriptor.layout));
         //m_device.destroyShaderModule(shader);
       }
 
       if (!d.domainShaderPath.empty())
       {
-        auto shader = m_shaders.shader(d.domainShaderPath, ShaderType::TessEvaluation, d.rootSignature);
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation)
+          .setRootSignature(pipe.descriptor.rootSignature)
+          .setLayoutOffsets(pipe.descriptor.layout));
         //m_device.destroyShaderModule(shader);
       }
 
       if (!d.geometryShaderPath.empty())
       {
-        auto shader = m_shaders.shader(d.geometryShaderPath, ShaderType::Geometry, d.rootSignature);
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry)
+          .setRootSignature(pipe.descriptor.rootSignature)
+          .setLayoutOffsets(pipe.descriptor.layout));
         //m_device.destroyShaderModule(shader);
       }
 
       if (!d.pixelShaderPath.empty())
       {
-        auto shader = m_shaders.shader(d.pixelShaderPath, ShaderType::Pixel, d.rootSignature);
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel)
+          .setRootSignature(pipe.descriptor.rootSignature)
+          .setLayoutOffsets(pipe.descriptor.layout));
         //m_device.destroyShaderModule(shader);
       }
     }
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {
-      auto shader = m_shaders.shader(pipe.descriptor.shader(), ShaderType::Compute, pipe.descriptor.rootSignature, {}, pipe.descriptor.shaderGroups);
-      /*
-      auto bind = vk::DescriptorSetLayoutBinding();
-      bind.setBinding(0).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setStageFlags(vk::ShaderStageFlagBits::eCompute);
 
-      auto dli = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&bind);
+      auto sci = ShaderCreateInfo(pipe.descriptor.shader(), ShaderType::Compute)
+        .setRootSignature(pipe.descriptor.rootSignature)
+        .setLayoutOffsets(pipe.descriptor.layout)
+        .setComputeGroups(pipe.descriptor.shaderGroups);
+      auto shader = m_shaders.shader(sci);
+      auto descriptorLayout = std::static_pointer_cast<VulkanDescriptorLayout>(pipe.m_layout);
 
-      auto dsl = m_device.createDescriptorSetLayout(dli);
+      auto shaderInfo = vk::ShaderModuleCreateInfo().setCodeSize(shader.size()).setPCode(reinterpret_cast<uint32_t*>(shader.data()));
 
-      auto layoutInfo = vk::PipelineLayoutCreateInfo();
-      layoutInfo.setPSetLayouts(&dsl).setSetLayoutCount(1);
-      auto layout = m_device.createPipelineLayout(layoutInfo);
+      auto smodule = m_device.createShaderModule(shaderInfo);
 
       auto pipelineDesc = vk::ComputePipelineCreateInfo()
-        .setStage(vk::PipelineShaderStageCreateInfo().setModule(shader).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute))
-        .setLayout(layout);
-
-      auto result = m_device.createComputePipeline(nullptr, pipelineDesc);*/
-      //m_device.destroyShaderModule(shader);
-      /*
+        .setStage(vk::PipelineShaderStageCreateInfo()
+          .setModule(smodule)
+          .setPName("main")
+          .setStage(vk::ShaderStageFlagBits::eCompute))
+        .setLayout(descriptorLayout->m_pipelineLayout);
+      auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
+      m_device.destroyShaderModule(smodule);
       if (result)
       {
         m_device.destroyPipeline(result.operator VkPipeline());
-      }*/
+      }
     }
 
     void VulkanDevice::collectTrash()
@@ -1067,10 +1077,15 @@ namespace faze
         .setSetLayoutCount(1)
         .setPSetLayouts(&setlayout));
 
-      m_device.destroyDescriptorSetLayout(setlayout);
-      m_device.destroyPipelineLayout(pipelineLayout);
+      //m_device.destroyDescriptorSetLayout(setlayout);
+      //m_device.destroyPipelineLayout(pipelineLayout);
 
-      return std::make_shared<VulkanDescriptorLayout>();
+      // Remember to create the shaders with binding offsets
+      // srv start from 0
+      // uav after that
+      // samplers last
+
+      return std::make_shared<VulkanDescriptorLayout>(setlayout, pipelineLayout);
     }
 
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
