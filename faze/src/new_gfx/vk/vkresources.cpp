@@ -1017,7 +1017,7 @@ namespace faze
       vector<vk::DescriptorSetLayoutBinding> bindings;
 
       bindings.push_back(vk::DescriptorSetLayoutBinding()
-        .setBinding(0).setDescriptorCount(0)
+        .setBinding(0).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
         .setStageFlags(vk::ShaderStageFlagBits::eCompute));
 

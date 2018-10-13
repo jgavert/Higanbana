@@ -814,7 +814,8 @@ namespace faze
         "VK_KHR_maintenance1",
         "VK_KHR_maintenance2",
         "VK_KHR_swapchain",
-        "VK_KHR_dedicated_allocation"
+        "VK_KHR_dedicated_allocation",
+        "VK_KHR_get_memory_requirements2"
       };
     public:
       VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
