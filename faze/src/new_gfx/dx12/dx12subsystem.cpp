@@ -125,17 +125,6 @@ namespace faze
         D3D_FEATURE_LEVEL_10_1
       };
 
-#if defined(FAZE_DX12_DXIL)
-      static const GUID D3D12ExperimentalShaderModelsID = { /* 76f5573e-f13a-40f5-b297-81ce9e18933f */
-        0x76f5573e,
-        0xf13a,
-        0x40f5,
-        { 0xb2, 0x97, 0x81, 0xce, 0x9e, 0x18, 0x93, 0x3f }
-      };
-
-      FAZE_CHECK_HR(D3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModelsID, nullptr, nullptr));
-#endif
-
       if (gpu.id == static_cast<int>(vAdapters.size()))
       {
         ComPtr<IDXGIAdapter> pAdapter;

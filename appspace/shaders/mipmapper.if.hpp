@@ -13,6 +13,7 @@ FAZE_END_DESCRIPTOR_LAYOUT
 FAZE_CBUFFER
 {
   int mipLevelsToGenerate; // 1-4, with 0 this shader shouldn't be invocated
+  int unused;
   float2 texelSize;   // 1.0 / destination dimension
 };
 

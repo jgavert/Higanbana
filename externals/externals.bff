@@ -186,7 +186,7 @@
 
 .extRelDlls = {}
 #if __WINDOWS__
-.extRelDlls = {"externals/dxc-artifacts/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/bin/WinPixEventRuntime.dll", }
+.extRelDlls = {"externals/dxc-bin/bin/dxcompiler.dll", '$WindowsSDKBasePath10$/bin/$WindowsSDKSubVersion$/x64/DXIL.dll', "externals/winpixeventruntime/bin/WinPixEventRuntime.dll", }
 #endif
 
 #if __WINDOWS__
