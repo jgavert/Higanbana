@@ -461,12 +461,6 @@ namespace faze
       }
     }
 
-    template <typename Shader>
-    GraphicsPipelineDescriptor& setRS()
-    {
-      rootSignature = Shader::rootSignature();
-      return *this;
-    }
     GraphicsPipelineDescriptor& setVertexShader(std::string path)
     {
       desc.vertexShaderPath = path;

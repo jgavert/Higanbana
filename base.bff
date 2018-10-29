@@ -86,6 +86,7 @@ Compiler( 'Compiler-x64-Linux' )
   .BaseCompilerOptions    = '"%1" /Z7 /nologo /c /W4 /std:c++latest'
                           + ' /WX' // warnings as errors, also required as fastbuild hides warnings
                           //+ ' /analyze' // enable analyzing of c++ code for problems. Super slow and generates errors that are nice to see, not useful to fix.
+                          + ' /permissive-' // standard comformance
                           + ' /TP' // compile as c++
                         //+ ' /Zc:inline'     // Remove unreferenced COMDATs at compile time (VS2013.2+)
                           + ' /Zc:strictStrings'  // Require const only usage of string literals (VS2013+)

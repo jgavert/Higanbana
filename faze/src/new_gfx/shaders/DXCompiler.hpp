@@ -198,7 +198,7 @@ namespace faze
       faze::FileSystem& m_fs;
       std::string m_sourcePath;
 
-      const wchar_t* DXCompiler::shaderFeatureDXC(ShaderType type)
+      const wchar_t* shaderFeatureDXC(ShaderType type)
       {
         switch (type)
         {
