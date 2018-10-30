@@ -57,24 +57,24 @@
 
 // google/shaderc... my god this has big libs :D
 
-.shadercLibPath = .extBasePath
-                + "shaderc/lib"
-                + .extEndBasePath
-.shadercInclude = .extIncludeDir
-                + "shaderc/include"
-
-.shadercLibDebug  = .extLibPrefix
-                  + 'shaderc_combined_d'
-                  + .extLibPostfix
-                  + .extLibPrefix
-                  + 'shaderc_d'
-                  + .extLibPostfix
-.shadercLibRelease  = .extLibPrefix
-                    + 'shaderc_combined_r'
-                    + .extLibPostfix
-                    + .extLibPrefix
-                    + 'shaderc_r'
-                    + .extLibPostfix
+//.shadercLibPath = .extBasePath
+//                + "shaderc/lib"
+//                + .extEndBasePath
+//.shadercInclude = .extIncludeDir
+//                + "shaderc/include"
+//
+//.shadercLibDebug  = .extLibPrefix
+//                  + 'shaderc_combined_d'
+//                  + .extLibPostfix
+//                  + .extLibPrefix
+//                  + 'shaderc_d'
+//                  + .extLibPostfix
+//.shadercLibRelease  = .extLibPrefix
+//                    + 'shaderc_combined_r'
+//                    + .extLibPostfix
+//                    + .extLibPrefix
+//                    + 'shaderc_r'
+//                    + .extLibPostfix
 
 
 // dxcompiler
@@ -174,12 +174,12 @@
 // ADD INFO TO GLOBAL VARIABLES  //
 ///////////////////////////////////
 .extRelLibs   + .vulkanlibs
-              + .shadercLibRelease
+//              + .shadercLibRelease
 #if __WINDOWS__
               + .dxcLibRelease
 #endif
 .extDebLibs   + .vulkanlibs
-              + .shadercLibDebug
+//              + .shadercLibDebug
 #if __WINDOWS__
               + .dxcLibDebug
 #endif
@@ -197,12 +197,12 @@
 // these 2 are automatically in right place
 #if __WINDOWS__
 .extDebLibPaths  + .vulkanLibPath
-              + .shadercLibPath
+//              + .shadercLibPath
               + .dxcDebLibPath
               + .pixLibPath
               //+ .compressLibPath
 .extRelLibPaths  + .vulkanLibPath
-                 + .shadercLibPath
+//                 + .shadercLibPath
                  + .dxcRelLibPath
                  + .pixLibPath
               //+ .compressLibPath
@@ -212,7 +212,7 @@
 .extRelLibPaths  + .shadercLibPath
 #endif
 .externalIncludes = ' /I^"$vulkanInclude$"'
-                  + ' /I^"$shadercInclude$"'
+//                  + ' /I^"$shadercInclude$"'
                   + ' /I^"$dxcInclude$"'
 //                  + ' /I^"$compressInclude$"'
                   + ' /I^"$renderdocInclude$"'
@@ -225,11 +225,11 @@
 #if __LINUX__
 .externalIncludes = ' -isystem ^"$vulkanInclude$"'
                   + ' -isystem ^"$vulkanCppInclude$"'
-                  + ' -isystem ^"$shadercInclude$"'
+//                  + ' -isystem ^"$shadercInclude$"'
                   + ' -isystem ^"$stbInclude$"'
 #endif
 .externalIncludesVisualStudio = '$vulkanInclude$;'
-                              + '$shadercInclude$;'
+//                              + '$shadercInclude$;'
                               + '$dxcInclude$;'
 //                              + '$compressInclude$;'
                               + '$renderdocInclude$;'
