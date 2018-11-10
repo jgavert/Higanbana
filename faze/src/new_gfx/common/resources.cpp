@@ -48,6 +48,11 @@ namespace faze
     {
       if (!m_buffers.empty())
       {
+		  if (m_buffers.size() > 8) // throttle so that we don't go too fast.
+		  {
+			  // force wait oldest
+			  m_impl->waitFence(m_buffers.front().fence);
+		  }
         int buffersToFree = 0;
         int buffersWithoutFence = 0;
         int bufferCount = static_cast<int>(m_buffers.size());
