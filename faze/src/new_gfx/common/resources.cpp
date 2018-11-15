@@ -9,31 +9,50 @@
 
 namespace faze
 {
+  const char* toString(GraphicsApi api)
+  {
+    if (api == GraphicsApi::DX12)
+      return "DX12";
+    return "Vulkan";
+  }
+
   namespace backend
   {
-    SubsystemData::SubsystemData(GraphicsApi api, const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
-      : impl(nullptr)
+    SubsystemData::SubsystemData(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
+      : implDX12(nullptr)
+      , implVulkan(nullptr)
       , appName(appName)
       , appVersion(appVersion)
       , engineName(engineName)
       , engineVersion(engineVersion)
     {
-      switch (api)
-      {
 #if defined(FAZE_PLATFORM_WINDOWS)
-      case GraphicsApi::DX12:
-        impl = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion);
-        break;
+      implDX12 = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion);
 #endif
-      default:
-        impl = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion);
-        break;
-      }
+      implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion);
     }
-    std::string SubsystemData::gfxApi() { return impl->gfxApi(); }
-    vector<GpuInfo> SubsystemData::availableGpus() { return impl->availableGpus(); }
-    GpuDevice SubsystemData::createDevice(FileSystem& fs, GpuInfo gpu) { return impl->createGpuDevice(fs, gpu); }
-    GraphicsSurface SubsystemData::createSurface(Window& window) { return impl->createSurface(window); }
+    vector<GpuInfo> SubsystemData::availableGpus()
+    {
+      vector<GpuInfo> vulkanGpus = implVulkan->availableGpus();
+      for (auto&& it : vulkanGpus) it.api = GraphicsApi::Vulkan;
+      if (implDX12)
+      {
+        vector<GpuInfo> dx12Gpus = implDX12->availableGpus();
+        for (auto&& it : dx12Gpus) it.api = GraphicsApi::DX12;
+        vulkanGpus.insert(vulkanGpus.end(), dx12Gpus.begin(), dx12Gpus.end());
+      }
+      return vulkanGpus;
+    }
+    GpuDevice SubsystemData::createDevice(FileSystem& fs, GpuInfo gpu)
+    {
+      if (gpu.api == GraphicsApi::DX12) return implDX12->createGpuDevice(fs, gpu);
+      return implVulkan->createGpuDevice(fs, gpu);
+    }
+    GraphicsSurface SubsystemData::createSurface(Window& window, GpuInfo gpu)
+    {
+      if (gpu.api == GraphicsApi::DX12) return implDX12->createSurface(window);
+      return implVulkan->createSurface(window);
+    }
 
     // device
     DeviceData::DeviceData(std::shared_ptr<prototypes::DeviceImpl> impl)

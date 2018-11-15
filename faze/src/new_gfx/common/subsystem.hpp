@@ -13,26 +13,28 @@ namespace faze
   public:
 
     GraphicsSubsystem() = default;
-    GraphicsSubsystem(GraphicsApi api, const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1)
+    GraphicsSubsystem(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1)
     {
-      makeState(api, appName, appVersion, engineName, engineVersion);
+      makeState(appName, appVersion, engineName, engineVersion);
     }
-    std::string gfxApi() { return S().gfxApi(); }
     vector<GpuInfo> availableGpus() { return S().availableGpus(); }
-    GpuInfo getVendorDevice(VendorID id = VendorID::Unknown)
+    GpuInfo getVendorDevice(GraphicsApi api, VendorID id = VendorID::Unknown)
     {
       auto gpus = availableGpus();
-      int chosenGpu = 0;
+      GpuInfo info = gpus[0];
       for (auto&& it : gpus)
       {
+        if (it.api != api)
+          continue;
         if (it.vendor == id || id == VendorID::Unknown)
         {
-          chosenGpu = it.id;
+          info = it;
+          break;
         }
       }
-      return gpus[chosenGpu];
+      return info;
     }
     GpuDevice createDevice(FileSystem& fs, GpuInfo gpu) { return GpuDevice(S().createDevice(fs, gpu)); }
-    GraphicsSurface createSurface(Window& window) { return S().createSurface(window); }
+    GraphicsSurface createSurface(Window& window, GpuInfo gpu) { return S().createSurface(window, gpu); }
   };
 }
