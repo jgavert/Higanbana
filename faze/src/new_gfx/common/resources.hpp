@@ -20,6 +20,8 @@ namespace faze
     DX12
   };
 
+  const char* toString(GraphicsApi api);
+
   enum class DeviceType
   {
     Unknown,
@@ -45,6 +47,7 @@ namespace faze
     VendorID vendor;
     DeviceType type;
     bool canPresent;
+    GraphicsApi api;
     uint32_t apiVersion;
     std::string apiVersionStr;
   };
@@ -228,17 +231,17 @@ namespace faze
 
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>
     {
-      std::shared_ptr<prototypes::SubsystemImpl> impl;
+      std::shared_ptr<prototypes::SubsystemImpl> implDX12;
+      std::shared_ptr<prototypes::SubsystemImpl> implVulkan;
       const char* appName;
       unsigned appVersion;
       const char* engineName;
       unsigned engineVersion;
 
-      SubsystemData(GraphicsApi api, const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
-      std::string gfxApi();
+      SubsystemData(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
       vector<GpuInfo> availableGpus();
       GpuDevice createDevice(FileSystem& fs, GpuInfo gpu);
-      GraphicsSurface createSurface(Window& window);
+      GraphicsSurface createSurface(Window& window, GpuInfo gpu);
     };
   }
 }

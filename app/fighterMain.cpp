@@ -73,16 +73,16 @@ void fighterWindow(ProgramParams& params)
       pad.writeValue(directInputs.getFirstActiveGamepad());
     });
 
-    GraphicsSubsystem graphics(api, "faze");
-    F_LOG("Using api %s\n", graphics.gfxApi().c_str());
+    GraphicsSubsystem graphics("faze");
+    F_LOG("Using api %s\n", toString(api));
     F_ASSERT(!graphics.availableGpus().empty(), "No valid gpu's available.\n");
 
-    auto gpuInfo = graphics.getVendorDevice(preferredVendor);
+    auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
 
     Window window(params, gpuInfo.name, 1280, 720, 300, 200);
     window.open();
 
-    auto surface = graphics.createSurface(window);
+    auto surface = graphics.createSurface(window, gpuInfo);
     auto dev = graphics.createDevice(fs, gpuInfo);
 
     FighterRenderer rend(surface, dev);

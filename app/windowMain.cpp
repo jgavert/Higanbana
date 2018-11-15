@@ -158,23 +158,23 @@ void mainWindow(ProgramParams& params)
     log.update();
 
     bool explicitID = false;
-    int chosenGpu = 0;
+    GpuInfo gpuinfo{};
 
     while (true)
     {
-      GraphicsSubsystem graphics(api, "faze");
-      F_LOG("Using api %s\n", graphics.gfxApi().c_str());
+      GraphicsSubsystem graphics("faze");
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
       if (!explicitID)
       {
+        gpuinfo = graphics.getVendorDevice(api);
         for (auto&& it : gpus)
         {
-          if (it.vendor == preferredVendor)
+          if (it.api == api && it.vendor == preferredVendor)
           {
-            chosenGpu = it.id;
+            gpuinfo = it;
           }
-          F_LOG("\t%d. %s (memory: %zdMB, api: %s)\n", it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
+          F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
       if (updateLog) log.update();
@@ -209,18 +209,18 @@ void mainWindow(ProgramParams& params)
       float3 sideVec{ 0.f, 0.f, 1.f };
       quaternion direction{ 1.f, 0.f, 0.f, 0.f };
 
-      Window window(params, gpus[chosenGpu].name, 1280, 720, 300, 200);
+      Window window(params, gpuinfo.name, 1280, 720, 300, 200);
       window.open();
 
-      auto surface = graphics.createSurface(window);
-      auto dev = graphics.createDevice(fs, gpus[chosenGpu]);
+      auto surface = graphics.createSurface(window, gpuinfo);
+      auto dev = graphics.createDevice(fs, gpuinfo);
       time.firstTick();
       {
         auto toggleHDR = false;
         auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709).bufferCount(3).presentMode(PresentMode::Fifo);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
-        F_LOG("Created device \"%s\"\n", gpus[chosenGpu].name.c_str());
+        F_LOG("Created device \"%s\"\n", gpuinfo.name.c_str());
 
         auto bufferdesc = ResourceDescriptor()
           .setName("testBufferTarget")
@@ -700,38 +700,20 @@ void mainWindow(ProgramParams& params)
             ImGui::SetNextWindowPos({ 10.f, 10.f });
             if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-              if (ImGui::Button("Api"))
-                ImGui::OpenPopup("selectApi");
-              ImGui::SameLine();
-              ImGui::Text(api == GraphicsApi::DX12 ? "DX12" : "Vulkan");
-              if (ImGui::BeginPopup("selectApi"))
-              {
-                if (ImGui::Selectable("DX12"))
-                {
-                  api = GraphicsApi::DX12;
-                  reInit = true;
-                  closeAnyway = true;
-                }
-                if (ImGui::Selectable("Vulkan"))
-                {
-                  api = GraphicsApi::Vulkan;
-                  reInit = true;
-                  closeAnyway = true;
-                }
-                ImGui::EndPopup();
-              }
+              ImGui::Text(gpuinfo.api == GraphicsApi::DX12 ? "DX12" : "Vulkan");
 
               if (ImGui::Button("Device"))
                 ImGui::OpenPopup("selectGpu");
               ImGui::SameLine();
-              ImGui::Text(gpus[chosenGpu].name.c_str());
+              ImGui::Text(gpuinfo.name.data());
               if (ImGui::BeginPopup("selectGpu"))
               {
                 for (auto&& it : gpus)
                 {
-                  if (ImGui::Selectable(it.name.c_str()))
+                  auto name = toString(it.api) + std::string(" ") + it.name;
+                  if (ImGui::Selectable(name.data()))
                   {
-                    chosenGpu = it.id;
+                    gpuinfo = it;
                     reInit = true;
                     closeAnyway = true;
                     explicitID = true;
