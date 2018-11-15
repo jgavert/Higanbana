@@ -9,5 +9,5 @@ struct PSInput
 GX_SIGNATURE
 float4 main(PSInput input) : SV_Target
 {
-  return source.Sample(staSam, input.uv);
+  return source.SampleLevel(staSam, input.uv, 0);
 }
