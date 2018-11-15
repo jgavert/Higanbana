@@ -498,6 +498,8 @@ namespace faze
       m_trash->dsvsDescriptors.clear();
       m_trash->resources.clear();
 
+	  F_ASSERT(m_collectableTrash.size() < 30, "Some Sequence hasn't returned in time. Going too deep in error state.");
+
       while (!m_collectableTrash.empty())
       {
         auto&& it = m_collectableTrash.front();
@@ -1502,7 +1504,7 @@ namespace faze
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
       auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_copyListPool.allocate(),
         m_constantsUpload,
@@ -1514,7 +1516,7 @@ namespace faze
         m_nullBufferSRV),
         [tracker, seqNumber](DX12CommandList* ptr)
       {
-        if (auto seqTracker = tracker.lock())
+        if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
         }
@@ -1526,7 +1528,7 @@ namespace faze
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
       auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_computeListPool.allocate(),
         m_constantsUpload,
@@ -1538,7 +1540,7 @@ namespace faze
         m_nullBufferSRV),
         [tracker, seqNumber](DX12CommandList* ptr)
       {
-        if (auto seqTracker = tracker.lock())
+        if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
         }
@@ -1549,7 +1551,7 @@ namespace faze
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
       auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
+      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_graphicsListPool.allocate(),
         m_constantsUpload,
@@ -1561,7 +1563,7 @@ namespace faze
         m_nullBufferSRV),
         [tracker, seqNumber](DX12CommandList* ptr)
       {
-        if (auto seqTracker = tracker.lock())
+        if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
         }
