@@ -256,6 +256,7 @@ namespace faze
 
     void updatePadState(X360LikePad& pad, DIJOYSTATE2& state)
     {
+	  pad.alive = true;
       int maxVal = std::numeric_limits<int16_t>::max();
       pad.lstick[0].value = static_cast<int16_t>(std::min(static_cast<int>(state.lX) - maxVal, maxVal));
       pad.lstick[1].value = static_cast<int16_t>(std::min(static_cast<int>(state.lY) - maxVal, maxVal) * -1);
@@ -447,7 +448,9 @@ namespace faze
             hr = getDevPtr(dev.second.devPtr)->GetDeviceState(sizeof(DIJOYSTATE2), &js);
             if (SUCCEEDED(hr))
             {
-              updatePadState(dev.second.pad, js);
+			  dev.second.pad.before = dev.second.pad.current;
+              updatePadState(dev.second.pad.current, js);
+			  dev.second.pad.current.alive = dev.second.pad.current.isBeingUsed();
               dev.second.lost = false;
             }
           }
@@ -467,15 +470,13 @@ namespace faze
       bool bCleanupCOM = SUCCEEDED(hr);
       for (int i = 0; i < 4; ++i)
       {
-        xinput[i].alive = false;
-
         XINPUT_STATE state{};
         auto res = XInputGetState(i, &state);
         if (ERROR_SUCCESS == res)
         {
-          auto& pad = xinput[i].pad;
-          xinput[i].alive = true;
-
+		  xinput[i].before = xinput[i].current;
+          auto& pad = xinput[i].current;
+		  pad.alive = false; //assume first so
           pad.lstick[0].value = state.Gamepad.sThumbLX;
           pad.lstick[1].value = state.Gamepad.sThumbLY;
           pad.rstick[0].value = state.Gamepad.sThumbRX;
@@ -508,11 +509,14 @@ namespace faze
           pad.dpad.down = isPressed(XINPUT_GAMEPAD_DPAD_DOWN);
           pad.dpad.left = isPressed(XINPUT_GAMEPAD_DPAD_LEFT);
           pad.dpad.right = isPressed(XINPUT_GAMEPAD_DPAD_RIGHT);
+
+		  // resolve if we have changes
+		  //if (xinput[i].current.isBeingUsed())
+		  xinput[i].current.alive = xinput[i].current.isBeingUsed();
         }
         else
         {
-          auto& pad = xinput[i].pad;
-          pad = X360LikePad{};
+          xinput[i].current = X360LikePad{};
         }
       }
       if (bCleanupCOM)
@@ -547,21 +551,20 @@ namespace faze
       m_seeminglyNoConnectedControllers = false;
       for (auto&& dev : m_devices)
       {
-        if (dev.second.devPtr != 0 && !dev.second.lost)
+        if (dev.second.devPtr != 0 && !dev.second.lost && dev.second.pad.current.alive)
         {
-          return dev.second.pad;
+          return dev.second.pad.current;
         }
       }
       for (int i = 0; i < 4; ++i)
       {
-        if (xinput[i].alive)
-          return xinput[i].pad;
+		  if (xinput[i].current.alive)
+		  {
+			  return xinput[i].current;
+		  }
       }
-
-      m_seeminglyNoConnectedControllers = true;
-      auto pad = X360LikePad{};
-      pad.alive = false;
-      return pad;
+	  m_seeminglyNoConnectedControllers = true;
+      return X360LikePad{};
     }
   }
 }

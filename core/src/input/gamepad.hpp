@@ -14,10 +14,19 @@ namespace faze
     struct CAxis
     {
       int16_t value;
+
+	  float asfloat()
+	  {
+		  return static_cast<float>(value) / static_cast<float>(std::numeric_limits<int16_t>::max());
+	  }
     };
     struct CSlider
     {
       uint16_t value;
+	  float asfloat()
+	  {
+		  return static_cast<float>(value) / static_cast<float>(std::numeric_limits<uint16_t>::max());
+	  }
     };
     struct CPov
     {
@@ -68,6 +77,39 @@ namespace faze
         XButtons xbLayout;
         PSButtons psLayout;
       };
+
+	  bool isBeingUsed(const float deadzone = 0.15f)
+	  {
+		  // any button is pressed == is being used
+		  bool buttons = dpad.down | dpad.left | dpad.right | dpad.up
+						| xbLayout.a | xbLayout.b | xbLayout.x | xbLayout.y
+				   		| xbLayout.l1 | xbLayout.l2 | xbLayout.r1 | xbLayout.r2
+						| xbLayout.l3 | xbLayout.r3 | xbLayout.select | xbLayout.start;
+
+		  bool lstickx = std::abs(lstick[0].asfloat()) > deadzone;
+		  bool lsticky = std::abs(lstick[1].asfloat()) > deadzone;
+		  bool rstickx = std::abs(rstick[0].asfloat()) > deadzone;
+		  bool rsticky = std::abs(rstick[1].asfloat()) > deadzone;
+		  bool lt = lTrigger.asfloat() > deadzone;
+		  bool rt = rTrigger.asfloat() > deadzone;
+
+		  // any analog true
+		  return  buttons
+			  || lstickx
+			  || lsticky
+			  || rstickx
+			  || rsticky
+			  || lt
+			  || rt;
+	  }
+
+	  /*
+	  bool operator==(const X360LikePad& other) const
+	  {
+		  auto comparison = memcmp(this, &other, sizeof(X360LikePad));
+		  return comparison == 0;
+	  }
+	  */
     };
 
     // directinput definitions
@@ -77,6 +119,12 @@ namespace faze
     {
       uint64_t data[2];
     };
+
+	struct Gamepad
+	{
+		X360LikePad current = {};
+		X360LikePad before = {};
+	};
 
     class InputDevice
     {
@@ -97,13 +145,7 @@ namespace faze
       bool xinputDevice = false;
       std::string sguid;
       std::string name;
-      X360LikePad pad;
-    };
-
-    struct Gamepad
-    {
-      bool alive = false;
-      X360LikePad pad = {};
+	  Gamepad pad;
     };
 
     const char* toString(InputDevice::Type type);
@@ -125,7 +167,7 @@ namespace faze
       std::unordered_set<std::string> m_ignoreList;
       std::unordered_map<std::string, InputDevice> m_devices;
 
-      Gamepad xinput[4];
+	  Gamepad xinput[4];
 
       bool m_seeminglyNoConnectedControllers = true;
     public:
