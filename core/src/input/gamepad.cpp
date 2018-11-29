@@ -23,6 +23,7 @@
 #include <algorithm>
 
 #include "core/src/global_debug.hpp"
+#include "core/src/datastructures/proxy.hpp"
 
 #define INPUT_DEBUG 0
 
@@ -168,15 +169,27 @@ namespace faze
       //printf(" instance: \"%s\"", instanceName.c_str());
       //printf("\n");
 
-      InputDevice dev;
-      dev.sguid = sg;
-      memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
-      dev.name = ws2s(inst);
-      dev.type = idevType(lpddi->dwDevType);
+	
+	  InputDevice dev;
+	  dev.sguid = sg;
+	  memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
+	  dev.name = ws2s(inst);
+	  dev.type = idevType(lpddi->dwDevType);
 
-      dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
+	  // just save the xinput result if we see the device again.
+	  static faze::unordered_map<std::string, bool> seenGuids;
+	  auto guid = seenGuids.find(sg);
+	  if (guid != seenGuids.end())
+	  {
+		  dev.xinputDevice = guid->second;
+	  }
+	  else
+	  {
+		  dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
+		  seenGuids[sg] = dev.xinputDevice;
+	  }
 
-      g_deviceList.emplace_back(dev);
+	  g_deviceList.emplace_back(dev);
 
       return DIENUM_CONTINUE;
     }
