@@ -183,7 +183,7 @@ void mainWindow(ProgramParams& params)
 
       int2 ires = { 200, 100 };
 
-      int raymarch_Res = 600;
+      int raymarch_Res = 1500;
       int raymarch_x = 16;
       int raymarch_y = 9;
 
@@ -1000,7 +1000,7 @@ void mainWindow(ProgramParams& params)
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
 
-  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Amd, true); });
+  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, true); });
   lbs.sleepTillKeywords({ "test1" });
 
 #endif
