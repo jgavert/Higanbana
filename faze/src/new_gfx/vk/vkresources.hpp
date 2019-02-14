@@ -787,14 +787,13 @@ namespace faze
       vector<vk::LayerProperties> m_layers;
       vector<vk::PhysicalDevice> m_devices;
       std::shared_ptr<vk::Instance> m_instance;
-      std::shared_ptr<vk::DebugReportCallbackEXT> m_debugcallback;
+      std::shared_ptr<vk::DebugUtilsMessengerEXT> m_debugcallback;
 
       // lunargvalidation list order
       std::vector<std::string> layerOrder = {
   #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
           "VK_LAYER_LUNARG_standard_validation",
   #endif
-          "VK_LAYER_LUNARG_swapchain"
       };
 
       std::vector<std::string> extOrder = {
@@ -804,7 +803,8 @@ namespace faze
           , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
   #endif
   #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-          , VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+          //, VK_EXT_DEBUG_REPORT_EXTENSION_NAME // VK_EXT_debug_utils
+		  , VK_EXT_DEBUG_UTILS_EXTENSION_NAME
   #endif
       };
 

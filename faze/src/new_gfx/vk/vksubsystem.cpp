@@ -5,48 +5,57 @@
 #include "core/src/global_debug.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
-  VkDebugReportFlagsEXT                       flags,
-  VkDebugReportObjectTypeEXT                  /*objectType*/,
-  uint64_t                                    /*object*/,
-  size_t                                      /*Location*/,
-  int32_t                                     messageCode,
-  const char*                                 pLayerPrefix,
-  const char*                                 pMessage,
-  void*                                       /*pUserData*/)
+	VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+	const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+	void*                                            /*pUserData*/)
 {
   // Supressing unnecessary log messages.
 
   std::string msgType = "";
   bool breakOn = false;
-  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+  if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
   {
-    msgType = "ERROR:";
+	  msgType = "GENERAL ";
+  }
+  else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+  {
+	  msgType = "PERFORMANCE ";
+  }
+  else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+  {
+	  msgType = "VALIDATION ";
+  }
+
+  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+  {
+    msgType += "ERROR:";
 #if defined(FAZE_PLATFORM_WINDOWS)
     breakOn = true;
 #endif
   }
-  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {
-    msgType = "WARNING:";
+    msgType += "WARNING:";
 #if defined(FAZE_PLATFORM_WINDOWS)
     breakOn = true;
 #endif
   }
-  else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
   {
-    msgType = "PERFORMANCE WARNING:";
+	  msgType += "Info: ";
   }
-  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-  {
-    msgType = "INFO:";
-  }
-  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-  {
-    msgType = "DEBUG:";
-  }
-  if (!breakOn && (std::string(pLayerPrefix) == "loader" || std::string(pLayerPrefix) == "DebugReport"))
+
+  if (!breakOn)
     return false;
-  F_ILOG("Vulkan/DebugCallback", "%s %s {%d}: %s", msgType.c_str(), pLayerPrefix, messageCode, pMessage);
+
+  auto pMessage = pCallbackData->pMessage;
+  auto messageCode = pCallbackData->messageIdNumber;
+  auto bufLabelsCount = pCallbackData->cmdBufLabelCount;
+  auto queueLabelsCount = pCallbackData->queueLabelCount;
+  auto objectCount = pCallbackData->objectCount;
+
+  F_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, pMessage);
 #if defined(FAZE_PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
     __debugbreak();
@@ -107,13 +116,13 @@ namespace faze
       std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
-      /*
+      
       GFX_ILOG("Available extensions for instance:");
       for (auto&& it : extInfos)
       {
         GFX_ILOG("\t\t%s", it.extensionName);
       }
-      */
+      
 #endif
 
       std::vector<const char*> extensions;
@@ -131,7 +140,7 @@ namespace faze
           {
             extensions.push_back(it.c_str());
             m_extensions.push_back(*found);
-            //GFX_ILOG("\t\t%s", found->extensionName);
+            GFX_ILOG("\t\t%s", found->extensionName);
           }
           else
           {
@@ -147,7 +156,7 @@ namespace faze
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION));
+        .setApiVersion(VK_API_VERSION_1_1);
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)
@@ -168,36 +177,40 @@ namespace faze
       m_devices = m_instance->enumeratePhysicalDevices();
 
       // get addresses for few functions
-      PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
-      PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback;
+	  PFN_vkCreateDebugUtilsMessengerEXT dbgCreateDebugUtilsCallback;
+      PFN_vkDestroyDebugUtilsMessengerEXT dbgDestroyDebugUtilsCallback;
 
-      dbgCreateDebugReportCallback =
-        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
-          *m_instance, "vkCreateDebugReportCallbackEXT");
-      if (!dbgCreateDebugReportCallback)
+	  dbgCreateDebugUtilsCallback =
+        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+          *m_instance, "vkCreateDebugUtilsMessengerEXT");
+      if (!dbgCreateDebugUtilsCallback)
       {
-        GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugReportCallbackEXT function.");;
+        GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugUtilsMessengerEXT function.");;
       }
       else
       {
-        dbgDestroyDebugReportCallback =
-          (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
-            *m_instance, "vkDestroyDebugReportCallbackEXT");
-        if (!dbgDestroyDebugReportCallback)
+		  dbgDestroyDebugUtilsCallback =
+          (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+            *m_instance, "vkDestroyDebugUtilsMessengerEXT");
+        if (!dbgDestroyDebugUtilsCallback)
         {
-          GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugReportCallbackEXT function.");
+          GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugUtilsMessengerEXT function.");
         }
         // the debug things
-        auto flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eDebug | vk::DebugReportFlagBitsEXT::ePerformanceWarning;
-        vk::DebugReportCallbackCreateInfoEXT info = vk::DebugReportCallbackCreateInfoEXT(flags, debugCallbackNew, nullptr);
+		auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
+		auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
+        vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
+			.setMessageSeverity(severityFlags)
+			.setMessageType(flags)
+			.setPfnUserCallback(debugCallbackNew);
 
         auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
         auto allocInfo = m_alloc_info;
-        m_debugcallback = std::shared_ptr<vk::DebugReportCallbackEXT>(new vk::DebugReportCallbackEXT, [lol, allocInfo, dbgDestroyDebugReportCallback](vk::DebugReportCallbackEXT* ist)
+        m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo, dbgDestroyDebugUtilsCallback](vk::DebugUtilsMessengerEXT* ist)
         {
-          dbgDestroyDebugReportCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+			dbgDestroyDebugUtilsCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
         });
-        dbgCreateDebugReportCallback(*m_instance, reinterpret_cast<const VkDebugReportCallbackCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugReportCallbackEXT*>(m_debugcallback.get()));
+		dbgCreateDebugUtilsCallback(*m_instance, reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugUtilsMessengerEXT*>(m_debugcallback.get()));
       }
     }
 

@@ -17,7 +17,7 @@ namespace faze
     {
       makeState(appName, appVersion, engineName, engineVersion);
     }
-    vector<GpuInfo> availableGpus() { return S().availableGpus(); }
+    vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All) { return S().availableGpus(api); }
     GpuInfo getVendorDevice(GraphicsApi api, VendorID id = VendorID::Unknown)
     {
       auto gpus = availableGpus();
