@@ -17,7 +17,8 @@ namespace faze
   enum class GraphicsApi
   {
     Vulkan,
-    DX12
+    DX12,
+	All
   };
 
   const char* toString(GraphicsApi api);
@@ -239,7 +240,7 @@ namespace faze
       unsigned engineVersion;
 
       SubsystemData(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
-      vector<GpuInfo> availableGpus();
+      vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All);
       GpuDevice createDevice(FileSystem& fs, GpuInfo gpu);
       GraphicsSurface createSurface(Window& window, GpuInfo gpu);
     };

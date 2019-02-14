@@ -31,17 +31,21 @@ namespace faze
 #endif
       implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion);
     }
-    vector<GpuInfo> SubsystemData::availableGpus()
+    vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api)
     {
-      vector<GpuInfo> vulkanGpus = implVulkan->availableGpus();
-      for (auto&& it : vulkanGpus) it.api = GraphicsApi::Vulkan;
-      if (implDX12)
+	  vector<GpuInfo> infos;
+	  if (api == GraphicsApi::All || api == GraphicsApi::Vulkan)
+	  {
+		infos = implVulkan->availableGpus();
+		for (auto&& it : infos) it.api = GraphicsApi::Vulkan;
+	  }
+      if (implDX12 && (api == GraphicsApi::All || api == GraphicsApi::DX12))
       {
         vector<GpuInfo> dx12Gpus = implDX12->availableGpus();
         for (auto&& it : dx12Gpus) it.api = GraphicsApi::DX12;
-        vulkanGpus.insert(vulkanGpus.end(), dx12Gpus.begin(), dx12Gpus.end());
+        infos.insert(infos.end(), dx12Gpus.begin(), dx12Gpus.end());
       }
-      return vulkanGpus;
+      return infos;
     }
     GpuDevice SubsystemData::createDevice(FileSystem& fs, GpuInfo gpu)
     {

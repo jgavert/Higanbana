@@ -5,16 +5,16 @@ using namespace faze;
 TEST(GraphicsSubsystem, DeviceCreation)
 {
   faze::FileSystem fs;
-  faze::GraphicsSubsystem graphics(GraphicsApi::DX12, "faze");
-  faze::GpuDevice gpu(graphics.createDevice(fs, graphics.getVendorDevice(VendorID::Nvidia)));
+  faze::GraphicsSubsystem graphics("faze");
+  faze::GpuDevice gpu(graphics.createDevice(fs, graphics.getVendorDevice(GraphicsApi::DX12, VendorID::Nvidia)));
   EXPECT_TRUE(gpu.alive());
 }
 
 TEST(GraphicsSubsystem, Create2Devices)
 {
   faze::FileSystem fs;
-  faze::GraphicsSubsystem graphics(GraphicsApi::DX12, "faze");
-  auto gpus = graphics.availableGpus();
+  faze::GraphicsSubsystem graphics("faze");
+  auto gpus = graphics.availableGpus(GraphicsApi::DX12);
   if (gpus.size() >= 2)
   {
     faze::GpuDevice gpu(graphics.createDevice(fs, gpus[0]));
@@ -27,8 +27,8 @@ TEST(GraphicsSubsystem, Create2Devices)
 TEST(GraphicsSubsystem, CrossAdapterShenigans_bufferCopies)
 {
   faze::FileSystem fs;
-  faze::GraphicsSubsystem graphics(GraphicsApi::DX12, "faze");
-  auto gpus = graphics.availableGpus();
+  faze::GraphicsSubsystem graphics("faze");
+  auto gpus = graphics.availableGpus(GraphicsApi::DX12);
   if (gpus.size() >= 2)
   {
     faze::GpuDevice primaryGpu(graphics.createDevice(fs, gpus[0]));
@@ -118,8 +118,8 @@ TEST(GraphicsSubsystem, CrossAdapterShenigans_bufferCopies)
 TEST(GraphicsSubsystem, CrossAdapterShenigans_textureCopies)
 {
   faze::FileSystem fs;
-  faze::GraphicsSubsystem graphics(GraphicsApi::DX12, "faze");
-  auto gpus = graphics.availableGpus();
+  faze::GraphicsSubsystem graphics("faze");
+  auto gpus = graphics.availableGpus(GraphicsApi::DX12);
   if (gpus.size() >= 2)
   {
     faze::GpuDevice primaryGpu(graphics.createDevice(fs, gpus[0]));

@@ -15,10 +15,10 @@ protected:
   faze::GraphicsSubsystem graphics;
   faze::GpuDevice gpu;
   faze::Logger log;
-
+public:
   Graphics()
-    :graphics(faze::GraphicsApi::Vulkan, "faze")
-    , gpu(graphics.createDevice(fs, graphics.getVendorDevice(faze::VendorID::Nvidia)))
+    :graphics("faze")
+    , gpu(graphics.createDevice(fs, graphics.getVendorDevice(faze::GraphicsApi::Vulkan, faze::VendorID::Nvidia)))
   {
   }
   // You should make the members protected s.t. they can be
