@@ -1084,8 +1084,13 @@ namespace faze
       // srv start from 0
       // uav after that
       // samplers last
-
-      return std::make_shared<VulkanDescriptorLayout>(setlayout, pipelineLayout);
+      return std::shared_ptr<VulkanDescriptorLayout>(new VulkanDescriptorLayout(setlayout, pipelineLayout), 
+        [dev = m_device](VulkanDescriptorLayout* ptr)
+      {
+        dev.destroyDescriptorSetLayout(ptr->m_descriptorSetLayout);
+        dev.destroyPipelineLayout(ptr->m_pipelineLayout);
+        delete ptr;
+      });
     }
 
     GpuHeap VulkanDevice::createHeap(HeapDescriptor heapDesc)
