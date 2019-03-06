@@ -3,7 +3,7 @@
 // Enables debug validation layers for dx12/vulkan
 #define FAZE_GRAPHICS_VALIDATION_LAYER
 
-#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
+//#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
 //#define FAZE_NSIGHT_COMPATIBILITY // disables some colorspace configuration which seems to crash nsight.
 
