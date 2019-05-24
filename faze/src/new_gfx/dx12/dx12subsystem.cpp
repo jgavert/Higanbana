@@ -124,7 +124,8 @@ namespace faze
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_1
       };
-
+      UUID experimentalFeatures[] = { D3D12ExperimentalShaderModels };
+      D3D12EnableExperimentalFeatures(1, experimentalFeatures, NULL, NULL);
       if (gpu.id == static_cast<int>(vAdapters.size()))
       {
         ComPtr<IDXGIAdapter> pAdapter;
