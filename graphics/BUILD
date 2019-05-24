@@ -1,0 +1,23 @@
+
+cc_library(
+  name = "graphics",
+  srcs = glob(["**/*.cpp"]),
+  hdrs = glob(["**/*.hpp"]),
+  strip_include_prefix = "src",
+  deps = [
+      "//core:core",
+      "//ext:STB"] + select({
+          "@bazel_tools//src/conditions:windows": 
+              ["//ext:DirectXShaderCompiler", 
+               "@VulkanSDKWin//:Vulkan",
+               "@DX12//:DX12", 
+               "@DXGI//:DXGI", 
+               "@DXGUID//:DXGUID"],
+          "//conditions:default": [],
+    }),
+  copts = select({
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
+          "//conditions:default": ["-std=c++2a"],
+    }),
+  visibility = ["//visibility:public"], 
+)

@@ -1,0 +1,17 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "name": "test_main",
+      "project": "test_main\\BUILD",
+      "type": "native"
+    },
+    {
+      "type": "native",
+      "name": "test_main.exe",
+      "project": "bazel-bin\\test_main\\test_main.exe",
+      "cwd": "../../..",
+    }
+  ]
+}

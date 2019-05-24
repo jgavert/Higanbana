@@ -1,6 +1,0 @@
-{
-  .ProjectName    = 'core'
-  .ProjectPath    = 'core'
-  
-  #include "../library_template.bff"
-}
