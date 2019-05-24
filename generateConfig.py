@@ -1,77 +1,116 @@
 #!/bin/python3.6
+import re
 import os
+import json
 
-config = """.WindowsSDKBasePath10 = 'C:/Program Files (x86)/Windows Kits/10'
+def natural_sort(l): 
+  convert = lambda text: int(text) if text.isdigit() else text.lower() 
+  alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+  return sorted(l, key = alphanum_key)
 
-#if __WINDOWS__
-.FazEPath = 'CURRENT_DIRECTORY'
-.FBuildCache = 'C:/temp/fazecache'
-.VulkanSDKBasePath = 'C:/VulkanSDK/VULKAN_VERSION'
-#endif
-#if __LINUX__
-.FazEPath = 'CURRENT_DIRECTORY'
-.FBuildCache = '/tmp/.fbuild.fazecache'
-.VulkanSDKBasePath = '/usr/lib'
-#endif"""
+# config = """
+# mkdir "ext\\vulkan\\Lib"
+# mkdir "ext\\vulkan\\Include"
+# rmdir "ext\\vulkan"
+# mkdir "ext\\vulkan"
+# mklink /D "ext\\vulkan\\Lib" "C:\\VulkanSDK\\VULKAN_VERSION\\Lib"
+# mklink /D "ext\\vulkan\\Include" "C:\\VulkanSDK\\VULKAN_VERSION\\Include"
+# """
+# 
+# curDir = os.getcwd().replace("\\", "/")
+# print("current directory: " + curDir)
+# 
+# config = config.replace("CURRENT_DIRECTORY", curDir)
+# 
+# VulkanVersion = natural_sort(next(os.walk("""C:/VulkanSDK/"""))[1])[-1]
+# print("vulkan version: " + VulkanVersion)
+# 
+# config = config.replace("VULKAN_VERSION", VulkanVersion)
 
-curDir = os.getcwd().replace("\\", "/")
-print("current directory: " + curDir)
+#with open('setup_vulkan.bat', 'w') as out:
+#  out.write(config)
 
-config = config.replace("CURRENT_DIRECTORY", curDir)
+make_BUILDS = False
+blob = True
 
-VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
+# BUILD file generation, mostly experiment with blob or not.
 
-VulkanVersion = sorted(next(os.walk("""C:/VulkanSDK/"""))[1], reverse=True)[0]
-print("vulkan version: " + VulkanVersion)
-
-config = config.replace("VULKAN_VERSION", VulkanVersion)
-
-with open('config.bff', 'w') as out:
-  out.write(""".VSBasePath = '""")
-  if os.name == 'nt':
-    if os.path.isdir('C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional'):
-      VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional"""
-    else:
-      VSPath = """C:/Program Files (x86)/Microsoft Visual Studio/2017/Community"""
-
-  out.write(VSPath)
-  out.write("""'""")
-  out.write("\n")
-
-  VSVersion = "100"
-  VSRedist = "100"
-  if os.name == 'nt':
-    VSVersion = sorted(next(os.walk(VSPath+"""/VC/Tools/MSVC/"""))[1], reverse=True)[0]
-    VSRedist = sorted(next(os.walk(VSPath+"""/VC/Redist/MSVC/"""))[1], reverse=True)[0]
-
-  out.write(""".VSVersion  = '""")
-  out.write(VSVersion)
-  out.write("""'""")
-  out.write("\n")
-
-  out.write(""".VSRedist   = '""")
-  out.write(VSRedist)
-  out.write("""'""")
-  out.write("\n")
-
-  ourSdk = "100"
-  if os.name == 'nt':
-    sdkVersionList = sorted(next(os.walk('C:/Program Files (x86)/Windows Kits/10/Include'))[1], reverse=True)
-    ourSdk = sdkVersionList[0]
-
-  out.write(""".WindowsSDKSubVersion = '""")
-  out.write(ourSdk)
-  out.write("""'""")
-  out.write("\n")
-
-  #print(ourSdk)
-  #print(VSVersion[0])
-  #print(VSRedist[0])
-
-  out.write(config)
+def glob(dir, file_extension_filter = ""):
+  walked = next(os.walk(dir))
+  dirsToTraverse = []
+  allFiles = []
+  for dir in walked[1]:
+    dirsToTraverse.append(walked[0] + "/" + dir)
+  for file in walked[2]:
+    if file.endswith(file_extension_filter):
+      allFiles.append(walked[0] + "/" + file)
+  while(len(dirsToTraverse) > 0):
+    nextDir = dirsToTraverse.pop(0)
+    walk = next(os.walk(nextDir))
+    for dir in walk[1]:
+      dirsToTraverse.append(nextDir + "/" + dir)
+    for file in walk[2]:
+      if file.endswith(file_extension_filter):
+        allFiles.append(nextDir + "/" + file)
+  return allFiles
 
 
-# .VSVersion = '14.12.25827'
-# .VSRedist = '14.12.25810'
-# .Root   = '$VSBasePath$/VC/Tools/MSVC/$VSVersion$/bin/HostX64/x64'
-# .helperPath = '$VSBasePath$/VC/Redist/MSVC/$VSRedist$/x64/Microsoft.VC141.CRT'
+def globForBazel(dir, file_extension):
+  files = glob(dir, file_extension)
+  cwd = dir + "/";
+  cwdLen = len(cwd)
+  files_t = list(map(lambda x: x[cwdLen:] if x[0:cwdLen] == cwd else x, files))
+  return files_t
+
+def build_template_library(name, srcs, hdrs, deps, copts):
+  template = """
+cc_library(
+  name = "REPLACE_NAME",
+  srcs = REPLACE_SRCS,
+  hdrs = REPLACE_HDRS,
+  strip_include_prefix = "src",
+  deps = REPLACE_DEPS,
+  copts = REPLACE_COPTS,
+  visibility = ["//visibility:public"], 
+)
+"""
+  edit = template.replace("REPLACE_NAME", name)
+  edit = edit.replace("REPLACE_SRCS", srcs)
+  edit = edit.replace("REPLACE_HDRS", hdrs)
+  edit = edit.replace("REPLACE_DEPS", deps)
+  edit = edit.replace("REPLACE_COPTS", copts)
+  return edit
+
+def make_library_BUILD(name, glob, deps, copts):
+  srcs = """glob(["**/*.cpp"])"""
+  hdrs = """glob(["**/*.hpp"])+glob(["**/*.h"])"""
+  if glob:
+    srcs = json.dumps(globForBazel(name, ".cpp"))
+    hdrs = json.dumps(globForBazel(name, ".hpp") + globForBazel(name, ".h"))
+  return build_template_library(name, srcs, hdrs, deps, copts)
+
+if make_BUILDS:
+  graphics_deps = """[
+      "//core:core",
+      "//ext:Vulkan", 
+      "//ext:STB", 
+      "//ext:DirectXShaderCompiler", 
+      "@DX12//:DX12", 
+      "@DXGI//:DXGI", 
+      "@DXGUID//:DXGUID"]"""
+
+  copts = """select({
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
+          "//conditions:default": ["-std=c++2a"],
+    })"""
+  coreBUILD = make_library_BUILD("core", blob, "[]", copts)
+  graphicsBUILD = make_library_BUILD("graphics", blob, graphics_deps, copts)
+
+  # print(coreBUILD)
+  # print(graphicsBUILD)
+
+  with open('core/BUILD', 'w') as out:
+    out.write(coreBUILD)
+
+  with open('graphics/BUILD', 'w') as out:
+    out.write(graphicsBUILD)
