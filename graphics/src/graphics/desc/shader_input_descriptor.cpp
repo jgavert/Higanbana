@@ -30,14 +30,14 @@ namespace faze
   {
     std::string lol;
     lol += "// This file is reflected from code.\n";
-    lol += "#ifdef FAZE_DX12\n";
-    lol += "#define VK_BINDING(index) \n";
-    lol += "#else // vulkan\n";
+    lol += "#ifdef FAZE_VULKAN\n";
     lol += "#define VK_BINDING(index) [[vk::binding(index)]]\n";
+    lol += "#else // FAZE_DX12\n";
+    lol += "#define VK_BINDING(index) \n";
     lol += "#endif\n";
     lol += "\n";
 
-    lol += "#define ROOTSIG \"RootFlags(0), CBV(b0), DescriptorTable("; // , DescriptorTable()";
+    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  DescriptorTable("; // , DescriptorTable()";
 
     {
       int uavC = 0, srvC = 0;
@@ -50,15 +50,20 @@ namespace faze
         {
           if (madeATable)
           {
-            lol += ",";
-          }
-          if (currentMode)
-          {
-            lol += "SRV(t" + std::to_string(srvC);
+            lol += ",\\\n    ";
           }
           else
           {
-            lol += "UAV(u" + std::to_string(uavC);
+            lol += "\\\n    ";
+          }
+          
+          if (currentMode)
+          {
+            lol += " SRV(t" + std::to_string(srvC);
+          }
+          else
+          {
+            lol += " UAV(u" + std::to_string(uavC);
           }
           lol += ", numDescriptors = " + std::to_string(count) + ")";
           if (currentMode)
@@ -84,16 +89,16 @@ namespace faze
       }
       addTable();
     }
-    lol += "), StaticSampler(s0, "                   \
+    lol += "),\\\n  StaticSampler(s0, "                   \
     "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
-    "StaticSampler(s1, " 									        \
+    "\\\n  StaticSampler(s1, " 									        \
     "filter = FILTER_MIN_MAG_MIP_POINT), " 				\
-    "StaticSampler(s2, " 									        \
+    "\\\n  StaticSampler(s2, " 									        \
     "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, " 	\
     "addressU = TEXTURE_ADDRESS_WRAP, " 					\
     "addressV = TEXTURE_ADDRESS_WRAP, " 					\
     "addressW = TEXTURE_ADDRESS_WRAP), " 					\
-    "StaticSampler(s3, " 									        \
+    "\\\n  StaticSampler(s3, " 									        \
     "filter = FILTER_MIN_MAG_MIP_POINT, " 				\
     "addressU = TEXTURE_ADDRESS_WRAP, " 					\
     "addressV = TEXTURE_ADDRESS_WRAP, " 					\
@@ -157,6 +162,12 @@ namespace faze
         lol += resourceToString(true, gi, i++, res) + "\n";
       gi++;
     }
+
+    lol += "\n// Usable Static Samplers\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState bilinearSampler : register( s0 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState pointSampler : register( s1 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState bilinearSamplerWarp : register( s2 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState pointSamplerWrap : register( s3 );\n";
     
     return lol;
   }

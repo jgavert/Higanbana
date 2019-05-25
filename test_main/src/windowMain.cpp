@@ -214,7 +214,10 @@ void mainWindow(ProgramParams& params)
       time.firstTick();
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor().formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709).bufferCount(3).presentMode(PresentMode::Fifo);
+        auto scdesc = SwapchainDescriptor()
+          .formatType(FormatType::Unorm8RGBA)
+          .colorspace(Colorspace::BT709)
+          .bufferCount(3).presentMode(PresentMode::Fifo);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
         F_LOG("Created device \"%s\"\n", gpuinfo.name.c_str());
@@ -225,7 +228,7 @@ void mainWindow(ProgramParams& params)
             .readOnly(ShaderResourceType::ByteAddressBuffer, "test")
             .readOnly(ShaderResourceType::Buffer, "float", "test2")
             .readWrite(ShaderResourceType::Buffer, "float4", "testOut");
-        F_ILOG("", "interface:\n%s\nend\n", shaderInputDecl.createInterface().c_str());
+
         auto compute = dev.createComputePipeline(ComputePipelineDescriptor()
           .setShader("ebinShader")
           .setLayout(shaderInputDecl)
@@ -258,7 +261,6 @@ void mainWindow(ProgramParams& params)
         auto test2SRV = dev.createBufferSRV(buffer2);
         auto buffer3 = dev.createBuffer(bufferdesc3);
         auto testOut = dev.createBufferUAV(buffer3);
-
 
         // end test decl
 

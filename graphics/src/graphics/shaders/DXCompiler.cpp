@@ -83,6 +83,10 @@ namespace faze
       {
         defs.push_back(DxcDefine{ L"FAZE_DX12", nullptr });
       }
+      else
+      {
+        defs.push_back(DxcDefine{ L"FAZE_VULKAN", nullptr});
+      }
 
       if (d.type == ShaderType::Compute)
       {
