@@ -16,8 +16,8 @@ cc_library(
           "//conditions:default": [],
     }),
   copts = select({
-          "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
-          "//conditions:default": ["-std=c++2a"],
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
+          "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
   visibility = ["//visibility:public"], 
 )
