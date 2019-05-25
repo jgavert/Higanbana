@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/test_main/src",
+                "${workspaceFolder}/core/src",
+                "${workspaceFolder}/graphics/src",
+                "${workspaceFolder}/ext/dxc-bin/include",
+                "C:/VulkanSDK/1.1.106.0/Include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "FAZE_PLATFORM_WINDOWS",
+                "WIN32"
+            ],
+            "windowsSdkVersion": "10.0.17763.0",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.20.27508/bin/Hostx64/x64/cl.exe",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 4
+}

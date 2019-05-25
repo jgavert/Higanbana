@@ -97,7 +97,7 @@ namespace faze
       superSimple += "\n\n[RootSignature(ROOTSIG)]\n";
       if (info.desc.type == ShaderType::Compute)
       {
-        superSimple += "[numthreads(FAZE_THREADGROUP_X, FAZE_THREADGROUP_Y, FAZE_THREADGROUP_Z)]\n";
+        superSimple += "[numthreads(FAZE_THREADGROUP_X, FAZE_THREADGROUP_Y, FAZE_THREADGROUP_Z)] // @nolint\n";
       }
       superSimple += "void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)\n{ \n\n\n}\n";
       m_fs.writeFile(shaderPath, makeByteView(superSimple.data(), superSimple.size()));
