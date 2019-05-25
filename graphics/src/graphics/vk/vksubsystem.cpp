@@ -5,10 +5,10 @@
 #include "core/global_debug.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
-	VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
-	const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-	void*                                            /*pUserData*/)
+  VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+  VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+  void*                                            /*pUserData*/)
 {
   // Supressing unnecessary log messages.
 
@@ -16,15 +16,15 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   bool breakOn = false;
   if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
   {
-	  msgType = "GENERAL ";
+    msgType = "GENERAL ";
   }
   else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
   {
-	  msgType = "PERFORMANCE ";
+    msgType = "PERFORMANCE ";
   }
   else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
   {
-	  msgType = "VALIDATION ";
+    msgType = "VALIDATION ";
   }
 
   if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
@@ -43,7 +43,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
   {
-	  msgType += "Info: ";
+    msgType += "Info: ";
   }
 
   if (!breakOn)
@@ -70,9 +70,9 @@ namespace faze
     VulkanSubsystem::VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
       : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
       , m_instance(new vk::Instance, [=](vk::Instance* ist)
-    {
-      (*ist).destroy(&m_alloc_info);
-    })
+        {
+          (*ist).destroy(&m_alloc_info);
+        })
     {
       /////////////////////////////////
       // getting debug layers
@@ -80,13 +80,13 @@ namespace faze
       auto layersInfos = vk::enumerateInstanceLayerProperties();
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
-      
+
       GFX_ILOG("Available layers for instance:");
       for (auto&& it : layersInfos)
       {
         GFX_ILOG("\t\t%s", it.layerName);
       }
-      
+
 #endif
 
       std::vector<const char*> layers;
@@ -95,10 +95,10 @@ namespace faze
         GFX_ILOG("Enabled Vulkan debug layers:");
         for (auto&& it : layerOrder)
         {
-          auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties& layer)
-          {
-            return it == layer.layerName;
-          });
+          auto found = std::find_if(layersInfos.begin(), layersInfos.end(), [&](const vk::LayerProperties & layer)
+            {
+              return it == layer.layerName;
+            });
           if (found != layersInfos.end())
           {
             layers.push_back(it.c_str());
@@ -116,13 +116,13 @@ namespace faze
       std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
-      
+
       GFX_ILOG("Available extensions for instance:");
       for (auto&& it : extInfos)
       {
         GFX_ILOG("\t\t%s", it.extensionName);
       }
-      
+
 #endif
 
       std::vector<const char*> extensions;
@@ -132,10 +132,10 @@ namespace faze
 
         for (auto&& it : extOrder)
         {
-          auto found = std::find_if(extInfos.begin(), extInfos.end(), [&](const vk::ExtensionProperties& layer)
-          {
-            return it == layer.extensionName;
-          });
+          auto found = std::find_if(extInfos.begin(), extInfos.end(), [&](const vk::ExtensionProperties & layer)
+            {
+              return it == layer.extensionName;
+            });
           if (found != extInfos.end())
           {
             extensions.push_back(it.c_str());
@@ -177,10 +177,10 @@ namespace faze
       m_devices = m_instance->enumeratePhysicalDevices();
 
       // get addresses for few functions
-	  PFN_vkCreateDebugUtilsMessengerEXT dbgCreateDebugUtilsCallback;
+      PFN_vkCreateDebugUtilsMessengerEXT dbgCreateDebugUtilsCallback;
       PFN_vkDestroyDebugUtilsMessengerEXT dbgDestroyDebugUtilsCallback;
 
-	  dbgCreateDebugUtilsCallback =
+      dbgCreateDebugUtilsCallback =
         (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
           *m_instance, "vkCreateDebugUtilsMessengerEXT");
       if (!dbgCreateDebugUtilsCallback)
@@ -189,7 +189,7 @@ namespace faze
       }
       else
       {
-		  dbgDestroyDebugUtilsCallback =
+        dbgDestroyDebugUtilsCallback =
           (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
             *m_instance, "vkDestroyDebugUtilsMessengerEXT");
         if (!dbgDestroyDebugUtilsCallback)
@@ -197,20 +197,20 @@ namespace faze
           GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugUtilsMessengerEXT function.");
         }
         // the debug things
-		auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
-		auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
+        auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
+        auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
         vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
-			.setMessageSeverity(severityFlags)
-			.setMessageType(flags)
-			.setPfnUserCallback(debugCallbackNew);
+          .setMessageSeverity(severityFlags)
+          .setMessageType(flags)
+          .setPfnUserCallback(debugCallbackNew);
 
         auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
         auto allocInfo = m_alloc_info;
-        m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo, dbgDestroyDebugUtilsCallback](vk::DebugUtilsMessengerEXT* ist)
-        {
-			dbgDestroyDebugUtilsCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
-        });
-		dbgCreateDebugUtilsCallback(*m_instance, reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugUtilsMessengerEXT*>(m_debugcallback.get()));
+        m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo, dbgDestroyDebugUtilsCallback](vk::DebugUtilsMessengerEXT * ist)
+          {
+            dbgDestroyDebugUtilsCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
+          });
+        dbgCreateDebugUtilsCallback(*m_instance, reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugUtilsMessengerEXT*>(m_debugcallback.get()));
       }
     }
 
@@ -331,10 +331,10 @@ namespace faze
 
         for (auto&& it : devExtOrder)
         {
-          auto found = std::find_if(devExts.begin(), devExts.end(), [&](const vk::ExtensionProperties& layer)
-          {
-            return it == layer.extensionName;
-          });
+          auto found = std::find_if(devExts.begin(), devExts.end(), [&](const vk::ExtensionProperties & layer)
+            {
+              return it == layer.extensionName;
+            });
           if (found != devExts.end())
           {
             extensions.push_back(it.c_str());
@@ -392,11 +392,11 @@ namespace faze
 
       auto inst = m_instance;
 
-      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(surfacekhr), [inst](vk::SurfaceKHR* ist)
-      {
-        inst->destroySurfaceKHR(*ist);
-        delete ist;
-      });
+      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(surfacekhr), [inst](vk::SurfaceKHR * ist)
+        {
+          inst->destroySurfaceKHR(*ist);
+          delete ist;
+        });
 
       return GraphicsSurface(std::make_shared<VulkanGraphicsSurface>(khrSur));
     }
@@ -404,10 +404,10 @@ namespace faze
     GraphicsSurface VulkanSubsystem::createSurface(Window&)
     {
 
-      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(), [](vk::SurfaceKHR* ist)
-      {
-        delete ist;
-      });
+      std::shared_ptr<vk::SurfaceKHR> khrSur(new vk::SurfaceKHR(), [](vk::SurfaceKHR * ist)
+        {
+          delete ist;
+        });
 
       return GraphicsSurface(std::make_shared<VulkanGraphicsSurface>(khrSur));
     }

@@ -144,7 +144,7 @@ void mainWindow(ProgramParams& params)
   {
     bool reInit = false;
     int64_t frame = 1;
-    FileSystem fs;
+    FileSystem fs("/../../data");
     WTime time;
     WTime graphicsCpuTime;
     WTime CpuTime;

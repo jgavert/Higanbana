@@ -98,14 +98,30 @@ uint8_t* MemoryBlob::data()
 }
 
 FileSystem::FileSystem()
+  : m_resolvedFullPath(system_fs::path(system_fs::current_path().string()).string())
 {
   loadDirectoryContentsRecursive("");
+  auto fullPath = system_fs::current_path().string();
+  F_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
+}
+
+FileSystem::FileSystem(std::string relativeOffset)
+  : m_resolvedFullPath(system_fs::path(system_fs::current_path().string() + relativeOffset).string())
+{
+  loadDirectoryContentsRecursive("");
+  auto fullPath = getBasePath();
+  F_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
+}
+
+std::string FileSystem::getBasePath()
+{
+  return m_resolvedFullPath;
 }
 
 bool FileSystem::fileExists(std::string path)
 {
   std::lock_guard<std::mutex> guard(m_lock);
-  auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+  auto fullPath = system_fs::path(getBasePath() + path).string();
 #if defined(FAZE_PLATFORM_WINDOWS)
   std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
 #endif
@@ -144,7 +160,7 @@ bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
 void FileSystem::loadDirectoryContentsRecursive(std::string path)
 {
   std::lock_guard<std::mutex> guard(m_lock);
-  auto fullPath = system_fs::current_path().string() + path;
+  auto fullPath = getBasePath() + path;
   std::vector<std::string> files;
   getFilesRecursive(fullPath.c_str(), files);
   size_t allSize = 0;
@@ -161,7 +177,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
 void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func)
 {
   std::lock_guard<std::mutex> guard(m_lock);
-  const auto currentPath = system_fs::current_path().string();
+  const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
   std::vector<std::string> files;
   getFilesRecursive(fullPath.c_str(), files);
@@ -182,7 +198,7 @@ MemoryBlob FileSystem::readFile(std::string path)
   if (fileExists(path))
   {
     std::lock_guard<std::mutex> guard(m_lock);
-    auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+    auto fullPath = system_fs::path(getBasePath() + path).string();
     auto& file = m_files[fullPath];
     blob = MemoryBlob(file.data);
   }
@@ -195,7 +211,7 @@ faze::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
   if (fileExists(path))
   {
     std::lock_guard<std::mutex> guard(m_lock);
-    auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+    auto fullPath = system_fs::path(getBasePath() + path).string();
     view = faze::MemView<const uint8_t>(m_files[fullPath].data);
   }
   return view;
@@ -203,7 +219,7 @@ faze::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
 
 size_t FileSystem::timeModified(std::string path)
 {
-  auto fullPath = system_fs::path(system_fs::current_path().string() + path).string();
+  auto fullPath = system_fs::path(getBasePath() + path).string();
   return system_fs::last_write_time(fullPath).time_since_epoch().count();
 }
 
@@ -215,7 +231,7 @@ bool FileSystem::writeFile(std::string path, faze::MemView<const uint8_t> view)
 bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 {
   std::lock_guard<std::mutex> guard(m_lock);
-  auto fullPath = system_fs::path(system_fs::current_path().string() + path);
+  auto fullPath = system_fs::path(getBasePath() + path);
 
   std::vector<uint8_t> fdata(size);
   memcpy(fdata.data(), reinterpret_cast<const uint8_t*>(ptr), size);
@@ -263,7 +279,7 @@ WatchFile FileSystem::watchFile(std::string path)
   {
     std::lock_guard<std::mutex> guard(m_lock);
     WatchFile w = WatchFile(std::make_shared<std::atomic<bool>>());
-    auto fullPath = system_fs::current_path().string() + path;
+    auto fullPath = getBasePath() + path;
     std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
     m_watchedFiles[fullPath].push_back(w);
     return w;

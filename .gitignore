@@ -4,6 +4,8 @@ fbuild
 config.bff
 workspace/
 ext/
+externals/
+bazel-*
 package/
 app/external/imgui/
 

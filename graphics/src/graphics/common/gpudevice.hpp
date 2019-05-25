@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/common/resources.hpp"
+#include "graphics/common/device_data.hpp"
 #include "graphics/common/resource_descriptor.hpp"
 #include "graphics/common/buffer.hpp"
 #include "graphics/common/texture.hpp"

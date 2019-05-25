@@ -1,6 +1,6 @@
 #pragma once
 #include "graphics/common/backend.hpp"
-#include "graphics/common/resources.hpp"
+#include "graphics/common/subsystem_data.hpp"
 #include "graphics/common/graphicssurface.hpp"
 #include "core/Platform/Window.hpp"
 #include "core/datastructures/proxy.hpp"
