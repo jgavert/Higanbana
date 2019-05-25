@@ -76,8 +76,9 @@ namespace faze
       }
       return val;
     }
-    void insertSort(ShaderResource res)
+    void insertSort(const ShaderResource& res)
     {
+      #if 0
       auto findVal = calcOrder(res.type, res.readonly);
       auto iter = desc.sortedResources.begin();
       auto found = iter;
@@ -89,7 +90,10 @@ namespace faze
           break;
         }
       }
+      
       desc.sortedResources.insert(iter, res);
+      #endif
+      desc.sortedResources.push_back(res);
     }
   public:
 
