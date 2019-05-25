@@ -58,7 +58,7 @@ bld/
 [Oo]bj/
 
 # Visual Studo cache/options directory
-# .vs/
+.vs/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
