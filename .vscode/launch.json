@@ -13,7 +13,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/test_main",
             "environment": [],
-            "externalConsole": true
+            "externalConsole": true,
+            "preLaunchTask": "test main(bazel build)",
         }
     ]
 }

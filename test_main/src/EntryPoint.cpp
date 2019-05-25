@@ -1,4 +1,4 @@
-#include "core/Platform/EntryPoint.hpp"
+#include "core/platform/EntryPoint.hpp"
 #include "windowMain.hpp"
 
 int EntryPoint::main()
