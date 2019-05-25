@@ -68,7 +68,7 @@ namespace faze
       size_t timeModified;
       vector<uint8_t> data;
     };
-
+    std::string m_resolvedFullPath;
     faze::unordered_map<std::string, FileObj> m_files;
     faze::unordered_set<std::string> m_dirs;
 
@@ -79,8 +79,11 @@ namespace faze
     // 
     std::mutex m_lock;
 
+    std::string getBasePath();
+
   public:
     FileSystem();
+    FileSystem(std::string relativeOffset);
     bool fileExists(std::string path);
     MemoryBlob readFile(std::string path);
     faze::MemView<const uint8_t> viewToFile(std::string path);

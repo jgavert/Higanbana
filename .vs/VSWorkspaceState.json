@@ -4,14 +4,13 @@
     "\\graphics",
     "\\graphics\\src",
     "\\graphics\\src\\graphics",
+    "\\graphics\\src\\graphics\\common",
     "\\graphics\\src\\graphics\\dx12",
     "\\graphics\\src\\graphics\\dx12\\util",
     "\\graphics\\src\\graphics\\shaders",
     "\\graphics\\src\\graphics\\vk",
-    "\\graphics\\src\\graphics\\vk\\util",
-    "\\test_main",
-    "\\test_main\\src"
+    "\\graphics\\src\\graphics\\vk\\util"
   ],
-  "SelectedNode": "\\graphics\\src\\graphics\\dx12\\util\\dxDependencySolver.cpp",
+  "SelectedNode": "\\core",
   "PreviewInSolutionExplorer": false
 }

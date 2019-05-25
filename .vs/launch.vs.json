@@ -5,13 +5,14 @@
     {
       "name": "test_main",
       "project": "test_main\\BUILD",
-      "type": "native"
+      "type": "native",
+      "cwd": "\"${fileDirname}\\..\\..\\data\\\""
     },
     {
       "type": "native",
       "name": "test_main.exe",
-      "project": "bazel-bin\\test_main\\test_main.exe",
-      "cwd": "../../..",
+      "program": "bazel-bin/test_main/test_main.exe",
+      "cwd": "${fileDirname}../../data"
     }
   ]
 }
