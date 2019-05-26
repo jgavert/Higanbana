@@ -25,5 +25,15 @@ namespace faze
 
     // misc
     vk::PrimitiveTopology convertPrimitiveTopology(PrimitiveTopology topology);
+    vk::SampleCountFlags convertSamplecount(MultisampleCount count);
+
+    // pipeline parts
+    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc);
+    vk::PipelineColorBlendStateCreateInfo getBlendStateDesc(const BlendDescriptor& desc, const vector<vk::PipelineColorBlendAttachmentState>& attachments);
+
+    vk::PipelineRasterizationStateCreateInfo getRasterStateDesc(const RasterizerDescriptor& desc);
+    vk::PipelineDepthStencilStateCreateInfo getDepthStencilDesc(const DepthStencilDescriptor& desc);
+    vk::PipelineInputAssemblyStateCreateInfo getInputAssemblyDesc(const GraphicsPipelineDescriptor& desc);
+    vk::PipelineMultisampleStateCreateInfo getMultisampleDesc(const GraphicsPipelineDescriptor& desc);
   }
 }

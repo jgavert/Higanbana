@@ -823,13 +823,9 @@ namespace faze
       return newRP;
     }
 
-    vk::GraphicsPipelineCreateInfo getDesc(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
+    vk::GraphicsPipelineCreateInfo getDesc(GraphicsPipeline& pipeline)
     {
       GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
-
-      vk::PipelineTessellationStateCreateInfo tesselation;
-      
-      vk::PipelineMultisampleStateCreateInfo multisample;
       // vk::PipelineVertexInputStateCreateInfo vertexInput;
       // VertexInput is not supported in Faze, deemed to be old feature in compute age without benefits.
 /*
@@ -845,53 +841,38 @@ namespace faze
         const VkPipelineDynamicStateCreateInfo* pDynamicState;
 */
 
-      vector<vk::PipelineColorBlendAttachmentState> states(8);
-      for (int i = 0; i < 8; ++i)
-      {
-        auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
-        vk::PipelineColorBlendAttachmentState state;
-        state = state.setBlendEnable(rtb.blendEnable); // Is blending enabled for attachment
-        state = state.setSrcColorBlendFactor(convertBlend(rtb.srcBlend));
-        state = state.setDstColorBlendFactor(convertBlend(rtb.destBlend));
-        state = state.setColorBlendOp(convertBlendOp(rtb.blendOp));
-        state = state.setSrcAlphaBlendFactor(convertBlend(rtb.srcBlendAlpha));
-        state = state.setDstAlphaBlendFactor(convertBlend(rtb.destBlendAlpha));
-        state = state.setAlphaBlendOp(convertBlendOp(rtb.blendOpAlpha));
-        state = state.setColorWriteMask(convertColorWriteEnable(rtb.colorWriteEnable));
-        // differences to DX12
-        //desc.BlendState.RenderTarget[i].LogicOpEnable = rtb.logicOpEnable;
-        //desc.BlendState.RenderTarget[i].LogicOp = convertLogicOp(rtb.logicOp);
-        states[i] = state;
-      }
-
-      // vk::PipelineColorBlendAdvancedStateCreateInfoEXT advancedext;
-      // BlendState
+      auto blendAttachments = getBlendAttachments(d.blendDesc);
       // desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.alphaToCoverageEnable;
-      // desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.independentBlendEnable;
+      auto blendstate  = getBlendStateDesc(d.blendDesc, blendAttachments);
 
-      vk::PipelineColorBlendStateCreateInfo blendstate  = vk::PipelineColorBlendStateCreateInfo()
-      .setAttachmentCount(d.numRenderTargets)
-      .setPAttachments(states.data())
-      .setLogicOp(vk::LogicOp::eNoOp) // TODO: one logic for all attachments? difference to dx12
-      .setLogicOpEnable(false);
+      vk::PipelineRasterizationConservativeStateCreateInfoEXT conservative;
+      conservative = conservative.setConservativeRasterizationMode(convertConservativeRasterization(d.rasterDesc.desc.conservativeRaster));
 
       vk::PipelineRasterizationStateCreateInfo rasterState;
+      rasterState = rasterState.setPNext(&conservative);
       {
         // Rasterization
         auto& rd = d.rasterDesc.desc;
 
         F_ASSERT(rd.conservativeRaster != faze::ConservativeRasterization::On, "Conservative raster ext code not written.");
 
-
-        rasterState = vk::PipelineRasterizationStateCreateInfo()
-          .setDepthClampEnable(rd.depthBiasClamp)
+        rasterState = rasterState.setDepthClampEnable(rd.depthBiasClamp)
           .setRasterizerDiscardEnable(true)
-          .setPolygonMode(vk::PolygonMode::eFill)
+          .setPolygonMode(vk::PolygonMode::eLine)
           .setCullMode(convertCullMode(rd.cull))
-          .setFrontFace(vk::FrontFace::eCounterClockwise)
+          .setFrontFace(vk::FrontFace::eClockwise)
           .setDepthBiasEnable(bool(rd.depthBias))
           .setDepthBiasClamp(rd.depthBiasClamp)
           .setDepthBiasSlopeFactor(rd.slopeScaledDepthBias);
+
+        if (rd.fill == FillMode::Solid)
+        {
+          rasterState = rasterState.setPolygonMode(vk::PolygonMode::eFill);
+        }
+        if (rd.frontCounterClockwise)
+        {
+          rasterState = rasterState.setFrontFace(vk::FrontFace::eCounterClockwise);
+        }
           //.setDepthBiasConstantFactor(float(rd.depthBias))
       }
 /*
@@ -909,11 +890,49 @@ namespace faze
       }
       */
       vk::PipelineDynamicStateCreateInfo dynamicState;
+      {
+        // configure dynamic state
+        vector<vk::DynamicState> dynamicStates;
+        // basically doing what DX12 ... has as default so started with viewport and scissor
+        dynamicStates.push_back(vk::DynamicState::eViewport);
+        dynamicStates.push_back(vk::DynamicState::eScissor);
+        dynamicStates.push_back(vk::DynamicState::eDepthBounds);
+        dynamicState = dynamicState.setPDynamicStates(dynamicStates.data()).setDynamicStateCount(dynamicStates.size());
+
+      }
       vk::PipelineDepthStencilStateCreateInfo depthstencil;
-      /*
       {
         // DepthStencil
         auto& dss = d.dsdesc.desc;
+        /*
+        VkBool32 depthWriteEnable;
+        VkBool32 depthBoundsTestEnable;
+        float minDepthBounds;
+        float maxDepthBounds;
+        */
+        depthstencil = depthstencil.setDepthTestEnable(dss.depthEnable);
+        depthstencil = depthstencil.setDepthWriteEnable(dss.depthEnable); // TODO: separate written depth from testing
+        depthstencil = depthstencil.setDepthCompareOp(convertComparisonFunc(dss.depthFunc));
+        depthstencil = depthstencil.setDepthBoundsTestEnable(dss.depthEnable); // TODO: fix/expose
+        depthstencil = depthstencil.setStencilTestEnable(dss.stencilEnable);
+
+        /*
+        uint32_t compareMask; // TODO: figure out how these work
+        uint32_t writeMask;
+        uint32_t reference;
+        */
+        vk::StencilOpState front, back;
+        front = front.setFailOp(convertStencilOp(dss.frontFace.desc.failOp))
+          .setPassOp(convertStencilOp(dss.frontFace.desc.passOp))
+          .setDepthFailOp(convertStencilOp(dss.frontFace.desc.depthFailOp))
+          .setCompareOp(convertComparisonFunc(dss.frontFace.desc.stencilFunc));
+        back = back.setFailOp(convertStencilOp(dss.backFace.desc.failOp))
+          .setPassOp(convertStencilOp(dss.backFace.desc.passOp))
+          .setDepthFailOp(convertStencilOp(dss.backFace.desc.depthFailOp))
+          .setCompareOp(convertComparisonFunc(dss.backFace.desc.stencilFunc));
+        depthstencil = depthstencil.setFront(front);
+        depthstencil = depthstencil.setBack(back);
+      /*
         desc.DepthStencilState.DepthEnable = dss.depthEnable;
         desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
         desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
@@ -955,8 +974,30 @@ namespace faze
       // desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
       vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 
+      // multisample
+      /*
+      VkSampleCountFlagBits rasterizationSamples;
+      VkBool32 sampleShadingEnable;
+      float minSampleShading;
+      const VkSampleMask* pSampleMask;
+      VkBool32 alphaToCoverageEnable;
+      VkBool32 alphaToOneEnable;
+      */
+      vk::SampleMask sampleMask = 0;
+      vk::PipelineMultisampleStateCreateInfo multisample = vk::PipelineMultisampleStateCreateInfo()
+        .setRasterizationSamples(vk::SampleCountFlagBits::e1)
+        .setSampleShadingEnable(false)
+        .setMinSampleShading(0.f)
+        .setPSampleMask(&sampleMask)
+        .setAlphaToCoverageEnable(d.blendDesc.setAlphaToCoverageEnable)
+        .setAlphaToOneEnable(false);
       //desc.SampleDesc.Count = d.sampleCount;
       //desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
+
+      // tesselation
+      // vk::PipelineTessellationStateCreateInfo tesselation;
+      // number of control points per patch is configured here;
+
       vk::GraphicsPipelineCreateInfo desc{};
       desc = desc.setPColorBlendState(&blendstate);
       desc = desc.setPRasterizationState(&rasterState);
@@ -966,6 +1007,7 @@ namespace faze
 
     void VulkanDevice::updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass, gfxpacket::Subpass& subpass)
     {
+      /*
       auto hash = subpass.hash;
       bool missing = true;
 
@@ -991,7 +1033,7 @@ namespace faze
       if (ptr->needsUpdating())
       {
         F_LOG("updating pipeline for hash %zu\n", hash);
-        auto desc = getDesc(pipeline, subpass);
+        auto desc = getDesc(pipeline);
 
         GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
         vector<MemoryBlob> blobs;
@@ -1062,6 +1104,7 @@ namespace faze
         ComPtr<ID3D12PipelineState> pipe;
         FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
         */
+        /*
         auto pipe = m_device.createGraphicsPipeline(nullptr, desc);
 
         auto* natptr = static_cast<VulkanPipeline*>(ptr->pipeline.get());
@@ -1073,6 +1116,7 @@ namespace faze
         auto newPipe = createPipeline(pipeline.descriptor);
 
         pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
+        */
       }
     }
 

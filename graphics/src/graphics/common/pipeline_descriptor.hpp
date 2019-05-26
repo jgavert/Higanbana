@@ -108,14 +108,14 @@ namespace faze
     struct Desc
     {
       bool blendEnable = false;
-      bool logicOpEnable = false;
+      //bool logicOpEnable = false;
       Blend srcBlend = Blend::One;
       Blend destBlend = Blend::Zero;
       BlendOp blendOp = BlendOp::Add;
       Blend srcBlendAlpha = Blend::One;
       Blend destBlendAlpha = Blend::Zero;
       BlendOp blendOpAlpha = BlendOp::Add;
-      LogicOp logicOp = LogicOp::Noop;
+      //LogicOp logicOp = LogicOp::Noop;
       unsigned int colorWriteEnable = ColorWriteEnable::All;
     } desc;
 
@@ -127,11 +127,12 @@ namespace faze
       desc.blendEnable = value;
       return *this;
     }
+    /*
     RTBlendDescriptor& setLogicOpEnable(bool value)
     {
       desc.logicOpEnable = value;
       return *this;
-    }
+    }*/
     RTBlendDescriptor& setSrcBlend(Blend value)
     {
       desc.srcBlend = value;
@@ -162,11 +163,12 @@ namespace faze
       desc.blendOpAlpha = value;
       return *this;
     }
+    /*
     RTBlendDescriptor& setLogicOp(LogicOp value)
     {
       desc.logicOp = value;
       return *this;
-    }
+    }*/
     RTBlendDescriptor& setColorWriteEnable(ColorWriteEnable value)
     {
       desc.colorWriteEnable = value;
@@ -406,6 +408,17 @@ namespace faze
     Patch
   };
 
+  enum class MultisampleCount
+  {
+    s1 = 1,
+    s2 = 2,
+    s4 = 4,
+    s8 = 8,
+    s16 = 16,
+    s32 = 32,
+    s64 = 64
+  };
+
   class BlendDescriptor
   {
   public:
@@ -413,6 +426,8 @@ namespace faze
     {
       bool alphaToCoverageEnable = false;
       bool independentBlendEnable = false;
+      bool logicOpEnabled = false;
+      LogicOp logicOp = LogicOp::Noop;
       std::array<RTBlendDescriptor, 8> renderTarget;
     } desc;
 
@@ -428,6 +443,16 @@ namespace faze
     BlendDescriptor& setIndependentBlendEnable(bool value)
     {
       desc.independentBlendEnable = value;
+      return *this;
+    }
+    BlendDescriptor& setLogicOp(LogicOp value)
+    {
+      desc.logicOp = value;
+      return *this;
+    }
+    BlendDescriptor& setLogicOpEnable(bool value)
+    {
+      desc.logicOpEnabled = value;
       return *this;
     }
     BlendDescriptor& setRenderTarget(unsigned int index, RTBlendDescriptor value)
