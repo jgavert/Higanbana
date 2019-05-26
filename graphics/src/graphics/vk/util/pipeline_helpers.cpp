@@ -273,5 +273,157 @@ namespace faze
       }
       return vk::PrimitiveTopology::ePatchList;
     }
+
+    vk::SampleCountFlags convertSamplecount(MultisampleCount count)
+    {
+      switch (count)
+      {
+        case MultisampleCount::s1:
+          return vk::SampleCountFlagBits::e1;
+        case MultisampleCount::s2:
+          return vk::SampleCountFlagBits::e2;
+        case MultisampleCount::s4:
+          return vk::SampleCountFlagBits::e4;
+        case MultisampleCount::s8:
+          return vk::SampleCountFlagBits::e8;
+        case MultisampleCount::s16:
+          return vk::SampleCountFlagBits::e16;
+        case MultisampleCount::s32:
+          return vk::SampleCountFlagBits::e32;
+        case MultisampleCount::s64:
+        default:
+          break;
+      }
+      return vk::SampleCountFlagBits::e64 
+    }
+
+    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc)
+    {
+      vector<vk::PipelineColorBlendAttachmentState> states(8);
+      for (int i = 0; i < 8; ++i)
+      {
+        auto& rtb = desc.desc.renderTarget[i].desc;
+        vk::PipelineColorBlendAttachmentState state;
+        state = state.setBlendEnable(rtb.blendEnable); // Is blending enabled for attachment
+        state = state.setSrcColorBlendFactor(convertBlend(rtb.srcBlend));
+        state = state.setDstColorBlendFactor(convertBlend(rtb.destBlend));
+        state = state.setColorBlendOp(convertBlendOp(rtb.blendOp));
+        state = state.setSrcAlphaBlendFactor(convertBlend(rtb.srcBlendAlpha));
+        state = state.setDstAlphaBlendFactor(convertBlend(rtb.destBlendAlpha));
+        state = state.setAlphaBlendOp(convertBlendOp(rtb.blendOpAlpha));
+        state = state.setColorWriteMask(convertColorWriteEnable(rtb.colorWriteEnable));
+        // differences to DX12
+        //desc.BlendState.RenderTarget[i].LogicOpEnable = rtb.logicOpEnable;
+        //desc.BlendState.RenderTarget[i].LogicOp = convertLogicOp(rtb.logicOp);
+        states[i] = state;
+      }
+      return states;
+    }
+
+    vk::PipelineColorBlendStateCreateInfo getBlendStateDesc(const BlendDescriptor& desc, const vector<vk::PipelineColorBlendAttachmentState>& attachments)
+    {
+      vk::PipelineColorBlendStateCreateInfo blendstate  = vk::PipelineColorBlendStateCreateInfo()
+      .setAttachmentCount(attachments.size())
+      .setPAttachments(attachments.data())
+      .setLogicOp(convertLogicOp(d.blendDesc.desc.logicOp))
+      .setLogicOpEnable(d.blendDesc.desc.logicOpEnabled);
+      return blendstate;
+    }
+
+    vk::PipelineRasterizationStateCreateInfo getRasterStateDesc(const RasterizerDescriptor& desc)
+    {
+      vk::PipelineRasterizationStateCreateInfo rasterState;
+      {
+        // Rasterization
+        auto& rd = desc.desc;
+        F_ASSERT(rd.conservativeRaster != faze::ConservativeRasterization::On, "Conservative raster ext code not written.");
+        rasterState = rasterState.setDepthClampEnable(rd.depthBiasClamp)
+          .setRasterizerDiscardEnable(true)
+          .setPolygonMode(vk::PolygonMode::eLine)
+          .setCullMode(convertCullMode(rd.cull))
+          .setFrontFace(vk::FrontFace::eClockwise)
+          .setDepthBiasEnable(bool(rd.depthBias))
+          .setDepthBiasClamp(rd.depthBiasClamp)
+          .setDepthBiasSlopeFactor(rd.slopeScaledDepthBias);
+
+        if (rd.fill == FillMode::Solid)
+        {
+          rasterState = rasterState.setPolygonMode(vk::PolygonMode::eFill);
+        }
+        if (rd.frontCounterClockwise)
+        {
+          rasterState = rasterState.setFrontFace(vk::FrontFace::eCounterClockwise);
+        }
+          //.setDepthBiasConstantFactor(float(rd.depthBias))
+      }
+      return rasterState;
+    }
+/*
+        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
+        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
+        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
+        desc.RasterizerState.DepthBias = rd.depthBias;
+        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
+        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
+        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
+        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
+        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
+        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
+        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
+      }
+      */
+     vk::PipelineDepthStencilStateCreateInfo getDepthStencilDesc(const DepthStencilDescriptor& desc)
+     {
+      vk::PipelineDepthStencilStateCreateInfo depthstencil;
+      {
+        // DepthStencil
+        auto& dss = d.dsdesc.desc;
+        /*
+        VkBool32 depthWriteEnable;
+        VkBool32 depthBoundsTestEnable;
+        float minDepthBounds;
+        float maxDepthBounds;
+        */
+        depthstencil = depthstencil.setDepthTestEnable(dss.depthEnable);
+        depthstencil = depthstencil.setDepthWriteEnable(dss.depthEnable); // TODO: separate written depth from testing
+        depthstencil = depthstencil.setDepthCompareOp(convertComparisonFunc(dss.depthFunc));
+        depthstencil = depthstencil.setDepthBoundsTestEnable(dss.depthEnable); // TODO: fix/expose
+        depthstencil = depthstencil.setStencilTestEnable(dss.stencilEnable);
+
+        /*
+        uint32_t compareMask; // TODO: figure out how these work
+        uint32_t writeMask;
+        uint32_t reference;
+        */
+        vk::StencilOpState front, back;
+        front = front.setFailOp(convertStencilOp(dss.frontFace.desc.failOp))
+          .setPassOp(convertStencilOp(dss.frontFace.desc.passOp))
+          .setDepthFailOp(convertStencilOp(dss.frontFace.desc.depthFailOp))
+          .setCompareOp(convertComparisonFunc(dss.frontFace.desc.stencilFunc));
+        back = back.setFailOp(convertStencilOp(dss.backFace.desc.failOp))
+          .setPassOp(convertStencilOp(dss.backFace.desc.passOp))
+          .setDepthFailOp(convertStencilOp(dss.backFace.desc.depthFailOp))
+          .setCompareOp(convertComparisonFunc(dss.backFace.desc.stencilFunc));
+        depthstencil = depthstencil.setFront(front);
+        depthstencil = depthstencil.setBack(back);
+      }
+      return depthstencil;
+     }
+    vk::PipelineInputAssemblyStateCreateInfo getInputAssemblyDesc(const GraphicsPipelineDescriptor& desc)
+    {
+      vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
+      inputAssembly = inputAssembly.setPrimitiveRestartEnable(false);
+      inputAssembly = inputAssembly.setTopology(convertPrimitiveTopology(desc.desc.primitiveTopology));
+      return inputAssembly;
+    }
+    vk::PipelineMultisampleStateCreateInfo getMultisampleDesc(const GraphicsPipelineDescriptor& desc)
+    {
+      return vk::PipelineMultisampleStateCreateInfo()
+        .setRasterizationSamples(vk::SampleCountFlagBits::e1)
+        .setSampleShadingEnable(false)
+        .setMinSampleShading(0.f)
+        .setAlphaToCoverageEnable(d.blendDesc.setAlphaToCoverageEnable)
+        .setAlphaToOneEnable(false);
+    }
   }
 }
