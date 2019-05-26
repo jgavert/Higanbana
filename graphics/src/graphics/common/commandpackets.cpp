@@ -20,8 +20,6 @@ namespace faze
         return "RenderpassBegin";
       case backend::CommandPacket::PacketType::RenderpassEnd:
         return "RenderpassEnd";
-      case backend::CommandPacket::PacketType::Subpass:
-        return "Subpass";
       case backend::CommandPacket::PacketType::GraphicsPipelineBind:
         return "GraphicsPipelineBind";
       case backend::CommandPacket::PacketType::ComputePipelineBind:

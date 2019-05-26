@@ -60,7 +60,7 @@ namespace faze
       return dmaList;
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Subpass& packet)
+    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::RenderpassBegin& packet)
     {
       // set viewport and rendertargets
       uint2 size;
@@ -383,7 +383,7 @@ namespace faze
       {
         if (!subpassCommandsHandled)
         {
-          auto& ref = packetRef(gfxpacket::Subpass, subpass);
+          auto& ref = packetRef(gfxpacket::RenderpassBegin, subpass);
           for (auto&& rtv : ref.rtvs)
           {
             if (rtv.loadOp() == LoadOp::Clear)
@@ -487,10 +487,10 @@ namespace faze
           drawIndex++;
           break;
         }
-        case CommandPacket::PacketType::Subpass:
+        case CommandPacket::PacketType::RenderpassBegin:
         {
-          currentActiveSubpassHash = (packetRef(gfxpacket::Subpass, packet)).hash;
-          handle(buffer, packetRef(gfxpacket::Subpass, packet));
+          currentActiveSubpassHash = (packetRef(gfxpacket::RenderpassBegin, packet)).hash;
+          handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
           subpass = packet;
           subpassCommandsHandled = false;
           break;
@@ -614,7 +614,7 @@ namespace faze
     {
       int drawIndex = 0;
 
-      CommandPacket* subpass = nullptr;
+      CommandPacket* renderpass = nullptr;
 
       for (CommandPacket* packet : list)
       {
@@ -676,9 +676,9 @@ namespace faze
           solver->addResource(drawIndex, p.rtv.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
           break;
         }
-        case CommandPacket::PacketType::Subpass:
+        case CommandPacket::PacketType::RenderpassBegin:
         {
-          subpass = packet;
+          renderpass = packet;
           break;
         }
         case CommandPacket::PacketType::ResourceBinding:
@@ -690,8 +690,8 @@ namespace faze
 
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
-            F_ASSERT(subpass, "nullptr");
-            auto& s = packetRef(gfxpacket::Subpass, subpass);
+            F_ASSERT(renderpass, "nullptr");
+            auto& s = packetRef(gfxpacket::RenderpassBegin, renderpass);
             for (auto&& it : s.rtvs)
             {
               solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -752,15 +752,15 @@ namespace faze
 
     void DX12CommandList::processRenderpasses(DX12Device* dev, backend::IntermediateList& list)
     {
-      gfxpacket::Subpass* activeSubpass = nullptr;
+      gfxpacket::RenderpassBegin* activeRenderpass = nullptr;
 
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
         {
-        case CommandPacket::PacketType::Subpass:
+        case CommandPacket::PacketType::RenderpassBegin:
         {
-          activeSubpass = packetPtr(gfxpacket::Subpass, packet);
+          activeRenderpass = packetPtr(gfxpacket::RenderpassBegin, packet);
           break;
         }
         case CommandPacket::PacketType::ComputePipelineBind:
@@ -772,8 +772,8 @@ namespace faze
         case CommandPacket::PacketType::GraphicsPipelineBind:
         {
           auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, packet);
-          F_ASSERT(activeSubpass, "nullptr");
-          dev->updatePipeline(ref.pipeline, *activeSubpass);
+          F_ASSERT(activeRenderpass, "nullptr");
+          dev->updatePipeline(ref.pipeline, *activeRenderpass);
           break;
         }
         default:

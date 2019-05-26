@@ -484,18 +484,18 @@ void mainWindow(ProgramParams& params)
             node.acquirePresentableImage(swapchain);
             float redcolor = std::sin(time.getFTime())*.5f + .5f;
             node.clearRT(backbuffer, float4{ redcolor, 0.f, 0.f, 0.f });
-            node.renderpass(triangleRP);
-            node.subpass(backbuffer);
-            auto binding = node.bind(triangle);
+            node.renderpass(triangleRP, backbuffer);
+            {
+              auto binding = node.bind(triangle);
 
-            PixelConstants consts{};
-            consts.time = time.getFTime();
-            consts.resx = backbuffer.desc().desc.width;
-            consts.resy = backbuffer.desc().desc.height;
+              PixelConstants consts{};
+              consts.time = time.getFTime();
+              consts.resx = backbuffer.desc().desc.width;
+              consts.resy = backbuffer.desc().desc.height;
+              binding.constants(consts);
 
-            binding.constants(consts);
-
-            node.draw(binding, 3);
+              node.draw(binding, 3);
+            }
             node.endRenderpass();
 
 			      tasks.addPass(std::move(node));

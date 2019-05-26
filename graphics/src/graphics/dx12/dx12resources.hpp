@@ -1139,7 +1139,7 @@ namespace faze
       D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
 
-      void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass);
+      void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass);
       void updatePipeline(ComputePipeline& pipeline);
 
       // impl

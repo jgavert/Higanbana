@@ -24,7 +24,6 @@ namespace faze
     CommandList list;
     std::string name;
     friend struct backend::DeviceData;
-    int subpassIndex = 0;
     NodeType type;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
@@ -85,33 +84,24 @@ namespace faze
       preparesPresent = true;
     }
 
-    void renderpass(Renderpass& pass)
+    // starting another subpass will end the last one.
+    // collecting the dependencies here.
+    // refactoring later if too cubersome.
+    void renderpass(Renderpass& pass, TextureRTV& rtv)
     {
-      subpassIndex = 0;
-      list.renderpass(pass);
+      list.renderpass(pass, {rtv}, {});
+    }
+    int renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
+    {
+      list.renderpass(pass, {rtv}, {dsv});
+    }
+    int renderpass(Renderpass& pass, TextureDSV& dsv)
+    {
+      list.renderpass(pass, {}, {dsv});
     }
     void endRenderpass()
     {
       list.renderpassEnd();
-    }
-
-    // starting another subpass will end the last one.
-    // collecting the dependencies here.
-    // refactoring later if too cubersome.
-    int subpass(TextureRTV& rtv, MemView<int> deps = {})
-    {
-      list.subpass(deps, { rtv }, {  });
-      return subpassIndex++;
-    }
-    int subpass(TextureRTV& rtv, TextureDSV& dsv, MemView<int> deps = {})
-    {
-      list.subpass(deps, { rtv }, { dsv });
-      return subpassIndex++;
-    }
-    int subpass(TextureDSV& dsv, MemView<int> deps = {})
-    {
-      list.subpass(deps, {}, { dsv });
-      return subpassIndex++;
     }
 
     // bindings

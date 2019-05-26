@@ -68,19 +68,14 @@ namespace faze
       list.insert<gfxpacket::PrepareForQueueSwitch>(deps);
     }
 
-    void renderpass(Renderpass& pass)
+    void renderpass(Renderpass& pass, MemView<TextureRTV> rtvs, MemView<TextureDSV> dsvs)
     {
-      list.insert<gfxpacket::RenderpassBegin>(pass);
+      list.insert<gfxpacket::RenderpassBegin>(pass, rtvs, dsvs);
     }
 
     void renderpassEnd()
     {
       list.insert<gfxpacket::RenderpassEnd>();
-    }
-
-    void subpass(MemView<int> deps, MemView<TextureRTV> rtvs, MemView<TextureDSV> dsvs)
-    {
-      list.insert<gfxpacket::Subpass>(deps, rtvs, dsvs);
     }
 
     void bindPipeline(GraphicsPipeline& pipeline)

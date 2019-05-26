@@ -33,7 +33,6 @@ namespace faze
         PrepareForPresent,
         RenderpassBegin,
         RenderpassEnd,
-        Subpass,
         GraphicsPipelineBind,
         ComputePipelineBind,
         ResourceBinding,
