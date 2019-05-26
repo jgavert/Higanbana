@@ -29,7 +29,7 @@ namespace faze
   class GraphicsPipeline
   {
   public:
-    GraphicsPipelineDescriptor::Desc descriptor;
+    GraphicsPipelineDescriptor descriptor;
 
     struct FullPipeline
     {
@@ -64,7 +64,7 @@ namespace faze
     {}
 
     GraphicsPipeline(GraphicsPipelineDescriptor desc)
-      : descriptor(desc.desc)
+      : descriptor(desc)
       , m_pipelines(std::make_shared<vector<FullPipeline>>())
     {}
   };

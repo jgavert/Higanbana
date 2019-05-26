@@ -1,6 +1,7 @@
 #include "graphics/vk/vkresources.hpp"
 #include "graphics/vk/util/formats.hpp"
 #include "graphics/common/graphicssurface.hpp"
+#include "graphics/vk/util/pipeline_helpers.hpp"
 #include "core/system/bitpacking.hpp"
 #include "core/global_debug.hpp"
 
@@ -822,39 +823,259 @@ namespace faze
       return newRP;
     }
 
-    void VulkanDevice::updatePipeline(GraphicsPipeline& pipe, vk::RenderPass, gfxpacket::Subpass&)
+    vk::GraphicsPipelineCreateInfo getDesc(GraphicsPipeline& pipeline, gfxpacket::Subpass& subpass)
     {
-      auto d = pipe.descriptor;
-      if (!d.vertexShaderPath.empty())
+      GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
+
+      vk::PipelineTessellationStateCreateInfo tesselation;
+      
+      vk::PipelineMultisampleStateCreateInfo multisample;
+      // vk::PipelineVertexInputStateCreateInfo vertexInput;
+      // VertexInput is not supported in Faze, deemed to be old feature in compute age without benefits.
+/*
+        const VkPipelineShaderStageCreateInfo* pStages;
+        const VkPipelineVertexInputStateCreateInfo* pVertexInputState;
+        const VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState;
+        const VkPipelineTessellationStateCreateInfo* pTessellationState;
+        const VkPipelineViewportStateCreateInfo* pViewportState;
+        const VkPipelineRasterizationStateCreateInfo* pRasterizationState;
+        const VkPipelineMultisampleStateCreateInfo* pMultisampleState;
+        const VkPipelineDepthStencilStateCreateInfo* pDepthStencilState;
+        const VkPipelineColorBlendStateCreateInfo* pColorBlendState;
+        const VkPipelineDynamicStateCreateInfo* pDynamicState;
+*/
+
+      vector<vk::PipelineColorBlendAttachmentState> states(8);
+      for (int i = 0; i < 8; ++i)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Pixel, d.layout));
-        //m_device.destroyShaderModule(shader);
+        auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
+        vk::PipelineColorBlendAttachmentState state;
+        state = state.setBlendEnable(rtb.blendEnable); // Is blending enabled for attachment
+        state = state.setSrcColorBlendFactor(convertBlend(rtb.srcBlend));
+        state = state.setDstColorBlendFactor(convertBlend(rtb.destBlend));
+        state = state.setColorBlendOp(convertBlendOp(rtb.blendOp));
+        state = state.setSrcAlphaBlendFactor(convertBlend(rtb.srcBlendAlpha));
+        state = state.setDstAlphaBlendFactor(convertBlend(rtb.destBlendAlpha));
+        state = state.setAlphaBlendOp(convertBlendOp(rtb.blendOpAlpha));
+        state = state.setColorWriteMask(convertColorWriteEnable(rtb.colorWriteEnable));
+        // differences to DX12
+        //desc.BlendState.RenderTarget[i].LogicOpEnable = rtb.logicOpEnable;
+        //desc.BlendState.RenderTarget[i].LogicOp = convertLogicOp(rtb.logicOp);
+        states[i] = state;
       }
 
-      if (!d.hullShaderPath.empty())
+      // vk::PipelineColorBlendAdvancedStateCreateInfoEXT advancedext;
+      // BlendState
+      // desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.alphaToCoverageEnable;
+      // desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.independentBlendEnable;
+
+      vk::PipelineColorBlendStateCreateInfo blendstate  = vk::PipelineColorBlendStateCreateInfo()
+      .setAttachmentCount(d.numRenderTargets)
+      .setPAttachments(states.data())
+      .setLogicOp(vk::LogicOp::eNoOp) // TODO: one logic for all attachments? difference to dx12
+      .setLogicOpEnable(false);
+
+      vk::PipelineRasterizationStateCreateInfo rasterState;
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
-        //m_device.destroyShaderModule(shader);
+        // Rasterization
+        auto& rd = d.rasterDesc.desc;
+
+        F_ASSERT(rd.conservativeRaster != faze::ConservativeRasterization::On, "Conservative raster ext code not written.");
+
+
+        rasterState = vk::PipelineRasterizationStateCreateInfo()
+          .setDepthClampEnable(rd.depthBiasClamp)
+          .setRasterizerDiscardEnable(true)
+          .setPolygonMode(vk::PolygonMode::eFill)
+          .setCullMode(convertCullMode(rd.cull))
+          .setFrontFace(vk::FrontFace::eCounterClockwise)
+          .setDepthBiasEnable(bool(rd.depthBias))
+          .setDepthBiasClamp(rd.depthBiasClamp)
+          .setDepthBiasSlopeFactor(rd.slopeScaledDepthBias);
+          //.setDepthBiasConstantFactor(float(rd.depthBias))
+      }
+/*
+        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
+        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
+        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
+        desc.RasterizerState.DepthBias = rd.depthBias;
+        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
+        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
+        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
+        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
+        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
+        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
+        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
+      }
+      */
+      vk::PipelineDynamicStateCreateInfo dynamicState;
+      vk::PipelineDepthStencilStateCreateInfo depthstencil;
+      /*
+      {
+        // DepthStencil
+        auto& dss = d.dsdesc.desc;
+        desc.DepthStencilState.DepthEnable = dss.depthEnable;
+        desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
+        desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
+        desc.DepthStencilState.StencilEnable = dss.stencilEnable;
+        desc.DepthStencilState.StencilReadMask = dss.stencilReadMask;
+        desc.DepthStencilState.StencilWriteMask = dss.stencilWriteMask;
+        desc.DepthStencilState.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
+        desc.DepthStencilState.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
+        desc.DepthStencilState.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
+        desc.DepthStencilState.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
+        desc.DepthStencilState.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
+        desc.DepthStencilState.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
+        desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
+        desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
+      }
+      // subpass things here
+      desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
+      for (size_t i = 0; i < subpass.rtvs.size(); ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(subpass.rtvs[i].format()).view;
+      }
+      desc.DSVFormat = (subpass.dsvs.size() == 0) ? DXGI_FORMAT_UNKNOWN : formatTodxFormat(subpass.dsvs[0].format()).view;
+      for (size_t i = subpass.rtvs.size(); i < 8; ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+      }
+      desc.SampleMask = UINT_MAX;
+      /*
+      desc.NumRenderTargets = d.numRenderTargets;
+      for (int i = 0; i < 8; ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+      }
+      desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
+      */
+
+      // Input assembly to specify 
+      // desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
+      // desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+      vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
+
+      //desc.SampleDesc.Count = d.sampleCount;
+      //desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
+      vk::GraphicsPipelineCreateInfo desc{};
+      desc = desc.setPColorBlendState(&blendstate);
+      desc = desc.setPRasterizationState(&rasterState);
+      desc = desc.setPDepthStencilState(&depthstencil);
+      return desc;
+    }
+
+    void VulkanDevice::updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass, gfxpacket::Subpass& subpass)
+    {
+      auto hash = subpass.hash;
+      bool missing = true;
+
+      GraphicsPipeline::FullPipeline* ptr = nullptr;
+
+      for (auto&& it : *pipeline.m_pipelines)
+      {
+        if (it.hash == hash)
+        {
+          missing = false;
+          ptr = &it;
+          break;
+        }
       }
 
-      if (!d.domainShaderPath.empty())
+      if (missing)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
-        //m_device.destroyShaderModule(shader);
+        pipeline.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
+        ptr = &pipeline.m_pipelines->back();
+        ptr->hash = hash;
       }
 
-      if (!d.geometryShaderPath.empty())
+      if (ptr->needsUpdating())
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
-        //m_device.destroyShaderModule(shader);
-      }
+        F_LOG("updating pipeline for hash %zu\n", hash);
+        auto desc = getDesc(pipeline, subpass);
 
-      if (!d.pixelShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
-        //m_device.destroyShaderModule(shader);
+        GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
+        vector<MemoryBlob> blobs;
+        if (!d.vertexShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+          blobs.emplace_back(shader);
+          // insert to pipeline description
+
+          if (ptr->vs.empty())
+          {
+            ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          }
+          ptr->vs.react();
+        }
+
+        if (!d.hullShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
+          blobs.emplace_back(shader);
+          // insert to pipeline description
+
+          if (ptr->hs.empty())
+          {
+            ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
+          }
+          ptr->hs.react();
+        }
+
+        if (!d.domainShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
+          blobs.emplace_back(shader);
+          // insert to pipeline description
+          if (ptr->ds.empty())
+          {
+            ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
+          }
+          ptr->ds.react();
+        }
+
+        if (!d.geometryShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
+          blobs.emplace_back(shader);
+          // insert to pipeline description
+          if (ptr->gs.empty())
+          {
+            ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+          }
+          ptr->gs.react();
+        }
+
+        if (!d.pixelShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
+          blobs.emplace_back(shader);
+          // insert to pipeline description
+          if (ptr->ps.empty())
+          {
+            ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
+          }
+          ptr->ps.react();
+        }
+
+         // D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+         /*
+        ComPtr<ID3D12PipelineState> pipe;
+        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+        */
+        auto pipe = m_device.createGraphicsPipeline(nullptr, desc);
+
+        auto* natptr = static_cast<VulkanPipeline*>(ptr->pipeline.get());
+        if (ptr->pipeline)
+        {
+          m_trash->pipelines.emplace_back(natptr->m_pipeline);
+          natptr->m_pipeline = pipe;
+        }
+        auto newPipe = createPipeline(pipeline.descriptor);
+
+        pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
       }
     }
+
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {
       auto sci = ShaderCreateInfo(pipe.descriptor.shader(), ShaderType::Compute, pipe.descriptor.layout)

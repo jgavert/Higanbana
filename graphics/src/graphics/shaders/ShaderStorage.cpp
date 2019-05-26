@@ -57,13 +57,24 @@ namespace faze
     {
       std::string superSimple = "#include \"" + info.desc.shaderName + ".if.hlsl\"\n";
       superSimple += "// this is trying to be ";
+      std::string inputOutput = "";
       switch (info.desc.type)
       {
       case ShaderType::Vertex:
         superSimple += "Vertex";
+        inputOutput = "struct VertexOut\n\
+{\n\
+  float2 uv : TEXCOORD0;\n\
+  float4 pos : SV_Position;\n\
+};\n";
         break;
       case ShaderType::Pixel:
         superSimple += "Pixel";
+        inputOutput = "struct VertexOut \
+{ \
+  float2 uv : TEXCOORD0; \
+  float4 pos : SV_Position; \
+};";
         break;
       case ShaderType::Compute:
         superSimple += "Compute";
@@ -81,12 +92,39 @@ namespace faze
         F_ASSERT(false, "Unknown ShaderType");
       }
       superSimple += " shader file.\n";
+
+      if (info.desc.type != ShaderType::Compute)
+      {
+        superSimple += inputOutput;
+      }
+
       superSimple += "\n\n[RootSignature(ROOTSIG)]\n";
       if (info.desc.type == ShaderType::Compute)
       {
         superSimple += "[numthreads(FAZE_THREADGROUP_X, FAZE_THREADGROUP_Y, FAZE_THREADGROUP_Z)] // @nolint\n";
+        superSimple += "void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)\n{ \n\n\n}\n";
       }
-      superSimple += "void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)\n{ \n\n\n}\n";
+      else
+      {
+        if (info.desc.type == ShaderType::Vertex)
+        {
+          superSimple += "VertexOut main(uint id: SV_VertexID)\n{ \n  VertexOut vtxOut;\n";
+          superSimple += "  vtxOut.pos.x = (id % 3 == 2) ?  1 : 0;\n";
+          superSimple += "  vtxOut.pos.y = (id % 3 == 1) ?  1 : 0;\n";
+          superSimple += "  vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;\n";
+          superSimple += "  vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;\n";
+          superSimple += "  return vtxOut;\n";
+          superSimple += "}\n";
+        }
+        else if (info.desc.type == ShaderType::Pixel)
+        {
+          superSimple += "float4 main(VertexOut input) : SV_TARGET\n{\n  return float4(input.uv, 0, 1);\n}\n";
+        }
+        else
+        {
+          F_ASSERT(false, "don't know what to generate :D");
+        }
+      }
       return superSimple;
     }
 

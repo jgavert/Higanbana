@@ -37,7 +37,7 @@ namespace faze
     lol += "#endif\n";
     lol += "\n";
 
-    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  DescriptorTable("; // , DescriptorTable()";
+    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  "; // , DescriptorTable()";
 
     {
       int uavC = 0, srvC = 0;
@@ -54,7 +54,7 @@ namespace faze
           }
           else
           {
-            lol += "\\\n    ";
+            lol += "DescriptorTable(\\\n    ";
           }
           
           if (currentMode)
@@ -88,8 +88,12 @@ namespace faze
         count++;
       }
       addTable();
+      if (madeATable)
+      {
+        lol += "),\\\n  ";
+      }
     }
-    lol += "),\\\n  StaticSampler(s0, "                   \
+    lol += "StaticSampler(s0, "                   \
     "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
     "\\\n  StaticSampler(s1, " 									        \
     "filter = FILTER_MIN_MAG_MIP_POINT), " 				\
