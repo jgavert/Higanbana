@@ -110,7 +110,7 @@ namespace faze
 
     vk::ColorComponentFlags convertColorWriteEnable(unsigned colorWrite)
     {
-      vk::ColorComponentFlags mask = 0;
+      vk::ColorComponentFlags mask;
       if ((colorWrite & ColorWriteEnable::Red) > 0)
       {
         mask |= vk::ColorComponentFlagBits::eR;
@@ -294,7 +294,7 @@ namespace faze
         default:
           break;
       }
-      return vk::SampleCountFlagBits::e64 
+      return vk::SampleCountFlagBits::e64; 
     }
 
     vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc)
@@ -325,8 +325,8 @@ namespace faze
       vk::PipelineColorBlendStateCreateInfo blendstate  = vk::PipelineColorBlendStateCreateInfo()
       .setAttachmentCount(attachments.size())
       .setPAttachments(attachments.data())
-      .setLogicOp(convertLogicOp(d.blendDesc.desc.logicOp))
-      .setLogicOpEnable(d.blendDesc.desc.logicOpEnabled);
+      .setLogicOp(convertLogicOp(desc.desc.logicOp))
+      .setLogicOpEnable(desc.desc.logicOpEnabled);
       return blendstate;
     }
 
@@ -377,7 +377,7 @@ namespace faze
       vk::PipelineDepthStencilStateCreateInfo depthstencil;
       {
         // DepthStencil
-        auto& dss = d.dsdesc.desc;
+        auto& dss = desc.desc;
         /*
         VkBool32 depthWriteEnable;
         VkBool32 depthBoundsTestEnable;
@@ -422,7 +422,7 @@ namespace faze
         .setRasterizationSamples(vk::SampleCountFlagBits::e1)
         .setSampleShadingEnable(false)
         .setMinSampleShading(0.f)
-        .setAlphaToCoverageEnable(d.blendDesc.setAlphaToCoverageEnable)
+        .setAlphaToCoverageEnable(desc.desc.blendDesc.desc.alphaToCoverageEnable)
         .setAlphaToOneEnable(false);
     }
   }

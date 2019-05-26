@@ -18,10 +18,10 @@ namespace faze
     vector<uint8_t> m_constants;
 
     Binding(GraphicsPipeline pipeline)
-    : m_resources(pipeline.descriptor.layout.desc.sortedResources)
+    : m_resources(pipeline.descriptor.desc.layout.desc.sortedResources)
     , m_views(m_resources.size())
     , m_res(m_resources.size())
-    , m_constants(pipeline.descriptor.layout.desc.constantsSizeOf)
+    , m_constants(pipeline.descriptor.desc.layout.desc.constantsSizeOf)
     {
 
     }

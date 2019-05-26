@@ -1,3 +1,5 @@
+#include "graphics/vk/vksubsystem.hpp"
+#include "graphics/vk/vkdevice.hpp"
 #include "graphics/common/gpudevice.hpp"
 #include "graphics/common/graphicssurface.hpp"
 #include "graphics/vk/vkresources.hpp"

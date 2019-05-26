@@ -1,4 +1,5 @@
 #include "graphics/vk/vkresources.hpp"
+#include "graphics/vk/vkdevice.hpp"
 #include "graphics/vk/util/VulkanDependencySolver.hpp"
 #include "core/datastructures/proxy.hpp"
 
@@ -26,234 +27,184 @@ namespace faze
         vector<vk::AttachmentReference> depthStencil;
         vk::AttachmentReference* boundDsv = nullptr;
         bool startedSubpass = false;
-        for (CommandPacket* current = begin; current != end; current = current->nextPacket())
+        startedSubpass = true;
+
+        auto& subpass = packetRef(gfxpacket::RenderpassBegin, begin);
+        // 1. find all the resources
+        for (auto&& it : subpass.rtvs)
         {
-          if (current->type() == CommandPacket::PacketType::Subpass)
+          auto* found = uidToAttachmendId.find(it.id());
+          if (found != uidToAttachmendId.end())
           {
-            if (startedSubpass)
+            colors.emplace_back(vk::AttachmentReference()
+              .setAttachment(found->second)
+              .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
+          }
+          else
+          {
+            auto attachmentId = static_cast<int>(attachments.size());
+            uidToAttachmendId[it.id()] = attachmentId;
+            colors.emplace_back(vk::AttachmentReference()
+              .setAttachment(attachmentId)
+              .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
+
+            auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
+
+            vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
+
+            if (it.loadOp() == LoadOp::Clear)
             {
-              subpasses.emplace_back(vk::SubpassDescription()
-                .setColorAttachmentCount(static_cast<int>(colors.size()) - colorsOffset)
-                .setPColorAttachments(colors.data() + colorsOffset)
-                .setPDepthStencilAttachment(boundDsv)
-                .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
-              colorsOffset = static_cast<int>(colors.size());
-              boundDsv = nullptr;
+              load = vk::AttachmentLoadOp::eClear;
             }
-            startedSubpass = true;
-
-            auto& subpass = packetRef(gfxpacket::Subpass, current);
-            // 1. find all the resources
-            for (auto&& it : subpass.rtvs)
+            else if (it.loadOp() == LoadOp::Load)
             {
-              auto* found = uidToAttachmendId.find(it.id());
-              if (found != uidToAttachmendId.end())
-              {
-                colors.emplace_back(vk::AttachmentReference()
-                  .setAttachment(found->second)
-                  .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-              }
-              else
-              {
-                auto attachmentId = static_cast<int>(attachments.size());
-                uidToAttachmendId[it.id()] = attachmentId;
-                colors.emplace_back(vk::AttachmentReference()
-                  .setAttachment(attachmentId)
-                  .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-                auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
-
-                vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
-
-                if (it.loadOp() == LoadOp::Clear)
-                {
-                  load = vk::AttachmentLoadOp::eClear;
-                }
-                else if (it.loadOp() == LoadOp::Load)
-                {
-                  load = vk::AttachmentLoadOp::eLoad;
-                }
-
-                vk::AttachmentStoreOp store = vk::AttachmentStoreOp::eDontCare;
-
-                if (it.storeOp() == StoreOp::Store)
-                {
-                  store = vk::AttachmentStoreOp::eStore;
-                }
-
-                attachments.emplace_back(vk::AttachmentDescription()
-                  .setFormat(view->native().format)
-                  .setSamples(vk::SampleCountFlagBits::e1)
-                  .setLoadOp(load)
-                  .setStoreOp(store)
-                  .setStencilLoadOp(load)
-                  .setStencilStoreOp(store)
-                  .setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                  .setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal));
-              }
+              load = vk::AttachmentLoadOp::eLoad;
             }
 
-            if (subpass.dsvs.size() > 0)
+            vk::AttachmentStoreOp store = vk::AttachmentStoreOp::eDontCare;
+
+            if (it.storeOp() == StoreOp::Store)
             {
-              auto& it = subpass.dsvs[0];
-              auto* found = uidToAttachmendId.find(it.id());
-              if (found != uidToAttachmendId.end())
-              {
-                depthStencil.emplace_back(vk::AttachmentReference()
-                  .setAttachment(found->second)
-                  .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
-                boundDsv = &depthStencil.back();
-              }
-              else
-              {
-                auto attachmentId = static_cast<int>(attachments.size());
-                uidToAttachmendId[it.id()] = attachmentId;
-                depthStencil.emplace_back(vk::AttachmentReference()
-                  .setAttachment(attachmentId)
-                  .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
-
-                auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
-
-                vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
-
-                if (it.loadOp() == LoadOp::Clear)
-                {
-                  load = vk::AttachmentLoadOp::eClear;
-                }
-                else if (it.loadOp() == LoadOp::Load)
-                {
-                  load = vk::AttachmentLoadOp::eLoad;
-                }
-
-                vk::AttachmentStoreOp store = vk::AttachmentStoreOp::eDontCare;
-
-                if (it.storeOp() == StoreOp::Store)
-                {
-                  store = vk::AttachmentStoreOp::eStore;
-                }
-
-                attachments.emplace_back(vk::AttachmentDescription()
-                  .setFormat(view->native().format)
-                  .setSamples(vk::SampleCountFlagBits::e1)
-                  .setLoadOp(load)
-                  .setStoreOp(store)
-                  .setStencilLoadOp(load)
-                  .setStencilStoreOp(store)
-                  .setInitialLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
-                  .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
-
-                boundDsv = &depthStencil.back();
-              }
+              store = vk::AttachmentStoreOp::eStore;
             }
 
-            // 2. dependencies
-            for (auto&& it : subpass.dependencies)
-            {
-              dependencies.emplace_back(vk::SubpassDependency()
-                .setSrcSubpass(static_cast<uint32_t>(it))
-                .setDstSubpass(static_cast<uint32_t>(subpassIndex))
-                .setSrcStageMask(vk::PipelineStageFlagBits::eAllCommands)
-                .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
-                .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite)
-                .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead));
-            }
-
-            subpassIndex++;
+            attachments.emplace_back(vk::AttachmentDescription()
+              .setFormat(view->native().format)
+              .setSamples(vk::SampleCountFlagBits::e1)
+              .setLoadOp(load)
+              .setStoreOp(store)
+              .setStencilLoadOp(load)
+              .setStencilStoreOp(store)
+              .setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
+              .setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal));
           }
         }
 
-        if (startedSubpass)
+        if (subpass.dsvs.size() > 0)
         {
-          // handle last subpass here with renderpass creation.
-          subpasses.emplace_back(vk::SubpassDescription()
-            .setColorAttachmentCount(static_cast<int>(colors.size()))
-            .setPColorAttachments(colors.data())
-            .setPDepthStencilAttachment(boundDsv)
-            .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
+          auto& it = subpass.dsvs[0];
+          auto* found = uidToAttachmendId.find(it.id());
+          if (found != uidToAttachmendId.end())
+          {
+            depthStencil.emplace_back(vk::AttachmentReference()
+              .setAttachment(found->second)
+              .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
+            boundDsv = &depthStencil.back();
+          }
+          else
+          {
+            auto attachmentId = static_cast<int>(attachments.size());
+            uidToAttachmendId[it.id()] = attachmentId;
+            depthStencil.emplace_back(vk::AttachmentReference()
+              .setAttachment(attachmentId)
+              .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
+
+            auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
+
+            vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
+
+            if (it.loadOp() == LoadOp::Clear)
+            {
+              load = vk::AttachmentLoadOp::eClear;
+            }
+            else if (it.loadOp() == LoadOp::Load)
+            {
+              load = vk::AttachmentLoadOp::eLoad;
+            }
+
+            vk::AttachmentStoreOp store = vk::AttachmentStoreOp::eDontCare;
+
+            if (it.storeOp() == StoreOp::Store)
+            {
+              store = vk::AttachmentStoreOp::eStore;
+            }
+
+            attachments.emplace_back(vk::AttachmentDescription()
+              .setFormat(view->native().format)
+              .setSamples(vk::SampleCountFlagBits::e1)
+              .setLoadOp(load)
+              .setStoreOp(store)
+              .setStencilLoadOp(load)
+              .setStencilStoreOp(store)
+              .setInitialLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+              .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
+
+            boundDsv = &depthStencil.back();
+          }
         }
+
+          // handle subpass here with renderpass creation.
+        subpasses.emplace_back(vk::SubpassDescription()
+          .setColorAttachmentCount(static_cast<int>(colors.size()))
+          .setPColorAttachments(colors.data())
+          .setPDepthStencilAttachment(boundDsv)
+          .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
 
         vk::RenderPassCreateInfo rpinfo = vk::RenderPassCreateInfo()
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()))
-          .setDependencyCount(static_cast<uint32_t>(dependencies.size()))
           .setSubpassCount(static_cast<uint32_t>(subpasses.size()))
           .setPAttachments(attachments.data())
-          .setPDependencies(dependencies.data())
           .setPSubpasses(subpasses.data());
 
         auto rpobj = device->createRenderpass(rpinfo);
 
         rp->native() = rpobj;
       }
-      // step2. compile used pipelines against the renderpass (lel, later)
-      // ugh! Maybe easy, maybe not...
+      // step2. compile used pipelines against the renderpass within begin/end packets
       {
-        CommandPacket* subpass = nullptr;
         for (CommandPacket* current = begin; current != end; current = current->nextPacket())
         {
-          if (current->type() == CommandPacket::PacketType::Subpass)
-          {
-            subpass = current;
-            continue;
-          }
-          else if (current->type() == CommandPacket::PacketType::GraphicsPipelineBind)
+          if (current->type() == CommandPacket::PacketType::GraphicsPipelineBind)
           {
             auto& ref = packetRef(gfxpacket::GraphicsPipelineBind, current);
-            F_ASSERT(subpass, "nullptr");
-            device->updatePipeline(ref.pipeline, *rp->native().get(), packetRef(gfxpacket::Subpass, subpass));
+            device->updatePipeline(ref.pipeline, *rp->native().get(), packetRef(gfxpacket::RenderpassBegin, begin));
             break;
           }
         }
       }
 
       // step3. collect and register framebuffer to renderpass
-
       unordered_map<int64_t, int> uidToAttachmendId;
       vector<vk::ImageView> attachments;
 
       int fbWidth = -1;
       int fbHeight = -1;
 
-      for (CommandPacket* current = begin; current != end; current = current->nextPacket())
-      {
-        if (current->type() == CommandPacket::PacketType::Subpass)
-        {
-          auto& subpass = packetRef(gfxpacket::Subpass, current);
+      auto& subpass = packetRef(gfxpacket::RenderpassBegin, begin);
 
-          for (auto&& it : subpass.rtvs)
+      for (auto&& it : subpass.rtvs)
+      {
+        auto* found = uidToAttachmendId.find(it.id());
+        if (found == uidToAttachmendId.end())
+        {
+          if (fbWidth == fbHeight && fbHeight == -1)
           {
-            auto* found = uidToAttachmendId.find(it.id());
-            if (found == uidToAttachmendId.end())
-            {
-              if (fbWidth == fbHeight && fbHeight == -1)
-              {
-                fbWidth = static_cast<int>(it.desc().desc.width);
-                fbHeight = static_cast<int>(it.desc().desc.height);
-              }
-              F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
-              auto attachmentId = static_cast<int>(attachments.size());
-              uidToAttachmendId[it.id()] = attachmentId;
-              auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
-              attachments.emplace_back(view->native().view);
-            }
+            fbWidth = static_cast<int>(it.desc().desc.width);
+            fbHeight = static_cast<int>(it.desc().desc.height);
           }
-          if (subpass.dsvs.size() > 0)
+          F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
+          auto attachmentId = static_cast<int>(attachments.size());
+          uidToAttachmendId[it.id()] = attachmentId;
+          auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
+          attachments.emplace_back(view->native().view);
+        }
+      }
+      if (subpass.dsvs.size() > 0)
+      {
+        // have dsv
+        auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
+        if (found == uidToAttachmendId.end())
+        {
+          if (fbWidth == fbHeight && fbHeight == -1)
           {
-            // have dsv
-            auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
-            if (found == uidToAttachmendId.end())
-            {
-              if (fbWidth == fbHeight && fbHeight == -1)
-              {
-                fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
-                fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
-              }
-              F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
-              auto attachmentId = static_cast<int>(attachments.size());
-              uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
-              auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
-              attachments.emplace_back(view->native().view);
-            }
+            fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
+            fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
           }
+          F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
+          auto attachmentId = static_cast<int>(attachments.size());
+          uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
+          auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
+          attachments.emplace_back(view->native().view);
         }
       }
 
