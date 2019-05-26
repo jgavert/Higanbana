@@ -104,6 +104,12 @@ STRUCT_DECL(kewl,
     int c;
 );
 
+STRUCT_DECL(PixelConstants,
+  float resx;
+  float resy;
+  float time;
+  int unused;
+);
 
 void mainWindow(ProgramParams& params)
 {
@@ -261,6 +267,22 @@ void mainWindow(ProgramParams& params)
         auto test2SRV = dev.createBufferSRV(buffer2);
         auto buffer3 = dev.createBuffer(bufferdesc3);
         auto testOut = dev.createBufferUAV(buffer3);
+
+        
+        auto babyInf = ShaderInputDescriptor()
+            .constants<PixelConstants>();
+
+        auto triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+          .setVertexShader("Triangle")
+          .setPixelShader("Triangle")
+          .setLayout(babyInf)
+          .setPrimitiveTopology(PrimitiveTopology::Triangle)
+          .setRTVFormat(0, swapchain.buffers()[0].format())
+          .setRenderTargetCount(1)
+          .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false)));
+
+        auto triangleRP = dev.createRenderpass();
 
         // end test decl
 
@@ -458,10 +480,28 @@ void mainWindow(ProgramParams& params)
 			      tasks.addPass(std::move(node));
           }
           {
-            auto node = tasks.createPass("clear");
+            auto node = tasks.createPass("Triangle");
             node.acquirePresentableImage(swapchain);
             float redcolor = std::sin(time.getFTime())*.5f + .5f;
             node.clearRT(backbuffer, float4{ redcolor, 0.f, 0.f, 0.f });
+            node.renderpass(triangleRP);
+            node.subpass(backbuffer);
+            auto binding = node.bind(triangle);
+
+            PixelConstants consts{};
+            consts.time = time.getFTime();
+            consts.resx = backbuffer.desc().desc.width;
+            consts.resy = backbuffer.desc().desc.height;
+
+            binding.constants(consts);
+
+            node.draw(binding, 3);
+            node.endRenderpass();
+
+			      tasks.addPass(std::move(node));
+          }
+          {
+            auto node = tasks.createPass("preparePresent");
 
             node.prepareForPresent(backbuffer);
             node.queryCounters([&](MemView<std::pair<std::string, double>> view)

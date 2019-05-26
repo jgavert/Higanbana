@@ -50,6 +50,13 @@ namespace faze
     }
 
   public:
+    template <typename T>
+    void constants(T consts)
+    {
+      m_constants.resize(sizeof(T));
+      memcpy(m_constants.data(), &consts, sizeof(T));
+    }
+
     void bind(const char* name, const DynamicBufferView& res)
     {
       int id = 0;

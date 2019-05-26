@@ -611,8 +611,8 @@ namespace faze
       GraphicsPipelineDescriptor::Desc d = pipeline.descriptor;
       {
         // BlendState
-        desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.alphaToCoverageEnable;
-        desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.independentBlendEnable;
+        desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
+        desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.alphaToCoverageEnable;
         for (int i = 0; i < 8; ++i)
         {
           auto& rtb = d.blendDesc.desc.renderTarget[i].desc;

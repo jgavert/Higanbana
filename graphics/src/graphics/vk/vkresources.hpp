@@ -674,6 +674,9 @@ namespace faze
         vector<vk::Buffer> buffers;
         vector<vk::ImageView> textureviews;
         vector<vk::BufferView> bufferviews;
+        vector<vk::Pipeline> pipelines;
+        vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+        vector<vk::PipelineLayout>      pipelineLayouts;
         vector<vk::DeviceMemory> heaps;
       };
 
