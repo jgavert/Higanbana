@@ -997,6 +997,7 @@ namespace faze
         m_device.destroyShaderModule(it.module);
       }
       natptr->m_pipeline = compiled;
+      natptr->m_hasPipeline = true;
 
       ptr->pipeline = pipeline;
       F_ILOG("Vulkan", "Pipeline compiled...");
@@ -1040,7 +1041,27 @@ namespace faze
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
         .setPSetLayouts(&setlayout));
-      return std::make_shared<VulkanPipeline>(setlayout, pipelineLayout);
+      //return std::make_shared<VulkanPipeline>(setlayout, pipelineLayout);
+      std::weak_ptr<Garbage> weak = m_trash;
+      return std::shared_ptr<VulkanPipeline>(new VulkanPipeline(setlayout, pipelineLayout),
+        [weak, dev = m_device](VulkanPipeline* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          if (ptr->m_hasPipeline)
+            trash->pipelines.push_back(ptr->m_pipeline);
+          trash->pipelineLayouts.push_back(ptr->m_pipelineLayout);
+          trash->descriptorSetLayouts.push_back(ptr->m_descriptorSetLayout);
+        }
+        else
+        {
+          if (ptr->m_hasPipeline)
+            dev.destroyPipeline(ptr->m_pipeline);
+          dev.destroyPipelineLayout(ptr->m_pipelineLayout);
+          dev.destroyDescriptorSetLayout(ptr->m_descriptorSetLayout);
+        }
+        delete ptr;
+      });
     }
 
     std::shared_ptr<prototypes::PipelineImpl> VulkanDevice::createPipeline(ComputePipelineDescriptor desc)
@@ -1055,7 +1076,26 @@ namespace faze
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
         .setPSetLayouts(&setlayout));
-      return std::make_shared<VulkanPipeline>(setlayout, pipelineLayout);
+      std::weak_ptr<Garbage> weak = m_trash;
+      return std::shared_ptr<VulkanPipeline>(new VulkanPipeline(setlayout, pipelineLayout),
+        [weak, dev = m_device](VulkanPipeline* ptr)
+      {
+        if (auto trash = weak.lock())
+        {
+          trash->descriptorSetLayouts.push_back(ptr->m_descriptorSetLayout);
+          trash->pipelineLayouts.push_back(ptr->m_pipelineLayout);
+          if (ptr->m_hasPipeline)
+            trash->pipelines.push_back(ptr->m_pipeline);
+        }
+        else
+        {
+          dev.destroyDescriptorSetLayout(ptr->m_descriptorSetLayout);
+          dev.destroyPipelineLayout(ptr->m_pipelineLayout);
+          if (ptr->m_hasPipeline)
+            dev.destroyPipeline(ptr->m_pipeline);
+        }
+        delete ptr;
+      });
     }
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags)
@@ -1150,6 +1190,9 @@ namespace faze
       m_trash->bufferviews.clear();
       m_trash->textureviews.clear();
       m_trash->heaps.clear();
+      m_trash->pipelines.clear();
+      m_trash->pipelineLayouts.clear();
+      m_trash->descriptorSetLayouts.clear();
 
       while (!m_collectableTrash.empty())
       {
@@ -1181,6 +1224,18 @@ namespace faze
         for (auto&& descriptor : it.second.heaps)
         {
           m_device.freeMemory(descriptor);
+        }
+        for (auto&& pipeline : it.second.pipelines)
+        {
+          m_device.destroyPipeline(pipeline);
+        }
+        for (auto&& pl : it.second.pipelineLayouts)
+        {
+          m_device.destroyPipelineLayout(pl);
+        }
+        for (auto&& descLayout : it.second.descriptorSetLayouts)
+        {
+          m_device.destroyDescriptorSetLayout(descLayout);
         }
 
         m_collectableTrash.pop_front();
