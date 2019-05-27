@@ -494,7 +494,8 @@ void mainWindow(ProgramParams& params)
             auto node = tasks.createPass("Triangle");
             node.acquirePresentableImage(swapchain);
             float redcolor = std::sin(time.getFTime())*.5f + .5f;
-            node.clearRT(backbuffer, float4{ redcolor, 0.f, 0.f, 0.f });
+
+            backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 0.f });
             node.renderpass(triangleRP, backbuffer);
             {
               auto binding = node.bind(triangle);
