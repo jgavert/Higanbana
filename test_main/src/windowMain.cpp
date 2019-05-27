@@ -454,6 +454,16 @@ void mainWindow(ProgramParams& params)
             window.toggleBorderlessFullscreen();
           }
 
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
+          {
+            reInit = true;
+            if (api == GraphicsApi::DX12)
+              api = GraphicsApi::Vulkan;
+            else
+              api = GraphicsApi::DX12;
+            break;
+          }
+
           if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
           {
             break;
@@ -537,7 +547,7 @@ void mainWindow(ProgramParams& params)
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
 
-  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
+  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, true); });
   lbs.sleepTillKeywords({ "test1" });
 
 #endif
