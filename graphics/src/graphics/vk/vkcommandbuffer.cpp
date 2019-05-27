@@ -219,6 +219,7 @@ namespace faze
       renderpassbegin.fbHeight = fbHeight;
 
       size_t attachmentsHash = HashMemory(attachments.data(), attachments.size());
+      attachmentsHash = hash_combine(hash_combine(HashMemory(&fbWidth, sizeof(fbWidth)),HashMemory(&fbHeight, sizeof(fbHeight))), attachmentsHash);
       auto& fbs = rp->framebuffers();
       auto* exists = fbs.find(attachmentsHash);
       if (exists == fbs.end())
