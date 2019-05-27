@@ -823,8 +823,184 @@ namespace faze
       return newRP;
     }
 
-    void VulkanDevice::updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass, gfxpacket::RenderpassBegin& subpass)
-    {}
+    void VulkanDevice::updatePipeline(GraphicsPipeline& pipelines, vk::RenderPass pass, gfxpacket::RenderpassBegin& subpass)
+    {
+      if (pipelines.m_pipelines->empty())
+      {
+        pipelines.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
+      }
+
+      GraphicsPipeline::FullPipeline* ptr = &pipelines.m_pipelines->front();
+      if (!ptr->needsUpdating())
+        return;
+
+      auto& desc = pipelines.descriptor;
+      // collect all pipeline parts first
+      auto pipeline = createPipeline(desc);
+      auto* natptr = static_cast<VulkanPipeline*>(pipeline.get());
+
+      struct ReadyShader
+      {
+        vk::ShaderStageFlagBits stage;
+        vk::ShaderModule module;
+      };
+      vector<ReadyShader> shaders;
+
+      auto& d = desc.desc;
+      if (!d.vertexShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
+          .setCodeSize(shader.size())
+          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
+        auto module = m_device.createShaderModule(si);
+
+        ReadyShader ss;
+        ss.stage = vk::ShaderStageFlagBits::eVertex;
+        ss.module = module;
+        shaders.push_back(ss);
+
+        if (ptr->vs.empty())
+        {
+          ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+        }
+        ptr->vs.react();
+      }
+
+      if (!d.hullShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
+        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
+          .setCodeSize(shader.size())
+          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
+        auto module = m_device.createShaderModule(si);
+
+        ReadyShader ss;
+        ss.stage = vk::ShaderStageFlagBits::eTessellationControl;
+        ss.module = module;
+        shaders.push_back(ss);
+
+        if (ptr->hs.empty())
+        {
+          ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
+        }
+        ptr->hs.react();
+      }
+
+      if (!d.domainShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
+        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
+          .setCodeSize(shader.size())
+          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
+        auto module = m_device.createShaderModule(si);
+
+        ReadyShader ss;
+        ss.stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
+        ss.module = module;
+        shaders.push_back(ss);
+        if (ptr->ds.empty())
+        {
+          ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
+        }
+        ptr->ds.react();
+      }
+
+      if (!d.geometryShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
+        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
+          .setCodeSize(shader.size())
+          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
+        auto module = m_device.createShaderModule(si);
+
+        ReadyShader ss;
+        ss.stage = vk::ShaderStageFlagBits::eGeometry;
+        ss.module = module;
+        shaders.push_back(ss);
+        if (ptr->gs.empty())
+        {
+          ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+        }
+        ptr->gs.react();
+      }
+
+      if (!d.pixelShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
+        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
+          .setCodeSize(shader.size())
+          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
+        auto module = m_device.createShaderModule(si);
+
+        ReadyShader ss;
+        ss.stage = vk::ShaderStageFlagBits::eFragment;
+        ss.module = module;
+        shaders.push_back(ss);
+        if (ptr->ps.empty())
+        {
+          ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
+        }
+        ptr->ps.react();
+      }
+
+      vector<vk::PipelineShaderStageCreateInfo> shaderInfos;
+
+      for (auto&& it : shaders)
+      {
+        shaderInfos.push_back(vk::PipelineShaderStageCreateInfo()
+        .setPName("main")
+        .setStage(it.stage)
+        .setModule(it.module));
+      }
+
+      vector<vk::DynamicState> dynamics = {
+        vk::DynamicState::eViewport, 
+        vk::DynamicState::eScissor,
+        vk::DynamicState::eDepthBounds};
+      auto dynamicsInfo = vk::PipelineDynamicStateCreateInfo()
+        .setDynamicStateCount(dynamics.size()).setPDynamicStates(dynamics.data());
+
+      auto vertexInput = vk::PipelineVertexInputStateCreateInfo();
+
+      auto blendAttachments = getBlendAttachments(desc.desc.blendDesc, desc.desc.numRenderTargets);
+      auto blendInfo = getBlendStateDesc(desc.desc.blendDesc, blendAttachments);
+      auto rasterInfo = getRasterStateDesc(desc.desc.rasterDesc);
+      auto depthInfo = getDepthStencilDesc(desc.desc.dsdesc);
+      auto inputInfo = getInputAssemblyDesc(desc);
+      auto msaainfo = getMultisampleDesc(desc);
+      auto viewport = vk::Viewport();
+      auto scissor = vk::Rect2D();
+      auto viewportInfo = vk::PipelineViewportStateCreateInfo()
+      .setPScissors(&scissor)
+      .setScissorCount(1)
+      .setPViewports(&viewport)
+      .setViewportCount(1);
+      vk::GraphicsPipelineCreateInfo pipelineInfo = vk::GraphicsPipelineCreateInfo()
+        .setLayout(natptr->m_pipelineLayout)
+        .setStageCount(shaderInfos.size())
+        .setPStages(shaderInfos.data())
+        .setPVertexInputState(&vertexInput)
+        .setPViewportState(&viewportInfo)
+        .setPColorBlendState(&blendInfo)
+        .setPDepthStencilState(&depthInfo)
+        .setPInputAssemblyState(&inputInfo)
+        .setPMultisampleState(&msaainfo)
+        .setPRasterizationState(&rasterInfo)
+        .setPDynamicState(&dynamicsInfo)
+        .setRenderPass(pass)
+        .setSubpass(0); // only 1 ever available
+
+      auto compiled = m_device.createGraphicsPipeline(nullptr, pipelineInfo);
+      for (auto&& it : shaders)
+      {
+        m_device.destroyShaderModule(it.module);
+      }
+      natptr->m_pipeline = compiled;
+
+      ptr->pipeline = pipeline;
+      F_ILOG("Vulkan", "Pipeline compiled...");
+    }
 
     void VulkanDevice::updatePipeline(ComputePipeline& pipe)
     {

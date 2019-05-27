@@ -28,7 +28,7 @@ namespace faze
     vk::SampleCountFlags convertSamplecount(MultisampleCount count);
 
     // pipeline parts
-    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc);
+    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc, int renderTargetCount);
     vk::PipelineColorBlendStateCreateInfo getBlendStateDesc(const BlendDescriptor& desc, const vector<vk::PipelineColorBlendAttachmentState>& attachments);
 
     vk::PipelineRasterizationStateCreateInfo getRasterStateDesc(const RasterizerDescriptor& desc);

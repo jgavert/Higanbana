@@ -197,6 +197,7 @@ void mainWindow(ProgramParams& params)
           if (it.api == api && it.vendor == preferredVendor)
           {
             gpuinfo = it;
+            break;
           }
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
@@ -269,8 +270,8 @@ void mainWindow(ProgramParams& params)
         auto testOut = dev.createBufferUAV(buffer3);
 
         
-        auto babyInf = ShaderInputDescriptor()
-            .constants<PixelConstants>();
+        auto babyInf = ShaderInputDescriptor();
+        //    .constants<PixelConstants>();
 
         auto triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
           .setVertexShader("Triangle")
