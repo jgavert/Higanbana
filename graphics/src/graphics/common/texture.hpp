@@ -75,6 +75,7 @@ namespace faze
     FormatType m_format;
     LoadOp m_loadOp = LoadOp::Load;
     StoreOp m_storeOp = StoreOp::Store;
+    float4 clearColor;
   public:
     TextureView() = default;
 
@@ -125,6 +126,11 @@ namespace faze
       return m_id;
     }
 
+    void clearOp(float4 clearVal)
+    {
+      m_loadOp = LoadOp::Clear;
+      clearColor = clearVal;
+    }
     void setOp(LoadOp op)
     {
       m_loadOp = op;
@@ -138,6 +144,11 @@ namespace faze
     LoadOp loadOp()
     {
       return m_loadOp;
+    }
+
+    float4 clearVal()
+    {
+      return clearColor;
     }
 
     StoreOp storeOp()

@@ -110,10 +110,11 @@ namespace faze
           {
             rtvDesc[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
             rtvDesc[i].BeginningAccess.Clear.ClearValue.Format = formatTodxFormat(packet.rtvs[i].format()).view;
-            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[0] = 0.f;
-            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[1] = 0.f;
-            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[2] = 0.f;
-            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+            auto clearVal = packet.rtvs[i].clearVal();
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[0] = clearVal.x;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[1] = clearVal.y;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[2] = clearVal.z;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[3] = clearVal.w;
           }
 
           if (packet.rtvs[i].storeOp() == StoreOp::DontCare)
@@ -147,10 +148,11 @@ namespace faze
         {
           dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;          
           dsvDesc.DepthBeginningAccess.Clear.ClearValue.Format = formatTodxFormat(packet.dsvs[0].format()).view;
-          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[0] = 0.f;
-          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
-          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[2] = 0.f;
-          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+          auto clearVal = packet.dsvs[0].clearVal();
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[0] = clearVal.x;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[1] = clearVal.y;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[2] = clearVal.z;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[3] = clearVal.w;
           dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
           dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[0] = 0.f;
           dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
@@ -557,6 +559,8 @@ namespace faze
         }
         case CommandPacket::PacketType::RenderpassBegin:
         {
+          solver->runBarrier(buffer, drawIndex);
+          drawIndex++;
           currentActiveSubpassHash = (packetRef(gfxpacket::RenderpassBegin, packet)).hash;
           handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
           subpass = packet;
@@ -684,8 +688,6 @@ namespace faze
     {
       int drawIndex = 0;
 
-      CommandPacket* renderpass = nullptr;
-
       for (CommandPacket* packet : list)
       {
         switch (packet->type())
@@ -748,7 +750,16 @@ namespace faze
         }
         case CommandPacket::PacketType::RenderpassBegin:
         {
-          renderpass = packet;
+          drawIndex = solver->addDrawCall(packet->type());
+          auto& s = packetRef(gfxpacket::RenderpassBegin, packet);
+          for (auto&& it : s.rtvs)
+          {
+            solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+          }
+          for (auto&& it : s.dsvs)
+          {
+            solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+          }
           break;
         }
         case CommandPacket::PacketType::ResourceBinding:
@@ -760,16 +771,6 @@ namespace faze
 
           if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
           {
-            F_ASSERT(renderpass, "nullptr");
-            auto& s = packetRef(gfxpacket::RenderpassBegin, renderpass);
-            for (auto&& it : s.rtvs)
-            {
-              solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-            }
-            for (auto&& it : s.dsvs)
-            {
-              solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            }
             readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
           }
 

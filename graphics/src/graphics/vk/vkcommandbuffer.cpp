@@ -289,12 +289,32 @@ namespace faze
     {
       auto rp = std::static_pointer_cast<VulkanRenderpass>(packet.renderpass.impl());
       
+      vk::ClearValue clearValues[8];
+      uint32_t attachmentCount = 0;
+
+      for (auto&& rtv : packet.rtvs)
+      {
+        auto v = rtv.clearVal();
+        clearValues[attachmentCount] = clearValues[attachmentCount]
+          .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
+        attachmentCount++;        
+      }
+      for (auto&& dsv : packet.dsvs)
+      {
+        auto v = dsv.clearVal();
+        clearValues[attachmentCount] = clearValues[attachmentCount]
+          .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v.x).setStencil(0));
+        attachmentCount++;        
+      }
+
       
       auto scissorRect = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(packet.fbWidth, packet.fbHeight));
       vk::RenderPassBeginInfo info = vk::RenderPassBeginInfo()
         .setRenderPass(*rp->native())
         .setFramebuffer(rp->getActiveFramebuffer())
-        .setRenderArea(scissorRect);
+        .setRenderArea(scissorRect)
+        .setClearValueCount(attachmentCount)
+        .setPClearValues(clearValues);
 
       buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
 
