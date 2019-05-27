@@ -59,7 +59,9 @@ namespace faze
       if (binType == ShaderBinaryType::SPIRV)
       {
         ppArgs.push_back(L"-spirv"); // enable spirv codegen
+        ppArgs.push_back(L"-fspv-target-env=vulkan1.1");
       }
+
 
       // other various settings
       ppArgs.push_back(L"/Zi"); // Enable debugging information.
@@ -69,6 +71,7 @@ namespace faze
       ppArgs.push_back(L"/Ges"); //Enable strict mode.
       ppArgs.push_back(L"/enable_unbounded_descriptor_tables"); //Enables unbounded descriptor tables.
       ppArgs.push_back(L"/all_resources_bound"); // Enable aggressive flattening in SM5.1+.
+      ppArgs.push_back(L"-enable-16bit-types"); 
       /*
         /Zpc	Pack matrices in column-major order.
         /Zpr	Pack matrices in row-major order.

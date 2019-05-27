@@ -176,15 +176,17 @@ namespace faze
         switch (type)
         {
         case ShaderType::Vertex:
-          return L"vs_6_0";
+          return L"vs_6_2";
         case ShaderType::Pixel:
-          return L"ps_6_0";
+          return L"ps_6_2";
         case ShaderType::Compute:
-          return L"cs_6_0";
+          return L"cs_6_2";
         case ShaderType::Geometry:
-          return L"gs_6_0";
+          return L"gs_6_2";
         case ShaderType::TessControl: // hs_6_0 ??
+          return L"hs_6_2";
         case ShaderType::TessEvaluation: // ds_6_0 ??
+          return L"ds_6_2";
         default:
           F_ASSERT(false, "Unknown ShaderType");
         }

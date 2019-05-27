@@ -9,7 +9,9 @@ struct VertexOut
 [RootSignature(ROOTSIG)]
 float4 main(VertexOut input) : SV_TARGET
 {
-  return float4(input.uv.xyx, 1);
+  int laneIndex = WaveGetLaneIndex();
+  float laneThing = float(laneIndex) / 64;
+  return float4(input.uv.xyx * laneThing, 1);
   //return float4(0, 1, 0, 1);
 }
 
