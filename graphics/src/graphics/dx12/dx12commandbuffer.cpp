@@ -16,7 +16,7 @@ namespace faze
 {
   namespace backend
   {
-    DX12CommandBuffer::DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma)
+    DX12CommandBuffer::DX12CommandBuffer(ComPtr<D3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma)
       : commandList(commandList)
       , commandListAllocator(commandListAllocator)
       , m_solver(std::make_shared<DX12DependencySolver>())
@@ -24,7 +24,7 @@ namespace faze
     {
     }
 
-    ID3D12GraphicsCommandList* DX12CommandBuffer::list()
+    D3D12GraphicsCommandList* DX12CommandBuffer::list()
     {
       return commandList.Get();
     }
@@ -60,7 +60,7 @@ namespace faze
       return dmaList;
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::RenderpassBegin& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::RenderpassBegin& packet)
     {
       // set viewport and rendertargets
       uint2 size;
@@ -93,22 +93,88 @@ namespace faze
       D3D12_CPU_DESCRIPTOR_HANDLE dsv;
       D3D12_CPU_DESCRIPTOR_HANDLE* dsvPtr = nullptr;
 
+      D3D12_RENDER_PASS_RENDER_TARGET_DESC rtvDesc[8]{};
+      D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsvDesc{};
+      D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsvDescPtr = nullptr;
       if (packet.rtvs.size() > 0)
       {
         for (unsigned i = 0; i < maxSize; ++i)
         {
           rtvs[i].ptr = packet.rtvs[i].view().view;
+          rtvDesc[i].cpuDescriptor.ptr = packet.rtvs[i].view().view;
+          if (packet.rtvs[i].loadOp() == LoadOp::Load)
+            rtvDesc[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+          else if (packet.rtvs[i].loadOp() == LoadOp::DontCare)
+            rtvDesc[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+          else if (packet.rtvs[i].loadOp() == LoadOp::Clear)
+          {
+            rtvDesc[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Format = formatTodxFormat(packet.rtvs[i].format()).view;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[0] = 0.f;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[1] = 0.f;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[2] = 0.f;
+            rtvDesc[i].BeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+          }
+
+          if (packet.rtvs[i].storeOp() == StoreOp::DontCare)
+          {
+            rtvDesc[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+          }
+          else if (packet.rtvs[i].storeOp() == StoreOp::Store)
+          {
+            rtvDesc[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+          }
         }
       }
       if (packet.dsvs.size() > 0)
       {
         dsv.ptr = packet.dsvs[0].view().view;
         dsvPtr = &dsv;
+
+        dsvDesc.cpuDescriptor.ptr = packet.dsvs[0].view().view;
+        dsvDescPtr = &dsvDesc;
+        if (packet.dsvs[0].loadOp() == LoadOp::Load)
+        {
+          dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;          
+          dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; 
+        }
+        else if (packet.dsvs[0].loadOp() == LoadOp::DontCare)
+        {
+          dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;          
+          dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+        }
+        else
+        {
+          dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;          
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Format = formatTodxFormat(packet.dsvs[0].format()).view;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[0] = 0.f;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[2] = 0.f;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+          dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+          dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[0] = 0.f;
+          dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
+          dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[2] = 0.f;
+          dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+        }
+
+        if (packet.dsvs[0].storeOp() == StoreOp::DontCare)
+        {
+          dsvDesc.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+          dsvDesc.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+        }
+        else if (packet.dsvs[0].storeOp() == StoreOp::Store)
+        {
+          dsvDesc.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+          dsvDesc.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+        }
       }
-      buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
+      //buffer->OMSetRenderTargets(maxSize, rtvs, false, dsvPtr);
+
+      buffer->BeginRenderPass(maxSize, rtvDesc, dsvDescPtr, D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
+    void handle(D3D12GraphicsCommandList* buffer, size_t hash, gfxpacket::GraphicsPipelineBind& pipelines)
     {
       for (auto&& it : *pipelines.pipeline.m_pipelines)
       {
@@ -159,19 +225,19 @@ namespace faze
       return loc;
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::UpdateTexture& packet, ID3D12Resource* upload)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::UpdateTexture& packet, ID3D12Resource* upload)
     {
       D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(packet.dst.dependency(), packet.mip, packet.slice);
       D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(upload, packet.src, packet.dst);
       buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCopy& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::BufferCopy& packet)
     {
       buffer->CopyResource(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), reinterpret_cast<ID3D12Resource*>(packet.source.resPtr));
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::BufferCpuToGpuCopy& packet, ID3D12Resource* upload)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::BufferCpuToGpuCopy& packet, ID3D12Resource* upload)
     {
       buffer->CopyBufferRegion(reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), 0, upload, packet.offset, packet.size);
     }
@@ -188,7 +254,7 @@ namespace faze
       return asd;
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::TextureCopy& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::TextureCopy& packet)
     {
       auto src = locationFromTexture(packet.source, 0, 0);
       auto dst = locationFromTexture(packet.target, 0, 0);
@@ -204,7 +270,7 @@ namespace faze
       }
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ReadbackTexture& packet, DX12ReadbackHeap* readback, FreeableResources* free)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::ReadbackTexture& packet, DX12ReadbackHeap* readback, FreeableResources* free)
     {
       auto dim = sub(packet.srcbox.rightBottomBack, packet.srcbox.leftTopFront);
       int size = calculatePitch(dim, packet.format);
@@ -226,21 +292,21 @@ namespace faze
       free->readbacks.push_back(DX12ReadbackLambda{ rb, rbFunc });
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Readback& packet, DX12ReadbackHeap* readback, FreeableResources* free)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::Readback& packet, DX12ReadbackHeap* readback, FreeableResources* free)
     {
       auto rb = readback->allocate(packet.size);
       free->readbacks.push_back(DX12ReadbackLambda{ rb, packet.func });
       buffer->CopyBufferRegion(readback->native(), rb.offset, reinterpret_cast<ID3D12Resource*>(packet.target.resPtr), packet.offset, packet.size);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::ComputePipelineBind& packet)
     {
       auto pipeline = std::static_pointer_cast<DX12Pipeline>(packet.pipeline.impl);
       buffer->SetComputeRootSignature(pipeline->root.Get());
       buffer->SetPipelineState(pipeline->pipeline.Get());
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::SetScissorRect& packet)
     {
       D3D12_RECT rect{};
       rect.bottom = packet.bottomright.y;
@@ -250,12 +316,12 @@ namespace faze
       buffer->RSSetScissorRects(1, &rect);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Draw& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::Draw& packet)
     {
       buffer->DrawInstanced(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawIndexed& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::DrawIndexed& packet)
     {
       auto& buf = packet.ib;
       auto* ptr = static_cast<DX12Buffer*>(buf.buffer().native().get());
@@ -268,7 +334,7 @@ namespace faze
       buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
     }
 
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::DrawDynamicIndexed& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::DrawDynamicIndexed& packet)
     {
       auto& buf = packet.ib;
       auto* ptr = static_cast<DX12DynamicBufferView*>(buf.native().get());
@@ -277,7 +343,7 @@ namespace faze
 
       buffer->DrawIndexedInstanced(packet.IndexCountPerInstance, packet.instanceCount, packet.StartIndexLocation, packet.BaseVertexLocation, packet.StartInstanceLocation);
     }
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
+    void handle(D3D12GraphicsCommandList* buffer, gfxpacket::Dispatch& packet)
     {
       buffer->Dispatch(packet.groups.x, packet.groups.y, packet.groups.z);
     }
@@ -314,7 +380,7 @@ namespace faze
       return block;
     }
 
-    void DX12CommandList::handleBindings(DX12Device* dev, ID3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
+    void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
     {
       if (ding.constants.size() > 0)
       {
@@ -363,7 +429,7 @@ namespace faze
       buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
     }
 
-    void DX12CommandList::addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
+    void DX12CommandList::addCommands(DX12Device* dev, D3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
     {
       int drawIndex = 0;
 
@@ -377,8 +443,9 @@ namespace faze
       bool startedPixBeginEvent = false;
 
       CommandPacket* subpass = nullptr;
-      bool subpassCommandsHandled = false;
+      //bool subpassCommandsHandled = false;
 
+/*
       auto subpassClears = [&]()
       {
         if (!subpassCommandsHandled)
@@ -402,6 +469,7 @@ namespace faze
           subpassCommandsHandled = true;
         }
       };
+      */
 
       DX12Query activeQuery{};
 
@@ -492,7 +560,12 @@ namespace faze
           currentActiveSubpassHash = (packetRef(gfxpacket::RenderpassBegin, packet)).hash;
           handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
           subpass = packet;
-          subpassCommandsHandled = false;
+          //subpassCommandsHandled = false;
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassEnd:
+        {
+          buffer->EndRenderPass();
           break;
         }
         case CommandPacket::PacketType::ResourceBinding:
@@ -509,19 +582,16 @@ namespace faze
         }
         case CommandPacket::PacketType::DrawIndexed:
         {
-          subpassClears();
           handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
           break;
         }
         case CommandPacket::PacketType::DrawDynamicIndexed:
         {
-          subpassClears();
           handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
           break;
         }
         case CommandPacket::PacketType::Draw:
         {
-          subpassClears();
           handle(buffer, packetRef(gfxpacket::Draw, packet));
           break;
         }
