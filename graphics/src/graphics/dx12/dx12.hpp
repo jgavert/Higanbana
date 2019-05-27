@@ -18,5 +18,6 @@ template <typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 using D3D12Swapchain = IDXGISwapChain4;
+using D3D12GraphicsCommandList = ID3D12GraphicsCommandList4;
 
 #endif

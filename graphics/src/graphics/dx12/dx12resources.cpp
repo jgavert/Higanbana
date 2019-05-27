@@ -1468,7 +1468,7 @@ namespace faze
 
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
     {
-      ComPtr<ID3D12GraphicsCommandList> commandList;
+      ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       FAZE_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
       FAZE_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));

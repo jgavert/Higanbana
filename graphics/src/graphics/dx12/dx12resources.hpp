@@ -540,7 +540,7 @@ namespace faze
 
     class DX12CommandBuffer
     {
-      ComPtr<ID3D12GraphicsCommandList> commandList;
+      ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       bool closedList = false;
       std::shared_ptr<DX12DependencySolver> m_solver;
@@ -548,7 +548,7 @@ namespace faze
       bool dmaList;
     public:
       //DX12CommandBuffer() {}
-      DX12CommandBuffer(ComPtr<ID3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma);
+      DX12CommandBuffer(ComPtr<D3D12GraphicsCommandList> commandList, ComPtr<ID3D12CommandAllocator> commandListAllocator, bool isDma);
 
       DX12CommandBuffer(DX12CommandBuffer&& other) = default;
       DX12CommandBuffer(const DX12CommandBuffer& other) = delete;
@@ -556,7 +556,7 @@ namespace faze
       DX12CommandBuffer& operator=(DX12CommandBuffer&& other) = default;
       DX12CommandBuffer& operator=(const DX12CommandBuffer& other) = delete;
 
-      ID3D12GraphicsCommandList* list();
+      D3D12GraphicsCommandList* list();
       DX12DependencySolver* solver();
       void closeList();
       void resetList();
@@ -588,8 +588,8 @@ namespace faze
 
       UploadBlock allocateConstants(size_t size);
       DynamicDescriptorBlock allocateDescriptors(size_t size);
-      void handleBindings(DX12Device* dev, ID3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
-      void addCommands(DX12Device* dev, ID3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
+      void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
+      void addCommands(DX12Device* dev, D3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
     public:
