@@ -448,17 +448,20 @@ namespace faze
     {
     public:
       vk::Pipeline            m_pipeline;
+      bool                    m_hasPipeline;
       vk::DescriptorSetLayout m_descriptorSetLayout;
       vk::PipelineLayout      m_pipelineLayout;
       VulkanPipeline() {}
 
       VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout)
-        : m_descriptorSetLayout(descriptorSetLayout)
+        : m_hasPipeline(false)
+        , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
       {}
 
       VulkanPipeline(vk::Pipeline pipeline, vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout)
         : m_pipeline(pipeline)
+        , m_hasPipeline(true)
         , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
       {}
