@@ -844,8 +844,7 @@ namespace faze
       }
       pipeline.m_update->react();
 
-      D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc;
-      ZeroMemory(&computeDesc, sizeof(computeDesc));
+      D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
       computeDesc.CS = byte;
       computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
       computeDesc.NodeMask = 0;

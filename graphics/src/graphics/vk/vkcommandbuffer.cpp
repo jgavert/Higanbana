@@ -133,6 +133,12 @@ namespace faze
           }
         }
 
+        vk::SubpassDependency dependency = vk::SubpassDependency()
+          .setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
+          .setSrcSubpass(VK_SUBPASS_EXTERNAL)
+          .setDstStageMask(vk::PipelineStageFlagBits::eTopOfPipe)
+          .setDstSubpass(0);
+
           // handle subpass here with renderpass creation.
         subpasses.emplace_back(vk::SubpassDescription()
           .setColorAttachmentCount(static_cast<int>(colors.size()))
@@ -141,6 +147,8 @@ namespace faze
           .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
 
         vk::RenderPassCreateInfo rpinfo = vk::RenderPassCreateInfo()
+          .setDependencyCount(1)
+          .setPDependencies(&dependency)
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()))
           .setSubpassCount(static_cast<uint32_t>(subpasses.size()))
           .setPAttachments(attachments.data())
