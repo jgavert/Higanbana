@@ -297,10 +297,10 @@ namespace faze
       return vk::SampleCountFlagBits::e64; 
     }
 
-    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc)
+    vector<vk::PipelineColorBlendAttachmentState> getBlendAttachments(const BlendDescriptor& desc, int renderTargetCount)
     {
-      vector<vk::PipelineColorBlendAttachmentState> states(8);
-      for (int i = 0; i < 8; ++i)
+      vector<vk::PipelineColorBlendAttachmentState> states(renderTargetCount);
+      for (int i = 0; i < renderTargetCount; ++i)
       {
         auto& rtb = desc.desc.renderTarget[i].desc;
         vk::PipelineColorBlendAttachmentState state;
@@ -338,7 +338,7 @@ namespace faze
         auto& rd = desc.desc;
         F_ASSERT(rd.conservativeRaster != faze::ConservativeRasterization::On, "Conservative raster ext code not written.");
         rasterState = rasterState.setDepthClampEnable(rd.depthBiasClamp)
-          .setRasterizerDiscardEnable(true)
+          .setRasterizerDiscardEnable(false) // apparently discards everything immediately
           .setPolygonMode(vk::PolygonMode::eLine)
           .setCullMode(convertCullMode(rd.cull))
           .setFrontFace(vk::FrontFace::eClockwise)

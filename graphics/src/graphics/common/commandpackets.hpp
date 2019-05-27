@@ -138,6 +138,7 @@ namespace faze
       size_t hash;
       CommandListVector<TextureRTV> rtvs;
       CommandListVector<TextureDSV> dsvs;
+      int fbWidth, fbHeight;
 
       RenderpassBegin(backend::ListAllocator allocator, Renderpass pass, MemView<TextureRTV> inputRtvs, MemView<TextureDSV> inputDsvs)
         : renderpass(pass)

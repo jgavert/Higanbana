@@ -207,6 +207,8 @@ namespace faze
           attachments.emplace_back(view->native().view);
         }
       }
+      renderpassbegin.fbWidth = fbWidth;
+      renderpassbegin.fbHeight = fbHeight;
 
       size_t attachmentsHash = HashMemory(attachments.data(), attachments.size());
       auto& fbs = rp->framebuffers();
@@ -275,6 +277,48 @@ namespace faze
       }
     }
 
+    void handle(vk::CommandBuffer buffer, gfxpacket::RenderpassBegin& packet)
+    {
+      auto rp = std::static_pointer_cast<VulkanRenderpass>(packet.renderpass.impl());
+      
+      
+      auto scissorRect = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(packet.fbWidth, packet.fbHeight));
+      vk::RenderPassBeginInfo info = vk::RenderPassBeginInfo()
+        .setRenderPass(*rp->native())
+        .setFramebuffer(rp->getActiveFramebuffer())
+        .setRenderArea(scissorRect);
+
+      buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
+
+      vk::Viewport port = vk::Viewport()
+        .setWidth(packet.fbWidth)
+        .setHeight(-packet.fbHeight)
+        .setMaxDepth(1.f)
+        .setMinDepth(0.f)
+        .setX(0)
+        .setY(packet.fbHeight);
+
+
+      buffer.setViewport(0, {port});
+      buffer.setScissor(0, {scissorRect});
+    }
+    void handle(vk::CommandBuffer buffer, gfxpacket::RenderpassEnd&)
+    {
+      buffer.endRenderPass();
+    }
+
+    void handle(vk::CommandBuffer buffer, gfxpacket::Draw& packet)
+    {
+      buffer.draw(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
+    }
+
+    void handle(vk::CommandBuffer buffer, gfxpacket::GraphicsPipelineBind& packet)
+    {
+      auto pipeline = packet.pipeline.m_pipelines->front();
+      auto* natptr = static_cast<VulkanPipeline*>(pipeline.pipeline.get());
+      buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, natptr->m_pipeline);
+    }
+
     void handle(vk::CommandBuffer buffer, gfxpacket::ClearRT& packet)
     {
       auto view = std::static_pointer_cast<VulkanTextureView>(packet.rtv.native());
@@ -313,6 +357,28 @@ namespace faze
         }
         case CommandPacket::PacketType::ResourceBinding:
         {
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassBegin:
+        {
+          solver.runBarrier(buffer, drawIndex);
+          drawIndex++;
+          handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassEnd:
+        {
+          buffer.endRenderPass();
+          break;
+        }
+        case CommandPacket::PacketType::GraphicsPipelineBind:
+        {
+          handle(buffer, packetRef(gfxpacket::GraphicsPipelineBind, packet));
+          break;
+        }
+        case CommandPacket::PacketType::Draw:
+        {
+          handle(buffer, packetRef(gfxpacket::Draw, packet));
           break;
         }
         default:
@@ -364,6 +430,16 @@ namespace faze
           auto& p = packetRef(gfxpacket::ClearRT, packet);
           drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eAllCommands);
           addTextureView(drawIndex, p.rtv, vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits::eTransferWrite);
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassBegin:
+        {
+          auto& p = packetRef(gfxpacket::RenderpassBegin, packet);
+          drawIndex = solver.addDrawCall(packet->type(), vk::PipelineStageFlagBits::eAllCommands);
+          for (auto&& tex : p.rtvs)
+          {
+            addTexture(drawIndex, tex.texture(), vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits::eColorAttachmentWrite);
+          }
           break;
         }
         case CommandPacket::PacketType::PrepareForPresent:
