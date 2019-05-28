@@ -119,10 +119,7 @@ namespace faze
       D3D_FEATURE_LEVEL createdLevel;
       constexpr D3D_FEATURE_LEVEL tryToEnable[] = {
         D3D_FEATURE_LEVEL_12_1,
-        D3D_FEATURE_LEVEL_12_0,
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_1
+        D3D_FEATURE_LEVEL_12_0
       };
 
       // dxil needs this... still
@@ -133,7 +130,7 @@ namespace faze
       {
         ComPtr<IDXGIAdapter> pAdapter;
         pFactory->EnumWarpAdapter(IID_PPV_ARGS(&pAdapter));
-        HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+        HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device));
         if (SUCCEEDED(hr))
         {
           device->SetName(L"Warp");
@@ -146,9 +143,10 @@ namespace faze
       else
       {
         int i = 0;
-        while (i < 4)
+        HRESULT hr;
+        while (i < 2)
         {
-          HRESULT hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
+          hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
           if (SUCCEEDED(hr))
           {
             createdLevel = tryToEnable[i];
@@ -157,6 +155,7 @@ namespace faze
           }
           ++i;
         }
+        F_ASSERT(SUCCEEDED(hr), "oh no, we didn't get a device");
       }
 
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)

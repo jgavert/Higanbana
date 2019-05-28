@@ -23,14 +23,18 @@ namespace faze
       , engineVersion(engineVersion)
     {
 #if defined(FAZE_PLATFORM_WINDOWS)
+#if defined(FAZE_GRAPHICS_AD_DX12)
       implDX12 = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion);
 #endif
+#endif
+#if defined(FAZE_GRAPHICS_AD_VULKAN)
       implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion);
+#endif
     }
     vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api)
     {
       vector<GpuInfo> infos;
-      if (api == GraphicsApi::All || api == GraphicsApi::Vulkan)
+      if (implVulkan && api == GraphicsApi::All || api == GraphicsApi::Vulkan)
       {
         infos = implVulkan->availableGpus();
         for (auto&& it : infos) it.api = GraphicsApi::Vulkan;

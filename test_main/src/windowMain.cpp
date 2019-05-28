@@ -464,6 +464,16 @@ void mainWindow(ProgramParams& params)
             break;
           }
 
+          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('3', 1))
+          {
+            reInit = true;
+            if (preferredVendor == VendorID::Amd)
+              preferredVendor = VendorID::Nvidia;
+            else
+              preferredVendor = VendorID::Amd;
+            break;
+          }
+
           if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
           {
             break;
@@ -548,7 +558,7 @@ void mainWindow(ProgramParams& params)
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
 
-  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::DX12, VendorID::Nvidia, true); });
+  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   lbs.sleepTillKeywords({ "test1" });
 
 #endif

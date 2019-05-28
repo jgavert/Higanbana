@@ -3,6 +3,11 @@
 // Enables debug validation layers for dx12/vulkan
 #define FAZE_GRAPHICS_VALIDATION_LAYER
 
+// you can control which implementations are visible with these enums
+// point is to use it with Radeon GPU Profiler to avoid it seeing DX12 or viceversa
+#define FAZE_GRAPHICS_AD_DX12
+#define FAZE_GRAPHICS_AD_VULKAN
+
 //#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
 //#define FAZE_NSIGHT_COMPATIBILITY // disables some colorspace configuration which seems to crash nsight.
