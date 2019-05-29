@@ -212,7 +212,7 @@ void mainWindow(ProgramParams& params)
       float3 updir{ 0.f, 1.f, 0.f };
       float3 sideVec{ 0.f, 0.f, 1.f };
       quaternion direction{ 1.f, 0.f, 0.f, 0.f };
-	  std::string windowTitle = std::string(toString(gpuinfo.api)) + ": " + gpuinfo.name;
+	    std::string windowTitle = std::string(toString(gpuinfo.api)) + ": " + gpuinfo.name;
       Window window(params, windowTitle, 1280, 720, 300, 200);
       window.open();
 
@@ -505,16 +505,33 @@ void mainWindow(ProgramParams& params)
             node.acquirePresentableImage(swapchain);
             float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
-            backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 0.f });
+            backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 1.f });
             node.renderpass(triangleRP, backbuffer);
             {
               auto binding = node.bind(triangle);
 
+/*
               PixelConstants consts{};
               consts.time = time.getFTime();
               consts.resx = backbuffer.desc().desc.width;
               consts.resy = backbuffer.desc().desc.height;
               binding.constants(consts);
+*/
+              node.draw(binding, 3);
+            }
+            node.endRenderpass();
+            backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
+            node.renderpass(triangleRP, backbuffer);
+            {
+              auto binding = node.bind(triangle);
+
+/*
+              PixelConstants consts{};
+              consts.time = time.getFTime();
+              consts.resx = backbuffer.desc().desc.width;
+              consts.resy = backbuffer.desc().desc.height;
+              binding.constants(consts);
+              */
 
               node.draw(binding, 3);
             }
