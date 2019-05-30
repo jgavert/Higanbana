@@ -17,7 +17,6 @@ namespace faze
         int subpassIndex = 0;
 
         unordered_map<int64_t, int> uidToAttachmendId;
-        vector<vk::SubpassDependency> dependencies;
         vector<vk::SubpassDescription> subpasses;
         vector<vk::AttachmentDescription> attachments;
 
@@ -134,10 +133,10 @@ namespace faze
         }
 
         vk::SubpassDependency dependency = vk::SubpassDependency()
-          .setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
           .setSrcSubpass(VK_SUBPASS_EXTERNAL)
-          .setDstStageMask(vk::PipelineStageFlagBits::eTopOfPipe)
-          .setDstSubpass(0);
+          .setDstSubpass(0)
+          .setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
+          .setDstStageMask(vk::PipelineStageFlagBits::eTopOfPipe);
 
           // handle subpass here with renderpass creation.
         subpasses.emplace_back(vk::SubpassDescription()
