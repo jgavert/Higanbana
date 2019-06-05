@@ -132,11 +132,32 @@ namespace faze
           }
         }
 
-        vk::SubpassDependency dependency = vk::SubpassDependency()
-          .setSrcSubpass(VK_SUBPASS_EXTERNAL)
-          .setDstSubpass(0)
-          .setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
-          .setDstStageMask(vk::PipelineStageFlagBits::eTopOfPipe);
+        vk::AccessFlags everythingFlush = vk::AccessFlagBits::eIndirectCommandRead
+        | vk::AccessFlagBits::eIndexRead
+        | vk::AccessFlagBits::eUniformRead 
+        | vk::AccessFlagBits::eShaderWrite
+        | vk::AccessFlagBits::eShaderRead 
+        | vk::AccessFlagBits::eColorAttachmentRead 
+        | vk::AccessFlagBits::eColorAttachmentWrite 
+        | vk::AccessFlagBits::eDepthStencilAttachmentRead 
+        | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+        vk::SubpassDependency dependency[] = {
+          vk::SubpassDependency()
+            .setSrcSubpass(VK_SUBPASS_EXTERNAL)
+            .setDstSubpass(0)
+            .setSrcAccessMask(everythingFlush)
+            .setDstAccessMask(everythingFlush)
+            .setSrcStageMask(vk::PipelineStageFlagBits::eAllCommands)
+            .setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics)
+            .setDependencyFlags(vk::DependencyFlagBits::eByRegion),
+          vk::SubpassDependency()
+            .setSrcSubpass(0)
+            .setDstSubpass(VK_SUBPASS_EXTERNAL)
+            .setSrcAccessMask(everythingFlush)
+            .setDstAccessMask(everythingFlush)
+            .setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics)
+            .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
+            .setDependencyFlags(vk::DependencyFlagBits::eByRegion)};
 
           // handle subpass here with renderpass creation.
         subpasses.emplace_back(vk::SubpassDescription()
@@ -146,8 +167,8 @@ namespace faze
           .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
 
         vk::RenderPassCreateInfo rpinfo = vk::RenderPassCreateInfo()
-          .setDependencyCount(1)
-          .setPDependencies(&dependency)
+          .setDependencyCount(2)
+          .setPDependencies(dependency)
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()))
           .setSubpassCount(static_cast<uint32_t>(subpasses.size()))
           .setPAttachments(attachments.data())
@@ -315,6 +336,13 @@ namespace faze
         .setRenderArea(scissorRect)
         .setClearValueCount(attachmentCount)
         .setPClearValues(clearValues);
+
+      /*
+      vk::AccessFlags accessFlags = vk::AccessFlagBits::eIndirectCommandRead | vk::AccessFlagBits::eIndexRead | vk::AccessFlagBits::eUniformRead | vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+      vk::MemoryBarrier memoryBarr = vk::MemoryBarrier().setSrcAccessMask(accessFlags).setDstAccessMask(accessFlags);
+      vk::ArrayProxy<const vk::MemoryBarrier> memory(1, &memoryBarr);
+      buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), memory, {}, {});
+      */
 
       buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
 
