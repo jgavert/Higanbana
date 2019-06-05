@@ -1,5 +1,8 @@
 #pragma once
 
+#include <core/datastructures/proxy.hpp>
+#include <core/global_debug.hpp>
+
 #include <stdint.h>
 #include <type_traits>
 
@@ -9,6 +12,7 @@ namespace faze
   // we can reduce the size later if needed
   struct ResourceHandle
   {
+    static const uint64_t InvalidId = (1ull << 20ull) - 1;
     union
     {
       struct 
@@ -74,4 +78,67 @@ namespace faze
     - check if alive
       - array to check current status of the id and match generation for id check
   */
+
+  // we need legopiece to generate id's which knows how to reuse them
+  // we need "type" amount of these lego pieces, all ranges begin from 0 till something
+
+  class HandlePool
+  {
+    vector<uint32_t> m_freelist;
+    vector<uint8_t> m_generation;
+    uint64_t m_type = 0;
+    int m_size = 0;
+  public:
+    HandlePool(uint64_t type, int size)
+      : m_type(type)
+      , m_size(size)
+    {
+      for (int i = size; i >= 0; i--)
+      {
+        m_freelist.push_back(i);
+      }
+      m_generation.resize(m_size);
+      for (int i = 0; i < m_size; ++i)
+      {
+        m_generation[i] = 0;
+      }
+    }
+
+    ResourceHandle allocate()
+    {
+      if (m_freelist.empty())
+      {
+        F_ASSERT(false, "No handles left, what.");
+        return ResourceHandle{ResourceHandle::InvalidId, 0, m_type, 0};
+      }
+      auto id = m_freelist.back();
+      m_freelist.pop_back();
+      auto generation = m_generation[id]; // take current generation
+      return ResourceHandle{id, generation, m_type, 0};
+    }
+
+    void release(ResourceHandle val)
+    {
+      F_ASSERT(val.id != ResourceHandle::InvalidId
+                && val.id < m_size
+                && val.generation == m_generation[val.id]
+                , "Invalid handle was released.");
+      m_freelist.push_back(val.id);
+      m_generation[val.id]++; // offset the generation to detect double free's
+    }
+
+    bool valid(ResourceHandle handle)
+    {
+      F_ASSERT(handle.id != ResourceHandle::InvalidId
+                && handle.id < m_size
+                , "Invalid handle was passed.");
+      return handle.generation == m_generation[handle.id];
+    }
+
+    size_t size() const
+    {
+      return m_freelist.size();
+    }
+  };
+
 }
