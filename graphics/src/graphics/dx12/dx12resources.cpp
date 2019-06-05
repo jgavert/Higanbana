@@ -791,7 +791,10 @@ namespace faze
 
       ComPtr<ID3D12RootSignature> root;
       FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+/*
       desc.pRootSignature = root.Get();
+      */
+      desc.pRootSignature = nullptr;
 
       ComPtr<ID3D12PipelineState> pipe;
       FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
@@ -848,7 +851,8 @@ namespace faze
       computeDesc.CS = byte;
       computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
       computeDesc.NodeMask = 0;
-      computeDesc.pRootSignature = ptr->root.Get();
+      //computeDesc.pRootSignature = ptr->root.Get();
+      computeDesc.pRootSignature = nullptr;
 
       FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
     }
