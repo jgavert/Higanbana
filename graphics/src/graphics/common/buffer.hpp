@@ -4,87 +4,63 @@
 #include "graphics/common/resources.hpp"
 #include "graphics/common/resource_descriptor.hpp"
 #include "graphics/common/prototypes.hpp"
+#include "graphics/common/handle.hpp"
 
 namespace faze
 {
   class Buffer
   {
-    std::shared_ptr<backend::prototypes::BufferImpl> impl;
-    std::shared_ptr<int64_t> id;
+    std::shared_ptr<ResourceHandle> m_id;
     std::shared_ptr<ResourceDescriptor> m_desc;
-    backend::TrackedState m_dependency;
   public:
     Buffer()
-      : m_desc(std::make_shared<ResourceDescriptor>())
+      : m_id(std::make_shared<ResourceHandle>(InvalidResourceHandle))
+      , m_desc(std::make_shared<ResourceDescriptor>())
     {
     }
-    Buffer(std::shared_ptr<backend::prototypes::BufferImpl> impl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
-      : impl(impl)
-      , id(id)
+    Buffer(std::shared_ptr<ResourceHandle> id, std::shared_ptr<ResourceDescriptor> desc)
+      : m_id(id)
       , m_desc(desc)
-      , m_dependency(impl->dependency())
     {
-      m_dependency.storeSubresourceRange(
-        static_cast<unsigned>(0),
-        static_cast<unsigned>(1),
-        static_cast<unsigned>(0),
-        static_cast<unsigned>(1));
     }
 
-    ResourceDescriptor& desc()
+    ResourceDescriptor& desc() const
     {
       return *m_desc;
     }
 
-    std::shared_ptr<backend::prototypes::BufferImpl> native()
+    ResourceHandle handle() const
     {
-      return impl;
-    }
-    backend::TrackedState dependency()
-    {
-      return m_dependency;
+      return *m_id;
     }
   };
 
   class BufferView
   {
     Buffer buf;
-    std::shared_ptr<backend::prototypes::BufferViewImpl> impl;
-    backend::RawView m_view;
-    backend::TrackedState m_dependency;
+    std::shared_ptr<ResourceHandle> m_id;
   public:
     BufferView() = default;
 
-    BufferView(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
+    BufferView(Buffer buf, std::shared_ptr<ResourceHandle> id)
       : buf(buf)
-      , impl(impl)
-      , m_view(impl->view())
-      , m_dependency(buf.dependency())
+      , m_id(id)
     {
     }
 
-    ResourceDescriptor& desc()
+    ResourceDescriptor& desc() const
     {
       return buf.desc();
     }
 
-    std::shared_ptr<backend::prototypes::BufferViewImpl> native()
+    ResourceHandle handle() const
     {
-      return impl;
+      return *m_id;
     }
 
-    Buffer& buffer()
+    Buffer& buffer() 
     {
       return buf;
-    }
-
-    backend::RawView view() const
-    {
-      return m_view;
-    }
-    backend::TrackedState dependency() const
-    {
-      return m_dependency;
     }
   };
 
@@ -92,8 +68,8 @@ namespace faze
   {
   public:
     BufferSRV() = default;
-    BufferSRV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
-      : BufferView(buf, impl)
+    BufferSRV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+      : BufferView(buf, id)
     {
     }
   };
@@ -102,8 +78,8 @@ namespace faze
   {
   public:
     BufferUAV() = default;
-    BufferUAV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
-      : BufferView(buf, impl)
+    BufferUAV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+      : BufferView(buf, id)
     {
     }
   };
@@ -112,76 +88,25 @@ namespace faze
   {
   public:
     BufferIBV() = default;
-    BufferIBV(Buffer buf, std::shared_ptr<backend::prototypes::BufferViewImpl> impl)
-      : BufferView(buf, impl)
+    BufferIBV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+      : BufferView(buf, id)
     {
     }
   };
 
   class DynamicBufferView
   {
-    std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> impl;
-    backend::RawView m_view;
+    ResourceHandle m_id;
+
   public:
     DynamicBufferView() = default;
-    DynamicBufferView(std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> impl)
-      : impl(impl)
-      , m_view(impl->view())
+    DynamicBufferView(ResourceHandle id)
+      : m_id(id)
     {
     }
-    backend::RawView view() const
+    ResourceHandle handle() const
     {
-      return m_view;
-    }
-
-    int rowPitch() const
-    {
-      return impl->rowPitch();
-    }
-
-    int64_t offset() const
-    {
-      return impl->offset();
-    }
-
-    std::shared_ptr<backend::prototypes::DynamicBufferViewImpl> native()
-    {
-      return impl;
-    }
-  };
-
-  class SharedBuffer
-  {
-    std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl;
-    std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl;
-    std::shared_ptr<int64_t> id;
-    std::shared_ptr<ResourceDescriptor> m_desc;
-  public:
-    SharedBuffer()
-      : m_desc(std::make_shared<ResourceDescriptor>())
-    {
-    }
-    SharedBuffer(std::shared_ptr<backend::prototypes::BufferImpl> primaryImpl, std::shared_ptr<backend::prototypes::BufferImpl> secondaryImpl, std::shared_ptr<int64_t> id, std::shared_ptr<ResourceDescriptor> desc)
-      : primaryImpl(primaryImpl)
-      , secondaryImpl(secondaryImpl)
-      , id(id)
-      , m_desc(desc)
-    {
-    }
-
-    Buffer getPrimaryBuffer()
-    {
-      return Buffer(primaryImpl, id, m_desc);
-    }
-
-    Buffer getSecondaryBuffer()
-    {
-      return Buffer(secondaryImpl, id, m_desc);
-    }
-
-    ResourceDescriptor& desc()
-    {
-      return *m_desc;
+      return m_id;
     }
   };
 };
