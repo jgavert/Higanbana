@@ -15,12 +15,12 @@ namespace faze
   class GpuGroup : private backend::SharedState<backend::DeviceGroupData>
   {
   public:
-    GpuDevice() = default;
-    GpuDevice(backend::DeviceData data)
+    GpuGroup() = default;
+    GpuGroup(backend::DeviceGroupData data)
     {
       makeState(std::forward<decltype(data)>(data));
     }
-    GpuDevice(StatePtr state)
+    GpuGroup(StatePtr state)
     {
       m_state = std::move(state);
     }
@@ -35,22 +35,10 @@ namespace faze
       return buf;
     }
 
-    SharedBuffer createSharedBuffer(GpuDevice& secondary, ResourceDescriptor descriptor)
-    {
-      auto buf = S().createSharedBuffer(secondary.S(), descriptor);
-      return buf;
-    }
-
     Texture createTexture(ResourceDescriptor descriptor)
     {
       auto tex = S().createTexture(descriptor);
       return tex;
-    }
-
-    SharedTexture createSharedTexture(GpuDevice& secondary, ResourceDescriptor descriptor)
-    {
-      auto buf = S().createSharedTexture(secondary.S(), descriptor);
-      return buf;
     }
 
     Texture createTexture(CpuImage& image)
@@ -172,16 +160,6 @@ namespace faze
     TextureRTV* tryAcquirePresentableImage(Swapchain& swapchain)
     {
         return S().tryAcquirePresentableImage(swapchain);
-    }
-
-    GpuSemaphore createSemaphore()
-    {
-      return S().createSemaphore();
-    }
-
-    GpuSharedSemaphore createSharedSemaphore(GpuDevice& secondary)
-    {
-      return S().createSharedSemaphore(secondary.S());
     }
 
     void submit(Swapchain& swapchain, CommandGraph graph)

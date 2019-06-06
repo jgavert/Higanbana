@@ -4,6 +4,7 @@
 #include "graphics/common/implementation.hpp"
 #include "graphics/common/semaphore.hpp"
 #include "graphics/common/cpuimage.hpp"
+#include "graphics/common/heap_descriptor.hpp"
 
 #include "core/math/utils.hpp"
 
@@ -11,6 +12,12 @@ namespace faze
 {
   namespace backend
   {
+    GpuHeap::GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
+      : impl(impl)
+      , desc(std::make_shared<HeapDescriptor>(desc))
+    {
+    }
+
     HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)
     {
       GpuHeapAllocation alloc{};
