@@ -8,6 +8,26 @@
 
 namespace faze
 {
+  // any types that might be used in commandbuffers
+  // commandbuffer doesn't track resources
+  enum class ResourceType : uint64_t
+  {
+    Unknown,
+    Pipeline,
+    Buffer,
+    DynamicBuffer,
+    Texture,
+    BufferSRV,
+    BufferUAV,
+    BufferIBV,
+    TextureSRV,
+    TextureUAV,
+    TextureRTV,
+    TextureDSV,
+    // Insert some raytracing things here?
+    Count
+  };
+
   // lets just use 64bits for this
   // we can reduce the size later if needed
   struct ResourceHandle
@@ -19,13 +39,13 @@ namespace faze
       {
         uint64_t id : 20; // million is too much for id's
         uint64_t generation : 8; // generous generation id
-        uint64_t type : 6; // ... I don't really want to write this much api types
+        ResourceType type : 6; // ... I don't really want to write this much api types
         uint64_t gpuid : 16; // this should just be a bitfield, one bit for gpu, starting with modest 16 gpu's =D
         uint64_t unused : 14; // honestly could be more bits here, lets just see how things go on 
       };
       uint64_t rawValue;
     };
-    ResourceHandle(uint64_t id, uint64_t generation, uint64_t type, uint64_t gpuID)
+    ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID)
       : id(id)
       , generation(generation)
       , type(type)
@@ -62,7 +82,7 @@ namespace faze
       return ownerGpuId() >= 0; // false for now
     }
   };
-  static const ResourceHandle InvalidResourceHandle = ResourceHandle(ResourceHandle::InvalidId, 0, 0, 0);
+  static const ResourceHandle InvalidResourceHandle = ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0);
 
   /*
   Problem is how we allocate these and ...
@@ -83,35 +103,31 @@ namespace faze
   // we need legopiece to generate id's which knows how to reuse them
   // we need "type" amount of these lego pieces, all ranges begin from 0 till something
 
+  // pool that grows depending how many maximum units are taken to a limit size.
   class HandlePool
   {
     vector<uint32_t> m_freelist;
     vector<uint8_t> m_generation;
-    uint64_t m_type = 0;
-    int m_size = 0;
+    ResourceType m_type = ResourceType::Unknown;
+    uint64_t m_currentSize = 0;
+    uint64_t m_size = 0;
   public:
-    HandlePool(uint64_t type, int size)
+    HandlePool(ResourceType type, int size)
       : m_type(type)
-      , m_size(size)
+      , m_size(static_cast<uint64_t>(size))
     {
-      for (int i = size; i >= 0; i--)
-      {
-        m_freelist.push_back(i);
-      }
-      m_generation.resize(m_size);
-      for (int i = 0; i < m_size; ++i)
-      {
-        m_generation[i] = 0;
-      }
     }
 
     ResourceHandle allocate()
     {
-      if (m_freelist.empty())
+      if (m_freelist.empty() && m_currentSize+1 < m_size)
       {
-        F_ASSERT(false, "No handles left, what.");
-        return ResourceHandle{ResourceHandle::InvalidId, 0, m_type, 0};
+        m_generation.push_back(0);
+        auto id = m_currentSize;
+        m_currentSize++;
+        return ResourceHandle{id, 0, m_type, 0};
       }
+      F_ASSERT(!m_freelist.empty(), "No free handles.");
       auto id = m_freelist.back();
       m_freelist.pop_back();
       auto generation = m_generation[id]; // take current generation
@@ -130,10 +146,7 @@ namespace faze
 
     bool valid(ResourceHandle handle)
     {
-      F_ASSERT(handle.id != ResourceHandle::InvalidId
-                && handle.id < m_size
-                , "Invalid handle was passed.");
-      return handle.generation == m_generation[handle.id];
+      return handle.id != ResourceHandle::InvalidId && handle.id < m_size && handle.generation == m_generation[handle.id];
     }
 
     size_t size() const
@@ -142,4 +155,46 @@ namespace faze
     }
   };
 
+  class HandleManager
+  {
+    vector<HandlePool> m_pools;
+  public:
+    HandleManager(int poolSizes = 1024*64)
+    {
+      for (int i = 0; i < static_cast<int>(ResourceType::Count); ++i)
+      {
+        ResourceType type = static_cast<ResourceType>(i);
+        if (type == ResourceType::Unknown)
+          continue;
+        m_pools.push_back(HandlePool(type, poolSizes));
+      }
+    }
+
+    ResourceHandle allocate(ResourceType type)
+    {
+      F_ASSERT(type != ResourceType::Unknown, "please valide type.");
+      int index = static_cast<int>(type) - 1;
+      auto& pool = m_pools[index];
+      return pool.allocate();
+    }
+
+    void release(ResourceHandle handle)
+    {
+      F_ASSERT(handle.type != ResourceType::Unknown, "please valied type");
+      int typeIndex = static_cast<int>(handle.type);
+      auto& pool = m_pools[typeIndex];
+      pool.release(handle);
+    }
+
+    bool valid(ResourceHandle handle)
+    {
+      if (handle.type == ResourceType::Unknown)
+      {
+        return false;
+      }
+      int typeIndex = static_cast<int>(handle.type);
+      auto& pool = m_pools[typeIndex];
+      return pool.valid(handle);
+    }
+  };
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <graphics/common/resources.hpp>
+#include <graphics/common/handle.hpp>
+
 
 namespace faze
 {
@@ -9,6 +11,7 @@ namespace faze
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
     {
       vector<std::shared_ptr<prototypes::DeviceImpl>> m_impl;
+      HandleManager m_handles;
       vector<HeapManager> m_heaps;
       deque<LiveCommandBuffer2> m_buffers;
 
@@ -44,8 +47,8 @@ namespace faze
 
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, FormatType type);
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, unsigned stride);
-      // streaming
 
+      // streaming
       bool uploadInitialTexture(Texture& tex, CpuImage& image);
 
       // commandgraph

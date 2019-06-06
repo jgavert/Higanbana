@@ -1,16 +1,17 @@
 #pragma once
 
-#include "graphics/common/backend.hpp"
+//#include "graphics/common/backend.hpp"
 
-#include "graphics/common/heap_descriptor.hpp"
-#include "graphics/common/pipeline.hpp"
-#include "core/filesystem/filesystem.hpp"
-#include "core/system/PageAllocator.hpp"
+//#include "graphics/common/pipeline.hpp"
+//#include "core/filesystem/filesystem.hpp"
+//#include "core/system/PageAllocator.hpp"
 #include "core/datastructures/proxy.hpp"
-#include "graphics/common/intermediatelist.hpp"
+//#include "graphics/common/intermediatelist.hpp"
 
-#include <string>
-#include <atomic>
+//#include <string>
+//#include <atomic>
+#include <memory>
+
 
 namespace faze
 {
@@ -18,7 +19,7 @@ namespace faze
   {
     Vulkan,
     DX12,
-	All
+	  All
   };
 
   const char* toString(GraphicsApi api);
@@ -83,6 +84,8 @@ namespace faze
   class GpuSemaphore;
   class GpuSharedSemaphore;
 
+  class HeapDescriptor;
+
   namespace backend
   {
     class FenceImpl;
@@ -118,11 +121,7 @@ namespace faze
       std::shared_ptr<prototypes::HeapImpl> impl;
       std::shared_ptr<HeapDescriptor> desc;
 
-      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
-        : impl(impl)
-        , desc(std::make_shared<HeapDescriptor>(desc))
-      {
-      }
+      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc);
     };
 
     struct HeapAllocation
