@@ -62,6 +62,7 @@ namespace faze
       return ownerGpuId() >= 0; // false for now
     }
   };
+  static const ResourceHandle InvalidResourceHandle = ResourceHandle(ResourceHandle::InvalidId, 0, 0, 0);
 
   /*
   Problem is how we allocate these and ...

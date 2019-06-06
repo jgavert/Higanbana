@@ -168,5 +168,15 @@ namespace faze
       std::shared_ptr<backend::FenceImpl> fence;
       std::shared_ptr<vector<IntermediateList>> intermediateLists;
     };
+
+    struct LiveCommandBuffer2
+    {
+      int deviceID;
+      vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
+      vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
+      vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
+      std::shared_ptr<backend::FenceImpl> fence;
+      std::shared_ptr<vector<IntermediateList>> intermediateLists;
+    };
   }
 }
