@@ -1,5 +1,5 @@
 #pragma once
-#include "graphics/vk/vkresources.hpp"
+#include <graphics/vk/vkresources.hpp>
 namespace faze
 {
   namespace backend
@@ -71,6 +71,9 @@ namespace faze
 
       std::shared_ptr<Garbage> m_trash;
       deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
+
+      // new new stuff
+      // HandleVector<VulkanTexture>
     public:
       VulkanDevice(
         vk::Device device,
@@ -91,7 +94,7 @@ namespace faze
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
-      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, HandleManager& handles) override;
       int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 

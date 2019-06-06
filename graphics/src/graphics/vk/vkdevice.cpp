@@ -741,7 +741,7 @@ namespace faze
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
     }
 
-    vector<std::shared_ptr<prototypes::TextureImpl>> VulkanDevice::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc)
+    vector<std::shared_ptr<prototypes::TextureImpl>> VulkanDevice::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, HandleManager& handles)
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
       auto images = m_device.getSwapchainImagesKHR(native->native());

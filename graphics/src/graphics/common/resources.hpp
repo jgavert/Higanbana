@@ -1,6 +1,6 @@
 #pragma once
 
-//#include "graphics/common/backend.hpp"
+#include "graphics/common/backend.hpp"
 
 //#include "graphics/common/pipeline.hpp"
 //#include "core/filesystem/filesystem.hpp"
@@ -61,6 +61,17 @@ namespace faze
     int64_t heapType;
   };
 
+  struct GpuHeapAllocation;
+  class FixedSizeAllocator;
+
+  class SwapchainDescriptor;
+  class ResourceDescriptor;
+  class ShaderViewDescriptor;
+  class ComputePipelineDescriptor;
+  class ComputePipeline;
+  class GraphicsPipelineDescriptor;
+  class GraphicsPipeline;
+
   class Buffer;
   class SharedBuffer;
   class Texture;
@@ -91,6 +102,7 @@ namespace faze
     class FenceImpl;
     class SemaphoreImpl;
     class CommandBufferImpl;
+    class IntermediateList;
     namespace prototypes
     {
       class DeviceImpl;
@@ -147,7 +159,7 @@ namespace faze
       };
 
       vector<HeapVector> m_heaps;
-      const int64_t m_minimumHeapSize = 16 * 1024 * 1024;
+      const int64_t m_minimumHeapSize = 16 * 1024 * 1024; // todo: move this configuration elsewhere
       uint64_t m_heapIndex = 0;
 
       uint64_t m_totalMemory = 0;
