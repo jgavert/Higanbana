@@ -11,6 +11,7 @@
 
 #include "core/system/MemoryPools.hpp"
 #include "core/system/SequenceTracker.hpp"
+#include <graphics/common/handle.hpp>
 
 namespace faze
 {
@@ -217,7 +218,7 @@ namespace faze
       vector<TextureStateFlags> flags; // subresource count
     };
 
-    class VulkanTexture : public prototypes::TextureImpl
+    class VulkanTexture
     {
     private:
       vk::Image resource;
@@ -248,7 +249,7 @@ namespace faze
         return owned;
       }
 
-      backend::TrackedState dependency() override
+      backend::TrackedState dependency()
       {
         backend::TrackedState state{};
         state.resPtr = reinterpret_cast<size_t>(&resource);
@@ -258,7 +259,7 @@ namespace faze
       }
     };
 
-    class VulkanTextureView : public prototypes::TextureViewImpl
+    class VulkanTextureView
     {
     private:
       struct Info
@@ -292,7 +293,7 @@ namespace faze
           .setLayerCount(m.subResourceRange.arraySize);
       }
 
-      backend::RawView view() override
+      backend::RawView view()
       {
         return backend::RawView{};
       }
@@ -304,7 +305,7 @@ namespace faze
       int queueIndex = -1;
     };
 
-    class VulkanBuffer : public prototypes::BufferImpl
+    class VulkanBuffer
     {
     private:
       vk::Buffer resource;
@@ -327,13 +328,13 @@ namespace faze
         return statePtr;
       }
 
-      backend::TrackedState dependency() override
+      backend::TrackedState dependency()
       {
         return backend::TrackedState{ reinterpret_cast<size_t>(&resource), reinterpret_cast<size_t>(statePtr.get()), 0 };
       }
     };
 
-    class VulkanBufferView : public prototypes::BufferViewImpl
+    class VulkanBufferView
     {
     private:
       struct Info
@@ -353,7 +354,7 @@ namespace faze
         return m;
       }
 
-      backend::RawView view() override
+      backend::RawView view()
       {
         return backend::RawView{};
       }
@@ -444,7 +445,7 @@ namespace faze
       }
     };
 
-    class VulkanPipeline : public prototypes::PipelineImpl
+    class VulkanPipeline
     {
     public:
       vk::Pipeline            m_pipeline;
@@ -467,7 +468,7 @@ namespace faze
       {}
     };
 
-    class VulkanRenderpass : public prototypes::RenderpassImpl
+    class VulkanRenderpass
     {
     private:
       std::shared_ptr<vk::RenderPass> m_renderpass = nullptr;

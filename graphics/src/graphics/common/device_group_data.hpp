@@ -2,6 +2,8 @@
 
 #include <graphics/common/resources.hpp>
 #include <graphics/common/handle.hpp>
+#include <graphics/desc/formats.hpp>
+#include <core/system/memview.hpp>
 
 
 namespace faze

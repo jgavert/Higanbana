@@ -21,6 +21,8 @@ namespace faze
   class FileSystem;
   class Window;
   struct MemoryRequirements;
+  struct ResourceHandle;
+  class HandleManager;
 
   namespace backend
   {
@@ -57,18 +59,6 @@ namespace faze
 
     namespace prototypes
     {
-      class RenderpassImpl
-      {
-      public:
-        virtual ~RenderpassImpl() = default;
-      };
-
-      class PipelineImpl
-      {
-      public:
-        virtual ~PipelineImpl() = default;
-      };
-
       class GraphicsSurfaceImpl
       {
       public:
@@ -87,31 +77,7 @@ namespace faze
         virtual ~SwapchainImpl() = default;
       };
 
-      class TextureImpl
-      {
-      public:
-        virtual ~TextureImpl() = default;
-        virtual backend::TrackedState dependency() = 0;
-      };
-      class TextureViewImpl
-      {
-      public:
-        virtual ~TextureViewImpl() = default;
-        virtual backend::RawView view() = 0;
-      };
-      class BufferImpl
-      {
-      public:
-        virtual ~BufferImpl() = default;
-        virtual backend::TrackedState dependency() = 0;
-      };
-      class BufferViewImpl
-      {
-      public:
-        virtual ~BufferViewImpl() = default;
-        virtual backend::RawView view() = 0;
-      };
-
+      // questionable
       class DynamicBufferViewImpl
       {
       public:
@@ -140,24 +106,24 @@ namespace faze
         // swapchain
         virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) = 0;
         virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, SwapchainDescriptor descriptor) = 0;
-        virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc) = 0;
+        virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc, HandleManager& handles) = 0;
         virtual int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
         // pipeline related
-        virtual std::shared_ptr<RenderpassImpl> createRenderpass() = 0;
-        virtual std::shared_ptr<PipelineImpl> createPipeline(GraphicsPipelineDescriptor desc) = 0;
-        virtual std::shared_ptr<PipelineImpl> createPipeline(ComputePipelineDescriptor desc) = 0;
+        virtual void createRenderpass(ResourceHandle handle) = 0;
+        virtual void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc) = 0;
+        virtual void createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc) = 0;
 
         //create/destroy pairs
         virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
 
-        virtual std::shared_ptr<BufferImpl> createBuffer(ResourceDescriptor& desc) = 0;
-        virtual std::shared_ptr<BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual std::shared_ptr<BufferViewImpl> createBufferView(std::shared_ptr<BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
-        virtual std::shared_ptr<TextureImpl> createTexture(ResourceDescriptor& desc) = 0;
-        virtual std::shared_ptr<TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual std::shared_ptr<TextureViewImpl> createTextureView(std::shared_ptr<TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) = 0;
+        virtual void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
+        virtual void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void createTexture(ResourceHandle handle, ResourceDescriptor& desc) = 0;
+        virtual void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
+        virtual void createTextureView(ResourceHandle handle, ResourceHandle texture, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
 
         virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
 
@@ -165,8 +131,8 @@ namespace faze
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<TextureImpl> resource) = 0;
         virtual std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle) = 0;
-        virtual std::shared_ptr<BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
-        virtual std::shared_ptr<TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) = 0;
+        virtual void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
+        virtual void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) = 0;
 
         // create dynamic resources
         virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;

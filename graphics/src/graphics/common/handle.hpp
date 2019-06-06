@@ -197,4 +197,21 @@ namespace faze
       return pool.valid(handle);
     }
   };
+
+  template <typename Type>
+  class HandleVector
+  {
+    vector<Type> objects;
+    public:
+    HandleVector(){}
+
+    Type& operator[](ResourceHandle handle)
+    {
+      if (objects.size() < handle.id)
+      {
+        objects.resize(handle.id+1);
+      }
+      return objects[handle.id]; 
+    }
+  };
 }
