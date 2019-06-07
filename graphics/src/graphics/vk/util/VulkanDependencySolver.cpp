@@ -17,14 +17,13 @@ namespace faze
       }
       return VulkanDependencySolver::UsageHint::read;
     }
-
-    int VulkanDependencySolver::addDrawCall(CommandPacket::PacketType name, vk::PipelineStageFlags baseFlags)
+    int VulkanDependencySolver::addDrawCall(vk::PipelineStageFlags baseFlags)
     {
-      m_drawCallInfo.emplace_back(name);
       m_drawCallStage.emplace_back(baseFlags);
       m_drawCallJobOffsets[drawCallsAdded] = static_cast<int>(m_jobs.size());
       return drawCallsAdded++;
     }
+
     // buffers
     void VulkanDependencySolver::addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags)
     {
@@ -378,7 +377,6 @@ namespace faze
 
     void VulkanDependencySolver::reset()
     {
-      m_drawCallInfo.clear();
       m_drawCallStage.clear();
       m_jobs.clear();
       m_schedulingResult.clear();

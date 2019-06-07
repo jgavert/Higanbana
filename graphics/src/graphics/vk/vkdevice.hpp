@@ -88,7 +88,7 @@ namespace faze
 
       std::shared_ptr<vk::RenderPass> createRenderpass(const vk::RenderPassCreateInfo& info);
 
-      void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::RenderpassBegin& subpass);
+      //void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::RenderpassBegin& subpass);
       void updatePipeline(ComputePipeline& pipeline);
 
       // implementation
@@ -120,7 +120,7 @@ namespace faze
 
       std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<SemaphoreImpl>) override { return nullptr; };
       std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override { return nullptr; };
-      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl>) override { return nullptr; };
+      std::shared_ptr<SharedHandle> openSharedHandle(ResourceHandle handle) override { return nullptr; };
       std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override { return nullptr; };
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return; };
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return; };

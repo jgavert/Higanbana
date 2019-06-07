@@ -2,6 +2,7 @@
 #if defined(FAZE_PLATFORM_WINDOWS)
 #include "graphics/dx12/util/dxDependencySolver.hpp"
 #include "graphics/dx12/util/formats.hpp"
+#include <graphics/common/texture.hpp>
 
 #if 0
 #undef PROFILE
@@ -208,8 +209,8 @@ namespace faze
       loc.PlacedFootprint.Footprint.Height = ref.desc().desc.height;
       loc.PlacedFootprint.Footprint.Depth = ref.desc().desc.depth;
       loc.PlacedFootprint.Footprint.Format = backend::formatTodxFormat(ref.desc().desc.format).storage;
-      loc.PlacedFootprint.Footprint.RowPitch = view.rowPitch(); // ???
-      loc.PlacedFootprint.Offset = view.offset(); // ???
+      //loc.PlacedFootprint.Footprint.RowPitch = view.rowPitch(); // ???
+      //loc.PlacedFootprint.Offset = view.offset(); // ???
       loc.pResource = upload;
       return loc;
     }

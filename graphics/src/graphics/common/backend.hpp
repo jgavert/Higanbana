@@ -26,25 +26,23 @@ namespace faze
   {
     struct DeviceGroupData;
 
-    template <typename T>
+    template <typename State>
     class SharedState
     {
     protected:
-      using State = T;
-      using StatePtr = std::shared_ptr<T>;
+      using StatePtr = std::shared_ptr<State>;
 
       StatePtr m_state;
     public:
 
       template <typename... Ts>
-      T &makeState(Ts &&... ts)
+      void makeState(Ts&&... ts)
       {
-        m_state = std::make_shared<T>(std::forward<Ts>(ts)...);
-        return S();
+        m_state = std::make_shared<State>(std::forward<Ts>(ts)...);
       }
 
-      const T &S() const { return *m_state; }
-      T &S() { return *m_state; }
+      const State& S() const { return *m_state; }
+      State& S() { return *m_state; }
 
       bool valid() const { return !!m_state; }
     };

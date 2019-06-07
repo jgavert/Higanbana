@@ -65,7 +65,6 @@ namespace faze
       unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
       unordered_map<ResourceUniqueId, LastSeenUsage> m_resourceUsageInLastAdd;
 
-      vector<CommandPacket::PacketType> m_drawCallInfo;
       vector<vk::PipelineStageFlags> m_drawCallStage;
       unordered_set<ResourceUniqueId> m_uniqueBuffersThisChain;
       unordered_map<ResourceUniqueId, BufferDependency> m_bufferStates;
@@ -122,7 +121,7 @@ namespace faze
     public:
       VulkanDependencySolver() {}
 
-      int addDrawCall(CommandPacket::PacketType name, vk::PipelineStageFlags baseFlags);
+      int addDrawCall(vk::PipelineStageFlags baseFlags);
 
       // buffers
       void addBuffer(int drawCallIndex, int64_t id, VulkanBuffer& buffer, vk::AccessFlags flags);
