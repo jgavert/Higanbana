@@ -59,7 +59,7 @@ namespace faze
     {
       return dmaList;
     }
-
+/*
     void handle(D3D12GraphicsCommandList* buffer, gfxpacket::RenderpassBegin& packet)
     {
       // set viewport and rendertargets
@@ -189,6 +189,7 @@ namespace faze
         }
       }
     }
+    */
 
     D3D12_TEXTURE_COPY_LOCATION locationFromTexture(TrackedState tex, int mip, int slice)
     {
@@ -227,6 +228,7 @@ namespace faze
       return loc;
     }
 
+    /*
     void handle(D3D12GraphicsCommandList* buffer, gfxpacket::UpdateTexture& packet, ID3D12Resource* upload)
     {
       D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(packet.dst.dependency(), packet.mip, packet.slice);
@@ -349,7 +351,7 @@ namespace faze
     {
       buffer->Dispatch(packet.groups.x, packet.groups.y, packet.groups.z);
     }
-
+*/
     UploadBlock DX12CommandList::allocateConstants(size_t size)
     {
       auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
@@ -381,7 +383,7 @@ namespace faze
       F_ASSERT(block, "What!");
       return block;
     }
-
+/*
     void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
     {
       if (ding.constants.size() > 0)
@@ -472,7 +474,7 @@ namespace faze
         }
       };
       */
-
+/*
       DX12Query activeQuery{};
 
       std::function<void(MemView<std::pair<std::string, double>>)> queryCallback;
@@ -852,16 +854,16 @@ namespace faze
         }
       }
     }
-
+*/
     // implementations
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
       DX12Device* dev = static_cast<DX12Device*>(device.get());
-#if 1
+#if 0
       addDepedencyDataAndSolve(m_buffer->solver(), list);
       processRenderpasses(dev, list);
       addCommands(dev, m_buffer->list(), m_buffer->solver(), list);
-#else
+#elif 0
       DX12DependencySolver solver;
       addDepedencyDataAndSolve(&solver, list);
       processRenderpasses(dev, list);
@@ -869,7 +871,7 @@ namespace faze
 #endif
 
       m_buffer->closeList();
+    }
   }
 }
-    }
 #endif

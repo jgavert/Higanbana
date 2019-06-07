@@ -433,7 +433,7 @@ namespace faze
       }
     }
 
-    vector<std::shared_ptr<prototypes::TextureImpl>> DX12Device::getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
+    int DX12Device::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain, vector<ResourceHandle>& handles)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
 
@@ -465,7 +465,7 @@ namespace faze
           delete ptr;
         });
       }
-      return textures;
+      return static_cast<int>(textures.size());
     }
 
     int DX12Device::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)

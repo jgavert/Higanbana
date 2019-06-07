@@ -45,6 +45,12 @@ namespace faze
       };
       uint64_t rawValue;
     };
+    ResourceHandle()
+      : id(InvalidId)
+      , generation(0)
+      , type(ResourceType::Unknown)
+      , gpuid(0)
+      {}
     ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID)
       : id(id)
       , generation(generation)
@@ -212,6 +218,11 @@ namespace faze
         objects.resize(handle.id+1);
       }
       return objects[handle.id]; 
+    }
+
+    void clear()
+    {
+      objects.clear();
     }
   };
 }

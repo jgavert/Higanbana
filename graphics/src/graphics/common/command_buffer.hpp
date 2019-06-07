@@ -208,7 +208,7 @@ namespace faze
     #if defined(SIZE_DEBUG)
         printf("%zu header info: %d %zu %u\n",reinterpret_cast<size_t>(header), header->type, header->length, header->offsetFromThis);
     #endif
-        while (header->type != PacketType::END_OF_PACKETS)
+        while (header->type != PacketType::EndOfPackets)
         {
           func(header->type);
           size_t nextHeaderAddr = reinterpret_cast<size_t>(header) + header->offsetFromThis;
@@ -222,12 +222,20 @@ namespace faze
 
     enum PacketType : uint32_t
     {
-      END_OF_PACKETS = 0,
-      SP_PACKET = 1,
-      SP_VECTORPACKET = 2,
-      COUNT
+      EndOfPackets = 0,
+      BufferCopy,
+      Dispatch,
+      PrepareForPresent,
+      RenderpassBegin,
+      RenderpassEnd,
+      GraphicsPipelineBind,
+      ComputePipelineBind,
+      ResourceBinding,
+      Draw,
+      Count
     };
 
+    /*
     struct sample_packet
     {
       int secretData1;
@@ -263,5 +271,6 @@ namespace faze
         memcpy(spn.data(), b.data(), b.size_bytes());
       }
     };
+    */
   }
 }

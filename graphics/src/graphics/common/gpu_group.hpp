@@ -137,7 +137,7 @@ namespace faze
 
     CommandGraph createGraph()
     {
-      return CommandGraph();
+      return S().startCommandGraph();
     }
 
     Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor = SwapchainDescriptor())

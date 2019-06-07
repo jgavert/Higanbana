@@ -1,21 +1,13 @@
 #pragma once
-/*
-#include "graphics/common/intermediatelist.hpp"
-#include "graphics/common/commandvector.hpp"
-#include "graphics/common/texture.hpp"
-#include "graphics/common/buffer.hpp"
-#include "graphics/common/renderpass.hpp"
-#include "core/math/math.hpp"
-
-#define packetRef(type, packet) *static_cast<type*>(packet)
-#define packetPtr(type, packet) static_cast<type*>(packet)
+#include "graphics/common/command_buffer.hpp"
 
 namespace faze
 {
   namespace gfxpacket
   {
+    std::string packetTypeToString(backend::PacketType type);
+    /*
     // helpers
-    std::string packetTypeToString(backend::CommandPacket::PacketType type);
 
     template <typename Type>
     CommandListVector<Type> toCmdVector(backend::ListAllocator& allocator, MemView<Type>& view)
@@ -534,6 +526,6 @@ namespace faze
         return PacketType::BufferCopy;
       }
     };
+    */
   }
 }
-*/

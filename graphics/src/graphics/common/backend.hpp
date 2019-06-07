@@ -10,7 +10,7 @@
 
 namespace faze
 {
-  class GpuDevice;
+  class GpuGroup;
 
   struct GpuHeapAllocation
   {
@@ -24,7 +24,7 @@ namespace faze
 
   namespace backend
   {
-    struct DeviceData;
+    struct DeviceGroupData;
 
     template <typename T>
     class SharedState
@@ -193,17 +193,17 @@ namespace faze
       }
     };
 
-    class GpuDeviceChild
+    class GpuGroupChild
     {
-      std::weak_ptr<DeviceData> m_parentDevice;
+      std::weak_ptr<DeviceGroupData> m_parentDevice;
     public:
-      GpuDeviceChild() = default;
-      GpuDeviceChild(std::weak_ptr<DeviceData> device)
+      GpuGroupChild() = default;
+      GpuGroupChild(std::weak_ptr<DeviceGroupData> device)
         : m_parentDevice(device)
       {}
 
-      void setParent(GpuDevice *device);
-      GpuDevice device();
+      void setParent(GpuGroup *device);
+      GpuGroup device();
     };
   }
 }

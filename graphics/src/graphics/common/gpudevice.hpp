@@ -1,5 +1,5 @@
 #pragma once
-
+/*
 #include "graphics/common/device_data.hpp"
 #include "graphics/common/resource_descriptor.hpp"
 #include "graphics/common/buffer.hpp"
@@ -220,3 +220,4 @@ namespace faze
     }
   };
 };
+*/

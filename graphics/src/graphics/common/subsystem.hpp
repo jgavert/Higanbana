@@ -1,6 +1,7 @@
 #pragma once
 #include "graphics/common/backend.hpp"
 #include "graphics/common/subsystem_data.hpp"
+#include <graphics/common/gpu_group.hpp>
 #include "graphics/common/graphicssurface.hpp"
 #include "core/Platform/Window.hpp"
 #include "core/datastructures/proxy.hpp"
@@ -34,7 +35,7 @@ namespace faze
       }
       return info;
     }
-    GpuDevice createDevice(FileSystem& fs, GpuInfo gpu) { return GpuDevice(S().createDevice(fs, gpu)); }
+    GpuGroup createGroup(FileSystem& fs, vector<GpuInfo> gpu) { return S().createGroup(fs, gpu); }
     GraphicsSurface createSurface(Window& window, GpuInfo gpu) { return S().createSurface(window, gpu); }
   };
 }

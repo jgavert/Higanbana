@@ -14,6 +14,8 @@
 #include "graphics/shaders/ShaderStorage.hpp"
 //#include "graphics/src/dx12/util/ShaderStorage.hpp"
 
+#include <graphics/common/allocators.hpp>
+
 #include "graphics/definitions.hpp"
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
@@ -588,7 +590,7 @@ namespace faze
 
       UploadBlock allocateConstants(size_t size);
       DynamicDescriptorBlock allocateDescriptors(size_t size);
-      void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
+      //void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
       void addCommands(DX12Device* dev, D3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
@@ -835,7 +837,7 @@ namespace faze
       vector<D3D12_RESOURCE_STATES> flags; // subresource count
     };
 
-    class DX12Texture : public prototypes::TextureImpl
+    class DX12Texture
     {
     private:
       ID3D12Resource * resource = nullptr;
@@ -862,18 +864,9 @@ namespace faze
       {
         statePtr = nullptr;
       }
-
-      backend::TrackedState dependency() override
-      {
-        backend::TrackedState state{};
-        state.resPtr = reinterpret_cast<size_t>(resource);
-        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
-        state.additionalInfo = 0;
-        return state;
-      }
     };
 
-    class DX12TextureView : public prototypes::TextureViewImpl
+    class DX12TextureView 
     {
     private:
       DX12CPUDescriptor resource;
@@ -894,16 +887,9 @@ namespace faze
       {
         return subResourceRange;
       }
-
-      backend::RawView view() override
-      {
-        backend::RawView view{};
-        view.view = resource.cpu.ptr;
-        return view;
-      }
     };
 
-    class DX12Buffer : public prototypes::BufferImpl
+    class DX12Buffer 
     {
     private:
       ID3D12Resource * resource;
@@ -929,17 +915,9 @@ namespace faze
       {
         statePtr = nullptr;
       }
-      backend::TrackedState dependency() override
-      {
-        backend::TrackedState state{};
-        state.resPtr = reinterpret_cast<size_t>(resource);
-        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
-        state.additionalInfo = 0;
-        return state;
-      }
     };
 
-    class DX12BufferView : public prototypes::BufferViewImpl
+    class DX12BufferView 
     {
     private:
       DX12CPUDescriptor resource;
@@ -953,13 +931,6 @@ namespace faze
       DX12CPUDescriptor native()
       {
         return resource;
-      }
-
-      backend::RawView view() override
-      {
-        backend::RawView view{};
-        view.view = resource.cpu.ptr;
-        return view;
       }
     };
 
@@ -1045,7 +1016,7 @@ namespace faze
       }
     };
 
-    class DX12Renderpass : public prototypes::RenderpassImpl
+    class DX12Renderpass 
     {
     private:
       int _unused = -1;
@@ -1053,7 +1024,7 @@ namespace faze
       DX12Renderpass() {}
     };
 
-    class DX12Pipeline : public prototypes::PipelineImpl
+    class DX12Pipeline
     {
     public:
       ComPtr<ID3D12PipelineState> pipeline;
@@ -1139,17 +1110,17 @@ namespace faze
       D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
 
-      void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass);
-      void updatePipeline(ComputePipeline& pipeline);
+      //void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass);
+      //void updatePipeline(ComputePipeline& pipeline);
 
       // impl
-      std::shared_ptr<prototypes::PipelineImpl> createPipeline(GraphicsPipelineDescriptor layout) override;
-      std::shared_ptr<prototypes::PipelineImpl> createPipeline(ComputePipelineDescriptor layout) override;
+      void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
+      void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
 
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
       void ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor);
-      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc) override;
+      int fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles) override;
       int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
@@ -1157,25 +1128,25 @@ namespace faze
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
-      std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
+      void createRenderpass(ResourceHandle handle) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
 
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTexture(ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
+      void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createTexture(ResourceHandle handle, ResourceDescriptor& desc) override;
+      void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void createTextureView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
 
       std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl>) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
-      std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource) override;
+      std::shared_ptr<backend::SharedHandle> openSharedHandle(ResourceHandle resource) override;
       std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle>) override;
-      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<backend::SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc) override;
+      void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
+      void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) override;
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
@@ -1234,7 +1205,7 @@ namespace faze
       DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
       std::string gfxApi() override;
       vector<GpuInfo> availableGpus() override;
-      GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
+      std::shared_ptr<prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
       GraphicsSurface createSurface(Window& window) override;
     };
   }

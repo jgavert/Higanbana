@@ -105,8 +105,8 @@ namespace faze
 
         // swapchain
         virtual std::shared_ptr<SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) = 0;
-        virtual void adjustSwapchain(std::shared_ptr<SwapchainImpl> sc, SwapchainDescriptor descriptor) = 0;
-        virtual vector<std::shared_ptr<TextureImpl>> getSwapchainTextures(std::shared_ptr<SwapchainImpl> sc, HandleManager& handles) = 0;
+        virtual void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) = 0;
+        virtual int fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles) = 0;
         virtual int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
@@ -129,7 +129,7 @@ namespace faze
 
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> semaphore) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
-        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<TextureImpl> resource) = 0;
+        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(ResourceHandle resource) = 0;
         virtual std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle) = 0;
         virtual void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
         virtual void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) = 0;
@@ -176,7 +176,7 @@ namespace faze
       public:
         virtual std::string gfxApi() = 0;
         virtual vector<GpuInfo> availableGpus() = 0;
-        virtual GpuDevice createGpuDevice(FileSystem& fs, GpuInfo gpu) = 0;
+        virtual std::shared_ptr<prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) = 0;
         virtual GraphicsSurface createSurface(Window& window) = 0;
         virtual ~SubsystemImpl() {}
       };

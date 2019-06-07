@@ -17,12 +17,12 @@ namespace faze
     {
     }
 
-    PingPongTexture(GpuDevice gpu, const ResourceDescriptor& desc)
+    PingPongTexture(GpuGroup gpu, const ResourceDescriptor& desc)
     {
       resize(gpu, desc);
     }
 
-    void resize(GpuDevice gpu, const ResourceDescriptor& desc)
+    void resize(GpuGroup gpu, const ResourceDescriptor& desc)
     {
       srvs.clear();
       uavs.clear();

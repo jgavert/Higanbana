@@ -1,16 +1,16 @@
-#include "graphics/common/gpudevice.hpp"
+#include "graphics/common/gpu_group.hpp"
 
 namespace faze
 {
   namespace backend
   {
-    void GpuDeviceChild::setParent(GpuDevice *device)
+    void GpuGroupChild::setParent(GpuGroup *device)
     {
       m_parentDevice = device->state();
     }
-    GpuDevice GpuDeviceChild::device()
+    GpuGroup GpuGroupChild::device()
     {
-      return GpuDevice(m_parentDevice.lock());
+      return GpuGroup(m_parentDevice.lock());
     }
   }
 }

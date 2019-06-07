@@ -12,14 +12,14 @@ namespace faze
   class ComputePipeline
   {
   public:
-    std::shared_ptr<backend::prototypes::PipelineImpl> impl;
+    std::shared_ptr<ResourceHandle> impl;
     std::shared_ptr<WatchFile> m_update;
     ComputePipelineDescriptor descriptor;
 
     ComputePipeline()
     {}
 
-    ComputePipeline(std::shared_ptr<backend::prototypes::PipelineImpl> impl, ComputePipelineDescriptor desc)
+    ComputePipeline(std::shared_ptr<ResourceHandle> impl, ComputePipelineDescriptor desc)
       : impl(impl)
       , m_update(std::make_shared<WatchFile>())
       , descriptor(desc)
@@ -29,43 +29,36 @@ namespace faze
   class GraphicsPipeline
   {
   public:
+    std::shared_ptr<ResourceHandle> pipeline;
     GraphicsPipelineDescriptor descriptor;
 
-    struct FullPipeline
+    WatchFile vs;
+    WatchFile ds;
+    WatchFile hs;
+    WatchFile gs;
+    WatchFile ps;
+
+    bool needsUpdating()
     {
-      size_t hash;
-      std::shared_ptr<backend::prototypes::PipelineImpl> pipeline;
-      WatchFile vs;
-      WatchFile ds;
-      WatchFile hs;
-      WatchFile gs;
-      WatchFile ps;
+      return vs.updated() || ps.updated() || ds.updated() || hs.updated() || gs.updated();
+    }
 
-      bool needsUpdating()
-      {
-        return !pipeline || vs.updated() || ps.updated() || ds.updated() || hs.updated() || gs.updated();
-      }
-
-      void updated()
-      {
-        vs.react();
-        ds.react();
-        hs.react();
-        gs.react();
-        ps.react();
-      }
-    };
-
-    std::shared_ptr<vector<FullPipeline>> m_pipelines;
+    void updated()
+    {
+      vs.react();
+      ds.react();
+      hs.react();
+      gs.react();
+      ps.react();
+    }
 
     GraphicsPipeline()
       : descriptor()
-      , m_pipelines(nullptr)
     {}
 
-    GraphicsPipeline(GraphicsPipelineDescriptor desc)
-      : descriptor(desc)
-      , m_pipelines(std::make_shared<vector<FullPipeline>>())
+    GraphicsPipeline(std::shared_ptr<ResourceHandle> handle, GraphicsPipelineDescriptor desc)
+      : pipeline(handle)
+      , descriptor(desc)
     {}
   };
 }
