@@ -4,6 +4,9 @@
 #include "graphics/common/implementation.hpp"
 #include "graphics/common/semaphore.hpp"
 #include "graphics/common/cpuimage.hpp"
+#include <graphics/common/swapchain.hpp>
+#include <graphics/common/pipeline.hpp>
+#include <graphics/common/commandgraph.hpp>
 
 #include "core/math/utils.hpp"
 
@@ -12,13 +15,12 @@ namespace faze
   namespace backend
   {
     // device
-    DeviceGroupData::DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impls)
-      : m_impl(impls)
+    DeviceGroupData::DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impls, vector<GpuInfo> infos)
     {
       // all devices have their own heap managers
-      for (int i = 0; i < m_impl.size(); ++i)
+      for (int i = 0; i < impls.size(); ++i)
       {
-        m_heaps.push_back(HeapManager());
+        m_devices.push_back({impls[i], HeapManager(), infos[i]});
       }
     }
 
@@ -30,7 +32,7 @@ namespace faze
         {
           // force wait oldest
           int deviceID = m_buffers.front().deviceID;
-          m_impl[deviceID]->waitFence(m_buffers.front().fence);
+          m_devices[deviceID].device->waitFence(m_buffers.front().fence);
         }
         int buffersToFree = 0;
         int buffersWithoutFence = 0;
@@ -39,7 +41,7 @@ namespace faze
         {
           if (m_buffers[i].fence)
           {
-            if (!m_impl[m_buffers[i].deviceID]->checkFence(m_buffers[i].fence))
+            if (!m_devices[m_buffers[i].deviceID].device->checkFence(m_buffers[i].fence))
             {
               break;
             }
@@ -83,11 +85,11 @@ namespace faze
 
     DeviceGroupData::~DeviceGroupData()
     {
-      for (auto&& impl : m_impl)
+      for (auto&& impl : m_devices)
       {
-        if (impl)
+        if (impl.device)
         {
-          impl->waitGpuIdle();
+          impl.device->waitGpuIdle();
           waitGpuIdle();
         }
       }
@@ -102,7 +104,7 @@ namespace faze
         {
           if (liveBuffer.fence)
           {
-            m_impl[liveBuffer.deviceID]->waitFence(liveBuffer.fence);
+            m_devices[liveBuffer.deviceID].device->waitFence(liveBuffer.fence);
           }
         }
 
@@ -115,31 +117,58 @@ namespace faze
 
     constexpr const int SwapchainDeviceID = 0;
 
+    void DeviceGroupData::configureBackbufferViews(Swapchain& sc)
+    {
+      vector<ResourceHandle> handles;
+      // overcommitting with handles, 8 is max anyway...
+      for (int i = 0; i < 8; i++)
+      {
+        handles.push_back(m_handles.allocate(ResourceType::Texture));
+      }
+      auto bufferCount = m_devices[SwapchainDeviceID].device->fetchSwapchainTextures(sc.impl(), handles);
+      vector<TextureRTV> backbuffers;
+      backbuffers.resize(bufferCount);
+      for (int i = 0; i < bufferCount; ++i)
+      {
+        std::shared_ptr<ResourceHandle> handlePtr = std::shared_ptr<ResourceHandle>(new ResourceHandle(handles[i]), 
+        [weakDevice = weak_from_this()](ResourceHandle* ptr)
+        {
+          if (auto dev = weakDevice.lock())
+          {
+            dev->m_handles.release(*ptr);
+          }
+          delete ptr;
+        });
+        auto tex = Texture(handlePtr, std::make_shared<ResourceDescriptor>(sc.impl()->desc()));
+        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
+      }
+
+      sc.setBackbuffers(backbuffers);
+
+      // release overcommitted handles
+      for (int i = bufferCount; i < 8; i++)
+      {
+        m_handles.release(handles[i]);
+      }
+    }
+
     Swapchain DeviceGroupData::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
       // assume that first device is the one in charge of presenting. TODO: swapchain is created always on device 0
-      auto sc = m_impl[SwapchainDeviceID]->createSwapchain(surface, descriptor);
+      auto sc = m_devices[SwapchainDeviceID].device->createSwapchain(surface, descriptor);
       auto swapchain = Swapchain(sc);
       // get backbuffers to swapchain
-      auto buffers = m_impl[SwapchainDeviceID]->getSwapchainTextures(swapchain.impl());
-      vector<TextureRTV> backbuffers;
-      backbuffers.resize(buffers.size());
-      for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
-      {
-        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(swapchain.impl()->desc()));
-        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
-      }
-      swapchain.setBackbuffers(backbuffers);
+      configureBackbufferViews(swapchain);
       return swapchain;
     }
 
     void DeviceGroupData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor)
     {
       // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
-      auto fenceForSwapchain = m_impl[SwapchainDeviceID]->createFence();
+      auto fenceForSwapchain = m_devices[SwapchainDeviceID].device->createFence();
       // assuming that only graphics queue accesses swapchain resources.
-      m_impl[SwapchainDeviceID]->submitGraphics({}, {}, {}, fenceForSwapchain);
-      m_impl[SwapchainDeviceID]->waitFence(fenceForSwapchain);
+      m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, fenceForSwapchain);
+      m_devices[SwapchainDeviceID].device->waitFence(fenceForSwapchain);
       waitGpuIdle();
       // wait all idle work.
       // release current swapchain backbuffers
@@ -148,30 +177,21 @@ namespace faze
       gc();
 
       // blim
-      m_impl[SwapchainDeviceID]->adjustSwapchain(swapchain.impl(), descriptor);
+      m_devices[SwapchainDeviceID].device->adjustSwapchain(swapchain.impl(), descriptor);
       // get new backbuffers... seems like we do it here.
-      auto buffers = m_impl[SwapchainDeviceID]->getSwapchainTextures(swapchain.impl());
-      vector<TextureRTV> backbuffers;
-      backbuffers.resize(buffers.size());
-      for (int i = 0; i < static_cast<int>(buffers.size()); ++i)
-      {
-        auto tex = Texture(buffers[i], std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(swapchain.impl()->desc()));
-        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
-      }
-      swapchain.setBackbuffers(backbuffers);
-      // ...
-      // profit!
+
+      configureBackbufferViews(swapchain);
     }
 
     TextureRTV DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
     {
-      int index = m_impl[SwapchainDeviceID]->acquirePresentableImage(swapchain.impl());
+      int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       return swapchain.buffers()[index];
     }
 
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain)
     {
-      int index = m_impl[SwapchainDeviceID]->tryAcquirePresentableImage(swapchain.impl());
+      int index = m_devices[SwapchainDeviceID].device->tryAcquirePresentableImage(swapchain.impl());
       if (index == -1)
         return nullptr;
       return &(swapchain.buffers()[index]);
@@ -196,55 +216,66 @@ namespace faze
       return GraphicsPipeline(desc);
     }
 
+    std::shared_ptr<ResourceHandle> DeviceGroupData::sharedHandle(ResourceHandle handle)
+    {
+      return std::shared_ptr<ResourceHandle>(new ResourceHandle(handle),
+      [weakDev = weak_from_this()](ResourceHandle* ptr)
+      {
+        if (auto dev = weakDev.lock())
+        {
+          dev->m_delayer.insert(0, *ptr);
+        }
+        delete ptr;
+      });
+    }
+
     Buffer DeviceGroupData::createBuffer(ResourceDescriptor desc)
     {
       desc = desc.setDimension(FormatDimension::Buffer);
-      auto memRes = m_impl->getReqs(desc);
-      auto allo = m_heaps.allocate(m_impl.get(), memRes);
-      auto data = m_impl->createBuffer(allo, desc);
-      auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
-      return Buffer(data, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
-    }
+      auto handle = m_handles.allocate(ResourceType::Buffer);
+      // TODO: sharedbuffers
+      for (auto& vdev : m_devices)
+      {
+        auto memRes = vdev.device->getReqs(desc); // memory requirements
+        auto allo = vdev.heaps.allocate(vdev.device.get(), memRes); // get heap corresponding to requirements
+        vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
+      }
 
-    SharedBuffer DeviceGroupData::createSharedBuffer(DeviceData & secondary, ResourceDescriptor desc)
-    {
-      desc = desc.setDimension(FormatDimension::Buffer);
-      auto memRes = m_impl->getReqs(desc);
-      auto allo = m_heaps.allocate(m_impl.get(), memRes);
-      auto data = m_impl->createBuffer(allo, desc);
-      auto handle = m_impl->openSharedHandle(allo);
-      auto secondaryData = secondary.m_impl->createBufferFromHandle(handle, allo, desc);
-      auto tracker = m_trackerbuffers->makeTracker(newId(), allo.allocation);
-      return SharedBuffer(data, secondaryData, tracker, std::make_shared<ResourceDescriptor>(std::move(desc)));
+      return Buffer(sharedHandle(handle), std::make_shared<ResourceDescriptor>(std::move(desc)));
     }
 
     Texture DeviceGroupData::createTexture(ResourceDescriptor desc)
     {
-      auto memRes = m_impl->getReqs(desc);
-      auto allo = m_heaps.allocate(m_impl.get(), memRes);
-      auto data = m_impl->createTexture(allo, desc);
-      auto tracker = m_trackertextures->makeTracker(newId(), allo.allocation);
-      return Texture(data, tracker, std::make_shared<ResourceDescriptor>(desc));
-    }
+      auto handle = m_handles.allocate(ResourceType::Texture);
+      // TODO: shared textures
+      for (auto& vdev : m_devices)
+      {
+        auto memRes = vdev.device->getReqs(desc); // memory requirements
+        auto allo = vdev.heaps.allocate(vdev.device.get(), memRes); // get heap corresponding to requirements
+        vdev.device->createTexture(handle, allo, desc); // assign and create buffer
+      }
 
-    SharedTexture DeviceGroupData::createSharedTexture(DeviceData & secondary, ResourceDescriptor desc)
-    {
-      auto data = m_impl->createTexture(desc);
-      auto handle = m_impl->openSharedHandle(data);
-      auto secondaryData = secondary.m_impl->createTextureFromHandle(handle, desc);
-      return SharedTexture(data, secondaryData, std::make_shared<int64_t>(newId()), std::make_shared<ResourceDescriptor>(std::move(desc)));
+      return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));
     }
 
     BufferSRV DeviceGroupData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
-      return BufferSRV(buffer, data);
+      auto handle = m_handles.allocate(ResourceType::BufferSRV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
+      }
+      return BufferSRV(buffer, sharedHandle(handle));
     }
 
     BufferUAV DeviceGroupData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto data = m_impl->createBufferView(buffer.native(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
-      return BufferUAV(buffer, data);
+      auto handle = m_handles.allocate(ResourceType::BufferUAV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
+      }
+      return BufferUAV(buffer, sharedHandle(handle));
     }
 
     SubresourceRange rangeFrom(const ShaderViewDescriptor & view, const ResourceDescriptor & desc, bool srv)
@@ -283,8 +314,13 @@ namespace faze
       {
         viewDesc.m_format = texture.desc().desc.format;
       }
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
-      return TextureSRV(texture, data, newId(), rangeFrom(viewDesc, texture.desc(), true), viewDesc.m_format);
+
+      auto handle = m_handles.allocate(ResourceType::TextureSRV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
+      }
+      return TextureSRV(texture, sharedHandle(handle));
     }
 
     TextureUAV DeviceGroupData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -293,8 +329,13 @@ namespace faze
       {
         viewDesc.m_format = texture.desc().desc.format;
       }
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
-      return TextureUAV(texture, data, newId(), rangeFrom(viewDesc, texture.desc(), false), viewDesc.m_format);
+
+      auto handle = m_handles.allocate(ResourceType::TextureUAV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
+      }
+      return TextureUAV(texture, sharedHandle(handle));
     }
 
     TextureRTV DeviceGroupData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -303,8 +344,13 @@ namespace faze
       {
         viewDesc.m_format = texture.desc().desc.format;
       }
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
-      return TextureRTV(texture, data, newId(), rangeFrom(viewDesc, texture.desc(), false), viewDesc.m_format);
+
+      auto handle = m_handles.allocate(ResourceType::TextureRTV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
+      }
+      return TextureRTV(texture, sharedHandle(handle));
     }
 
     TextureDSV DeviceGroupData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -313,18 +359,23 @@ namespace faze
       {
         viewDesc.m_format = texture.desc().desc.format;
       }
-      auto data = m_impl->createTextureView(texture.native(), texture.desc(), viewDesc.setType(ResourceShaderType::DepthStencil));
-      return TextureDSV(texture, data, newId(), rangeFrom(viewDesc, texture.desc(), false), viewDesc.m_format);
+
+      auto handle = m_handles.allocate(ResourceType::TextureDSV);
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::DepthStencil));
+      }
+      return TextureDSV(texture, sharedHandle(handle));
     }
 
-    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> view, FormatType type)
+    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , FormatType )
     {
-      return DynamicBufferView(nullptr);
+      return DynamicBufferView();
     }
 
-    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> view, unsigned stride)
+    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , unsigned )
     {
-      return DynamicBufferView(nullptr);
+      return DynamicBufferView();
     }
 
     bool DeviceGroupData::uploadInitialTexture(Texture & tex, CpuImage & image)

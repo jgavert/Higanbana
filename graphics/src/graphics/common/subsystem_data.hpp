@@ -4,6 +4,10 @@
 
 namespace faze
 {
+  class GpuGroup;
+  class FileSystem;
+  class Window;
+
   namespace backend
   {
     struct SubsystemData : std::enable_shared_from_this<SubsystemData>
@@ -17,7 +21,7 @@ namespace faze
 
       SubsystemData(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
       vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All);
-      GpuDevice createDevice(FileSystem& fs, GpuInfo gpu);
+      GpuGroup createGroup(FileSystem& fs, vector<GpuInfo> gpu);
       GraphicsSurface createSurface(Window& window, GpuInfo gpu);
     };
   }

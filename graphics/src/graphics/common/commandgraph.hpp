@@ -6,6 +6,7 @@
 #include "graphics/common/semaphore.hpp"
 #include "graphics/common/binding.hpp"
 #include "graphics/common/swapchain.hpp"
+#include <core/system/SequenceTracker.hpp>
 
 #include <string>
 
@@ -23,8 +24,9 @@ namespace faze
   private:
     CommandList list;
     std::string name;
-    friend struct backend::DeviceData;
+    friend struct backend::DeviceGroupData;
     NodeType type;
+    int gpuId;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
 
@@ -34,38 +36,20 @@ namespace faze
     {
       return needSpecialAttention;
     }
-
-    vector<std::shared_ptr<backend::SemaphoreImpl>> m_wait;
-    vector<std::shared_ptr<backend::SemaphoreImpl>> m_signal;
   public:
     CommandGraphNode() {}
-    CommandGraphNode(std::string name, NodeType type)
+    CommandGraphNode(std::string name, NodeType type, int gpuId)
       : name(name)
       , type(type)
+      , gpuId(gpuId)
     {
       list.renderTask(name);
-    }
-
-    CommandGraphNode(std::string name, NodeType type, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal)
-      : name(name)
-      , type(type)
-    {
-      list.renderTask(name);
-
-      for (auto&& it : wait)
-      {
-        m_wait.push_back(it.native());
-      }
-
-      for (auto&& it : signal)
-      {
-        m_signal.push_back(it.native());
-      }
     }
 
     void resetState(Texture& tex)
     {
-      needSpecialAttention.insert(tex.dependency());
+      // This was probably used for resetting state for queue ownership transfers.
+      // needSpecialAttention.insert(tex.dependency());
     }
 
     void acquirePresentableImage(Swapchain& swapchain)
@@ -124,7 +108,6 @@ namespace faze
     {
       list.setScissorRect(tl, br);
     }
-
     // draws/dispatches
 
     void draw(
@@ -134,7 +117,7 @@ namespace faze
       unsigned startVertex = 0,
       unsigned startInstance = 0)
     {
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bViews());
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
@@ -147,7 +130,7 @@ namespace faze
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bViews());
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
@@ -160,20 +143,19 @@ namespace faze
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants(), binding.bViews());
+      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void dispatch(
       Binding& binding, uint3 groups)
     {
-      list.bindComputeResources(binding.bResources(), binding.bConstants(), binding.bViews());
+      list.bindComputeResources(binding.bResources(), binding.bConstants());
       list.dispatch(groups);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
-      auto lol = source.dependency();
       auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.copy(target, elementOffset, source, sub, srcBox);
@@ -181,13 +163,15 @@ namespace faze
 
     void copy(Texture target, Texture source)
     {
-      auto lol = source.dependency();
+      //auto lol = source.dependency();
+      /*
       SubresourceRange range{
         static_cast<int16_t>(lol.mip()),
         static_cast<int16_t>(lol.mipLevels()),
         static_cast<int16_t>(lol.slice()),
         static_cast<int16_t>(lol.arraySize()) };
       list.copy(target, source, range);
+      */
     }
 
     void copy(Buffer target, Buffer source)
@@ -202,7 +186,6 @@ namespace faze
 
     void readback(Texture tex, Subresource resource, std::function<void(SubresourceData)> func)
     {
-      auto lol = tex.dependency();
       auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.readback(tex, resource, srcBox, func);
@@ -226,21 +209,18 @@ namespace faze
 
   class CommandGraph
   {
+    SeqNum m_sequence;
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
-    friend struct backend::DeviceData;
+    friend struct backend::DeviceGroupData;
   public:
-    CommandGraph()
-      : m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
+    CommandGraph(SeqNum seq)
+      : m_sequence(seq)
+      , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
     {}
 
-    CommandGraphNode createPass(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
+    CommandGraphNode createPass(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics, int gpu = 0)
     {
-      return CommandGraphNode(name, type);
-    }
-
-    CommandGraphNode createPass(std::string name, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
-    {
-      return CommandGraphNode(name, type, wait, signal);
+      return CommandGraphNode(name, type, gpu);
     }
 
     void addPass(CommandGraphNode&& node)
@@ -248,15 +228,9 @@ namespace faze
       m_nodes->emplace_back(std::move(node));
     }
 
-    CommandGraphNode& createPass2(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
+    CommandGraphNode& createPass2(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics, int gpu = 0)
     {
-      m_nodes->emplace_back(name, type);
-      return m_nodes->back();
-    }
-
-    CommandGraphNode& createPass2(std::string name, MemView<GpuSemaphore> wait, MemView<GpuSemaphore> signal, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics)
-    {
-      m_nodes->emplace_back(name, type, wait, signal);
+      m_nodes->emplace_back(name, type, gpu);
       return m_nodes->back();
     }
   };

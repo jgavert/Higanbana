@@ -36,9 +36,9 @@ namespace faze
       return false;
     }
 
-    int DX12DependencySolver::addDrawCall(CommandPacket::PacketType name)
+    int DX12DependencySolver::addDrawCall(/*CommandPacket::PacketType name*/)
     {
-      m_drawCallInfo.emplace_back(name);
+      //m_drawCallInfo.emplace_back(name);
       m_drawCallJobOffsets[drawCallsAdded] = static_cast<int>(m_jobs.size());
       return drawCallsAdded++;
     }
@@ -379,7 +379,7 @@ namespace faze
 
     void DX12DependencySolver::reset()
     {
-      m_drawCallInfo.clear();
+      //m_drawCallInfo.clear();
       m_drawCallJobOffsets.clear();
       m_jobs.clear();
       m_schedulingResult.clear();

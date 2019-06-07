@@ -1,4 +1,5 @@
 #pragma once
+/*
 
 #include <graphics/common/resources.hpp>
 
@@ -68,3 +69,4 @@ namespace faze
     };
   }
 }
+*/

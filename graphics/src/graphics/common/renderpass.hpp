@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/common/prototypes.hpp"
+#include <graphics/common/handle.hpp>
 
 #include <memory>
 
@@ -8,19 +8,19 @@ namespace faze
 {
   class Renderpass
   {
-    std::shared_ptr<backend::prototypes::RenderpassImpl> m_renderpass;
+    std::shared_ptr<ResourceHandle> m_renderpass;
 
   public:
     Renderpass() {}
 
-    Renderpass(std::shared_ptr<backend::prototypes::RenderpassImpl> native)
+    Renderpass(std::shared_ptr<ResourceHandle> native)
       : m_renderpass(native)
     {
     }
 
-    std::shared_ptr<backend::prototypes::RenderpassImpl> impl()
+    ResourceHandle handle()
     {
-      return m_renderpass;
+      return *m_renderpass;
     }
   };
 }

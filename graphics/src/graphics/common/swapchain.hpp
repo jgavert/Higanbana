@@ -7,7 +7,7 @@
 
 namespace faze
 {
-  class Swapchain : public backend::GpuDeviceChild
+  class Swapchain : public backend::GpuGroupChild
   {
     std::shared_ptr<backend::prototypes::SwapchainImpl> m_impl;
     vector<TextureRTV> m_backbuffers;

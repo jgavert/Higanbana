@@ -1,5 +1,5 @@
 #include "graphics/common/commandpackets.hpp"
-
+/*
 namespace faze
 {
   namespace gfxpacket
@@ -33,4 +33,4 @@ namespace faze
       }
     }
   }
-}
+}*/

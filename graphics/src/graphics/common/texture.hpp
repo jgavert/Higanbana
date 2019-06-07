@@ -73,7 +73,7 @@ namespace faze
       return tex;
     }
 
-    ResourceHandle id() const
+    ResourceHandle handle() const
     {
       return *m_id;
     }

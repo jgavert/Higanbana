@@ -97,7 +97,7 @@ namespace faze
       return infos;
     }
 
-    GpuDevice DX12Subsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
+    std::shared_ptr<prototypes::DeviceImpl> DX12Subsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       {
@@ -197,7 +197,7 @@ namespace faze
         delete ptr;
       });
 
-      return GpuDevice(DeviceData(impl));
+      return impl;
     }
 
     GraphicsSurface DX12Subsystem::createSurface(Window& window)

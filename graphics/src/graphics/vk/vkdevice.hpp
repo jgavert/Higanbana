@@ -94,7 +94,7 @@ namespace faze
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
-      vector<std::shared_ptr<prototypes::TextureImpl>> getSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, HandleManager& handles) override;
+      int fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles) override;
       int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
@@ -102,19 +102,19 @@ namespace faze
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
-      std::shared_ptr<prototypes::RenderpassImpl> createRenderpass() override;
+      void createRenderpass(ResourceHandle handle) override;
       vector<vk::DescriptorSetLayoutBinding> gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags);
-      std::shared_ptr<prototypes::PipelineImpl> createPipeline(GraphicsPipelineDescriptor desc) override;
-      std::shared_ptr<prototypes::PipelineImpl> createPipeline(ComputePipelineDescriptor desc) override;
+      void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
+      void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
 
       GpuHeap createHeap(HeapDescriptor desc) override;
 
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::BufferImpl> createBuffer(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::BufferViewImpl> createBufferView(std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTexture(ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureImpl> createTexture(HeapAllocation allocation, ResourceDescriptor& desc) override;
-      std::shared_ptr<prototypes::TextureViewImpl> createTextureView(std::shared_ptr<prototypes::TextureImpl> buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
+      void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createTexture(ResourceHandle handle, ResourceDescriptor& desc) override;
+      void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
+      void createTextureView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override { return nullptr; };
 
@@ -122,8 +122,8 @@ namespace faze
       std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override { return nullptr; };
       std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<prototypes::TextureImpl>) override { return nullptr; };
       std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override { return nullptr; };
-      std::shared_ptr<prototypes::BufferImpl> createBufferFromHandle(std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return nullptr; };
-      std::shared_ptr<prototypes::TextureImpl> createTextureFromHandle(std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return nullptr; };
+      void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return; };
+      void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return; };
 
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
       std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;

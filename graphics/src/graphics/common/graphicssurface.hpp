@@ -5,7 +5,7 @@
 
 namespace faze
 {
-  class GraphicsSurface : public backend::GpuDeviceChild
+  class GraphicsSurface : public backend::GpuGroupChild
   {
     std::shared_ptr<backend::prototypes::GraphicsSurfaceImpl> impl;
   public:

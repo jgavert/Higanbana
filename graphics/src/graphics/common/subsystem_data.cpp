@@ -1,7 +1,10 @@
 #include <graphics/common/subsystem_data.hpp>
-#include <graphics/common/gpudevice.hpp>
+#include <graphics/common/gpu_group.hpp>
 #include <graphics/common/implementation.hpp>
 #include <graphics/common/graphicssurface.hpp>
+
+#include <core/filesystem/filesystem.hpp>
+#include <core/platform/Window.hpp>
 
 namespace faze
 {
@@ -47,10 +50,17 @@ namespace faze
       }
       return infos;
     }
-    GpuDevice SubsystemData::createDevice(FileSystem & fs, GpuInfo gpu)
+    GpuGroup SubsystemData::createGroup(FileSystem& fs, vector<GpuInfo> gpus)
     {
-      if (gpu.api == GraphicsApi::DX12) return implDX12->createGpuDevice(fs, gpu);
-      return implVulkan->createGpuDevice(fs, gpu);
+      vector<std::shared_ptr<prototypes::DeviceImpl>> devices;
+      for (auto&& info : gpus)
+      {
+        if (info.api == GraphicsApi::DX12)
+          devices.push_back(implDX12->createGpuDevice(fs, info));
+        else
+          devices.push_back(implVulkan->createGpuDevice(fs, info));
+      }
+      return GpuGroup({devices, gpus});
     }
     GraphicsSurface SubsystemData::createSurface(Window & window, GpuInfo gpu)
     {

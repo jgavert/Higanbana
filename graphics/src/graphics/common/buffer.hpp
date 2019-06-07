@@ -99,7 +99,11 @@ namespace faze
     ResourceHandle m_id;
 
   public:
-    DynamicBufferView() = default;
+    DynamicBufferView()
+    :m_id(InvalidResourceHandle)
+    {
+
+    }
     DynamicBufferView(ResourceHandle id)
       : m_id(id)
     {

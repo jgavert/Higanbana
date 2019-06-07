@@ -3,6 +3,7 @@
 #include "graphics/common/buffer.hpp"
 #include "graphics/common/texture.hpp"
 #include "graphics/common/pipeline.hpp"
+#include <graphics/common/handle.hpp>
 
 #include <core/datastructures/proxy.hpp>
 
@@ -13,35 +14,27 @@ namespace faze
   {
     friend class CommandGraphNode;
     vector<ShaderResource> m_resources;
-    vector<backend::RawView> m_views;
-    vector<backend::TrackedState> m_res;
+    vector<ResourceHandle> m_handles;
     vector<uint8_t> m_constants;
 
     Binding(GraphicsPipeline pipeline)
     : m_resources(pipeline.descriptor.desc.layout.desc.sortedResources)
-    , m_views(m_resources.size())
-    , m_res(m_resources.size())
+    , m_handles(m_resources.size())
     , m_constants(pipeline.descriptor.desc.layout.desc.constantsSizeOf)
     {
 
     }
     Binding(ComputePipeline pipeline)
     : m_resources(pipeline.descriptor.layout.desc.sortedResources)
-    , m_views(m_resources.size())
-    , m_res(m_resources.size())
+    , m_handles(m_resources.size())
     , m_constants(pipeline.descriptor.layout.desc.constantsSizeOf)
     {
       
     }
 
-    MemView<backend::TrackedState> bResources()
+    MemView<ResourceHandle> bResources()
     {
-      return MemView<backend::TrackedState>(m_res);
-    }
-
-    MemView<backend::RawView> bViews()
-    {
-      return MemView<backend::RawView>(m_views);
+      return MemView<ResourceHandle>(m_handles);
     }
 
     MemView<uint8_t> bConstants()
@@ -65,8 +58,7 @@ namespace faze
         if (it.name.compare(name) == 0)
         {
           F_ASSERT(it.readonly, "Trying to bind DynamicBufferView \"%s\" as ReadWrite.", name);
-          m_views[id] = res.view();
-          m_res[id] = backend::TrackedState{ 0,0,0, true };
+          m_handles[id] = res.handle();
           return;
         }
         id++;
@@ -81,9 +73,7 @@ namespace faze
         if (it.name.compare(name) == 0)
         {
           F_ASSERT(it.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
-          m_views[id] = res.view();
-          m_res[id] = res.dependency();
-          m_res[id].readonly = true;
+          m_handles[id] = res.handle();
           return;
         }
         id++;
@@ -98,9 +88,7 @@ namespace faze
         if (it.name.compare(name))
         {
           F_ASSERT(it.readonly, "Trying to bind TextureSRV \"%s\" as ReadWrite.", name);
-          m_views[id] = res.view();
-          m_res[id] = res.dependency();
-          m_res[id].readonly = true;
+          m_handles[id] = res.handle();
           return;
         }
         id++;
@@ -115,9 +103,7 @@ namespace faze
         if (it.name.compare(name) == 0)
         {
           F_ASSERT(!it.readonly, "Trying to bind BufferUAV \"%s\" as ReadOnly.", name);
-          m_views[id] = res.view();
-          m_res[id] = res.dependency();
-          m_res[id].readonly = false;
+          m_handles[id] = res.handle();
           return;
         }
         id++;
@@ -132,9 +118,7 @@ namespace faze
         if (it.name.compare(name) == 0)
         {
           F_ASSERT(!it.readonly, "Trying to bind TextureUAV \"%s\" as ReadOnly.", name);
-          m_views[id] = res.view();
-          m_res[id] = res.dependency();
-          m_res[id].readonly = false;
+          m_handles[id] = res.handle();
           return;
         }
         id++;

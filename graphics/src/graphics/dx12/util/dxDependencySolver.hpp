@@ -54,7 +54,7 @@ namespace faze
       // general info needed
       unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
 
-      vector<CommandPacket::PacketType> m_drawCallInfo;
+      //vector<CommandPacket::PacketType> m_drawCallInfo;
       int drawCallsAdded = 0;
 
       unordered_set<ResourceUniqueId> m_uniqueResourcesThisChain;
@@ -97,7 +97,7 @@ namespace faze
     public:
       DX12DependencySolver() {}
 
-      int addDrawCall(CommandPacket::PacketType name);
+      int addDrawCall();
 
       // buffers
       void addResource(int drawCallIndex, backend::TrackedState state, D3D12_RESOURCE_STATES flags);
