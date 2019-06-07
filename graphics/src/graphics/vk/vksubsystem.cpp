@@ -311,7 +311,7 @@ namespace faze
       return infos;
     }
 
-    GpuDevice VulkanSubsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
+    std::shared_ptr<backend::prototypes::DeviceImpl> VulkanSubsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
       auto&& physDev = m_devices[gpu.id];
 
@@ -380,7 +380,7 @@ namespace faze
 
       std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, gpu, false);
 
-      return GpuDevice(DeviceData(impl));
+      return impl;
     }
 
 #if defined(FAZE_PLATFORM_WINDOWS)

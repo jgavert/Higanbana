@@ -13,6 +13,8 @@
 #include "core/system/SequenceTracker.hpp"
 #include <graphics/common/handle.hpp>
 
+#include <graphics/common/allocators.hpp>
+
 namespace faze
 {
   namespace backend
@@ -608,8 +610,8 @@ namespace faze
         : m_list(list)
       {}
     private:
-      void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
-      void preprocess(VulkanDevice* device, backend::IntermediateList& list);
+      //void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
+      //void preprocess(VulkanDevice* device, backend::IntermediateList& list);
     public:
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
 

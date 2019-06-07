@@ -13,6 +13,8 @@
 
 #include "graphics/dx12/util/dxDependencySolver.hpp"
 
+#include <graphics/common/handle.hpp>
+
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
 #endif
@@ -450,7 +452,7 @@ namespace faze
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-
+        /* 
         textures[i] = std::shared_ptr<DX12Texture>(new DX12Texture(renderTarget, std::make_shared<DX12ResourceState>(state)),
           [weak](DX12Texture* ptr)
         {
@@ -464,6 +466,7 @@ namespace faze
           }
           delete ptr;
         });
+        */
       }
       return static_cast<int>(textures.size());
     }
@@ -589,21 +592,22 @@ namespace faze
     return reqs;
   }
 
-  std::shared_ptr<prototypes::RenderpassImpl> DX12Device::createRenderpass()
+  void DX12Device::createRenderpass(ResourceHandle handle)
   {
-    return std::make_shared<DX12Renderpass>();
+    return;
   }
 
-  std::shared_ptr<prototypes::PipelineImpl> DX12Device::createPipeline(GraphicsPipelineDescriptor desc)
+  void DX12Device::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
   {
-    return std::make_shared<DX12Pipeline>();
+    return;
   }
 
-  std::shared_ptr<prototypes::PipelineImpl> DX12Device::createPipeline(ComputePipelineDescriptor desc)
+  void DX12Device::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
   {
-    return std::make_shared<DX12Pipeline>();
+    return;
   }
 
+/*
   D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
   {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
@@ -685,11 +689,13 @@ namespace faze
     }
     desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
     */
+   /*
     desc.SampleDesc.Count = d.sampleCount;
     desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 
     return desc;
-  }
+  }*/
+  /*
 
   void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
   {
@@ -794,6 +800,7 @@ namespace faze
 /*
       desc.pRootSignature = root.Get();
       */
+     /*
       desc.pRootSignature = nullptr;
 
       ComPtr<ID3D12PipelineState> pipe;
@@ -811,8 +818,8 @@ namespace faze
       ptr->pipeline = std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive));
       //pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
     }
-  }
-
+  }*/
+/*
   void DX12Device::updatePipeline(ComputePipeline& pipeline)
   {
     auto* ptr = static_cast<DX12Pipeline*>(pipeline.impl.get());
@@ -856,7 +863,7 @@ namespace faze
 
       FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
     }
-  }
+  }*/
 
   GpuHeap DX12Device::createHeap(HeapDescriptor heapDesc)
   {
@@ -927,7 +934,7 @@ namespace faze
     return GpuHeap(std::make_shared<DX12Heap>(heap), std::move(heapDesc));
   }
 
-  std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(ResourceDescriptor& desc)
+  void DX12Device::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
   {
     auto dxDesc = fillPlacedBufferInfo(desc);
 
@@ -947,6 +954,7 @@ namespace faze
 
     std::weak_ptr<Garbage> weak = m_trash;
 
+/*
     return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
       [weak](DX12Buffer* ptr)
     {
@@ -961,9 +969,10 @@ namespace faze
       }
       delete ptr;
     });
+    */
   }
 
-  std::shared_ptr<prototypes::BufferImpl> DX12Device::createBuffer(HeapAllocation allocation, ResourceDescriptor& desc)
+  void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
   {
     auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
     auto dxDesc = fillPlacedBufferInfo(desc);
@@ -994,7 +1003,7 @@ namespace faze
     buffer->SetName(wstr.c_str());
 
     std::weak_ptr<Garbage> weak = m_trash;
-
+/*
     return std::shared_ptr<DX12Buffer>(new DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state)),
       [weak](DX12Buffer* ptr)
     {
@@ -1008,12 +1017,13 @@ namespace faze
         ptr->native()->Release();
       }
       delete ptr;
-    });;
+    });
+    */
   }
 
-  std::shared_ptr<prototypes::BufferViewImpl> DX12Device::createBufferView(
-    std::shared_ptr<prototypes::BufferImpl> buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
+  void DX12Device::createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
   {
+    /*
     auto native = std::static_pointer_cast<DX12Buffer>(buffer);
 
     auto desc = bufferDesc.desc;
@@ -1071,6 +1081,7 @@ namespace faze
       }
       delete ptr;
     });
+    */
   }
 #define DX12CheckSupport1(s) checkSupport1(#s, s)
 #define DX12CheckSupport2(s) checkSupport2(#s, s)
@@ -1143,7 +1154,7 @@ namespace faze
       }
     }
 
-    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(ResourceDescriptor& desc)
+    void DX12Device::createTexture(ResourceHandle handle, ResourceDescriptor& desc)
     {
       auto dxDesc = fillPlacedTextureInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
@@ -1202,6 +1213,7 @@ namespace faze
 
       std::weak_ptr<Garbage> weak = m_trash;
 
+/*
       return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
         [weak](DX12Texture* ptr)
       {
@@ -1216,9 +1228,10 @@ namespace faze
         }
         delete ptr;
       });
+      */
     }
 
-    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTexture(HeapAllocation allocation, ResourceDescriptor& desc)
+    void DX12Device::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
       auto native = std::static_pointer_cast<DX12Heap>(allocation.heap.impl);
       auto dxDesc = fillPlacedTextureInfo(desc);
@@ -1279,7 +1292,7 @@ namespace faze
       texture->SetName(wstr.c_str());
 
       std::weak_ptr<Garbage> weak = m_trash;
-
+/*
       return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
         [weak](DX12Texture* ptr)
       {
@@ -1295,11 +1308,12 @@ namespace faze
         }
         delete ptr;
       });
+      */
     }
 
-    std::shared_ptr<prototypes::TextureViewImpl> DX12Device::createTextureView(
-      std::shared_ptr<prototypes::TextureImpl> texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
+    void DX12Device::createTextureView(ResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
+      /*
       auto native = std::static_pointer_cast<DX12Texture>(texture);
 
       DX12CPUDescriptor descriptor{};
@@ -1372,6 +1386,7 @@ namespace faze
         }
         delete ptr;
       });
+      */
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)
@@ -1710,13 +1725,13 @@ namespace faze
         delete ptr;
       });
     }
-    std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<prototypes::TextureImpl> resource)
+    std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(ResourceHandle resource)
     {
-      auto native = std::static_pointer_cast<DX12Texture>(resource);
+      //auto native = std::static_pointer_cast<DX12Texture>(resource);
 
       HANDLE h;
 
-      FAZE_CHECK_HR(m_device->CreateSharedHandle(native->native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
+      //FAZE_CHECK_HR(m_device->CreateSharedHandle(native->native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
 
       return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
       {
@@ -1724,14 +1739,17 @@ namespace faze
         delete ptr;
       });
     }
+
     std::shared_ptr<backend::SemaphoreImpl> DX12Device::createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle)
     {
       ComPtr<ID3D12Fence> fence;
       m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(fence.GetAddressOf()));
       return std::make_shared<DX12Semaphore>(fence);
     }
-    std::shared_ptr<prototypes::BufferImpl> DX12Device::createBufferFromHandle(std::shared_ptr<SharedHandle> handle, HeapAllocation heapAllocation, ResourceDescriptor& desc)
+
+    void DX12Device::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc)
     {
+      /*
       ID3D12Heap* heap;
       m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(&heap));
 
@@ -1763,9 +1781,12 @@ namespace faze
         }
         delete ptr;
       });
+      */
     }
-    std::shared_ptr<prototypes::TextureImpl> DX12Device::createTextureFromHandle(std::shared_ptr<backend::SharedHandle> handle, ResourceDescriptor& desc)
+    
+    void DX12Device::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc)
     {
+      /*
       ID3D12Resource* texture;
       m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(&texture));
 
@@ -1799,7 +1820,8 @@ namespace faze
           ptr->native()->Release();
         }
         delete ptr;
-      });;
+      });
+      */
     }
   }
 }

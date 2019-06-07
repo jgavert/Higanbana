@@ -2,11 +2,11 @@
 #include "graphics/vk/vkdevice.hpp"
 #include "graphics/vk/util/VulkanDependencySolver.hpp"
 #include "core/datastructures/proxy.hpp"
-
 namespace faze
 {
   namespace backend
   {
+/*
     void VulkanCommandBuffer::handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
     {
       // step1. check if renderpass is done, otherwise create renderpass
@@ -343,6 +343,7 @@ namespace faze
       vk::ArrayProxy<const vk::MemoryBarrier> memory(1, &memoryBarr);
       buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), memory, {}, {});
       */
+     /*
 
       buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
 
@@ -481,6 +482,7 @@ namespace faze
           break;
         }
         */
+       /*
         case CommandPacket::PacketType::ClearRT:
         {
           auto& p = packetRef(gfxpacket::ClearRT, packet);
@@ -516,7 +518,7 @@ namespace faze
       }
       solver.makeAllBarriers();
     }
-
+*/
     // implementations
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
     {
@@ -524,17 +526,17 @@ namespace faze
 
       // preprocess to compile renderpasses/pipelines
 
-      preprocess(nat.get(), list);
+      //preprocess(nat.get(), list);
 
       VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
 
-      addDepedencyDataAndSolve(solver, list);
+      //addDepedencyDataAndSolve(solver, list);
 
       // add commands to list while also adding barriers
-      addCommands(m_list->list(), solver, list);
+      //addCommands(m_list->list(), solver, list);
 
       m_list->list().end();
     }

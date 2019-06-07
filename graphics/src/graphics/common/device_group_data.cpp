@@ -206,14 +206,23 @@ namespace faze
 
     ComputePipeline DeviceGroupData::createComputePipeline(ComputePipelineDescriptor desc)
     {
-      F_ASSERT(false, "unimplemented");
-      return ComputePipeline();
+      auto handle = m_handles.allocate(ResourceType::Pipeline);
+      for(auto&& device : m_devices)
+      {
+        device.device->createPipeline(handle, desc);
+      }
+      return ComputePipeline(sharedHandle(handle), desc);
       //return ComputePipeline(m_impl->createPipeline(desc), desc);
     }
 
     GraphicsPipeline DeviceGroupData::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
     {
-      return GraphicsPipeline(desc);
+      auto handle = m_handles.allocate(ResourceType::Pipeline);
+      for(auto&& device : m_devices)
+      {
+        device.device->createPipeline(handle, desc);
+      }
+      return GraphicsPipeline(sharedHandle(handle), desc);
     }
 
     std::shared_ptr<ResourceHandle> DeviceGroupData::sharedHandle(ResourceHandle handle)

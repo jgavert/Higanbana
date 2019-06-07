@@ -9,6 +9,7 @@
 #include "graphics/common/commandgraph.hpp"
 #include "graphics/common/commandlist.hpp"
 #include "graphics/common/cpuimage.hpp"
+#include <graphics/common/prototypes.hpp>
 
 namespace faze
 {
@@ -16,9 +17,9 @@ namespace faze
   {
   public:
     GpuGroup() = default;
-    GpuGroup(backend::DeviceGroupData data)
+    GpuGroup(vector<std::shared_ptr<backend::prototypes::DeviceImpl>> impl, vector<GpuInfo> infos)
     {
-      makeState(std::forward<decltype(data)>(data));
+      makeState(impl, infos);
     }
     GpuGroup(StatePtr state)
     {
