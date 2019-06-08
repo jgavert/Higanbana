@@ -152,6 +152,7 @@ namespace faze
       }
     };
 
+/*
     template <typename TrackedResource>
     class ResourceTracker : public std::enable_shared_from_this<ResourceTracker<TrackedResource>>
     {
@@ -190,6 +191,7 @@ namespace faze
         return vec;
       }
     };
+    */
 
     class GpuGroupChild
     {

@@ -74,6 +74,15 @@ namespace faze
 
       // new new stuff
       // HandleVector<VulkanTexture>
+      struct Resources
+      {
+        HandleVector<VulkanTexture> tex;
+        HandleVector<VulkanBuffer> buf;
+        HandleVector<VulkanBufferView> bufView;
+        HandleVector<VulkanTextureView> texView;
+        HandleVector<VulkanPipeline> pipelines;
+        HandleVector<VulkanHeap> heaps;
+      } m_allRes;
     public:
       VulkanDevice(
         vk::Device device,
@@ -98,6 +107,7 @@ namespace faze
       int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
+      void releaseHandle(ResourceHandle handle) override;
       void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
@@ -107,7 +117,7 @@ namespace faze
       void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
       void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
 
-      GpuHeap createHeap(HeapDescriptor desc) override;
+      void createHeap(ResourceHandle handle, HeapDescriptor desc) override;
 
       void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
       void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;

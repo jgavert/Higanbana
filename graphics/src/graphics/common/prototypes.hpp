@@ -88,12 +88,6 @@ namespace faze
         virtual uint64_t size() = 0;
       };
 
-      class HeapImpl
-      {
-      public:
-        virtual ~HeapImpl() = default;
-      };
-
       class DeviceImpl
       {
       public:
@@ -110,14 +104,15 @@ namespace faze
         virtual int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
+        virtual void releaseHandle(ResourceHandle handle) = 0;
         // pipeline related
         virtual void createRenderpass(ResourceHandle handle) = 0;
         virtual void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc) = 0;
         virtual void createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc) = 0;
 
         //create/destroy pairs
-        virtual GpuHeap createHeap(HeapDescriptor desc) = 0;
-
+        virtual void createHeap(ResourceHandle handle, HeapDescriptor desc) = 0;
+  
         virtual void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) = 0;
         virtual void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;

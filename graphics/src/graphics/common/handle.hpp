@@ -24,6 +24,7 @@ namespace faze
     TextureUAV,
     TextureRTV,
     TextureDSV,
+    MemoryHeap,
     // Insert some raytracing things here?
     Count
   };
@@ -33,6 +34,7 @@ namespace faze
   struct ResourceHandle
   {
     static const uint64_t InvalidId = (1ull << 20ull) - 1;
+    static const uint64_t AllGpus = 65535;
     union
     {
       struct 
@@ -49,7 +51,7 @@ namespace faze
       : id(InvalidId)
       , generation(0)
       , type(ResourceType::Unknown)
-      , gpuid(0)
+      , gpuid(AllGpus)
       {}
     ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID)
       : id(id)
@@ -77,8 +79,14 @@ namespace faze
         {
           return int(count);
         }
+        count++;
       }
       return -2;
+    }
+
+    void setGpuId(int id)
+    {
+      gpuid = (1 << id);
     }
 
     // shared resource means it's a handle that can be opened on another api/gpu device
@@ -131,21 +139,20 @@ namespace faze
         m_generation.push_back(0);
         auto id = m_currentSize;
         m_currentSize++;
-        return ResourceHandle{id, 0, m_type, 0};
+        return ResourceHandle{id, 0, m_type, ResourceHandle::AllGpus};
       }
       F_ASSERT(!m_freelist.empty(), "No free handles.");
       auto id = m_freelist.back();
       m_freelist.pop_back();
       auto generation = m_generation[id]; // take current generation
-      return ResourceHandle{id, generation, m_type, 0};
+      return ResourceHandle{id, generation, m_type, ResourceHandle::AllGpus};
     }
 
     void release(ResourceHandle val)
     {
-      F_ASSERT(val.id != ResourceHandle::InvalidId
-                && val.id < m_size
-                && val.generation == m_generation[val.id]
-                , "Invalid handle was released.");
+      F_ASSERT(val.id != ResourceHandle::InvalidId, "Invalid handle was released.");
+      F_ASSERT(val.id < m_size, "Invalid handle was released.");
+      F_ASSERT(val.generation == m_generation[val.id], "Invalid handle was released.");
       m_freelist.push_back(val.id);
       m_generation[val.id]++; // offset the generation to detect double free's
     }
@@ -187,7 +194,7 @@ namespace faze
     void release(ResourceHandle handle)
     {
       F_ASSERT(handle.type != ResourceType::Unknown, "please valied type");
-      int typeIndex = static_cast<int>(handle.type);
+      int typeIndex = static_cast<int>(handle.type) - 1;
       auto& pool = m_pools[typeIndex];
       pool.release(handle);
     }
@@ -213,11 +220,11 @@ namespace faze
 
     Type& operator[](ResourceHandle handle)
     {
-      if (objects.size() < handle.id)
+      if (objects.size() < handle.id+1)
       {
         objects.resize(handle.id+1);
       }
-      return objects[handle.id]; 
+      return objects.at(handle.id); 
     }
 
     void clear()

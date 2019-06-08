@@ -182,9 +182,9 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-
-  lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
-  lbs.sleepTillKeywords({ "test1" });
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, true);
+  //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
+  //lbs.sleepTillKeywords({ "test1" });
 
 #endif
   /*
