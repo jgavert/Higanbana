@@ -64,9 +64,12 @@ namespace faze
       // consist of device specific/grouped classes
       struct VirtualDevice
       {
+        int id;
         std::shared_ptr<prototypes::DeviceImpl> device;
         HeapManager heaps;
         GpuInfo info;
+        HandleVector<GpuHeapAllocation> m_buffers;
+        HandleVector<GpuHeapAllocation> m_textures;
       };
       vector<VirtualDevice> m_devices;
 

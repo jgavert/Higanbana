@@ -13,7 +13,7 @@
 
 #include "graphics/shaders/ShaderStorage.hpp"
 //#include "graphics/src/dx12/util/ShaderStorage.hpp"
-
+#include <graphics/common/handle.hpp>
 #include <graphics/common/allocators.hpp>
 
 #include "graphics/definitions.hpp"
@@ -840,7 +840,7 @@ namespace faze
     class DX12Texture
     {
     private:
-      ID3D12Resource * resource = nullptr;
+      ID3D12Resource* resource = nullptr;
       std::shared_ptr<DX12ResourceState> statePtr;
 
     public:
@@ -892,7 +892,7 @@ namespace faze
     class DX12Buffer 
     {
     private:
-      ID3D12Resource * resource;
+      ID3D12Resource* resource;
       std::shared_ptr<DX12ResourceState> statePtr;
 
     public:
@@ -999,7 +999,7 @@ namespace faze
       }
     };
 
-    class DX12Heap : public prototypes::HeapImpl
+    class DX12Heap
     {
     private:
       ComPtr<ID3D12Heap> heap;
@@ -1102,6 +1102,17 @@ namespace faze
       std::shared_ptr<Garbage> m_trash;
       deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
 
+      // new stuff
+      struct Resources
+      {
+        HandleVector<DX12Texture> tex;
+        HandleVector<DX12Buffer> buf;
+        HandleVector<DX12BufferView> bufView;
+        HandleVector<DX12TextureView> texView;
+        HandleVector<DX12Pipeline> pipelines;
+        HandleVector<DX12Heap> heaps;
+      } m_allRes;
+
       friend class DX12CommandList;
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
@@ -1124,13 +1135,14 @@ namespace faze
       int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
+      void releaseHandle(ResourceHandle handle) override;
       void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       void createRenderpass(ResourceHandle handle) override;
 
-      GpuHeap createHeap(HeapDescriptor desc) override;
+      void createHeap(ResourceHandle handle, HeapDescriptor desc) override;
 
       void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
       void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;

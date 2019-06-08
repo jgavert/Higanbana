@@ -105,4 +105,17 @@ namespace faze
   {
     return nextSequence - 1;
   }
+  
+  SeqNum SequenceTracker::completedTill()
+  {
+    auto base = fullCompletedSeq;
+    for (int i = 0; i < BitfieldBlockSize; ++i)
+    {
+      if (!m_incomplete[0].checkIdxBit(i))
+      {
+        return base + i - 1;
+      }
+    }
+    return base + BitfieldBlockSize;
+  }
 };

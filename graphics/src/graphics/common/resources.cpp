@@ -12,18 +12,18 @@ namespace faze
 {
   namespace backend
   {
-    GpuHeap::GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc)
-      : impl(impl)
+    GpuHeap::GpuHeap(ResourceHandle handle, HeapDescriptor desc)
+      : handle(handle)
       , desc(std::make_shared<HeapDescriptor>(desc))
     {
     }
 
-    HeapAllocation HeapManager::allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements)
+    HeapAllocation HeapManager::allocate(MemoryRequirements requirements, std::function<GpuHeap(faze::HeapDescriptor)> heapAllocator)
     {
       GpuHeapAllocation alloc{};
       alloc.alignment = static_cast<int>(requirements.alignment);
       alloc.heapType = requirements.heapType;
-      auto createHeapBlock = [&](prototypes::DeviceImpl* dev, uint64_t index, MemoryRequirements& requirements)
+      auto createHeapBlock = [&](uint64_t index, MemoryRequirements& requirements)
       {
         auto minSize = std::min(m_minimumHeapSize, static_cast<int64_t>(128 * 32 * requirements.alignment));
         auto sizeToCreate = roundUpMultiplePowerOf2(minSize, requirements.alignment);
@@ -47,7 +47,7 @@ namespace faze
           .setHeapAlignment(requirements.alignment)
           .setName(name);
         GFX_LOG("Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB\n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
-        return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), dev->createHeap(desc) };
+        return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), heapAllocator(desc) };
       };
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
@@ -74,7 +74,7 @@ namespace faze
         if (!block.valid())
         {
           // create correct sized heap and allocate from it.
-          auto newHeap = createHeapBlock(device, m_heapIndex++, requirements);
+          auto newHeap = createHeapBlock(m_heapIndex++, requirements);
           alloc.block = newHeap.allocator.allocate(requirements.bytes);
           alloc.index = newHeap.index;
           auto heap = newHeap.heap;
@@ -83,7 +83,7 @@ namespace faze
         }
       }
       HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>() };
-      auto newHeap = createHeapBlock(device, m_heapIndex++, requirements);
+      auto newHeap = createHeapBlock(m_heapIndex++, requirements);
       alloc.block = newHeap.allocator.allocate(requirements.bytes);
       alloc.index = newHeap.index;
       auto heap = newHeap.heap;

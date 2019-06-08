@@ -431,12 +431,13 @@ namespace faze
       }
     };
 
-    class VulkanHeap : public prototypes::HeapImpl
+    class VulkanHeap
     {
     private:
       vk::DeviceMemory m_resource;
 
     public:
+    VulkanHeap(){}
       VulkanHeap(vk::DeviceMemory memory)
         : m_resource(memory)
       {}

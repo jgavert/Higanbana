@@ -20,7 +20,7 @@ namespace faze
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
       {
-        m_devices.push_back({impls[i], HeapManager(), infos[i]});
+        m_devices.push_back({i, impls[i], HeapManager(), infos[i]});
       }
     }
 
@@ -28,7 +28,7 @@ namespace faze
     {
       if (!m_buffers.empty())
       {
-        if (m_buffers.size() > 8) // throttle so that we don't go too fast.
+        if (m_buffers.size() > 8) // throttle so that we don't go too far ahead.
         {
           // force wait oldest
           int deviceID = m_buffers.front().deviceID;
@@ -54,8 +54,16 @@ namespace faze
           }
         }
 
+        auto currentSeqNum = InvalidSeqNum;
+
         while (buffersToFree > 0)
         {
+          auto& buffer = m_buffers.front();
+          if (buffer.started != currentSeqNum)
+          {
+            m_seqTracker.complete(buffer.started);
+            currentSeqNum = buffer.started;
+          }
           m_buffers.pop_front();
           buffersToFree--;
         }
@@ -246,8 +254,15 @@ namespace faze
       for (auto& vdev : m_devices)
       {
         auto memRes = vdev.device->getReqs(desc); // memory requirements
-        auto allo = vdev.heaps.allocate(vdev.device.get(), memRes); // get heap corresponding to requirements
+        auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+        {
+          auto memHandle = m_handles.allocate(ResourceType::MemoryHeap);
+          memHandle.setGpuId(vdev.id); 
+          vdev.device->createHeap(memHandle, desc);
+          return GpuHeap(memHandle, desc);
+        }); // get heap corresponding to requirements
         vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
+        vdev.m_buffers[handle] = allo.allocation;
       }
 
       return Buffer(sharedHandle(handle), std::make_shared<ResourceDescriptor>(std::move(desc)));
@@ -260,8 +275,15 @@ namespace faze
       for (auto& vdev : m_devices)
       {
         auto memRes = vdev.device->getReqs(desc); // memory requirements
-        auto allo = vdev.heaps.allocate(vdev.device.get(), memRes); // get heap corresponding to requirements
+        auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+        {
+          auto memHandle = m_handles.allocate(ResourceType::MemoryHeap);
+          memHandle.setGpuId(vdev.id); 
+          vdev.device->createHeap(memHandle, desc);
+          return GpuHeap(memHandle, desc);
+        }); // get heap corresponding to requirements
         vdev.device->createTexture(handle, allo, desc); // assign and create buffer
+        vdev.m_textures[handle] = allo.allocation;
       }
 
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));
@@ -395,6 +417,7 @@ namespace faze
 
     void DeviceGroupData::submit(Swapchain & swapchain, CommandGraph graph)
     {
+      
     }
 
     void DeviceGroupData::submit(CommandGraph graph)
@@ -408,7 +431,31 @@ namespace faze
 
     void DeviceGroupData::garbageCollection()
     {
-      //m_impl->collectTrash();
+      auto handles = m_delayer.garbageCollection(m_seqTracker.completedTill());
+      for (auto&& device : m_devices)
+      {
+        for (auto&& handle : handles)
+        {
+          if (handle.type == ResourceType::Buffer)
+          {
+            device.heaps.release(device.m_buffers[handle]);
+          }
+          if (handle.type == ResourceType::Texture)
+          {
+            device.heaps.release(device.m_textures[handle]);
+          }
+          auto ownerGpuId = handle.ownerGpuId();
+          if (ownerGpuId == -1 || ownerGpuId == device.id)
+          {
+            device.device->releaseHandle(handle);
+          }
+        }
+        auto removed = device.heaps.emptyHeaps();
+        for (auto& it : removed)
+        {
+          device.device->releaseHandle(it.handle);
+        }
+      }
     }
 
     void DeviceGroupData::present(Swapchain & swapchain)

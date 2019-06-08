@@ -8,6 +8,9 @@
 #include "core/datastructures/proxy.hpp"
 //#include "graphics/common/intermediatelist.hpp"
 
+#include <core/system/SequenceTracker.hpp>
+#include <graphics/common/handle.hpp>
+
 //#include <string>
 //#include <atomic>
 #include <memory>
@@ -72,6 +75,8 @@ namespace faze
   class GraphicsPipelineDescriptor;
   class GraphicsPipeline;
 
+  struct ResourceHandle;
+
   class Buffer;
   class SharedBuffer;
   class Texture;
@@ -130,10 +135,10 @@ namespace faze
 
     struct GpuHeap
     {
-      std::shared_ptr<prototypes::HeapImpl> impl;
+      ResourceHandle handle;
       std::shared_ptr<HeapDescriptor> desc;
 
-      GpuHeap(std::shared_ptr<prototypes::HeapImpl> impl, HeapDescriptor desc);
+      GpuHeap(ResourceHandle handle, HeapDescriptor desc);
     };
 
     struct HeapAllocation
@@ -165,7 +170,7 @@ namespace faze
       uint64_t m_totalMemory = 0;
     public:
 
-      HeapAllocation allocate(prototypes::DeviceImpl* device, MemoryRequirements requirements);
+      HeapAllocation allocate(MemoryRequirements requirements, std::function<GpuHeap(HeapDescriptor)> allocator);
       void release(GpuHeapAllocation allocation);
 
       vector<GpuHeap> emptyHeaps();
@@ -183,6 +188,7 @@ namespace faze
     struct LiveCommandBuffer2
     {
       int deviceID;
+      SeqNum started;
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
