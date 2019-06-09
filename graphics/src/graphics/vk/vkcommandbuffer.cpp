@@ -524,27 +524,18 @@ namespace faze
     void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list)
     {
       int drawIndex = 0;
-      for (CommandPacket* packet : list)
+      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; ++iter)
       {
-        switch (packet->type())
+        auto* header = *iter;
+        F_ILOG("fillWith", "type header %d", header->type);
+        switch (header->type)
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
-        case CommandPacket::PacketType::ClearRT:
-        {
-          solver.runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::ClearRT, packet));
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::PrepareForPresent:
+        case backend::PacketType::PrepareForPresent:
         {
           solver.runBarrier(buffer, drawIndex);
           drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::ResourceBinding:
-        {
           break;
         }
         case CommandPacket::PacketType::RenderpassBegin:
@@ -557,16 +548,6 @@ namespace faze
         case CommandPacket::PacketType::RenderpassEnd:
         {
           buffer.endRenderPass();
-          break;
-        }
-        case CommandPacket::PacketType::GraphicsPipelineBind:
-        {
-          handle(buffer, packetRef(gfxpacket::GraphicsPipelineBind, packet));
-          break;
-        }
-        case CommandPacket::PacketType::Draw:
-        {
-          handle(buffer, packetRef(gfxpacket::Draw, packet));
           break;
         }
         default:
