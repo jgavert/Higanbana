@@ -78,9 +78,15 @@ namespace faze
       {
         HandleVector<VulkanTexture> tex;
         HandleVector<VulkanBuffer> buf;
-        HandleVector<VulkanBufferView> bufView;
-        HandleVector<VulkanTextureView> texView;
+        HandleVector<VulkanBufferView> bufSRV;
+        HandleVector<VulkanBufferView> bufUAV;
+        HandleVector<VulkanBufferView> bufIBV;
+        HandleVector<VulkanTextureView> texSRV;
+        HandleVector<VulkanTextureView> texUAV;
+        HandleVector<VulkanTextureView> texRTV;
+        HandleVector<VulkanTextureView> texDSV;
         HandleVector<VulkanPipeline> pipelines;
+        HandleVector<VulkanRenderpass> renderpasses;
         HandleVector<VulkanHeap> heaps;
       } m_allRes;
     public:

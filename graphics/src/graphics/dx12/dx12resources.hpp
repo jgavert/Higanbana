@@ -1107,8 +1107,13 @@ namespace faze
       {
         HandleVector<DX12Texture> tex;
         HandleVector<DX12Buffer> buf;
-        HandleVector<DX12BufferView> bufView;
-        HandleVector<DX12TextureView> texView;
+        HandleVector<DX12BufferView> bufSRV;
+        HandleVector<DX12BufferView> bufUAV;
+        HandleVector<DX12BufferView> bufIBV;
+        HandleVector<DX12TextureView> texSRV;
+        HandleVector<DX12TextureView> texUAV;
+        HandleVector<DX12TextureView> texDSV;
+        HandleVector<DX12TextureView> texRTV;
         HandleVector<DX12Pipeline> pipelines;
         HandleVector<DX12Heap> heaps;
       } m_allRes;

@@ -474,26 +474,34 @@ namespace faze
     class VulkanRenderpass
     {
     private:
-      std::shared_ptr<vk::RenderPass> m_renderpass = nullptr;
-      unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>> m_framebuffers;
+      vk::RenderPass m_renderpass = nullptr;
+      bool is_valid = false;
+      std::shared_ptr<unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>> m_framebuffers;
       size_t m_activeHash = 0;
     public:
 
-      VulkanRenderpass() {}
+      VulkanRenderpass()
+        : m_framebuffers(std::make_shared<unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>>())
+       {}
 
-      bool valid()
+      bool valid() const
       {
-        return m_renderpass.get() != nullptr;
+        return is_valid;
       }
 
-      std::shared_ptr<vk::RenderPass>& native()
+      void setValid()
+      {
+        is_valid = true;
+      }
+
+      vk::RenderPass& native()
       {
         return m_renderpass;
       }
 
       unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>& framebuffers()
       {
-        return m_framebuffers;
+        return *m_framebuffers;
       }
 
       void setActiveFramebuffer(size_t hash)
@@ -503,7 +511,7 @@ namespace faze
 
       vk::Framebuffer getActiveFramebuffer()
       {
-        return *m_framebuffers[m_activeHash];
+        return *(*m_framebuffers)[m_activeHash];
       }
     };
 

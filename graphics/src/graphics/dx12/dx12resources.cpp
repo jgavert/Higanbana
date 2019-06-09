@@ -508,30 +508,45 @@ namespace faze
           break;
         }
         case ResourceType::BufferIBV:
+        {
+          m_generics.release(m_allRes.bufIBV[handle].native());
+          m_allRes.bufIBV[handle] = DX12BufferView();
+          break;
+        }
         case ResourceType::BufferSRV:
+        {
+          m_generics.release(m_allRes.bufSRV[handle].native());
+          m_allRes.bufSRV[handle] = DX12BufferView();
+          break;
+        }
         case ResourceType::BufferUAV:
         {
-          m_generics.release(m_allRes.bufView[handle].native());
-          m_allRes.bufView[handle] = DX12BufferView();
+          m_generics.release(m_allRes.bufUAV[handle].native());
+          m_allRes.bufUAV[handle] = DX12BufferView();
           break;
         }
         case ResourceType::TextureSRV:
+        {
+          m_generics.release(m_allRes.texSRV[handle].native());
+          m_allRes.texSRV[handle] = DX12TextureView();
+          break;
+        }
         case ResourceType::TextureUAV:
         {
-          m_generics.release(m_allRes.texView[handle].native());
-          m_allRes.texView[handle] = DX12TextureView();
+          m_generics.release(m_allRes.texUAV[handle].native());
+          m_allRes.texUAV[handle] = DX12TextureView();
           break;
         }
         case ResourceType::TextureRTV:
         {
-          m_rtvs.release(m_allRes.texView[handle].native());
-          m_allRes.texView[handle] = DX12TextureView();
+          m_rtvs.release(m_allRes.texRTV[handle].native());
+          m_allRes.texRTV[handle] = DX12TextureView();
           break;
         }
         case ResourceType::TextureDSV:
         {
-          m_dsvs.release(m_allRes.texView[handle].native());
-          m_allRes.texView[handle] = DX12TextureView();
+          m_dsvs.release(m_allRes.texDSV[handle].native());
+          m_allRes.texDSV[handle] = DX12TextureView();
           break;
         }
         case ResourceType::Pipeline:
@@ -550,6 +565,10 @@ namespace faze
         {
           m_allRes.heaps[handle] = DX12Heap();
           break;
+        }
+        case ResourceType::Renderpass:
+        {
+          break; // shrug, what renderpass
         }
         default:
         {
@@ -1094,6 +1113,7 @@ namespace faze
       natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
       natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
       m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
+      m_allRes.bufSRV[handle] = DX12BufferView(descriptor);
     }
     else
     {
@@ -1106,9 +1126,9 @@ namespace faze
       natDesc.Buffer.CounterOffsetInBytes = 0;
       natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
       m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
+      m_allRes.bufUAV[handle] = DX12BufferView(descriptor);
     }
 
-    m_allRes.bufView[handle] = DX12BufferView(descriptor);
   }
 
 #define DX12CheckSupport1(s) checkSupport1(#s, s)
@@ -1329,46 +1349,46 @@ namespace faze
 
       DX12CPUDescriptor descriptor{};
 
-      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
-      {
-        descriptor = m_generics.allocate();
-        auto natDesc = dx12::getSRV(texDesc, viewDesc);
-        m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
-      {
-        descriptor = m_generics.allocate();
-        auto natDesc = dx12::getUAV(texDesc, viewDesc);
-        m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
-      {
-        descriptor = m_rtvs.allocate();
-        auto natDesc = dx12::getRTV(texDesc, viewDesc);
-        m_device->CreateRenderTargetView(native.native(), &natDesc, descriptor.cpu);
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
-      {
-        descriptor = m_dsvs.allocate();
-        auto natDesc = dx12::getDSV(texDesc, viewDesc);
-        m_device->CreateDepthStencilView(native.native(), &natDesc, descriptor.cpu);
-      }
-
       unsigned mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? texDesc.desc.miplevels - viewDesc.m_mostDetailedMip : 1;
       if (viewDesc.m_mipLevels != -1)
       {
         mips = viewDesc.m_mipLevels;
       }
-
       unsigned arraySize = (viewDesc.m_arraySize != -1) ? viewDesc.m_arraySize : texDesc.desc.arraySize - viewDesc.m_arraySlice;
-
       SubresourceRange range{};
       range.mipOffset = static_cast<int16_t>(viewDesc.m_mostDetailedMip);
       range.mipLevels = static_cast<int16_t>(mips);
       range.sliceOffset = static_cast<int16_t>(viewDesc.m_arraySlice);
       range.arraySize = static_cast<int16_t>(arraySize);
 
-      m_allRes.texView[handle] = DX12TextureView(descriptor, range);
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        descriptor = m_generics.allocate();
+        auto natDesc = dx12::getSRV(texDesc, viewDesc);
+        m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
+        m_allRes.texSRV[handle] = DX12TextureView(descriptor, range);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
+      {
+        descriptor = m_generics.allocate();
+        auto natDesc = dx12::getUAV(texDesc, viewDesc);
+        m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
+        m_allRes.texUAV[handle] = DX12TextureView(descriptor, range);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
+      {
+        descriptor = m_rtvs.allocate();
+        auto natDesc = dx12::getRTV(texDesc, viewDesc);
+        m_device->CreateRenderTargetView(native.native(), &natDesc, descriptor.cpu);
+        m_allRes.texRTV[handle] = DX12TextureView(descriptor, range);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      {
+        descriptor = m_dsvs.allocate();
+        auto natDesc = dx12::getDSV(texDesc, viewDesc);
+        m_device->CreateDepthStencilView(native.native(), &natDesc, descriptor.cpu);
+        m_allRes.texDSV[handle] = DX12TextureView(descriptor, range);
+      }
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)

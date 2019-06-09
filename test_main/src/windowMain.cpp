@@ -37,7 +37,8 @@ void mainWindow(ProgramParams& params)
     log.update();
 
     bool explicitID = false;
-    GpuInfo gpuinfo{};
+    //GpuInfo gpuinfo{};
+    vector<GpuInfo> allGpus;
 
     while (true)
     {
@@ -46,13 +47,13 @@ void mainWindow(ProgramParams& params)
       auto gpus = graphics.availableGpus();
       if (!explicitID)
       {
-        gpuinfo = graphics.getVendorDevice(api);
+        //gpuinfo = graphics.getVendorDevice(api);
         for (auto&& it : gpus)
         {
-          if (it.api == api && it.vendor == preferredVendor)
+          if (it.vendor == preferredVendor)
           {
-            gpuinfo = it;
-            break;
+            allGpus.push_back(it);
+            //break;
           }
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
@@ -61,12 +62,16 @@ void mainWindow(ProgramParams& params)
       if (gpus.empty())
         return;
 
-	    std::string windowTitle = std::string(toString(gpuinfo.api)) + ": " + gpuinfo.name;
+	    std::string windowTitle = "";
+      for (auto& gpu : allGpus)
+      {
+        windowTitle += std::string(toString(gpu.api)) + ": " + gpu.name + " ";
+      }
       Window window(params, windowTitle, 1280, 720, 300, 200);
       window.open();
 
-      auto surface = graphics.createSurface(window, gpuinfo);
-      auto dev = graphics.createGroup(fs, {gpuinfo});
+      auto surface = graphics.createSurface(window, allGpus[0]);
+      auto dev = graphics.createGroup(fs, allGpus);
       {
         auto toggleHDR = false;
         auto scdesc = SwapchainDescriptor()
@@ -75,7 +80,10 @@ void mainWindow(ProgramParams& params)
           .bufferCount(3).presentMode(PresentMode::Fifo);
         auto swapchain = dev.createSwapchain(surface, scdesc);
 
-        F_LOG("Created device \"%s\"\n", gpuinfo.name.c_str());
+        for (auto& gpu : allGpus)
+        {
+          F_LOG("Created device \"%s\"\n", gpu.name.c_str());
+        }
 
         auto bufferdesc = ResourceDescriptor()
           .setName("testBuffer1")
@@ -182,7 +190,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::Vulkan, VendorID::Nvidia, true);
+  main(GraphicsApi::DX12, VendorID::Nvidia, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 

@@ -73,21 +73,6 @@ namespace faze
     void DeviceGroupData::gc()
     {
       checkCompletedLists();
-
-/*
-      for (auto&& allocation : m_trackerbuffers->getAllocations())
-      {
-        m_heaps.release(allocation);
-      }
-
-      for (auto&& allocation : m_trackertextures->getAllocations())
-      {
-        m_heaps.release(allocation);
-      }
-
-      m_heaps.emptyHeaps();
-      */
-
       garbageCollection();
     }
 
@@ -147,8 +132,18 @@ namespace faze
           }
           delete ptr;
         });
+
         auto tex = Texture(handlePtr, std::make_shared<ResourceDescriptor>(sc.impl()->desc()));
-        backbuffers[i] = createTextureRTV(tex, ShaderViewDescriptor());
+        auto viewDesc = ShaderViewDescriptor();
+        if (viewDesc.m_format == FormatType::Unknown)
+        {
+          viewDesc.m_format = tex.desc().desc.format;
+        }
+
+        auto handle = m_handles.allocate(ResourceType::TextureRTV);
+        handle.setGpuId(0);
+        m_devices[0].device->createTextureView(handle, tex.handle(), tex.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
+        backbuffers[i] = TextureRTV(tex, sharedHandle(handle));
       }
 
       sc.setBackbuffers(backbuffers);
@@ -207,9 +202,12 @@ namespace faze
 
     Renderpass DeviceGroupData::createRenderpass()
     {
-      F_ASSERT(false, "unimplemented");
-      return Renderpass();
-      //return Renderpass(m_impl->createRenderpass());
+      auto handle = m_handles.allocate(ResourceType::Renderpass);
+      for (auto&& device : m_devices)
+      {
+        device.device->createRenderpass(handle);
+      }
+      return Renderpass(sharedHandle(handle));
     }
 
     ComputePipeline DeviceGroupData::createComputePipeline(ComputePipelineDescriptor desc)
@@ -220,7 +218,6 @@ namespace faze
         device.device->createPipeline(handle, desc);
       }
       return ComputePipeline(sharedHandle(handle), desc);
-      //return ComputePipeline(m_impl->createPipeline(desc), desc);
     }
 
     GraphicsPipeline DeviceGroupData::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
@@ -454,13 +451,14 @@ namespace faze
         for (auto& it : removed)
         {
           device.device->releaseHandle(it.handle);
+          m_handles.release(it.handle);
         }
       }
     }
 
     void DeviceGroupData::present(Swapchain & swapchain)
     {
-      //m_impl->present(swapchain.impl(), swapchain.impl()->renderSemaphore());
+      m_devices[SwapchainDeviceID].device->present(swapchain.impl(), swapchain.impl()->renderSemaphore());
     }
   }
 }
