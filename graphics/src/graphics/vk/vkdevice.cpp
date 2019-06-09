@@ -1239,20 +1239,45 @@ for (auto&& upload : it.second.dynamicBuffers)
           break;
         }
         case ResourceType::BufferIBV:
+        {
+          //F_ASSERT(false, "what do?");
+          m_allRes.bufIBV[handle] = VulkanBufferView();
+          break;
+        }
         case ResourceType::BufferSRV:
+        {
+          //F_ASSERT(false, "what do?");
+          m_allRes.bufSRV[handle] = VulkanBufferView();
+          break;
+        }
         case ResourceType::BufferUAV:
         {
           //F_ASSERT(false, "what do?");
-          m_allRes.bufView[handle] = VulkanBufferView();
+          m_allRes.bufUAV[handle] = VulkanBufferView();
           break;
         }
         case ResourceType::TextureSRV:
+        {
+          m_device.destroyImageView(m_allRes.texSRV[handle].native().view);
+          m_allRes.texSRV[handle] = VulkanTextureView();
+          break;
+        }
         case ResourceType::TextureUAV:
+        {
+          m_device.destroyImageView(m_allRes.texUAV[handle].native().view);
+          m_allRes.texUAV[handle] = VulkanTextureView();
+          break;
+        }
         case ResourceType::TextureRTV:
+        {
+          m_device.destroyImageView(m_allRes.texRTV[handle].native().view);
+          m_allRes.texRTV[handle] = VulkanTextureView();
+          break;
+        }
         case ResourceType::TextureDSV:
         {
-          m_device.destroyImageView(m_allRes.texView[handle].native().view);
-          m_allRes.texView[handle] = VulkanTextureView();
+          m_device.destroyImageView(m_allRes.texDSV[handle].native().view);
+          m_allRes.texDSV[handle] = VulkanTextureView();
           break;
         }
         case ResourceType::Pipeline:
@@ -1274,6 +1299,12 @@ for (auto&& upload : it.second.dynamicBuffers)
         {
           m_device.freeMemory(m_allRes.heaps[handle].native());
           m_allRes.heaps[handle] = VulkanHeap();
+          break;
+        }
+        case ResourceType::Renderpass:
+        {
+          m_device.destroyRenderPass(m_allRes.renderpasses[handle].native());
+          m_allRes.renderpasses[handle] = VulkanRenderpass();
           break;
         }
         default:
@@ -1699,23 +1730,6 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setImageLayout(vk::ImageLayout::eGeneral) // TODO: layouts
         .setImageView(view);
 
-      vk::DescriptorType imageType = vk::DescriptorType::eInputAttachment;
-      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
-      {
-        imageType = vk::DescriptorType::eSampledImage;
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
-      {
-        imageType = vk::DescriptorType::eStorageImage;
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
-      {
-        imageType = vk::DescriptorType::eInputAttachment;
-      }
-      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
-      {
-        imageType = vk::DescriptorType::eInputAttachment;
-      }
 
       SubresourceRange range{};
       range.mipOffset = static_cast<int16_t>(subResourceRange.baseMipLevel);
@@ -1723,7 +1737,27 @@ for (auto&& upload : it.second.dynamicBuffers)
       range.sliceOffset = static_cast<int16_t>(subResourceRange.baseArrayLayer);
       range.arraySize = static_cast<int16_t>(subResourceRange.layerCount);
 
-      m_allRes.texView[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+      vk::DescriptorType imageType = vk::DescriptorType::eInputAttachment;
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        imageType = vk::DescriptorType::eSampledImage;
+        m_allRes.texSRV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
+      {
+        imageType = vk::DescriptorType::eStorageImage;
+        m_allRes.texUAV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      {
+        imageType = vk::DescriptorType::eInputAttachment;
+        m_allRes.texDSV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
+      {
+        imageType = vk::DescriptorType::eInputAttachment;
+        m_allRes.texRTV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+      }
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> dataRange, FormatType desiredFormat)

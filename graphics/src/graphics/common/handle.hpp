@@ -14,6 +14,7 @@ namespace faze
   {
     Unknown,
     Pipeline,
+    Renderpass,
     Buffer,
     DynamicBuffer,
     Texture,
