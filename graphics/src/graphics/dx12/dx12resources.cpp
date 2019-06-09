@@ -35,10 +35,10 @@ namespace faze
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 512)) // we have room for 64*512 drawcalls worth of constants.
-      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024 * 4)) // we have room 64megs of dynamic buffers
+      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024 * 1)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
-      , m_trash(std::make_shared<Garbage>())
-      , m_seqTracker(std::make_shared<SequenceTracker>())
+      //, m_trash(std::make_shared<Garbage>())
+      //, m_seqTracker(std::make_shared<SequenceTracker>())
     {
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
@@ -446,27 +446,11 @@ namespace faze
       state.commonStateOptimisation = false;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
-      std::weak_ptr<Garbage> weak = m_trash;
-
       for (int i = 0; i < native->getDesc().descriptor.desc.bufferCount; ++i)
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-        /* 
-        textures[i] = std::shared_ptr<DX12Texture>(new DX12Texture(renderTarget, std::make_shared<DX12ResourceState>(state)),
-          [weak](DX12Texture* ptr)
-        {
-          if (auto trash = weak.lock())
-          {
-            trash->resources.emplace_back(ptr->native());
-          }
-          else
-          {
-            ptr->native()->Release();
-          }
-          delete ptr;
-        });
-        */
+        m_allRes.tex[handles[i]] = DX12Texture(renderTarget, std::make_shared<DX12ResourceState>(state));
       }
       return static_cast<int>(textures.size());
     }
@@ -580,556 +564,513 @@ namespace faze
 
     void DX12Device::collectTrash()
     {
-      auto latestSequenceStarted = m_seqTracker->lastSequence();
-
-      m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
-      m_trash->dynamicBuffers.clear();
-      m_trash->genericDescriptors.clear();
-      m_trash->rtvsDescriptors.clear();
-      m_trash->dsvsDescriptors.clear();
-      m_trash->resources.clear();
-
-	  F_ASSERT(m_collectableTrash.size() < 30, "Some Sequence hasn't returned in time. Going too deep in error state.");
-
-      while (!m_collectableTrash.empty())
-      {
-        auto&& it = m_collectableTrash.front();
-        if (!m_seqTracker->hasCompletedTill(it.first))
-        {
-          break;
-        }
-        for (auto&& dynBuf : it.second.dynamicBuffers)
-        {
-          m_dynamicUpload->release(dynBuf);
-        }
-        for (auto&& descriptor : it.second.genericDescriptors)
-        {
-          m_generics.release(descriptor);
-        }
-        for (auto&& descriptor : it.second.rtvsDescriptors)
-        {
-          m_rtvs.release(descriptor);
-        }
-        for (auto&& descriptor : it.second.dsvsDescriptors)
-        {
-          m_dsvs.release(descriptor);
-        }
-        for (auto&& resource : it.second.resources)
-        {
-          resource->Release();
-        }
-        m_collectableTrash.pop_front();
-      }
-
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
 #endif
-  }
-
-  void DX12Device::waitGpuIdle()
-  {
-    m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
-    m_deviceFence.waitTillReady();
-  }
-
-  MemoryRequirements DX12Device::getReqs(ResourceDescriptor desc)
-  {
-    MemoryRequirements reqs{};
-    D3D12_RESOURCE_ALLOCATION_INFO requirements;
-    D3D12_RESOURCE_DESC resDesc;
-
-    D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
-    HeapType type;
-
-    if (desc.desc.dimension == FormatDimension::Buffer)
-    {
-      resDesc = fillPlacedBufferInfo(desc);
-      flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
     }
-    else
+
+    void DX12Device::waitGpuIdle()
     {
-      resDesc = fillPlacedTextureInfo(desc);
-      if (desc.desc.usage == ResourceUsage::RenderTarget
-        || desc.desc.usage == ResourceUsage::RenderTargetRW
-        || desc.desc.usage == ResourceUsage::DepthStencil
-        || desc.desc.usage == ResourceUsage::DepthStencilRW)
+      m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
+      m_deviceFence.waitTillReady();
+    }
+
+    MemoryRequirements DX12Device::getReqs(ResourceDescriptor desc)
+    {
+      MemoryRequirements reqs{};
+      D3D12_RESOURCE_ALLOCATION_INFO requirements;
+      D3D12_RESOURCE_DESC resDesc;
+
+      D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+      HeapType type;
+
+      if (desc.desc.dimension == FormatDimension::Buffer)
       {
-        flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        resDesc = fillPlacedBufferInfo(desc);
+        flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
       }
-    }
-
-    // see https://msdn.microsoft.com/en-us/library/windows/desktop/mt186623(v=vs.85).aspx
-    // overrides bunch of requirements.
-    if (desc.desc.allowCrossAdapter)
-    {
-      flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES | D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER;
-    }
-
-    requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
-    reqs.alignment = requirements.Alignment;
-    reqs.bytes = requirements.SizeInBytes;
-
-    type = HeapType::Default;
-    if (desc.desc.usage == ResourceUsage::Upload)
-      type = HeapType::Upload;
-    else if (desc.desc.usage == ResourceUsage::Readback)
-      type = HeapType::Readback;
-
-    reqs.heapType = packInt64(static_cast<int32_t>(flags), static_cast<int32_t>(type));
-
-    return reqs;
-  }
-
-  void DX12Device::createRenderpass(ResourceHandle handle)
-  {
-    return;
-  }
-
-  void DX12Device::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
-  {
-    return;
-  }
-
-  void DX12Device::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
-  {
-    return;
-  }
-
-/*
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
-  {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
-
-    GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
-    {
-      // BlendState
-      desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
-      desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.alphaToCoverageEnable;
-      auto logicEnable = d.blendDesc.desc.logicOpEnabled;
-      auto logicOp = convertLogicOp(d.blendDesc.desc.logicOp);
-      for (int i = 0; i < 8; ++i)
+      else
       {
-        auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
-        desc.BlendState.RenderTarget[i].BlendEnable = rtb.blendEnable;
-        desc.BlendState.RenderTarget[i].LogicOpEnable = logicEnable;
-        desc.BlendState.RenderTarget[i].SrcBlend = convertBlend(rtb.srcBlend);
-        desc.BlendState.RenderTarget[i].DestBlend = convertBlend(rtb.destBlend);
-        desc.BlendState.RenderTarget[i].BlendOp = convertBlendOp(rtb.blendOp);
-        desc.BlendState.RenderTarget[i].SrcBlendAlpha = convertBlend(rtb.srcBlendAlpha);
-        desc.BlendState.RenderTarget[i].DestBlendAlpha = convertBlend(rtb.destBlendAlpha);
-        desc.BlendState.RenderTarget[i].BlendOpAlpha = convertBlendOp(rtb.blendOpAlpha);
-        desc.BlendState.RenderTarget[i].LogicOp = logicOp;
-        desc.BlendState.RenderTarget[i].RenderTargetWriteMask = convertColorWriteEnable(rtb.colorWriteEnable);
+        resDesc = fillPlacedTextureInfo(desc);
+        if (desc.desc.usage == ResourceUsage::RenderTarget
+          || desc.desc.usage == ResourceUsage::RenderTargetRW
+          || desc.desc.usage == ResourceUsage::DepthStencil
+          || desc.desc.usage == ResourceUsage::DepthStencilRW)
+        {
+          flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        }
       }
-    }
-    {
-      // Rasterization
-      auto& rd = d.rasterDesc.desc;
-      desc.RasterizerState.FillMode = convertFillMode(rd.fill);
-      desc.RasterizerState.CullMode = convertCullMode(rd.cull);
-      desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
-      desc.RasterizerState.DepthBias = rd.depthBias;
-      desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
-      desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
-      desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
-      desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
-      desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
-      desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
-      desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
-    }
-    {
-      // DepthStencil
-      auto& dss = d.dsdesc.desc;
-      desc.DepthStencilState.DepthEnable = dss.depthEnable;
-      desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
-      desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
-      desc.DepthStencilState.StencilEnable = dss.stencilEnable;
-      desc.DepthStencilState.StencilReadMask = dss.stencilReadMask;
-      desc.DepthStencilState.StencilWriteMask = dss.stencilWriteMask;
-      desc.DepthStencilState.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
-      desc.DepthStencilState.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
-      desc.DepthStencilState.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
-      desc.DepthStencilState.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
-      desc.DepthStencilState.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
-      desc.DepthStencilState.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
-      desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
-      desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
-    }
-    desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
-    desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-    // subpass things here
-    desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
-    for (size_t i = 0; i < subpass.rtvs.size(); ++i)
-    {
-      desc.RTVFormats[i] = formatTodxFormat(subpass.rtvs[i].format()).view;
-    }
-    desc.DSVFormat = (subpass.dsvs.size() == 0) ? DXGI_FORMAT_UNKNOWN : formatTodxFormat(subpass.dsvs[0].format()).view;
-    for (size_t i = subpass.rtvs.size(); i < 8; ++i)
-    {
-      desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
-    }
-    desc.SampleMask = UINT_MAX;
-    /*
-    desc.NumRenderTargets = d.numRenderTargets;
-    for (int i = 0; i < 8; ++i)
-    {
-      desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
-    }
-    desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
-    */
-   /*
-    desc.SampleDesc.Count = d.sampleCount;
-    desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 
-    return desc;
-  }*/
+      // see https://msdn.microsoft.com/en-us/library/windows/desktop/mt186623(v=vs.85).aspx
+      // overrides bunch of requirements.
+      if (desc.desc.allowCrossAdapter)
+      {
+        flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES | D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER;
+      }
+
+      requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
+      reqs.alignment = requirements.Alignment;
+      reqs.bytes = requirements.SizeInBytes;
+
+      type = HeapType::Default;
+      if (desc.desc.usage == ResourceUsage::Upload)
+        type = HeapType::Upload;
+      else if (desc.desc.usage == ResourceUsage::Readback)
+        type = HeapType::Readback;
+
+      reqs.heapType = packInt64(static_cast<int32_t>(flags), static_cast<int32_t>(type));
+
+      return reqs;
+    }
+
+    void DX12Device::createRenderpass(ResourceHandle handle)
+    {
+      return;
+    }
+
+    void DX12Device::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
+    {
+      return;
+    }
+
+    void DX12Device::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
+    {
+      return;
+    }
+
   /*
-
-  void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
-  {
-    auto hash = subpass.hash;
-    bool missing = true;
-
-    GraphicsPipeline::FullPipeline* ptr = nullptr;
-
-    for (auto&& it : *pipeline.m_pipelines)
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
     {
-      if (it.hash == hash)
-      {
-        missing = false;
-        ptr = &it;
-        break;
-      }
-    }
-
-    if (missing)
-    {
-      pipeline.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
-      ptr = &pipeline.m_pipelines->back();
-      ptr->hash = hash;
-    }
-
-    if (ptr->needsUpdating())
-    {
-      F_LOG("updating pipeline for hash %zu\n", hash);
-      auto desc = getDesc(pipeline, subpass);
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
 
       GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
-      vector<MemoryBlob> blobs;
-      if (!d.vertexShaderPath.empty())
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
-        blobs.emplace_back(shader);
-        desc.VS.BytecodeLength = blobs.back().size();
-        desc.VS.pShaderBytecode = blobs.back().data();
-
-        if (ptr->vs.empty())
+        // BlendState
+        desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
+        desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.alphaToCoverageEnable;
+        auto logicEnable = d.blendDesc.desc.logicOpEnabled;
+        auto logicOp = convertLogicOp(d.blendDesc.desc.logicOp);
+        for (int i = 0; i < 8; ++i)
         {
-          ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
+          desc.BlendState.RenderTarget[i].BlendEnable = rtb.blendEnable;
+          desc.BlendState.RenderTarget[i].LogicOpEnable = logicEnable;
+          desc.BlendState.RenderTarget[i].SrcBlend = convertBlend(rtb.srcBlend);
+          desc.BlendState.RenderTarget[i].DestBlend = convertBlend(rtb.destBlend);
+          desc.BlendState.RenderTarget[i].BlendOp = convertBlendOp(rtb.blendOp);
+          desc.BlendState.RenderTarget[i].SrcBlendAlpha = convertBlend(rtb.srcBlendAlpha);
+          desc.BlendState.RenderTarget[i].DestBlendAlpha = convertBlend(rtb.destBlendAlpha);
+          desc.BlendState.RenderTarget[i].BlendOpAlpha = convertBlendOp(rtb.blendOpAlpha);
+          desc.BlendState.RenderTarget[i].LogicOp = logicOp;
+          desc.BlendState.RenderTarget[i].RenderTargetWriteMask = convertColorWriteEnable(rtb.colorWriteEnable);
         }
-        ptr->vs.react();
       }
-
-      if (!d.hullShaderPath.empty())
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
-        blobs.emplace_back(shader);
-        desc.HS.BytecodeLength = blobs.back().size();
-        desc.HS.pShaderBytecode = blobs.back().data();
-
-        if (ptr->hs.empty())
-        {
-          ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
-        }
-        ptr->hs.react();
+        // Rasterization
+        auto& rd = d.rasterDesc.desc;
+        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
+        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
+        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
+        desc.RasterizerState.DepthBias = rd.depthBias;
+        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
+        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
+        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
+        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
+        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
+        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
+        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
       }
-
-      if (!d.domainShaderPath.empty())
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
-        blobs.emplace_back(shader);
-        desc.DS.BytecodeLength = blobs.back().size();
-        desc.DS.pShaderBytecode = blobs.back().data();
-        if (ptr->ds.empty())
-        {
-          ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
-        }
-        ptr->ds.react();
+        // DepthStencil
+        auto& dss = d.dsdesc.desc;
+        desc.DepthStencilState.DepthEnable = dss.depthEnable;
+        desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
+        desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
+        desc.DepthStencilState.StencilEnable = dss.stencilEnable;
+        desc.DepthStencilState.StencilReadMask = dss.stencilReadMask;
+        desc.DepthStencilState.StencilWriteMask = dss.stencilWriteMask;
+        desc.DepthStencilState.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
+        desc.DepthStencilState.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
+        desc.DepthStencilState.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
+        desc.DepthStencilState.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
+        desc.DepthStencilState.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
+        desc.DepthStencilState.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
+        desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
+        desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
       }
-
-      if (!d.geometryShaderPath.empty())
+      desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
+      desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+      // subpass things here
+      desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
+      for (size_t i = 0; i < subpass.rtvs.size(); ++i)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
-        blobs.emplace_back(shader);
-        desc.GS.BytecodeLength = blobs.back().size();
-        desc.GS.pShaderBytecode = blobs.back().data();
-        if (ptr->gs.empty())
-        {
-          ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
-        }
-        ptr->gs.react();
+        desc.RTVFormats[i] = formatTodxFormat(subpass.rtvs[i].format()).view;
       }
-
-      if (!d.pixelShaderPath.empty())
+      desc.DSVFormat = (subpass.dsvs.size() == 0) ? DXGI_FORMAT_UNKNOWN : formatTodxFormat(subpass.dsvs[0].format()).view;
+      for (size_t i = subpass.rtvs.size(); i < 8; ++i)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
-        blobs.emplace_back(shader);
-        desc.PS.BytecodeLength = blobs.back().size();
-        desc.PS.pShaderBytecode = blobs.back().data();
-        if (ptr->ps.empty())
-        {
-          ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
-        }
-        ptr->ps.react();
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
       }
-
-      ComPtr<ID3D12RootSignature> root;
-      FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
-/*
-      desc.pRootSignature = root.Get();
+      desc.SampleMask = UINT_MAX;
+      /*
+      desc.NumRenderTargets = d.numRenderTargets;
+      for (int i = 0; i < 8; ++i)
+      {
+        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+      }
+      desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
       */
-     /*
-      desc.pRootSignature = nullptr;
+    /*
+      desc.SampleDesc.Count = d.sampleCount;
+      desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 
-      ComPtr<ID3D12PipelineState> pipe;
-      FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+      return desc;
+    }*/
+    /*
 
-      D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+    void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
+    {
+      auto hash = subpass.hash;
+      bool missing = true;
 
-      if (ptr->pipeline)
+      GraphicsPipeline::FullPipeline* ptr = nullptr;
+
+      for (auto&& it : *pipeline.m_pipelines)
       {
-        auto* natptr = static_cast<DX12Pipeline*>(ptr->pipeline.get());
-        m_trash->pipelines.emplace_back(natptr->pipeline);
-        m_trash->roots.emplace_back(natptr->root);
+        if (it.hash == hash)
+        {
+          missing = false;
+          ptr = &it;
+          break;
+        }
       }
 
-      ptr->pipeline = std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive));
-      //pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
-    }
-  }*/
-/*
-  void DX12Device::updatePipeline(ComputePipeline& pipeline)
-  {
-    auto* ptr = static_cast<DX12Pipeline*>(pipeline.impl.get());
-    bool needsCompile = false;
-    if (ptr->pipeline.Get() == nullptr)
-    {
-      needsCompile = true;
-    }
-    // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
-    if (needsCompile || pipeline.m_update->updated())
-    {
-      m_trash->pipelines.emplace_back(ptr->pipeline);
-      m_trash->roots.emplace_back(ptr->root);
-      if (pipeline.m_update->updated())
+      if (missing)
       {
-        GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
+        pipeline.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
+        ptr = &pipeline.m_pipelines->back();
+        ptr->hash = hash;
       }
 
-      ShaderCreateInfo sci = ShaderCreateInfo(pipeline.descriptor.shaderSourcePath, ShaderType::Compute, pipeline.descriptor.layout)
-        .setComputeGroups(pipeline.descriptor.shaderGroups);
-
-      auto thing = m_shaders.shader(sci);
-      FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
-
-      D3D12_SHADER_BYTECODE byte;
-      byte.pShaderBytecode = thing.data();
-      byte.BytecodeLength = thing.size();
-
-      if (pipeline.m_update->empty())
+      if (ptr->needsUpdating())
       {
-        *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, ShaderType::Compute);
+        F_LOG("updating pipeline for hash %zu\n", hash);
+        auto desc = getDesc(pipeline, subpass);
+
+        GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
+        vector<MemoryBlob> blobs;
+        if (!d.vertexShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+          blobs.emplace_back(shader);
+          desc.VS.BytecodeLength = blobs.back().size();
+          desc.VS.pShaderBytecode = blobs.back().data();
+
+          if (ptr->vs.empty())
+          {
+            ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          }
+          ptr->vs.react();
+        }
+
+        if (!d.hullShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
+          blobs.emplace_back(shader);
+          desc.HS.BytecodeLength = blobs.back().size();
+          desc.HS.pShaderBytecode = blobs.back().data();
+
+          if (ptr->hs.empty())
+          {
+            ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
+          }
+          ptr->hs.react();
+        }
+
+        if (!d.domainShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
+          blobs.emplace_back(shader);
+          desc.DS.BytecodeLength = blobs.back().size();
+          desc.DS.pShaderBytecode = blobs.back().data();
+          if (ptr->ds.empty())
+          {
+            ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
+          }
+          ptr->ds.react();
+        }
+
+        if (!d.geometryShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
+          blobs.emplace_back(shader);
+          desc.GS.BytecodeLength = blobs.back().size();
+          desc.GS.pShaderBytecode = blobs.back().data();
+          if (ptr->gs.empty())
+          {
+            ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+          }
+          ptr->gs.react();
+        }
+
+        if (!d.pixelShaderPath.empty())
+        {
+          auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
+          blobs.emplace_back(shader);
+          desc.PS.BytecodeLength = blobs.back().size();
+          desc.PS.pShaderBytecode = blobs.back().data();
+          if (ptr->ps.empty())
+          {
+            ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
+          }
+          ptr->ps.react();
+        }
+
+        ComPtr<ID3D12RootSignature> root;
+        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+  /*
+        desc.pRootSignature = root.Get();
+        */
+      /*
+        desc.pRootSignature = nullptr;
+
+        ComPtr<ID3D12PipelineState> pipe;
+        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+
+        D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+
+        if (ptr->pipeline)
+        {
+          auto* natptr = static_cast<DX12Pipeline*>(ptr->pipeline.get());
+          m_trash->pipelines.emplace_back(natptr->pipeline);
+          m_trash->roots.emplace_back(natptr->root);
+        }
+
+        ptr->pipeline = std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive));
+        //pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
       }
-      pipeline.m_update->react();
-
-      D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
-      computeDesc.CS = byte;
-      computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-      computeDesc.NodeMask = 0;
-      //computeDesc.pRootSignature = ptr->root.Get();
-      computeDesc.pRootSignature = nullptr;
-
-      FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
-    }
-  }*/
-
-  void DX12Device::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
-  {
-    auto desc = heapDesc.desc;
-    D3D12_HEAP_DESC dxdesc{};
-    bool smallResource = false;
-    if (heapDesc.desc.alignment == D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
+    }*/
+  /*
+    void DX12Device::updatePipeline(ComputePipeline& pipeline)
     {
-      smallResource = true;
-      heapDesc.desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-    }
-    // TODO: properly implement small resources, need to pass these flags around.
-    // textures support small and the same heap cannot contain buffers or rt/ds textures.
-    // disabled for now.
-
-    dxdesc.Alignment = heapDesc.desc.alignment;
-    dxdesc.SizeInBytes = heapDesc.desc.sizeInBytes;
-    dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
-    dxdesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
-    if (desc.heapType != HeapType::Custom)
-    {
-      if (desc.onlyBuffers)
+      auto* ptr = static_cast<DX12Pipeline*>(pipeline.impl.get());
+      bool needsCompile = false;
+      if (ptr->pipeline.Get() == nullptr)
       {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+        needsCompile = true;
       }
-      else if (desc.onlyNonRtDsTextures)
+      // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
+      if (needsCompile || pipeline.m_update->updated())
       {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+        m_trash->pipelines.emplace_back(ptr->pipeline);
+        m_trash->roots.emplace_back(ptr->root);
+        if (pipeline.m_update->updated())
+        {
+          GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
+        }
+
+        ShaderCreateInfo sci = ShaderCreateInfo(pipeline.descriptor.shaderSourcePath, ShaderType::Compute, pipeline.descriptor.layout)
+          .setComputeGroups(pipeline.descriptor.shaderGroups);
+
+        auto thing = m_shaders.shader(sci);
+        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
+
+        D3D12_SHADER_BYTECODE byte;
+        byte.pShaderBytecode = thing.data();
+        byte.BytecodeLength = thing.size();
+
+        if (pipeline.m_update->empty())
+        {
+          *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, ShaderType::Compute);
+        }
+        pipeline.m_update->react();
+
+        D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
+        computeDesc.CS = byte;
+        computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        computeDesc.NodeMask = 0;
+        //computeDesc.pRootSignature = ptr->root.Get();
+        computeDesc.pRootSignature = nullptr;
+
+        FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
       }
-      else if (desc.onlyRtDsTextures)
+    }*/
+
+    void DX12Device::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
+    {
+      auto desc = heapDesc.desc;
+      D3D12_HEAP_DESC dxdesc{};
+      bool smallResource = false;
+      if (heapDesc.desc.alignment == D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
       {
-        dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        smallResource = true;
+        heapDesc.desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
       }
+      // TODO: properly implement small resources, need to pass these flags around.
+      // textures support small and the same heap cannot contain buffers or rt/ds textures.
+      // disabled for now.
 
-      if (smallResource)
+      dxdesc.Alignment = heapDesc.desc.alignment;
+      dxdesc.SizeInBytes = heapDesc.desc.sizeInBytes;
+      dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+      dxdesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+      if (desc.heapType != HeapType::Custom)
       {
-        dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+        if (desc.onlyBuffers)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+        }
+        else if (desc.onlyNonRtDsTextures)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+        }
+        else if (desc.onlyRtDsTextures)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+        }
+
+        if (smallResource)
+        {
+          dxdesc.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+        }
+        if (desc.heapType == HeapType::Upload)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        }
+        else if (desc.heapType == HeapType::Readback)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        }
       }
-      if (desc.heapType == HeapType::Upload)
+      else
       {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        int32_t flags;
+        int32_t type;
+        unpackInt64(desc.customType, flags, type);
+
+        HeapType hType = static_cast<HeapType>(type);
+        if (hType == HeapType::Upload)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        }
+        else if (hType == HeapType::Readback)
+        {
+          dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        }
+        dxdesc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags);
       }
-      else if (desc.heapType == HeapType::Readback)
+
+      ComPtr<ID3D12Heap> heap;
+      m_device->CreateHeap(&dxdesc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf()));
+
+      m_allRes.heaps[handle] = DX12Heap(heap);
+    }
+
+    void DX12Device::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
+    {
+      auto dxDesc = fillPlacedBufferInfo(desc);
+
+      D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+      DX12ResourceState state{ 0 };
+      state.commonStateOptimisation = true;
+      state.flags.emplace_back(startState);
+      ID3D12Resource* buffer;
+
+      D3D12_HEAP_PROPERTIES prop{};
+      prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+      m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+
+      auto wstr = s2ws(desc.desc.name);
+      buffer->SetName(wstr.c_str());
+
+      m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
+    }
+
+    void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
+    {
+      auto& native = m_allRes.heaps[allocation.heap.handle];
+      auto dxDesc = fillPlacedBufferInfo(desc);
+
+      D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+      switch (desc.desc.usage)
       {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
-      }
-    }
-    else
-    {
-      int32_t flags;
-      int32_t type;
-      unpackInt64(desc.customType, flags, type);
-
-      HeapType hType = static_cast<HeapType>(type);
-      if (hType == HeapType::Upload)
+      case ResourceUsage::Upload:
       {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+        startState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        break;
       }
-      else if (hType == HeapType::Readback)
+      case ResourceUsage::Readback:
       {
-        dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+        startState = D3D12_RESOURCE_STATE_COPY_DEST;
+        break;
       }
-      dxdesc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags);
+      default:
+        break;
+      }
+      DX12ResourceState state{ 0 };
+      state.commonStateOptimisation = true;
+      state.flags.emplace_back(startState);
+      ID3D12Resource* buffer;
+      m_device->CreatePlacedResource(native.native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+
+      auto wstr = s2ws(desc.desc.name);
+      buffer->SetName(wstr.c_str());
+
+      m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
     }
 
-    ComPtr<ID3D12Heap> heap;
-    m_device->CreateHeap(&dxdesc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf()));
-
-    m_allRes.heaps[handle] = DX12Heap(heap);
-  }
-
-  void DX12Device::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
-  {
-    auto dxDesc = fillPlacedBufferInfo(desc);
-
-    D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
-    DX12ResourceState state{ 0 };
-    state.commonStateOptimisation = true;
-    state.flags.emplace_back(startState);
-    ID3D12Resource* buffer;
-
-    D3D12_HEAP_PROPERTIES prop{};
-    prop.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-    m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
-
-    auto wstr = s2ws(desc.desc.name);
-    buffer->SetName(wstr.c_str());
-
-    m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
-  }
-
-  void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
-  {
-    auto& native = m_allRes.heaps[allocation.heap.handle];
-    auto dxDesc = fillPlacedBufferInfo(desc);
-
-    D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
-    switch (desc.desc.usage)
+    void DX12Device::createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
     {
-    case ResourceUsage::Upload:
-    {
-      startState = D3D12_RESOURCE_STATE_GENERIC_READ;
-      break;
+      auto& native = m_allRes.buf[buffer];
+
+      auto desc = bufferDesc.desc;
+
+      FormatType format = viewDesc.m_format;
+      if (format == FormatType::Unknown)
+        format = desc.format;
+
+      auto descriptor = m_generics.allocate();
+
+      auto sizeElements = viewDesc.m_elementCount;
+      if (sizeElements == -1)
+      {
+        sizeElements = bufferDesc.desc.width;
+      }
+
+      if (viewDesc.m_format != FormatType::Unknown)
+      {
+        sizeElements = sizeElements * bufferDesc.desc.stride / formatSizeInfo(viewDesc.m_format).pixelSize;
+      }
+
+      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      {
+        D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
+        natDesc.Format = formatTodxFormat(format).view;
+        natDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        natDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
+        natDesc.Buffer.NumElements = sizeElements;
+        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
+        natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+        m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
+        m_allRes.bufSRV[handle] = DX12BufferView(descriptor);
+      }
+      else
+      {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC natDesc{};
+        natDesc.Format = formatTodxFormat(format).view;
+        natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
+        natDesc.Buffer.NumElements = sizeElements;
+        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
+        natDesc.Buffer.CounterOffsetInBytes = 0;
+        natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
+        m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
+        m_allRes.bufUAV[handle] = DX12BufferView(descriptor);
+      }
+
     }
-    case ResourceUsage::Readback:
-    {
-      startState = D3D12_RESOURCE_STATE_COPY_DEST;
-      break;
-    }
-    default:
-      break;
-    }
-    DX12ResourceState state{ 0 };
-    state.commonStateOptimisation = true;
-    state.flags.emplace_back(startState);
-    ID3D12Resource* buffer;
-    m_device->CreatePlacedResource(native.native(), allocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
-
-    auto wstr = s2ws(desc.desc.name);
-    buffer->SetName(wstr.c_str());
-
-    std::weak_ptr<Garbage> weak = m_trash;
-    
-    m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
-  }
-
-  void DX12Device::createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
-  {
-    auto& native = m_allRes.buf[buffer];
-
-    auto desc = bufferDesc.desc;
-
-    FormatType format = viewDesc.m_format;
-    if (format == FormatType::Unknown)
-      format = desc.format;
-
-    auto descriptor = m_generics.allocate();
-
-    auto sizeElements = viewDesc.m_elementCount;
-    if (sizeElements == -1)
-    {
-      sizeElements = bufferDesc.desc.width;
-    }
-
-    if (viewDesc.m_format != FormatType::Unknown)
-    {
-      sizeElements = sizeElements * bufferDesc.desc.stride / formatSizeInfo(viewDesc.m_format).pixelSize;
-    }
-
-    if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
-    {
-      D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
-      natDesc.Format = formatTodxFormat(format).view;
-      natDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-      natDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-      natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-      natDesc.Buffer.NumElements = sizeElements;
-      natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
-      natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
-      m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
-      m_allRes.bufSRV[handle] = DX12BufferView(descriptor);
-    }
-    else
-    {
-      D3D12_UNORDERED_ACCESS_VIEW_DESC natDesc{};
-      natDesc.Format = formatTodxFormat(format).view;
-      natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-      natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-      natDesc.Buffer.NumElements = sizeElements;
-      natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
-      natDesc.Buffer.CounterOffsetInBytes = 0;
-      natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
-      m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
-      m_allRes.bufUAV[handle] = DX12BufferView(descriptor);
-    }
-
-  }
 
 #define DX12CheckSupport1(s) checkSupport1(#s, s)
 #define DX12CheckSupport2(s) checkSupport2(#s, s)
@@ -1259,24 +1200,7 @@ namespace faze
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());
 
-      std::weak_ptr<Garbage> weak = m_trash;
-
-/*
-      return std::shared_ptr<DX12Texture>(new DX12Texture(texture, std::make_shared<DX12ResourceState>(state)),
-        [weak](DX12Texture* ptr)
-      {
-        if (auto trash = weak.lock())
-        {
-          trash->resources.emplace_back(ptr->native());
-          trash->resStates.emplace_back(ptr->state());
-        }
-        else
-        {
-          ptr->native()->Release();
-        }
-        delete ptr;
-      });
-      */
+      m_allRes.tex[handle] = DX12Texture(texture, std::make_shared<DX12ResourceState>(state));
     }
 
     void DX12Device::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
@@ -1393,6 +1317,7 @@ namespace faze
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)
     {
+      /* 
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       F_ASSERT(upload, "Halp");
@@ -1414,15 +1339,18 @@ namespace faze
 
       F_ASSERT(upload.block.offset % stride == 0, "oh no");
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
+      */
 
       // will be collected promtly
-      m_trash->dynamicBuffers.emplace_back(upload);
-      m_trash->genericDescriptors.emplace_back(descriptor);
+      //m_trash->dynamicBuffers.emplace_back(upload);
+      //m_trash->genericDescriptors.emplace_back(descriptor);
 
-      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format, stride);
+      //return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format, stride);
+      return nullptr;
     }
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, unsigned stride)
     {
+      /*
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       F_ASSERT(upload, "Halp");
@@ -1445,10 +1373,13 @@ namespace faze
       m_trash->genericDescriptors.emplace_back(descriptor);
 
       return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN, stride);
+      */
+      return nullptr;
     }
 
     std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch)
     {
+      /*
       auto rows = bytes.size() / rowPitch;
 
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
@@ -1470,6 +1401,8 @@ namespace faze
       m_trash->dynamicBuffers.emplace_back(upload);
 
       return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
+      */
+      return nullptr;
     }
 
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)
@@ -1514,8 +1447,8 @@ namespace faze
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
-      auto seqNumber = m_seqTracker->next();
-      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
+      //auto seqNumber = m_seqTracker->next();
+      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_copyListPool.allocate(),
         m_constantsUpload,
@@ -1525,12 +1458,14 @@ namespace faze
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
         m_nullBufferSRV),
-        [tracker, seqNumber](DX12CommandList* ptr)
+        [](DX12CommandList* ptr)
       {
+        /*
         if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
         }
+        */
         delete ptr;
       });
 
@@ -1538,8 +1473,8 @@ namespace faze
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
-      auto seqNumber = m_seqTracker->next();
-      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
+      //auto seqNumber = m_seqTracker->next();
+      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_computeListPool.allocate(),
         m_constantsUpload,
@@ -1549,20 +1484,22 @@ namespace faze
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
         m_nullBufferSRV),
-        [tracker, seqNumber](DX12CommandList* ptr)
+        [](DX12CommandList* ptr)
       {
+        /*
         if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
         }
+        */
         delete ptr;
       });
       return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      auto seqNumber = m_seqTracker->next();
-      std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
+      //auto seqNumber = m_seqTracker->next();
+      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
         m_graphicsListPool.allocate(),
         m_constantsUpload,
@@ -1572,12 +1509,13 @@ namespace faze
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
         m_nullBufferSRV),
-        [tracker, seqNumber](DX12CommandList* ptr)
+        [](DX12CommandList* ptr)
       {
+        /*
         if (auto seqTracker = tracker)
         {
           seqTracker->complete(seqNumber);
-        }
+        }*/
         delete ptr;
       });
       return list;

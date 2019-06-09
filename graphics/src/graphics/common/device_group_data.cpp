@@ -306,7 +306,7 @@ namespace faze
       return BufferUAV(buffer, sharedHandle(handle));
     }
 
-    SubresourceRange rangeFrom(const ShaderViewDescriptor & view, const ResourceDescriptor & desc, bool srv)
+    SubresourceRange rangeFrom(const ShaderViewDescriptor& view, const ResourceDescriptor& desc, bool srv)
     {
       SubresourceRange range{};
       range.mipOffset = static_cast<int16_t>(view.m_mostDetailedMip);
@@ -406,15 +406,157 @@ namespace faze
       return DynamicBufferView();
     }
 
-    bool DeviceGroupData::uploadInitialTexture(Texture & tex, CpuImage & image)
+    bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
 
       return true;
     }
 
-    void DeviceGroupData::submit(Swapchain & swapchain, CommandGraph graph)
+    CommandGraph DeviceGroupData::startCommandGraph()
     {
-      
+      return CommandGraph(m_seqTracker.next()); 
+    }
+
+    void DeviceGroupData::submit(Swapchain& swapchain, CommandGraph graph)
+    {
+      struct PreparedCommandlist
+      {
+        CommandGraphNode::NodeType type;
+        CommandList list;
+        unordered_set<backend::TrackedState> requirements;
+        std::shared_ptr<SemaphoreImpl> sema;
+        bool presents = false;
+        bool isLastList = false;
+      };
+
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        int i = 0;
+
+        vector<PreparedCommandlist> lists;
+
+        while (i < static_cast<int>(nodes.size()))
+        {
+          auto* firstList = &nodes[i];
+
+          PreparedCommandlist plist{};
+          plist.type = firstList->type;
+          plist.list = std::move(nodes[i].list);
+          plist.requirements = nodes[i].needsResources();
+          plist.sema = nodes[i].acquireSemaphore;
+          plist.presents = nodes[i].preparesPresent;
+
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != plist.type)
+              break;
+            //plist.list.emplace_back(std::move(nodes[i].list.list));
+            plist.list.list.append(nodes[i].list.list);
+            const auto & ref = nodes[i].needsResources();
+            plist.requirements.insert(ref.begin(), ref.end());
+            if (!plist.sema)
+            {
+              plist.sema = nodes[i].acquireSemaphore;
+            }
+            if (!plist.presents)
+            {
+              plist.presents = nodes[i].preparesPresent;
+            }
+          }
+
+          lists.emplace_back(std::move(plist));
+        }
+
+        lists[lists.size() - 1].isLastList = true;
+
+        std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+
+        for (auto&& list : lists)
+        {
+          if (!list.requirements.empty())
+          {
+            list.list.prepareForQueueSwitch(list.requirements);
+          }
+
+          std::shared_ptr<CommandBufferImpl> nativeList;
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            nativeList = m_devices[0].device->createDMAList();
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            nativeList = m_devices[0].device->createComputeList();
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            nativeList = m_devices[0].device->createGraphicsList();
+          }
+
+          nativeList->fillWith(m_devices[0].device, list.list.list);
+
+          LiveCommandBuffer2 buffer{};
+          buffer.deviceID = 0;
+          buffer.started = InvalidSeqNum;
+          buffer.lists.emplace_back(nativeList);
+
+          if (optionalWaitSemaphore)
+          {
+            buffer.wait.push_back(optionalWaitSemaphore);
+          }
+
+          if (list.sema)
+          {
+            buffer.wait.push_back(list.sema);
+          }
+
+          if (!list.isLastList)
+          {
+            optionalWaitSemaphore = m_devices[0].device->createSemaphore();
+            buffer.signal.push_back(optionalWaitSemaphore);
+          }
+
+          if (list.presents)
+          {
+            auto presenene = swapchain.impl()->renderSemaphore();
+            if (presenene)
+            {
+              buffer.signal.push_back(presenene);
+            }
+          }
+
+          if (list.isLastList)
+          {
+            buffer.fence = m_devices[0].device->createFence();
+          }
+
+          MemView<std::shared_ptr<FenceImpl>> viewToFences;
+
+          if (buffer.fence)
+          {
+            viewToFences = buffer.fence;
+          }
+
+          switch (list.type)
+          {
+          case CommandGraphNode::NodeType::DMA:
+            m_devices[0].device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Compute:
+            m_devices[0].device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            break;
+          case CommandGraphNode::NodeType::Graphics:
+          default:
+            m_devices[0].device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+          }
+          m_buffers.emplace_back(buffer);
+        }
+      }
+      m_buffers.back().started = graph.m_sequence;
+      gc();
     }
 
     void DeviceGroupData::submit(CommandGraph graph)

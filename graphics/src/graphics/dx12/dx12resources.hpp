@@ -657,7 +657,7 @@ namespace faze
         });
       }
 
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&) override;
 
       bool closed() const
       {
@@ -1082,25 +1082,8 @@ namespace faze
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 
-      std::shared_ptr<SequenceTracker> m_seqTracker;
-
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
-
-      struct Garbage
-      {
-        vector<UploadBlock> dynamicBuffers;
-        vector<DX12CPUDescriptor> genericDescriptors;
-        vector<DX12CPUDescriptor> rtvsDescriptors;
-        vector<DX12CPUDescriptor> dsvsDescriptors;
-        vector<ID3D12Resource*> resources;
-        vector<std::shared_ptr<DX12ResourceState>> resStates;
-        vector<ComPtr<ID3D12PipelineState>> pipelines;
-        vector<ComPtr<ID3D12RootSignature>> roots;
-      };
-
-      std::shared_ptr<Garbage> m_trash;
-      deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
 
       // new stuff
       struct Resources

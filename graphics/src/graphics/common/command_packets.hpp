@@ -1,11 +1,67 @@
 #pragma once
-#include "graphics/common/command_buffer.hpp"
+#include <graphics/common/command_buffer.hpp>
+#include <graphics/common/handle.hpp>
 
 namespace faze
 {
   namespace gfxpacket
   {
     std::string packetTypeToString(backend::PacketType type);
+
+    struct RenderBlock
+    {
+      backend::PacketVectorHeader<char> name;
+
+      // constructors
+      static constexpr const backend::PacketType type = backend::PacketType::RenderBlock;
+      static void constructor(backend::CommandBuffer& buffer, RenderBlock* packet, MemView<char> inputName)
+      {
+        buffer.allocateElements<char>(packet->name, inputName.size());
+        auto spn = packet->name.convertToMemView();
+        memcpy(spn.data(), inputName.data(), inputName.size_bytes());
+      }
+    };
+    
+    struct PrepareForPresent
+    {
+      ResourceHandle texture;
+
+      static constexpr const backend::PacketType type = backend::PacketType::PrepareForPresent;
+      static void constructor(backend::CommandBuffer& buffer, PrepareForPresent* packet, ResourceHandle texture)
+      {
+        packet->texture = texture;
+      }
+    };
+
+    struct RenderPassBegin
+    {
+      ResourceHandle renderpass;
+      backend::PacketVectorHeader<ResourceHandle> rtvs;
+      ResourceHandle dsv;
+
+      static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
+      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ResourceHandle> rtvs, ResourceHandle dsv)
+      {
+        packet->renderpass = renderpass;
+        buffer.allocateElements<ResourceHandle>(packet->rtvs, rtvs.size());
+        auto spn = packet->rtvs.convertToMemView();
+        memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
+        packet->dsv = dsv;
+      }
+    };
+
+    struct RenderPassEnd
+    {
+      ResourceHandle renderpass;
+      backend::PacketVectorHeader<ResourceHandle> rtvs;
+      ResourceHandle dsv;
+
+      static constexpr const backend::PacketType type = backend::PacketType::RenderpassEnd;
+      static void constructor(backend::CommandBuffer& buffer, RenderPassEnd* packet)
+      {
+      }
+    };
+
     /*
     // helpers
 

@@ -1,16 +1,33 @@
+#pragma once
 #include <cstdio>
 #include <memory>
 #include <cstddef>
 #include <cstring>
 #include <vector>
-#include "core/system/memview.hpp"
+#include <core/system/memview.hpp>
+#include <core/datastructures/proxy.hpp>
+#include <core/global_debug.hpp>
 
 // #define SIZE_DEBUG
 namespace faze
 {
   namespace backend
   {
-    enum PacketType : uint32_t;
+    enum PacketType : uint32_t
+    {
+      EndOfPackets = 0,
+      RenderBlock,
+      BufferCopy,
+      Dispatch,
+      PrepareForPresent,
+      RenderpassBegin,
+      RenderpassEnd,
+      GraphicsPipelineBind,
+      ComputePipelineBind,
+      ResourceBinding,
+      Draw,
+      Count
+    };
 
     // data is expected o be in memory after the header
     template <typename T>
@@ -29,7 +46,7 @@ namespace faze
 
     class CommandBuffer
     {
-      std::unique_ptr<uint8_t[]> m_data;
+      vector<uint8_t> m_data;
       size_t m_totalSize;
       size_t m_usedSize;
 
@@ -42,6 +59,11 @@ namespace faze
     #if defined(SIZE_DEBUG)
         size_t length; // length of this packet, basically debug feature
     #endif
+        template <typename T>
+        T& data() 
+        {
+          return *reinterpret_cast<T*>(this + offsetFromThis);
+        }
       };
     private:
 
@@ -54,7 +76,7 @@ namespace faze
         m_usedSize += size;
         if (m_usedSize > m_totalSize)
           return nullptr;
-        printf("allocated %zu size %zu\n", current, size);
+        //printf("allocated %zu size %zu\n", current, size);
         return &m_data[current];
       }
 
@@ -91,7 +113,7 @@ namespace faze
       }
 
       void initialize()
-        {
+      {
         newHeader();
       }
 
@@ -123,7 +145,7 @@ namespace faze
           return tmp;
         }*/
 
-        PacketHeader*& operator*()
+        PacketHeader* operator*()
         {
           return m_current;
         }
@@ -139,7 +161,7 @@ namespace faze
         }
       };
       CommandBuffer(size_t size)
-        : m_data(std::make_unique<uint8_t[]>(size))
+        : m_data(size)
         , m_totalSize(size)
         , m_usedSize(0)
       {
@@ -159,7 +181,7 @@ namespace faze
 
       size_t maxSizeBytes() const
       {
-        return m_usedSize;
+        return m_data.size();
       }
       CommandBufferIterator begin()
       {
@@ -218,22 +240,23 @@ namespace faze
     #endif
         }
       }
+
+      void append(const CommandBuffer& other)
+      {
+        auto newSize = m_data.size() + other.sizeBytes();
+        m_data.resize(newSize);
+        // find new end.. since we just resized and invalidated all pointers.
+        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        F_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
+        memcpy(m_packetBeingCreated, other.m_data.data(), other.sizeBytes());
+        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize + other.m_usedSize - sizeof(PacketHeader)]);
+        F_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
+        m_usedSize += other.m_usedSize;
+        m_totalSize += other.m_usedSize;
+        m_packets += other.m_packets;
+      }
     };
 
-    enum PacketType : uint32_t
-    {
-      EndOfPackets = 0,
-      BufferCopy,
-      Dispatch,
-      PrepareForPresent,
-      RenderpassBegin,
-      RenderpassEnd,
-      GraphicsPipelineBind,
-      ComputePipelineBind,
-      ResourceBinding,
-      Draw,
-      Count
-    };
 
     /*
     struct sample_packet

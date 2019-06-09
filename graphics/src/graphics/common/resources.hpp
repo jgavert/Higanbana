@@ -193,7 +193,6 @@ namespace faze
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
-      std::shared_ptr<vector<IntermediateList>> intermediateLists;
     };
   }
 }

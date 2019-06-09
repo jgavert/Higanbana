@@ -20,7 +20,9 @@ namespace faze
 
     ResourceHandle handle()
     {
-      return *m_renderpass;
+      if (m_renderpass)
+        return *m_renderpass;
+      return InvalidResourceHandle;
     }
   };
 }

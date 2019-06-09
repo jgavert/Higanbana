@@ -30,7 +30,7 @@ namespace faze
     struct TrackedState;
     struct RawView;
     struct GpuHeap;
-    class IntermediateList;
+    class CommandBuffer;
     struct HeapAllocation;
 
     class SemaphoreImpl
@@ -53,7 +53,7 @@ namespace faze
     class CommandBufferImpl
     {
     public:
-      virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list) = 0;
+      virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list) = 0;
       virtual ~CommandBufferImpl() = default;
     };
 

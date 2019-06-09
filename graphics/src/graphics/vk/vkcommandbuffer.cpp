@@ -2,6 +2,7 @@
 #include "graphics/vk/vkdevice.hpp"
 #include "graphics/vk/util/VulkanDependencySolver.hpp"
 #include "core/datastructures/proxy.hpp"
+#include <graphics/common/command_buffer.hpp>
 namespace faze
 {
   namespace backend
@@ -519,24 +520,85 @@ namespace faze
       solver.makeAllBarriers();
     }
 */
+
+    void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list)
+    {
+      int drawIndex = 0;
+      for (CommandPacket* packet : list)
+      {
+        switch (packet->type())
+        {
+          //        case CommandPacket::PacketType::BufferCopy:
+          //        case CommandPacket::PacketType::Dispatch:
+        case CommandPacket::PacketType::ClearRT:
+        {
+          solver.runBarrier(buffer, drawIndex);
+          handle(buffer, packetRef(gfxpacket::ClearRT, packet));
+          drawIndex++;
+          break;
+        }
+        case CommandPacket::PacketType::PrepareForPresent:
+        {
+          solver.runBarrier(buffer, drawIndex);
+          drawIndex++;
+          break;
+        }
+        case CommandPacket::PacketType::ResourceBinding:
+        {
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassBegin:
+        {
+          solver.runBarrier(buffer, drawIndex);
+          drawIndex++;
+          handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassEnd:
+        {
+          buffer.endRenderPass();
+          break;
+        }
+        case CommandPacket::PacketType::GraphicsPipelineBind:
+        {
+          handle(buffer, packetRef(gfxpacket::GraphicsPipelineBind, packet));
+          break;
+        }
+        case CommandPacket::PacketType::Draw:
+        {
+          handle(buffer, packetRef(gfxpacket::Draw, packet));
+          break;
+        }
+        default:
+          break;
+        }
+      }
+    }
     // implementations
-    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
+    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list)
     {
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 
+      F_ILOG("fillWith", "testing filling");
+      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; ++iter)
+      {
+        auto* header = *iter;
+        F_ILOG("fillWith", "type header %d", header->type);
+      }
       // preprocess to compile renderpasses/pipelines
 
-      //preprocess(nat.get(), list);
-
+      preprocess(nat.get(), list);
+/*
       VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
+        */
 
       //addDepedencyDataAndSolve(solver, list);
 
       // add commands to list while also adding barriers
-      //addCommands(m_list->list(), solver, list);
+      addCommands(nat.get(), m_list->list(), list);
 
       m_list->list().end();
     }

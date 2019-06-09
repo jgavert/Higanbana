@@ -3,16 +3,9 @@
   "defaults": {},
   "configurations": [
     {
+      "type": "native",
       "name": "test_main",
-      "project": "test_main\\BUILD",
-      "type": "native",
-      "cwd": "\"${fileDirname}\\..\\..\\data\\\""
-    },
-    {
-      "type": "native",
-      "name": "test_main.exe",
-      "program": "bazel-bin/test_main/test_main.exe",
-      "cwd": "${fileDirname}../../data"
+      "project": "bazel-bin\\test_main\\test_main.exe"
     }
   ]
 }
