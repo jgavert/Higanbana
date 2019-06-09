@@ -85,7 +85,6 @@ namespace faze
       DeviceGroupData& operator=(const DeviceGroupData& data) = delete;
       ~DeviceGroupData();
 
-      CommandGraph startCommandGraph();
       void checkCompletedLists();
       void gc();
       void garbageCollection();
@@ -121,6 +120,7 @@ namespace faze
       bool uploadInitialTexture(Texture& tex, CpuImage& image);
 
       // commandgraph
+      CommandGraph startCommandGraph();
       void submit(Swapchain& swapchain, CommandGraph graph);
       void submit(CommandGraph graph);
       void explicitSubmit(CommandGraph graph);

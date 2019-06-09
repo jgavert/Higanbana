@@ -25,7 +25,7 @@ void mainWindow(ProgramParams& params)
 {
   Logger log;
 
-  LBS lbs;
+  //LBS lbs;
 
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
@@ -50,10 +50,10 @@ void mainWindow(ProgramParams& params)
         //gpuinfo = graphics.getVendorDevice(api);
         for (auto&& it : gpus)
         {
-          if (it.vendor == preferredVendor)
+          if (it.api == api && it.vendor == preferredVendor)
           {
             allGpus.push_back(it);
-            //break;
+            break;
           }
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
@@ -112,6 +112,8 @@ void mainWindow(ProgramParams& params)
         auto test2SRV = dev.createBufferSRV(buffer2);
         auto buffer3 = dev.createBuffer(bufferdesc3);
         auto testOut = dev.createBufferUAV(buffer3);
+
+        auto triangleRP = dev.createRenderpass();
 
         bool closeAnyway = false;
         bool captureMouse = false;
@@ -175,7 +177,29 @@ void mainWindow(ProgramParams& params)
 
           // If you acquire, you must submit it. Next, try to first present empty image.
           // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
-          //dev.present(swapchain);
+          TextureRTV backbuffer = dev.acquirePresentableImage(swapchain);
+          CommandGraph tasks = dev.createGraph();
+
+          {
+            auto node = tasks.createPass("Triangle");
+            node.acquirePresentableImage(swapchain);
+            float redcolor = 0.5f;//std::sin(time.getFTime())*.5f + .5f;
+
+            backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 1.f });
+            node.renderpass(triangleRP, backbuffer);
+            node.endRenderpass();
+
+			      tasks.addPass(std::move(node));
+          }
+          {
+            auto node = tasks.createPass("preparePresent");
+
+            node.prepareForPresent(backbuffer);
+            tasks.addPass(std::move(node));
+          }
+
+          dev.submit(swapchain, tasks);
+          dev.present(swapchain);
         }
       }
       if (!reInit)
@@ -190,7 +214,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::DX12, VendorID::Nvidia, true);
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 

@@ -857,7 +857,7 @@ namespace faze
     }
 */
     // implementations
-    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::IntermediateList& list)
+    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list)
     {
       DX12Device* dev = static_cast<DX12Device*>(device.get());
 #if 0

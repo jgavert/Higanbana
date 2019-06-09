@@ -1,50 +1,27 @@
 #pragma once
-#include "graphics/common/intermediatelist.hpp"
+#include <graphics/common/command_buffer.hpp>
 #include "graphics/common/buffer.hpp"
 #include "graphics/common/texture.hpp"
 #include "graphics/common/renderpass.hpp"
-#include "graphics/common/commandpackets.hpp"
+#include "graphics/common/command_packets.hpp"
 #include "core/global_debug.hpp"
 
 namespace faze
 {
-  class DmaList
-  {
-    friend class ComputeList;
-    friend class GraphicsList;
-    backend::IntermediateList list;
-  public:
-    DmaList()
-    {
-    }
-  };
-
-  class ComputeList : public DmaList
-  {
-    friend class GraphicsList;
-  public:
-    ComputeList()
-      : DmaList()
-    {}
-  };
-
-  class GraphicsList : public ComputeList
-  {
-  public:
-    GraphicsList()
-      : ComputeList()
-    {}
-  };
-
   class CommandList
   {
-    backend::IntermediateList list;
+    backend::CommandBuffer list;
     friend struct backend::DeviceGroupData;
   public:
+    CommandList()
+      : list(1024)
+    {
+
+    }
 
     void renderTask(std::string name)
     {
-      //list.insert<gfxpacket::RenderBlock>(name);
+      list.insert<gfxpacket::RenderBlock>(name);
     }
 
     void updateTexture(Texture& tex, DynamicBufferView& dynBuffer, int mip, int slice)
@@ -59,8 +36,8 @@ namespace faze
 
     void prepareForPresent(TextureRTV& rtv)
     {
-      //auto tex = rtv.texture();
-      //list.insert<gfxpacket::PrepareForPresent>(tex);
+      auto tex = rtv.texture();
+      list.insert<gfxpacket::PrepareForPresent>(tex.handle());
     }
 
     void prepareForQueueSwitch(unordered_set<backend::TrackedState>& deps)
@@ -68,14 +45,19 @@ namespace faze
       //list.insert<gfxpacket::PrepareForQueueSwitch>(deps);
     }
 
-    void renderpass(Renderpass& pass, MemView<TextureRTV> rtvs, MemView<TextureDSV> dsvs)
+    void renderpass(Renderpass& pass, MemView<TextureRTV> rtvs, TextureDSV dsv)
     {
-      //list.insert<gfxpacket::RenderpassBegin>(pass, rtvs, dsvs);
+      vector<ResourceHandle> handles;
+      for (auto&& rtv : rtvs)
+      {
+        handles.push_back(rtv.handle());
+      }
+      list.insert<gfxpacket::RenderPassBegin>(pass.handle(), handles, dsv.handle());
     }
 
     void renderpassEnd()
     {
-      //list.insert<gfxpacket::RenderpassEnd>();
+      list.insert<gfxpacket::RenderPassEnd>();
     }
 
     void bindPipeline(GraphicsPipeline& pipeline)

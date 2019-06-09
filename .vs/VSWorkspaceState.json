@@ -1,16 +1,6 @@
 {
   "ExpandedNodes": [
-    "",
-    "\\graphics",
-    "\\graphics\\src",
-    "\\graphics\\src\\graphics",
-    "\\graphics\\src\\graphics\\common",
-    "\\graphics\\src\\graphics\\dx12",
-    "\\graphics\\src\\graphics\\dx12\\util",
-    "\\graphics\\src\\graphics\\shaders",
-    "\\graphics\\src\\graphics\\vk",
-    "\\graphics\\src\\graphics\\vk\\util"
+    ""
   ],
-  "SelectedNode": "\\core",
   "PreviewInSolutionExplorer": false
 }

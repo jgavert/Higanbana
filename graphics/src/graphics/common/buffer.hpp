@@ -31,7 +31,9 @@ namespace faze
 
     ResourceHandle handle() const
     {
-      return *m_id;
+      if (m_id)
+        return *m_id;
+      return InvalidResourceHandle;
     }
   };
 
@@ -55,7 +57,9 @@ namespace faze
 
     ResourceHandle handle() const
     {
-      return *m_id;
+       if (m_id)
+        return *m_id;
+      return InvalidResourceHandle;
     }
 
     Buffer& buffer() 

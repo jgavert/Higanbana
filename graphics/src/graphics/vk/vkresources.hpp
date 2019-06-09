@@ -3,6 +3,7 @@
 #include "graphics/common/prototypes.hpp"
 #include "graphics/common/resources.hpp"
 #include "graphics/common/commandpackets.hpp"
+#include <graphics/common/command_buffer.hpp>
 
 #include "graphics/vk/util/AllocStuff.hpp" // refactor
 #include "graphics/shaders/ShaderStorage.hpp"
@@ -619,10 +620,10 @@ namespace faze
         : m_list(list)
       {}
     private:
-      //void handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end);
-      //void preprocess(VulkanDevice* device, backend::IntermediateList& list);
+      void handleRenderpass(VulkanDevice* device, backend::CommandBuffer&, backend::CommandBuffer::PacketHeader* begin);
+      void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
     public:
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::IntermediateList&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&) override;
 
       vk::CommandBuffer list()
       {
