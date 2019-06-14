@@ -24,11 +24,15 @@ namespace faze
       unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
 
       vector<backend::AccessStage> m_drawCallStage;
-      HandleVector<ResourceState>& m_bufferStates;
       int drawCallsAdded = 0;
 
-      //needed for textures
-      HandleVector<vector<ResourceState>>& m_textureStates;
+      // global state tables
+      HandleVector<ResourceState>& m_bufferStates;
+      HandleVector<TextureResourceState>& m_textureStates;
+      HandleVector<SubresourceRange>& m_texSRVran;
+      HandleVector<SubresourceRange>& m_texUAVran;
+      HandleVector<SubresourceRange>& m_texRTVran;
+      HandleVector<SubresourceRange>& m_texDSVran;
 
       // actual jobs used to generate DAG
       vector<DependencyPacket> m_jobs;
@@ -66,18 +70,27 @@ namespace faze
       unordered_map<uint64_t, SmallBuffer> m_bufferCache;
       unordered_map<uint64_t, SmallTexture> m_imageCache;
     public:
-      BarrierSolver(HandleVector<ResourceState>& buffers, HandleVector<vector<ResourceState>>& textures)
+      BarrierSolver(HandleVector<ResourceState>& buffers
+      , HandleVector<TextureResourceState>& textures
+      , HandleVector<SubresourceRange>& textureSRVran
+      , HandleVector<SubresourceRange>& textureUAVran
+      , HandleVector<SubresourceRange>& textureRTVran
+      , HandleVector<SubresourceRange>& textureDSVran)
         : m_bufferStates(buffers)
         , m_textureStates(textures)
+        , m_texSRVran(textureSRVran)
+        , m_texUAVran(textureUAVran)
+        , m_texRTVran(textureRTVran)
+        , m_texDSVran(textureDSVran)
        {}
 
       int addDrawCall(backend::AccessStage baseFlags);
 
       // buffers
-      void addBuffer(int drawCallIndex, int64_t id, ResourceHandle buffer, backend::AccessStage stage, backend::AccessUsage usage);
+      void addBuffer(int drawCallIndex, ResourceHandle buffer, ResourceState access);
       // textures
-      void addTexture(int drawCallIndex, int64_t id, ResourceHandle texture, ResourceHandle view, int16_t mips, ResourceState access);
-      void addTexture(int drawCallIndex, int64_t id, ResourceHandle texture, int16_t mips, ResourceState access, SubresourceRange range);
+      void addTexture(int drawCallIndex, ResourceHandle texture, ResourceHandle view, int16_t mips, ResourceState access);
+      void addTexture(int drawCallIndex, ResourceHandle texture, int16_t mips, ResourceState access, SubresourceRange range);
 
       // only builds the graph of dependencies.
       // void resolveGraph(); //... hmm, not implementing for now.

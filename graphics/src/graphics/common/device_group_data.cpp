@@ -283,7 +283,9 @@ namespace faze
         vdev.device->createTexture(handle, allo, desc); // assign and create buffer
         vdev.m_textures[handle] = allo.allocation;
         auto subresources = desc.desc.miplevels * desc.desc.arraySize;
-        vdev.m_textureStates[handle] = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0));
+
+        vdev.m_textureStates[handle].mips = desc.desc.miplevels;
+        vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0));
       }
 
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));

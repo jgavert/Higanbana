@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <core/datastructures/proxy.hpp>
 
 namespace faze
 {
@@ -81,5 +82,11 @@ namespace faze
       , queue_index(queueIndex)
     {
     }
+  };
+
+  struct TextureResourceState
+  {
+    int mips;
+    vector<ResourceState> states;
   };
 }

@@ -61,6 +61,8 @@ namespace faze
       }
     };
 
+
+
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
     {
       // consist of device specific/grouped classes
@@ -73,7 +75,7 @@ namespace faze
         HandleVector<GpuHeapAllocation> m_buffers;
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;
-        HandleVector<vector<ResourceState>> m_textureStates;
+        HandleVector<TextureResourceState> m_textureStates;
       };
       vector<VirtualDevice> m_devices;
 
@@ -81,6 +83,11 @@ namespace faze
       DelayedRelease m_delayer;
       HandleManager m_handles;
       deque<LiveCommandBuffer2> m_buffers;
+
+      HandleVector<SubresourceRange> m_textureSRVRanges;
+      HandleVector<SubresourceRange> m_textureUAVRanges;
+      HandleVector<SubresourceRange> m_textureRTVRanges;
+      HandleVector<SubresourceRange> m_textureDSVRanges;
 
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
       DeviceGroupData(DeviceGroupData&& data) = default;
