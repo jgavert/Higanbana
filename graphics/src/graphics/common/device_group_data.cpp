@@ -260,6 +260,7 @@ namespace faze
         }); // get heap corresponding to requirements
         vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
         vdev.m_buffers[handle] = allo.allocation;
+        vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
       }
 
       return Buffer(sharedHandle(handle), std::make_shared<ResourceDescriptor>(std::move(desc)));
@@ -281,6 +282,8 @@ namespace faze
         }); // get heap corresponding to requirements
         vdev.device->createTexture(handle, allo, desc); // assign and create buffer
         vdev.m_textures[handle] = allo.allocation;
+        auto subresources = desc.desc.miplevels * desc.desc.arraySize;
+        vdev.m_textureStates[handle] = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0));
       }
 
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));

@@ -534,26 +534,68 @@ namespace faze
           //        case CommandPacket::PacketType::Dispatch:
         case backend::PacketType::PrepareForPresent:
         {
-          solver.runBarrier(buffer, drawIndex);
+          //solver.runBarrier(buffer, drawIndex);
           drawIndex++;
           break;
         }
-        case CommandPacket::PacketType::RenderpassBegin:
+        case backend::PacketType::RenderpassBegin:
         {
-          solver.runBarrier(buffer, drawIndex);
-          drawIndex++;
-          handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
+          //solver.runBarrier(buffer, drawIndex);
+          //drawIndex++;
+          //handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
           break;
         }
-        case CommandPacket::PacketType::RenderpassEnd:
+        case backend::PacketType::RenderpassEnd:
         {
-          buffer.endRenderPass();
+          //buffer.endRenderPass();
           break;
         }
         default:
           break;
         }
       }
+    }
+
+    void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::CommandBuffer& list)
+    {
+      // find all renderpasses
+
+/*
+      CommandPacket* beginPass = nullptr;
+      CommandPacket* endPass = nullptr;
+
+      for (CommandPacket* packet : list)
+      {
+        switch (packet->type())
+        {
+        case CommandPacket::PacketType::RenderpassBegin:
+        {
+          F_ASSERT(beginPass == nullptr, "!?");
+          beginPass = packet;
+          break;
+        }
+        case CommandPacket::PacketType::RenderpassEnd:
+        {
+          F_ASSERT(beginPass != nullptr, "!?");
+          endPass = packet;
+          handleRenderpass(device, list, beginPass, endPass);
+          beginPass = nullptr;
+          endPass = nullptr;
+          break;
+        }
+        case CommandPacket::PacketType::ComputePipelineBind:
+        {
+          auto& ref = packetRef(gfxpacket::ComputePipelineBind, packet);
+          device->updatePipeline(ref.pipeline);
+          // TODO: bind vulkan resources
+          // TODO: 
+          break;
+        }
+        default:
+          break;
+        }
+      }
+      */
     }
     // implementations
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list)
