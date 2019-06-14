@@ -17,16 +17,17 @@ namespace faze
     // all stages that I support. could probably invest in more states than just "graphics" if need arises.
     enum AccessStage : uint32_t 
     {
-      Compute = 0,
-      Graphics = 0x1,
-      Transfer = 0x2,
-      Index = 0x4,
-      Indirect = 0x8,
-      Rendertarget = 0x10,
-      DepthStencil = 0x20,
-      Present = 0x40,
-      Raytrace = 0x80,
-      AccelerationStructure = 0x100
+      Common = 0,
+      Compute = 0x1,
+      Graphics = 0x2,
+      Transfer = 0x4,
+      Index = 0x8,
+      Indirect = 0x10,
+      Rendertarget = 0x20,
+      DepthStencil = 0x40,
+      Present = 0x80,
+      Raytrace = 0x100,
+      AccelerationStructure = 0x200
     };
 
     // carbon copy from vulkan
@@ -63,5 +64,22 @@ namespace faze
       };
       uint32_t raw;        
     };
+
+    ResourceState()
+      : usage(backend::AccessUsage::Unknown)
+      , stage(backend::AccessStage::Common)
+      , layout(backend::TextureLayout::Undefined)
+      , queue_index(0)
+    {
+    }
+
+    
+    ResourceState(backend::AccessUsage usage, backend::AccessStage stage, backend::TextureLayout layout, uint32_t queueIndex)
+      : usage(usage)
+      , stage(stage)
+      , layout(layout)
+      , queue_index(queueIndex)
+    {
+    }
   };
 }

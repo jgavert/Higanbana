@@ -6,6 +6,8 @@
 #include <core/system/memview.hpp>
 #include <core/system/SequenceTracker.hpp>
 
+#include <graphics/desc/resource_state.hpp>
+
 #include <functional>
 #include <mutex>
 
@@ -70,6 +72,8 @@ namespace faze
         GpuInfo info;
         HandleVector<GpuHeapAllocation> m_buffers;
         HandleVector<GpuHeapAllocation> m_textures;
+        HandleVector<ResourceState> m_bufferStates;
+        HandleVector<vector<ResourceState>> m_textureStates;
       };
       vector<VirtualDevice> m_devices;
 
