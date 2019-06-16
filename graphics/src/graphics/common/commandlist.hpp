@@ -47,7 +47,7 @@ namespace faze
 
     void renderpass(Renderpass& pass, MemView<TextureRTV> rtvs, TextureDSV dsv)
     {
-      vector<ResourceHandle> handles;
+      vector<ViewResourceHandle> handles;
       for (auto&& rtv : rtvs)
       {
         handles.push_back(rtv.handle());
@@ -71,7 +71,7 @@ namespace faze
     }
 
     void bindGraphicsResources(
-      MemView<ResourceHandle> resources,
+      MemView<ViewResourceHandle> resources,
       MemView<uint8_t> constants)
     {
       //list.insert<gfxpacket::ResourceBinding>(
@@ -80,7 +80,7 @@ namespace faze
     }
 
     void bindComputeResources(
-      MemView<ResourceHandle> resources,
+      MemView<ViewResourceHandle> resources,
       MemView<uint8_t> constants)
     {
       //list.insert<gfxpacket::ResourceBinding>(

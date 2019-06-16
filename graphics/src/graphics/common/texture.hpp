@@ -14,7 +14,7 @@ namespace faze
     std::shared_ptr<ResourceDescriptor> m_desc;
   public:
     Texture()
-      : m_id(std::make_shared<ResourceHandle>(InvalidResourceHandle))
+      : m_id(std::make_shared<ResourceHandle>())
       , m_desc(std::make_shared<ResourceDescriptor>())
     {
     }
@@ -43,14 +43,14 @@ namespace faze
     {
       if (m_id)
         return *m_id;
-      return InvalidResourceHandle;
+      return ResourceHandle();
     }
   };
 
   class TextureView
   {
     Texture tex;
-    std::shared_ptr<ResourceHandle> m_id;
+    std::shared_ptr<ViewResourceHandle> m_id;
 
     LoadOp m_loadOp = LoadOp::Load;
     StoreOp m_storeOp = StoreOp::Store;
@@ -58,7 +58,7 @@ namespace faze
   public:
     TextureView() = default;
 
-    TextureView(Texture tex, std::shared_ptr<ResourceHandle> id)
+    TextureView(Texture tex, std::shared_ptr<ViewResourceHandle> id)
       : tex(tex)
       , m_id(id)
     {
@@ -75,11 +75,16 @@ namespace faze
       return tex;
     }
 
-    ResourceHandle handle() const
+    ViewResourceHandle handle() const
     {
       if (m_id)
+      {
+        auto h = *m_id;
+        h.setLoadOp(m_loadOp);
+        h.setStoreOp(m_storeOp);
         return *m_id;
-      return InvalidResourceHandle;
+      }
+      return ViewResourceHandle();
     }
 
     void clearOp(float4 clearVal)
@@ -118,7 +123,7 @@ namespace faze
   public:
 
     TextureSRV() = default;
-    TextureSRV(Texture tex, std::shared_ptr<ResourceHandle> id)
+    TextureSRV(Texture tex, std::shared_ptr<ViewResourceHandle> id)
       : TextureView(tex, id)
     {
     }
@@ -140,7 +145,7 @@ namespace faze
   {
   public:
     TextureUAV() = default;
-    TextureUAV(Texture tex, std::shared_ptr<ResourceHandle> id)
+    TextureUAV(Texture tex, std::shared_ptr<ViewResourceHandle> id)
       : TextureView(tex, id)
     {
     }
@@ -162,7 +167,7 @@ namespace faze
   {
   public:
     TextureRTV() = default;
-    TextureRTV(Texture tex, std::shared_ptr<ResourceHandle> id)
+    TextureRTV(Texture tex, std::shared_ptr<ViewResourceHandle> id)
       : TextureView(tex, id)
     {
     }
@@ -184,7 +189,7 @@ namespace faze
   {
   public:
     TextureDSV() = default;
-    TextureDSV(Texture tex, std::shared_ptr<ResourceHandle> id)
+    TextureDSV(Texture tex, std::shared_ptr<ViewResourceHandle> id)
       : TextureView(tex, id)
     {
     }

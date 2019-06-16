@@ -10,40 +10,27 @@ namespace faze
       m_drawCallStage.push_back(baseFlags);
       return index; 
     }
-    void BarrierSolver::addBuffer(int drawCallIndex, ResourceHandle buffer, ResourceState access)
+    void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
       //m_bufferStates[buffer].state = ResourceState( backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0);
-      m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access, SubresourceRange{}});
+      m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access});
     }
-    void BarrierSolver::addTexture(int drawCallIndex, ResourceHandle texture, ResourceHandle view, int16_t mips, ResourceState access)
+    void BarrierSolver::addTexture(int drawCallIndex, ViewResourceHandle texture, ResourceState access)
     {
-      SubresourceRange range = {};
-      if (view.type == ResourceType::TextureSRV)
-      {
-        range = m_texSRVran[view];
-      }
-      else if (view.type == ResourceType::TextureUAV)
-      {
-        range = m_texUAVran[view];
-      }
-      else if (view.type == ResourceType::TextureRTV)
-      {
-        range = m_texRTVran[view];
-      }
-      else if (view.type == ResourceType::TextureDSV)
-      {
-        range = m_texDSVran[view];
-      }
       //m_textureStates[buffer] = ResourceState( backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0);
-      m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access, range});
-    }
-    void BarrierSolver::addTexture(int drawCallIndex, ResourceHandle texture, int16_t mips, ResourceState access, SubresourceRange range)
-    {
-      m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access, range});
+      m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access});
     }
     void BarrierSolver::reset()
     {
       m_jobs.clear();
+    }
+
+    void BarrierSolver::makeAllBarriers()
+    {
+      for (int i = 0; i < m_jobs.size(); ++i)
+      {
+        F_ILOG("BarrierSolver", "draw index %d %zu", m_jobs[i].drawIndex, m_jobs[i].resource.id);
+      }
     }
   }
 }

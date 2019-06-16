@@ -36,14 +36,14 @@ namespace faze
     struct RenderPassBegin
     {
       ResourceHandle renderpass;
-      backend::PacketVectorHeader<ResourceHandle> rtvs;
-      ResourceHandle dsv;
+      backend::PacketVectorHeader<ViewResourceHandle> rtvs;
+      ViewResourceHandle dsv;
 
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
-      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ResourceHandle> rtvs, ResourceHandle dsv)
+      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv)
       {
         packet->renderpass = renderpass;
-        buffer.allocateElements<ResourceHandle>(packet->rtvs, rtvs.size());
+        buffer.allocateElements<ViewResourceHandle>(packet->rtvs, rtvs.size());
         auto spn = packet->rtvs.convertToMemView();
         memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
         packet->dsv = dsv;
@@ -52,12 +52,8 @@ namespace faze
 
     struct RenderPassEnd
     {
-      ResourceHandle renderpass;
-      backend::PacketVectorHeader<ResourceHandle> rtvs;
-      ResourceHandle dsv;
-
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassEnd;
-      static void constructor(backend::CommandBuffer& buffer, RenderPassEnd* packet)
+      static void constructor(backend::CommandBuffer& , RenderPassEnd* )
       {
       }
     };

@@ -491,48 +491,6 @@ namespace faze
           m_allRes.tex[handle] = DX12Texture();
           break;
         }
-        case ResourceType::BufferIBV:
-        {
-          m_generics.release(m_allRes.bufIBV[handle].native());
-          m_allRes.bufIBV[handle] = DX12BufferView();
-          break;
-        }
-        case ResourceType::BufferSRV:
-        {
-          m_generics.release(m_allRes.bufSRV[handle].native());
-          m_allRes.bufSRV[handle] = DX12BufferView();
-          break;
-        }
-        case ResourceType::BufferUAV:
-        {
-          m_generics.release(m_allRes.bufUAV[handle].native());
-          m_allRes.bufUAV[handle] = DX12BufferView();
-          break;
-        }
-        case ResourceType::TextureSRV:
-        {
-          m_generics.release(m_allRes.texSRV[handle].native());
-          m_allRes.texSRV[handle] = DX12TextureView();
-          break;
-        }
-        case ResourceType::TextureUAV:
-        {
-          m_generics.release(m_allRes.texUAV[handle].native());
-          m_allRes.texUAV[handle] = DX12TextureView();
-          break;
-        }
-        case ResourceType::TextureRTV:
-        {
-          m_rtvs.release(m_allRes.texRTV[handle].native());
-          m_allRes.texRTV[handle] = DX12TextureView();
-          break;
-        }
-        case ResourceType::TextureDSV:
-        {
-          m_dsvs.release(m_allRes.texDSV[handle].native());
-          m_allRes.texDSV[handle] = DX12TextureView();
-          break;
-        }
         case ResourceType::Pipeline:
         {
           m_allRes.pipelines[handle] = DX12Pipeline();
@@ -553,6 +511,60 @@ namespace faze
         case ResourceType::Renderpass:
         {
           break; // shrug, what renderpass
+        }
+        default:
+        {
+          F_ASSERT(false, "unhandled type released");
+          break;
+        }
+      }
+    }
+
+    void DX12Device::releaseViewHandle(ViewResourceHandle handle)
+    {
+      switch(handle.type)
+      {
+        case ViewResourceType::BufferIBV:
+        {
+          m_generics.release(m_allRes.bufIBV[handle].native());
+          m_allRes.bufIBV[handle] = DX12BufferView();
+          break;
+        }
+        case ViewResourceType::BufferSRV:
+        {
+          m_generics.release(m_allRes.bufSRV[handle].native());
+          m_allRes.bufSRV[handle] = DX12BufferView();
+          break;
+        }
+        case ViewResourceType::BufferUAV:
+        {
+          m_generics.release(m_allRes.bufUAV[handle].native());
+          m_allRes.bufUAV[handle] = DX12BufferView();
+          break;
+        }
+        case ViewResourceType::TextureSRV:
+        {
+          m_generics.release(m_allRes.texSRV[handle].native());
+          m_allRes.texSRV[handle] = DX12TextureView();
+          break;
+        }
+        case ViewResourceType::TextureUAV:
+        {
+          m_generics.release(m_allRes.texUAV[handle].native());
+          m_allRes.texUAV[handle] = DX12TextureView();
+          break;
+        }
+        case ViewResourceType::TextureRTV:
+        {
+          m_rtvs.release(m_allRes.texRTV[handle].native());
+          m_allRes.texRTV[handle] = DX12TextureView();
+          break;
+        }
+        case ViewResourceType::TextureDSV:
+        {
+          m_dsvs.release(m_allRes.texDSV[handle].native());
+          m_allRes.texDSV[handle] = DX12TextureView();
+          break;
         }
         default:
         {
@@ -1020,7 +1032,7 @@ namespace faze
       m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
     }
 
-    void DX12Device::createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
+    void DX12Device::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
     {
       auto& native = m_allRes.buf[buffer];
 
@@ -1266,7 +1278,7 @@ namespace faze
       m_allRes.tex[handle] = DX12Texture(texture, std::make_shared<DX12ResourceState>(state));
     }
 
-    void DX12Device::createTextureView(ResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
+    void DX12Device::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
       //auto native = std::static_pointer_cast<DX12Texture>(texture);
       auto& native = m_allRes.tex[texture];

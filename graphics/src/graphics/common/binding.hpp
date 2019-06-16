@@ -14,7 +14,7 @@ namespace faze
   {
     friend class CommandGraphNode;
     vector<ShaderResource> m_resources;
-    vector<ResourceHandle> m_handles;
+    vector<ViewResourceHandle> m_handles;
     vector<uint8_t> m_constants;
 
     Binding(GraphicsPipeline pipeline)
@@ -32,9 +32,9 @@ namespace faze
       
     }
 
-    MemView<ResourceHandle> bResources()
+    MemView<ViewResourceHandle> bResources()
     {
-      return MemView<ResourceHandle>(m_handles);
+      return MemView<ViewResourceHandle>(m_handles);
     }
 
     MemView<uint8_t> bConstants()

@@ -114,6 +114,7 @@ namespace faze
       int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
 
       void releaseHandle(ResourceHandle handle) override;
+      void releaseViewHandle(ViewResourceHandle handle) override;
       void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
@@ -127,10 +128,10 @@ namespace faze
 
       void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
       void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
       void createTexture(ResourceHandle handle, ResourceDescriptor& desc) override;
       void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void createTextureView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override { return nullptr; };
 

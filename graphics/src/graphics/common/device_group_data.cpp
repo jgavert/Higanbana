@@ -116,7 +116,7 @@ namespace faze
       // overcommitting with handles, 8 is max anyway...
       for (int i = 0; i < 8; i++)
       {
-        handles.push_back(m_handles.allocate(ResourceType::Texture));
+        handles.push_back(m_handles.allocateResource(ResourceType::Texture));
       }
       auto bufferCount = m_devices[SwapchainDeviceID].device->fetchSwapchainTextures(sc.impl(), handles);
       vector<TextureRTV> backbuffers;
@@ -140,10 +140,9 @@ namespace faze
           viewDesc.m_format = tex.desc().desc.format;
         }
 
-        auto handle = m_handles.allocate(ResourceType::TextureRTV);
-        handle.setGpuId(0);
+        auto handle = m_handles.allocateViewResource(ViewResourceType::TextureRTV, *handlePtr);
         m_devices[0].device->createTextureView(handle, tex.handle(), tex.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
-        backbuffers[i] = TextureRTV(tex, sharedHandle(handle));
+        backbuffers[i] = TextureRTV(tex, sharedViewHandle(handle));
       }
 
       sc.setBackbuffers(backbuffers);
@@ -202,7 +201,7 @@ namespace faze
 
     Renderpass DeviceGroupData::createRenderpass()
     {
-      auto handle = m_handles.allocate(ResourceType::Renderpass);
+      auto handle = m_handles.allocateResource(ResourceType::Renderpass);
       for (auto&& device : m_devices)
       {
         device.device->createRenderpass(handle);
@@ -212,7 +211,7 @@ namespace faze
 
     ComputePipeline DeviceGroupData::createComputePipeline(ComputePipelineDescriptor desc)
     {
-      auto handle = m_handles.allocate(ResourceType::Pipeline);
+      auto handle = m_handles.allocateResource(ResourceType::Pipeline);
       for(auto&& device : m_devices)
       {
         device.device->createPipeline(handle, desc);
@@ -222,7 +221,7 @@ namespace faze
 
     GraphicsPipeline DeviceGroupData::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
     {
-      auto handle = m_handles.allocate(ResourceType::Pipeline);
+      auto handle = m_handles.allocateResource(ResourceType::Pipeline);
       for(auto&& device : m_devices)
       {
         device.device->createPipeline(handle, desc);
@@ -243,17 +242,30 @@ namespace faze
       });
     }
 
+    std::shared_ptr<ViewResourceHandle> DeviceGroupData::sharedViewHandle(ViewResourceHandle handle)
+    {
+      return std::shared_ptr<ViewResourceHandle>(new ViewResourceHandle(handle),
+      [weakDev = weak_from_this()](ViewResourceHandle* ptr)
+      {
+        if (auto dev = weakDev.lock())
+        {
+          dev->m_delayer.insert(0, *ptr);
+        }
+        delete ptr;
+      });
+    }
+
     Buffer DeviceGroupData::createBuffer(ResourceDescriptor desc)
     {
       desc = desc.setDimension(FormatDimension::Buffer);
-      auto handle = m_handles.allocate(ResourceType::Buffer);
+      auto handle = m_handles.allocateResource(ResourceType::Buffer);
       // TODO: sharedbuffers
       for (auto& vdev : m_devices)
       {
         auto memRes = vdev.device->getReqs(desc); // memory requirements
         auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
         {
-          auto memHandle = m_handles.allocate(ResourceType::MemoryHeap);
+          auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
           memHandle.setGpuId(vdev.id); 
           vdev.device->createHeap(memHandle, desc);
           return GpuHeap(memHandle, desc);
@@ -268,14 +280,14 @@ namespace faze
 
     Texture DeviceGroupData::createTexture(ResourceDescriptor desc)
     {
-      auto handle = m_handles.allocate(ResourceType::Texture);
+      auto handle = m_handles.allocateResource(ResourceType::Texture);
       // TODO: shared textures
       for (auto& vdev : m_devices)
       {
         auto memRes = vdev.device->getReqs(desc); // memory requirements
         auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
         {
-          auto memHandle = m_handles.allocate(ResourceType::MemoryHeap);
+          auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
           memHandle.setGpuId(vdev.id); 
           vdev.device->createHeap(memHandle, desc);
           return GpuHeap(memHandle, desc);
@@ -293,52 +305,50 @@ namespace faze
 
     BufferSRV DeviceGroupData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto handle = m_handles.allocate(ResourceType::BufferSRV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::BufferSRV, buffer.handle());
       for (auto& vdev : m_devices)
       {
         vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
       }
-      return BufferSRV(buffer, sharedHandle(handle));
+      return BufferSRV(buffer, sharedViewHandle(handle));
     }
 
     BufferUAV DeviceGroupData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
-      auto handle = m_handles.allocate(ResourceType::BufferUAV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::BufferUAV, buffer.handle());
       for (auto& vdev : m_devices)
       {
         vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
       }
-      return BufferUAV(buffer, sharedHandle(handle));
+      return BufferUAV(buffer, sharedViewHandle(handle));
     }
 
-    SubresourceRange rangeFrom(const ShaderViewDescriptor& view, const ResourceDescriptor& desc, bool srv)
+    void setViewRange(const ShaderViewDescriptor& view, const ResourceDescriptor& desc, bool srv, ViewResourceHandle& handle)
     {
-      SubresourceRange range{};
-      range.mipOffset = static_cast<int16_t>(view.m_mostDetailedMip);
-      range.mipLevels = static_cast<int16_t>(view.m_mipLevels);
-      range.sliceOffset = static_cast<int16_t>(view.m_arraySlice);
-      range.arraySize = static_cast<int16_t>(view.m_arraySize);
+      auto mipOffset = static_cast<int>(view.m_mostDetailedMip);
+      auto mipLevels = static_cast<int>(view.m_mipLevels);
+      auto sliceOffset = static_cast<int>(view.m_arraySlice);
+      auto arraySize = static_cast<int>(view.m_arraySize);
 
-      if (range.mipLevels == -1)
+      if (mipLevels == -1)
       {
-        range.mipLevels = static_cast<int16_t>(desc.desc.miplevels - range.mipOffset);
+        mipLevels = static_cast<int>(desc.desc.miplevels - mipOffset);
       }
 
-      if (range.arraySize == -1)
+      if (arraySize == -1)
       {
-        range.arraySize = static_cast<int16_t>(desc.desc.arraySize - range.sliceOffset);
+        arraySize = static_cast<int>(desc.desc.arraySize - sliceOffset);
         if (desc.desc.dimension == FormatDimension::TextureCube)
         {
-          range.arraySize = static_cast<int16_t>((desc.desc.arraySize * 6) - range.sliceOffset);
+          arraySize = static_cast<int>((desc.desc.arraySize * 6) - sliceOffset);
         }
       }
 
       if (!srv)
       {
-        range.mipLevels = 1;
+        mipLevels = 1;
       }
-
-      return range;
+      handle.subresourceRange(desc.desc.miplevels, mipOffset, mipLevels, sliceOffset, arraySize);
     }
 
     TextureSRV DeviceGroupData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -348,12 +358,13 @@ namespace faze
         viewDesc.m_format = texture.desc().desc.format;
       }
 
-      auto handle = m_handles.allocate(ResourceType::TextureSRV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::TextureSRV, texture.handle());
+      setViewRange(viewDesc, texture.desc(), true, handle);
       for (auto& vdev : m_devices)
       {
         vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
       }
-      return TextureSRV(texture, sharedHandle(handle));
+      return TextureSRV(texture, sharedViewHandle(handle));
     }
 
     TextureUAV DeviceGroupData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -363,12 +374,13 @@ namespace faze
         viewDesc.m_format = texture.desc().desc.format;
       }
 
-      auto handle = m_handles.allocate(ResourceType::TextureUAV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::TextureUAV, texture.handle());
+      setViewRange(viewDesc, texture.desc(), false, handle);
       for (auto& vdev : m_devices)
       {
         vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
       }
-      return TextureUAV(texture, sharedHandle(handle));
+      return TextureUAV(texture, sharedViewHandle(handle));
     }
 
     TextureRTV DeviceGroupData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -378,12 +390,13 @@ namespace faze
         viewDesc.m_format = texture.desc().desc.format;
       }
 
-      auto handle = m_handles.allocate(ResourceType::TextureRTV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::TextureRTV, texture.handle());
+      setViewRange(viewDesc, texture.desc(), false, handle);
       for (auto& vdev : m_devices)
       {
         vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
       }
-      return TextureRTV(texture, sharedHandle(handle));
+      return TextureRTV(texture, sharedViewHandle(handle));
     }
 
     TextureDSV DeviceGroupData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
@@ -393,12 +406,13 @@ namespace faze
         viewDesc.m_format = texture.desc().desc.format;
       }
 
-      auto handle = m_handles.allocate(ResourceType::TextureDSV);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::TextureDSV, texture.handle());
+      setViewRange(viewDesc, texture.desc(), false, handle);
       for (auto& vdev : m_devices)
       {
         vdev.device->createTextureView(handle, texture.handle(), texture.desc(), viewDesc.setType(ResourceShaderType::DepthStencil));
       }
-      return TextureDSV(texture, sharedHandle(handle));
+      return TextureDSV(texture, sharedViewHandle(handle));
     }
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , FormatType )
@@ -420,6 +434,30 @@ namespace faze
     CommandGraph DeviceGroupData::startCommandGraph()
     {
       return CommandGraph(m_seqTracker.next()); 
+    }
+
+    void DeviceGroupData::testStuff(CommandBuffer& buffer)
+    {
+      BarrierSolver solver(m_devices[0].m_bufferStates, m_devices[0].m_textureStates);
+
+      auto iter = buffer.begin();
+      while((*iter)->type != PacketType::EndOfPackets)
+      {
+        CommandBuffer::PacketHeader* header = *iter;
+        if (header->type == PacketType::RenderpassBegin)
+        {
+          auto drawIndex = solver.addDrawCall(backend::AccessStage::Graphics);
+          auto& packet = header->data<gfxpacket::RenderPassBegin>();
+          for (auto&& rtv : packet.rtvs.convertToMemView())
+          {
+            solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Graphics, backend::TextureLayout::Rendertarget, 0));
+          }
+        }
+
+        iter++;
+      }
+
+      solver.makeAllBarriers();
     }
 
     void DeviceGroupData::submit(Swapchain& swapchain, CommandGraph graph)
@@ -501,6 +539,10 @@ namespace faze
             nativeList = m_devices[0].device->createGraphicsList();
           }
 
+          // barriers
+          testStuff(list.list.list);
+
+          // actual commands
           nativeList->fillWith(m_devices[0].device, list.list.list);
 
           LiveCommandBuffer2 buffer{};
@@ -575,10 +617,10 @@ namespace faze
 
     void DeviceGroupData::garbageCollection()
     {
-      auto handles = m_delayer.garbageCollection(m_seqTracker.completedTill());
+      auto garb = m_delayer.garbageCollection(m_seqTracker.completedTill());
       for (auto&& device : m_devices)
       {
-        for (auto&& handle : handles)
+        for (auto&& handle : garb.trash)
         {
           if (handle.type == ResourceType::Buffer)
           {
@@ -592,6 +634,14 @@ namespace faze
           if (ownerGpuId == -1 || ownerGpuId == device.id)
           {
             device.device->releaseHandle(handle);
+          }
+        }
+        for (auto&& handle : garb.viewTrash)
+        {
+          auto ownerGpuId = handle.resource.ownerGpuId();
+          if (ownerGpuId == -1 || ownerGpuId == device.id)
+          {
+            device.device->releaseViewHandle(handle);
           }
         }
         auto removed = device.heaps.emptyHeaps();
