@@ -62,7 +62,7 @@ namespace faze
         template <typename T>
         T& data() 
         {
-          return *reinterpret_cast<T*>(this + offsetFromThis);
+          return *reinterpret_cast<T*>(this + 1);
         }
       };
     private:
@@ -131,7 +131,7 @@ namespace faze
         {
         }
 
-        CommandBufferIterator& operator++()
+        CommandBufferIterator& operator++(int)
         {
           size_t nextHeaderAddr = reinterpret_cast<size_t>(m_current) + m_current->offsetFromThis;
           m_current = reinterpret_cast<PacketHeader*>(nextHeaderAddr);

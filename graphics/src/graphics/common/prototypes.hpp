@@ -22,6 +22,7 @@ namespace faze
   class Window;
   struct MemoryRequirements;
   struct ResourceHandle;
+  struct ViewResourceHandle;
   class HandleManager;
 
   namespace backend
@@ -105,6 +106,7 @@ namespace faze
         virtual int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) = 0;
 
         virtual void releaseHandle(ResourceHandle handle) = 0;
+        virtual void releaseViewHandle(ViewResourceHandle handle) = 0;
         // pipeline related
         virtual void createRenderpass(ResourceHandle handle) = 0;
         virtual void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc) = 0;
@@ -115,10 +117,10 @@ namespace faze
   
         virtual void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) = 0;
         virtual void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual void createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
         virtual void createTexture(ResourceHandle handle, ResourceDescriptor& desc) = 0;
         virtual void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
-        virtual void createTextureView(ResourceHandle handle, ResourceHandle texture, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+        virtual void createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
 
         virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
 

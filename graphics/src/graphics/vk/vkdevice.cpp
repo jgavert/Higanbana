@@ -1238,48 +1238,6 @@ for (auto&& upload : it.second.dynamicBuffers)
           m_allRes.tex[handle] = VulkanTexture();
           break;
         }
-        case ResourceType::BufferIBV:
-        {
-          //F_ASSERT(false, "what do?");
-          m_allRes.bufIBV[handle] = VulkanBufferView();
-          break;
-        }
-        case ResourceType::BufferSRV:
-        {
-          //F_ASSERT(false, "what do?");
-          m_allRes.bufSRV[handle] = VulkanBufferView();
-          break;
-        }
-        case ResourceType::BufferUAV:
-        {
-          //F_ASSERT(false, "what do?");
-          m_allRes.bufUAV[handle] = VulkanBufferView();
-          break;
-        }
-        case ResourceType::TextureSRV:
-        {
-          m_device.destroyImageView(m_allRes.texSRV[handle].native().view);
-          m_allRes.texSRV[handle] = VulkanTextureView();
-          break;
-        }
-        case ResourceType::TextureUAV:
-        {
-          m_device.destroyImageView(m_allRes.texUAV[handle].native().view);
-          m_allRes.texUAV[handle] = VulkanTextureView();
-          break;
-        }
-        case ResourceType::TextureRTV:
-        {
-          m_device.destroyImageView(m_allRes.texRTV[handle].native().view);
-          m_allRes.texRTV[handle] = VulkanTextureView();
-          break;
-        }
-        case ResourceType::TextureDSV:
-        {
-          m_device.destroyImageView(m_allRes.texDSV[handle].native().view);
-          m_allRes.texDSV[handle] = VulkanTextureView();
-          break;
-        }
         case ResourceType::Pipeline:
         {
           m_device.destroyPipeline(m_allRes.pipelines[handle].m_pipeline);
@@ -1305,6 +1263,60 @@ for (auto&& upload : it.second.dynamicBuffers)
         {
           m_device.destroyRenderPass(m_allRes.renderpasses[handle].native());
           m_allRes.renderpasses[handle] = VulkanRenderpass();
+          break;
+        }
+        default:
+        {
+          F_ASSERT(false, "unhandled type released");
+          break;
+        }
+      }
+    }
+
+    void VulkanDevice::releaseViewHandle(ViewResourceHandle handle)
+    {
+      switch(handle.type)
+      {
+        case ViewResourceType::BufferIBV:
+        {
+          //F_ASSERT(false, "what do?");
+          m_allRes.bufIBV[handle] = VulkanBufferView();
+          break;
+        }
+        case ViewResourceType::BufferSRV:
+        {
+          //F_ASSERT(false, "what do?");
+          m_allRes.bufSRV[handle] = VulkanBufferView();
+          break;
+        }
+        case ViewResourceType::BufferUAV:
+        {
+          //F_ASSERT(false, "what do?");
+          m_allRes.bufUAV[handle] = VulkanBufferView();
+          break;
+        }
+        case ViewResourceType::TextureSRV:
+        {
+          m_device.destroyImageView(m_allRes.texSRV[handle].native().view);
+          m_allRes.texSRV[handle] = VulkanTextureView();
+          break;
+        }
+        case ViewResourceType::TextureUAV:
+        {
+          m_device.destroyImageView(m_allRes.texUAV[handle].native().view);
+          m_allRes.texUAV[handle] = VulkanTextureView();
+          break;
+        }
+        case ViewResourceType::TextureRTV:
+        {
+          m_device.destroyImageView(m_allRes.texRTV[handle].native().view);
+          m_allRes.texRTV[handle] = VulkanTextureView();
+          break;
+        }
+        case ViewResourceType::TextureDSV:
+        {
+          m_device.destroyImageView(m_allRes.texDSV[handle].native().view);
+          m_allRes.texDSV[handle] = VulkanTextureView();
           break;
         }
         default:
@@ -1516,7 +1528,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       m_allRes.buf[handle] = VulkanBuffer(buffer, std::make_shared<VulkanBufferState>(state));
     }
 
-    void VulkanDevice::createBufferView(ResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
+    void VulkanDevice::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
     {
       auto& native = m_allRes.buf[buffer];
 
@@ -1647,7 +1659,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       m_allRes.tex[handle] = VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state }));
     }
 
-    void VulkanDevice::createTextureView(ResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
+    void VulkanDevice::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
       auto& native = m_allRes.tex[texture];
       auto desc = texDesc.desc;

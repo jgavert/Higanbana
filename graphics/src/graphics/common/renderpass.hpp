@@ -22,7 +22,7 @@ namespace faze
     {
       if (m_renderpass)
         return *m_renderpass;
-      return InvalidResourceHandle;
+      return ResourceHandle();
     }
   };
 }

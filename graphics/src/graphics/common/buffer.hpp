@@ -14,7 +14,7 @@ namespace faze
     std::shared_ptr<ResourceDescriptor> m_desc;
   public:
     Buffer()
-      : m_id(std::make_shared<ResourceHandle>(InvalidResourceHandle))
+      : m_id(std::make_shared<ResourceHandle>())
       , m_desc(std::make_shared<ResourceDescriptor>())
     {
     }
@@ -33,18 +33,18 @@ namespace faze
     {
       if (m_id)
         return *m_id;
-      return InvalidResourceHandle;
+      return ResourceHandle();
     }
   };
 
   class BufferView
   {
     Buffer buf;
-    std::shared_ptr<ResourceHandle> m_id;
+    std::shared_ptr<ViewResourceHandle> m_id;
   public:
     BufferView() = default;
 
-    BufferView(Buffer buf, std::shared_ptr<ResourceHandle> id)
+    BufferView(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
       : buf(buf)
       , m_id(id)
     {
@@ -55,11 +55,11 @@ namespace faze
       return buf.desc();
     }
 
-    ResourceHandle handle() const
+    ViewResourceHandle handle() const
     {
        if (m_id)
         return *m_id;
-      return InvalidResourceHandle;
+      return ViewResourceHandle();
     }
 
     Buffer& buffer() 
@@ -72,7 +72,7 @@ namespace faze
   {
   public:
     BufferSRV() = default;
-    BufferSRV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+    BufferSRV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
       : BufferView(buf, id)
     {
     }
@@ -82,7 +82,7 @@ namespace faze
   {
   public:
     BufferUAV() = default;
-    BufferUAV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+    BufferUAV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
       : BufferView(buf, id)
     {
     }
@@ -92,7 +92,7 @@ namespace faze
   {
   public:
     BufferIBV() = default;
-    BufferIBV(Buffer buf, std::shared_ptr<ResourceHandle> id)
+    BufferIBV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
       : BufferView(buf, id)
     {
     }
@@ -100,19 +100,18 @@ namespace faze
 
   class DynamicBufferView
   {
-    ResourceHandle m_id;
+    ViewResourceHandle m_id;
 
   public:
     DynamicBufferView()
-    :m_id(InvalidResourceHandle)
     {
 
     }
-    DynamicBufferView(ResourceHandle id)
+    DynamicBufferView(ViewResourceHandle id)
       : m_id(id)
     {
     }
-    ResourceHandle handle() const
+    ViewResourceHandle handle() const
     {
       return m_id;
     }

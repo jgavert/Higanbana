@@ -8,6 +8,9 @@
 
 #include <graphics/desc/resource_state.hpp>
 
+#include <graphics/common/barrier_solver.hpp>
+#include <graphics/common/command_buffer.hpp>
+
 #include <functional>
 #include <mutex>
 
@@ -21,6 +24,7 @@ namespace faze
       {
         SeqNum sequence;
         vector<ResourceHandle> trash;
+        vector<ViewResourceHandle> viewTrash;
       };
       deque<Garbage> m_garbage;
       std::mutex lock; 
@@ -47,21 +51,29 @@ namespace faze
         bck.trash.push_back(handle);
       }
 
-      vector<ResourceHandle> garbageCollection(SeqNum completedTo)
+      void insert(SeqNum sequence, ViewResourceHandle handle)
       {
         std::lock_guard<std::mutex> guard(lock);
-        vector<ResourceHandle> handles;
+        ensureGarbage(sequence);
+
+        auto& bck = m_garbage.back();
+        bck.viewTrash.push_back(handle);
+      }
+
+      Garbage garbageCollection(SeqNum completedTo)
+      {
+        std::lock_guard<std::mutex> guard(lock);
+        Garbage garb;
         while(!m_garbage.empty() && m_garbage.front().sequence <= completedTo)
         {
-          auto& newgarb = m_garbage.front().trash;
-          handles.insert(handles.end(), newgarb.begin(), newgarb.end());
+          auto& newgarb = m_garbage.front();
+          garb.trash.insert(garb.trash.end(), newgarb.trash.begin(), newgarb.trash.end());
+          garb.viewTrash.insert(garb.viewTrash.end(), newgarb.viewTrash.begin(), newgarb.viewTrash.end());
           m_garbage.pop_front();
         }
-        return handles;
+        return garb;
       }
     };
-
-
 
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
     {
@@ -84,11 +96,6 @@ namespace faze
       HandleManager m_handles;
       deque<LiveCommandBuffer2> m_buffers;
 
-      HandleVector<SubresourceRange> m_textureSRVRanges;
-      HandleVector<SubresourceRange> m_textureUAVRanges;
-      HandleVector<SubresourceRange> m_textureRTVRanges;
-      HandleVector<SubresourceRange> m_textureDSVRanges;
-
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
       DeviceGroupData(DeviceGroupData&& data) = default;
       DeviceGroupData(const DeviceGroupData& data) = delete;
@@ -104,6 +111,7 @@ namespace faze
       // helper
       void configureBackbufferViews(Swapchain& sc);
       std::shared_ptr<ResourceHandle> sharedHandle(ResourceHandle handle);
+      std::shared_ptr<ViewResourceHandle> sharedViewHandle(ViewResourceHandle handle);
 
       Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
       void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor);
@@ -136,6 +144,9 @@ namespace faze
       void submit(CommandGraph graph);
       void explicitSubmit(CommandGraph graph);
       void present(Swapchain& swapchain);
+
+      // test
+      void testStuff(CommandBuffer& buffer);
     };
   }
 }

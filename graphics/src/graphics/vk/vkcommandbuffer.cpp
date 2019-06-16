@@ -524,10 +524,10 @@ namespace faze
     void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list)
     {
       int drawIndex = 0;
-      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; ++iter)
+      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        F_ILOG("fillWith", "type header %d", header->type);
+        F_ILOG("addCommandsVK", "type header %d", header->type);
         switch (header->type)
         {
           //        case CommandPacket::PacketType::BufferCopy:
@@ -603,11 +603,6 @@ namespace faze
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 
       F_ILOG("fillWith", "testing filling");
-      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; ++iter)
-      {
-        auto* header = *iter;
-        F_ILOG("fillWith", "type header %d", header->type);
-      }
       // preprocess to compile renderpasses/pipelines
 
       preprocess(nat.get(), list);
