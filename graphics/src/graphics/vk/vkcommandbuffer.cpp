@@ -1,8 +1,8 @@
 #include "graphics/vk/vkresources.hpp"
 #include "graphics/vk/vkdevice.hpp"
-#include "graphics/vk/util/VulkanDependencySolver.hpp"
 #include "core/datastructures/proxy.hpp"
 #include <graphics/common/command_buffer.hpp>
+#include <graphics/common/barrier_solver.hpp>
 namespace faze
 {
   namespace backend
@@ -269,6 +269,71 @@ namespace faze
       //rp->setActiveFramebuffer(attachmentsHash); // remember to set the current hash as active one.
     }
 
+    void handle(vk::CommandBuffer buffer, Resources& res, gfxpacket::RenderPassBegin& packet, vk::Framebuffer fb)
+    {
+      auto& rp = res.renderpasses[packet.renderpass];
+      
+      vk::ClearValue clearValues[8];
+      uint32_t attachmentCount = 0;
+
+      for (auto&& rtv : packet.rtvs.convertToMemView())
+      {
+        //auto v = rtv.clearVal();
+        float4 v = float4(0.f, 0.f, 0.f, 0.f);
+        clearValues[attachmentCount] = clearValues[attachmentCount]
+          .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
+        attachmentCount++;        
+      }
+      if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
+      {
+        //auto v = dsv.clearVal();
+        float4 v = float4(0.f, 0.f, 0.f, 0.f);
+        clearValues[attachmentCount] = clearValues[attachmentCount]
+          .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v.x).setStencil(0));
+        attachmentCount++;        
+      }
+      
+      auto scissorRect = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(packet.fbWidth, packet.fbHeight));
+      vk::RenderPassBeginInfo info = vk::RenderPassBeginInfo()
+        .setRenderPass(rp.native())
+        .setFramebuffer(fb)
+        .setRenderArea(scissorRect)
+        .setClearValueCount(attachmentCount)
+        .setPClearValues(clearValues);
+
+      /*
+      vk::AccessFlags accessFlags = vk::AccessFlagBits::eIndirectCommandRead | vk::AccessFlagBits::eIndexRead | vk::AccessFlagBits::eUniformRead | vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+      vk::MemoryBarrier memoryBarr = vk::MemoryBarrier().setSrcAccessMask(accessFlags).setDstAccessMask(accessFlags);
+      vk::ArrayProxy<const vk::MemoryBarrier> memory(1, &memoryBarr);
+      buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(), memory, {}, {});
+      */
+
+      buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
+
+      vk::Viewport port = vk::Viewport()
+        .setWidth(packet.fbWidth)
+        .setHeight(-packet.fbHeight)
+        .setMaxDepth(1.f)
+        .setMinDepth(0.f)
+        .setX(0)
+        .setY(packet.fbHeight);
+
+
+      buffer.setViewport(0, {port});
+      buffer.setScissor(0, {scissorRect});
+    }
+
+    void handle(vk::CommandBuffer buffer, gfxpacket::Draw& packet)
+    {
+      buffer.draw(packet.vertexCountPerInstance, packet.instanceCount, packet.startVertex, packet.startInstance);
+    }
+
+    void handle(vk::CommandBuffer buffer, Resources& res, gfxpacket::GraphicsPipelineBind& packet)
+    {
+      auto& pipe = res.pipelines[packet.pipeline];
+      buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
+    }
+
 /*
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
     {
@@ -523,45 +588,53 @@ namespace faze
       solver.makeAllBarriers();
     }
 */
+    void addBarrier(VulkanDevice* device, vk::CommandBuffer buffer, MemoryBarriers barriers)
+    {
+      if (!barriers.buffers.empty() || !barriers.textures.empty())
+      {
+        F_ILOG("vkBarriers", "need to conjure some barriers");
+      }
+    }
 
-    void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list)
+    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver)
     {
       int drawIndex = 0;
+      int framebuffer = 0;
       for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
         F_ILOG("addCommandsVK", "type header %d", header->type);
+        addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
         case backend::PacketType::PrepareForPresent:
         {
-          //solver.runBarrier(buffer, drawIndex);
-          drawIndex++;
           break;
         }
         case backend::PacketType::RenderpassBegin:
         {
           //solver.runBarrier(buffer, drawIndex);
-          //drawIndex++;
-          //handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
+          handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+          framebuffer++;
           break;
         }
         case backend::PacketType::RenderpassEnd:
         {
-          //buffer.endRenderPass();
+          buffer.endRenderPass();
           break;
         }
         default:
           break;
         }
+        drawIndex++;
       }
     }
 
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::CommandBuffer& list)
     {
-
+      backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       // find all renderpasses & compile all missing graphics pipelines
       for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
       {
@@ -569,8 +642,26 @@ namespace faze
         {
           case PacketType::RenderpassBegin:
           {
+            rpbegin = (*iter);
             gfxpacket::RenderPassBegin& packet = (*iter)->data<gfxpacket::RenderPassBegin>();
             handleRenderpass(device, packet);
+            break;
+          }
+          case PacketType::GraphicsPipelineBind:
+          {
+            gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
+            device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+            break;
+          }
+          case PacketType::ComputePipelineBind:
+          {
+            gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
+            device->updatePipeline(packet.pipeline);
+            break;
+          }
+          case PacketType::RenderpassEnd:
+          {
+            rpbegin = nullptr;
             break;
           }
           default:
@@ -631,7 +722,7 @@ namespace faze
       //addDepedencyDataAndSolve(solver, list);
 
       // add commands to list while also adding barriers
-      addCommands(nat.get(), m_list->list(), list);
+      addCommands(nat.get(), m_list->list(), list, solver);
 
       m_list->list().end();
     }

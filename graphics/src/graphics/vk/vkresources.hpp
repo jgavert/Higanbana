@@ -448,19 +448,31 @@ namespace faze
       bool                    m_hasPipeline;
       vk::DescriptorSetLayout m_descriptorSetLayout;
       vk::PipelineLayout      m_pipelineLayout;
+      GraphicsPipelineDescriptor m_gfxDesc;
+      ComputePipelineDescriptor m_computeDesc;
+
       VulkanPipeline() {}
 
-      VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout)
+      VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc)
         : m_hasPipeline(false)
         , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
+        , m_gfxDesc(gfxDesc)
       {}
 
-      VulkanPipeline(vk::Pipeline pipeline, vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout)
+      VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
+        : m_hasPipeline(false)
+        , m_descriptorSetLayout(descriptorSetLayout)
+        , m_pipelineLayout(pipelineLayout)
+        , m_computeDesc(computeDesc)
+      {}
+
+      VulkanPipeline(vk::Pipeline pipeline, vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
         : m_pipeline(pipeline)
         , m_hasPipeline(true)
         , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
+        , m_computeDesc(computeDesc)
       {}
     };
 
@@ -613,6 +625,7 @@ namespace faze
         : m_list(list)
       {}
     private:
+      void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
     public:
