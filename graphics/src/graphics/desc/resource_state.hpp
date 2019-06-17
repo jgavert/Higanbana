@@ -89,4 +89,22 @@ namespace faze
     int mips;
     vector<ResourceState> states;
   };
+
+  struct ImageBarrier
+  {
+    ResourceState before;
+    ResourceState after;
+    ResourceHandle handle;
+    uint32_t startMip : 4;
+    uint32_t mipSize : 4;
+    uint32_t startArr : 12;
+    uint32_t arrSize : 12;
+  };
+
+  struct BufferBarrier
+  {
+    ResourceState before;
+    ResourceState after;
+    ResourceHandle handle;
+  };
 }
