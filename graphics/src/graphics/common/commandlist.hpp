@@ -1,10 +1,11 @@
 #pragma once
 #include <graphics/common/command_buffer.hpp>
-#include "graphics/common/buffer.hpp"
-#include "graphics/common/texture.hpp"
-#include "graphics/common/renderpass.hpp"
-#include "graphics/common/command_packets.hpp"
-#include "core/global_debug.hpp"
+#include <graphics/common/buffer.hpp>
+#include <graphics/common/texture.hpp>
+#include <graphics/common/renderpass.hpp>
+#include <graphics/common/pipeline.hpp>
+#include <graphics/common/command_packets.hpp>
+#include <core/global_debug.hpp>
 
 namespace faze
 {
@@ -62,12 +63,12 @@ namespace faze
 
     void bindPipeline(GraphicsPipeline& pipeline)
     {
-      //list.insert<gfxpacket::GraphicsPipelineBind>(pipeline);
+      list.insert<gfxpacket::GraphicsPipelineBind>(*pipeline.pipeline);
     }
 
     void bindPipeline(ComputePipeline& pipeline)
     {
-      //list.insert<gfxpacket::ComputePipelineBind>(pipeline);
+      list.insert<gfxpacket::ComputePipelineBind>(*pipeline.impl);
     }
 
     void bindGraphicsResources(
@@ -99,7 +100,7 @@ namespace faze
       unsigned startVertex,
       unsigned startInstance)
     {
-      //list.insert<gfxpacket::Draw>(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+      list.insert<gfxpacket::Draw>(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
     void drawIndexed(
@@ -110,7 +111,7 @@ namespace faze
       int BaseVertexLocation,
       unsigned StartInstanceLocation)
     {
-      //list.insert<gfxpacket::DrawIndexed>(buffer, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list.insert<gfxpacket::DrawIndexed>(buffer.handle(), IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void drawDynamicIndexed(

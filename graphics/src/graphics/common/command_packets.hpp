@@ -61,6 +61,66 @@ namespace faze
       }
     };
 
+    struct GraphicsPipelineBind
+    {
+      ResourceHandle pipeline;
+
+      static constexpr const backend::PacketType type = backend::PacketType::GraphicsPipelineBind;
+      static void constructor(backend::CommandBuffer& , GraphicsPipelineBind* packet, ResourceHandle pipeline)
+      {
+        packet->pipeline = pipeline;
+      }
+    };
+
+    struct ComputePipelineBind
+    {
+      ResourceHandle pipeline;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ComputePipelineBind;
+      static void constructor(backend::CommandBuffer& , ComputePipelineBind* packet, ResourceHandle pipeline)
+      {
+        packet->pipeline = pipeline;
+      }
+    };
+
+    struct Draw
+    {
+      uint32_t vertexCountPerInstance;
+      uint32_t instanceCount;
+      uint32_t startVertex;
+      uint32_t startInstance;
+
+      static constexpr const backend::PacketType type = backend::PacketType::Draw;
+      static void constructor(backend::CommandBuffer& , Draw* packet, uint32_t vertexCountPerInstance, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
+      {
+        packet->vertexCountPerInstance = vertexCountPerInstance;
+        packet->instanceCount = instanceCount;
+        packet->startVertex = startVertex;
+        packet->startInstance = startInstance;
+      }
+    };
+
+    struct DrawIndexed
+    {
+      ViewResourceHandle indexbuffer;
+      uint32_t IndexCountPerInstance;
+      uint32_t instanceCount;
+      uint32_t StartIndexLocation;
+      int BaseVertexLocation;
+      uint32_t StartInstanceLocation;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DrawIndexed;
+      static void constructor(backend::CommandBuffer& , DrawIndexed* packet, ViewResourceHandle indexbuffer, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLoc, int baseVertexLoc, uint32_t startInstance)
+      {
+        packet->indexbuffer = indexbuffer;
+        packet->IndexCountPerInstance = indexCountPerInstance;
+        packet->instanceCount = instanceCount;
+        packet->StartIndexLocation = startIndexLoc;
+        packet->BaseVertexLocation = baseVertexLoc;
+        packet->StartInstanceLocation = startInstance;
+      }
+    };
+
     /*
     // helpers
 

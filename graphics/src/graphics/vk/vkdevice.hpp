@@ -91,8 +91,8 @@ namespace faze
 
       vk::RenderPass createRenderpass(const vk::RenderPassCreateInfo& info);
 
-      //void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::RenderpassBegin& subpass);
-      void updatePipeline(ComputePipeline& pipeline);
+      void updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass);
+      void updatePipeline(ResourceHandle pipeline);
 
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;

@@ -822,22 +822,20 @@ namespace faze
       return *newRP;
     }
 
-/*
-    void VulkanDevice::updatePipeline(GraphicsPipeline& pipelines, vk::RenderPass pass, gfxpacket::RenderpassBegin& subpass)
-    {
-      if (pipelines.m_pipelines->empty())
-      {
-        pipelines.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
-      }
 
-      GraphicsPipeline::FullPipeline* ptr = &pipelines.m_pipelines->front();
-      if (!ptr->needsUpdating())
+    void VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
+    {
+      auto& vp = m_allRes.pipelines[pipeline];
+      if (vp.m_hasPipeline)
         return;
 
-      auto& desc = pipelines.descriptor;
+      //if (!ptr->needsUpdating())
+      //  return;
+
+      auto& desc = vp.m_gfxDesc;
       // collect all pipeline parts first
-      auto pipeline = createPipeline(desc);
-      auto* natptr = static_cast<VulkanPipeline*>(pipeline.get());
+      //auto pipeline = createPipeline(desc);
+      //auto* natptr = static_cast<VulkanPipeline*>(pipeline.get());
 
       struct ReadyShader
       {
@@ -859,12 +857,12 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eVertex;
         ss.module = module;
         shaders.push_back(ss);
-
-        if (ptr->vs.empty())
+/*
+        if (vp.m_gfxDesc.desc.vs.empty())
         {
           ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
         }
-        ptr->vs.react();
+        ptr->vs.react();*/
       }
 
       if (!d.hullShaderPath.empty())
@@ -879,12 +877,12 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eTessellationControl;
         ss.module = module;
         shaders.push_back(ss);
-
+/*
         if (ptr->hs.empty())
         {
           ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
         }
-        ptr->hs.react();
+        ptr->hs.react();*/
       }
 
       if (!d.domainShaderPath.empty())
@@ -899,11 +897,13 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
         ss.module = module;
         shaders.push_back(ss);
+        /*
         if (ptr->ds.empty())
         {
           ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
         }
         ptr->ds.react();
+        */
       }
 
       if (!d.geometryShaderPath.empty())
@@ -918,11 +918,13 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eGeometry;
         ss.module = module;
         shaders.push_back(ss);
+        /*
         if (ptr->gs.empty())
         {
           ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
         }
         ptr->gs.react();
+        */
       }
 
       if (!d.pixelShaderPath.empty())
@@ -937,11 +939,13 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eFragment;
         ss.module = module;
         shaders.push_back(ss);
+        /*
         if (ptr->ps.empty())
         {
           ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
         }
         ptr->ps.react();
+        */
       }
 
       vector<vk::PipelineShaderStageCreateInfo> shaderInfos;
@@ -976,8 +980,10 @@ namespace faze
       .setScissorCount(1)
       .setPViewports(&viewport)
       .setViewportCount(1);
+
+      auto rp = m_allRes.renderpasses[rpbegin.renderpass].native();
       vk::GraphicsPipelineCreateInfo pipelineInfo = vk::GraphicsPipelineCreateInfo()
-        .setLayout(natptr->m_pipelineLayout)
+        .setLayout(vp.m_pipelineLayout)
         .setStageCount(shaderInfos.size())
         .setPStages(shaderInfos.data())
         .setPVertexInputState(&vertexInput)
@@ -988,7 +994,7 @@ namespace faze
         .setPMultisampleState(&msaainfo)
         .setPRasterizationState(&rasterInfo)
         .setPDynamicState(&dynamicsInfo)
-        .setRenderPass(pass)
+        .setRenderPass(rp)
         .setSubpass(0); // only 1 ever available
 
       auto compiled = m_device.createGraphicsPipeline(nullptr, pipelineInfo);
@@ -996,20 +1002,21 @@ namespace faze
       {
         m_device.destroyShaderModule(it.module);
       }
-      natptr->m_pipeline = compiled;
-      natptr->m_hasPipeline = true;
-
-      ptr->pipeline = pipeline;
+      vp.m_pipeline = compiled;
+      vp.m_hasPipeline = true;
       F_ILOG("Vulkan", "Pipeline compiled...");
-    }*/
+    }
 
-    void VulkanDevice::updatePipeline(ComputePipeline& pipe)
+    void VulkanDevice::updatePipeline(ResourceHandle pipeline)
     {
-      /*
-      auto sci = ShaderCreateInfo(pipe.descriptor.shader(), ShaderType::Compute, pipe.descriptor.layout)
-        .setComputeGroups(pipe.descriptor.shaderGroups);
+      auto& pipe = m_allRes.pipelines[pipeline];
+
+      if (pipe.m_hasPipeline)
+        return;
+
+      auto sci = ShaderCreateInfo(pipe.m_computeDesc.shader(), ShaderType::Compute, pipe.m_computeDesc.layout)
+        .setComputeGroups(pipe.m_computeDesc.shaderGroups);
       auto shader = m_shaders.shader(sci);
-      auto vkpipe = std::static_pointer_cast<VulkanPipeline>(pipe.impl);
 
       auto shaderInfo = vk::ShaderModuleCreateInfo().setCodeSize(shader.size()).setPCode(reinterpret_cast<uint32_t*>(shader.data()));
 
@@ -1020,16 +1027,16 @@ namespace faze
           .setModule(smodule)
           .setPName("main")
           .setStage(vk::ShaderStageFlagBits::eCompute))
-        .setLayout(vkpipe->m_pipelineLayout);
+        .setLayout(pipe.m_pipelineLayout);
       auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
       m_device.destroyShaderModule(smodule);
+
       if (result)
       {
-        m_device.destroyPipeline(result.operator VkPipeline());
+        pipe.m_pipeline = result.operator VkPipeline();
+        pipe.m_hasPipeline = true;
       }
-      */
     }
-
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
     {
@@ -1043,29 +1050,8 @@ namespace faze
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
         .setPSetLayouts(&setlayout));
-      //return std::make_shared<VulkanPipeline>(setlayout, pipelineLayout);
-      //std::weak_ptr<Garbage> weak = m_trash;
-      /*
-      return std::shared_ptr<VulkanPipeline>(new VulkanPipeline(setlayout, pipelineLayout),
-        [weak, dev = m_device](VulkanPipeline* ptr)
-      {
-        if (auto trash = weak.lock())
-        {
-          if (ptr->m_hasPipeline)
-            trash->pipelines.push_back(ptr->m_pipeline);
-          trash->pipelineLayouts.push_back(ptr->m_pipelineLayout);
-          trash->descriptorSetLayouts.push_back(ptr->m_descriptorSetLayout);
-        }
-        else
-        {
-          if (ptr->m_hasPipeline)
-            dev.destroyPipeline(ptr->m_pipeline);
-          dev.destroyPipelineLayout(ptr->m_pipelineLayout);
-          dev.destroyDescriptorSetLayout(ptr->m_descriptorSetLayout);
-        }
-        delete ptr;
-      });
-      */
+
+      m_allRes.pipelines[handle] = VulkanPipeline(setlayout, pipelineLayout, desc);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
@@ -1080,28 +1066,8 @@ namespace faze
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
         .setPSetLayouts(&setlayout));
-      //std::weak_ptr<Garbage> weak = m_trash;
-      /*
-      return std::shared_ptr<VulkanPipeline>(new VulkanPipeline(setlayout, pipelineLayout),
-        [weak, dev = m_device](VulkanPipeline* ptr)
-      {
-        if (auto trash = weak.lock())
-        {
-          trash->descriptorSetLayouts.push_back(ptr->m_descriptorSetLayout);
-          trash->pipelineLayouts.push_back(ptr->m_pipelineLayout);
-          if (ptr->m_hasPipeline)
-            trash->pipelines.push_back(ptr->m_pipeline);
-        }
-        else
-        {
-          dev.destroyDescriptorSetLayout(ptr->m_descriptorSetLayout);
-          dev.destroyPipelineLayout(ptr->m_pipelineLayout);
-          if (ptr->m_hasPipeline)
-            dev.destroyPipeline(ptr->m_pipeline);
-        }
-        delete ptr;
-      });
-      */
+
+      m_allRes.pipelines[handle] = VulkanPipeline(setlayout, pipelineLayout, desc);
     }
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags)

@@ -26,6 +26,7 @@ namespace faze
       ComputePipelineBind,
       ResourceBinding,
       Draw,
+      DrawIndexed,
       Count
     };
 
