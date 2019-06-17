@@ -7,6 +7,12 @@ namespace faze
 {
   namespace backend
   {
+    struct MemoryBarriers
+    {
+      MemView<BufferBarrier> buffers;
+      MemView<ImageBarrier> textures;
+    };
+
     class BarrierSolver 
     {
     private:
@@ -22,7 +28,7 @@ namespace faze
       // general info needed
       unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
 
-      vector<backend::AccessStage> m_drawCallStage;
+      //vector<backend::AccessStage> m_drawCallStage;
       int drawCallsAdded = 0;
 
       // global state tables
@@ -76,7 +82,7 @@ namespace faze
         , m_textureStates(textures)
        {}
 
-      int addDrawCall(backend::AccessStage baseFlags);
+      int addDrawCall();
 
       // buffers
       void addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access);
@@ -87,7 +93,7 @@ namespace faze
       // void resolveGraph(); //... hmm, not implementing for now.
       // void printStuff(std::function<void(std::string)> func);
       void makeAllBarriers();
-      //void runBarrier(vk::CommandBuffer& gfx, int nextDrawCall);
+      MemoryBarriers runBarrier(int drawCall);
       void reset();
 
     private:

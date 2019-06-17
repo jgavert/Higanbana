@@ -74,21 +74,7 @@ namespace faze
 
       // new new stuff
       // HandleVector<VulkanTexture>
-      struct Resources
-      {
-        HandleVector<VulkanTexture> tex;
-        HandleVector<VulkanBuffer> buf;
-        HandleVector<VulkanBufferView> bufSRV;
-        HandleVector<VulkanBufferView> bufUAV;
-        HandleVector<VulkanBufferView> bufIBV;
-        HandleVector<VulkanTextureView> texSRV;
-        HandleVector<VulkanTextureView> texUAV;
-        HandleVector<VulkanTextureView> texRTV;
-        HandleVector<VulkanTextureView> texDSV;
-        HandleVector<VulkanPipeline> pipelines;
-        HandleVector<VulkanRenderpass> renderpasses;
-        HandleVector<VulkanHeap> heaps;
-      } m_allRes;
+      Resources m_allRes;
     public:
       VulkanDevice(
         vk::Device device,
@@ -101,7 +87,9 @@ namespace faze
 
       vk::Device native() { return m_device; }
 
-      std::shared_ptr<vk::RenderPass> createRenderpass(const vk::RenderPassCreateInfo& info);
+      Resources& allResources() { return m_allRes; }
+
+      vk::RenderPass createRenderpass(const vk::RenderPassCreateInfo& info);
 
       //void updatePipeline(GraphicsPipeline& pipeline, vk::RenderPass rp, gfxpacket::RenderpassBegin& subpass);
       void updatePipeline(ComputePipeline& pipeline);
