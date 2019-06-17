@@ -105,7 +105,7 @@ namespace faze
         d.uniqueId = uniqueID;
         d.mips = mips;
         d.texture = texture.native();
-        d.state = texture.state();
+        //d.state = texture.state();
         d.aspectMask = view.native().aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }
@@ -143,7 +143,7 @@ namespace faze
         d.uniqueId = uniqueID;
         d.mips = mips;
         d.texture = texture.native();
-        d.state = texture.state();
+        //d.state = texture.state();
         d.aspectMask = aspectMask;
         m_textureStates[uniqueID] = std::move(d);
       }

@@ -3,6 +3,7 @@
 #include "graphics/dx12/util/dxDependencySolver.hpp"
 #include "graphics/dx12/util/formats.hpp"
 #include <graphics/common/texture.hpp>
+#include <graphics/common/command_buffer.hpp>
 
 #if 0
 #undef PROFILE
@@ -857,7 +858,7 @@ namespace faze
     }
 */
     // implementations
-    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list)
+    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& buffer, BarrierSolver& solver)
     {
       DX12Device* dev = static_cast<DX12Device*>(device.get());
 #if 0

@@ -7,13 +7,13 @@ namespace faze
 {
   namespace backend
   {
-/*
-    void VulkanCommandBuffer::handleRenderpass(VulkanDevice* device, backend::IntermediateList&, CommandPacket* begin, CommandPacket* end)
+    void VulkanCommandBuffer::handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& packet)
     {
       // step1. check if renderpass is done, otherwise create renderpass
-      auto& renderpassbegin = packetRef(gfxpacket::RenderpassBegin, begin);
-      auto rp = std::static_pointer_cast<VulkanRenderpass>(renderpassbegin.renderpass.impl());
-      if (!rp->valid())
+      auto& renderpassbegin = packet;
+      auto& rp = device->allResources().renderpasses[packet.renderpass];
+
+      if (!rp.valid())
       {
         int subpassIndex = 0;
 
@@ -29,11 +29,11 @@ namespace faze
         bool startedSubpass = false;
         startedSubpass = true;
 
-        auto& subpass = packetRef(gfxpacket::RenderpassBegin, begin);
+        auto& subpass = packet;
         // 1. find all the resources
-        for (auto&& it : subpass.rtvs)
+        for (auto&& it : subpass.rtvs.convertToMemView())
         {
-          auto* found = uidToAttachmendId.find(it.id());
+          auto* found = uidToAttachmendId.find(it.resource.id);
           if (found != uidToAttachmendId.end())
           {
             colors.emplace_back(vk::AttachmentReference()
@@ -43,12 +43,10 @@ namespace faze
           else
           {
             auto attachmentId = static_cast<int>(attachments.size());
-            uidToAttachmendId[it.id()] = attachmentId;
+            uidToAttachmendId[it.resource.id] = attachmentId;
             colors.emplace_back(vk::AttachmentReference()
               .setAttachment(attachmentId)
               .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-            auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
 
             vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
 
@@ -68,8 +66,10 @@ namespace faze
               store = vk::AttachmentStoreOp::eStore;
             }
 
+            auto& view = device->allResources().texRTV[it];
+
             attachments.emplace_back(vk::AttachmentDescription()
-              .setFormat(view->native().format)
+              .setFormat(view.native().format)
               .setSamples(vk::SampleCountFlagBits::e1)
               .setLoadOp(load)
               .setStoreOp(store)
@@ -80,10 +80,10 @@ namespace faze
           }
         }
 
-        if (subpass.dsvs.size() > 0)
+        if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
         {
-          auto& it = subpass.dsvs[0];
-          auto* found = uidToAttachmendId.find(it.id());
+          auto& it = subpass.dsv;
+          auto* found = uidToAttachmendId.find(it.resource.id);
           if (found != uidToAttachmendId.end())
           {
             depthStencil.emplace_back(vk::AttachmentReference()
@@ -94,12 +94,10 @@ namespace faze
           else
           {
             auto attachmentId = static_cast<int>(attachments.size());
-            uidToAttachmendId[it.id()] = attachmentId;
+            uidToAttachmendId[it.resource.id] = attachmentId;
             depthStencil.emplace_back(vk::AttachmentReference()
               .setAttachment(attachmentId)
               .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
-
-            auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
 
             vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
 
@@ -119,8 +117,10 @@ namespace faze
               store = vk::AttachmentStoreOp::eStore;
             }
 
+            auto& view = device->allResources().texDSV[it];
+
             attachments.emplace_back(vk::AttachmentDescription()
-              .setFormat(view->native().format)
+              .setFormat(view.native().format)
               .setSamples(vk::SampleCountFlagBits::e1)
               .setLoadOp(load)
               .setStoreOp(store)
@@ -177,9 +177,11 @@ namespace faze
 
         auto rpobj = device->createRenderpass(rpinfo);
 
-        rp->native() = rpobj;
+        rp.native() = rpobj;
+        rp.setValid();
       }
       // step2. compile used pipelines against the renderpass within begin/end packets
+      /*
       {
         for (CommandPacket* current = begin; current != end; current = current->nextPacket())
         {
@@ -191,6 +193,7 @@ namespace faze
           }
         }
       }
+      */
 
       // step3. collect and register framebuffer to renderpass
       unordered_map<int64_t, int> uidToAttachmendId;
@@ -199,74 +202,74 @@ namespace faze
       int fbWidth = -1;
       int fbHeight = -1;
 
-      auto& subpass = packetRef(gfxpacket::RenderpassBegin, begin);
+      auto& subpass = packet;
 
-      for (auto&& it : subpass.rtvs)
+      for (auto&& it : subpass.rtvs.convertToMemView())
       {
-        auto* found = uidToAttachmendId.find(it.id());
+        auto* found = uidToAttachmendId.find(it.resource.id);
         if (found == uidToAttachmendId.end())
         {
+          auto& view = device->allResources().texRTV[it];
+          auto& desc = device->allResources().tex[it.resource].desc();
           if (fbWidth == fbHeight && fbHeight == -1)
           {
-            fbWidth = static_cast<int>(it.desc().desc.width);
-            fbHeight = static_cast<int>(it.desc().desc.height);
+            fbWidth = static_cast<int>(desc.desc.width);
+            fbHeight = static_cast<int>(desc.desc.height);
           }
-          F_ASSERT(fbWidth == static_cast<int>(it.desc().desc.width) && fbHeight == static_cast<int>(it.desc().desc.height), "Width and height must be same.");
+          F_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
           auto attachmentId = static_cast<int>(attachments.size());
-          uidToAttachmendId[it.id()] = attachmentId;
-          auto view = std::static_pointer_cast<VulkanTextureView>(it.native());
-          attachments.emplace_back(view->native().view);
+          uidToAttachmendId[it.resource.id] = attachmentId;
+          attachments.emplace_back(view.native().view);
         }
       }
-      if (subpass.dsvs.size() > 0)
+      if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
       {
         // have dsv
-        auto* found = uidToAttachmendId.find(subpass.dsvs[0].id());
+        auto* found = uidToAttachmendId.find(subpass.dsv.resource.id);
         if (found == uidToAttachmendId.end())
         {
+          auto& view = device->allResources().texDSV[subpass.dsv];
+          auto& desc = device->allResources().tex[subpass.dsv.resource].desc();
           if (fbWidth == fbHeight && fbHeight == -1)
           {
-            fbWidth = static_cast<int>(subpass.dsvs[0].desc().desc.width);
-            fbHeight = static_cast<int>(subpass.dsvs[0].desc().desc.height);
+            fbWidth = static_cast<int>(desc.desc.width);
+            fbHeight = static_cast<int>(desc.desc.height);
           }
-          F_ASSERT(fbWidth == static_cast<int>(subpass.dsvs[0].desc().desc.width) && fbHeight == static_cast<int>(subpass.dsvs[0].desc().desc.height), "Width and height must be same.");
+          F_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
           auto attachmentId = static_cast<int>(attachments.size());
-          uidToAttachmendId[subpass.dsvs[0].id()] = attachmentId;
-          auto view = std::static_pointer_cast<VulkanTextureView>(subpass.dsvs[0].native());
-          attachments.emplace_back(view->native().view);
+          uidToAttachmendId[subpass.dsv.resource.id] = attachmentId;
+          attachments.emplace_back(view.native().view);
         }
       }
       renderpassbegin.fbWidth = fbWidth;
       renderpassbegin.fbHeight = fbHeight;
-
+/*
       size_t attachmentsHash = HashMemory(attachments.data(), attachments.size());
       attachmentsHash = hash_combine(hash_combine(HashMemory(&fbWidth, sizeof(fbWidth)),HashMemory(&fbHeight, sizeof(fbHeight))), attachmentsHash);
       auto& fbs = rp->framebuffers();
       auto* exists = fbs.find(attachmentsHash);
       if (exists == fbs.end())
+      */
       {
         vk::FramebufferCreateInfo info = vk::FramebufferCreateInfo()
           .setWidth(static_cast<uint32_t>(fbWidth))
           .setHeight(static_cast<uint32_t>(fbHeight))
           .setLayers(1)
           .setPAttachments(attachments.data()) // imageview
-          .setRenderPass(*rp->native())
+          .setRenderPass(rp.native())
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()));
 
-        fbs[attachmentsHash] = std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
+        m_framebuffers.push_back(std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
         {
           dev.destroyFramebuffer(*ptr);
           delete ptr;
-        });
-        F_LOG("Created a framebuffer\n");
+        }));
+        //F_LOG("Created a framebuffer\n");
       }
-      else
-      {
-        //F_LOG("Framebuffer was already found!!!!\n");
-      }
-      rp->setActiveFramebuffer(attachmentsHash); // remember to set the current hash as active one.
+      //rp->setActiveFramebuffer(attachmentsHash); // remember to set the current hash as active one.
     }
 
+/*
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
     {
       // find all renderpasses
@@ -558,8 +561,22 @@ namespace faze
 
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::CommandBuffer& list)
     {
-      // find all renderpasses
 
+      // find all renderpasses & compile all missing graphics pipelines
+      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
+      {
+        switch ((*iter)->type)
+        {
+          case PacketType::RenderpassBegin:
+          {
+            gfxpacket::RenderPassBegin& packet = (*iter)->data<gfxpacket::RenderPassBegin>();
+            handleRenderpass(device, packet);
+            break;
+          }
+          default:
+          break;
+        }
+      }
 /*
       CommandPacket* beginPass = nullptr;
       CommandPacket* endPass = nullptr;
@@ -598,7 +615,7 @@ namespace faze
       */
     }
     // implementations
-    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list)
+    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list, BarrierSolver& solver)
     {
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 

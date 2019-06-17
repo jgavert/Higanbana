@@ -751,7 +751,7 @@ namespace faze
       for (int i = 0; i < static_cast<int>(images.size()); ++i)
       {
         //textures[i] = std::make_shared<VulkanTexture>(images[i], std::make_shared<VulkanTextureState>(VulkanTextureState{ state }), false);
-        m_allRes.tex[handles[i]] = VulkanTexture(images[i], std::make_shared<VulkanTextureState>(VulkanTextureState{ state }), false);
+        m_allRes.tex[handles[i]] = VulkanTexture(images[i], sc->desc(), false);
       }
       
       return static_cast<int>(images.size());
@@ -794,7 +794,7 @@ namespace faze
       return res.value;
     }
 
-    std::shared_ptr<vk::RenderPass> VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
+    vk::RenderPass VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
     {
       auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount);
       auto dependencyHash = HashMemory(info.pDependencies, info.dependencyCount);
@@ -805,7 +805,7 @@ namespace faze
       if (found != m_renderpasses.end())
       {
         //GFX_LOG("Reusing old renderpass.\n");
-        return found->second;
+        return *found->second;
       }
 
       auto renderpass = m_device.createRenderPass(info);
@@ -819,7 +819,7 @@ namespace faze
       m_renderpasses[totalHash] = newRP;
 
       GFX_LOG("Created new renderpass object.\n");
-      return newRP;
+      return *newRP;
     }
 
 /*
@@ -1656,7 +1656,7 @@ for (auto&& upload : it.second.dynamicBuffers)
           state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
         }
       }
-      m_allRes.tex[handle] = VulkanTexture(image, std::make_shared<VulkanTextureState>(VulkanTextureState{ state }));
+      m_allRes.tex[handle] = VulkanTexture(image, desc);
     }
 
     void VulkanDevice::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)

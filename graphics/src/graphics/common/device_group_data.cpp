@@ -441,19 +441,19 @@ namespace faze
       return CommandGraph(m_seqTracker.next()); 
     }
 
-    void DeviceGroupData::testStuff(CommandBuffer& buffer)
+    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice vdev, CommandBuffer& buffer)
     {
-      BarrierSolver solver(m_devices[0].m_bufferStates, m_devices[0].m_textureStates);
+      BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
       auto iter = buffer.begin();
       while((*iter)->type != PacketType::EndOfPackets)
       {
         CommandBuffer::PacketHeader* header = *iter;
+        auto drawIndex = solver.addDrawCall();
         switch (header->type)
         {
           case PacketType::RenderpassBegin:
           {
-            auto drawIndex = solver.addDrawCall(backend::AccessStage::Graphics);
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {
@@ -463,7 +463,6 @@ namespace faze
           }
           case PacketType::PrepareForPresent:
           {
-            auto drawIndex = solver.addDrawCall(backend::AccessStage::Present);
             auto& packet = header->data<gfxpacket::PrepareForPresent>();
             ViewResourceHandle viewhandle{};
             viewhandle.resource = packet.texture;
@@ -479,6 +478,8 @@ namespace faze
       }
 
       solver.makeAllBarriers();
+
+      nativeList->fillWith(vdev.device, buffer, solver);
     }
 
     void DeviceGroupData::submit(Swapchain& swapchain, CommandGraph graph)
@@ -560,11 +561,11 @@ namespace faze
             nativeList = m_devices[0].device->createGraphicsList();
           }
 
-          // barriers
-          testStuff(list.list.list);
+          // barriers&commands
+          fillCommandBuffer(nativeList, m_devices[0], list.list.list);
 
           // actual commands
-          nativeList->fillWith(m_devices[0].device, list.list.list);
+          //nativeList->fillWith(m_devices[0].device, list.list.list);
 
           LiveCommandBuffer2 buffer{};
           buffer.deviceID = 0;

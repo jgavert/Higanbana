@@ -39,6 +39,9 @@ namespace faze
       backend::PacketVectorHeader<ViewResourceHandle> rtvs;
       ViewResourceHandle dsv;
 
+      int fbWidth;
+      int fbHeight;
+
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
       static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv)
       {

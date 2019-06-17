@@ -4,11 +4,11 @@ namespace faze
 {
   namespace backend
   {
-    int BarrierSolver::addDrawCall(backend::AccessStage baseFlags)
+    int BarrierSolver::addDrawCall()
     {
-      auto index = m_drawCallStage.size();
-      m_drawCallStage.push_back(baseFlags);
-      return index; 
+      //auto index = m_drawCallStage.size();
+      //m_drawCallStage.push_back(baseFlags);
+      return drawCallsAdded++; 
     }
     void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
@@ -166,6 +166,21 @@ namespace faze
           globalState[i] = localState[i];
         }
       }
+    }
+
+    MemoryBarriers BarrierSolver::runBarrier(int drawCall)
+    {
+      MemoryBarriers barrier;
+
+      auto bufferOffset = m_barrierOffsets[drawCall];
+      auto bufferSize = m_barrierOffsets[drawCall + 1] - bufferOffset;
+      auto imageOffset = m_imageBarrierOffsets[drawCall];
+      auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
+
+      barrier.buffers = MemView<BufferBarrier>(&bufferBarriers[bufferOffset], bufferSize);
+      barrier.textures = MemView<ImageBarrier>(&imageBarriers[imageOffset], imageSize);
+
+      return barrier;
     }
   }
 }

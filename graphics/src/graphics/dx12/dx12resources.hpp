@@ -657,7 +657,7 @@ namespace faze
         });
       }
 
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
 
       bool closed() const
       {

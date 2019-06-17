@@ -2,7 +2,7 @@
 #include "graphics/vk/vulkan.hpp"
 #include "graphics/common/prototypes.hpp"
 #include "graphics/common/resources.hpp"
-#include "graphics/common/commandpackets.hpp"
+#include "graphics/common/command_packets.hpp"
 #include <graphics/common/command_buffer.hpp>
 
 #include "graphics/vk/util/AllocStuff.hpp" // refactor
@@ -225,26 +225,22 @@ namespace faze
     {
     private:
       vk::Image resource;
-      std::shared_ptr<VulkanTextureState> statePtr;
+      ResourceDescriptor m_desc;
       bool owned;
 
     public:
       VulkanTexture()
       {}
 
-      VulkanTexture(vk::Image resource, std::shared_ptr<VulkanTextureState> state, bool owner = true)
+      VulkanTexture(vk::Image resource, ResourceDescriptor desc, bool owner = true)
         : resource(resource)
-        , statePtr(state)
+        , m_desc(desc)
         , owned(owner)
       {}
+
       vk::Image native()
       {
         return resource;
-      }
-
-      std::shared_ptr<VulkanTextureState> state()
-      {
-        return statePtr;
       }
 
       bool canRelease()
@@ -252,13 +248,9 @@ namespace faze
         return owned;
       }
 
-      backend::TrackedState dependency()
+      const ResourceDescriptor& desc() const
       {
-        backend::TrackedState state{};
-        state.resPtr = reinterpret_cast<size_t>(&resource);
-        state.statePtr = reinterpret_cast<size_t>(statePtr.get());
-        state.additionalInfo = 0;
-        return state;
+        return m_desc;
       }
     };
 
@@ -477,12 +469,10 @@ namespace faze
     private:
       vk::RenderPass m_renderpass = nullptr;
       bool is_valid = false;
-      std::shared_ptr<unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>> m_framebuffers;
       size_t m_activeHash = 0;
     public:
 
       VulkanRenderpass()
-        : m_framebuffers(std::make_shared<unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>>())
        {}
 
       bool valid() const
@@ -498,21 +488,6 @@ namespace faze
       vk::RenderPass& native()
       {
         return m_renderpass;
-      }
-
-      unordered_map<int64_t, std::shared_ptr<vk::Framebuffer>>& framebuffers()
-      {
-        return *m_framebuffers;
-      }
-
-      void setActiveFramebuffer(size_t hash)
-      {
-        m_activeHash = hash;
-      }
-
-      vk::Framebuffer getActiveFramebuffer()
-      {
-        return *(*m_framebuffers)[m_activeHash];
       }
     };
 
@@ -611,19 +586,37 @@ namespace faze
       }
     };
 
+
+    struct Resources
+    {
+      HandleVector<VulkanTexture> tex;
+      HandleVector<VulkanBuffer> buf;
+      HandleVector<VulkanBufferView> bufSRV;
+      HandleVector<VulkanBufferView> bufUAV;
+      HandleVector<VulkanBufferView> bufIBV;
+      HandleVector<VulkanTextureView> texSRV;
+      HandleVector<VulkanTextureView> texUAV;
+      HandleVector<VulkanTextureView> texRTV;
+      HandleVector<VulkanTextureView> texDSV;
+      HandleVector<VulkanPipeline> pipelines;
+      HandleVector<VulkanRenderpass> renderpasses;
+      HandleVector<VulkanHeap> heaps;
+    };
+
     class VulkanCommandBuffer : public CommandBufferImpl
     {
       std::shared_ptr<VulkanCommandList> m_list;
+      vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
 
     public:
       VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list)
         : m_list(list)
       {}
     private:
-      void handleRenderpass(VulkanDevice* device, backend::CommandBuffer&, backend::CommandBuffer::PacketHeader* begin);
+      void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
     public:
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
 
       vk::CommandBuffer list()
       {

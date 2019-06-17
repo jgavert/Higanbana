@@ -33,6 +33,7 @@ namespace faze
     struct GpuHeap;
     class CommandBuffer;
     struct HeapAllocation;
+    class BarrierSolver;
 
     class SemaphoreImpl
     {
@@ -54,7 +55,7 @@ namespace faze
     class CommandBufferImpl
     {
     public:
-      virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list) = 0;
+      virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list, BarrierSolver& solver) = 0;
       virtual ~CommandBufferImpl() = default;
     };
 
