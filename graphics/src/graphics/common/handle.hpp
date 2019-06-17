@@ -115,6 +115,11 @@ namespace faze
     {
       return static_cast<ResourceUsage>(m_usage);
     }
+
+    bool operator==(const ResourceHandle& other) const
+    {
+      return id == other.id;
+    }
   };
 
   // Saving some space by making specific type for views

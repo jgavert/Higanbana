@@ -110,6 +110,34 @@ namespace faze
 
     constexpr const int SwapchainDeviceID = 0;
 
+    void setViewRange(const ShaderViewDescriptor& view, const ResourceDescriptor& desc, bool srv, ViewResourceHandle& handle)
+    {
+      auto mipOffset = static_cast<int>(view.m_mostDetailedMip);
+      auto mipLevels = static_cast<int>(view.m_mipLevels);
+      auto sliceOffset = static_cast<int>(view.m_arraySlice);
+      auto arraySize = static_cast<int>(view.m_arraySize);
+
+      if (mipLevels == -1)
+      {
+        mipLevels = static_cast<int>(desc.desc.miplevels - mipOffset);
+      }
+
+      if (arraySize == -1)
+      {
+        arraySize = static_cast<int>(desc.desc.arraySize - sliceOffset);
+        if (desc.desc.dimension == FormatDimension::TextureCube)
+        {
+          arraySize = static_cast<int>((desc.desc.arraySize * 6) - sliceOffset);
+        }
+      }
+
+      if (!srv)
+      {
+        mipLevels = 1;
+      }
+      handle.subresourceRange(desc.desc.miplevels, mipOffset, mipLevels, sliceOffset, arraySize);
+    }
+
     void DeviceGroupData::configureBackbufferViews(Swapchain& sc)
     {
       vector<ResourceHandle> handles;
@@ -140,8 +168,13 @@ namespace faze
           viewDesc.m_format = tex.desc().desc.format;
         }
 
+        auto subresources = tex.desc().desc.miplevels * tex.desc().desc.arraySize;
+        m_devices[0].m_textureStates[*handlePtr].mips = tex.desc().desc.miplevels;
+        m_devices[0].m_textureStates[*handlePtr].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, 0));
+
         auto handle = m_handles.allocateViewResource(ViewResourceType::TextureRTV, *handlePtr);
         m_devices[0].device->createTextureView(handle, tex.handle(), tex.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
+        setViewRange(viewDesc, tex.desc(), false, handle);
         backbuffers[i] = TextureRTV(tex, sharedViewHandle(handle));
       }
 
@@ -323,34 +356,6 @@ namespace faze
       return BufferUAV(buffer, sharedViewHandle(handle));
     }
 
-    void setViewRange(const ShaderViewDescriptor& view, const ResourceDescriptor& desc, bool srv, ViewResourceHandle& handle)
-    {
-      auto mipOffset = static_cast<int>(view.m_mostDetailedMip);
-      auto mipLevels = static_cast<int>(view.m_mipLevels);
-      auto sliceOffset = static_cast<int>(view.m_arraySlice);
-      auto arraySize = static_cast<int>(view.m_arraySize);
-
-      if (mipLevels == -1)
-      {
-        mipLevels = static_cast<int>(desc.desc.miplevels - mipOffset);
-      }
-
-      if (arraySize == -1)
-      {
-        arraySize = static_cast<int>(desc.desc.arraySize - sliceOffset);
-        if (desc.desc.dimension == FormatDimension::TextureCube)
-        {
-          arraySize = static_cast<int>((desc.desc.arraySize * 6) - sliceOffset);
-        }
-      }
-
-      if (!srv)
-      {
-        mipLevels = 1;
-      }
-      handle.subresourceRange(desc.desc.miplevels, mipOffset, mipLevels, sliceOffset, arraySize);
-    }
-
     TextureSRV DeviceGroupData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
     {
       if (viewDesc.m_format == FormatType::Unknown)
@@ -444,14 +449,30 @@ namespace faze
       while((*iter)->type != PacketType::EndOfPackets)
       {
         CommandBuffer::PacketHeader* header = *iter;
-        if (header->type == PacketType::RenderpassBegin)
+        switch (header->type)
         {
-          auto drawIndex = solver.addDrawCall(backend::AccessStage::Graphics);
-          auto& packet = header->data<gfxpacket::RenderPassBegin>();
-          for (auto&& rtv : packet.rtvs.convertToMemView())
+          case PacketType::RenderpassBegin:
           {
-            solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Graphics, backend::TextureLayout::Rendertarget, 0));
+            auto drawIndex = solver.addDrawCall(backend::AccessStage::Graphics);
+            auto& packet = header->data<gfxpacket::RenderPassBegin>();
+            for (auto&& rtv : packet.rtvs.convertToMemView())
+            {
+              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Graphics, backend::TextureLayout::Rendertarget, 0));
+            }
+            break;
           }
+          case PacketType::PrepareForPresent:
+          {
+            auto drawIndex = solver.addDrawCall(backend::AccessStage::Present);
+            auto& packet = header->data<gfxpacket::PrepareForPresent>();
+            ViewResourceHandle viewhandle{};
+            viewhandle.resource = packet.texture;
+            viewhandle.subresourceRange(1, 0, 1, 0, 1);
+            solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, 0));
+            break;
+          }
+          default:
+            break;
         }
 
         iter++;

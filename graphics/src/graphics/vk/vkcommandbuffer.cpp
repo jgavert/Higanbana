@@ -606,12 +606,10 @@ namespace faze
       // preprocess to compile renderpasses/pipelines
 
       preprocess(nat.get(), list);
-/*
-      VulkanDependencySolver solver; // TODO: not really like this :D super heavy object, but might as well keep here until I know where it belongs to.
+      
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
-        */
 
       //addDepedencyDataAndSolve(solver, list);
 
