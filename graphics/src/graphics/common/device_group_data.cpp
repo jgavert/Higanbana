@@ -170,7 +170,7 @@ namespace faze
 
         auto subresources = tex.desc().desc.miplevels * tex.desc().desc.arraySize;
         m_devices[0].m_textureStates[*handlePtr].mips = tex.desc().desc.miplevels;
-        m_devices[0].m_textureStates[*handlePtr].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, 0));
+        m_devices[0].m_textureStates[*handlePtr].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Undefined, 0));
 
         auto handle = m_handles.allocateViewResource(ViewResourceType::TextureRTV, *handlePtr);
         m_devices[0].device->createTextureView(handle, tex.handle(), tex.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));

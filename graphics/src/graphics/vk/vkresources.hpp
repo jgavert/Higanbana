@@ -225,6 +225,7 @@ namespace faze
     {
     private:
       vk::Image resource;
+      vk::ImageAspectFlags m_aspectFlags; // this probably belongs to ... view :(
       ResourceDescriptor m_desc;
       bool owned;
 
@@ -236,7 +237,14 @@ namespace faze
         : resource(resource)
         , m_desc(desc)
         , owned(owner)
-      {}
+        , m_aspectFlags(vk::ImageAspectFlagBits::eColor)
+      {
+        if (m_desc.desc.usage == ResourceUsage::DepthStencil 
+         || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
+        {
+          m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+        }
+      }
 
       vk::Image native()
       {
@@ -251,6 +259,11 @@ namespace faze
       const ResourceDescriptor& desc() const
       {
         return m_desc;
+      }
+
+      vk::ImageAspectFlags aspectFlags()
+      {
+        return m_aspectFlags;
       }
     };
 
