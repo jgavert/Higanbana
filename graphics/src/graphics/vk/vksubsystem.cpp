@@ -79,7 +79,9 @@ namespace faze
       /////////////////////////////////
       // getting debug layers
       // TODO: These need to be saved for device creation also. which layers and extensions each use.
-      auto layersInfos = vk::enumerateInstanceLayerProperties();
+      auto layersInfosRes = vk::enumerateInstanceLayerProperties();
+      VK_CHECK_RESULT(layersInfosRes);
+      auto layersInfos = layersInfosRes.value;
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
 
@@ -115,7 +117,9 @@ namespace faze
       }
       /////////////////////////////////
       // Getting extensions
-      std::vector<vk::ExtensionProperties> extInfos = vk::enumerateInstanceExtensionProperties();
+      auto extRes = vk::enumerateInstanceExtensionProperties();
+      VK_CHECK_RESULT(extRes);
+      std::vector<vk::ExtensionProperties> extInfos = extRes.value;
 
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
 
@@ -176,7 +180,9 @@ namespace faze
         GFX_ILOG("Instance creation error: %s", error.c_str());
         F_ASSERT(false, "");
       }
-      m_devices = m_instance->enumeratePhysicalDevices();
+      auto devRes = m_instance->enumeratePhysicalDevices();
+      VK_CHECK_RESULT(devRes);
+      m_devices = devRes.value;
 
       // get addresses for few functions
       PFN_vkCreateDebugUtilsMessengerEXT dbgCreateDebugUtilsCallback;
@@ -315,7 +321,9 @@ namespace faze
     {
       auto&& physDev = m_devices[gpu.id];
 
-      std::vector<vk::ExtensionProperties> devExts = physDev.enumerateDeviceExtensionProperties();
+      auto physExtRes = physDev.enumerateDeviceExtensionProperties();
+      VK_CHECK_RESULT(physExtRes);
+      std::vector<vk::ExtensionProperties> devExts = physExtRes.value;
 
       std::vector<const char*> extensions;
       {
@@ -376,7 +384,9 @@ namespace faze
         .setPpEnabledExtensionNames(extensions.data())
         .setPEnabledFeatures(&features);
 
-      vk::Device dev = physDev.createDevice(device_info);
+      auto devRes = physDev.createDevice(device_info);
+      VK_CHECK_RESULT(devRes);
+      vk::Device dev = devRes.value;
 
       std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, gpu, false);
 
@@ -390,7 +400,9 @@ namespace faze
         .setHwnd(window.getInternalWindow().getHWND())
         .setHinstance(window.getInternalWindow().getHInstance());
 
-      vk::SurfaceKHR surfacekhr = m_instance->createWin32SurfaceKHR(createInfo);
+      auto surfaceKhrRes = m_instance->createWin32SurfaceKHR(createInfo);
+      VK_CHECK_RESULT(surfaceKhrRes);
+      vk::SurfaceKHR surfacekhr = surfaceKhrRes.value;
 
       auto inst = m_instance;
 

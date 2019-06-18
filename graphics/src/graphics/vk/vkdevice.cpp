@@ -427,7 +427,8 @@ namespace faze
       m_semaphores = Rabbitpool2<VulkanSemaphore>([device]()
       {
         auto fence = device.createSemaphore(vk::SemaphoreCreateInfo());
-        return VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence), [=](vk::Semaphore* ptr)
+        VK_CHECK_RESULT(fence);
+        return VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence.value), [=](vk::Semaphore* ptr)
         {
           device.destroySemaphore(*ptr);
           delete ptr;
@@ -436,7 +437,8 @@ namespace faze
       m_fences = Rabbitpool2<VulkanFence>([device]()
       {
         auto fence = device.createFence(vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled));
-        return VulkanFence(std::shared_ptr<vk::Fence>(new vk::Fence(fence), [=](vk::Fence* ptr)
+        VK_CHECK_RESULT(fence);
+        return VulkanFence(std::shared_ptr<vk::Fence>(new vk::Fence(fence.value), [=](vk::Fence* ptr)
         {
           device.destroyFence(*ptr);
           delete ptr;
@@ -484,10 +486,18 @@ namespace faze
         .setMinFilter(vk::Filter::eNearest)
         .setAddressModeU(vk::SamplerAddressMode::eRepeat);
 
-      m_bilinearSampler = m_device.createSampler(s0);
-      m_pointSampler = m_device.createSampler(s1);
-      m_bilinearSamplerWrap = m_device.createSampler(s2);
-      m_pointSamplerWrap = m_device.createSampler(s3);
+      auto sr0 = m_device.createSampler(s0);
+      auto sr1 = m_device.createSampler(s1);
+      auto sr2 = m_device.createSampler(s2);
+      auto sr3 = m_device.createSampler(s3);
+      VK_CHECK_RESULT(sr0);
+      VK_CHECK_RESULT(sr1);
+      VK_CHECK_RESULT(sr2);
+      VK_CHECK_RESULT(sr3);
+      m_bilinearSampler = sr0.value;
+      m_pointSampler = sr1.value;
+      m_bilinearSamplerWrap = sr2.value;
+      m_pointSamplerWrap = sr3.value;
     }
 
     VulkanDevice::~VulkanDevice()
@@ -517,7 +527,9 @@ namespace faze
       auto buffers = descriptor.desc.bufferCount;
 
       auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
-      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+      auto surfaceCapRes = m_physDevice.getSurfaceCapabilitiesKHR(natSurface->native());
+      VK_CHECK_RESULT(surfaceCapRes);
+      auto surfaceCap = surfaceCapRes.value;
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
       F_SLOG("Graphics/Surface", "surface details\n");
       F_SLOG("Graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
@@ -526,7 +538,9 @@ namespace faze
       F_SLOG("Graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
 #endif
 
-      auto formats = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
+      auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
+      VK_CHECK_RESULT(formatsRes);
+      auto formats = formatsRes.value;
 
       auto wantedFormat = formatToVkFormat(format).storage;
       auto backupFormat = vk::Format::eB8G8R8A8Unorm;
@@ -553,6 +567,8 @@ namespace faze
       }
 
       auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native());
+      VK_CHECK_RESULT(asd);
+      auto presentModes = asd.value;
 
       vk::PresentModeKHR khrmode;
       switch (mode)
@@ -573,7 +589,7 @@ namespace faze
       }
 
       bool hadChosenMode = false;
-      for (auto&& fmt : asd)
+      for (auto&& fmt : presentModes)
       {
 #ifdef        FAZE_GRAPHICS_EXTRA_INFO
         if (fmt == vk::PresentModeKHR::eImmediate)
@@ -604,7 +620,7 @@ namespace faze
         extent.width = surfaceCap.minImageExtent.width;
       }
 
-      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()))
+      if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()).result != vk::Result::eSuccess)
       {
         F_ASSERT(false, "Was not supported.");
       }
@@ -631,8 +647,9 @@ namespace faze
         //	.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eInherit)
         .setPresentMode(khrmode)
         .setClipped(false);
-
-      auto swapchain = m_device.createSwapchainKHR(info);
+      auto scRes = m_device.createSwapchainKHR(info);
+      VK_CHECK_RESULT(scRes);
+      auto swapchain = scRes.value;
       auto sc = std::shared_ptr<VulkanSwapchain>(new VulkanSwapchain(swapchain, *natSurface, m_semaphores.allocate()),
         [dev = m_device](VulkanSwapchain* ptr)
       {
@@ -657,7 +674,9 @@ namespace faze
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
       mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
 
-      auto formats = m_physDevice.getSurfaceFormatsKHR(natSurface.native());
+      auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface.native());
+      VK_CHECK_RESULT(formatsRes);
+      auto formats = formatsRes.value;
 
       auto wantedFormat = formatToVkFormat(format).storage;
       auto backupFormat = vk::Format::eB8G8R8A8Unorm;
@@ -683,7 +702,9 @@ namespace faze
         format = FormatType::Unorm8BGRA;
       }
 
-      auto surfaceCap = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
+      auto surfaceCapRes = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
+      VK_CHECK_RESULT(surfaceCapRes);
+      auto surfaceCap = surfaceCapRes.value;
 
       auto& extent = surfaceCap.currentExtent;
       if (extent.height < 8)
@@ -697,7 +718,7 @@ namespace faze
 
       int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), bufferCount);
 
-      if (!m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()))
+      if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()).result != vk::Result::eSuccess)
       {
         F_ASSERT(false, "Was not supported.");
       }
@@ -734,7 +755,10 @@ namespace faze
         .setClipped(false)
         .setOldSwapchain(oldSwapchain);
 
-      natSwapchain->setSwapchain(m_device.createSwapchainKHR(info));
+      auto scRes = m_device.createSwapchainKHR(info);
+      VK_CHECK_RESULT(scRes);
+
+      natSwapchain->setSwapchain(scRes.value);
 
       m_device.destroySwapchainKHR(oldSwapchain);
       //F_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
@@ -744,7 +768,9 @@ namespace faze
     int VulkanDevice::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles)
     {
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
-      auto images = m_device.getSwapchainImagesKHR(native->native());
+      auto imagesRes = m_device.getSwapchainImagesKHR(native->native());
+      VK_CHECK_RESULT(imagesRes);
+      auto images = imagesRes.value;
       vector<TextureStateFlags> state;
       state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
 
@@ -766,7 +792,7 @@ namespace faze
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
       {
-        F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+        F_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
         return -1;
       }
       native->setCurrentPresentableImageIndex(res.value);
@@ -785,8 +811,8 @@ namespace faze
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
       {
-        F_SLOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
-        //return -1;
+        F_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+        return -1;
       }
       native->setCurrentPresentableImageIndex(res.value);
       native->setAcquireSemaphore(freeSemaphore);
@@ -808,7 +834,9 @@ namespace faze
         return *found->second;
       }
 
-      auto renderpass = m_device.createRenderPass(info);
+      auto renderpassRes = m_device.createRenderPass(info);
+      VK_CHECK_RESULT(renderpassRes);
+      auto renderpass = renderpassRes.value;
 
       auto newRP = std::shared_ptr<vk::RenderPass>(new vk::RenderPass(renderpass), [dev = m_device](vk::RenderPass* ptr)
       {
@@ -852,10 +880,11 @@ namespace faze
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
         auto module = m_device.createShaderModule(si);
+        VK_CHECK_RESULT(module);
 
         ReadyShader ss;
         ss.stage = vk::ShaderStageFlagBits::eVertex;
-        ss.module = module;
+        ss.module = module.value;
         shaders.push_back(ss);
 /*
         if (vp.m_gfxDesc.desc.vs.empty())
@@ -872,10 +901,11 @@ namespace faze
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
         auto module = m_device.createShaderModule(si);
+        VK_CHECK_RESULT(module);
 
         ReadyShader ss;
         ss.stage = vk::ShaderStageFlagBits::eTessellationControl;
-        ss.module = module;
+        ss.module = module.value;
         shaders.push_back(ss);
 /*
         if (ptr->hs.empty())
@@ -892,10 +922,11 @@ namespace faze
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
         auto module = m_device.createShaderModule(si);
+        VK_CHECK_RESULT(module);
 
         ReadyShader ss;
         ss.stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
-        ss.module = module;
+        ss.module = module.value;
         shaders.push_back(ss);
         /*
         if (ptr->ds.empty())
@@ -913,10 +944,11 @@ namespace faze
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
         auto module = m_device.createShaderModule(si);
+        VK_CHECK_RESULT(module);
 
         ReadyShader ss;
         ss.stage = vk::ShaderStageFlagBits::eGeometry;
-        ss.module = module;
+        ss.module = module.value;
         shaders.push_back(ss);
         /*
         if (ptr->gs.empty())
@@ -934,10 +966,11 @@ namespace faze
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
         auto module = m_device.createShaderModule(si);
+        VK_CHECK_RESULT(module);
 
         ReadyShader ss;
         ss.stage = vk::ShaderStageFlagBits::eFragment;
-        ss.module = module;
+        ss.module = module.value;
         shaders.push_back(ss);
         /*
         if (ptr->ps.empty())
@@ -998,11 +1031,12 @@ namespace faze
         .setSubpass(0); // only 1 ever available
 
       auto compiled = m_device.createGraphicsPipeline(nullptr, pipelineInfo);
+      VK_CHECK_RESULT(compiled);
       for (auto&& it : shaders)
       {
         m_device.destroyShaderModule(it.module);
       }
-      vp.m_pipeline = compiled;
+      vp.m_pipeline = compiled.value;
       vp.m_hasPipeline = true;
       F_ILOG("Vulkan", "Pipeline compiled...");
     }
@@ -1021,19 +1055,20 @@ namespace faze
       auto shaderInfo = vk::ShaderModuleCreateInfo().setCodeSize(shader.size()).setPCode(reinterpret_cast<uint32_t*>(shader.data()));
 
       auto smodule = m_device.createShaderModule(shaderInfo);
+      VK_CHECK_RESULT(smodule);
 
       auto pipelineDesc = vk::ComputePipelineCreateInfo()
         .setStage(vk::PipelineShaderStageCreateInfo()
-          .setModule(smodule)
+          .setModule(smodule.value)
           .setPName("main")
           .setStage(vk::ShaderStageFlagBits::eCompute))
         .setLayout(pipe.m_pipelineLayout);
       auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
-      m_device.destroyShaderModule(smodule);
+      m_device.destroyShaderModule(smodule.value);
 
-      if (result)
+      if (result.result == vk::Result::eSuccess)
       {
-        pipe.m_pipeline = result.operator VkPipeline();
+        pipe.m_pipeline = result.value;
         pipe.m_hasPipeline = true;
       }
     }
@@ -1046,12 +1081,14 @@ namespace faze
         .setPBindings(bindings.data());
 
       auto setlayout = m_device.createDescriptorSetLayout(info);
+      VK_CHECK_RESULT(setlayout);
 
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
-        .setPSetLayouts(&setlayout));
+        .setPSetLayouts(&setlayout.value));
+      VK_CHECK_RESULT(pipelineLayout);
 
-      m_allRes.pipelines[handle] = VulkanPipeline(setlayout, pipelineLayout, desc);
+      m_allRes.pipelines[handle] = VulkanPipeline(setlayout.value, pipelineLayout.value, desc);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
@@ -1062,12 +1099,14 @@ namespace faze
         .setPBindings(bindings.data());
 
       auto setlayout = m_device.createDescriptorSetLayout(info);
+      VK_CHECK_RESULT(setlayout);
 
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
         .setSetLayoutCount(1)
-        .setPSetLayouts(&setlayout));
+        .setPSetLayouts(&setlayout.value));
+      VK_CHECK_RESULT(pipelineLayout);
 
-      m_allRes.pipelines[handle] = VulkanPipeline(setlayout, pipelineLayout, desc);
+      m_allRes.pipelines[handle] = VulkanPipeline(setlayout.value, pipelineLayout.value, desc);
     }
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags)
@@ -1368,14 +1407,16 @@ for (auto&& upload : it.second.dynamicBuffers)
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
         auto buffer = m_device.createBuffer(fillBufferInfo(desc));
-        requirements = m_device.getBufferMemoryRequirements(buffer);
-        m_device.destroyBuffer(buffer);
+        VK_CHECK_RESULT(buffer);
+        requirements = m_device.getBufferMemoryRequirements(buffer.value);
+        m_device.destroyBuffer(buffer.value);
       }
       else
       {
         auto image = m_device.createImage(fillImageInfo(desc));
-        requirements = m_device.getImageMemoryRequirements(image);
-        m_device.destroyImage(image);
+        VK_CHECK_RESULT(image);
+        requirements = m_device.getImageMemoryRequirements(image.value);
+        m_device.destroyImage(image.value);
       }
       auto memProp = m_physDevice.getMemoryProperties();
       auto searchProperties = getMemoryProperties(desc.desc.usage);
@@ -1416,8 +1457,9 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setMemoryTypeIndex(index);
 
       auto memory = m_device.allocateMemory(allocInfo);
+      VK_CHECK_RESULT(memory);
 
-      m_allRes.heaps[handle] = VulkanHeap(memory);
+      m_allRes.heaps[handle] = VulkanHeap(memory.value);
     }
 
     void VulkanDevice::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
@@ -1483,15 +1525,16 @@ for (auto&& upload : it.second.dynamicBuffers)
     {
       auto vkdesc = fillBufferInfo(desc);
       auto buffer = m_device.createBuffer(vkdesc);
+      VK_CHECK_RESULT(buffer);
       //auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getBufferMemoryRequirements(buffer); // Only to silence the debug layers
-      m_device.bindBufferMemory(buffer, native.native(), size);
+      m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers
+      m_device.bindBufferMemory(buffer.value, native.native(), size);
 
       VulkanBufferState state{};
       state.queueIndex = m_mainQueueIndex;
-      m_allRes.buf[handle] = VulkanBuffer(buffer, std::make_shared<VulkanBufferState>(state));
+      m_allRes.buf[handle] = VulkanBuffer(buffer.value, std::make_shared<VulkanBufferState>(state));
     }
 
     void VulkanDevice::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
@@ -1609,20 +1652,13 @@ for (auto&& upload : it.second.dynamicBuffers)
     {
       auto vkdesc = fillImageInfo(desc);
       auto image = m_device.createImage(vkdesc);
+      VK_CHECK_RESULT(image);
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getImageMemoryRequirements(image); // Only to silence the debug layers, we've already done this with same description.
-      m_device.bindImageMemory(image, native.native(), size);
+      m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      m_device.bindImageMemory(image.value, native.native(), size);
 
-      vector<TextureStateFlags> state;
-      for (uint32_t slice = 0; slice < vkdesc.arrayLayers; ++slice)
-      {
-        for (uint32_t mip = 0; mip < vkdesc.mipLevels; ++mip)
-        {
-          state.emplace_back(TextureStateFlags(vk::AccessFlagBits(0), vk::ImageLayout::eUndefined, m_mainQueueIndex));
-        }
-      }
-      m_allRes.tex[handle] = VulkanTexture(image, desc);
+      m_allRes.tex[handle] = VulkanTexture(image.value, desc);
     }
 
     void VulkanDevice::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
@@ -1703,10 +1739,11 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setSubresourceRange(subResourceRange);
 
       auto view = m_device.createImageView(viewInfo);
+      VK_CHECK_RESULT(view);
 
       vk::DescriptorImageInfo info = vk::DescriptorImageInfo()
         .setImageLayout(vk::ImageLayout::eGeneral) // TODO: layouts
-        .setImageView(view);
+        .setImageView(view.value);
 
 
       SubresourceRange range{};
@@ -1719,22 +1756,22 @@ for (auto&& upload : it.second.dynamicBuffers)
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
         imageType = vk::DescriptorType::eSampledImage;
-        m_allRes.texSRV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+        m_allRes.texSRV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
       {
         imageType = vk::DescriptorType::eStorageImage;
-        m_allRes.texUAV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+        m_allRes.texUAV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
       {
         imageType = vk::DescriptorType::eInputAttachment;
-        m_allRes.texDSV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+        m_allRes.texDSV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
       {
         imageType = vk::DescriptorType::eInputAttachment;
-        m_allRes.texRTV[handle] = VulkanTextureView(view, info, formatToVkFormat(format).view, imageType, range, imgFlags);
+        m_allRes.texRTV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
     }
 
@@ -1754,11 +1791,12 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setRange(upload.block.size);
 
       auto view = m_device.createBufferView(desc);
+      VK_CHECK_RESULT(view);
 
       // will be collected promtly
       m_trash->dynamicBuffers.emplace_back(upload);
-      m_trash->bufferviews.emplace_back(view);
-      return std::make_shared<VulkanDynamicBufferView>(upload.buffer(), view, upload);
+      m_trash->bufferviews.emplace_back(view.value);
+      return std::make_shared<VulkanDynamicBufferView>(upload.buffer(), view.value, upload);
     }
     std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> , unsigned)
     {
@@ -1782,18 +1820,20 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
         .setQueueFamilyIndex(queueIndex);
       auto pool = m_device.createCommandPool(poolInfo);
+      VK_CHECK_RESULT(pool);
       auto buffer = m_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
         .setCommandBufferCount(1)
-        .setCommandPool(pool)
+        .setCommandPool(pool.value)
         .setLevel(vk::CommandBufferLevel::ePrimary));
+      VK_CHECK_RESULT(buffer);
 
-      auto ptr = std::shared_ptr<vk::CommandPool>(new vk::CommandPool(pool), [&](vk::CommandPool* ptr)
+      auto ptr = std::shared_ptr<vk::CommandPool>(new vk::CommandPool(pool.value), [&](vk::CommandPool* ptr)
       {
         m_device.destroyCommandPool(*ptr);
         delete ptr;
       });
 
-      return VulkanCommandList(buffer[0], ptr);
+      return VulkanCommandList(buffer.value[0], ptr);
     }
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()

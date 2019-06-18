@@ -218,9 +218,11 @@ namespace faze
       configureBackbufferViews(swapchain);
     }
 
-    TextureRTV DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
+    std::optional<TextureRTV> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
     {
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
+      if (index < 0 || index >= swapchain.buffers().size())
+        return {};
       return swapchain.buffers()[index];
     }
 
