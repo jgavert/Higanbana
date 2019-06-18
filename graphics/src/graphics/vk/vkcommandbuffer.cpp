@@ -260,7 +260,9 @@ namespace faze
           .setRenderPass(rp.native())
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()));
 
-        m_framebuffers.push_back(std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(device->native().createFramebuffer(info)), [dev = device->native()](vk::Framebuffer* ptr)
+        auto fbRes = device->native().createFramebuffer(info);
+        VK_CHECK_RESULT(fbRes);
+        m_framebuffers.push_back(std::shared_ptr<vk::Framebuffer>(new vk::Framebuffer(fbRes.value), [dev = device->native()](vk::Framebuffer* ptr)
         {
           dev.destroyFramebuffer(*ptr);
           delete ptr;

@@ -16,6 +16,9 @@
 
 #include <graphics/common/allocators.hpp>
 
+#define VK_CHECK_RESULT(value) F_ASSERT(value.result == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value.result).c_str())
+
+
 namespace faze
 {
   namespace backend
@@ -571,7 +574,11 @@ namespace faze
 
         auto natBufferInfo = fillBufferInfo(bufDesc);
 
-        m_buffer = device.createBuffer(natBufferInfo);
+        auto result = device.createBuffer(natBufferInfo);
+        if (result.result == vk::Result::eSuccess)
+        {
+          m_buffer = result.value;
+        }
 
         vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_buffer);
         auto memProp = physDevice.getMemoryProperties();
@@ -585,11 +592,16 @@ namespace faze
           .setAllocationSize(bufDesc.desc.width)
           .setMemoryTypeIndex(index);
 
-        m_memory = device.allocateMemory(allocInfo);
+        auto allocRes = device.allocateMemory(allocInfo);
+        VK_CHECK_RESULT(allocRes);
+        m_memory = allocRes.value;
         device.bindBufferMemory(m_buffer, m_memory, 0);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
-        data = reinterpret_cast<uint8_t*>(device.mapMemory(m_memory, 0, allocationSize*allocationCount));
+        auto mapResult = device.mapMemory(m_memory, 0, allocationSize*allocationCount);
+        VK_CHECK_RESULT(mapResult);
+
+        data = reinterpret_cast<uint8_t*>(mapResult.value);
       }
 
       ~VulkanUploadHeap()

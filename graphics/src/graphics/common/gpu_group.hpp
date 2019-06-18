@@ -11,6 +11,8 @@
 #include "graphics/common/cpuimage.hpp"
 #include <graphics/common/prototypes.hpp>
 
+#include <optional>
+
 namespace faze
 {
   class GpuGroup : private backend::SharedState<backend::DeviceGroupData>
@@ -153,7 +155,7 @@ namespace faze
       S().adjustSwapchain(swapchain, descriptor);
     }
 
-    TextureRTV acquirePresentableImage(Swapchain& swapchain)
+    std::optional<TextureRTV> acquirePresentableImage(Swapchain& swapchain)
     {
       return S().acquirePresentableImage(swapchain);
     }

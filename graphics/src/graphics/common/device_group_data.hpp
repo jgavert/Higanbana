@@ -11,6 +11,7 @@
 #include <graphics/common/barrier_solver.hpp>
 #include <graphics/common/command_buffer.hpp>
 
+#include <optional>
 #include <functional>
 #include <mutex>
 
@@ -115,7 +116,7 @@ namespace faze
 
       Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
       void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor);
-      TextureRTV acquirePresentableImage(Swapchain& swapchain);
+      std::optional<TextureRTV> acquirePresentableImage(Swapchain& swapchain);
       TextureRTV* tryAcquirePresentableImage(Swapchain& swapchain);
 
       Renderpass createRenderpass();

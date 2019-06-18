@@ -5,6 +5,8 @@
 #include "core/Platform/Window.hpp"
 #include "core/system/logger.hpp"
 #include "core/global_debug.hpp"
+#include <core/entity/database.hpp>
+#include <core/entity/query.hpp>
 
 #include <tuple>
 
@@ -30,6 +32,22 @@ STRUCT_DECL(PixelConstants,
 void mainWindow(ProgramParams& params)
 {
   Logger log;
+
+  /*
+  Database<10> db;
+  auto& ft = db.get<float>();
+  auto& f4t = db.get<float4>();
+
+  auto e = db.createEntity();
+  ft.get(e) = 4.f;
+  f4t.get(e) = float4(1.f, 2.f, 3.f, 4.f);
+
+  query(pack(ft, f4t), [](float& a, float4& vec)
+  {
+    F_ILOG("query", "super values a: %.2f f4:%.2f %.2f %.2f %.2f", a, vec.x, vec.y, vec.z, vec.w);
+  });
+  */
+
 
   //LBS lbs;
 
@@ -194,7 +212,13 @@ void mainWindow(ProgramParams& params)
 
           // If you acquire, you must submit it. Next, try to first present empty image.
           // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
-          TextureRTV backbuffer = dev.acquirePresentableImage(swapchain);
+          std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
+          if (!obackbuffer.has_value())
+          {
+            F_ILOG("", "No backbuffer available");
+            continue;
+          }
+          TextureRTV backbuffer = obackbuffer.value();
           CommandGraph tasks = dev.createGraph();
 
           {
