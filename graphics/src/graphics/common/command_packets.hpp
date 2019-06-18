@@ -83,6 +83,45 @@ namespace faze
       }
     };
 
+    
+    struct ResourceBinding
+    {
+      enum class BindingType : unsigned char
+      {
+        Graphics,
+        Compute,
+        Raytracing
+      };
+
+      BindingType graphicsBinding;
+      backend::PacketVectorHeader<uint8_t> constants;
+      backend::PacketVectorHeader<ViewResourceHandle> resources;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ResourceBinding;
+      static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ViewResourceHandle>& views)
+      {
+        packet->graphicsBinding = type;
+        buffer.allocateElements<uint8_t>(packet->constants, constants.size());
+        auto spn = packet->constants.convertToMemView();
+        memcpy(spn.data(), constants.data(), constants.size_bytes());
+        buffer.allocateElements<ViewResourceHandle>(packet->resources, views.size());
+        auto spn2 = packet->resources.convertToMemView();
+        memcpy(spn2.data(), views.data(), views.size_bytes());
+      }
+    };
+
+    struct Dispatch
+    {
+      uint3 groups;
+
+      static constexpr const backend::PacketType type = backend::PacketType::Dispatch;
+      static void constructor(backend::CommandBuffer& buffer, Dispatch* packet, uint3 groups)
+      {
+        packet->groups = groups;
+        static_assert(std::is_standard_layout<Dispatch>::value, "this is trivial packet");
+      }
+    };
+
     struct Draw
     {
       uint32_t vertexCountPerInstance;
@@ -118,6 +157,19 @@ namespace faze
         packet->StartIndexLocation = startIndexLoc;
         packet->BaseVertexLocation = baseVertexLoc;
         packet->StartInstanceLocation = startInstance;
+      }
+    };
+
+    struct BufferCopy
+    {
+      ResourceHandle target;
+      ResourceHandle source;
+
+      static constexpr const backend::PacketType type = backend::PacketType::BufferCopy;
+      static void constructor(backend::CommandBuffer& , BufferCopy* packet, ResourceHandle target, ResourceHandle source)
+      {
+        packet->target = target;
+        packet->source = source; 
       }
     };
 

@@ -337,6 +337,26 @@ namespace faze
       buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
     }
 
+    void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline)
+    {
+      // get dynamicbuffer for constants
+      // collect otherviews and indexes
+      // build... DescriptorSet... I need the pipeline
+
+
+
+      vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eGraphics;
+      if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Compute)
+      {
+        bindpoint = vk::PipelineBindPoint::eCompute;
+      }
+      if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing)
+      {
+        bindpoint = vk::PipelineBindPoint::eRayTracingNV;
+      }
+
+      buffer.bindDescriptorSets()
+    }
 /*
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
     {
@@ -736,33 +756,41 @@ namespace faze
         {
           beforeStage = beforeStage | buffer.before.stage;
           afterStage = afterStage | buffer.after.stage;
+
+          auto& vbuffer = device->allResources().buf[buffer.handle];
+
+          bufferbar.emplace_back(vk::BufferMemoryBarrier()
+            .setSrcAccessMask(translateAccessMask(buffer.before.stage, buffer.before.usage))
+            .setDstAccessMask(translateAccessMask(buffer.after.stage, buffer.after.usage))
+            .setSrcQueueFamilyIndex(buffer.before.queue_index)
+            .setDstQueueFamilyIndex(buffer.after.queue_index)
+            .setBuffer(vbuffer.native())
+            .setOffset(0)
+            .setSize(VK_WHOLE_SIZE));
         }
         for (auto& image : barriers.textures)
         {
           beforeStage = beforeStage | image.before.stage;
           afterStage = afterStage | image.after.stage;
 
-          if (image.before.layout != image.after.layout)
-          {
-            auto& vimage = device->allResources().tex[image.handle];
+          auto& vimage = device->allResources().tex[image.handle];
 
-            vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
-              .setAspectMask(vimage.aspectFlags()) // TODO: understand the role of aspectFlags
-              .setBaseMipLevel(image.startMip)
-              .setLevelCount(image.mipSize)
-              .setBaseArrayLayer(image.startArr)
-              .setLayerCount(image.arrSize);
+          vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
+            .setAspectMask(vimage.aspectFlags())
+            .setBaseMipLevel(image.startMip)
+            .setLevelCount(image.mipSize)
+            .setBaseArrayLayer(image.startArr)
+            .setLayerCount(image.arrSize);
 
-            imagebar.emplace_back(vk::ImageMemoryBarrier()
-              .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
-              .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
-              .setSrcQueueFamilyIndex(image.before.queue_index)
-              .setDstQueueFamilyIndex(image.after.queue_index)
-              .setNewLayout(translateLayout(image.after.layout))
-              .setOldLayout(translateLayout(image.before.layout))
-              .setImage(vimage.native())
-              .setSubresourceRange(range));
-          }
+          imagebar.emplace_back(vk::ImageMemoryBarrier()
+            .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
+            .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
+            .setSrcQueueFamilyIndex(image.before.queue_index)
+            .setDstQueueFamilyIndex(image.after.queue_index)
+            .setNewLayout(translateLayout(image.after.layout))
+            .setOldLayout(translateLayout(image.before.layout))
+            .setImage(vimage.native())
+            .setSubresourceRange(range));
         }
         auto beforeStr = buildStageString(beforeStage);
         auto afterStr = buildStageString(afterStage);
@@ -781,6 +809,7 @@ namespace faze
     {
       int drawIndex = 0;
       int framebuffer = 0;
+      ResourceHandle boundPipeline;
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
@@ -796,7 +825,6 @@ namespace faze
         }
         case PacketType::RenderpassBegin:
         {
-          //solver.runBarrier(buffer, drawIndex);
           handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
           framebuffer++;
           break;
@@ -804,13 +832,26 @@ namespace faze
         case PacketType::GraphicsPipelineBind:
         {
           gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
-          buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
+          if (boundPipeline.id != packet.pipeline.id) {
+            buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
+            boundPipeline = packet.pipeline;
+          }
           break;
         }
         case PacketType::ComputePipelineBind:
         {
           gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
-          buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
+          if (boundPipeline.id != packet.pipeline.id) {
+            buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
+            boundPipeline = packet.pipeline;
+          }
+
+          break;
+        }
+        case PacketType::ResourceBinding:
+        {
+          gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
+          handleBinding(device, buffer, packet, boundPipeline);
           break;
         }
         case PacketType::Draw:

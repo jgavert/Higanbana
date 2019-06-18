@@ -30,6 +30,7 @@ namespace faze
     BufferSRV,
     BufferUAV,
     BufferIBV,
+    DynamicBufferSRV,
     TextureSRV,
     TextureUAV,
     TextureRTV,
