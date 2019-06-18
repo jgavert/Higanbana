@@ -1327,7 +1327,7 @@ namespace faze
       }
     }
 
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, FormatType type)
+    void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
     {
       /* 
       auto descriptor = m_generics.allocate();
@@ -1358,9 +1358,9 @@ namespace faze
       //m_trash->genericDescriptors.emplace_back(descriptor);
 
       //return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format, stride);
-      return nullptr;
     }
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamic(MemView<uint8_t> view, unsigned stride)
+
+    void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, unsigned stride)
     {
       /*
       auto descriptor = m_generics.allocate();
@@ -1386,10 +1386,9 @@ namespace faze
 
       return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN, stride);
       */
-      return nullptr;
     }
 
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> DX12Device::dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch)
+    void DX12Device::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch)
     {
       /*
       auto rows = bytes.size() / rowPitch;
@@ -1414,7 +1413,6 @@ namespace faze
 
       return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
       */
-      return nullptr;
     }
 
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)

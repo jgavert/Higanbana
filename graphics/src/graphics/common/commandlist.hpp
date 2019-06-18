@@ -75,18 +75,18 @@ namespace faze
       MemView<ViewResourceHandle> resources,
       MemView<uint8_t> constants)
     {
-      //list.insert<gfxpacket::ResourceBinding>(
-      //  gfxpacket::ResourceBinding::BindingType::Graphics
-      //  , resources, constants, views);
+      list.insert<gfxpacket::ResourceBinding>(
+        gfxpacket::ResourceBinding::BindingType::Graphics
+        , constants, resources);
     }
 
     void bindComputeResources(
       MemView<ViewResourceHandle> resources,
       MemView<uint8_t> constants)
     {
-      //list.insert<gfxpacket::ResourceBinding>(
-      //  gfxpacket::ResourceBinding::BindingType::Compute,
-      //  resources, constants, views);
+      list.insert<gfxpacket::ResourceBinding>(
+        gfxpacket::ResourceBinding::BindingType::Compute
+        , constants, resources);
     }
 
     void setScissorRect(int2 topLeft, int2 bottomRight)
@@ -128,7 +128,7 @@ namespace faze
     void dispatch(
       uint3 groups)
     {
-      //list.insert<gfxpacket::Dispatch>(groups);
+      list.insert<gfxpacket::Dispatch>(groups);
     }
 
     void copy(Buffer& target, int64_t targetOffset, Texture& source, Subresource subresource, Box srcbox)
@@ -148,7 +148,7 @@ namespace faze
 
     void copy(Buffer& target, Buffer& source)
     {
-      //list.insert<gfxpacket::BufferCopy>(target.dependency(), source.dependency());
+      list.insert<gfxpacket::BufferCopy>(target.handle(), source.handle());
     }
 
     void copy(Buffer& target, DynamicBufferView& source)

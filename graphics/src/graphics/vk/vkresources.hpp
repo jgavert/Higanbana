@@ -350,24 +350,19 @@ namespace faze
     private:
       struct Info
       {
-        vk::DescriptorBufferInfo bufferInfo;
-        vk::DescriptorType type;
+        vk::BufferView view;
+        //vk::DescriptorType type;
       } m;
 
     public:
       VulkanBufferView()
       {}
-      VulkanBufferView(vk::DescriptorBufferInfo info, vk::DescriptorType type)
-        : m{ info, type }
+      VulkanBufferView(vk::BufferView view)
+        : m{ view }
       {}
       Info& native()
       {
         return m;
-      }
-
-      backend::RawView view()
-      {
-        return backend::RawView{};
       }
     };
 
@@ -398,7 +393,7 @@ namespace faze
       }
     };
 
-    class VulkanDynamicBufferView : public prototypes::DynamicBufferViewImpl
+    class VulkanDynamicBufferView
     {
     private:
       struct Info
@@ -418,12 +413,7 @@ namespace faze
       {
         return m;
       }
-
-      backend::RawView view() override
-      {
-        return backend::RawView{};
-      }
-
+/*
       int rowPitch() override
       {
         return -1;
@@ -438,6 +428,7 @@ namespace faze
       {
         return m.block.block.size;
       }
+      */
     };
 
     class VulkanHeap
@@ -631,6 +622,7 @@ namespace faze
       HandleVector<VulkanBufferView> bufSRV;
       HandleVector<VulkanBufferView> bufUAV;
       HandleVector<VulkanBufferView> bufIBV;
+      HandleVector<VulkanDynamicBufferView> dynBuf;
       HandleVector<VulkanTextureView> texSRV;
       HandleVector<VulkanTextureView> texUAV;
       HandleVector<VulkanTextureView> texRTV;

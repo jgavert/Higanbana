@@ -1266,7 +1266,7 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         case ResourceType::Renderpass:
         {
-          m_device.destroyRenderPass(m_allRes.renderpasses[handle].native());
+          //m_device.destroyRenderPass(m_allRes.renderpasses[handle].native());
           m_allRes.renderpasses[handle] = VulkanRenderpass();
           break;
         }
@@ -1284,19 +1284,19 @@ for (auto&& upload : it.second.dynamicBuffers)
       {
         case ViewResourceType::BufferIBV:
         {
-          //F_ASSERT(false, "what do?");
+          m_device.destroyBufferView(m_allRes.bufIBV[handle].native().view);
           m_allRes.bufIBV[handle] = VulkanBufferView();
           break;
         }
         case ViewResourceType::BufferSRV:
         {
-          //F_ASSERT(false, "what do?");
+          m_device.destroyBufferView(m_allRes.bufSRV[handle].native().view);
           m_allRes.bufSRV[handle] = VulkanBufferView();
           break;
         }
         case ViewResourceType::BufferUAV:
         {
-          //F_ASSERT(false, "what do?");
+          m_device.destroyBufferView(m_allRes.bufUAV[handle].native().view);
           m_allRes.bufUAV[handle] = VulkanBufferView();
           break;
         }
@@ -1324,6 +1324,13 @@ for (auto&& upload : it.second.dynamicBuffers)
           m_allRes.texDSV[handle] = VulkanTextureView();
           break;
         }
+        case ViewResourceType::DynamicBufferSRV:
+        {
+          auto& dyn = m_allRes.dynBuf[handle];
+          m_device.destroyBufferView(dyn.native().bufferInfo);
+          m_dynamicUpload->release(dyn.native().block);
+          dyn = VulkanDynamicBufferView();
+        }
         default:
         {
           F_ASSERT(false, "unhandled type released");
@@ -1334,6 +1341,7 @@ for (auto&& upload : it.second.dynamicBuffers)
 
     void VulkanDevice::collectTrash()
     {
+      /*
       auto latestSequenceStarted = m_seqTracker->lastSequence();
 
       m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
@@ -1393,6 +1401,7 @@ for (auto&& upload : it.second.dynamicBuffers)
 
         m_collectableTrash.pop_front();
       }
+      */
     }
 
     void VulkanDevice::waitGpuIdle()
@@ -1526,10 +1535,9 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto vkdesc = fillBufferInfo(desc);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
-      //auto native = std::static_pointer_cast<VulkanHeap>(allocation.heap.impl);
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers
+      m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers since this actually has been done already
       m_device.bindBufferMemory(buffer.value, native.native(), size);
 
       VulkanBufferState state{};
@@ -1569,13 +1577,18 @@ for (auto&& upload : it.second.dynamicBuffers)
           type = vk::DescriptorType::eStorageTexelBuffer;
         }
       }
-      /*
-      return std::make_shared<VulkanBufferView>(vk::DescriptorBufferInfo()
-        .setBuffer(native->native())
+      auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
+        .setBuffer(native.native())
+        .setFormat(formatToVkFormat(format).view)
         .setOffset(firstElement)
-        .setRange(maxRange)
-        , type);
-        */
+        .setRange(maxRange));
+      VK_CHECK_RESULT(viewRes);
+      if (handle.type == ViewResourceType::BufferSRV)
+        m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value);
+      if (handle.type == ViewResourceType::BufferUAV)
+        m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value);
+      if (handle.type == ViewResourceType::BufferIBV)
+        m_allRes.bufIBV[handle] = VulkanBufferView(viewRes.value);
     }
 
     void VulkanDevice::createTexture(ResourceHandle handle, ResourceDescriptor& desc)
@@ -1775,7 +1788,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       }
     }
 
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> dataRange, FormatType desiredFormat)
+    void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
       auto upload = m_dynamicUpload->allocate(dataRange.size());
       F_ASSERT(upload, "Halp");
@@ -1794,11 +1807,10 @@ for (auto&& upload : it.second.dynamicBuffers)
       VK_CHECK_RESULT(view);
 
       // will be collected promtly
-      m_trash->dynamicBuffers.emplace_back(upload);
-      m_trash->bufferviews.emplace_back(view.value);
-      return std::make_shared<VulkanDynamicBufferView>(upload.buffer(), view.value, upload);
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload);
     }
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamic(MemView<uint8_t> , unsigned)
+
+    void VulkanDevice::dynamic(ViewResourceHandle, MemView<uint8_t> , unsigned)
     {
       /*
       vk::BufferViewCreateInfo info = vk::BufferViewCreateInfo()
@@ -1807,11 +1819,10 @@ for (auto&& upload : it.second.dynamicBuffers)
         .setRange(1) // dynamic size here
         .setBuffer(vk::Buffer()); // ? Lets look at spec
         */
-      return std::make_shared<VulkanDynamicBufferView>();
     }
-    std::shared_ptr<prototypes::DynamicBufferViewImpl> VulkanDevice::dynamicImage(MemView<uint8_t>, unsigned)
+
+    void VulkanDevice::dynamicImage(ViewResourceHandle handle, MemView<uint8_t>, unsigned)
     {
-      return std::make_shared<VulkanDynamicBufferView>();
     }
 
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)

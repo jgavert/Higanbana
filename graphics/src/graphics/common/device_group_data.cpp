@@ -422,9 +422,15 @@ namespace faze
       return TextureDSV(texture, sharedViewHandle(handle));
     }
 
-    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , FormatType )
+    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format)
     {
-      return DynamicBufferView();
+      auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
+      m_delayer.insert(m_seqTracker.lastSequence(), handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
+      {
+        vdev.device->dynamic(handle, range, format);
+      }
+      return DynamicBufferView(handle);
     }
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , unsigned )

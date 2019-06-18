@@ -80,6 +80,7 @@ namespace faze
       };
 
       // questionable
+      /*
       class DynamicBufferViewImpl
       {
       public:
@@ -89,6 +90,7 @@ namespace faze
         virtual uint64_t offset() = 0;
         virtual uint64_t size() = 0;
       };
+      */
 
       class DeviceImpl
       {
@@ -133,10 +135,9 @@ namespace faze
         virtual void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) = 0;
 
         // create dynamic resources
-        virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) = 0;
-        virtual std::shared_ptr<DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) = 0;
-
-        virtual std::shared_ptr<DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) = 0;
+        virtual void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) = 0;
+        virtual void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) = 0;
+        virtual void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) = 0;
 
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
         virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;

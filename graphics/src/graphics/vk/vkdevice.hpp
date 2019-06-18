@@ -130,9 +130,9 @@ namespace faze
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return; };
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return; };
 
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
+      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
+      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
+      void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // commandlist stuff
       VulkanCommandList createCommandBuffer(int queueIndex);

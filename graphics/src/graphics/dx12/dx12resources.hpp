@@ -1149,9 +1149,9 @@ namespace faze
       void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
       void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) override;
 
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, FormatType format) override;
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamic(MemView<uint8_t> bytes, unsigned stride) override;
-      std::shared_ptr<prototypes::DynamicBufferViewImpl> dynamicImage(MemView<uint8_t> bytes, unsigned rowPitch) override;
+      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
+      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
+      void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
       DX12QueryHeap createGraphicsQueryHeap(unsigned counters);
