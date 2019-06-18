@@ -3,6 +3,7 @@
 #include "core/datastructures/proxy.hpp"
 #include <graphics/common/command_buffer.hpp>
 #include <graphics/common/barrier_solver.hpp>
+#include <graphics/desc/resource_state.hpp>
 namespace faze
 {
   namespace backend
@@ -588,39 +589,235 @@ namespace faze
       solver.makeAllBarriers();
     }
 */
+    std::string buildStageString(int stage)
+    {
+      std::string allStages = "";
+      bool first = true;
+      auto checkStage = [&](int stage, AccessStage access)
+      {
+        auto what = stage & access;
+        //F_ILOG("", "wut %u & %u == %u => %s", stage, access, what, what == access ? "True" : "False");
+        if (what == access)
+        {
+          if (!first)
+          {
+            allStages += " | ";
+          }
+          else
+          {
+            first = false;
+          }
+          allStages += toString(access);
+        }
+      };
+
+      checkStage(stage, AccessStage::Compute);
+      checkStage(stage, AccessStage::Graphics);
+      checkStage(stage, AccessStage::Transfer);
+      checkStage(stage, AccessStage::Index);
+      checkStage(stage, AccessStage::Indirect);
+      checkStage(stage, AccessStage::Rendertarget);
+      checkStage(stage, AccessStage::DepthStencil);
+      checkStage(stage, AccessStage::Present);
+      checkStage(stage, AccessStage::Raytrace);
+      checkStage(stage, AccessStage::AccelerationStructure);
+      return allStages;
+    }
+
+    vk::PipelineStageFlags conjureFlags(int stage)
+    {
+      vk::PipelineStageFlags allStages = vk::PipelineStageFlagBits::eBottomOfPipe;
+      bool first = true;
+      auto checkStage = [&](int stage, AccessStage access, vk::PipelineStageFlagBits bit)
+      {
+        auto what = stage & access;
+        if (what == access)
+        {
+          allStages |= bit;
+        }
+      };
+
+      checkStage(stage, AccessStage::Compute, vk::PipelineStageFlagBits::eComputeShader);
+      checkStage(stage, AccessStage::Graphics, vk::PipelineStageFlagBits::eAllGraphics);
+      checkStage(stage, AccessStage::Transfer, vk::PipelineStageFlagBits::eTransfer);
+      checkStage(stage, AccessStage::Index, vk::PipelineStageFlagBits::eVertexShader);
+      checkStage(stage, AccessStage::Indirect, vk::PipelineStageFlagBits::eDrawIndirect);
+      checkStage(stage, AccessStage::Rendertarget, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+      checkStage(stage, AccessStage::DepthStencil, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+      checkStage(stage, AccessStage::Present, vk::PipelineStageFlagBits::eBottomOfPipe);
+      checkStage(stage, AccessStage::Raytrace, vk::PipelineStageFlagBits::eRayTracingShaderNV);
+      checkStage(stage, AccessStage::AccelerationStructure, vk::PipelineStageFlagBits::eAccelerationStructureBuildNV);
+      return allStages;
+    }
+
+    vk::AccessFlags translateAccessMask(AccessStage stage, AccessUsage usage)
+    {
+      vk::AccessFlags flags;
+      if (AccessUsage::Read == usage || AccessUsage::ReadWrite == usage)
+      {
+        if (stage & AccessStage::Compute)               flags |= vk::AccessFlagBits::eShaderRead;
+        if (stage & AccessStage::Graphics)              flags |= vk::AccessFlagBits::eShaderRead;
+        if (stage & AccessStage::Transfer)              flags |= vk::AccessFlagBits::eTransferRead;
+        if (stage & AccessStage::Index)                 flags |= vk::AccessFlagBits::eIndexRead;
+        if (stage & AccessStage::Indirect)              flags |= vk::AccessFlagBits::eIndirectCommandRead;
+        if (stage & AccessStage::Rendertarget)          flags |= vk::AccessFlagBits::eColorAttachmentRead;
+        if (stage & AccessStage::DepthStencil)          flags |= vk::AccessFlagBits::eDepthStencilAttachmentRead;
+        if (stage & AccessStage::Present)               flags |= vk::AccessFlagBits::eMemoryRead;
+        if (stage & AccessStage::Raytrace)              flags |= vk::AccessFlagBits::eShaderRead;
+        if (stage & AccessStage::AccelerationStructure) flags |= vk::AccessFlagBits::eAccelerationStructureReadNV;
+      }
+      if (AccessUsage::Write == usage || AccessUsage::ReadWrite == usage)
+      {
+        if (stage & AccessStage::Compute)               flags |= vk::AccessFlagBits::eShaderWrite;
+        if (stage & AccessStage::Graphics)              flags |= vk::AccessFlagBits::eShaderWrite;
+        if (stage & AccessStage::Transfer)              flags |= vk::AccessFlagBits::eTransferWrite;
+        if (stage & AccessStage::Index)                 flags |= vk::AccessFlagBits::eMemoryWrite; //?
+        if (stage & AccessStage::Indirect)              flags |= vk::AccessFlagBits::eMemoryWrite; //?
+        if (stage & AccessStage::Rendertarget)          flags |= vk::AccessFlagBits::eColorAttachmentWrite;
+        if (stage & AccessStage::DepthStencil)          flags |= vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+        if (stage & AccessStage::Present)               flags |= vk::AccessFlagBits::eMemoryWrite; //?
+        if (stage & AccessStage::Raytrace)              flags |= vk::AccessFlagBits::eShaderWrite;
+        if (stage & AccessStage::AccelerationStructure) flags |= vk::AccessFlagBits::eAccelerationStructureWriteNV;
+      }
+      return flags;
+    }
+
+    vk::ImageLayout translateLayout(backend::TextureLayout layout)
+    {
+      switch (layout)
+      {
+        case TextureLayout::General:
+          return vk::ImageLayout::eGeneral;
+        case TextureLayout::Rendertarget:
+          return vk::ImageLayout::eColorAttachmentOptimal;
+        case TextureLayout::DepthStencil:
+          return vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        case TextureLayout::DepthStencilReadOnly:
+          return vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+        case TextureLayout::ShaderReadOnly:
+          return vk::ImageLayout::eShaderReadOnlyOptimal;
+        case TextureLayout::TransferSrc:
+          return vk::ImageLayout::eTransferSrcOptimal;
+        case TextureLayout::TransferDst:
+          return vk::ImageLayout::eTransferDstOptimal;
+        case TextureLayout::Preinitialize:
+          return vk::ImageLayout::ePreinitialized;
+        case TextureLayout::DepthReadOnlyStencil:
+          return vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal;
+        case TextureLayout::StencilReadOnlyDepth:
+          return vk::ImageLayout::eDepthAttachmentStencilReadOnlyOptimal;
+        case TextureLayout::Present:
+          return vk::ImageLayout::ePresentSrcKHR;
+        case TextureLayout::SharedPresent:
+          return vk::ImageLayout::eSharedPresentKHR;
+        case TextureLayout::ShadingRateNV:
+          return vk::ImageLayout::eShadingRateOptimalNV;
+        case TextureLayout::FragmentDensityMap:
+          return vk::ImageLayout::eFragmentDensityMapOptimalEXT;
+        case TextureLayout::Undefined:
+        default:
+        break;
+      }
+      return vk::ImageLayout::eUndefined;
+    }
+
     void addBarrier(VulkanDevice* device, vk::CommandBuffer buffer, MemoryBarriers barriers)
     {
       if (!barriers.buffers.empty() || !barriers.textures.empty())
       {
-        F_ILOG("vkBarriers", "need to conjure some barriers");
+        int beforeStage = backend::AccessStage::Common; // for pipelineStage barrier
+        int afterStage = backend::AccessStage::Common; // for pipelineStage barrier
+        vector<vk::BufferMemoryBarrier> bufferbar;
+        vector<vk::ImageMemoryBarrier> imagebar;
+        
+        for (auto& buffer : barriers.buffers)
+        {
+          beforeStage = beforeStage | buffer.before.stage;
+          afterStage = afterStage | buffer.after.stage;
+        }
+        for (auto& image : barriers.textures)
+        {
+          beforeStage = beforeStage | image.before.stage;
+          afterStage = afterStage | image.after.stage;
+
+          if (image.before.layout != image.after.layout)
+          {
+            auto& vimage = device->allResources().tex[image.handle];
+
+            vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
+              .setAspectMask(vimage.aspectFlags()) // TODO: understand the role of aspectFlags
+              .setBaseMipLevel(image.startMip)
+              .setLevelCount(image.mipSize)
+              .setBaseArrayLayer(image.startArr)
+              .setLayerCount(image.arrSize);
+
+            imagebar.emplace_back(vk::ImageMemoryBarrier()
+              .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
+              .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
+              .setSrcQueueFamilyIndex(image.before.queue_index)
+              .setDstQueueFamilyIndex(image.after.queue_index)
+              .setNewLayout(translateLayout(image.after.layout))
+              .setOldLayout(translateLayout(image.before.layout))
+              .setImage(vimage.native())
+              .setSubresourceRange(range));
+          }
+        }
+        auto beforeStr = buildStageString(beforeStage);
+        auto afterStr = buildStageString(afterStage);
+        //F_ILOG("vkBarriers", "need to conjure some barriers: before:\"%s\" after:\"%s\"", beforeStr.c_str(), afterStr.c_str());
+        auto vkBefore = conjureFlags(beforeStage);
+        auto vkAfter = conjureFlags(afterStage);
+
+        vk::ArrayProxy<const vk::BufferMemoryBarrier> buffers(bufferbar.size(), bufferbar.data());
+        vk::ArrayProxy<const vk::ImageMemoryBarrier> images(imagebar.size(), imagebar.data());
+
+        buffer.pipelineBarrier(vkBefore, vkAfter, {}, {}, buffers, images);
       }
     }
 
-    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver)
+    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, CommandBuffer& list, BarrierSolver& solver)
     {
       int drawIndex = 0;
       int framebuffer = 0;
-      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
+      for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        F_ILOG("addCommandsVK", "type header %d", header->type);
+        //F_ILOG("addCommandsVK", "type header %d", header->type);
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
-        case backend::PacketType::PrepareForPresent:
+        case PacketType::PrepareForPresent:
         {
           break;
         }
-        case backend::PacketType::RenderpassBegin:
+        case PacketType::RenderpassBegin:
         {
           //solver.runBarrier(buffer, drawIndex);
           handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
           framebuffer++;
           break;
         }
-        case backend::PacketType::RenderpassEnd:
+        case PacketType::GraphicsPipelineBind:
+        {
+          gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
+          buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
+          break;
+        }
+        case PacketType::ComputePipelineBind:
+        {
+          gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
+          buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
+          break;
+        }
+        case PacketType::Draw:
+        {
+          auto params = header->data<gfxpacket::Draw>();
+          buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+          break;
+        }
+        case PacketType::RenderpassEnd:
         {
           buffer.endRenderPass();
           break;
@@ -710,7 +907,7 @@ namespace faze
     {
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 
-      F_ILOG("fillWith", "testing filling");
+      // F_ILOG("fillWith", "testing filling");
       // preprocess to compile renderpasses/pipelines
 
       preprocess(nat.get(), list);

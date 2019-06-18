@@ -20,6 +20,12 @@ void printRange(const SubresourceRange& range)
 
 #include "graphics/desc/shader_input_descriptor.hpp"
 
+STRUCT_DECL(PixelConstants,
+  float resx;
+  float resy;
+  float time;
+  int unused;
+);
 
 void mainWindow(ProgramParams& params)
 {
@@ -113,6 +119,17 @@ void mainWindow(ProgramParams& params)
         auto buffer3 = dev.createBuffer(bufferdesc3);
         auto testOut = dev.createBufferUAV(buffer3);
 
+        auto babyInf = ShaderInputDescriptor();
+        auto triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+          .setVertexShader("Triangle")
+          .setPixelShader("Triangle")
+          .setLayout(babyInf)
+          .setPrimitiveTopology(PrimitiveTopology::Triangle)
+          .setRTVFormat(0, swapchain.buffers()[0].texture().desc().desc.format)
+          .setRenderTargetCount(1)
+          .setDepthStencil(DepthStencilDescriptor()
+            .setDepthEnable(false)));
+
         auto triangleRP = dev.createRenderpass();
 
         bool closeAnyway = false;
@@ -187,6 +204,17 @@ void mainWindow(ProgramParams& params)
 
             backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 1.f });
             node.renderpass(triangleRP, backbuffer);
+            {
+              auto binding = node.bind(triangle);
+
+              PixelConstants consts{};
+              consts.time = 0.f;
+              consts.resx = backbuffer.desc().desc.width;
+              consts.resy = backbuffer.desc().desc.height;
+              binding.constants(consts);
+
+              node.draw(binding, 3);
+            }
             node.endRenderpass();
 
 			      tasks.addPass(std::move(node));

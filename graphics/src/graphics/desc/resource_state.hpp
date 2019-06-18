@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <core/datastructures/proxy.hpp>
+#include <graphics/common/handle.hpp>
 
 namespace faze
 {
@@ -16,7 +17,7 @@ namespace faze
     };
 
     // all stages that I support. could probably invest in more states than just "graphics" if need arises.
-    enum AccessStage : uint32_t 
+    enum AccessStage : uint32_t
     {
       Common = 0,
       Compute = 0x1,
@@ -50,6 +51,9 @@ namespace faze
       ShadingRateNV,
       FragmentDensityMap
     };
+
+    const char* toString(AccessStage stage);
+    const char* toString(TextureLayout stage);
   }
 
   struct ResourceState
