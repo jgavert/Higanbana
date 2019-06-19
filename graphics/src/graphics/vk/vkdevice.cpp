@@ -1867,7 +1867,7 @@ for (auto&& upload : it.second.dynamicBuffers)
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(upload.buffer())
-        .setOffset(upload.block.offset)
+        .setOffset(0)
         .setRange(bytes.size());
 
       return VulkanConstantBuffer(info, upload);

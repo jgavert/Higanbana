@@ -91,7 +91,7 @@ namespace app
     {
       auto node = tasks.createPass("Triangle");
       node.acquirePresentableImage(swapchain);
-      float redcolor = 0.5f;//std::sin(time.getFTime())*.5f + .5f;
+      float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
       backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 1.f });
       node.renderpass(triangleRP, backbuffer);
