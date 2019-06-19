@@ -48,7 +48,7 @@ namespace app
     buffer3 = dev.createBuffer(bufferdesc3);
     testOut = dev.createBufferUAV(buffer3);
 
-    babyInf = ShaderInputDescriptor().constants<PixelConstants>();
+    babyInf = ShaderInputDescriptor().constants<PixelConstants>().readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
     triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
       .setPixelShader("Triangle")
@@ -98,11 +98,18 @@ namespace app
       {
         auto binding = node.bind(triangle);
 
+        vector<float> vertexData = {
+          -0.8f, -0.8f, 
+          0.0f, 0.8f,
+          0.8f, -0.8f};
+        auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+
         PixelConstants consts{};
         consts.time = time.getFTime();
         consts.resx = backbuffer.desc().desc.width;
         consts.resy = backbuffer.desc().desc.height;
         binding.constants(consts);
+        binding.bind("vertexInput", vert);
 
         node.draw(binding, 3);
       }

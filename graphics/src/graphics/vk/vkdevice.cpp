@@ -1296,9 +1296,9 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         case ResourceType::DynamicBuffer:
         {
-          //m_dynamicUpload->release(dynBuf);
-          //m_allRes.[handle] = DX12DynamicBufferView();
-          F_ASSERT(false, "unhandled type released");
+          auto& dyn = m_allRes.dynBuf[handle];
+          m_dynamicUpload->release(dyn.native().block);
+          dyn = VulkanDynamicBufferView();
           break;
         }
         case ResourceType::MemoryHeap:
@@ -1384,6 +1384,7 @@ for (auto&& upload : it.second.dynamicBuffers)
           }
           m_dynamicUpload->release(dyn.native().block);
           dyn = VulkanDynamicBufferView();
+          break;
         }
         default:
         {
