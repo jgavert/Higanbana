@@ -934,7 +934,7 @@ namespace faze
       }
     };
 
-    class DX12DynamicBufferView : public prototypes::DynamicBufferViewImpl
+    class DX12DynamicBufferView 
     {
     private:
       UploadBlock block;
@@ -976,6 +976,7 @@ namespace faze
         return view;
       }
 
+/*
       backend::RawView view() override
       {
         backend::RawView view{};
@@ -997,6 +998,7 @@ namespace faze
       {
         return static_cast<uint64_t>(block.block.size) / m_stride;
       }
+      */
     };
 
     class DX12Heap

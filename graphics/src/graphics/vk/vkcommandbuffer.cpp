@@ -355,7 +355,7 @@ namespace faze
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
 
-      buffer.bindDescriptorSets()
+      //buffer.bindDescriptorSets()
     }
 /*
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)

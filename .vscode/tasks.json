@@ -4,11 +4,35 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "test main(bazel dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "test_main" , "--compilation_mode=dbg"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "test main(bazel build)",
             "type": "shell",
             "command": "bazel.exe",
             "args": [
                 "build", "test_main"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test main(bazel opt)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "test_main" , "--compilation_mode=opt"
             ],
             "group": {
                 "kind": "build",

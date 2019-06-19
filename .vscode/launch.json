@@ -5,7 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch test_main",
+            "name": "(Windows) test_main dbg",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/test_main",
+            "environment": [],
+            "externalConsole": true,
+            "preLaunchTask": "test main(bazel dbg)",
+        },
+        {
+            "name": "(Windows) test_main",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
@@ -15,6 +27,18 @@
             "environment": [],
             "externalConsole": true,
             "preLaunchTask": "test main(bazel build)",
+        },
+        {
+            "name": "(Windows) test_main opt",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/test_main",
+            "environment": [],
+            "externalConsole": true,
+            "preLaunchTask": "test main(bazel opt)",
         }
     ]
 }

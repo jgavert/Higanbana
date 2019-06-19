@@ -464,7 +464,7 @@ namespace faze
     {
       intersect_void(*intersected, b);
     });
-    lbs.addParallelFor<1>(task, 0, rsize / offset, [=](size_t query_index, size_t)
+    lbs.addParallelFor<1>(task, 0, rsize / offset, [=](size_t query_index)
     {
       size_t index = query_index * offset;
       size_t contiguous_fbs = 0;
@@ -519,7 +519,7 @@ namespace faze
 	  size_t TupleSize = std::tuple_size<typename std::decay<Tup>::type>::value,
 	  size_t rsize = 2048,
 	  size_t innerArray = 256,
-	  size_t offset = 64>
+	  size_t offset = 32>
 	  void queryParallel(LBS& lbs, desc::Task& task, Tup&& tup, Tup2&& tags, Func&& func)
   {
 	  auto intersected = std::make_shared<Bitfield<rsize>>(Bitfield<rsize>(true));

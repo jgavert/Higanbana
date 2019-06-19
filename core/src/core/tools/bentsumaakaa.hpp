@@ -5,7 +5,7 @@
 #include <functional>
 
 #ifdef FAZE_PLATFORM_WINDOWS
-#include "../system/HighResClock.hpp"
+#include "core/system/HighResClock.hpp"
 typedef HighResClock HighPrecisionClock;
 typedef std::chrono::time_point<HighResClock> timepoint;
 #else
