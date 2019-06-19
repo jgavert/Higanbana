@@ -885,11 +885,11 @@ namespace faze
     }
 
 
-    void VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
+    std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
     {
       auto& vp = m_allRes.pipelines[pipeline];
-      if (vp.m_hasPipeline)
-        return;
+      if (vp.m_hasPipeline && !vp.needsUpdating())
+        return {};
 
       //if (!ptr->needsUpdating())
       //  return;
@@ -920,12 +920,11 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eVertex;
         ss.module = module.value;
         shaders.push_back(ss);
-/*
-        if (vp.m_gfxDesc.desc.vs.empty())
+        if (vp.vs.empty())
         {
-          ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          vp.vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
         }
-        ptr->vs.react();*/
+        vp.vs.react();
       }
 
       if (!d.hullShaderPath.empty())
@@ -941,12 +940,11 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eTessellationControl;
         ss.module = module.value;
         shaders.push_back(ss);
-/*
-        if (ptr->hs.empty())
+        if (vp.hs.empty())
         {
-          ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
+          vp.hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
         }
-        ptr->hs.react();*/
+        vp.hs.react();
       }
 
       if (!d.domainShaderPath.empty())
@@ -962,13 +960,11 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
         ss.module = module.value;
         shaders.push_back(ss);
-        /*
-        if (ptr->ds.empty())
+        if (vp.ds.empty())
         {
-          ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
+          vp.ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
         }
-        ptr->ds.react();
-        */
+        vp.ds.react();
       }
 
       if (!d.geometryShaderPath.empty())
@@ -984,13 +980,11 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eGeometry;
         ss.module = module.value;
         shaders.push_back(ss);
-        /*
-        if (ptr->gs.empty())
+        if (vp.gs.empty())
         {
-          ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+          vp.gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
         }
-        ptr->gs.react();
-        */
+        vp.gs.react();
       }
 
       if (!d.pixelShaderPath.empty())
@@ -1006,13 +1000,11 @@ namespace faze
         ss.stage = vk::ShaderStageFlagBits::eFragment;
         ss.module = module.value;
         shaders.push_back(ss);
-        /*
-        if (ptr->ps.empty())
+        if (vp.ps.empty())
         {
-          ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
+          vp.ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
         }
-        ptr->ps.react();
-        */
+        vp.ps.react();
       }
 
       vector<vk::PipelineShaderStageCreateInfo> shaderInfos;
@@ -1070,17 +1062,23 @@ namespace faze
       {
         m_device.destroyShaderModule(it.module);
       }
+      std::optional<vk::Pipeline> ret;
+      if (vp.m_hasPipeline)
+      {
+        ret = vp.m_pipeline;
+      }
       vp.m_pipeline = compiled.value;
       vp.m_hasPipeline = true;
       F_ILOG("Vulkan", "Pipeline compiled...");
+      return ret;
     }
 
-    void VulkanDevice::updatePipeline(ResourceHandle pipeline)
+    std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline)
     {
       auto& pipe = m_allRes.pipelines[pipeline];
 
-      if (pipe.m_hasPipeline)
-        return;
+      if (pipe.m_hasPipeline && !pipe.cs.updated())
+        return {};
 
       auto sci = ShaderCreateInfo(pipe.m_computeDesc.shader(), ShaderType::Compute, pipe.m_computeDesc.layout)
         .setComputeGroups(pipe.m_computeDesc.shaderGroups);
@@ -1090,6 +1088,11 @@ namespace faze
 
       auto smodule = m_device.createShaderModule(shaderInfo);
       VK_CHECK_RESULT(smodule);
+      if (pipe.cs.empty())
+      {
+        pipe.cs = m_shaders.watch(pipe.m_computeDesc.shader(), ShaderType::Compute);
+      }
+      pipe.cs.react();
 
       auto pipelineDesc = vk::ComputePipelineCreateInfo()
         .setStage(vk::PipelineShaderStageCreateInfo()
@@ -1100,11 +1103,17 @@ namespace faze
       auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
       m_device.destroyShaderModule(smodule.value);
 
+      std::optional<vk::Pipeline> oldPipe;
       if (result.result == vk::Result::eSuccess)
       {
+        if (pipe.m_hasPipeline)
+        {
+          oldPipe = pipe.m_pipeline;
+        }
         pipe.m_pipeline = result.value;
         pipe.m_hasPipeline = true;
       }
+      return oldPipe;
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
@@ -2008,6 +2017,10 @@ for (auto&& upload : it.second.dynamicBuffers)
         for (auto&& constant : buffer->freeableConstants())
         {
           m_constantAllocators->release(constant.native().block);
+        }
+        for (auto&& oldPipe : buffer->oldPipelines())
+        {
+          m_device.destroyPipeline(oldPipe);
         }
         delete buffer;
       });

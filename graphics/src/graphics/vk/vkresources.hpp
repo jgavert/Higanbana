@@ -484,6 +484,27 @@ namespace faze
       GraphicsPipelineDescriptor m_gfxDesc;
       ComputePipelineDescriptor m_computeDesc;
 
+      WatchFile vs;
+      WatchFile ds;
+      WatchFile hs;
+      WatchFile gs;
+      WatchFile ps;
+
+      WatchFile cs;
+      bool needsUpdating()
+      {
+        return vs.updated() || ps.updated() || ds.updated() || hs.updated() || gs.updated();
+      }
+
+      void updated()
+      {
+        vs.react();
+        ds.react();
+        hs.react();
+        gs.react();
+        ps.react();
+      }
+
       VulkanPipeline() {}
 
       VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc)
@@ -783,6 +804,7 @@ namespace faze
       VulkanDescriptorPool m_descriptors;
       vector<vk::DescriptorSet> m_allocatedSets;
       vector<VulkanConstantBuffer> m_constants;
+      vector<vk::Pipeline> m_oldPipelines;
 
     public:
       VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors)
@@ -808,6 +830,10 @@ namespace faze
       vector<VulkanConstantBuffer>& freeableConstants()
       {
         return m_constants;
+      }
+      vector<vk::Pipeline>& oldPipelines()
+      {
+        return m_oldPipelines;
       }
     };
 

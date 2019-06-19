@@ -14,7 +14,7 @@ float4 main(VertexOut input) : SV_TARGET
   float laneThing = (float(laneIndex)%16)/16;
   float4 color = float4(input.uv.xyx,  1);
   color.x = (sin(constants.time)/2.f) + 0.5;
-  color.y = 0.f;
+  color.y = 1.f;
   color.z = 0.f;
   return color;
   //return float4(0, 1, 0, 1);
