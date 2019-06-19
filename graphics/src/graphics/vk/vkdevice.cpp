@@ -292,7 +292,8 @@ namespace faze
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
-      , m_trash(std::make_shared<Garbage>())
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256, 1024*64)) // TODO: implement dynamically adjusted
+//      , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
       // universal
@@ -494,10 +495,41 @@ namespace faze
       VK_CHECK_RESULT(sr1);
       VK_CHECK_RESULT(sr2);
       VK_CHECK_RESULT(sr3);
-      m_bilinearSampler = sr0.value;
-      m_pointSampler = sr1.value;
-      m_bilinearSamplerWrap = sr2.value;
-      m_pointSamplerWrap = sr3.value;
+      m_samplers.m_bilinearSampler = sr0.value;
+      m_samplers.m_pointSampler = sr1.value;
+      m_samplers.m_bilinearSamplerWrap = sr2.value;
+      m_samplers.m_pointSamplerWrap = sr3.value;
+
+      /////////////////// DESCRIPTORS ////////////////////////////////
+      // aim for total 512k single descriptors
+      constexpr const int singleDescriptors = 10240; 
+
+      constexpr const int totalDrawCalls = 10240;
+      constexpr const int samplers = totalDrawCalls*4; // 4 samplers always bound, lazy
+      constexpr const int dynamicUniform = totalDrawCalls;
+      constexpr const int uav = totalDrawCalls * 4; // support average of 4 uavs per drawcall... could be less :D
+      constexpr const int srv = totalDrawCalls * 8; // support average of 8 srv per drawcall... could be less :D
+
+      vector<vk::DescriptorPoolSize> dps;
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(dynamicUniform).setType(vk::DescriptorType::eUniformBufferDynamic));
+      //dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(samplers).setType(vk::DescriptorType::eSampler));
+      // actual possible user values
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(srv/3).setType(vk::DescriptorType::eSampledImage));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav/3).setType(vk::DescriptorType::eStorageImage));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav - uav/3).setType(vk::DescriptorType::eStorageBuffer));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(srv - srv/3).setType(vk::DescriptorType::eUniformTexelBuffer));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav/3).setType(vk::DescriptorType::eStorageTexelBuffer));
+
+
+      auto poolRes = m_device.createDescriptorPool(vk::DescriptorPoolCreateInfo()
+        .setMaxSets(10240)
+        .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+        .setPoolSizeCount(dps.size())
+        .setPPoolSizes(dps.data()));
+
+      VK_CHECK_RESULT(poolRes);
+
+      m_descriptors = VulkanDescriptorPool(poolRes.value);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -511,11 +543,13 @@ namespace faze
       m_graphicsListPool.clear();
       m_renderpasses.clear();
       m_dynamicUpload.reset();
+      m_constantAllocators.reset();
 
-      m_device.destroySampler(m_bilinearSampler);
-      m_device.destroySampler(m_pointSampler);
-      m_device.destroySampler(m_bilinearSamplerWrap);
-      m_device.destroySampler(m_pointSamplerWrap);
+      m_device.destroySampler(m_samplers.m_bilinearSampler);
+      m_device.destroySampler(m_samplers.m_pointSampler);
+      m_device.destroySampler(m_samplers.m_bilinearSamplerWrap);
+      m_device.destroySampler(m_samplers.m_pointSamplerWrap);
+      m_device.destroyDescriptorPool(m_descriptors.native());
 
       m_device.destroy();
     }
@@ -1111,7 +1145,7 @@ namespace faze
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags)
     {
-      auto layout = desc.desc;
+      auto layout = desc;
       vector<vk::DescriptorSetLayoutBinding> bindings;
 
       int slot = 0;
@@ -1169,22 +1203,22 @@ namespace faze
       bindings.push_back(vk::DescriptorSetLayoutBinding()
         .setBinding(slot++).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_bilinearSampler)
+        .setPImmutableSamplers(&m_samplers.m_bilinearSampler)
         .setStageFlags(flags));
       bindings.push_back(vk::DescriptorSetLayoutBinding()
         .setBinding(slot++).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_pointSampler)
+        .setPImmutableSamplers(&m_samplers.m_pointSampler)
         .setStageFlags(flags));
       bindings.push_back(vk::DescriptorSetLayoutBinding()
         .setBinding(slot++).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_bilinearSamplerWrap)
+        .setPImmutableSamplers(&m_samplers.m_bilinearSamplerWrap)
         .setStageFlags(flags));
       bindings.push_back(vk::DescriptorSetLayoutBinding()
         .setBinding(slot++).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_pointSamplerWrap)
+        .setPImmutableSamplers(&m_samplers.m_pointSamplerWrap)
         .setStageFlags(flags));
 
       return bindings;
@@ -1290,13 +1324,21 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         case ViewResourceType::BufferSRV:
         {
-          m_device.destroyBufferView(m_allRes.bufSRV[handle].native().view);
+          auto view = m_allRes.bufSRV[handle].native();
+          if (view.type == vk::DescriptorType::eUniformTexelBuffer)
+          {
+            m_device.destroyBufferView(view.view);
+          }
           m_allRes.bufSRV[handle] = VulkanBufferView();
           break;
         }
         case ViewResourceType::BufferUAV:
         {
-          m_device.destroyBufferView(m_allRes.bufUAV[handle].native().view);
+          auto view = m_allRes.bufUAV[handle].native();
+          if (view.type == vk::DescriptorType::eStorageTexelBuffer)
+          {
+            m_device.destroyBufferView(view.view);
+          }
           m_allRes.bufUAV[handle] = VulkanBufferView();
           break;
         }
@@ -1327,7 +1369,10 @@ for (auto&& upload : it.second.dynamicBuffers)
         case ViewResourceType::DynamicBufferSRV:
         {
           auto& dyn = m_allRes.dynBuf[handle];
-          m_device.destroyBufferView(dyn.native().bufferInfo);
+          if (dyn.native().type == vk::DescriptorType::eUniformTexelBuffer)
+          {
+            m_device.destroyBufferView(dyn.native().texelView);
+          }
           m_dynamicUpload->release(dyn.native().block);
           dyn = VulkanDynamicBufferView();
         }
@@ -1577,18 +1622,43 @@ for (auto&& upload : it.second.dynamicBuffers)
           type = vk::DescriptorType::eStorageTexelBuffer;
         }
       }
-      auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(native.native())
-        .setFormat(formatToVkFormat(format).view)
         .setOffset(firstElement)
-        .setRange(maxRange));
-      VK_CHECK_RESULT(viewRes);
-      if (handle.type == ViewResourceType::BufferSRV)
-        m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value);
-      if (handle.type == ViewResourceType::BufferUAV)
-        m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value);
-      if (handle.type == ViewResourceType::BufferIBV)
-        m_allRes.bufIBV[handle] = VulkanBufferView(viewRes.value);
+        .setRange(maxRange);
+
+      if (handle.type == ViewResourceType::BufferSRV) {
+        if (type == vk::DescriptorType::eUniformTexelBuffer) {
+          auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
+            .setBuffer(native.native())
+            .setFormat(formatToVkFormat(format).view)
+            .setOffset(firstElement)
+          .setRange(maxRange));
+          VK_CHECK_RESULT(viewRes);
+          m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value, type);
+        }
+        else {
+          m_allRes.bufSRV[handle] = VulkanBufferView(info, type);
+        }
+      }
+      if (handle.type == ViewResourceType::BufferUAV) {
+        if (type == vk::DescriptorType::eStorageTexelBuffer) {
+          auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
+            .setBuffer(native.native())
+            .setFormat(formatToVkFormat(format).view)
+            .setOffset(firstElement)
+          .setRange(maxRange));
+          VK_CHECK_RESULT(viewRes);
+          m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value, type);
+        }
+        else {
+          m_allRes.bufUAV[handle] = VulkanBufferView(info, type);
+        }
+      }
+      if (handle.type == ViewResourceType::BufferIBV) {
+        m_allRes.bufIBV[handle] = VulkanBufferView(info, type);
+      }
     }
 
     void VulkanDevice::createTexture(ResourceHandle handle, ResourceDescriptor& desc)
@@ -1788,6 +1858,20 @@ for (auto&& upload : it.second.dynamicBuffers)
       }
     }
 
+    VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)
+    {
+      auto upload = m_constantAllocators->allocate(bytes.size());
+      F_ASSERT(upload, "Halp");
+      memcpy(upload.data(), bytes.data(), bytes.size());
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(upload.buffer())
+        .setOffset(0)
+        .setRange(bytes.size());
+
+      return VulkanConstantBuffer(info, upload);
+    }
+
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
       auto upload = m_dynamicUpload->allocate(dataRange.size());
@@ -1797,17 +1881,31 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto format = formatToVkFormat(desiredFormat).view;
       //auto stride = formatSizeInfo(desiredFormat).pixelSize;
 
-      vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
-        .setBuffer(upload.buffer())
-        .setFormat(format)
-        .setOffset(upload.block.offset)
-        .setRange(upload.block.size);
+      if (desiredFormat != FormatType::Unknown && desiredFormat != FormatType::Raw32)
+      {
+        auto type = vk::DescriptorType::eUniformTexelBuffer;
 
-      auto view = m_device.createBufferView(desc);
-      VK_CHECK_RESULT(view);
+        vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
+          .setBuffer(upload.buffer())
+          .setFormat(format)
+          .setOffset(upload.block.offset)
+          .setRange(upload.block.size);
 
-      // will be collected promtly
-      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload);
+        auto view = m_device.createBufferView(desc);
+        VK_CHECK_RESULT(view);
+
+        // will be collected promtly
+        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload);
+      }
+      else {
+        vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+          .setBuffer(upload.buffer())
+          .setOffset(upload.block.offset)
+          .setRange(upload.block.size);
+
+        // will be collected promtly
+        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), info, upload);
+      }
     }
 
     void VulkanDevice::dynamic(ViewResourceHandle, MemView<uint8_t> , unsigned)
@@ -1854,12 +1952,17 @@ for (auto&& upload : it.second.dynamicBuffers)
 
       auto list = m_copyListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
-        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
+        }
+        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
+        for (auto&& constant : buffer->freeableConstants())
+        {
+          m_constantAllocators->release(constant.native().block);
         }
         delete buffer;
       });
@@ -1871,12 +1974,17 @@ for (auto&& upload : it.second.dynamicBuffers)
 
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
-        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
+        }
+        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
+        for (auto&& constant : buffer->freeableConstants())
+        {
+          m_constantAllocators->release(constant.native().block);
         }
         delete buffer;
       });
@@ -1888,12 +1996,17 @@ for (auto&& upload : it.second.dynamicBuffers)
 
       auto list = m_graphicsListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list),
-        [tracker, seqNumber](VulkanCommandBuffer* buffer)
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
+        }
+        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
+        for (auto&& constant : buffer->freeableConstants())
+        {
+          m_constantAllocators->release(constant.native().block);
         }
         delete buffer;
       });

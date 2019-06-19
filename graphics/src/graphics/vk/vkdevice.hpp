@@ -26,10 +26,9 @@ namespace faze
       vk::Queue                   m_computeQueue;
       vk::Queue                   m_copyQueue;
 
-      vk::Sampler                 m_bilinearSampler;
-      vk::Sampler                 m_pointSampler;
-      vk::Sampler                 m_bilinearSamplerWrap;
-      vk::Sampler                 m_pointSamplerWrap;
+      StaticSamplers              m_samplers;
+
+      VulkanDescriptorPool        m_descriptors;
 
       Rabbitpool2<VulkanSemaphore>    m_semaphores;
       Rabbitpool2<VulkanFence>        m_fences;
@@ -55,7 +54,9 @@ namespace faze
 
       std::shared_ptr<SequenceTracker> m_seqTracker;
       std::shared_ptr<VulkanUploadHeap> m_dynamicUpload;
+      std::shared_ptr<VulkanConstantUploadHeap> m_constantAllocators;
 
+/*
       struct Garbage
       {
         vector<VkUploadBlock> dynamicBuffers;
@@ -71,6 +72,7 @@ namespace faze
 
       std::shared_ptr<Garbage> m_trash;
       deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
+      */
 
       // new new stuff
       // HandleVector<VulkanTexture>
@@ -129,6 +131,8 @@ namespace faze
       std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override { return nullptr; };
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return; };
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return; };
+
+      VulkanConstantBuffer allocateConstants(MemView<uint8_t> bytes);
 
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;

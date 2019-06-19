@@ -351,14 +351,18 @@ namespace faze
       struct Info
       {
         vk::BufferView view;
-        //vk::DescriptorType type;
+        vk::DescriptorBufferInfo bufferInfo;
+        vk::DescriptorType type;
       } m;
 
     public:
       VulkanBufferView()
       {}
-      VulkanBufferView(vk::BufferView view)
-        : m{ view }
+      VulkanBufferView(vk::BufferView view, vk::DescriptorType type)
+        : m{ view , {}, type}
+      {}
+      VulkanBufferView(vk::DescriptorBufferInfo view, vk::DescriptorType type)
+        : m{ {} , view, type}
       {}
       Info& native()
       {
@@ -393,13 +397,32 @@ namespace faze
       }
     };
 
+    class VulkanConstantBuffer
+    {
+      struct Info
+      {
+        vk::DescriptorBufferInfo bufferInfo;
+        VkUploadBlock block;
+      } m;
+      public:
+      VulkanConstantBuffer(vk::DescriptorBufferInfo view, VkUploadBlock block)
+        : m{ view, block }
+      {}
+      Info& native()
+      {
+        return m;
+      }
+    };
+
     class VulkanDynamicBufferView
     {
     private:
       struct Info
       {
         vk::Buffer buffer;
-        vk::BufferView bufferInfo;
+        vk::BufferView texelView;
+        vk::DescriptorBufferInfo bufferInfo;
+        vk::DescriptorType type;
         VkUploadBlock block;
       } m;
 
@@ -407,7 +430,10 @@ namespace faze
       VulkanDynamicBufferView()
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView view, VkUploadBlock block)
-        : m{ buffer, view, block }
+        : m{ buffer, view, {}, vk::DescriptorType::eUniformTexelBuffer, block }
+      {}
+      VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block)
+        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block }
       {}
       Info& native()
       {
@@ -614,6 +640,116 @@ namespace faze
       }
     };
 
+    class VulkanConstantUploadHeap
+    {
+      FixedSizeAllocator allocator;
+      unsigned fixedSize = 1;
+      unsigned size = 1;
+      vk::Buffer m_buffer;
+      vk::DeviceMemory m_memory;
+      vk::Device m_device;
+
+      uint8_t* data = nullptr;
+    public:
+      VulkanConstantUploadHeap() : allocator(1, 1) {}
+      VulkanConstantUploadHeap(vk::Device device
+                     , vk::PhysicalDevice physDevice
+                     , unsigned allocationSize
+                     , unsigned allocationCount)
+        : allocator(allocationSize, allocationCount)
+        , fixedSize(allocationSize)
+        , size(allocationSize*allocationCount)
+        , m_device(device)
+      {
+        auto bufDesc = ResourceDescriptor()
+          .setWidth(allocationSize*allocationCount)
+          .setFormat(FormatType::Uint8)
+          .setUsage(ResourceUsage::Upload)
+          .setName("DynUpload");
+
+        auto natBufferInfo = fillBufferInfo(bufDesc);
+        natBufferInfo = natBufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
+
+        auto result = device.createBuffer(natBufferInfo);
+        if (result.result == vk::Result::eSuccess)
+        {
+          m_buffer = result.value;
+        }
+
+        vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_buffer);
+        auto memProp = physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
+        auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+        F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+
+        vk::MemoryAllocateInfo allocInfo;
+
+        allocInfo = vk::MemoryAllocateInfo()
+          .setAllocationSize(bufDesc.desc.width)
+          .setMemoryTypeIndex(index);
+
+        auto allocRes = device.allocateMemory(allocInfo);
+        VK_CHECK_RESULT(allocRes);
+        m_memory = allocRes.value;
+        device.bindBufferMemory(m_buffer, m_memory, 0);
+        // we should have cpu UploadBuffer created above and bound, lets map it.
+
+        auto mapResult = device.mapMemory(m_memory, 0, allocationSize*allocationCount);
+        VK_CHECK_RESULT(mapResult);
+
+        data = reinterpret_cast<uint8_t*>(mapResult.value);
+      }
+
+      ~VulkanConstantUploadHeap()
+      {
+        m_device.destroyBuffer(m_buffer);
+        m_device.freeMemory(m_memory);
+      }
+
+      VkUploadBlock allocate(size_t bytes)
+      {
+        auto dip = allocator.allocate(bytes);
+        F_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        return VkUploadBlock{ data, m_buffer,  dip };
+      }
+
+      void release(VkUploadBlock desc)
+      {
+        allocator.release(desc.block);
+      }
+    };
+
+    class VulkanDescriptorPool
+    {
+      vk::DescriptorPool pool;
+      public:
+      VulkanDescriptorPool()
+      {
+      }
+      VulkanDescriptorPool(vk::DescriptorPool pool)
+        :pool(pool)
+      {
+      }
+      std::vector<vk::DescriptorSet> allocate(vk::Device device, vk::DescriptorSetLayout layout, int count)
+      {
+        auto res = device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
+          .setDescriptorPool(pool)
+          .setDescriptorSetCount(count)
+          .setPSetLayouts(&layout));
+        VK_CHECK_RESULT(res);
+        return res.value;
+      }
+      void freeSets(vk::Device device, MemView<vk::DescriptorSet> sets)
+      {
+        vk::ArrayProxy<const vk::DescriptorSet> csets(sets.size(), sets.data());
+        device.freeDescriptorSets(pool, csets);
+      }
+      vk::DescriptorPool native()
+      {
+        return pool;
+      }
+    };
+
 
     struct Resources
     {
@@ -632,16 +768,28 @@ namespace faze
       HandleVector<VulkanHeap> heaps;
     };
 
+    struct StaticSamplers
+    {
+      vk::Sampler                 m_bilinearSampler;
+      vk::Sampler                 m_pointSampler;
+      vk::Sampler                 m_bilinearSamplerWrap;
+      vk::Sampler                 m_pointSamplerWrap;
+    };
+
     class VulkanCommandBuffer : public CommandBufferImpl
     {
       std::shared_ptr<VulkanCommandList> m_list;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
+      VulkanDescriptorPool m_descriptors;
+      vector<vk::DescriptorSet> m_allocatedSets;
+      vector<VulkanConstantBuffer> m_constants;
 
     public:
-      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list)
-        : m_list(list)
+      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors)
+        : m_list(list), m_descriptors(descriptors)
       {}
     private:
+      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline);
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
@@ -651,6 +799,15 @@ namespace faze
       vk::CommandBuffer list()
       {
         return m_list->list();
+      }
+
+      vector<vk::DescriptorSet>& freeableDescriptors()
+      {
+        return m_allocatedSets;
+      }
+      vector<VulkanConstantBuffer>& freeableConstants()
+      {
+        return m_constants;
       }
     };
 

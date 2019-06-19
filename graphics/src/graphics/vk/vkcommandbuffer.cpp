@@ -337,13 +337,89 @@ namespace faze
       buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
     }
 
-    void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline)
+    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline)
     {
       // get dynamicbuffer for constants
       // collect otherviews and indexes
       // build... DescriptorSet... I need the pipeline
+      auto desclayout = device->allResources().pipelines[pipeline].m_descriptorSetLayout;
+      auto layout = device->allResources().pipelines[pipeline].m_pipelineLayout;
+      auto set = m_descriptors.allocate(device->native(), desclayout, 1)[0];
+      m_allocatedSets.push_back(set);
 
+      vector<vk::WriteDescriptorSet> writeDescriptors;
 
+      auto constantBuffer = device->allocateConstants(packet.constants.convertToMemView());
+      m_constants.push_back(constantBuffer);
+      int index = 0;
+      writeDescriptors.emplace_back(vk::WriteDescriptorSet()
+        .setDstSet(set)
+        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+        .setDescriptorCount(1)
+        .setPBufferInfo(&constantBuffer.native().bufferInfo)
+        .setDstBinding(index++));
+
+      for (auto&& descriptor : packet.resources.convertToMemView())
+      {
+        vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
+        .setDstSet(set)
+        .setDescriptorCount(1)
+        .setDstBinding(index++);
+        switch (descriptor.type)
+        {
+          case ViewResourceType::BufferSRV:
+          {
+            auto& desc = device->allResources().bufSRV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.view);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          case ViewResourceType::BufferUAV:
+          {
+            auto& desc = device->allResources().bufUAV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eStorageTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.view);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          case ViewResourceType::TextureSRV:
+          {
+            auto& desc = device->allResources().texSRV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.viewType)
+                        .setPImageInfo(&desc.info);
+            break;
+          }
+          case ViewResourceType::TextureUAV:
+          {
+            auto& desc = device->allResources().texUAV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.viewType)
+                        .setPImageInfo(&desc.info);
+            break;
+          }
+          case ViewResourceType::DynamicBufferSRV:
+          {
+            auto& desc = device->allResources().dynBuf[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.texelView);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          default:
+            break;
+        }
+
+        writeDescriptors.emplace_back(writeSet);
+      }
+
+      vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
+      device->native().updateDescriptorSets(writes, {});
 
       vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eGraphics;
       if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Compute)
@@ -354,8 +430,9 @@ namespace faze
       {
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
+      //vk::ArrayProxy<const vk::DescriptorSet> sets(1, &set);
+      buffer.bindDescriptorSets(bindpoint, layout, 0, {set}, {static_cast<uint32_t>(constantBuffer.native().block.block.offset)});
 
-      //buffer.bindDescriptorSets()
     }
 /*
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::IntermediateList& list)
