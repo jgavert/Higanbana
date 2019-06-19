@@ -38,19 +38,29 @@ namespace faze
     {
       ResourceHandle renderpass;
       backend::PacketVectorHeader<ViewResourceHandle> rtvs;
+      backend::PacketVectorHeader<float4> clearValues;
       ViewResourceHandle dsv;
+      float clearDepth;
 
       int fbWidth;
       int fbHeight;
 
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
-      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv)
+      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepth)
       {
         packet->renderpass = renderpass;
         buffer.allocateElements<ViewResourceHandle>(packet->rtvs, rtvs.size());
-        auto spn = packet->rtvs.convertToMemView();
-        memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
+        {
+          auto spn = packet->rtvs.convertToMemView();
+          memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
+        }
         packet->dsv = dsv;
+        buffer.allocateElements<float4>(packet->clearValues, clearVals.size());
+        {
+          auto spn = packet->clearValues.convertToMemView();
+          memcpy(spn.data(), clearVals.data(), clearVals.size_bytes());
+        }
+        packet->clearDepth = clearDepth;
       }
     };
 

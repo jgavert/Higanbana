@@ -53,7 +53,12 @@ namespace faze
       {
         handles.push_back(rtv.handle());
       }
-      list.insert<gfxpacket::RenderPassBegin>(pass.handle(), handles, dsv.handle());
+      vector<float4> clearValues;
+      for (auto&& rtv : rtvs)
+      {
+        clearValues.push_back(rtv.clearVal());
+      }
+      list.insert<gfxpacket::RenderPassBegin>(pass.handle(), handles, dsv.handle(), clearValues, dsv.clearVal().x);
     }
 
     void renderpassEnd()

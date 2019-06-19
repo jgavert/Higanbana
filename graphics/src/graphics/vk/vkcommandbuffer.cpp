@@ -281,18 +281,16 @@ namespace faze
 
       for (auto&& rtv : packet.rtvs.convertToMemView())
       {
-        //auto v = rtv.clearVal();
-        float4 v = float4(0.f, 0.f, 0.f, 0.f);
+        auto v = packet.clearValues.convertToMemView()[attachmentCount];
         clearValues[attachmentCount] = clearValues[attachmentCount]
           .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
         attachmentCount++;        
       }
       if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
-        //auto v = dsv.clearVal();
-        float4 v = float4(0.f, 0.f, 0.f, 0.f);
+        auto v = packet.clearDepth;
         clearValues[attachmentCount] = clearValues[attachmentCount]
-          .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v.x).setStencil(0));
+          .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v).setStencil(0));
         attachmentCount++;        
       }
       
