@@ -52,6 +52,18 @@ void mainWindow(ProgramParams& params)
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
+      if (allGpus.empty())
+      {
+        for (auto&& it : gpus)
+        {
+          if (it.api == api)
+          {
+            allGpus.push_back(it);
+            break;
+          }
+          F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
+        }
+      }
       if (updateLog) log.update();
       if (gpus.empty())
         return;

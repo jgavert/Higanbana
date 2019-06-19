@@ -1,5 +1,6 @@
 #pragma once
 #include <graphics/vk/vkresources.hpp>
+#include <optional>
 namespace faze
 {
   namespace backend
@@ -93,8 +94,8 @@ namespace faze
 
       vk::RenderPass createRenderpass(const vk::RenderPassCreateInfo& info);
 
-      void updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass);
-      void updatePipeline(ResourceHandle pipeline);
+      std::optional<vk::Pipeline> updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass);
+      std::optional<vk::Pipeline> updatePipeline(ResourceHandle pipeline);
 
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;

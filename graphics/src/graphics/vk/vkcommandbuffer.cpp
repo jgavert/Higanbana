@@ -967,13 +967,21 @@ namespace faze
           case PacketType::GraphicsPipelineBind:
           {
             gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
-            device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+            auto oldPipe = device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+            if (oldPipe)
+            {
+              m_oldPipelines.push_back(oldPipe.value());
+            }
             break;
           }
           case PacketType::ComputePipelineBind:
           {
             gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
-            device->updatePipeline(packet.pipeline);
+            auto oldPipe = device->updatePipeline(packet.pipeline);
+            if (oldPipe)
+            {
+              m_oldPipelines.push_back(oldPipe.value());
+            }
             break;
           }
           case PacketType::RenderpassEnd:
