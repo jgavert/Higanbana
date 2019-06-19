@@ -3,6 +3,7 @@
 #include <core/filesystem/filesystem.hpp>
 #include <core/platform/Window.hpp>
 #include <core/datastructures/proxy.hpp>
+#include <core/system/time.hpp>
 
 namespace app
 {
@@ -26,6 +27,9 @@ namespace app
     faze::GraphicsPipeline triangle;
 
     faze::Renderpass triangleRP;
+
+    // info
+    faze::WTime time;
   public:
     Renderer(faze::GraphicsSubsystem& graphics, faze::GpuGroup& dev);
     void initWindow(faze::Window& window, faze::GpuInfo info);

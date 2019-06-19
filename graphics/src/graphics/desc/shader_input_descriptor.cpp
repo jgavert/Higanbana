@@ -23,7 +23,7 @@ namespace faze
 
   vector<ShaderResource> ShaderInputDescriptor::getResources()
   {
-    return desc.sortedResources;
+    return sortedResources;
   }
 
   std::string ShaderInputDescriptor::createInterface()
@@ -78,7 +78,7 @@ namespace faze
           madeATable = true;
         }
       };
-      for (auto&& it : desc.sortedResources)
+      for (auto&& it : sortedResources)
       {
         if (it.readonly != currentMode)
         {
@@ -109,10 +109,10 @@ namespace faze
     "addressW = TEXTURE_ADDRESS_WRAP)\"\n\n"; 			\
 
     int gi = 0;
-    if (!desc.constantStructBody.empty())
+    if (!constantStructBody.empty())
     {
       gi++;
-      lol += "struct Constants\n{" + desc.constantStructBody + " };\n";
+      lol += "struct Constants\n{" + constantStructBody + " };\n";
       lol += "VK_BINDING(0) ConstantBuffer<Constants> constants : register( b0 );\n";
     }
     
@@ -144,14 +144,14 @@ namespace faze
     
     int i = 0;
     
-    if (!desc.structDecls.empty()) lol += "// Struct declarations\n";
-    for (auto&& strct : desc.structDecls)
+    if (!structDecls.empty()) lol += "// Struct declarations\n";
+    for (auto&& strct : structDecls)
     {
       lol += strct + "\n";
     }
     
     lol += "\n// Read Only resources\n";
-    for (auto&& res : desc.sortedResources)
+    for (auto&& res : sortedResources)
     {
       if (res.readonly)
         lol += resourceToString(false, gi, i++, res) + "\n";
@@ -160,7 +160,7 @@ namespace faze
     i = 0;
     gi = 1;
     lol += "\n// ReadWrite resources\n";
-    for (auto&& res : desc.sortedResources)
+    for (auto&& res : sortedResources)
     {
       if (!res.readonly)
         lol += resourceToString(true, gi, i++, res) + "\n";

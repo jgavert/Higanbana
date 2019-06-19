@@ -559,7 +559,7 @@ namespace faze
     }
     GraphicsPipelineDescriptor& setLayout(ShaderInputDescriptor layout)
     {
-      layout = layout;
+      desc.layout = layout;
       return *this;
     }
   };

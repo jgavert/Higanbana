@@ -41,18 +41,14 @@ namespace faze
   class ShaderInputDescriptor
   {
   public:
-    struct Descriptor
-    {
-      std::string constantStructBody;
-      vector<std::string> structDecls;
-      //std::vector<ShaderResource> resourcesRO;
-      //std::vector<ShaderResource> resourcesRW;
-      size_t constantsSizeOf;
-      vector<ShaderResource> sortedResources;
-    } desc;
+    std::string constantStructBody;
+    vector<std::string> structDecls;
+    size_t constantsSizeOf;
+    vector<ShaderResource> sortedResources;
+
     ShaderInputDescriptor()
     {
-      desc.constantsSizeOf = 0;
+      constantsSizeOf = 0;
     }
   private:
     int calcOrder(ShaderResourceType type, bool ro)
@@ -96,15 +92,15 @@ namespace faze
       
       desc.sortedResources.insert(iter, res);
       #endif
-      desc.sortedResources.push_back(res);
+      sortedResources.push_back(res);
     }
   public:
 
     template<typename Strct>
     ShaderInputDescriptor& constants()
     {
-      desc.constantsSizeOf = sizeof(Strct);
-      desc.constantStructBody = Strct::structMembersAsString;
+      constantsSizeOf = sizeof(Strct);
+      constantStructBody = Strct::structMembersAsString;
       return *this;
     }
 
@@ -115,7 +111,7 @@ namespace faze
 
       auto res = ShaderResource(type, Strct::structNameAsString, name, true);
       insertSort(res);
-      desc.structDecls.emplace_back(sd);
+      structDecls.emplace_back(sd);
       return *this;
     }
 
@@ -139,7 +135,7 @@ namespace faze
 
       auto res = ShaderResource(type, Strct::structNameAsString, name, false);
       insertSort(res);
-      desc.structDecls.emplace_back(sd);
+      structDecls.emplace_back(sd);
       return *this;
     }
     ShaderInputDescriptor& readWrite(ShaderResourceType type, std::string name)

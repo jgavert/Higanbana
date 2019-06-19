@@ -48,7 +48,7 @@ namespace app
     buffer3 = dev.createBuffer(bufferdesc3);
     testOut = dev.createBufferUAV(buffer3);
 
-    babyInf = ShaderInputDescriptor();
+    babyInf = ShaderInputDescriptor().constants<PixelConstants>();
     triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
       .setPixelShader("Triangle")
@@ -60,6 +60,7 @@ namespace app
         .setDepthEnable(false)));
 
     triangleRP = dev.createRenderpass();
+    time.startFrame();
   }
 
   void Renderer::initWindow(faze::Window& window, faze::GpuInfo info)
@@ -98,7 +99,7 @@ namespace app
         auto binding = node.bind(triangle);
 
         PixelConstants consts{};
-        consts.time = 0.f;
+        consts.time = time.getFTime();
         consts.resx = backbuffer.desc().desc.width;
         consts.resy = backbuffer.desc().desc.height;
         binding.constants(consts);
@@ -118,5 +119,6 @@ namespace app
 
     dev.submit(swapchain, tasks);
     dev.present(swapchain);
+    time.tick();
   }
 }
