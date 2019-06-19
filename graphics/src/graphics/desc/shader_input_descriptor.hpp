@@ -50,7 +50,10 @@ namespace faze
       size_t constantsSizeOf;
       vector<ShaderResource> sortedResources;
     } desc;
-    ShaderInputDescriptor(){}
+    ShaderInputDescriptor()
+    {
+      desc.constantsSizeOf = 0;
+    }
   private:
     int calcOrder(ShaderResourceType type, bool ro)
     {
@@ -157,7 +160,7 @@ namespace faze
 }
 
 #define STRINGIFY(a) #a
-#define STRUCT_DECL(name, args) \
+#define SHADER_STRUCT(name, args) \
 struct name \
 { \
   args \

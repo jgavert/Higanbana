@@ -1,6 +1,7 @@
 #pragma once
 #include <graphics/common/command_buffer.hpp>
 #include <graphics/common/handle.hpp>
+#include <core/math/math.hpp>
 
 namespace faze
 {

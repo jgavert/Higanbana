@@ -4,25 +4,20 @@
 #include "core/filesystem/filesystem.hpp"
 #include "core/Platform/Window.hpp"
 #include "core/system/logger.hpp"
+#include "core/system/time.hpp"
 #include "core/global_debug.hpp"
-#include <core/entity/database.hpp>
-#include <core/entity/query.hpp>
 
+#include "entity_test.hpp"
 #include <tuple>
-
 #include <core/system/misc.hpp>
+#include <random>
 
 using namespace faze;
 using namespace faze::math;
-/*
-void printRange(const SubresourceRange& range)
-{
-  F_LOG("(%d, %d)(%d, %d)\n", range.mipOffset, range.mipLevels, range.sliceOffset, range.arraySize);
-}*/
 
 #include "graphics/desc/shader_input_descriptor.hpp"
 
-STRUCT_DECL(PixelConstants,
+SHADER_STRUCT(PixelConstants,
   float resx;
   float resy;
   float time;
@@ -32,25 +27,7 @@ STRUCT_DECL(PixelConstants,
 void mainWindow(ProgramParams& params)
 {
   Logger log;
-
-  /*
-  Database<10> db;
-  auto& ft = db.get<float>();
-  auto& f4t = db.get<float4>();
-
-  auto e = db.createEntity();
-  ft.get(e) = 4.f;
-  f4t.get(e) = float4(1.f, 2.f, 3.f, 4.f);
-
-  query(pack(ft, f4t), [](float& a, float4& vec)
-  {
-    F_ILOG("query", "super values a: %.2f f4:%.2f %.2f %.2f %.2f", a, vec.x, vec.y, vec.z, vec.w);
-  });
-  */
-
-
-  //LBS lbs;
-
+  // test_entity();
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;
@@ -159,6 +136,7 @@ void mainWindow(ProgramParams& params)
           // update inputs and our position
           //directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
           // update fs
+          log.update();
           fs.updateWatchedFiles();
           if (window.hasResized() || toggleHDR)
           {
