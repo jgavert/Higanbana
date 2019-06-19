@@ -12,17 +12,10 @@
 #include <core/system/misc.hpp>
 #include <random>
 
+#include "rendering.hpp"
+
 using namespace faze;
 using namespace faze::math;
-
-#include "graphics/desc/shader_input_descriptor.hpp"
-
-SHADER_STRUCT(PixelConstants,
-  float resx;
-  float resy;
-  float time;
-  int unused;
-);
 
 void mainWindow(ProgramParams& params)
 {
@@ -71,61 +64,16 @@ void mainWindow(ProgramParams& params)
       Window window(params, windowTitle, 1280, 720, 300, 200);
       window.open();
 
-      auto surface = graphics.createSurface(window, allGpus[0]);
       auto dev = graphics.createGroup(fs, allGpus);
+      app::Renderer rend(graphics, dev);
       {
         auto toggleHDR = false;
-        auto scdesc = SwapchainDescriptor()
-          .formatType(FormatType::Unorm8RGBA)
-          .colorspace(Colorspace::BT709)
-          .bufferCount(3).presentMode(PresentMode::Fifo);
-        auto swapchain = dev.createSwapchain(surface, scdesc);
+        rend.initWindow(window, allGpus[0]);
 
         for (auto& gpu : allGpus)
         {
           F_LOG("Created device \"%s\"\n", gpu.name.c_str());
         }
-
-        auto bufferdesc = ResourceDescriptor()
-          .setName("testBuffer1")
-          .setFormat(FormatType::Raw32)
-          .setWidth(32)
-          .setDimension(FormatDimension::Buffer)
-          .setUsage(ResourceUsage::GpuReadOnly);
-
-        auto bufferdesc2 = ResourceDescriptor()
-          .setName("testBuffer2")
-          .setFormat(FormatType::Float32)
-          .setWidth(32)
-          .setDimension(FormatDimension::Buffer)
-          .setUsage(ResourceUsage::GpuReadOnly);
-
-        auto bufferdesc3 = ResourceDescriptor()
-          .setName("testOutBuffer")
-          .setFormat(FormatType::Float32RGBA)
-          .setWidth(8)
-          .setDimension(FormatDimension::Buffer)
-          .setUsage(ResourceUsage::GpuRW);
-
-        auto buffer = dev.createBuffer(bufferdesc);
-        auto testSRV = dev.createBufferSRV(buffer);
-        auto buffer2 = dev.createBuffer(bufferdesc2);
-        auto test2SRV = dev.createBufferSRV(buffer2);
-        auto buffer3 = dev.createBuffer(bufferdesc3);
-        auto testOut = dev.createBufferUAV(buffer3);
-
-        auto babyInf = ShaderInputDescriptor();
-        auto triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
-          .setVertexShader("Triangle")
-          .setPixelShader("Triangle")
-          .setLayout(babyInf)
-          .setPrimitiveTopology(PrimitiveTopology::Triangle)
-          .setRTVFormat(0, swapchain.buffers()[0].texture().desc().desc.format)
-          .setRenderTargetCount(1)
-          .setDepthStencil(DepthStencilDescriptor()
-            .setDepthEnable(false)));
-
-        auto triangleRP = dev.createRenderpass();
 
         bool closeAnyway = false;
         bool captureMouse = false;
@@ -140,7 +88,8 @@ void mainWindow(ProgramParams& params)
           fs.updateWatchedFiles();
           if (window.hasResized() || toggleHDR)
           {
-            dev.adjustSwapchain(swapchain, scdesc);
+            //dev.adjustSwapchain(swapchain, scdesc);
+            rend.windowResized();
             window.resizeHandled();
             toggleHDR = false;
           }
@@ -188,48 +137,7 @@ void mainWindow(ProgramParams& params)
           }
           if (updateLog) log.update();
 
-          // If you acquire, you must submit it. Next, try to first present empty image.
-          // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
-          std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
-          if (!obackbuffer.has_value())
-          {
-            F_ILOG("", "No backbuffer available");
-            continue;
-          }
-          TextureRTV backbuffer = obackbuffer.value();
-          CommandGraph tasks = dev.createGraph();
-
-          {
-            auto node = tasks.createPass("Triangle");
-            node.acquirePresentableImage(swapchain);
-            float redcolor = 0.5f;//std::sin(time.getFTime())*.5f + .5f;
-
-            backbuffer.clearOp(float4{ 0.f, 0.f, redcolor, 1.f });
-            node.renderpass(triangleRP, backbuffer);
-            {
-              auto binding = node.bind(triangle);
-
-              PixelConstants consts{};
-              consts.time = 0.f;
-              consts.resx = backbuffer.desc().desc.width;
-              consts.resy = backbuffer.desc().desc.height;
-              binding.constants(consts);
-
-              node.draw(binding, 3);
-            }
-            node.endRenderpass();
-
-			      tasks.addPass(std::move(node));
-          }
-          {
-            auto node = tasks.createPass("preparePresent");
-
-            node.prepareForPresent(backbuffer);
-            tasks.addPass(std::move(node));
-          }
-
-          dev.submit(swapchain, tasks);
-          dev.present(swapchain);
+          rend.render();
         }
       }
       if (!reInit)
