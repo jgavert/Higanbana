@@ -177,8 +177,8 @@ namespace faze
       auto imageOffset = m_imageBarrierOffsets[drawCall];
       auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
 
-      barrier.buffers = MemView<BufferBarrier>(&bufferBarriers[bufferOffset], bufferSize);
-      barrier.textures = MemView<ImageBarrier>(&imageBarriers[imageOffset], imageSize);
+      barrier.buffers = MemView<BufferBarrier>(bufferBarriers.data()+bufferOffset, bufferSize);
+      barrier.textures = MemView<ImageBarrier>(imageBarriers.data()+imageOffset, imageSize);
 
       return barrier;
     }

@@ -337,7 +337,7 @@ namespace faze
       buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
     }
 
-    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline)
+    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline)
     {
       // get dynamicbuffer for constants
       // collect otherviews and indexes

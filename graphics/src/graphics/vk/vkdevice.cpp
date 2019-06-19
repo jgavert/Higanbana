@@ -1862,6 +1862,7 @@ for (auto&& upload : it.second.dynamicBuffers)
     {
       auto upload = m_constantAllocators->allocate(bytes.size());
       F_ASSERT(upload, "Halp");
+
       memcpy(upload.data(), bytes.data(), bytes.size());
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()

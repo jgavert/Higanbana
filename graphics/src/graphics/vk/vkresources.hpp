@@ -789,7 +789,7 @@ namespace faze
         : m_list(list), m_descriptors(descriptors)
       {}
     private:
-      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding packet, ResourceHandle pipeline);
+      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
