@@ -100,11 +100,7 @@ namespace faze
             m_devices[liveBuffer.deviceID].device->waitFence(liveBuffer.fence);
           }
         }
-
-        while (!m_buffers.empty())
-        {
-          m_buffers.pop_front();
-        }
+        checkCompletedLists();
       }
     }
 
@@ -271,7 +267,7 @@ namespace faze
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(0, *ptr);
+          dev->m_delayer.insert(dev->m_seqTracker.lastSequence(), *ptr);
         }
         delete ptr;
       });
@@ -284,7 +280,7 @@ namespace faze
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(0, *ptr);
+          dev->m_delayer.insert(dev->m_seqTracker.lastSequence(), *ptr);
         }
         delete ptr;
       });
@@ -669,7 +665,7 @@ namespace faze
         for (auto&& handle : garb.viewTrash)
         {
           auto ownerGpuId = handle.resource.ownerGpuId();
-          if (ownerGpuId == -1 || ownerGpuId == device.id)
+          if (handle.type == ViewResourceType::DynamicBufferSRV || ownerGpuId == -1 || ownerGpuId == device.id)
           {
             device.device->releaseViewHandle(handle);
           }

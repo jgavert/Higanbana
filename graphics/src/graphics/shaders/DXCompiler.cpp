@@ -145,7 +145,7 @@ namespace faze
         OutputDebugStringA("\n");
 
         F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), msg.c_str());
-        F_ASSERT(false, "Temp assertion for strange errors");
+        //F_ASSERT(false, "Temp assertion for strange errors");
         return false;
       }
       F_ILOG("ShaderStorage", "Compiled: \"%s\"", d.shaderName.c_str());
