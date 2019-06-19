@@ -82,7 +82,7 @@ namespace faze
         auto h = *m_id;
         h.setLoadOp(m_loadOp);
         h.setStoreOp(m_storeOp);
-        return *m_id;
+        return h;
       }
       return ViewResourceHandle();
     }
