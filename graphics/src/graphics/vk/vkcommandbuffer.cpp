@@ -867,8 +867,8 @@ namespace faze
             .setImage(vimage.native())
             .setSubresourceRange(range));
         }
-        auto beforeStr = buildStageString(beforeStage);
-        auto afterStr = buildStageString(afterStage);
+        //auto beforeStr = buildStageString(beforeStage);
+        //auto afterStr = buildStageString(afterStage);
         //F_ILOG("vkBarriers", "need to conjure some barriers: before:\"%s\" after:\"%s\"", beforeStr.c_str(), afterStr.c_str());
         auto vkBefore = conjureFlags(beforeStage);
         auto vkAfter = conjureFlags(afterStage);

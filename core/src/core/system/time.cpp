@@ -10,6 +10,7 @@ WTime::WTime() : start(HighPrecisionClock::now())
   {
     data = 0;
   });
+  startFrame();
 }
 
 void WTime::firstTick() {
@@ -25,6 +26,7 @@ void WTime::startFrame()
 {
   start = HighPrecisionClock::now();
   timepoint_last = HighPrecisionClock::now();
+  timeFromStart = 0.f;
 }
 
 void WTime::tick()
@@ -43,6 +45,7 @@ void WTime::tick()
   {
     frametime_high = frametime_current;
   }
+  timeFromStart += deltatime*0.001;
 }
 
 float WTime::interpolateFpsFromNanoseconds(int64_t time) {
@@ -118,7 +121,7 @@ int64_t WTime::getCurrentNano()
 
 float WTime::getFTime()
 {
-  return timepoint_last.time_since_epoch().count() * 0.000000001f;
+  return timeFromStart * 0.001;
 }
 
 int64_t WTime::getFrame()
