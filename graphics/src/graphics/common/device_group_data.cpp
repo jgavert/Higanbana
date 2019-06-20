@@ -78,19 +78,16 @@ namespace faze
 
     DeviceGroupData::~DeviceGroupData()
     {
-      for (auto&& impl : m_devices)
-      {
-        if (impl.device)
-        {
-          impl.device->waitGpuIdle();
-          waitGpuIdle();
-        }
-      }
+      waitGpuIdle();
       gc();
     }
 
     void DeviceGroupData::waitGpuIdle()
     {
+      for (auto&& vdev : m_devices)
+      {
+        vdev.device->waitGpuIdle();
+      }
       if (!m_buffers.empty())
       {
         for (auto&& liveBuffer : m_buffers)
@@ -153,6 +150,10 @@ namespace faze
           if (auto dev = weakDevice.lock())
           {
             dev->m_handles.release(*ptr);
+            for (auto&& vdev : dev->m_devices)
+            {
+              vdev.device->releaseHandle(*ptr);
+            }
           }
           delete ptr;
         });

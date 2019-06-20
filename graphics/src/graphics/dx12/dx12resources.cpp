@@ -51,15 +51,28 @@ namespace faze
       desc.NodeMask = m_nodeMask;
       FAZE_CHECK_HR(m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_graphicsQueue.ReleaseAndGetAddressOf())));
 
+      {
+        auto wstr = s2ws("GraphicsQueue");
+        m_graphicsQueue->SetName(wstr.c_str());
+      }
+
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
       FAZE_CHECK_HR(m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_dmaQueue.ReleaseAndGetAddressOf())));
+      {
+        auto wstr = s2ws("dmaQueue");
+        m_dmaQueue->SetName(wstr.c_str());
+      }
 
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
       desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
       FAZE_CHECK_HR(m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_computeQueue.ReleaseAndGetAddressOf())));
+      {
+        auto wstr = s2ws("computeQueue");
+        m_computeQueue->SetName(wstr.c_str());
+      }
 
       m_deviceFence = createNativeFence();
 
@@ -150,6 +163,7 @@ namespace faze
 
     DX12Device::~DX12Device()
     {
+      waitGpuIdle();
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
 #endif
@@ -566,6 +580,12 @@ namespace faze
           m_allRes.texDSV[handle] = DX12TextureView();
           break;
         }
+        case ViewResourceType::DynamicBufferSRV:
+        {
+          //m_dsvs.release(m_allRes.texDSV[handle].native());
+          //m_allRes.texDSV[handle] = DX12TextureView();
+          break;
+        }
         default:
         {
           F_ASSERT(false, "unhandled type released");
@@ -584,6 +604,10 @@ namespace faze
     void DX12Device::waitGpuIdle()
     {
       m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
+      m_deviceFence.waitTillReady();
+      m_computeQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
+      m_deviceFence.waitTillReady();
+      m_dmaQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
       m_deviceFence.waitTillReady();
     }
 
