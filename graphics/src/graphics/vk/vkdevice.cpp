@@ -1282,7 +1282,9 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         case ResourceType::Texture:
         {
-          m_device.destroyImage(m_allRes.tex[handle].native());
+          auto& tex = m_allRes.tex[handle];
+          if (tex.canRelease())
+            m_device.destroyImage(tex.native());
           m_allRes.tex[handle] = VulkanTexture();
           break;
         }
