@@ -93,7 +93,7 @@ namespace app
       node.acquirePresentableImage(swapchain);
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
-      backbuffer.clearOp(float4{ 1.f, 0.f, redcolor, 1.f });
+      backbuffer.clearOp(float4{ 0.f, 0.f, 0.f, 1.f });
       node.renderpass(triangleRP, backbuffer);
       {
         auto binding = node.bind(triangle);
@@ -106,7 +106,7 @@ namespace app
 
         PixelConstants consts{};
         consts.time = time.getFTime();
-        consts.resx = backbuffer.desc().desc.width;
+        consts.resx = backbuffer.desc().desc.width; 
         consts.resy = backbuffer.desc().desc.height;
         binding.constants(consts);
         binding.bind("vertexInput", vert);
