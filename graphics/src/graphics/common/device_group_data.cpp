@@ -662,7 +662,6 @@ namespace faze
           {
             device.device->releaseHandle(handle);
           }
-          m_handles.release(handle);
         }
         for (auto&& handle : garb.viewTrash)
         {
@@ -671,7 +670,6 @@ namespace faze
           {
             device.device->releaseViewHandle(handle);
           }
-          m_handles.release(handle);
         }
         auto removed = device.heaps.emptyHeaps();
         for (auto& it : removed)
@@ -679,6 +677,14 @@ namespace faze
           device.device->releaseHandle(it.handle);
           m_handles.release(it.handle);
         }
+      }
+      for (auto&& handle : garb.trash)
+      {
+        m_handles.release(handle);
+      }
+      for (auto&& handle : garb.viewTrash)
+      {
+        m_handles.release(handle);
       }
     }
 

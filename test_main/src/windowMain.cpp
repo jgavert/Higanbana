@@ -32,10 +32,10 @@ void mainWindow(ProgramParams& params)
 
     bool explicitID = false;
     //GpuInfo gpuinfo{};
-    vector<GpuInfo> allGpus;
 
     while (true)
     {
+      vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics("faze");
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
