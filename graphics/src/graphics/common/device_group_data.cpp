@@ -462,7 +462,7 @@ namespace faze
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {
-              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Graphics, backend::TextureLayout::Rendertarget, 0));
+              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget, 0));
             }
             break;
           }

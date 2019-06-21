@@ -93,7 +93,7 @@ namespace app
       node.acquirePresentableImage(swapchain);
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
-      backbuffer.clearOp(float4{ 0.f, 0.f, 0.f, 1.f });
+      backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
       node.renderpass(triangleRP, backbuffer);
       {
         auto binding = node.bind(triangle);
