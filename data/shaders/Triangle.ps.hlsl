@@ -13,7 +13,7 @@ float4 main(VertexOut input) : SV_TARGET
   int laneIndex = WaveGetLaneIndex();
   float laneThing = (float(laneIndex)%16)/16;
   float4 color = float4(input.uv.xyx,  1);
-  color.x = (sin(constants.time*0.5)/2.f) + 0.5;
+  color.x = (sin(constants.time*0.5)/2.f) + 0.7;
   color.y = 0.f;
   color.z = 0.f;
   return color;

@@ -1,4 +1,4 @@
-#include "graphics/dx12/dx12resources.hpp"
+#include "graphics/dx12/dx12subsystem.hpp"
 #if defined(FAZE_PLATFORM_WINDOWS)
 #include "graphics/common/gpudevice.hpp"
 #include "graphics/common/graphicssurface.hpp"

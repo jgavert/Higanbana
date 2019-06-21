@@ -12,7 +12,6 @@
 #include "graphics/dx12/dx12.hpp"
 
 #include "graphics/shaders/ShaderStorage.hpp"
-//#include "graphics/src/dx12/util/ShaderStorage.hpp"
 #include <graphics/common/handle.hpp>
 #include <graphics/common/allocators.hpp>
 
@@ -545,8 +544,6 @@ namespace faze
       ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       bool closedList = false;
-      std::shared_ptr<DX12DependencySolver> m_solver;
-
       bool dmaList;
     public:
       //DX12CommandBuffer() {}
@@ -559,115 +556,25 @@ namespace faze
       DX12CommandBuffer& operator=(const DX12CommandBuffer& other) = delete;
 
       D3D12GraphicsCommandList* list();
-      DX12DependencySolver* solver();
       void closeList();
       void resetList();
       bool closed() const;
       bool dma() const;
     };
+
+    struct DX12OldPipeline
+    {
+      ComPtr<ID3D12PipelineState> pipeline;
+      ComPtr<ID3D12RootSignature> root;
+    };
+
     struct FreeableResources
     {
       vector<UploadBlock> uploadBlocks;
       vector<DynamicDescriptorBlock> descriptorBlocks;
       vector<DX12ReadbackLambda> readbacks;
       vector<QueryBracket> queries;
-    };
-    class DX12CommandList : public CommandBufferImpl
-    {
-      std::shared_ptr<DX12CommandBuffer> m_buffer;
-      std::shared_ptr<DX12UploadHeap> m_constants;
-      std::shared_ptr<DX12UploadHeap> m_upload;
-      std::shared_ptr<DX12ReadbackHeap> m_readback;
-      std::shared_ptr<DX12QueryHeap> m_queryheap;
-      std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
-      DX12CPUDescriptor m_nullBufferUAV;
-      DX12CPUDescriptor m_nullBufferSRV;
-
-      UploadLinearAllocator m_constantsAllocator;
-      LinearDescriptorAllocator m_descriptorAllocator;
-
-      std::shared_ptr<FreeableResources> m_freeResources;
-
-      UploadBlock allocateConstants(size_t size);
-      DynamicDescriptorBlock allocateDescriptors(size_t size);
-      //void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
-      void addCommands(DX12Device* dev, D3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list);
-      void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
-      void processRenderpasses(DX12Device* dev, backend::IntermediateList& list);
-    public:
-      DX12CommandList(
-        std::shared_ptr<DX12CommandBuffer> buffer,
-        std::shared_ptr<DX12UploadHeap> constants,
-        std::shared_ptr<DX12UploadHeap> dynamicUpload,
-        std::shared_ptr<DX12ReadbackHeap> readback,
-        std::shared_ptr<DX12QueryHeap> queryheap,
-        std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
-        DX12CPUDescriptor nullBufferUAV,
-        DX12CPUDescriptor nullBufferSRV)
-        : m_buffer(buffer)
-        , m_constants(constants)
-        , m_upload(dynamicUpload)
-        , m_readback(readback)
-        , m_queryheap(queryheap)
-        , m_descriptors(descriptors)
-        , m_nullBufferUAV(nullBufferUAV)
-        , m_nullBufferSRV(nullBufferSRV)
-      {
-        m_buffer->resetList();
-        m_readback->reset();
-        m_queryheap->reset();
-
-        std::weak_ptr<DX12UploadHeap> consts = m_constants;
-        std::weak_ptr<DX12DynamicDescriptorHeap> descriptrs = m_descriptors;
-        std::weak_ptr<DX12ReadbackHeap> read = readback;
-
-        m_freeResources = std::shared_ptr<FreeableResources>(new FreeableResources, [consts, descriptrs, read](FreeableResources* ptr)
-        {
-          if (auto constants = consts.lock())
-          {
-            for (auto&& it : ptr->uploadBlocks)
-            {
-              constants->release(it);
-            }
-          }
-
-          if (auto descriptors = descriptrs.lock())
-          {
-            for (auto&& it : ptr->descriptorBlocks)
-            {
-              descriptors->release(it);
-            }
-          }
-
-          // handle readbacks
-          if (auto readback = read.lock())
-          {
-            if (!ptr->readbacks.empty())
-            {
-              readback->map();
-              for (auto&& it : ptr->readbacks)
-              {
-                it.func(readback->getView(it.dataLocation));
-              }
-              readback->unmap();
-            }
-          }
-
-          delete ptr;
-        });
-      }
-
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
-
-      bool closed() const
-      {
-        return m_buffer->closed();
-      }
-
-      ID3D12GraphicsCommandList* list()
-      {
-        return m_buffer->list();
-      }
+      vector<DX12OldPipeline> pipelines;
     };
 
     // implementations
@@ -841,28 +748,35 @@ namespace faze
     {
     private:
       ID3D12Resource* resource = nullptr;
-      std::shared_ptr<DX12ResourceState> statePtr;
+      ResourceDescriptor descriptor;
+      int maxMipSize = 1;
 
     public:
       DX12Texture()
       {}
-      DX12Texture(ID3D12Resource* resource, std::shared_ptr<DX12ResourceState> state)
+      DX12Texture(ID3D12Resource* resource, ResourceDescriptor descriptor, int maxMipSize)
         : resource(resource)
-        , statePtr(state)
+        , descriptor(descriptor)
+        , maxMipSize(maxMipSize)
       {}
       ID3D12Resource* native()
       {
         return resource;
       }
 
-      std::shared_ptr<DX12ResourceState> state()
+      const ResourceDescriptor& desc() const
       {
-        return statePtr;
+        return descriptor;
+      }
+
+      int mipSize() const
+      {
+        return maxMipSize;
       }
 
       void resetState() // wtf is this?? kind of understand but still.
       {
-        statePtr = nullptr;
+        //statePtr = nullptr;
       }
     };
 
@@ -870,22 +784,22 @@ namespace faze
     {
     private:
       DX12CPUDescriptor resource;
-      SubresourceRange subResourceRange;
+      DXGI_FORMAT m_view;
     public:
       DX12TextureView()
       {}
-      DX12TextureView(DX12CPUDescriptor resource, SubresourceRange subResourceRange)
+      DX12TextureView(DX12CPUDescriptor resource, DXGI_FORMAT view)
         : resource(resource)
-        , subResourceRange(subResourceRange)
+        , m_view(view)
       {}
       DX12CPUDescriptor native()
       {
         return resource;
       }
 
-      SubresourceRange range()
+      DXGI_FORMAT viewFormat() const
       {
-        return subResourceRange;
+        return m_view;
       }
     };
 
@@ -967,6 +881,11 @@ namespace faze
         return resource;
       }
 
+      bool hasDescriptor() const
+      {
+        return m_rowPitch == -1;
+      }
+
       D3D12_INDEX_BUFFER_VIEW indexBufferView()
       {
         D3D12_INDEX_BUFFER_VIEW view{};
@@ -1032,184 +951,62 @@ namespace faze
       ComPtr<ID3D12PipelineState> pipeline;
       ComPtr<ID3D12RootSignature> root;
       D3D12_PRIMITIVE_TOPOLOGY primitive;
+      bool m_hasPipeline;
+
       DX12Pipeline()
         : pipeline(nullptr)
         , root(nullptr)
         , primitive(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+        , m_hasPipeline(false)
       {
       }
+
       DX12Pipeline(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> root, D3D12_PRIMITIVE_TOPOLOGY primitive)
         : pipeline(pipeline)
         , root(root)
         , primitive(primitive)
+        , m_hasPipeline(true)
       {
       }
-    };
 
-    class DX12Device : public prototypes::DeviceImpl
-    {
-    private:
-      GpuInfo m_info;
-      ComPtr<ID3D12Device> m_device;
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-      ComPtr<IDXGIDebug1> m_debug;
-#endif
-      ComPtr<IDXGIFactory4> m_factory;
+      GraphicsPipelineDescriptor m_gfxDesc;
+      ComputePipelineDescriptor m_computeDesc;
 
-      FileSystem& m_fs;
-      ShaderStorage m_shaders;
+      WatchFile vs;
+      WatchFile ds;
+      WatchFile hs;
+      WatchFile gs;
+      WatchFile ps;
 
-      UINT m_nodeMask;
-      ComPtr<ID3D12CommandQueue> m_graphicsQueue;
-      ComPtr<ID3D12CommandQueue> m_dmaQueue;
-      ComPtr<ID3D12CommandQueue> m_computeQueue;
-      DX12Fence m_deviceFence;
-
-      StagingDescriptorHeap m_generics;
-      //StagingDescriptorHeap m_samplers;
-      StagingDescriptorHeap m_rtvs;
-      StagingDescriptorHeap m_dsvs;
-
-      Rabbitpool2<DX12ReadbackHeap> m_readbackPool; // make this a new kind of pool, which keeps alive recently used.
-      Rabbitpool2<DX12QueryHeap> m_queryHeapPool;
-      Rabbitpool2<DX12QueryHeap> m_computeQueryHeapPool;
-      Rabbitpool2<DX12CommandBuffer> m_copyListPool;
-      Rabbitpool2<DX12CommandBuffer> m_computeListPool;
-      Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
-      Rabbitpool2<DX12Fence> m_fencePool;
-      Rabbitpool2<DX12Semaphore> m_semaPool;
-
-      std::shared_ptr<DX12UploadHeap> m_constantsUpload;
-      std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
-
-      std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
-
-      DX12CPUDescriptor m_nullBufferUAV;
-      DX12CPUDescriptor m_nullBufferSRV;
-
-      // new stuff
-      struct Resources
+      WatchFile cs;
+      bool needsUpdating()
       {
-        HandleVector<DX12Texture> tex;
-        HandleVector<DX12Buffer> buf;
-        HandleVector<DX12BufferView> bufSRV;
-        HandleVector<DX12BufferView> bufUAV;
-        HandleVector<DX12BufferView> bufIBV;
-        HandleVector<DX12TextureView> texSRV;
-        HandleVector<DX12TextureView> texUAV;
-        HandleVector<DX12TextureView> texDSV;
-        HandleVector<DX12TextureView> texRTV;
-        HandleVector<DX12Pipeline> pipelines;
-        HandleVector<DX12Heap> heaps;
-      } m_allRes;
+        return vs.updated() || ps.updated() || ds.updated() || hs.updated() || gs.updated();
+      }
 
-      friend class DX12CommandList;
-    public:
-      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
-      ~DX12Device();
-
-      D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
-      D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);
-
-      //void updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass);
-      //void updatePipeline(ComputePipeline& pipeline);
-
-      // impl
-      void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
-      void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
-
-      std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
-      void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;
-      void ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor);
-      int fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles) override;
-      int tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
-      int acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain) override;
-
-      void releaseHandle(ResourceHandle handle) override;
-      void releaseViewHandle(ViewResourceHandle handle) override;
-      void collectTrash() override;
-      void waitGpuIdle() override;
-      MemoryRequirements getReqs(ResourceDescriptor desc) override;
-
-      void createRenderpass(ResourceHandle handle) override;
-
-      void createHeap(ResourceHandle handle, HeapDescriptor desc) override;
-
-      void createBuffer(ResourceHandle handle, ResourceDescriptor& desc) override;
-      void createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-      void createTexture(ResourceHandle handle, ResourceDescriptor& desc) override;
-      void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
-      void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
-
-      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
-
-      std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl>) override;
-      std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
-      std::shared_ptr<backend::SharedHandle> openSharedHandle(ResourceHandle resource) override;
-      std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle>) override;
-      void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
-      void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) override;
-
-      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
-      void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
-      void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;
-
-      // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-      DX12QueryHeap createGraphicsQueryHeap(unsigned counters);
-      DX12QueryHeap createComputeQueryHeap(unsigned counters);
-
-      DX12ReadbackHeap createReadback(unsigned pages, unsigned pageSize);
-      DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
-      DX12Fence         createNativeFence();
-      DX12Semaphore createNativeSemaphore();
-      std::shared_ptr<CommandBufferImpl> createDMAList() override;
-      std::shared_ptr<CommandBufferImpl> createComputeList() override;
-      std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
-      std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
-      std::shared_ptr<FenceImpl>         createFence() override;
-
-      void submit(
-        ComPtr<ID3D12CommandQueue> queue,
-        MemView<std::shared_ptr<CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence);
-
-      void submitDMA(
-        MemView<std::shared_ptr<CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
-
-      void submitCompute(
-        MemView<std::shared_ptr<CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
-
-      void submitGraphics(
-        MemView<std::shared_ptr<CommandBufferImpl>> lists,
-        MemView<std::shared_ptr<SemaphoreImpl>>     wait,
-        MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
-
-      void waitFence(std::shared_ptr<FenceImpl>     fence) override;
-      bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
-      void present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished) override;
+      void updated()
+      {
+        vs.react();
+        ds.react();
+        hs.react();
+        gs.react();
+        ps.react();
+      }
     };
-
-    class DX12Subsystem : public prototypes::SubsystemImpl
+    struct DX12Resources
     {
-      vector<GpuInfo> infos;
-      ComPtr<IDXGIFactory4> pFactory;
-      std::vector<ComPtr<IDXGIAdapter3>> vAdapters;
-    public:
-      DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
-      std::string gfxApi() override;
-      vector<GpuInfo> availableGpus() override;
-      std::shared_ptr<prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
-      GraphicsSurface createSurface(Window& window) override;
+      HandleVector<DX12Texture> tex;
+      HandleVector<DX12Buffer> buf;
+      HandleVector<DX12BufferView> bufSRV;
+      HandleVector<DX12BufferView> bufUAV;
+      HandleVector<DX12BufferView> bufIBV;
+      HandleVector<DX12TextureView> texSRV;
+      HandleVector<DX12TextureView> texUAV;
+      HandleVector<DX12TextureView> texDSV;
+      HandleVector<DX12TextureView> texRTV;
+      HandleVector<DX12DynamicBufferView> dynSRV;
+      HandleVector<DX12Pipeline> pipelines;
+      HandleVector<DX12Heap> heaps;
     };
   }
 }

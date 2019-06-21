@@ -1,4 +1,4 @@
-#include "graphics/dx12/dx12resources.hpp"
+#include "graphics/dx12/dx12device.hpp"
 #if defined(FAZE_PLATFORM_WINDOWS)
 #include "graphics/dx12/util/formats.hpp"
 #include "graphics/common/graphicssurface.hpp"
@@ -167,6 +167,11 @@ namespace faze
 #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
 #endif
+    }
+
+    DX12Resources& DX12Device::allResources()
+    {
+      return m_allRes;
     }
 
     D3D12_RESOURCE_DESC DX12Device::fillPlacedBufferInfo(ResourceDescriptor descriptor)
@@ -460,11 +465,12 @@ namespace faze
       state.commonStateOptimisation = false;
       state.flags.emplace_back(D3D12_RESOURCE_STATE_COMMON);
 
+
       for (int i = 0; i < native->getDesc().descriptor.desc.bufferCount; ++i)
       {
         ID3D12Resource* renderTarget;
         FAZE_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-        m_allRes.tex[handles[i]] = DX12Texture(renderTarget, std::make_shared<DX12ResourceState>(state));
+        m_allRes.tex[handles[i]] = DX12Texture(renderTarget,swapchain->desc(), 1);
       }
       return static_cast<int>(textures.size());
     }
@@ -582,8 +588,12 @@ namespace faze
         }
         case ViewResourceType::DynamicBufferSRV:
         {
-          //m_dsvs.release(m_allRes.texDSV[handle].native());
-          //m_allRes.texDSV[handle] = DX12TextureView();
+          auto& dynBuf = m_allRes.dynSRV[handle];
+          m_dynamicUpload->release(dynBuf.block);
+          if (dynBuf.hasDescriptor()) {
+            m_generics.release(dynBuf.resource);
+          }
+          m_allRes.dynSRV[handle] = DX12DynamicBufferView();
           break;
         }
         default:
@@ -666,20 +676,19 @@ namespace faze
 
     void DX12Device::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
     {
-      return;
+      m_allRes.pipelines[handle] = DX12Pipeline();
+      m_allRes.pipelines[handle].m_gfxDesc = desc;
     }
 
     void DX12Device::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
     {
-      return;
+      m_allRes.pipelines[handle] = DX12Pipeline();
+      m_allRes.pipelines[handle].m_computeDesc = desc;
     }
 
-  /*
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC DX12Device::getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass)
     {
       D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
-
-      GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
       {
         // BlendState
         desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
@@ -737,13 +746,16 @@ namespace faze
       desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
       desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
       // subpass things here
-      desc.NumRenderTargets = static_cast<unsigned>(subpass.rtvs.size());
-      for (size_t i = 0; i < subpass.rtvs.size(); ++i)
+      auto rtvs = subpass.rtvs.convertToMemView();
+      desc.NumRenderTargets = static_cast<unsigned>(rtvs.size());
+      for (size_t i = 0; i < rtvs.size(); ++i)
       {
-        desc.RTVFormats[i] = formatTodxFormat(subpass.rtvs[i].format()).view;
+        auto rawFormat = m_allRes.texRTV[rtvs[i]].viewFormat();
+        desc.RTVFormats[i] = rawFormat;
       }
-      desc.DSVFormat = (subpass.dsvs.size() == 0) ? DXGI_FORMAT_UNKNOWN : formatTodxFormat(subpass.dsvs[0].format()).view;
-      for (size_t i = subpass.rtvs.size(); i < 8; ++i)
+      
+      desc.DSVFormat = (subpass.dsv.id == ViewResourceHandle::InvalidViewId) ? DXGI_FORMAT_UNKNOWN : m_allRes.texDSV[subpass.dsv].viewFormat();
+      for (size_t i = rtvs.size(); i < 8; ++i)
       {
         desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
       }
@@ -756,181 +768,154 @@ namespace faze
       }
       desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
       */
-    /*
       desc.SampleDesc.Count = d.sampleCount;
       desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 
       return desc;
-    }*/
-    /*
+    }
 
-    void DX12Device::updatePipeline(GraphicsPipeline& pipeline, gfxpacket::RenderpassBegin& subpass)
+    std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass)
     {
-      auto hash = subpass.hash;
-      bool missing = true;
+      std::optional<DX12OldPipeline> oldPipe;
 
-      GraphicsPipeline::FullPipeline* ptr = nullptr;
+      auto& vp = m_allRes.pipelines[pipeline];
+      if (vp.m_hasPipeline && !vp.needsUpdating())
+        return oldPipe;
 
-      for (auto&& it : *pipeline.m_pipelines)
+      auto desc = getDesc(vp.m_gfxDesc.desc, renderpass);
+
+      GraphicsPipelineDescriptor::Desc& d = vp.m_gfxDesc.desc;
+      vector<MemoryBlob> blobs;
+      if (!d.vertexShaderPath.empty())
       {
-        if (it.hash == hash)
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+        blobs.emplace_back(shader);
+        desc.VS.BytecodeLength = blobs.back().size();
+        desc.VS.pShaderBytecode = blobs.back().data();
+
+        if (vp.vs.empty())
         {
-          missing = false;
-          ptr = &it;
-          break;
+          vp.vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
         }
+        vp.vs.react();
       }
 
-      if (missing)
+      if (!d.hullShaderPath.empty())
       {
-        pipeline.m_pipelines->emplace_back(GraphicsPipeline::FullPipeline{});
-        ptr = &pipeline.m_pipelines->back();
-        ptr->hash = hash;
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
+        blobs.emplace_back(shader);
+        desc.HS.BytecodeLength = blobs.back().size();
+        desc.HS.pShaderBytecode = blobs.back().data();
+
+        if (vp.hs.empty())
+        {
+          vp.hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
+        }
+        vp.hs.react();
       }
 
-      if (ptr->needsUpdating())
+      if (!d.domainShaderPath.empty())
       {
-        F_LOG("updating pipeline for hash %zu\n", hash);
-        auto desc = getDesc(pipeline, subpass);
-
-        GraphicsPipelineDescriptor::Desc d = pipeline.descriptor.desc;
-        vector<MemoryBlob> blobs;
-        if (!d.vertexShaderPath.empty())
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
+        blobs.emplace_back(shader);
+        desc.DS.BytecodeLength = blobs.back().size();
+        desc.DS.pShaderBytecode = blobs.back().data();
+        if (vp.ds.empty())
         {
-          auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
-          blobs.emplace_back(shader);
-          desc.VS.BytecodeLength = blobs.back().size();
-          desc.VS.pShaderBytecode = blobs.back().data();
-
-          if (ptr->vs.empty())
-          {
-            ptr->vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
-          }
-          ptr->vs.react();
+          vp.ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
         }
-
-        if (!d.hullShaderPath.empty())
-        {
-          auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
-          blobs.emplace_back(shader);
-          desc.HS.BytecodeLength = blobs.back().size();
-          desc.HS.pShaderBytecode = blobs.back().data();
-
-          if (ptr->hs.empty())
-          {
-            ptr->hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
-          }
-          ptr->hs.react();
-        }
-
-        if (!d.domainShaderPath.empty())
-        {
-          auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
-          blobs.emplace_back(shader);
-          desc.DS.BytecodeLength = blobs.back().size();
-          desc.DS.pShaderBytecode = blobs.back().data();
-          if (ptr->ds.empty())
-          {
-            ptr->ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
-          }
-          ptr->ds.react();
-        }
-
-        if (!d.geometryShaderPath.empty())
-        {
-          auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
-          blobs.emplace_back(shader);
-          desc.GS.BytecodeLength = blobs.back().size();
-          desc.GS.pShaderBytecode = blobs.back().data();
-          if (ptr->gs.empty())
-          {
-            ptr->gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
-          }
-          ptr->gs.react();
-        }
-
-        if (!d.pixelShaderPath.empty())
-        {
-          auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
-          blobs.emplace_back(shader);
-          desc.PS.BytecodeLength = blobs.back().size();
-          desc.PS.pShaderBytecode = blobs.back().data();
-          if (ptr->ps.empty())
-          {
-            ptr->ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
-          }
-          ptr->ps.react();
-        }
-
-        ComPtr<ID3D12RootSignature> root;
-        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
-  /*
-        desc.pRootSignature = root.Get();
-        */
-      /*
-        desc.pRootSignature = nullptr;
-
-        ComPtr<ID3D12PipelineState> pipe;
-        FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
-
-        D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
-
-        if (ptr->pipeline)
-        {
-          auto* natptr = static_cast<DX12Pipeline*>(ptr->pipeline.get());
-          m_trash->pipelines.emplace_back(natptr->pipeline);
-          m_trash->roots.emplace_back(natptr->root);
-        }
-
-        ptr->pipeline = std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive));
-        //pipeline.m_pipelines->emplace_back(std::make_pair(hash, std::make_shared<DX12Pipeline>(DX12Pipeline(pipe, root, primitive))));
+        vp.ds.react();
       }
-    }*/
-  /*
-    void DX12Device::updatePipeline(ComputePipeline& pipeline)
+
+      if (!d.geometryShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
+        blobs.emplace_back(shader);
+        desc.GS.BytecodeLength = blobs.back().size();
+        desc.GS.pShaderBytecode = blobs.back().data();
+        if (vp.gs.empty())
+        {
+          vp.gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+        }
+        vp.gs.react();
+      }
+
+      if (!d.pixelShaderPath.empty())
+      {
+        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
+        blobs.emplace_back(shader);
+        desc.PS.BytecodeLength = blobs.back().size();
+        desc.PS.pShaderBytecode = blobs.back().data();
+        if (vp.ps.empty())
+        {
+          vp.ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
+        }
+        vp.ps.react();
+      }
+
+      ComPtr<ID3D12RootSignature> root;
+      FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+      //desc.pRootSignature = root.Get();
+    
+      desc.pRootSignature = nullptr;
+
+      ComPtr<ID3D12PipelineState> pipe;
+      FAZE_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+
+      D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
+
+      if (vp.m_hasPipeline)
+      {
+        oldPipe = DX12OldPipeline{vp.pipeline, vp.root};
+      }
+
+      vp.pipeline = pipe;
+      vp.root = root;
+      vp.primitive = primitive;
+      vp.m_hasPipeline = true;
+      return oldPipe;
+    }
+  
+    std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline)
     {
-      auto* ptr = static_cast<DX12Pipeline*>(pipeline.impl.get());
-      bool needsCompile = false;
-      if (ptr->pipeline.Get() == nullptr)
+      std::optional<DX12OldPipeline> oldPipe;
+
+      auto& pipe = m_allRes.pipelines[pipeline];
+
+      if (pipe.m_hasPipeline && !pipe.cs.updated())
+        return {};
+      oldPipe = {pipe.pipeline, pipe.root};
+      if (pipe.cs.updated())
       {
-        needsCompile = true;
+        GFX_LOG("Updating Compute pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
       }
-      // TODO: add shader hotreload here. Remember to take the pipelines to safe keeping.
-      if (needsCompile || pipeline.m_update->updated())
+
+      ShaderCreateInfo sci = ShaderCreateInfo(pipe.m_computeDesc.shaderSourcePath, ShaderType::Compute, pipe.m_computeDesc.layout)
+        .setComputeGroups(pipe.m_computeDesc.shaderGroups);
+
+      auto thing = m_shaders.shader(sci);
+      FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&pipe.root)));
+
+      D3D12_SHADER_BYTECODE byte;
+      byte.pShaderBytecode = thing.data();
+      byte.BytecodeLength = thing.size();
+
+      if (pipe.cs.empty())
       {
-        m_trash->pipelines.emplace_back(ptr->pipeline);
-        m_trash->roots.emplace_back(ptr->root);
-        if (pipeline.m_update->updated())
-        {
-          GFX_LOG("Updating Compute pipeline %s", pipeline.descriptor.shaderSourcePath.c_str());
-        }
-
-        ShaderCreateInfo sci = ShaderCreateInfo(pipeline.descriptor.shaderSourcePath, ShaderType::Compute, pipeline.descriptor.layout)
-          .setComputeGroups(pipeline.descriptor.shaderGroups);
-
-        auto thing = m_shaders.shader(sci);
-        FAZE_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&ptr->root)));
-
-        D3D12_SHADER_BYTECODE byte;
-        byte.pShaderBytecode = thing.data();
-        byte.BytecodeLength = thing.size();
-
-        if (pipeline.m_update->empty())
-        {
-          *pipeline.m_update = m_shaders.watch(pipeline.descriptor.shaderSourcePath, ShaderType::Compute);
-        }
-        pipeline.m_update->react();
-
-        D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
-        computeDesc.CS = byte;
-        computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-        computeDesc.NodeMask = 0;
-        //computeDesc.pRootSignature = ptr->root.Get();
-        computeDesc.pRootSignature = nullptr;
-
-        FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&ptr->pipeline)));
+        pipe.cs = m_shaders.watch(pipe.m_computeDesc.shaderSourcePath, ShaderType::Compute);
       }
-    }*/
+      pipe.cs.react();
+
+      D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
+      computeDesc.CS = byte;
+      computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+      computeDesc.NodeMask = 0;
+      //computeDesc.pRootSignature = ptr->root.Get();
+      computeDesc.pRootSignature = nullptr;
+
+      FAZE_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&pipe.pipeline)));
+      return oldPipe;
+    }
 
     void DX12Device::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
     {
@@ -1236,7 +1221,7 @@ namespace faze
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());
 
-      m_allRes.tex[handle] = DX12Texture(texture, std::make_shared<DX12ResourceState>(state));
+      m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
     }
 
     void DX12Device::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
@@ -1299,7 +1284,7 @@ namespace faze
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());
 
-      m_allRes.tex[handle] = DX12Texture(texture, std::make_shared<DX12ResourceState>(state));
+      m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
     }
 
     void DX12Device::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
@@ -1309,6 +1294,7 @@ namespace faze
 
       DX12CPUDescriptor descriptor{};
 
+      /*
       unsigned mips = (viewDesc.m_viewType == ResourceShaderType::ReadOnly) ? texDesc.desc.miplevels - viewDesc.m_mostDetailedMip : 1;
       if (viewDesc.m_mipLevels != -1)
       {
@@ -1320,40 +1306,40 @@ namespace faze
       range.mipLevels = static_cast<int16_t>(mips);
       range.sliceOffset = static_cast<int16_t>(viewDesc.m_arraySlice);
       range.arraySize = static_cast<int16_t>(arraySize);
+      */
 
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
         descriptor = m_generics.allocate();
         auto natDesc = dx12::getSRV(texDesc, viewDesc);
         m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
-        m_allRes.texSRV[handle] = DX12TextureView(descriptor, range);
+        m_allRes.texSRV[handle] = DX12TextureView(descriptor, natDesc.Format);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
       {
         descriptor = m_generics.allocate();
         auto natDesc = dx12::getUAV(texDesc, viewDesc);
         m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
-        m_allRes.texUAV[handle] = DX12TextureView(descriptor, range);
+        m_allRes.texUAV[handle] = DX12TextureView(descriptor, natDesc.Format);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::RenderTarget)
       {
         descriptor = m_rtvs.allocate();
         auto natDesc = dx12::getRTV(texDesc, viewDesc);
         m_device->CreateRenderTargetView(native.native(), &natDesc, descriptor.cpu);
-        m_allRes.texRTV[handle] = DX12TextureView(descriptor, range);
+        m_allRes.texRTV[handle] = DX12TextureView(descriptor, natDesc.Format);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
       {
         descriptor = m_dsvs.allocate();
         auto natDesc = dx12::getDSV(texDesc, viewDesc);
         m_device->CreateDepthStencilView(native.native(), &natDesc, descriptor.cpu);
-        m_allRes.texDSV[handle] = DX12TextureView(descriptor, range);
+        m_allRes.texDSV[handle] = DX12TextureView(descriptor, natDesc.Format);
       }
     }
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
     {
-      /* 
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       F_ASSERT(upload, "Halp");
@@ -1375,18 +1361,12 @@ namespace faze
 
       F_ASSERT(upload.block.offset % stride == 0, "oh no");
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
-      */
 
-      // will be collected promtly
-      //m_trash->dynamicBuffers.emplace_back(upload);
-      //m_trash->genericDescriptors.emplace_back(descriptor);
-
-      //return std::make_shared<DX12DynamicBufferView>(upload, descriptor, format, stride);
+      m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, descriptor, format, stride);
     }
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, unsigned stride)
     {
-      /*
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       F_ASSERT(upload, "Halp");
@@ -1404,17 +1384,11 @@ namespace faze
 
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
-      // will be collected promtly
-      m_trash->dynamicBuffers.emplace_back(upload);
-      m_trash->genericDescriptors.emplace_back(descriptor);
-
-      return std::make_shared<DX12DynamicBufferView>(upload, descriptor, DXGI_FORMAT_UNKNOWN, stride);
-      */
+      m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, descriptor, DXGI_FORMAT_UNKNOWN, stride);
     }
 
     void DX12Device::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch)
     {
-      /*
       auto rows = bytes.size() / rowPitch;
 
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
@@ -1431,12 +1405,7 @@ namespace faze
         auto dstPosition = requiredRowPitch * row;
         memcpy(upload.data() + dstPosition, bytes.data() + srcPosition, rowPitch);
       }
-
-      // will be collected promtly
-      m_trash->dynamicBuffers.emplace_back(upload);
-
-      return std::make_shared<DX12DynamicBufferView>(upload, requiredRowPitch);
-      */
+      m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, requiredRowPitch);
     }
 
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)
@@ -1761,7 +1730,7 @@ namespace faze
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());
 
-      m_allRes.tex[handle] = DX12Texture(texture, std::make_shared<DX12ResourceState>(state));
+      m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
     }
   }
 }
