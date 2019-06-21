@@ -7,7 +7,7 @@ namespace faze
 {
   namespace gfxpacket
   {
-    std::string packetTypeToString(backend::PacketType type);
+    const char* packetTypeToString(backend::PacketType type);
 
     struct RenderBlock
     {

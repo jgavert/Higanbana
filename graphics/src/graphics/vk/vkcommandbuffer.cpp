@@ -330,7 +330,8 @@ namespace faze
         .setPBufferInfo(&constantBuffer.native().bufferInfo)
         .setDstBinding(index++));
 
-      for (auto&& descriptor : packet.resources.convertToMemView())
+      auto resources = packet.resources.convertToMemView();
+      for (auto&& descriptor : resources)
       {
         vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
         .setDstSet(set)
@@ -383,7 +384,7 @@ namespace faze
             break;
           }
           default:
-            break;
+            continue;
         }
 
         writeDescriptors.emplace_back(writeSet);
@@ -596,6 +597,7 @@ namespace faze
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffers(bufferbar.size(), bufferbar.data());
         vk::ArrayProxy<const vk::ImageMemoryBarrier> images(imagebar.size(), imagebar.data());
 
+        F_ILOG("", "PipelineBarrier");
         buffer.pipelineBarrier(vkBefore, vkAfter, {}, {}, buffers, images);
       }
     }
@@ -608,7 +610,7 @@ namespace faze
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        //F_ILOG("addCommandsVK", "type header %d", header->type);
+        F_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {

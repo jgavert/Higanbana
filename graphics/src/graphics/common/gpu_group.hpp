@@ -40,6 +40,11 @@ namespace faze
 
     Texture createTexture(ResourceDescriptor descriptor)
     {
+      if (descriptor.desc.dimension == FormatDimension::Buffer
+      || descriptor.desc.dimension == FormatDimension::Unknown)
+      {
+        descriptor = descriptor.setDimension(FormatDimension::Texture2D);
+      }
       auto tex = S().createTexture(descriptor);
       return tex;
     }
