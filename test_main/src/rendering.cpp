@@ -1,8 +1,16 @@
 #include "rendering.hpp"
+#include <core/math/utils.hpp>
 
 using namespace faze;
 
 SHADER_STRUCT(PixelConstants,
+  float resx;
+  float resy;
+  float time;
+  int unused;
+);
+
+SHADER_STRUCT(ComputeConstants,
   float resx;
   float resy;
   float time;
@@ -48,8 +56,11 @@ namespace app
     buffer3 = dev.createBuffer(bufferdesc3);
     testOut = dev.createBufferUAV(buffer3);
 
-    babyInf = ShaderInputDescriptor().constants<PixelConstants>().readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
-    triangle = dev.createGraphicsPipeline(GraphicsPipelineDescriptor()
+    faze::ShaderInputDescriptor babyInf = ShaderInputDescriptor()
+      .constants<PixelConstants>()
+      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
+
+    auto basicDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
       .setPixelShader("Triangle")
       .setLayout(babyInf)
@@ -57,9 +68,37 @@ namespace app
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setRenderTargetCount(1)
       .setDepthStencil(DepthStencilDescriptor()
-        .setDepthEnable(false)));
+        .setDepthEnable(false));
+    
+    triangle = dev.createGraphicsPipeline(basicDescriptor);
 
     triangleRP = dev.createRenderpass();
+
+    proxyTex.resize(dev, ResourceDescriptor()
+      .setWidth(1280)
+      .setHeight(720)
+      .setFormat(FormatType::Unorm8RGBA)
+      .setUsage(ResourceUsage::RenderTargetRW));
+
+    faze::ShaderInputDescriptor babyInf2 = ShaderInputDescriptor()
+      .constants<ComputeConstants>()
+      .readWrite(ShaderResourceType::Texture2D, "float4", "output");
+
+    genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+    .setLayout(babyInf2)
+    .setShader("simpleEffect")
+    .setThreadGroups(uint3(8, 8, 1)));
+
+    faze::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
+      .constants<PixelConstants>()
+      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
+      .readOnly(ShaderResourceType::Texture2D, "float4", "input");
+    composite = dev.createGraphicsPipeline(basicDescriptor
+      .setVertexShader("blit")
+      .setPixelShader("blit")
+      .setLayout(blitInf));
+    compositeRP = dev.createRenderpass();
+
     time.startFrame();
   }
 
@@ -72,6 +111,13 @@ namespace app
   void Renderer::windowResized()
   {
     dev.adjustSwapchain(swapchain, scdesc);
+
+    auto& desc = swapchain.buffers().front().desc();
+    proxyTex.resize(dev, ResourceDescriptor()
+      .setWidth(desc.desc.width)
+      .setHeight(desc.desc.height)
+      .setFormat(desc.desc.format)
+      .setUsage(ResourceUsage::RenderTargetRW));
   }
 
   void Renderer::render()
@@ -89,8 +135,54 @@ namespace app
     CommandGraph tasks = dev.createGraph();
 
     {
-      auto node = tasks.createPass("Triangle");
+      auto node = tasks.createPass("generate Texture");
+      auto binding = node.bind(genTexCompute);
+      binding.bind("output", proxyTex.uav());
+      ComputeConstants consts{};
+      consts.time = time.getFTime();
+      consts.resx = backbuffer.desc().desc.width; 
+      consts.resy = backbuffer.desc().desc.height;
+      binding.constants(consts);
+
+      unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(backbuffer.desc().desc.width), 8));
+      unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(backbuffer.desc().desc.height), 8));
+
+      node.dispatch(binding, uint3(x, y, 1));
+
+      tasks.addPass(std::move(node));
+    }
+
+    {
+      auto node = tasks.createPass("composite");
       node.acquirePresentableImage(swapchain);
+      backbuffer.setOp(LoadOp::DontCare);
+      node.renderpass(compositeRP, backbuffer);
+      {
+        auto binding = node.bind(composite);
+
+        PixelConstants consts{};
+        consts.time = time.getFTime();
+        consts.resx = backbuffer.desc().desc.width; 
+        consts.resy = backbuffer.desc().desc.height;
+        binding.constants(consts);
+
+        vector<float> vertexData = {
+          -1.f, -1.f, 
+          -1.0f, 3.f,
+          3.0f, -1.0f};
+        auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+
+        binding.bind("vertexInput", vert);
+        binding.bind("input", proxyTex.srv());
+
+        node.draw(binding, 3);
+      }
+      node.endRenderpass();
+      tasks.addPass(std::move(node));
+    }
+
+    {
+      auto node = tasks.createPass("Triangle");
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
       backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });

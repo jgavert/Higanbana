@@ -85,7 +85,7 @@ namespace faze
       int id = 0;
       for (auto&& it : m_resources)
       {
-        if (it.name.compare(name))
+        if (it.name.compare(name) == 0)
         {
           F_ASSERT(it.readonly, "Trying to bind TextureSRV \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();

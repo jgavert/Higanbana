@@ -4,6 +4,7 @@
 #include <core/platform/Window.hpp>
 #include <core/datastructures/proxy.hpp>
 #include <core/system/time.hpp>
+#include <graphics/helpers/pingpongTexture.hpp>
 
 namespace app
 {
@@ -23,11 +24,15 @@ namespace app
     faze::BufferSRV test2SRV;
     faze::BufferUAV testOut;
 
-    faze::ShaderInputDescriptor babyInf;
     faze::GraphicsPipeline triangle;
 
     faze::Renderpass triangleRP;
 
+    faze::PingPongTexture proxyTex;
+    faze::ComputePipeline genTexCompute;
+
+    faze::GraphicsPipeline composite;
+    faze::Renderpass compositeRP;
     // info
     faze::WTime time;
   public:

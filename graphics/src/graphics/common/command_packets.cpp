@@ -4,7 +4,7 @@ namespace faze
 {
   namespace gfxpacket
   {
-    std::string packetTypeToString(backend::PacketType type)
+    const char* packetTypeToString(backend::PacketType type)
     {
       switch (type)
       {
@@ -26,6 +26,8 @@ namespace faze
         return "ResourceBinding";
       case backend::PacketType::Draw:
         return "Draw";
+      case backend::PacketType::RenderBlock:
+        return "RenderBlock";
       default:
         return "Unknown";
       }

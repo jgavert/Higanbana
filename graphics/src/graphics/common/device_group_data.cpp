@@ -329,7 +329,7 @@ namespace faze
         auto subresources = desc.desc.miplevels * desc.desc.arraySize;
 
         vdev.m_textureStates[handle].mips = desc.desc.miplevels;
-        vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0));
+        vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
       }
 
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));
@@ -450,19 +450,65 @@ namespace faze
     {
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
+      bool insideRenderpass = false;
+      int drawIndexBeginRenderpass = 0;
+
       auto iter = buffer.begin();
       while((*iter)->type != PacketType::EndOfPackets)
       {
         CommandBuffer::PacketHeader* header = *iter;
         auto drawIndex = solver.addDrawCall();
+        //F_ILOG("", "packet: %s", gfxpacket::packetTypeToString(header->type));
         switch (header->type)
         {
+          case PacketType::RenderpassEnd:
+          {
+            insideRenderpass = false;
+            break;
+          }
           case PacketType::RenderpassBegin:
           {
+            insideRenderpass = true;
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {
               solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget, 0));
+            }
+            if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
+            {
+              solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil, 0));
+            }
+            break;
+          }
+          case PacketType::ResourceBinding:
+          {
+            auto& packet = header->data<gfxpacket::ResourceBinding>();
+            auto stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics ? backend::AccessStage::Graphics : backend::AccessStage::Compute;
+            stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing ? backend::AccessStage::Raytrace : stage;
+
+            auto usedDrawIndex = drawIndex;
+            if (insideRenderpass)
+            {
+              usedDrawIndex = drawIndexBeginRenderpass;
+            }
+            for (auto&& resource : packet.resources.convertToMemView())
+            {
+              if (resource.type == ViewResourceType::BufferSRV)
+              {
+                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, 0));
+              }
+              else if (resource.type == ViewResourceType::BufferUAV)
+              {
+                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, 0));
+              }
+              else if (resource.type == ViewResourceType::TextureSRV)
+              {
+                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, 0));
+              }
+              else if (resource.type == ViewResourceType::TextureUAV)
+              {
+                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, 0));
+              }
             }
             break;
           }
@@ -513,7 +559,7 @@ namespace faze
 
           PreparedCommandlist plist{};
           plist.type = firstList->type;
-          plist.list = std::move(nodes[i].list);
+          plist.list.list.append(nodes[i].list.list);
           plist.requirements = nodes[i].needsResources();
           plist.sema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
@@ -539,8 +585,8 @@ namespace faze
 
           lists.emplace_back(std::move(plist));
         }
-
-        lists[lists.size() - 1].isLastList = true;
+        int lsize = lists.size();
+        lists[lsize - 1].isLastList = true;
 
         std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
 
