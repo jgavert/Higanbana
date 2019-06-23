@@ -1,5 +1,4 @@
 #include "rendering.hpp"
-#include <core/math/utils.hpp>
 
 using namespace faze;
 
@@ -92,7 +91,7 @@ namespace app
     faze::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
       .constants<PixelConstants>()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
-      .readOnly(ShaderResourceType::Texture2D, "float4", "input");
+      .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
     composite = dev.createGraphicsPipeline(basicDescriptor
       .setVertexShader("blit")
       .setPixelShader("blit")
@@ -117,7 +116,8 @@ namespace app
       .setWidth(desc.desc.width)
       .setHeight(desc.desc.height)
       .setFormat(desc.desc.format)
-      .setUsage(ResourceUsage::RenderTargetRW));
+      .setUsage(ResourceUsage::RenderTargetRW)
+      .setName("proxyTex"));
   }
 
   void Renderer::render()
@@ -140,14 +140,11 @@ namespace app
       binding.bind("output", proxyTex.uav());
       ComputeConstants consts{};
       consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
+      consts.resx = proxyTex.desc().desc.width; 
+      consts.resy = proxyTex.desc().desc.height;
       binding.constants(consts);
 
-      unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(backbuffer.desc().desc.width), 8));
-      unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(backbuffer.desc().desc.height), 8));
-
-      node.dispatch(binding, uint3(x, y, 1));
+      node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
 
       tasks.addPass(std::move(node));
     }
@@ -156,6 +153,9 @@ namespace app
       auto node = tasks.createPass("composite");
       node.acquirePresentableImage(swapchain);
       backbuffer.setOp(LoadOp::DontCare);
+      float redcolor = std::sin(time.getFTime())*.5f + .5f;
+
+      backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
       node.renderpass(compositeRP, backbuffer);
       {
         auto binding = node.bind(composite);
@@ -173,7 +173,7 @@ namespace app
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
 
         binding.bind("vertexInput", vert);
-        binding.bind("input", proxyTex.srv());
+        binding.bind("texInput", proxyTex.srv());
 
         node.draw(binding, 3);
       }
@@ -185,7 +185,8 @@ namespace app
       auto node = tasks.createPass("Triangle");
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
-      backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
+      //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
+      backbuffer.setOp(LoadOp::Load);
       node.renderpass(triangleRP, backbuffer);
       {
         auto binding = node.bind(triangle);
@@ -209,6 +210,7 @@ namespace app
 
       tasks.addPass(std::move(node));
     }
+    
     {
       auto node = tasks.createPass("preparePresent");
 

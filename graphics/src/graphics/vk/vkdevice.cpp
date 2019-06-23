@@ -856,15 +856,15 @@ namespace faze
 
     vk::RenderPass VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
     {
-      auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount);
-      auto dependencyHash = HashMemory(info.pDependencies, info.dependencyCount);
-      auto subpassHash = HashMemory(info.pSubpasses, info.subpassCount);
+      auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount * sizeof(vk::AttachmentDescription));
+      auto dependencyHash = HashMemory(info.pDependencies, info.dependencyCount * sizeof(vk::SubpassDependency));
+      auto subpassHash = HashMemory(info.pSubpasses, info.subpassCount * sizeof(vk::SubpassDescription));
       auto totalHash = hash_combine(hash_combine(attachmentHash, dependencyHash), subpassHash);
 
       auto found = m_renderpasses.find(totalHash);
       if (found != m_renderpasses.end())
       {
-        //GFX_LOG("Reusing old renderpass.\n");
+        GFX_LOG("Reusing old renderpass.\n");
         return *found->second;
       }
 
@@ -1851,6 +1851,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
         imageType = vk::DescriptorType::eSampledImage;
+        info = info.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
         m_allRes.texSRV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadWrite)
@@ -2184,6 +2185,33 @@ for (auto&& upload : it.second.dynamicBuffers)
       catch (...)
       {
       }
+    }
+    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore() { return nullptr; };
+
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl>) { return nullptr; };
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation)
+    {
+      return nullptr;
+    };
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
+    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) { return nullptr; };
+    void VulkanDevice::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation allocation, ResourceDescriptor& descriptor) { return; };
+    void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
+    {
+      vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
+      .setHandle(shared->handle);
+      if (shared->api == GraphicsApi::DX12)
+      {
+        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
+      }
+      else
+      {
+        F_ASSERT(false, ":(");
+      }
+      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo().setPNext(&info);
+
+      auto memory = m_device.allocateMemory(allocInfo);
+      m_device.freeMemory(memory.value);
     };
   }
 }

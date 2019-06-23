@@ -1,4 +1,4 @@
-// INTERFACE_HASH:1579927868073881064:13891371491173110275
+// INTERFACE_HASH:13579803029130971044:13912690230064188939
 // This file is reflected from code.
 #ifdef FAZE_VULKAN
 #define VK_BINDING(index) [[vk::binding(index)]]
@@ -21,7 +21,7 @@ VK_BINDING(0) ConstantBuffer<Constants> constants : register( b0 );
 
 // Read Only resources
 VK_BINDING(1) ByteAddressBuffer vertexInput : register( t0 );
-VK_BINDING(2) Texture2D<float4> input : register( t1 );
+VK_BINDING(2) Texture2D<float4> texInput : register( t1 );
 
 // ReadWrite resources
 

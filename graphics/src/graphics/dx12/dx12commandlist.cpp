@@ -901,7 +901,7 @@ namespace faze
       if (AccessUsage::Read == usage)
       {
         if (stage & AccessStage::Compute)               flags |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        if (stage & AccessStage::Graphics)              flags |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        if (stage & AccessStage::Graphics)              flags |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         if (stage & AccessStage::Transfer)              flags |= D3D12_RESOURCE_STATE_COPY_SOURCE;
         if (stage & AccessStage::Index)                 flags |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
         if (stage & AccessStage::Indirect)              flags |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
@@ -1002,8 +1002,6 @@ namespace faze
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
-          //        case CommandPacket::PacketType::BufferCopy:
-          //        case CommandPacket::PacketType::Dispatch:
         case PacketType::PrepareForPresent:
         {
           break;
@@ -1050,6 +1048,12 @@ namespace faze
           buffer->DrawInstanced(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
           break;
         }
+        case PacketType::Dispatch:
+        {
+          auto params = header->data<gfxpacket::Dispatch>();
+          buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
+          break;
+        }
         case PacketType::RenderpassEnd:
         {
           buffer->EndRenderPass();
@@ -1078,7 +1082,7 @@ namespace faze
           case PacketType::ComputePipelineBind:
           {
             gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
-            auto oldPipe = dev->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+            auto oldPipe = dev->updatePipeline(packet.pipeline);
             if (oldPipe)
             {
               m_freeResources->pipelines.push_back(oldPipe.value());

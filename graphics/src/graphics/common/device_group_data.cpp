@@ -446,7 +446,7 @@ namespace faze
       return CommandGraph(m_seqTracker.next()); 
     }
 
-    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice vdev, CommandBuffer& buffer)
+    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer)
     {
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
@@ -469,6 +469,7 @@ namespace faze
           case PacketType::RenderpassBegin:
           {
             insideRenderpass = true;
+            drawIndexBeginRenderpass = drawIndex;
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {

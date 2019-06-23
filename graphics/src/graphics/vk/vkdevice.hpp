@@ -124,14 +124,14 @@ namespace faze
       void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
       void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
-      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override { return nullptr; };
+      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
 
-      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<SemaphoreImpl>) override { return nullptr; };
-      std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override { return nullptr; };
-      std::shared_ptr<SharedHandle> openSharedHandle(ResourceHandle handle) override { return nullptr; };
-      std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override { return nullptr; };
-      void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override { return; };
-      void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override { return; };
+      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<SemaphoreImpl>) override;
+      std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override;
+      std::shared_ptr<SharedHandle> openSharedHandle(ResourceHandle handle) override;
+      std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override;
+      void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override;
+      void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override;
 
       VulkanConstantBuffer allocateConstants(MemView<uint8_t> bytes);
 
