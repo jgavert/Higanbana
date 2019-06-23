@@ -70,5 +70,12 @@
         "filesystem": "cpp",
         "xtree": "cpp",
         "string_view": "cpp"
+    },
+    "files.exclude": {
+        "bazel-faze": true,
+        "bazel-genfiles": true,
+        "bazel-out": true,
+        "bazel-testlogs": true,
+        "externals": true
     }
 }

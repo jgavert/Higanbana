@@ -297,6 +297,7 @@ namespace faze
       if (desc.allowCrossAdapter)
       {
         dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+        dxdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
       }
 
       return dxdesc;
