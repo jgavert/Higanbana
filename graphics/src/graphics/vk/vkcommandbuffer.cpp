@@ -136,7 +136,15 @@ namespace faze
           }
         }
 
-        vk::AccessFlags everythingFlush = vk::AccessFlagBits::eIndirectCommandRead
+        vk::AccessFlags everythingFlush = vk::AccessFlagBits::eUniformRead 
+        | vk::AccessFlagBits::eShaderWrite
+        | vk::AccessFlagBits::eShaderRead 
+        | vk::AccessFlagBits::eColorAttachmentRead 
+        | vk::AccessFlagBits::eColorAttachmentWrite 
+        | vk::AccessFlagBits::eDepthStencilAttachmentRead 
+        | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+        vk::AccessFlags gfxAccess = vk::AccessFlagBits::eIndirectCommandRead
         | vk::AccessFlagBits::eIndexRead
         | vk::AccessFlagBits::eUniformRead 
         | vk::AccessFlagBits::eShaderWrite
@@ -150,14 +158,14 @@ namespace faze
             .setSrcSubpass(VK_SUBPASS_EXTERNAL)
             .setDstSubpass(0)
             .setSrcAccessMask(everythingFlush)
-            .setDstAccessMask(everythingFlush)
+            .setDstAccessMask(gfxAccess)
             .setSrcStageMask(vk::PipelineStageFlagBits::eAllCommands)
             .setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics)
             .setDependencyFlags(vk::DependencyFlagBits::eByRegion),
           vk::SubpassDependency()
             .setSrcSubpass(0)
             .setDstSubpass(VK_SUBPASS_EXTERNAL)
-            .setSrcAccessMask(everythingFlush)
+            .setSrcAccessMask(gfxAccess)
             .setDstAccessMask(everythingFlush)
             .setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics)
             .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
@@ -171,7 +179,7 @@ namespace faze
           .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics));
 
         vk::RenderPassCreateInfo rpinfo = vk::RenderPassCreateInfo()
-          .setDependencyCount(2)
+          .setDependencyCount(0)
           .setPDependencies(dependency)
           .setAttachmentCount(static_cast<uint32_t>(attachments.size()))
           .setSubpassCount(static_cast<uint32_t>(subpasses.size()))
@@ -258,20 +266,28 @@ namespace faze
       
       vk::ClearValue clearValues[8];
       uint32_t attachmentCount = 0;
+      uint32_t clearValueCount = 0;
 
       for (auto&& rtv : packet.rtvs.convertToMemView())
       {
-        auto v = packet.clearValues.convertToMemView()[attachmentCount];
-        clearValues[attachmentCount] = clearValues[attachmentCount]
-          .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
-        attachmentCount++;        
+        if (rtv.loadOp() == LoadOp::Clear)
+        {
+          auto v = packet.clearValues.convertToMemView()[attachmentCount];
+          clearValues[clearValueCount] = clearValues[clearValueCount]
+            .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
+          clearValueCount++;
+        }
+        attachmentCount++;
       }
       if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
-        auto v = packet.clearDepth;
-        clearValues[attachmentCount] = clearValues[attachmentCount]
-          .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v).setStencil(0));
-        attachmentCount++;        
+        if (packet.dsv.loadOp() == LoadOp::Clear)
+        {
+          auto v = packet.clearDepth;
+          clearValues[clearValueCount] = clearValues[clearValueCount]
+            .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v).setStencil(0));
+          clearValueCount++;
+        }
       }
       
       auto scissorRect = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(packet.fbWidth, packet.fbHeight));
@@ -279,7 +295,7 @@ namespace faze
         .setRenderPass(rp.native())
         .setFramebuffer(fb)
         .setRenderArea(scissorRect)
-        .setClearValueCount(attachmentCount)
+        .setClearValueCount(clearValueCount)
         .setPClearValues(clearValues);
 
       buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
@@ -597,7 +613,7 @@ namespace faze
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffers(bufferbar.size(), bufferbar.data());
         vk::ArrayProxy<const vk::ImageMemoryBarrier> images(imagebar.size(), imagebar.data());
 
-        F_ILOG("", "PipelineBarrier");
+        //F_ILOG("", "PipelineBarrier");
         buffer.pipelineBarrier(vkBefore, vkAfter, {}, {}, buffers, images);
       }
     }
@@ -610,7 +626,7 @@ namespace faze
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        F_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
+        //F_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
@@ -655,6 +671,12 @@ namespace faze
         {
           auto params = header->data<gfxpacket::Draw>();
           buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+          break;
+        }
+        case PacketType::Dispatch:
+        {
+          auto params = header->data<gfxpacket::Dispatch>();
+          buffer.dispatch(params.groups.x, params.groups.y, params.groups.z);
           break;
         }
         case PacketType::RenderpassEnd:

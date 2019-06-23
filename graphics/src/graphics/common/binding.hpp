@@ -16,6 +16,7 @@ namespace faze
     vector<ShaderResource> m_resources;
     vector<ViewResourceHandle> m_handles;
     vector<uint8_t> m_constants;
+    uint3 m_baseGroups;
 
     Binding(GraphicsPipeline pipeline)
     : m_resources(pipeline.descriptor.desc.layout.sortedResources)
@@ -28,6 +29,7 @@ namespace faze
     : m_resources(pipeline.descriptor.layout.sortedResources)
     , m_handles(m_resources.size())
     , m_constants(pipeline.descriptor.layout.constantsSizeOf)
+    , m_baseGroups(pipeline.descriptor.shaderGroups)
     {
       
     }
@@ -124,6 +126,11 @@ namespace faze
         id++;
       }
       F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+    }
+
+    uint3 baseGroups()
+    {
+      return m_baseGroups;
     }
   };
 }

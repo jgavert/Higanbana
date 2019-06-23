@@ -147,7 +147,7 @@ namespace faze
       void present(Swapchain& swapchain);
 
       // test
-      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice vdev, CommandBuffer& buffer);
+      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer);
     };
   }
 }

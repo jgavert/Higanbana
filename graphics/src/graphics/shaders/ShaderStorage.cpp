@@ -111,6 +111,7 @@ namespace faze
           superSimple += "VertexOut main(uint id: SV_VertexID)\n{ \n  VertexOut vtxOut;\n";
           superSimple += "  vtxOut.pos.x = (id % 3 == 2) ?  1 : 0;\n";
           superSimple += "  vtxOut.pos.y = (id % 3 == 1) ?  1 : 0;\n";
+          superSimple += "  vtxOut.pos.w = 1.f;\n";
           superSimple += "  vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;\n";
           superSimple += "  vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;\n";
           superSimple += "  return vtxOut;\n";

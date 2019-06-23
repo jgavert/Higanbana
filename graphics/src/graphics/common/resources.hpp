@@ -124,7 +124,8 @@ namespace faze
 #if defined(FAZE_PLATFORM_WINDOWS)
     struct SharedHandle
     {
-      void* handle;
+      GraphicsApi api;
+      HANDLE handle;
     };
 #else
     struct SharedHandle

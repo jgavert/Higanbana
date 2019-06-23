@@ -8,6 +8,8 @@
 #include "graphics/common/swapchain.hpp"
 #include <core/system/SequenceTracker.hpp>
 
+#include <core/math/utils.hpp>
+
 #include <string>
 
 namespace faze
@@ -145,6 +147,16 @@ namespace faze
     {
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+    }
+
+    void dispatchThreads(
+      Binding& binding, uint3 groups)
+    {
+      list.bindComputeResources(binding.bResources(), binding.bConstants());
+      unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(binding.baseGroups().x)));
+      unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(binding.baseGroups().y)));
+      unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(binding.baseGroups().z)));
+      list.dispatch(uint3(x,y,z));
     }
 
     void dispatch(

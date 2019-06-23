@@ -1648,7 +1648,7 @@ namespace faze
 
       FAZE_CHECK_HR(m_device->CreateSharedHandle(native->fence.Get(), nullptr, GENERIC_ALL, L"sharedHandle_semaphore_Faze", &h));
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{ GraphicsApi::DX12, h }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;
@@ -1662,7 +1662,7 @@ namespace faze
 
       FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_heap_Faze", &h));
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;
@@ -1676,7 +1676,7 @@ namespace faze
 
       FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{ h }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;

@@ -401,6 +401,11 @@ namespace faze
       bool            indirect = false;
       bool            allowCrossAdapter = false;
       bool            allowSimultaneousAccess = false;
+
+      uint3 size3D() const
+      {
+        return uint3(width, height, depth);
+      }
     } desc;
 
     ResourceDescriptor()
