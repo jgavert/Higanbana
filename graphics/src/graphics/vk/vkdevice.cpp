@@ -2198,6 +2198,15 @@ for (auto&& upload : it.second.dynamicBuffers)
     void VulkanDevice::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation allocation, ResourceDescriptor& descriptor) { return; };
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {
+      vk::ExternalMemoryImageCreateInfo extInfo;
+      extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32
+      | vk::ExternalMemoryHandleTypeFlagBits::eD3D12Heap
+      | vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
+      auto vkdesc = fillImageInfo(descriptor);
+      vkdesc = vkdesc.setPNext(&extInfo);
+      auto image = m_device.createImage(vkdesc);
+      VK_CHECK_RESULT(image);
+
       vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
       if (shared->api == GraphicsApi::DX12)
@@ -2206,12 +2215,17 @@ for (auto&& upload : it.second.dynamicBuffers)
       }
       else
       {
-        F_ASSERT(false, ":(");
+        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
       }
-      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo().setPNext(&info);
+      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo().setPNext(&info).setAllocationSize(100);
 
       auto memory = m_device.allocateMemory(allocInfo);
-      m_device.freeMemory(memory.value);
-    };
+      VK_CHECK_RESULT(memory);
+      //auto& native = m_allRes.heaps[allocation.heap.handle];
+      //vk::DeviceSize size = 0;
+      auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      m_device.bindImageMemory(image.value, memory.value, req.size);
+      m_allRes.tex[handle] = VulkanTexture(image.value, descriptor, memory.value);
+    }
   }
 }

@@ -98,6 +98,21 @@ namespace app
       .setLayout(blitInf));
     compositeRP = dev.createRenderpass();
 
+    targetRT.resize(dev, ResourceDescriptor()
+      .setWidth(1280)
+      .setHeight(720)
+      .setFormat(FormatType::Unorm8RGBA)
+      .setUsage(ResourceUsage::RenderTarget));
+
+    sTex = dev.createTexture(ResourceDescriptor()
+      .setWidth(1280)
+      .setHeight(720)
+      .setFormat(FormatType::Unorm8RGBA)
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .allowCrossAdapter(1));
+
+    sSrv = dev.createTextureSRV(sTex);
+
     time.startFrame();
   }
 
@@ -118,6 +133,23 @@ namespace app
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTargetRW)
       .setName("proxyTex"));
+
+    targetRT.resize(dev, ResourceDescriptor()
+      .setWidth(desc.desc.width)
+      .setHeight(desc.desc.height)
+      .setFormat(desc.desc.format)
+      .setUsage(ResourceUsage::RenderTarget)
+      .setName("targetRT"));
+
+    sTex = dev.createTexture(ResourceDescriptor()
+      .setWidth(1280)
+      .setHeight(720)
+      .setFormat(FormatType::Unorm8RGBA)
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .setName("Shared Texture")
+      .allowCrossAdapter(1));
+
+    sSrv = dev.createTextureSRV(sTex);
   }
 
   void Renderer::render()

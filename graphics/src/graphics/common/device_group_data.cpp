@@ -313,23 +313,54 @@ namespace faze
     Texture DeviceGroupData::createTexture(ResourceDescriptor desc)
     {
       auto handle = m_handles.allocateResource(ResourceType::Texture);
-      // TODO: shared textures
-      for (auto& vdev : m_devices)
-      {
-        auto memRes = vdev.device->getReqs(desc); // memory requirements
-        auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
-        {
-          auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
-          memHandle.setGpuId(vdev.id); 
-          vdev.device->createHeap(memHandle, desc);
-          return GpuHeap(memHandle, desc);
-        }); // get heap corresponding to requirements
-        vdev.device->createTexture(handle, allo, desc); // assign and create buffer
-        vdev.m_textures[handle] = allo.allocation;
-        auto subresources = desc.desc.miplevels * desc.desc.arraySize;
 
+      auto createTex = [&](VirtualDevice& vdev, ResourceHandle handle, ResourceDescriptor& desc) {
+      };
+
+      if (desc.desc.allowCrossAdapter)
+      {
+        F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
+        handle.setGpuId(desc.desc.hostGPU);
+        auto& vdev = m_devices[desc.desc.hostGPU];
+        // texture
+        vdev.device->createTexture(handle, desc);
+        auto subresources = desc.desc.miplevels * desc.desc.arraySize;
         vdev.m_textureStates[handle].mips = desc.desc.miplevels;
         vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+        // shared
+        auto shared = vdev.device->openSharedHandle(handle);
+        for (int i = 0; i < m_devices.size(); ++i)
+        {
+          if (i != desc.desc.hostGPU)
+          {
+            m_devices[i].device->createTextureFromHandle(handle, shared, desc);
+            //m_devices[i].m_textures[handle] = allo.allocation;
+            auto subresources = desc.desc.miplevels * desc.desc.arraySize;
+
+            m_devices[i].m_textureStates[handle].mips = desc.desc.miplevels;
+            m_devices[i].m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+          }
+        }
+      }
+      else
+      {
+        for (auto& vdev : m_devices)
+        {
+          auto memRes = vdev.device->getReqs(desc); // memory requirements
+          auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+          {
+            auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
+            memHandle.setGpuId(vdev.id); 
+            vdev.device->createHeap(memHandle, desc);
+            return GpuHeap(memHandle, desc);
+          }); // get heap corresponding to requirements
+          vdev.device->createTexture(handle, allo, desc); // assign and create buffer
+          vdev.m_textures[handle] = allo.allocation;
+          auto subresources = desc.desc.miplevels * desc.desc.arraySize;
+
+          vdev.m_textureStates[handle].mips = desc.desc.miplevels;
+          vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+        }
       }
 
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));

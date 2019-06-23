@@ -39,6 +39,11 @@ void mainWindow(ProgramParams& params)
       GraphicsSubsystem graphics("faze");
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
+      auto gpuInfo = graphics.getVendorDevice(GraphicsApi::Vulkan);
+      auto gpuInfo2 = graphics.getVendorDevice(GraphicsApi::DX12);
+      allGpus.emplace_back(gpuInfo);
+      allGpus.emplace_back(gpuInfo2);
+      /*
       if (!explicitID)
       {
         //gpuinfo = graphics.getVendorDevice(api);
@@ -64,6 +69,7 @@ void mainWindow(ProgramParams& params)
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
+      */
       if (updateLog) log.update();
       if (gpus.empty())
         return;

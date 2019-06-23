@@ -232,6 +232,8 @@ namespace faze
       ResourceDescriptor m_desc;
       bool owned;
 
+      vk::DeviceMemory sharedMem;
+      bool hadShared;
     public:
       VulkanTexture()
       {}
@@ -241,6 +243,22 @@ namespace faze
         , m_desc(desc)
         , owned(owner)
         , m_aspectFlags(vk::ImageAspectFlagBits::eColor)
+        , hadShared(false)
+      {
+        if (m_desc.desc.usage == ResourceUsage::DepthStencil 
+         || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
+        {
+          m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+        }
+      }
+
+      VulkanTexture(vk::Image resource, ResourceDescriptor desc, vk::DeviceMemory mem, bool owner = true)
+        : resource(resource)
+        , m_desc(desc)
+        , owned(owner)
+        , m_aspectFlags(vk::ImageAspectFlagBits::eColor)
+        , sharedMem(mem)
+        , hadShared(true)
       {
         if (m_desc.desc.usage == ResourceUsage::DepthStencil 
          || m_desc.desc.usage == ResourceUsage::DepthStencilRW)

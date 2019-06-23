@@ -401,6 +401,7 @@ namespace faze
       bool            indirect = false;
       bool            allowCrossAdapter = false;
       bool            allowSimultaneousAccess = false;
+      int             hostGPU = 0;
 
       uint3 size3D() const
       {
@@ -531,9 +532,10 @@ namespace faze
       desc.indirect = true;
       return *this;
     }
-    ResourceDescriptor& allowCrossAdapter()
+    ResourceDescriptor& allowCrossAdapter(int hostGPU = 0)
     {
       desc.allowCrossAdapter = true;
+      desc.hostGPU = hostGPU;
       return *this;
     }
     ResourceDescriptor& allowSimultaneousAccess()

@@ -31,7 +31,8 @@ namespace faze
       {
         auto res = gpu.createTexture(desc);
         srvs.push_back(gpu.createTextureSRV(res));
-        uavs.push_back(gpu.createTextureUAV(res));
+        if (desc.desc.usage == ResourceUsage::DepthStencilRW || desc.desc.usage == ResourceUsage::RenderTargetRW || desc.desc.usage == ResourceUsage::GpuRW)
+          uavs.push_back(gpu.createTextureUAV(res));
         if (desc.desc.usage == ResourceUsage::RenderTarget || desc.desc.usage == ResourceUsage::RenderTargetRW)
           rtvs.push_back(gpu.createTextureRTV(res));
       }
