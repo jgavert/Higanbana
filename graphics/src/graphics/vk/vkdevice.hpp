@@ -130,6 +130,7 @@ namespace faze
       std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override;
       std::shared_ptr<SharedHandle> openSharedHandle(ResourceHandle handle) override;
       std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override;
+      void createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared) override;
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override;
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override;
 

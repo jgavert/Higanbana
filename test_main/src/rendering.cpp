@@ -104,6 +104,7 @@ namespace app
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTarget));
 
+
     sTex = dev.createTexture(ResourceDescriptor()
       .setWidth(1280)
       .setHeight(720)
@@ -111,7 +112,7 @@ namespace app
       .setUsage(ResourceUsage::GpuReadOnly)
       .allowCrossAdapter(1));
 
-    sSrv = dev.createTextureSRV(sTex);
+    //sSrv = dev.createTextureSRV(sTex);
 
     time.startFrame();
   }
@@ -149,7 +150,8 @@ namespace app
       .setName("Shared Texture")
       .allowCrossAdapter(1));
 
-    sSrv = dev.createTextureSRV(sTex);
+    //sSrv = dev.createTextureSRV(sTex);
+    
   }
 
   void Renderer::render()

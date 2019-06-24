@@ -39,11 +39,17 @@ void mainWindow(ProgramParams& params)
       GraphicsSubsystem graphics("faze");
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
-      auto gpuInfo = graphics.getVendorDevice(GraphicsApi::Vulkan);
-      auto gpuInfo2 = graphics.getVendorDevice(GraphicsApi::DX12);
+#if 1
+      auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
+      auto api2 = GraphicsApi::Vulkan;
+      if (api == GraphicsApi::Vulkan)
+      {
+        api2 = GraphicsApi::DX12;
+      }
+      auto gpuInfo2 = graphics.getVendorDevice(api2, preferredVendor);
       allGpus.emplace_back(gpuInfo);
       allGpus.emplace_back(gpuInfo2);
-      /*
+#else
       if (!explicitID)
       {
         //gpuinfo = graphics.getVendorDevice(api);
@@ -69,7 +75,7 @@ void mainWindow(ProgramParams& params)
           F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
-      */
+#endif
       if (updateLog) log.update();
       if (gpus.empty())
         return;
@@ -171,7 +177,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::Vulkan, VendorID::Intel, true);
+  main(GraphicsApi::Vulkan, VendorID::Nvidia, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 

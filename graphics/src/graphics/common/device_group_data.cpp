@@ -137,7 +137,9 @@ namespace faze
       // overcommitting with handles, 8 is max anyway...
       for (int i = 0; i < 8; i++)
       {
-        handles.push_back(m_handles.allocateResource(ResourceType::Texture));
+        auto handle = m_handles.allocateResource(ResourceType::Texture);
+        handle.setGpuId(SwapchainDeviceID);
+        handles.push_back(handle);
       }
       auto bufferCount = m_devices[SwapchainDeviceID].device->fetchSwapchainTextures(sc.impl(), handles);
       vector<TextureRTV> backbuffers;
@@ -145,15 +147,12 @@ namespace faze
       for (int i = 0; i < bufferCount; ++i)
       {
         std::shared_ptr<ResourceHandle> handlePtr = std::shared_ptr<ResourceHandle>(new ResourceHandle(handles[i]), 
-        [weakDevice = weak_from_this()](ResourceHandle* ptr)
+        [weakDevice = weak_from_this(), devId = SwapchainDeviceID](ResourceHandle* ptr)
         {
           if (auto dev = weakDevice.lock())
           {
             dev->m_handles.release(*ptr);
-            for (auto&& vdev : dev->m_devices)
-            {
-              vdev.device->releaseHandle(*ptr);
-            }
+            dev->m_devices[devId].device->releaseHandle(*ptr);
           }
           delete ptr;
         });
@@ -314,13 +313,10 @@ namespace faze
     {
       auto handle = m_handles.allocateResource(ResourceType::Texture);
 
-      auto createTex = [&](VirtualDevice& vdev, ResourceHandle handle, ResourceDescriptor& desc) {
-      };
-
       if (desc.desc.allowCrossAdapter)
       {
         F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
-        handle.setGpuId(desc.desc.hostGPU);
+        //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
         // texture
         vdev.device->createTexture(handle, desc);
@@ -725,6 +721,14 @@ namespace faze
       auto garb = m_delayer.garbageCollection(m_seqTracker.completedTill());
       for (auto&& device : m_devices)
       {
+        for (auto&& handle : garb.viewTrash)
+        {
+          auto ownerGpuId = handle.resource.ownerGpuId();
+          if (handle.type == ViewResourceType::DynamicBufferSRV || ownerGpuId == -1 || ownerGpuId == device.id)
+          {
+            device.device->releaseViewHandle(handle);
+          }
+        }
         for (auto&& handle : garb.trash)
         {
           if (handle.type == ResourceType::Buffer)
@@ -739,14 +743,6 @@ namespace faze
           if (ownerGpuId == -1 || ownerGpuId == device.id)
           {
             device.device->releaseHandle(handle);
-          }
-        }
-        for (auto&& handle : garb.viewTrash)
-        {
-          auto ownerGpuId = handle.resource.ownerGpuId();
-          if (handle.type == ViewResourceType::DynamicBufferSRV || ownerGpuId == -1 || ownerGpuId == device.id)
-          {
-            device.device->releaseViewHandle(handle);
           }
         }
         auto removed = device.heaps.emptyHeaps();
