@@ -1671,13 +1671,15 @@ namespace faze
     }
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(ResourceHandle resource)
     {
-      auto& native = m_allRes.tex[resource];
-
       HANDLE h;
 
-      FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
+      if (resource.type == ResourceType::Texture)
+      {
+        auto& native = m_allRes.tex[resource];
+        FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
+      }
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h, 0 }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;
@@ -1691,6 +1693,13 @@ namespace faze
       return std::make_shared<DX12Semaphore>(fence);
     }
 
+    void DX12Device::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
+    {
+      ID3D12Heap* heap;
+      m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap));
+      m_allRes.heaps[handle] = DX12Heap(heap);
+    }
+      
     void DX12Device::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc)
     {
       ID3D12Heap* heap;

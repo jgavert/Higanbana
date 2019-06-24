@@ -126,6 +126,7 @@ namespace faze
     {
       GraphicsApi api;
       HANDLE handle;
+      size_t heapsize;
     };
 #else
     struct SharedHandle

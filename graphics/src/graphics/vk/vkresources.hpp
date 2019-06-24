@@ -232,8 +232,8 @@ namespace faze
       ResourceDescriptor m_desc;
       bool owned;
 
-      vk::DeviceMemory sharedMem;
-      bool hadShared;
+      vk::DeviceMemory deviceMem;
+      bool isDedicatedAllocation;
     public:
       VulkanTexture()
       {}
@@ -243,7 +243,7 @@ namespace faze
         , m_desc(desc)
         , owned(owner)
         , m_aspectFlags(vk::ImageAspectFlagBits::eColor)
-        , hadShared(false)
+        , isDedicatedAllocation(false)
       {
         if (m_desc.desc.usage == ResourceUsage::DepthStencil 
          || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
@@ -257,8 +257,8 @@ namespace faze
         , m_desc(desc)
         , owned(owner)
         , m_aspectFlags(vk::ImageAspectFlagBits::eColor)
-        , sharedMem(mem)
-        , hadShared(true)
+        , deviceMem(mem)
+        , isDedicatedAllocation(true)
       {
         if (m_desc.desc.usage == ResourceUsage::DepthStencil 
          || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
@@ -270,6 +270,16 @@ namespace faze
       vk::Image native()
       {
         return resource;
+      }
+
+      vk::DeviceMemory memory()
+      {
+        return deviceMem;
+      }
+
+      bool hasDedicatedMemory() const
+      {
+        return isDedicatedAllocation;
       }
 
       bool canRelease()

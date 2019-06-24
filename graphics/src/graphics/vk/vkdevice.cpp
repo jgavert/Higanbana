@@ -1285,6 +1285,9 @@ for (auto&& upload : it.second.dynamicBuffers)
           auto& tex = m_allRes.tex[handle];
           if (tex.canRelease())
             m_device.destroyImage(tex.native());
+
+          //if (tex.hasDedicatedMemory())
+          //  m_device.freeMemory(tex.memory());
           m_allRes.tex[handle] = VulkanTexture();
           break;
         }
@@ -1488,7 +1491,14 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto searchProperties = getMemoryProperties(desc.desc.usage);
       auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
       F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.def
-      auto packed = packInt64(index, 0);
+
+      int32_t customBit = 0;
+      if (desc.desc.allowCrossAdapter)
+      {
+        customBit = 1;
+      }
+
+      auto packed = packInt64(index, customBit);
       //int32_t v1, v2;
       //unpackInt64(packed, v1, v2);
       //F_ILOG("Vulkan", "Did (unnecessary) packing tricks, packed %d -> %zd -> %d", index, packed, v1);
@@ -2189,42 +2199,86 @@ for (auto&& upload : it.second.dynamicBuffers)
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore() { return nullptr; };
 
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl>) { return nullptr; };
-    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation)
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
-      return nullptr;
-    };
+      auto& native = m_allRes.heaps[heapAllocation.heap.handle];
+      HANDLE lol;
+/*
+      auto handle = m_device.getMemoryWin32HandleKHR(vk::MemoryGetWin32HandleInfoKHR()
+        .setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32)
+        .setMemory(native.native()));
+      VK_CHECK_RESULT(handle);
+      */
+
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::Vulkan, lol }, [](SharedHandle* ptr)
+      {
+        CloseHandle(ptr->handle);
+        delete ptr;
+      });
+    }
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) { return nullptr; };
+    void VulkanDevice::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
+    {
+      vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
+      .setHandle(shared->handle);
+      if (shared->api == GraphicsApi::DX12) // DX12 resource
+      {
+        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Heap);
+      }
+      else // vulkan resource
+      {
+        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
+      }
+      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo()
+      .setPNext(&info)
+      .setAllocationSize(shared->heapsize);
+
+      auto memory = m_device.allocateMemory(allocInfo);
+      VK_CHECK_RESULT(memory);
+
+      m_allRes.heaps[handle] = VulkanHeap(memory.value);
+    }
     void VulkanDevice::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation allocation, ResourceDescriptor& descriptor) { return; };
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {
       vk::ExternalMemoryImageCreateInfo extInfo;
       extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32
-      | vk::ExternalMemoryHandleTypeFlagBits::eD3D12Heap
       | vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
       auto vkdesc = fillImageInfo(descriptor);
       vkdesc = vkdesc.setPNext(&extInfo);
       auto image = m_device.createImage(vkdesc);
       VK_CHECK_RESULT(image);
 
-      vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
+      vk::ImportMemoryWin32HandleInfoKHR importInfo = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
       if (shared->api == GraphicsApi::DX12)
       {
-        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
+        importInfo = importInfo.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
       }
       else
       {
-        info = info.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
+        importInfo = importInfo.setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
       }
-      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo().setPNext(&info).setAllocationSize(100);
+
+      vk::MemoryDedicatedAllocateInfo dedInfo = vk::MemoryDedicatedAllocateInfo()
+//        .setPNext(&importInfo)
+        .setImage(image.value);
+
+      importInfo = importInfo.setPNext(&dedInfo);
+
+      auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+
+      vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo()
+        .setPNext(&importInfo)
+        .setAllocationSize(req.size);
 
       auto memory = m_device.allocateMemory(allocInfo);
       VK_CHECK_RESULT(memory);
       //auto& native = m_allRes.heaps[allocation.heap.handle];
       //vk::DeviceSize size = 0;
-      auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
-      m_device.bindImageMemory(image.value, memory.value, req.size);
+      //auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      m_device.bindImageMemory(image.value, memory.value, 0);
       m_allRes.tex[handle] = VulkanTexture(image.value, descriptor, memory.value);
     }
   }
