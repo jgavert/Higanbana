@@ -348,28 +348,29 @@ namespace faze
     {
     private:
       vk::Buffer resource;
-      std::shared_ptr<VulkanBufferState> statePtr;
+      vk::DeviceMemory memory;
+      bool sharedMemory;
 
     public:
       VulkanBuffer()
       {}
-      VulkanBuffer(vk::Buffer resource, std::shared_ptr<VulkanBufferState> state)
+      VulkanBuffer(vk::Buffer resource)
         : resource(resource)
-        , statePtr(state)
+        , sharedMemory(false)
+      {}
+      VulkanBuffer(vk::Buffer resource, vk::DeviceMemory memory)
+        : resource(resource)
+        , memory(memory)
+        , sharedMemory(true)
       {}
       vk::Buffer native()
       {
         return resource;
       }
 
-      std::shared_ptr<VulkanBufferState> state()
+      vk::DeviceMemory sharedMem()
       {
-        return statePtr;
-      }
-
-      backend::TrackedState dependency()
-      {
-        return backend::TrackedState{ reinterpret_cast<size_t>(&resource), reinterpret_cast<size_t>(statePtr.get()), 0 };
+        return memory;
       }
     };
 

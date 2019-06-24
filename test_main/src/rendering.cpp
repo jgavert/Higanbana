@@ -104,15 +104,13 @@ namespace app
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTarget));
 
-
-    sTex = dev.createTexture(ResourceDescriptor()
-      .setWidth(1280)
-      .setHeight(720)
-      .setFormat(FormatType::Unorm8RGBA)
+/*
+    sBuf = dev.createBuffer(ResourceDescriptor()
+      .setArraySize(100)
+      .setFormat(FormatType::Raw32)
       .setUsage(ResourceUsage::GpuReadOnly)
       .allowCrossAdapter(1));
-
-    //sSrv = dev.createTextureSRV(sTex);
+      */
 
     time.startFrame();
   }
@@ -141,17 +139,6 @@ namespace app
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTarget)
       .setName("targetRT"));
-
-    sTex = dev.createTexture(ResourceDescriptor()
-      .setWidth(1280)
-      .setHeight(720)
-      .setFormat(FormatType::Unorm8RGBA)
-      .setUsage(ResourceUsage::GpuReadOnly)
-      .setName("Shared Texture")
-      .allowCrossAdapter(1));
-
-    //sSrv = dev.createTextureSRV(sTex);
-    
   }
 
   void Renderer::render()
