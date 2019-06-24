@@ -67,7 +67,7 @@ namespace faze
         BufferDependency d;
         d.uniqueId = uniqueID;
         d.buffer = buffer.native();
-        d.state = buffer.state();
+        //d.state = buffer.state();
         m_bufferStates[uniqueID] = std::move(d);
       }
       m_uniqueBuffersThisChain.insert(uniqueID);

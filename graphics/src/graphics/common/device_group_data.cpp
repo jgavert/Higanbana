@@ -291,19 +291,47 @@ namespace faze
       desc = desc.setDimension(FormatDimension::Buffer);
       auto handle = m_handles.allocateResource(ResourceType::Buffer);
       // TODO: sharedbuffers
-      for (auto& vdev : m_devices)
-      {
-        auto memRes = vdev.device->getReqs(desc); // memory requirements
-        auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+
+      if (desc.desc.allowCrossAdapter) {
+          F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
+          //handle.setGpuId(desc.desc.hostGPU);
+          auto& vdev = m_devices[desc.desc.hostGPU];
+          auto memRes = vdev.device->getReqs(desc); // memory requirements
+          auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+          {
+            auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
+            memHandle.setGpuId(vdev.id); 
+            vdev.device->createHeap(memHandle, desc);
+            return GpuHeap(memHandle, desc);
+          }); // get heap corresponding to requirements
+          vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
+          vdev.m_buffers[handle] = allo.allocation;
+          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+          auto shared = vdev.device->openSharedHandle(allo);
+          for (int i = 0; i < m_devices.size(); ++i)
+          {
+            if (i != desc.desc.hostGPU)
+            {
+              m_devices[i].device->createBufferFromHandle(handle, shared, allo, desc);
+              m_devices[i].m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+            }
+          }
+      }
+      else {
+        for (auto& vdev : m_devices)
         {
-          auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
-          memHandle.setGpuId(vdev.id); 
-          vdev.device->createHeap(memHandle, desc);
-          return GpuHeap(memHandle, desc);
-        }); // get heap corresponding to requirements
-        vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
-        vdev.m_buffers[handle] = allo.allocation;
-        vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+          auto memRes = vdev.device->getReqs(desc); // memory requirements
+          auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
+          {
+            auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
+            memHandle.setGpuId(vdev.id); 
+            vdev.device->createHeap(memHandle, desc);
+            return GpuHeap(memHandle, desc);
+          }); // get heap corresponding to requirements
+          vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
+          vdev.m_buffers[handle] = allo.allocation;
+          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+        }
       }
 
       return Buffer(sharedHandle(handle), std::make_shared<ResourceDescriptor>(std::move(desc)));
