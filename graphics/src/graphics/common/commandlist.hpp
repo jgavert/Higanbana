@@ -153,7 +153,8 @@ namespace faze
 
     void copy(Buffer& target, Buffer& source)
     {
-      list.insert<gfxpacket::BufferCopy>(target.handle(), source.handle());
+      uint32_t maxbytes = std::min(target.desc().desc.sizeBytesBuffer(), source.desc().desc.sizeBytesBuffer());
+      list.insert<gfxpacket::BufferCopy>(target.handle(), 0, source.handle(), 0, maxbytes);
     }
 
     void copy(Buffer& target, DynamicBufferView& source)

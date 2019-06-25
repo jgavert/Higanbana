@@ -2196,9 +2196,28 @@ for (auto&& upload : it.second.dynamicBuffers)
       {
       }
     }
-    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore() { return nullptr; };
+    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore()
+    {
+      vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR();
 
-    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl>) { return nullptr; };
+      vk::ExportSemaphoreCreateInfo exportSema = vk::ExportSemaphoreCreateInfo()
+        .setPNext(&exportInfoHandle)
+        .setHandleTypes(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32 | vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
+
+      auto fence = m_device.createSemaphore(vk::SemaphoreCreateInfo().setPNext(&exportSema));
+      VK_CHECK_RESULT(fence);
+      return std::make_shared<VulkanSemaphore>(VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence.value), [device = m_device](vk::Semaphore* ptr)
+      {
+        device.destroySemaphore(*ptr);
+        delete ptr;
+      })));
+    };
+
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl> shared)
+    {
+
+      return nullptr;
+    };
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
@@ -2217,7 +2236,22 @@ for (auto&& upload : it.second.dynamicBuffers)
       });
     }
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
-    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) { return nullptr; };
+    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle> shared)
+    {
+      vk::Semaphore sema;
+      auto importInfo = vk::ImportSemaphoreWin32HandleInfoKHR()
+      .setHandle(shared->handle)
+      .setSemaphore(sema)
+      .setFlags(vk::SemaphoreImportFlagBits::eTemporary)
+      .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
+      auto res = m_device.importSemaphoreWin32HandleKHR(importInfo);
+      VK_CHECK_RESULT_RAW(res);
+      return std::make_shared<VulkanSemaphore>(VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(sema), [device = m_device](vk::Semaphore* ptr)
+      {
+        device.destroySemaphore(*ptr);
+        delete ptr;
+      })));
+    };
     
     void VulkanDevice::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
     {
@@ -2260,7 +2294,9 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto memory = m_device.allocateMemory(allocInfo);
       VK_CHECK_RESULT(memory);
 
-      m_allRes.heaps[handle] = VulkanHeap(memory.value);
+      m_allRes.heaps[allocation.heap.handle] = VulkanHeap(memory.value);
+
+      createBuffer(handle, allocation, descriptor);
     }
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {

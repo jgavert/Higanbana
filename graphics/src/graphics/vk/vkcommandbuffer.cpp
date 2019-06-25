@@ -679,6 +679,20 @@ namespace faze
           buffer.dispatch(params.groups.x, params.groups.y, params.groups.z);
           break;
         }
+        case PacketType::BufferCopy:
+        {
+          auto params = header->data<gfxpacket::BufferCopy>();
+          auto dst = device->allResources().buf[params.dst].native();
+          auto src = device->allResources().buf[params.src].native();
+
+          vk::BufferCopy info = vk::BufferCopy()
+            .setSrcOffset(params.srcOffset)
+            .setDstOffset(params.dstOffset)
+            .setSize(params.numBytes);
+
+          buffer.copyBuffer(src, dst, {info});
+          break;
+        }
         case PacketType::RenderpassEnd:
         {
           buffer.endRenderPass();

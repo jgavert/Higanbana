@@ -408,6 +408,11 @@ namespace faze
       {
         return uint3(width, height, depth);
       }
+
+      uint32_t sizeBytesBuffer() const
+      {
+        return width * stride;
+      }
     } desc;
 
     ResourceDescriptor()
@@ -459,8 +464,11 @@ namespace faze
 
     ResourceDescriptor& setSize(int3 size)
     {
-      if (desc.dimension == FormatDimension::Unknown)
-        desc.dimension = FormatDimension::Texture3D;
+      if (desc.dimension == FormatDimension::Unknown) {
+        desc.dimension = FormatDimension::Texture2D;
+        if (size.z > 1)
+          desc.dimension = FormatDimension::Texture3D;
+      }
       desc.width = size.x;
       desc.height = size.y;
       desc.depth = size.z;
@@ -478,11 +486,20 @@ namespace faze
 
     ResourceDescriptor& setSize(uint3 size)
     {
-      if (desc.dimension == FormatDimension::Unknown)
-        desc.dimension = FormatDimension::Texture3D;
+      if (desc.dimension == FormatDimension::Unknown) {
+        desc.dimension = FormatDimension::Texture2D;
+        if (size.z > 1)
+          desc.dimension = FormatDimension::Texture3D;
+      }
       desc.width = size.x;
       desc.height = size.y;
       desc.depth = size.z;
+      return *this;
+    }
+
+    ResourceDescriptor& setCount(unsigned size)
+    {
+      desc.width = size;
       return *this;
     }
 

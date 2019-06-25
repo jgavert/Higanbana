@@ -17,6 +17,7 @@
 #include <graphics/common/allocators.hpp>
 
 #define VK_CHECK_RESULT(value) F_ASSERT(value.result == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value.result).c_str())
+#define VK_CHECK_RESULT_RAW(value) F_ASSERT(value == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value).c_str())
 
 
 namespace faze

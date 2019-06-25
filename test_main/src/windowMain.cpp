@@ -137,12 +137,14 @@ void mainWindow(ProgramParams& params)
 
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
           {
+            /*
             reInit = true;
             if (api == GraphicsApi::DX12)
               api = GraphicsApi::Vulkan;
             else
               api = GraphicsApi::DX12;
             break;
+            */
           }
 
           if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('3', 1))
