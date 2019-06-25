@@ -1286,8 +1286,8 @@ for (auto&& upload : it.second.dynamicBuffers)
           if (tex.canRelease())
             m_device.destroyImage(tex.native());
 
-          //if (tex.hasDedicatedMemory())
-          //  m_device.freeMemory(tex.memory());
+          if (tex.hasDedicatedMemory())
+            m_device.freeMemory(tex.memory());
           m_allRes.tex[handle] = VulkanTexture();
           break;
         }
@@ -2265,8 +2265,7 @@ for (auto&& upload : it.second.dynamicBuffers)
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {
       vk::ExternalMemoryImageCreateInfo extInfo;
-      extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32
-      | vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
+      extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
       auto vkdesc = fillImageInfo(descriptor);
       vkdesc = vkdesc.setPNext(&extInfo);
       auto image = m_device.createImage(vkdesc);
@@ -2307,7 +2306,7 @@ for (auto&& upload : it.second.dynamicBuffers)
 
       importInfo = importInfo.setPNext(&dedInfo);
 
-      auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      auto req = m_device.getImageMemoryRequirements(image.value); 
 
       vk::MemoryAllocateInfo allocInfo = vk::MemoryAllocateInfo()
         .setPNext(&importInfo)

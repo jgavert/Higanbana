@@ -105,6 +105,7 @@ namespace faze
       std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl>) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) override;
       std::shared_ptr<backend::SharedHandle> openSharedHandle(ResourceHandle resource) override;
+      std::shared_ptr<backend::SharedHandle> openForInteropt(ResourceHandle resource) override;
       std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle>) override;
       void createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared) override;
       void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;

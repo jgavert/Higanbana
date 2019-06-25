@@ -39,6 +39,7 @@ namespace app
     // shared textures
     faze::PingPongTexture targetRT;
     faze::Buffer sBuf;
+    faze::Texture sTex;
   public:
     Renderer(faze::GraphicsSubsystem& graphics, faze::GpuGroup& dev);
     void initWindow(faze::Window& window, faze::GpuInfo info);
