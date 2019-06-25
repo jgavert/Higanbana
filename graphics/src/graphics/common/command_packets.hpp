@@ -173,14 +173,20 @@ namespace faze
 
     struct BufferCopy
     {
-      ResourceHandle target;
-      ResourceHandle source;
+      ResourceHandle dst;
+      uint32_t dstOffset;
+      ResourceHandle src;
+      uint32_t srcOffset;
+      uint32_t numBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::BufferCopy;
-      static void constructor(backend::CommandBuffer& , BufferCopy* packet, ResourceHandle target, ResourceHandle source)
+      static void constructor(backend::CommandBuffer& , BufferCopy* packet, ResourceHandle dst, uint32_t dstOffset, ResourceHandle src, uint32_t srcOffset, uint32_t numBytes)
       {
-        packet->target = target;
-        packet->source = source; 
+        packet->dst = dst;
+        packet->dstOffset = dstOffset;
+        packet->src = src; 
+        packet->srcOffset = srcOffset; 
+        packet->numBytes = numBytes;
       }
     };
 

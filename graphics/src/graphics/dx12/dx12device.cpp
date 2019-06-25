@@ -654,6 +654,10 @@ namespace faze
       {
         flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES | D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER;
       }
+      if (desc.desc.interopt)
+      {
+        flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES | D3D12_HEAP_FLAG_SHARED; 
+      }
 
       requirements = m_device->GetResourceAllocationInfo(m_nodeMask, 1, &resDesc);
       reqs.alignment = requirements.Alignment;
@@ -962,7 +966,7 @@ namespace faze
         else if (desc.heapType == HeapType::Readback)
         {
           dxdesc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
-        }
+        } 
       }
       else
       {
@@ -1664,6 +1668,7 @@ namespace faze
         delete ptr;
       });
     }
+
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(HeapAllocation heapAllocation)
     {
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
@@ -1672,15 +1677,17 @@ namespace faze
 
       FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_heap_Faze", &h));
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h, heapAllocation.heap.desc->desc.sizeInBytes }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;
       });
     }
+
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(ResourceHandle resource)
     {
       HANDLE h;
+      size_t size;
 
       if (resource.type == ResourceType::Texture)
       {

@@ -1054,6 +1054,14 @@ namespace faze
           buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
           break;
         }
+        case PacketType::BufferCopy:
+        {
+          auto params = header->data<gfxpacket::BufferCopy>();
+          auto dst = device->allResources().buf[params.dst].native();
+          auto src = device->allResources().buf[params.src].native();
+          buffer->CopyBufferRegion(dst, params.dstOffset, src, params.srcOffset, params.numBytes);
+          break;
+        }
         case PacketType::RenderpassEnd:
         {
           buffer->EndRenderPass();

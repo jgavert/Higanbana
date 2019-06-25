@@ -30,21 +30,21 @@ namespace app
     auto bufferdesc = ResourceDescriptor()
       .setName("testBuffer1")
       .setFormat(FormatType::Raw32)
-      .setWidth(32)
+      .setCount(32)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuReadOnly);
 
     auto bufferdesc2 = ResourceDescriptor()
       .setName("testBuffer2")
       .setFormat(FormatType::Float32)
-      .setWidth(32)
+      .setCount(32)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuReadOnly);
 
     auto bufferdesc3 = ResourceDescriptor()
       .setName("testOutBuffer")
       .setFormat(FormatType::Float32RGBA)
-      .setWidth(8)
+      .setCount(8)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuRW);
 
@@ -74,8 +74,7 @@ namespace app
     triangleRP = dev.createRenderpass();
 
     proxyTex.resize(dev, ResourceDescriptor()
-      .setWidth(1280)
-      .setHeight(720)
+      .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTargetRW));
 
@@ -99,23 +98,26 @@ namespace app
     compositeRP = dev.createRenderpass();
 
     targetRT.resize(dev, ResourceDescriptor()
-      .setWidth(1280)
-      .setHeight(720)
+      .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTarget));
 
-/*
+    size_t textureSize = 1280 * 720;
+
     sBuf = dev.createBuffer(ResourceDescriptor()
-      .setArraySize(100)
+      .setCount(textureSize)
       .setFormat(FormatType::Raw32)
-      .setUsage(ResourceUsage::GpuReadOnly)
+      .setUsage(ResourceUsage::GpuRW)
       .allowCrossAdapter(1));
-      */
+
+    sBufSRV = dev.createBufferSRV(sBuf);
+     /*
     sTex = dev.createTexture(ResourceDescriptor()
       .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::GpuReadOnly)
       .interopt(1));
+      */
 
     time.startFrame();
   }
@@ -132,15 +134,13 @@ namespace app
 
     auto& desc = swapchain.buffers().front().desc();
     proxyTex.resize(dev, ResourceDescriptor()
-      .setWidth(desc.desc.width)
-      .setHeight(desc.desc.height)
+      .setSize(desc.desc.size3D())
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTargetRW)
       .setName("proxyTex"));
 
     targetRT.resize(dev, ResourceDescriptor()
-      .setWidth(desc.desc.width)
-      .setHeight(desc.desc.height)
+      .setSize(desc.desc.size3D())
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTarget)
       .setName("targetRT"));
@@ -148,7 +148,6 @@ namespace app
 
   void Renderer::render()
   {
-
     // If you acquire, you must submit it. Next, try to first present empty image.
     // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
@@ -172,6 +171,11 @@ namespace app
 
       node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
 
+      tasks.addPass(std::move(node));
+    }
+    {
+      auto node = tasks.createPass("copyBuffer");
+      node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }
 

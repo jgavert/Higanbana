@@ -41,6 +41,7 @@ namespace faze
       bool            onlyBuffers = false;
       bool            onlyNonRtDsTextures = false;
       bool            onlyRtDsTextures = false;
+      bool            allowShared = false;
     } desc;
 
     HeapDescriptor()

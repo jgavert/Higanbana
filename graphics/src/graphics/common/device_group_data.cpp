@@ -297,12 +297,13 @@ namespace faze
           //handle.setGpuId(desc.desc.hostGPU);
           auto& vdev = m_devices[desc.desc.hostGPU];
           auto memRes = vdev.device->getReqs(desc); // memory requirements
+          ResourceHandle heapHandle;
           auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
           {
-            auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
-            memHandle.setGpuId(vdev.id); 
-            vdev.device->createHeap(memHandle, desc);
-            return GpuHeap(memHandle, desc);
+            heapHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
+            heapHandle.setGpuId(vdev.id); //??
+            vdev.device->createHeap(heapHandle, desc);
+            return GpuHeap(heapHandle, desc);
           }); // get heap corresponding to requirements
           vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
           vdev.m_buffers[handle] = allo.allocation;
@@ -310,9 +311,20 @@ namespace faze
           auto shared = vdev.device->openSharedHandle(allo);
           for (int i = 0; i < m_devices.size(); ++i)
           {
-            if (i != desc.desc.hostGPU)
+            if (i != desc.desc.hostGPU) // compatibility checks missing only allowed is same device dx12<->vk and different device dx12<->dx12
             {
-              m_devices[i].device->createBufferFromHandle(handle, shared, allo, desc);
+              //auto memRes = m_devices[i].device->getReqs(desc); // memory requirements
+              auto allo2 = m_devices[i].heaps.allocate(memRes, [&](HeapDescriptor desc)
+              {
+                auto hh = m_handles.allocateResource(ResourceType::MemoryHeap);
+                hh.setGpuId(vdev.id); 
+                m_devices[i].device->createHeapFromHandle(hh, shared);
+                return GpuHeap(hh, desc);
+              }); // get heap corresponding to requirements
+              F_ASSERT(allo2.allocation.block.size == allo.allocation.block.size, "wtf!");
+              F_ASSERT(allo2.allocation.block.offset == allo.allocation.block.offset, "wtf!");
+              m_devices[i].device->createBuffer(handle, allo2, desc);
+              m_devices[i].m_buffers[handle] = allo2.allocation;
               m_devices[i].m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
             }
           }
@@ -568,6 +580,17 @@ namespace faze
             }
             break;
           }
+          case PacketType::BufferCopy:
+          {
+            auto& packet = header->data<gfxpacket::BufferCopy>();
+            ViewResourceHandle src;
+            src.resource = packet.src;
+            ViewResourceHandle dst;
+            dst.resource = packet.dst;
+            solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, 0));
+            solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, 0));
+            break;
+          }
           case PacketType::PrepareForPresent:
           {
             auto& packet = header->data<gfxpacket::PrepareForPresent>();
@@ -670,9 +693,6 @@ namespace faze
 
           // barriers&commands
           fillCommandBuffer(nativeList, m_devices[0], list.list.list);
-
-          // actual commands
-          //nativeList->fillWith(m_devices[0].device, list.list.list);
 
           LiveCommandBuffer2 buffer{};
           buffer.deviceID = 0;
