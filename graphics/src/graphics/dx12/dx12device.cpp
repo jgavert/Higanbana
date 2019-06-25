@@ -1171,8 +1171,11 @@ namespace faze
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
 
       DX12ResourceState state{ 0 };
-      state.commonStateOptimisation = true; // usually false, to get those layout optimisations.
-      dxDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+      if (desc.desc.allowCrossAdapter)
+      {
+        state.commonStateOptimisation = true; // usually false, to get those layout optimisations.
+        dxDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+      }
       for (unsigned slice = 0; slice < desc.desc.arraySize; ++slice)
       {
         for (unsigned mip = 0; mip < desc.desc.miplevels; ++mip)
@@ -1208,7 +1211,6 @@ namespace faze
       D3D12_HEAP_PROPERTIES prop{};
       prop.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-      dxDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // forced
 
       for (int i = 0; i < static_cast<int>(FormatType::Count); ++i)
       {
@@ -1217,7 +1219,14 @@ namespace faze
 
       dxDesc.Format = formatTodxFormat(desc.desc.format).storage;
 
-      m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
+      D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE;
+      if (desc.desc.allowCrossAdapter)
+      {
+        dxDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; // forced
+        flags = D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER | D3D12_HEAP_FLAG_SHARED;
+      }
+
+      m_device->CreateCommittedResource(&prop, flags, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
 
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());
@@ -1677,6 +1686,23 @@ namespace faze
       {
         auto& native = m_allRes.tex[resource];
         FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, GENERIC_ALL, L"sharedHandle_texture_Faze", &h));
+      }
+
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h, 0 }, [](SharedHandle* ptr)
+      {
+        CloseHandle(ptr->handle);
+        delete ptr;
+      });
+    }
+
+    std::shared_ptr<backend::SharedHandle> DX12Device::openForInteropt(ResourceHandle resource)
+    {
+      HANDLE h;
+
+      if (resource.type == ResourceType::Texture)
+      {
+        auto& native = m_allRes.tex[resource];
+        FAZE_CHECK_HR(m_device->CreateSharedHandle(native.native(), nullptr, MAXIMUM_ALLOWED, L"sharedHandle_texture_Faze", &h));
       }
 
       return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::DX12, h, 0 }, [](SharedHandle* ptr)

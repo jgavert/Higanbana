@@ -400,6 +400,7 @@ namespace faze
       bool            index = false;
       bool            indirect = false;
       bool            allowCrossAdapter = false;
+      bool            interopt = false;
       bool            allowSimultaneousAccess = false;
       int             hostGPU = 0;
 
@@ -535,6 +536,12 @@ namespace faze
     ResourceDescriptor& allowCrossAdapter(int hostGPU = 0)
     {
       desc.allowCrossAdapter = true;
+      desc.hostGPU = hostGPU;
+      return *this;
+    }
+    ResourceDescriptor& interopt(int hostGPU = 0)
+    {
+      desc.interopt = true;
       desc.hostGPU = hostGPU;
       return *this;
     }

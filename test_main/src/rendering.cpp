@@ -111,6 +111,11 @@ namespace app
       .setUsage(ResourceUsage::GpuReadOnly)
       .allowCrossAdapter(1));
       */
+    sTex = dev.createTexture(ResourceDescriptor()
+      .setSize(uint2(1280, 720))
+      .setFormat(FormatType::Unorm8RGBA)
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .interopt(1));
 
     time.startFrame();
   }
