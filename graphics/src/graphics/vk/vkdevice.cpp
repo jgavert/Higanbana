@@ -275,12 +275,14 @@ namespace faze
     VulkanDevice::VulkanDevice(
       vk::Device device,
       vk::PhysicalDevice physDev,
+      vk::DispatchLoaderDynamic dynamicDispatch,
       FileSystem& fs,
       std::vector<vk::QueueFamilyProperties> queues,
       GpuInfo info,
       bool debugLayer)
       : m_device(device)
       , m_physDevice(physDev)
+      , m_dynamicDispatch(dynamicDispatch)
       , m_debugLayer(debugLayer)
       , m_queues(queues)
       , m_singleQueue(false)
@@ -2221,15 +2223,13 @@ for (auto&& upload : it.second.dynamicBuffers)
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
-      HANDLE lol;
-/*
+
       auto handle = m_device.getMemoryWin32HandleKHR(vk::MemoryGetWin32HandleInfoKHR()
         .setHandleType(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32)
-        .setMemory(native.native()));
+        .setMemory(native.native()), m_dynamicDispatch);
       VK_CHECK_RESULT(handle);
-      */
 
-      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::Vulkan, lol }, [](SharedHandle* ptr)
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::Vulkan, handle.value }, [](SharedHandle* ptr)
       {
         CloseHandle(ptr->handle);
         delete ptr;
@@ -2244,7 +2244,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       .setSemaphore(sema)
       .setFlags(vk::SemaphoreImportFlagBits::eTemporary)
       .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
-      auto res = m_device.importSemaphoreWin32HandleKHR(importInfo);
+      auto res = m_device.importSemaphoreWin32HandleKHR(importInfo, m_dynamicDispatch);
       VK_CHECK_RESULT_RAW(res);
       return std::make_shared<VulkanSemaphore>(VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(sema), [device = m_device](vk::Semaphore* ptr)
       {

@@ -10,6 +10,7 @@ namespace faze
     private:
       vk::Device                  m_device;
       vk::PhysicalDevice		      m_physDevice;
+      vk::DispatchLoaderDynamic   m_dynamicDispatch;
       bool                        m_debugLayer;
       std::vector<vk::QueueFamilyProperties> m_queues;
       bool                        m_singleQueue;
@@ -82,6 +83,7 @@ namespace faze
       VulkanDevice(
         vk::Device device,
         vk::PhysicalDevice physDev,
+        vk::DispatchLoaderDynamic dynamicDispatch,
         FileSystem& fs,
         std::vector<vk::QueueFamilyProperties> queues,
         GpuInfo info,

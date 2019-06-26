@@ -6,6 +6,7 @@
 #include "graphics/common/semaphore.hpp"
 #include "graphics/common/binding.hpp"
 #include "graphics/common/swapchain.hpp"
+#include "graphics/common/handle.hpp"
 #include <core/system/SequenceTracker.hpp>
 
 #include <core/math/utils.hpp>
@@ -32,11 +33,57 @@ namespace faze
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
 
-    unordered_set<backend::TrackedState> needSpecialAttention;
+    HandleVector<ResourceHandle> needSpecialAttentionBuf;
+    HandleVector<ResourceHandle> needSpecialAttentionTex;
 
-    unordered_set<backend::TrackedState>& needsResources()
+    MemView<ResourceHandle> needsResourcesBuf()
     {
-      return needSpecialAttention;
+      return needSpecialAttentionBuf.view();
+    }
+    MemView<ResourceHandle> needsResourcesTex()
+    {
+      return needSpecialAttentionTex.view();
+    }
+
+    template <typename ViewType>
+    void addViewBuf(ViewType type)
+    {
+      auto h = type.handle();
+      needSpecialAttentionBuf[h.resource] = h.resource;
+    }
+
+    template <typename ViewType>
+    void addViewTex(ViewType type)
+    {
+      auto h = type.handle();
+      needSpecialAttentionTex[h.resource] = h.resource;
+    }
+
+    void addMemview(MemView<ViewResourceHandle> views)
+    {
+      for (auto&& view : views)
+      {
+        switch (view.type)
+        {
+          case ViewResourceType::BufferSRV:
+          case ViewResourceType::BufferUAV:
+          case ViewResourceType::BufferIBV:
+          {
+            needSpecialAttentionBuf[view.resource] = view.resource;
+            break;
+          }
+          case ViewResourceType::TextureSRV:
+          case ViewResourceType::TextureUAV:
+          case ViewResourceType::TextureRTV:
+          case ViewResourceType::TextureDSV:
+          {
+            needSpecialAttentionTex[view.resource] = view.resource;
+            break;
+          }
+          default:
+            break;
+        }
+      }
     }
   public:
     CommandGraphNode() {}
@@ -61,6 +108,7 @@ namespace faze
 
     void clearRT(TextureRTV& rtv, float4 color)
     {
+      addViewTex(rtv);
       list.clearRT(rtv, color);
     }
 
@@ -75,14 +123,18 @@ namespace faze
     // refactoring later if too cubersome.
     void renderpass(Renderpass& pass, TextureRTV& rtv)
     {
+      addViewTex(rtv);
       list.renderpass(pass, {rtv}, {});
     }
     int renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
     {
+      addViewTex(rtv);
+      addViewTex(dsv);
       list.renderpass(pass, {rtv}, {dsv});
     }
     int renderpass(Renderpass& pass, TextureDSV& dsv)
     {
+      addViewTex(dsv);
       list.renderpass(pass, {}, {dsv});
     }
     void endRenderpass()
@@ -119,6 +171,7 @@ namespace faze
       unsigned startVertex = 0,
       unsigned startInstance = 0)
     {
+      addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
@@ -132,6 +185,7 @@ namespace faze
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
+      addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
@@ -145,6 +199,7 @@ namespace faze
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
+      addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
       list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
@@ -152,6 +207,7 @@ namespace faze
     void dispatchThreads(
       Binding& binding, uint3 groups)
     {
+      addMemview(binding.bResources());
       list.bindComputeResources(binding.bResources(), binding.bConstants());
       unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(binding.baseGroups().x)));
       unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(binding.baseGroups().y)));
@@ -162,12 +218,14 @@ namespace faze
     void dispatch(
       Binding& binding, uint3 groups)
     {
+      addMemview(binding.bResources());
       list.bindComputeResources(binding.bResources(), binding.bConstants());
       list.dispatch(groups);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
+      //addViewBuf(target)
       auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.copy(target, elementOffset, source, sub, srcBox);
