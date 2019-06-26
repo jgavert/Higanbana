@@ -618,7 +618,9 @@ namespace faze
       {
         CommandGraphNode::NodeType type;
         CommandList list;
-        unordered_set<backend::TrackedState> requirements;
+        //unordered_set<backend::TrackedState> requirements;
+        HandleVector<ResourceHandle> requirementsBuf;
+        HandleVector<ResourceHandle> requirementsTex;
         std::shared_ptr<SemaphoreImpl> sema;
         bool presents = false;
         bool isLastList = false;
@@ -639,7 +641,15 @@ namespace faze
           PreparedCommandlist plist{};
           plist.type = firstList->type;
           plist.list.list.append(nodes[i].list.list);
-          plist.requirements = nodes[i].needsResources();
+          for (auto&& handle : nodes[i].needsResourcesBuf())
+          {
+            plist.requirementsBuf[handle] = handle;
+          }
+          for (auto&& handle : nodes[i].needsResourcesTex())
+          {
+            plist.requirementsTex[handle] = handle;
+          }
+          //plist.requirements = nodes[i].needsResourcesBuf();
           plist.sema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
 
@@ -650,8 +660,8 @@ namespace faze
               break;
             //plist.list.emplace_back(std::move(nodes[i].list.list));
             plist.list.list.append(nodes[i].list.list);
-            const auto & ref = nodes[i].needsResources();
-            plist.requirements.insert(ref.begin(), ref.end());
+            //const auto & ref = nodes[i].needsResources();
+            //plist.requirements.insert(ref.begin(), ref.end());
             if (!plist.sema)
             {
               plist.sema = nodes[i].acquireSemaphore;

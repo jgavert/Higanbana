@@ -3,6 +3,7 @@
 #include <core/datastructures/proxy.hpp>
 #include <core/global_debug.hpp>
 #include <graphics/desc/formats.hpp>
+#include <core/system/memview.hpp>
 
 #include <stdint.h>
 #include <type_traits>
@@ -440,6 +441,11 @@ namespace faze
         objects.resize(handle.id+1);
       }
       return objects.at(handle.id); 
+    }
+
+    MemView<Type> view()
+    {
+      return makeMemView(objects);
     }
 
     void clear()

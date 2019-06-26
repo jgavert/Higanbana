@@ -388,7 +388,9 @@ namespace faze
       VK_CHECK_RESULT(devRes);
       vk::Device dev = devRes.value;
 
-      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, fs, queueProperties, gpu, false);
+      vk::DispatchLoaderDynamic loader(*m_instance, dev);
+
+      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, loader, fs, queueProperties, gpu, false);
 
       return impl;
     }
