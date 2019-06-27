@@ -83,3 +83,21 @@ void test_entity()
     F_ILOG("queryParallel", "time took for %d id's simple operation: mt %zuns vs single thread %zuns", ids, val, val2);
   }
 }
+using namespace faze;
+void test_bitfield()
+{
+  DynamicBitfield2 bits;
+
+  bits.setBit(0);
+  bits.setBit(10);
+  bits.setBit(64);
+  bits.setBit(74);
+  bits.setBit(75);
+
+  int index = bits.findFirstSetBit(0);
+  while (index >= 0 )
+  {
+    F_ILOG("setbit", "found index: %d expecting {0, 10, 64, 74, 75}", index);
+    index = bits.findFirstSetBit(index+1);
+  }
+}

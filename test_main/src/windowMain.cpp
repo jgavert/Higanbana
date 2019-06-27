@@ -6,6 +6,7 @@
 #include "core/system/logger.hpp"
 #include "core/system/time.hpp"
 #include "core/global_debug.hpp"
+#include <core/entity/bitfield.hpp>
 
 #include "entity_test.hpp"
 #include <tuple>
@@ -21,6 +22,7 @@ void mainWindow(ProgramParams& params)
 {
   Logger log;
   // test_entity();
+  test_bitfield();
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;
