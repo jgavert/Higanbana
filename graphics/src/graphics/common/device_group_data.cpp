@@ -681,10 +681,11 @@ namespace faze
 
         for (auto&& list : lists)
         {
+          /*
           if (!list.requirements.empty())
           {
             list.list.prepareForQueueSwitch(list.requirements);
-          }
+          }*/
 
           std::shared_ptr<CommandBufferImpl> nativeList;
 

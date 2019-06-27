@@ -27,6 +27,8 @@ namespace faze
       {
         if (it.api != api)
           continue;
+        if (info.api != api && it.api == api)
+          info = it;
         if (it.vendor == id || id == VendorID::Unknown)
         {
           info = it;
