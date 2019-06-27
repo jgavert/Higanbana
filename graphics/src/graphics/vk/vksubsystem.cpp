@@ -328,13 +328,11 @@ namespace faze
       std::vector<const char*> extensions;
       {
 #ifdef FAZE_GRAPHICS_EXTRA_INFO
-        /*
         GFX_ILOG("Available extensions for device:");
         for (auto&& it : devExts)
         {
           GFX_ILOG("\t\t%s", it.extensionName);
         }
-        */
 #endif
         // lunargvalidation list order
         //GFX_ILOG("Enabled Vulkan extensions for device:");

@@ -173,7 +173,7 @@ namespace app
 
       tasks.addPass(std::move(node));
     }
-    
+/*    
     {
       auto node = tasks.createPass("copyBuffer", CommandGraphNode::NodeType::DMA);
       node.copy(sBuf, buffer);
@@ -185,6 +185,7 @@ namespace app
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }
+    */
 
     {
       auto node = tasks.createPass("composite");
