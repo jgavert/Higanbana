@@ -619,8 +619,8 @@ namespace faze
         CommandGraphNode::NodeType type;
         CommandList list;
         //unordered_set<backend::TrackedState> requirements;
-        HandleVector<ResourceHandle> requirementsBuf;
-        HandleVector<ResourceHandle> requirementsTex;
+        DynamicBitfield2 requirementsBuf;
+        DynamicBitfield2 requirementsTex;
         std::shared_ptr<SemaphoreImpl> sema;
         bool presents = false;
         bool isLastList = false;
@@ -641,15 +641,8 @@ namespace faze
           PreparedCommandlist plist{};
           plist.type = firstList->type;
           plist.list.list.append(nodes[i].list.list);
-          for (auto&& handle : nodes[i].needsResourcesBuf())
-          {
-            plist.requirementsBuf[handle] = handle;
-          }
-          for (auto&& handle : nodes[i].needsResourcesTex())
-          {
-            plist.requirementsTex[handle] = handle;
-          }
-          //plist.requirements = nodes[i].needsResourcesBuf();
+          plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
+          plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
           plist.sema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
 
@@ -661,7 +654,8 @@ namespace faze
             //plist.list.emplace_back(std::move(nodes[i].list.list));
             plist.list.list.append(nodes[i].list.list);
             //const auto & ref = nodes[i].needsResources();
-            //plist.requirements.insert(ref.begin(), ref.end());
+            plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
+            plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
             if (!plist.sema)
             {
               plist.sema = nodes[i].acquireSemaphore;
@@ -681,6 +675,24 @@ namespace faze
 
         for (auto&& list : lists)
         {
+          /*
+          F_ILOG("", "checking refResources");
+          auto& checkBuf = list.requirementsBuf;
+          auto index = checkBuf.findFirstSetBit(0);
+          while (index > 0)
+          {
+            F_ILOG("foundBuffer", "ref buf: %d", index);
+            index = checkBuf.findFirstSetBit(index+1);
+          }
+          auto& checkTex = list.requirementsTex;
+          index = checkTex.findFirstSetBit(0);
+          while (index > 0)
+          {
+            F_ILOG("foundTexture", "ref tex: %d", index);
+            index = checkTex.findFirstSetBit(index+1);
+          }
+          F_ILOG("", "end");
+          */
           /*
           if (!list.requirements.empty())
           {

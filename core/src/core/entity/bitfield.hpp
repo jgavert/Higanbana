@@ -431,4 +431,201 @@ namespace faze
       return idx;
     }
   };
+
+  class DynamicBitfield2
+  {
+    static const int BitCount = 128;
+    std::vector<__m128i> m_data;
+    size_t m_size;
+    size_t m_pages;
+
+    void growTo(size_t dataIndex)
+    {
+      while (m_pages <= dataIndex)
+      {
+        m_data.emplace_back(_mm_setzero_si128());
+        m_pages++;
+      }
+    }
+  public:
+    DynamicBitfield2()
+      : m_size(0)
+      , m_pages(0)
+    {
+    }
+
+    DynamicBitfield2(size_t size)
+      : m_size(size)
+      , m_pages(0)
+    {
+      auto pages = size / BitCount;
+      growTo(pages);
+
+      bitfieldUtils::setZero(m_data.data(), static_cast<int>(m_pages));
+    }
+    DynamicBitfield2(const std::vector<__m128i>& data)
+      : m_data(data)
+      , m_size(data.size() * BitCount)
+      , m_pages(m_data.size())
+    {
+    }
+
+    void initFull()
+    {
+      bitfieldUtils::setFull(m_data.data(), static_cast<int>(m_pages));
+    }
+
+    inline size_t size() const
+    {
+      return m_pages * BitCount;
+    }
+
+    inline size_t sizeBytes() const
+    {
+      return m_pages * (BitCount/8);
+    }
+
+    inline __m128i* data() noexcept
+    {
+      return m_data.data();
+    }
+
+    inline const __m128i* data() const noexcept
+    {
+      return m_data.data();
+    }
+
+    inline void setBit(size_t index)
+    {
+      auto dataIndex = index / BitCount;
+      growTo(dataIndex);
+      auto subIndex = index - dataIndex * BitCount;
+      bitOps::setbit(m_data[dataIndex], subIndex);
+    }
+
+    inline bool checkBit(size_t index)
+    {
+      auto dataIndex = index / BitCount;
+      if (dataIndex >= m_pages)
+        return false;
+      auto subIndex = index - dataIndex * BitCount;
+      return bitOps::checkbit(m_data[dataIndex], subIndex);
+    }
+
+    inline void toggleBit(size_t index)
+    {
+      auto dataIndex = index / BitCount;
+      growTo(dataIndex);
+      auto subIndex = index - dataIndex * BitCount;
+      return bitOps::togglebit(m_data[dataIndex], subIndex);
+    }
+    inline void clearBit(size_t index)
+    {
+      auto dataIndex = index / BitCount;
+      growTo(dataIndex);
+      auto subIndex = index - dataIndex * BitCount;
+      return bitOps::clearbit(m_data[dataIndex], subIndex);
+    }
+
+    inline DynamicBitfield2 intersectFields(const DynamicBitfield2& other)
+    {
+      auto maxSize = std::max(m_pages, other.m_pages);
+      auto interSize = std::min(m_pages, other.m_pages);
+      DynamicBitfield2 result(maxSize);
+      const __m128i* vec0 = data();
+      const __m128i* vec1 = other.data();
+      __m128i* p = reinterpret_cast<__m128i*>(result.data());
+      for (size_t i = 0; i < interSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_and_si128(vec0[i], vec1[i]));
+      }
+      return result;
+    }
+
+    inline DynamicBitfield2 unionFields(const DynamicBitfield2& other)
+    {
+      auto maxSize = std::max(m_pages, other.m_pages);
+      auto unionSize = std::min(m_pages, other.m_pages);
+      DynamicBitfield2 result;
+      if (m_pages > other.m_pages)
+      {
+        result = DynamicBitfield2(m_data);
+      }
+      else
+      {
+        result = DynamicBitfield2(other.m_data);
+      }
+      const __m128i* vec0 = data();
+      const __m128i* vec1 = other.data();
+      __m128i* p = reinterpret_cast<__m128i*>(result.data());
+      for (size_t i = 0; i < unionSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_or_si128(vec0[i], vec1[i]));
+      }
+      return result;
+    }
+
+    inline size_t setBits() const
+    {
+      size_t res = 0;
+      for (size_t i = 0; i < m_pages; ++i)
+      {
+        res += bitOps::popcount(m_data[i]);
+      }
+      return res;
+    }
+
+    int findFirstSetBit(int index) const
+    {
+      int dataIndex = index / BitCount;
+      while(dataIndex < m_pages)
+      {
+        if (bitOps::popcount(m_data[dataIndex]) > 0)
+        {
+          // found some bits
+          int offset = index - dataIndex * BitCount;
+          int offset_tmp = 0;
+          uint64_t a = _mm_extract_epi64(m_data[dataIndex], 0);
+          uint64_t b = _mm_extract_epi64(m_data[dataIndex], 1);
+
+          if (offset >= 64) // only b to check
+          {
+            offset_tmp = std::min(64, static_cast<int>(offset) - 64);
+            // clean set bits before checking what is next.
+            for (size_t i = 0; i < offset_tmp; ++i)
+            {
+              b ^= (-0LL ^ b) & (1LL << i);
+            }
+            if (b)
+            {
+              auto ctzll = __builtin_ctzll(b);
+              return ctzll + 64 + dataIndex * BitCount;
+            }
+          }
+          else
+          {
+            // both a and b to check
+            offset_tmp = offset;
+            for (size_t i = 0; i < offset_tmp; ++i)
+            {
+              a ^= (-0LL ^ a) & (1LL << i); // zeroes set bits
+            }
+
+            if (a)
+            {
+              auto ctzll = __builtin_ctzll(a);
+              return ctzll + dataIndex * BitCount;
+            }
+            else if (b)
+            {
+              auto ctzll = __builtin_ctzll(b);
+              return ctzll + 64 + dataIndex * BitCount;
+            }
+          }
+        }
+        dataIndex++;
+      }
+      return -1;
+    }
+  };
 }

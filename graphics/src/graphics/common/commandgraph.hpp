@@ -8,6 +8,7 @@
 #include "graphics/common/swapchain.hpp"
 #include "graphics/common/handle.hpp"
 #include <core/system/SequenceTracker.hpp>
+#include <core/entity/bitfield.hpp>
 
 #include <core/math/utils.hpp>
 
@@ -33,30 +34,30 @@ namespace faze
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
 
-    HandleVector<ResourceHandle> needSpecialAttentionBuf;
-    HandleVector<ResourceHandle> needSpecialAttentionTex;
+    DynamicBitfield2 m_referencedBuffers;
+    DynamicBitfield2 m_referencedTextures;
 
-    MemView<ResourceHandle> needsResourcesBuf()
+    const DynamicBitfield2& refBuf() const
     {
-      return needSpecialAttentionBuf.view();
+      return m_referencedBuffers;
     }
-    MemView<ResourceHandle> needsResourcesTex()
+    const DynamicBitfield2& refTex() const
     {
-      return needSpecialAttentionTex.view();
+      return m_referencedTextures;
     }
 
     template <typename ViewType>
     void addViewBuf(ViewType type)
     {
       auto h = type.handle();
-      needSpecialAttentionBuf[h.resource] = h.resource;
+      m_referencedBuffers.setBit(h.resource.id);
     }
 
     template <typename ViewType>
     void addViewTex(ViewType type)
     {
       auto h = type.handle();
-      needSpecialAttentionTex[h.resource] = h.resource;
+      m_referencedTextures.setBit(h.resource.id);
     }
 
     void addMemview(MemView<ViewResourceHandle> views)
@@ -69,7 +70,7 @@ namespace faze
           case ViewResourceType::BufferUAV:
           case ViewResourceType::BufferIBV:
           {
-            needSpecialAttentionBuf[view.resource] = view.resource;
+            m_referencedBuffers.setBit(view.resource.id);
             break;
           }
           case ViewResourceType::TextureSRV:
@@ -77,7 +78,7 @@ namespace faze
           case ViewResourceType::TextureRTV:
           case ViewResourceType::TextureDSV:
           {
-            needSpecialAttentionTex[view.resource] = view.resource;
+            m_referencedTextures.setBit(view.resource.id);
             break;
           }
           default:
@@ -98,7 +99,7 @@ namespace faze
     void resetState(Texture& tex)
     {
       // This was probably used for resetting state for queue ownership transfers.
-      // needSpecialAttention.insert(tex.dependency());
+      //needSpecialAttention.insert(tex.dependency());
     }
 
     void acquirePresentableImage(Swapchain& swapchain)
@@ -226,6 +227,7 @@ namespace faze
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
       //addViewBuf(target)
+      m_referencedBuffers.setBit(target.handle().id);
       auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.copy(target, elementOffset, source, sub, srcBox);
@@ -233,6 +235,8 @@ namespace faze
 
     void copy(Texture target, Texture source)
     {
+      m_referencedTextures.setBit(target.handle().id);
+      m_referencedTextures.setBit(source.handle().id);
       //auto lol = source.dependency();
       /*
       SubresourceRange range{
@@ -246,16 +250,20 @@ namespace faze
 
     void copy(Buffer target, Buffer source)
     {
+      m_referencedBuffers.setBit(target.handle().id);
+      m_referencedBuffers.setBit(source.handle().id);
       list.copy(target, source);
     }
 
     void copy(Buffer target, DynamicBufferView source)
     {
+      m_referencedBuffers.setBit(target.handle().id);
       list.copy(target, source);
     }
 
     void readback(Texture tex, Subresource resource, std::function<void(SubresourceData)> func)
     {
+      m_referencedTextures.setBit(tex.handle().id);
       auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.readback(tex, resource, srcBox, func);
@@ -263,11 +271,13 @@ namespace faze
 
     void readback(Buffer buffer, std::function<void(MemView<uint8_t>)> func)
     {
+      m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, 0, buffer.desc().desc.width, func);
     }
 
     void readback(Buffer buffer, unsigned startElement, unsigned size, std::function<void(MemView<uint8_t>)> func)
     {
+      m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, startElement, size, func);
     }
 
