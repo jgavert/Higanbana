@@ -8,7 +8,7 @@
 #define FAZE_GRAPHICS_AD_DX12
 #define FAZE_GRAPHICS_AD_VULKAN
 
-#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
+//#define FAZE_GRAPHICS_EXTRA_INFO // makes everything more verbose
 
 //#define FAZE_NSIGHT_COMPATIBILITY // disables some colorspace configuration which seems to crash nsight.
 

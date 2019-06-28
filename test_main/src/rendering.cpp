@@ -111,12 +111,13 @@ namespace app
       .allowCrossAdapter(1));
 
     sBufSRV = dev.createBufferSRV(sBuf);
+     
      /*
     sTex = dev.createTexture(ResourceDescriptor()
       .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::GpuReadOnly)
-      .interopt(1));
+      .allowCrossAdapter(1));
       */
 
     time.startFrame();

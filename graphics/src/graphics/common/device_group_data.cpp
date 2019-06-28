@@ -353,7 +353,7 @@ namespace faze
     {
       auto handle = m_handles.allocateResource(ResourceType::Texture);
 
-      if (desc.desc.interopt) // only interopt supported for now
+      if (desc.desc.allowCrossAdapter) // only interopt supported for now
       {
         F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
         //handle.setGpuId(desc.desc.hostGPU);
@@ -364,7 +364,7 @@ namespace faze
         vdev.m_textureStates[handle].mips = desc.desc.miplevels;
         vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
         // shared
-        auto shared = vdev.device->openForInteropt(handle);
+        auto shared = vdev.device->openSharedHandle(handle);
         for (int i = 0; i < m_devices.size(); ++i)
         {
           if (i != desc.desc.hostGPU)
