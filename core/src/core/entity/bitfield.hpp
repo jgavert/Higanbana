@@ -580,7 +580,7 @@ namespace faze
       int dataIndex = index / BitCount;
       while(dataIndex < m_pages)
       {
-        if (bitOps::popcount(m_data[dataIndex]) > 0)
+        if (_mm_test_all_zeros(m_data[dataIndex], _mm_setzero_si128()) != 0)
         {
           // found some bits
           int offset = index - dataIndex * BitCount;
