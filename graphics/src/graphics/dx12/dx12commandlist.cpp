@@ -8,13 +8,10 @@
 #include "graphics/desc/resource_state.hpp"
 #include "graphics/common/barrier_solver.hpp"
 
-#if 0
-#undef PROFILE
-#define PROFILE
-#include <WinPixEventRuntime/pix3.h>
-#undef PROFILE
+#if !USE_PIX
+#define USE_PIX 1
 #endif
-
+#include <WinPixEventRuntime/pix3.h>
 #include <algorithm>
 
 namespace faze
@@ -987,6 +984,7 @@ namespace faze
     {
       int drawIndex = 0;
       int framebuffer = 0;
+      bool pixevent = false;
       ResourceHandle boundPipeline;
 
       if (!m_buffer->dma())
@@ -1002,6 +1000,17 @@ namespace faze
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
+        case PacketType::RenderBlock:
+        {
+          auto block = header->data<gfxpacket::RenderBlock>().name.convertToMemView();
+          if (pixevent)
+          {
+            PIXEndEvent(buffer);
+          }
+          PIXBeginEvent(buffer, PIX_COLOR_INDEX(drawIndex), block.data());
+          pixevent = true;
+          break;
+        }
         case PacketType::PrepareForPresent:
         {
           break;
@@ -1071,6 +1080,10 @@ namespace faze
           break;
         }
         drawIndex++;
+      }
+      if (pixevent)
+      {
+        PIXEndEvent(buffer);
       }
     }
 

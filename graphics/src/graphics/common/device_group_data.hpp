@@ -1,16 +1,15 @@
 #pragma once
 
-#include <graphics/common/resources.hpp>
-#include <graphics/common/handle.hpp>
-#include <graphics/desc/formats.hpp>
+#include "graphics/common/resources.hpp"
+#include "graphics/common/handle.hpp"
+#include "graphics/desc/formats.hpp"
+#include "graphics/desc/resource_state.hpp"
+#include "graphics/common/barrier_solver.hpp"
+#include "graphics/common/command_buffer.hpp"
+#include "graphics/common/commandgraph.hpp"
+
 #include <core/system/memview.hpp>
 #include <core/system/SequenceTracker.hpp>
-
-#include <graphics/desc/resource_state.hpp>
-
-#include <graphics/common/barrier_solver.hpp>
-#include <graphics/common/command_buffer.hpp>
-
 #include <optional>
 #include <functional>
 #include <mutex>
@@ -75,6 +74,29 @@ namespace faze
         return garb;
       }
     };
+    struct LiveCommandBuffer2
+    {
+      int deviceID;
+      SeqNum started;
+      CommandBuffer cmdMemory; // for debug markers on DX12 for now.
+      vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
+      vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
+      vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
+      std::shared_ptr<backend::FenceImpl> fence;
+    };
+    struct PreparedCommandlist
+    {
+      int device = 0;
+      CommandGraphNode::NodeType type;
+      CommandList list;
+      DynamicBitfield requirementsBuf;
+      DynamicBitfield requirementsTex;
+      bool waitGraphics = false, waitCompute = false, waitDMA = false;
+      bool signal = false; // signal own queue sema
+      std::shared_ptr<SemaphoreImpl> acquireSema;
+      bool presents = false;
+      bool isLastList = false;
+    };
 
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
     {
@@ -89,6 +111,10 @@ namespace faze
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;
         HandleVector<TextureResourceState> m_textureStates;
+        QueueStates qStates;
+        std::shared_ptr<SemaphoreImpl> graphicsQSema;
+        std::shared_ptr<SemaphoreImpl> computeQSema;
+        std::shared_ptr<SemaphoreImpl> dmaQSema;
       };
       vector<VirtualDevice> m_devices;
 
@@ -148,6 +174,7 @@ namespace faze
 
       // test
       void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer);
+      void checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
   }
 }

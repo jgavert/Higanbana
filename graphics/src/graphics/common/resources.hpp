@@ -1,18 +1,10 @@
 #pragma once
-
 #include "graphics/common/backend.hpp"
+#include "graphics/common/handle.hpp"
 
-//#include "graphics/common/pipeline.hpp"
-//#include "core/filesystem/filesystem.hpp"
-//#include "core/system/PageAllocator.hpp"
-#include "core/datastructures/proxy.hpp"
-//#include "graphics/common/intermediatelist.hpp"
-
+#include <core/datastructures/proxy.hpp>
+#include <core/entity/bitfield.hpp>
 #include <core/system/SequenceTracker.hpp>
-#include <graphics/common/handle.hpp>
-
-//#include <string>
-//#include <atomic>
 #include <memory>
 
 
@@ -108,6 +100,7 @@ namespace faze
     class SemaphoreImpl;
     class CommandBufferImpl;
     class IntermediateList;
+    class CommandBuffer;
     namespace prototypes
     {
       class DeviceImpl;
@@ -177,7 +170,7 @@ namespace faze
 
       vector<GpuHeap> emptyHeaps();
     };
-
+/*
     struct LiveCommandBuffer
     {
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
@@ -185,16 +178,20 @@ namespace faze
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
       std::shared_ptr<vector<IntermediateList>> intermediateLists;
-    };
+    };*/
 
-    struct LiveCommandBuffer2
+
+
+    struct QueueStates
     {
-      int deviceID;
-      SeqNum started;
-      vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
-      vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
-      vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
-      std::shared_ptr<backend::FenceImpl> fence;
+      DynamicBitfield gb;
+      DynamicBitfield gt;
+      DynamicBitfield cb;
+      DynamicBitfield ct;
+      DynamicBitfield db;
+      DynamicBitfield dt;
+      // DynamicBitfield eb;
+      // DynamicBitfield et;
     };
   }
 }

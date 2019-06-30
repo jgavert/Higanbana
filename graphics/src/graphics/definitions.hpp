@@ -1,7 +1,7 @@
 #pragma once
 
 // Enables debug validation layers for dx12/vulkan
-#define FAZE_GRAPHICS_VALIDATION_LAYER
+//#define FAZE_GRAPHICS_VALIDATION_LAYER
 
 // you can control which implementations are visible with these enums
 // point is to use it with Radeon GPU Profiler to avoid it seeing DX12 or viceversa

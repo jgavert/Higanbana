@@ -30,21 +30,21 @@ namespace app
     auto bufferdesc = ResourceDescriptor()
       .setName("testBuffer1")
       .setFormat(FormatType::Raw32)
-      .setCount(32)
+      .setCount(1024*1024)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuReadOnly);
 
     auto bufferdesc2 = ResourceDescriptor()
       .setName("testBuffer2")
       .setFormat(FormatType::Float32)
-      .setCount(32)
+      .setCount(1024*1024)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuReadOnly);
 
     auto bufferdesc3 = ResourceDescriptor()
       .setName("testOutBuffer")
       .setFormat(FormatType::Float32RGBA)
-      .setCount(8)
+      .setCount(1024*256)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuRW);
 
