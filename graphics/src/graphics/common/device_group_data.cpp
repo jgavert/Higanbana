@@ -32,7 +32,20 @@ namespace faze
         {
           // force wait oldest
           int deviceID = m_buffers.front().deviceID;
-          m_devices[deviceID].device->waitFence(m_buffers.front().fence);
+          auto fence = m_buffers.front().fence;
+          int i = 1;
+          while (!fence && i < m_buffers.size())
+          {
+            if (m_buffers[i].fence)
+            {
+              deviceID = m_buffers[i].deviceID;
+              fence = m_buffers[i].fence;
+              break;
+            }
+            ++i;
+          }
+          if (fence)
+            m_devices[deviceID].device->waitFence(fence);
         }
         int buffersToFree = 0;
         int buffersWithoutFence = 0;
@@ -619,9 +632,11 @@ namespace faze
         CommandGraphNode::NodeType type;
         CommandList list;
         //unordered_set<backend::TrackedState> requirements;
-        DynamicBitfield2 requirementsBuf;
-        DynamicBitfield2 requirementsTex;
-        std::shared_ptr<SemaphoreImpl> sema;
+        DynamicBitfield requirementsBuf;
+        DynamicBitfield requirementsTex;
+        bool waitGraphics = false, waitCompute = false, waitDMA = false;
+        bool signal = false; // signal own queue sema
+        std::shared_ptr<SemaphoreImpl> acquireSema;
         bool presents = false;
         bool isLastList = false;
       };
@@ -634,6 +649,188 @@ namespace faze
 
         vector<PreparedCommandlist> lists;
 
+        auto figureOutQueueTransitions = [](vector<PreparedCommandlist>& lists)
+        {
+          struct QueueStates
+          {
+            DynamicBitfield gb;
+            DynamicBitfield gt;
+            DynamicBitfield cb;
+            DynamicBitfield ct;
+            DynamicBitfield db;
+            DynamicBitfield dt;
+            // DynamicBitfield eb;
+            // DynamicBitfield et;
+          } queue;
+
+          DynamicBitfield seenB;
+          DynamicBitfield seenT;
+          vector<std::pair<int, int>> fsb;
+          vector<std::pair<int, int>> fst;
+
+          struct Intersection
+          {
+            DynamicBitfield buf;
+            DynamicBitfield tex;
+
+            bool hasSetBits() const
+            {
+              return buf.setBits() + tex.setBits();
+            }
+          };
+
+          int graphicsList = -1;
+          int computeList = -1;
+          int dmaList = -1;
+          int listIndex = 0;
+
+          for (auto&& list : lists)
+          {
+            auto checkDependency = [&](DynamicBitfield& buf, DynamicBitfield& tex)
+            {
+              Intersection intr;
+              intr.buf = list.requirementsBuf.intersectFields(buf);
+              intr.tex = list.requirementsTex.intersectFields(tex);
+              buf.subtract(intr.buf);
+              tex.subtract(intr.tex);
+              return intr;
+            };
+            if (list.type == CommandGraphNode::NodeType::Graphics)
+            {
+              graphicsList = listIndex;
+              F_ILOG("", "Graphics %d", listIndex);
+              auto fSeen = list.requirementsBuf.exceptFields(seenB);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Buffer %d", id);
+                fsb.emplace_back(std::make_pair(id, 0));
+              });
+              seenB.add(fSeen);
+              fSeen = list.requirementsTex.exceptFields(seenT);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Texture %d", id);
+                fst.emplace_back(std::make_pair(id, 0));
+              });
+              seenT.add(fSeen);
+
+              queue.gb.add(list.requirementsBuf);
+              queue.gt.add(list.requirementsTex);
+              auto ci = checkDependency(queue.cb, queue.ct);
+              if (ci.hasSetBits()) {
+                list.waitCompute = true;
+                lists[computeList].signal = true;
+                F_ILOG("", "%d graphics list had Compute dependency!", graphicsList);
+                ci.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, computeList, graphicsList);
+                });
+                ci.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, computeList, graphicsList);
+                });
+                
+              }
+              auto di = checkDependency(queue.db, queue.dt);
+              if (di.hasSetBits()) {
+                list.waitDMA = true;
+                lists[dmaList].signal = true;
+                F_ILOG("", "%d graphics list had DMA dependency!", graphicsList);
+                di.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, dmaList, graphicsList);
+                });
+                di.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, dmaList, graphicsList);
+                });
+              }
+            }
+            else if (list.type == CommandGraphNode::NodeType::Compute)
+            {
+              computeList = listIndex;
+              F_ILOG("", "dmalist %d", listIndex);
+              auto fSeen = list.requirementsBuf.exceptFields(seenB);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Buffer %d", id);
+                fsb.emplace_back(std::make_pair(id, 1));
+              });
+              seenB.add(fSeen);
+              fSeen = list.requirementsTex.exceptFields(seenT);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Texture %d", id);
+                fst.emplace_back(std::make_pair(id, 1));
+              });
+              seenT.add(fSeen);
+
+              queue.cb.add(list.requirementsBuf);
+              queue.ct.add(list.requirementsTex);
+              auto gi = checkDependency(queue.gb, queue.gt);
+              if (gi.hasSetBits()) {
+                list.waitGraphics = true;
+                lists[graphicsList].signal = true;
+                F_ILOG("", "%d compute list had Graphics dependency!", computeList);
+                gi.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, graphicsList, computeList);
+                });
+                gi.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, graphicsList, computeList);
+                });
+              }
+              auto di = checkDependency(queue.db, queue.dt);
+              if (di.hasSetBits()) {
+                list.waitDMA = true;
+                lists[dmaList].signal = true;
+                F_ILOG("", "%d compute list had DMA dependency!", computeList);
+                di.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, dmaList, computeList);
+                });
+                di.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, dmaList, computeList);
+                });
+              }
+            }
+            else
+            {
+              dmaList = listIndex;
+              F_ILOG("", "dmalist %d", listIndex);
+              auto fSeen = list.requirementsBuf.exceptFields(seenB);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Buffer %d", id);
+                fsb.emplace_back(std::make_pair(id, 2));
+              });
+              seenB.add(fSeen);
+              fSeen = list.requirementsTex.exceptFields(seenT);
+              fSeen.foreach([&](int id){
+                F_ILOG("", "first seen Texture %d", id);
+                fst.emplace_back(std::make_pair(id, 2));
+              });
+              seenT.add(fSeen);
+              queue.db.add(list.requirementsBuf);
+              queue.dt.add(list.requirementsTex);
+              auto ci = checkDependency(queue.cb, queue.ct);
+              if (ci.hasSetBits()) {
+                list.waitCompute = true;
+                lists[computeList].signal = true;
+                F_ILOG("", "%d dma list had Compute dependency!", dmaList);
+                ci.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, computeList, dmaList);
+                });
+                ci.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, computeList, dmaList);
+                });
+              }
+              auto gi = checkDependency(queue.gb, queue.gt);
+              if (gi.hasSetBits()) {
+                list.waitGraphics = true;
+                lists[graphicsList].signal = true;
+                F_ILOG("", "%d dma list had Graphics dependency!", dmaList);
+                gi.buf.foreach([&](int id){
+                  F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, graphicsList, dmaList);
+                });
+                gi.tex.foreach([&](int id){
+                  F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, graphicsList, dmaList);
+                });
+              }
+            }
+            listIndex++;
+          }
+        };
+
         while (i < static_cast<int>(nodes.size()))
         {
           auto* firstList = &nodes[i];
@@ -643,7 +840,7 @@ namespace faze
           plist.list.list.append(nodes[i].list.list);
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-          plist.sema = nodes[i].acquireSemaphore;
+          plist.acquireSema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
 
           i += 1;
@@ -656,9 +853,9 @@ namespace faze
             //const auto & ref = nodes[i].needsResources();
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
             plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-            if (!plist.sema)
+            if (!plist.acquireSema)
             {
-              plist.sema = nodes[i].acquireSemaphore;
+              plist.acquireSema = nodes[i].acquireSemaphore;
             }
             if (!plist.presents)
             {
@@ -671,7 +868,11 @@ namespace faze
         int lsize = lists.size();
         lists[lsize - 1].isLastList = true;
 
-        std::shared_ptr<SemaphoreImpl> optionalWaitSemaphore;
+        std::shared_ptr<SemaphoreImpl> graphicsSema;
+        std::shared_ptr<SemaphoreImpl> computeSema;
+        std::shared_ptr<SemaphoreImpl> dmaSema;
+
+        figureOutQueueTransitions(lists);
 
         for (auto&& list : lists)
         {
@@ -722,20 +923,33 @@ namespace faze
           buffer.started = InvalidSeqNum;
           buffer.lists.emplace_back(nativeList);
 
-          if (optionalWaitSemaphore)
+
+          if (list.signal && list.type == CommandGraphNode::NodeType::Graphics)
           {
-            buffer.wait.push_back(optionalWaitSemaphore);
+            graphicsSema = m_devices[0].device->createSemaphore();
+            buffer.signal.push_back(graphicsSema);
+          }
+          if (list.signal && list.type == CommandGraphNode::NodeType::Compute)
+          {
+            computeSema = m_devices[0].device->createSemaphore();
+            buffer.signal.push_back(computeSema);
+          }
+          if (list.signal && list.type == CommandGraphNode::NodeType::DMA)
+          {
+            dmaSema = m_devices[0].device->createSemaphore();
+            buffer.signal.push_back(dmaSema);
           }
 
-          if (list.sema)
-          {
-            buffer.wait.push_back(list.sema);
-          }
+          if (list.waitGraphics)
+            buffer.wait.push_back(graphicsSema);
+          if (list.waitCompute)
+            buffer.wait.push_back(computeSema);
+          if (list.waitDMA)
+            buffer.wait.push_back(dmaSema);
 
-          if (!list.isLastList)
+          if (list.acquireSema)
           {
-            optionalWaitSemaphore = m_devices[0].device->createSemaphore();
-            buffer.signal.push_back(optionalWaitSemaphore);
+            buffer.wait.push_back(list.acquireSema);
           }
 
           if (list.presents)

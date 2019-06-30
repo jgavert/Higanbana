@@ -86,7 +86,7 @@ void test_entity()
 using namespace faze;
 void test_bitfield()
 {
-  DynamicBitfield2 bits;
+  DynamicBitfield bits;
 
   bits.setBit(0);
   bits.setBit(10);

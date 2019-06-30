@@ -337,62 +337,7 @@ namespace faze
       return bitOps::popcount(m_table[index]);
     }
   };
-
-  class DynamicBitfield
-  {
-    std::vector<__m128i> m_data;
-    size_t m_size;
-  public:
-    DynamicBitfield()
-      : m_size(0)
-    {
-    }
-
-    DynamicBitfield(size_t size)
-      : m_size(size)
-    {
-      auto pages = size / 128;
-      pages += ((size % 128 != 0) ? 1 : 0);
-
-      for (size_t i = 0; i < pages; ++i)
-        m_data.emplace_back(_mm_setzero_si128());
-      bitfieldUtils::setZero(m_data.data(), static_cast<int>(pages));
-    }
-    DynamicBitfield(const std::vector<__m128i>& data)
-      : m_data(data)
-      , m_size(data.size() * 128)
-    {
-    }
-
-    void initFull()
-    {
-      bitfieldUtils::setFull(m_data.data(), static_cast<int>(m_data.size()));
-    }
-
-    inline size_t size() const
-    {
-      return m_size;
-    }
-
-    inline void setBit(size_t index)
-    {
-      bitOps::setbit(m_data[index / 128], index % 128);
-    }
-
-    inline bool checkBit(size_t index)
-    {
-      return bitOps::checkbit(m_data[index / 128], index % 128);
-    }
-
-    inline void toggleBit(size_t index)
-    {
-      return bitOps::togglebit(m_data[index / 128], index % 128);
-    }
-    inline void clearBit(size_t index)
-    {
-      return bitOps::clearbit(m_data[index / 128], index % 128);
-    }
-
+/*
     // this is bullshit, Containts the structure but needs rewriting.
     // __builtin_ctzll counts the leading zeros, think about this
     size_t countClearedBitsInBucket(size_t startIndex)
@@ -430,9 +375,9 @@ namespace faze
       }
       return idx;
     }
-  };
+  };*/
 
-  class DynamicBitfield2
+  class DynamicBitfield
   {
     static const int BitCount = 128;
     std::vector<__m128i> m_data;
@@ -448,13 +393,13 @@ namespace faze
       }
     }
   public:
-    DynamicBitfield2()
+    DynamicBitfield()
       : m_size(0)
       , m_pages(0)
     {
     }
 
-    DynamicBitfield2(size_t size)
+    DynamicBitfield(size_t size)
       : m_size(size)
       , m_pages(0)
     {
@@ -463,7 +408,7 @@ namespace faze
 
       bitfieldUtils::setZero(m_data.data(), static_cast<int>(m_pages));
     }
-    DynamicBitfield2(const std::vector<__m128i>& data)
+    DynamicBitfield(const std::vector<__m128i>& data)
       : m_data(data)
       , m_size(data.size() * BitCount)
       , m_pages(m_data.size())
@@ -527,11 +472,32 @@ namespace faze
       return bitOps::clearbit(m_data[dataIndex], subIndex);
     }
 
-    inline DynamicBitfield2 intersectFields(const DynamicBitfield2& other)
+    inline void difference(const DynamicBitfield& other)
     {
       auto maxSize = std::max(m_pages, other.m_pages);
       auto interSize = std::min(m_pages, other.m_pages);
-      DynamicBitfield2 result(maxSize);
+      DynamicBitfield result(maxSize);
+      const __m128i* vec0 = data();
+      const __m128i* vec1 = other.data();
+      __m128i* p = data();
+      for (size_t i = 0; i < interSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_and_si128(vec0[i], vec1[i]));
+      }
+      if (m_pages > other.m_pages)
+      {
+        for (size_t i = interSize; i < maxSize; ++i)
+        {
+          _mm_store_si128(p+i, _mm_setzero_si128());
+        }
+      }
+    }
+
+    inline DynamicBitfield intersectFields(const DynamicBitfield& other)
+    {
+      auto maxSize = std::max(m_pages, other.m_pages);
+      auto interSize = std::min(m_pages, other.m_pages);
+      DynamicBitfield result(maxSize);
       const __m128i* vec0 = data();
       const __m128i* vec1 = other.data();
       __m128i* p = reinterpret_cast<__m128i*>(result.data());
@@ -542,18 +508,66 @@ namespace faze
       return result;
     }
 
-    inline DynamicBitfield2 unionFields(const DynamicBitfield2& other)
+    inline void subtract(const DynamicBitfield& other)
+    {
+      auto interSize = std::min(m_pages, other.m_pages);
+      const __m128i* vec1 = data();
+      const __m128i* vec0 = other.data();
+      __m128i* p = data();
+      for (size_t i = 0; i < interSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_andnot_si128(vec0[i], vec1[i]));
+      }
+    }
+
+    inline DynamicBitfield exceptFields(const DynamicBitfield& other)
+    {
+      auto maxSize = std::max(m_pages, other.m_pages);
+      auto interSize = std::min(m_pages, other.m_pages);
+      DynamicBitfield result(maxSize);
+      const __m128i* vec1 = data();
+      const __m128i* vec0 = other.data();
+      __m128i* p = reinterpret_cast<__m128i*>(result.data());
+      for (size_t i = 0; i < interSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_andnot_si128(vec0[i], vec1[i]));
+      }
+      if (m_pages > other.m_pages)
+      {
+        for (size_t i = interSize; i < maxSize; ++i)
+        {
+          _mm_store_si128(p+i, vec1[i]);
+        }
+      }
+      return result;
+    }
+
+    inline void add(const DynamicBitfield& other)
+    {
+      if (other.m_pages > m_pages)
+        growTo(other.m_pages-1);
+      auto unionSize = std::min(m_pages, other.m_pages);
+      const __m128i* vec0 = data();
+      const __m128i* vec1 = other.data();
+      __m128i* p = data();
+      for (size_t i = 0; i < unionSize; ++i)
+      {
+        _mm_store_si128(p+i,_mm_or_si128(vec0[i], vec1[i]));
+      }
+    }
+
+    inline DynamicBitfield unionFields(const DynamicBitfield& other)
     {
       auto maxSize = std::max(m_pages, other.m_pages);
       auto unionSize = std::min(m_pages, other.m_pages);
-      DynamicBitfield2 result;
+      DynamicBitfield result;
       if (m_pages > other.m_pages)
       {
-        result = DynamicBitfield2(m_data);
+        result = DynamicBitfield(m_data);
       }
       else
       {
-        result = DynamicBitfield2(other.m_data);
+        result = DynamicBitfield(other.m_data);
       }
       const __m128i* vec0 = data();
       const __m128i* vec1 = other.data();
@@ -626,6 +640,17 @@ namespace faze
         dataIndex++;
       }
       return -1;
+    }
+
+    template <typename Func>
+    void foreach(Func func)
+    {
+      auto index = findFirstSetBit(0);
+      while(index >= 0)
+      {
+        func(index);
+        index = findFirstSetBit(index+1);
+      }
     }
   };
 }
