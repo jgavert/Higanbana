@@ -17,9 +17,10 @@ namespace faze
       static constexpr const backend::PacketType type = backend::PacketType::RenderBlock;
       static void constructor(backend::CommandBuffer& buffer, RenderBlock* packet, MemView<char> inputName)
       {
-        buffer.allocateElements<char>(packet->name, inputName.size());
+        buffer.allocateElements<char>(packet->name, inputName.size()+1);
         auto spn = packet->name.convertToMemView();
         memcpy(spn.data(), inputName.data(), inputName.size_bytes());
+        spn[inputName.size()] = '\0';
       }
     };
     

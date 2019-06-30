@@ -161,7 +161,7 @@ namespace faze
           return !operator==(it);
         }
       };
-      CommandBuffer(size_t size)
+      CommandBuffer(size_t size = 10)
         : m_data(size)
         , m_totalSize(size)
         , m_usedSize(0)

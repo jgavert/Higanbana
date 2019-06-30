@@ -8,7 +8,8 @@ cc_library(
       "//core:core",
       "//ext:STB"] + select({
           "@bazel_tools//src/conditions:windows": 
-              ["//ext:DirectXShaderCompiler", 
+              ["//ext:DirectXShaderCompiler",
+               "//ext:WinPixEventRuntime", 
                "@VulkanSDKWin//:Vulkan",
                "@DX12//:DX12", 
                "@DXGI//:DXGI", 

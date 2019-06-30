@@ -31,3 +31,31 @@ cc_library(
     linkstatic = False,
     visibility = ["//visibility:public"], 
 )
+
+cc_library(
+    name = "WinPixEventRuntime_headers",
+    hdrs = ["winpixeventruntime/Include/WinPixEventRuntime/pix3.h",
+     "winpixeventruntime/Include/WinPixEventRuntime/pix3_win.h",
+     "winpixeventruntime/Include/WinPixEventRuntime/PIXEventsCommon.h",
+     "winpixeventruntime/Include/WinPixEventRuntime/PIXEventsGenerated.h"],
+    includes = ["winpixeventruntime/Include"],
+    linkstatic = False,
+    visibility = ["//visibility:public"], 
+)
+
+cc_import(
+    name = "WinPixEventRuntime_lib",
+    interface_library = "winpixeventruntime/bin/x64/WinPixEventRuntime.lib",
+    shared_library = "winpixeventruntime/bin/x64/WinPixEventRuntime.dll",
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
+    name = "WinPixEventRuntime",
+    deps = [
+         "WinPixEventRuntime_headers",
+         "WinPixEventRuntime_lib"
+    ],
+    linkstatic = False,
+    visibility = ["//visibility:public"], 
+)
