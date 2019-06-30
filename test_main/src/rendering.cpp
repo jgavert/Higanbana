@@ -107,8 +107,8 @@ namespace app
     sBuf = dev.createBuffer(ResourceDescriptor()
       .setCount(textureSize)
       .setFormat(FormatType::Raw32)
-      .setUsage(ResourceUsage::GpuRW)
-      .allowCrossAdapter(1));
+      .setUsage(ResourceUsage::GpuRW));
+      //.allowCrossAdapter(1));
 
     sBufSRV = dev.createBufferSRV(sBuf);
      
@@ -171,10 +171,8 @@ namespace app
       binding.constants(consts);
 
       node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
-
       tasks.addPass(std::move(node));
     }
-/*    
     {
       auto node = tasks.createPass("copyBuffer", CommandGraphNode::NodeType::DMA);
       node.copy(sBuf, buffer);
@@ -186,7 +184,6 @@ namespace app
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }
-    */
 
     {
       auto node = tasks.createPass("composite");

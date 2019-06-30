@@ -34,14 +34,14 @@ namespace faze
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
 
-    DynamicBitfield2 m_referencedBuffers;
-    DynamicBitfield2 m_referencedTextures;
+    DynamicBitfield m_referencedBuffers;
+    DynamicBitfield m_referencedTextures;
 
-    const DynamicBitfield2& refBuf() const
+    const DynamicBitfield& refBuf() const
     {
       return m_referencedBuffers;
     }
-    const DynamicBitfield2& refTex() const
+    const DynamicBitfield& refTex() const
     {
       return m_referencedTextures;
     }

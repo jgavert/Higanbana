@@ -792,8 +792,11 @@ namespace faze
       }
       void freeSets(vk::Device device, MemView<vk::DescriptorSet> sets)
       {
-        vk::ArrayProxy<const vk::DescriptorSet> csets(sets.size(), sets.data());
-        device.freeDescriptorSets(pool, csets);
+        if (!sets.empty())
+        {
+          vk::ArrayProxy<const vk::DescriptorSet> csets(sets.size(), sets.data());
+          device.freeDescriptorSets(pool, csets);
+        }
       }
       vk::DescriptorPool native()
       {
