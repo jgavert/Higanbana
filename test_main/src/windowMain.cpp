@@ -22,7 +22,7 @@ void mainWindow(ProgramParams& params)
 {
   Logger log;
   // test_entity();
-  test_bitfield();
+  // test_bitfield();
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
     bool reInit = false;

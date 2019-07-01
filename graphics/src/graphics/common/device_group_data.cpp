@@ -675,161 +675,82 @@ namespace faze
           tex.subtract(intr.tex);
           return intr;
         };
+
+        auto fSeen = list.requirementsBuf.exceptFields(seenB);
+        fSeen.foreach([&](int id){
+          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
+          fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
+        });
+        seenB.add(fSeen);
+        fSeen = list.requirementsTex.exceptFields(seenT);
+        fSeen.foreach([&](int id){
+          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
+          fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
+        });
+        seenT.add(fSeen);
+
         if (list.type == QueueType::Graphics)
         {
           graphicsList = listIndex;
           IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Graphics %d", listIndex);
-          auto fSeen = list.requirementsBuf.exceptFields(seenB);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
-          });
-          seenB.add(fSeen);
-          fSeen = list.requirementsTex.exceptFields(seenT);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
-          });
-          seenT.add(fSeen);
-
           queue.gb.add(list.requirementsBuf);
           queue.gt.add(list.requirementsTex);
-          auto ci = checkDependency(queue.cb, queue.ct);
-          if (ci.hasSetBits()) {
-            list.waitCompute = true;
-            if (computeList >= 0)
-              lists[computeList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d graphics list had Compute dependency!", graphicsList);
-              ci.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, computeList, graphicsList);
-              });
-              ci.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, computeList, graphicsList);
-              });
-            }
-            
-          }
-          auto di = checkDependency(queue.db, queue.dt);
-          if (di.hasSetBits()) {
-            list.waitDMA = true;
-            if (dmaList >= 0)
-              lists[dmaList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d graphics list had DMA dependency!", graphicsList);
-              di.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, dmaList, graphicsList);
-              });
-              di.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, dmaList, graphicsList);
-              });
-            }
-          }
         }
         else if (list.type == QueueType::Compute)
         {
           computeList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "dmalist %d", listIndex);
-          auto fSeen = list.requirementsBuf.exceptFields(seenB);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
-          });
-          seenB.add(fSeen);
-          fSeen = list.requirementsTex.exceptFields(seenT);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
-          });
-          seenT.add(fSeen);
-
+          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Compute %d", listIndex);
           queue.cb.add(list.requirementsBuf);
           queue.ct.add(list.requirementsTex);
-          auto gi = checkDependency(queue.gb, queue.gt);
-          if (gi.hasSetBits()) {
-            list.waitGraphics = true;
-            if (graphicsList >= 0)
-              lists[graphicsList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d compute list had Graphics dependency!", computeList);
-              gi.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, graphicsList, computeList);
-              });
-              gi.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, graphicsList, computeList);
-              });
-            }
-          }
-          auto di = checkDependency(queue.db, queue.dt);
-          if (di.hasSetBits()) {
-            list.waitDMA = true;
-            if (dmaList >= 0)
-              lists[dmaList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d compute list had DMA dependency!", computeList);
-              di.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, dmaList, computeList);
-              });
-              di.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, dmaList, computeList);
-              });
-            }
-          }
         }
         else
         {
           dmaList = listIndex;
           IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "dmalist %d", listIndex);
-          auto fSeen = list.requirementsBuf.exceptFields(seenB);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
-          });
-          seenB.add(fSeen);
-          fSeen = list.requirementsTex.exceptFields(seenT);
-          fSeen.foreach([&](int id){
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
-          });
-          seenT.add(fSeen);
           queue.db.add(list.requirementsBuf);
           queue.dt.add(list.requirementsTex);
+        }
+
+        auto doAcquireReleasePairs = [&](int depList, const char* name, Intersection& ci, QueueType depType){
+            if (depList >= 0)
+              lists[depList].signal = true;
+            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "%d list had %s dependency!", listIndex, name);
+            ci.buf.foreach([&](int id){
+              IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, depList, listIndex);
+              list.acquire.emplace_back(QueueTransfer{ResourceType::Buffer, id, depType});
+              if (depList >= 0)
+                lists[depList].release.emplace_back(QueueTransfer{ResourceType::Buffer, id, list.type});
+            });
+            ci.tex.foreach([&](int id){
+              IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, depList, listIndex);
+              list.acquire.emplace_back(QueueTransfer{ResourceType::Texture, id, depType});
+              if (depList >= 0)
+                lists[depList].release.emplace_back(QueueTransfer{ResourceType::Texture, id, list.type});
+            });
+        };
+
+        if (list.type != QueueType::Graphics)
+        {
+          auto ci = checkDependency(queue.gb, queue.gt);
+          if (ci.hasSetBits()) {
+            list.waitGraphics = true;
+            doAcquireReleasePairs(graphicsList, "Graphics", ci, QueueType::Graphics);
+          }
+        }
+        if (list.type != QueueType::Compute)
+        {
           auto ci = checkDependency(queue.cb, queue.ct);
           if (ci.hasSetBits()) {
             list.waitCompute = true;
-            if (dmaList >= 0)
-              lists[dmaList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d dma list had Compute dependency!", dmaList);
-              ci.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, computeList, dmaList);
-              });
-              ci.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, computeList, dmaList);
-              });
-            }
+            doAcquireReleasePairs(computeList, "Compute", ci, QueueType::Compute);
           }
-          auto gi = checkDependency(queue.gb, queue.gt);
-          if (gi.hasSetBits()) {
-            list.waitGraphics = true;
-            if (graphicsList >= 0)
-              lists[graphicsList].signal = true;
-
-            IF_QUEUE_DEPENDENCY_DEBUG
-            {
-              F_ILOG("", "%d dma list had Graphics dependency!", dmaList);
-              gi.buf.foreach([&](int id){
-                F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, graphicsList, dmaList);
-              });
-              gi.tex.foreach([&](int id){
-                F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, graphicsList, dmaList);
-              });
-            }
+        }
+        if (list.type != QueueType::Dma)
+        {
+          auto ci = checkDependency(queue.db, queue.dt);
+          if (ci.hasSetBits()) {
+            list.waitDMA = true;
+            doAcquireReleasePairs(dmaList, "DMA", ci, QueueType::Dma);
           }
         }
         listIndex++;
