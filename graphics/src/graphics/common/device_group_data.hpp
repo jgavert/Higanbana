@@ -85,11 +85,20 @@ namespace faze
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
     };
+
+    struct QueueTransfer 
+    {
+      ResourceType type;
+      int id;
+      QueueType fromOrTo;
+    };
     struct PreparedCommandlist
     {
       int device = 0;
       QueueType type;
       CommandList list;
+      vector<QueueTransfer> acquire;
+      vector<QueueTransfer> release;
       DynamicBitfield requirementsBuf;
       DynamicBitfield requirementsTex;
       bool waitGraphics = false, waitCompute = false, waitDMA = false;
