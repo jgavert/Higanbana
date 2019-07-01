@@ -26,60 +26,69 @@ namespace faze
 
     void DeviceGroupData::checkCompletedLists()
     {
-      if (!m_buffers.empty())
+      for (auto& dev : m_devices)
       {
-        if (m_buffers.size() > 8) // throttle so that we don't go too far ahead.
+        auto checkQueue = [&](deque<LiveCommandBuffer2>& buffers)
         {
-          // force wait oldest
-          int deviceID = m_buffers.front().deviceID;
-          auto fence = m_buffers.front().fence;
-          int i = 1;
-          while (!fence && i < m_buffers.size())
+          if (!buffers.empty())
           {
-            if (m_buffers[i].fence)
+            if (m_seqNumRequirements.size() > 3) // throttle so that we don't go too far ahead.
             {
-              deviceID = m_buffers[i].deviceID;
-              fence = m_buffers[i].fence;
-              break;
+              // force wait oldest
+              int deviceID = buffers.front().deviceID;
+              auto fence = buffers.front().fence;
+              int i = 1;
+              while (!fence && i < buffers.size())
+              {
+                if (buffers[i].fence)
+                {
+                  deviceID = buffers[i].deviceID;
+                  fence = buffers[i].fence;
+                  break;
+                }
+                ++i;
+              }
+              if (fence)
+                dev.device->waitFence(fence);
             }
-            ++i;
-          }
-          if (fence)
-            m_devices[deviceID].device->waitFence(fence);
-        }
-        int buffersToFree = 0;
-        int buffersWithoutFence = 0;
-        int bufferCount = static_cast<int>(m_buffers.size());
-        for (int i = 0; i < bufferCount; ++i)
-        {
-          if (m_buffers[i].fence)
-          {
-            if (!m_devices[m_buffers[i].deviceID].device->checkFence(m_buffers[i].fence))
+            int buffersToFree = 0;
+            int buffersWithoutFence = 0;
+            int bufferCount = static_cast<int>(buffers.size());
+            for (int i = 0; i < bufferCount; ++i)
             {
-              break;
+              if (buffers[i].fence)
+              {
+                if (!dev.device->checkFence(buffers[i].fence))
+                {
+                  break;
+                }
+                buffersToFree += buffersWithoutFence + 1;
+                buffersWithoutFence = 0;
+              }
+              else
+              {
+                buffersWithoutFence++;
+              }
             }
-            buffersToFree += buffersWithoutFence + 1;
-            buffersWithoutFence = 0;
-          }
-          else
-          {
-            buffersWithoutFence++;
-          }
-        }
 
-        auto currentSeqNum = InvalidSeqNum;
+            auto currentSeqNum = InvalidSeqNum;
 
-        while (buffersToFree > 0)
-        {
-          auto& buffer = m_buffers.front();
-          if (buffer.started != -1 && buffer.started != currentSeqNum)
-          {
-            m_seqTracker.complete(buffer.started);
-            currentSeqNum = buffer.started;
+            while (buffersToFree > 0)
+            {
+              auto& buffer = buffers.front();
+              if (buffer.started != -1 && buffer.started != currentSeqNum)
+              {
+                m_seqTracker.complete(buffer.started);
+                currentSeqNum = buffer.started;
+              }
+              buffers.pop_front();
+              buffersToFree--;
+            }
           }
-          m_buffers.pop_front();
-          buffersToFree--;
-        }
+        };
+        checkQueue(dev.m_gfxBuffers);
+        checkQueue(dev.m_computeBuffers);
+        checkQueue(dev.m_dmaBuffers);
       }
     }
 
@@ -100,18 +109,24 @@ namespace faze
       for (auto&& vdev : m_devices)
       {
         vdev.device->waitGpuIdle();
-      }
-      if (!m_buffers.empty())
-      {
-        for (auto&& liveBuffer : m_buffers)
+        auto waitBuffers = [&](deque<LiveCommandBuffer2>& buffer)
         {
-          if (liveBuffer.fence)
+          if (!buffer.empty())
           {
-            m_devices[liveBuffer.deviceID].device->waitFence(liveBuffer.fence);
+            for (auto&& liveBuffer : buffer)
+            {
+              if (liveBuffer.fence)
+              {
+                vdev.device->waitFence(liveBuffer.fence);
+              }
+            }
           }
-        }
-        checkCompletedLists();
+        };
+        waitBuffers(vdev.m_gfxBuffers);
+        waitBuffers(vdev.m_computeBuffers);
+        waitBuffers(vdev.m_dmaBuffers);
       }
+      checkCompletedLists();
     }
 
     constexpr const int SwapchainDeviceID = 0;
@@ -280,7 +295,7 @@ namespace faze
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(dev->m_seqTracker.lastSequence(), *ptr);
+          dev->m_delayer.insert(dev->m_currentSeqNum, *ptr);
         }
         delete ptr;
       });
@@ -293,7 +308,7 @@ namespace faze
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(dev->m_seqTracker.lastSequence(), *ptr);
+          dev->m_delayer.insert(dev->m_currentSeqNum, *ptr);
         }
         delete ptr;
       });
@@ -502,7 +517,7 @@ namespace faze
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format)
     {
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer.insert(m_seqTracker.lastSequence(), handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, format);
@@ -523,7 +538,7 @@ namespace faze
 
     CommandGraph DeviceGroupData::startCommandGraph()
     {
-      return CommandGraph(m_seqTracker.next()); 
+      return CommandGraph(++m_currentSeqNum); 
     }
 
     void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue)
@@ -951,7 +966,7 @@ namespace faze
 
           LiveCommandBuffer2 buffer{};
           buffer.deviceID = list.device;
-          buffer.started = InvalidSeqNum;
+          buffer.started = m_seqTracker.next();
           buffer.lists.emplace_back(nativeList);
           buffer.cmdMemory = list.list.list;
 
@@ -1020,18 +1035,22 @@ namespace faze
           {
           case QueueType::Dma:
             vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
             vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
           default:
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          m_buffers.emplace_back(buffer);
+          //m_buffers.emplace_back(buffer);
         }
       }
-      m_buffers.back().started = graph.m_sequence;
+      //m_buffers.back().started = graph.m_sequence;
+      m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
       gc();
     }
 
@@ -1046,7 +1065,13 @@ namespace faze
 
     void DeviceGroupData::garbageCollection()
     {
-      auto garb = m_delayer.garbageCollection(m_seqTracker.completedTill());
+      auto completedListsTill = m_seqTracker.completedTill();
+      while(!m_seqNumRequirements.empty() && m_seqNumRequirements.front() <= completedListsTill)
+      {
+        m_seqNumRequirements.pop_front();
+        m_completedLists++;
+      }
+      auto garb = m_delayer.garbageCollection(m_completedLists);
       for (auto&& device : m_devices)
       {
         for (auto&& handle : garb.viewTrash)
