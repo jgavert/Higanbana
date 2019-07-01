@@ -969,14 +969,14 @@ namespace faze
             }
           }
         }
-#if 1
+#if 0
         for (int i = 0; i < barriers.size(); ++i)
         {
           auto& barrier = barriers[i];
           buffer->ResourceBarrier(1, &barrier);
         }
 #else
-        buffer->ResourceBarrier(static_cast<UINT>(buffers.size()), buffers.data());
+        buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 #endif
       }
     }
