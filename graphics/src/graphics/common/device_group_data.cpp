@@ -541,7 +541,7 @@ namespace faze
       return CommandGraph(++m_currentSeqNum); 
     }
 
-    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue)
+    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquires, vector<QueueTransfer>& releases)
     {
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
@@ -553,6 +553,26 @@ namespace faze
       {
         CommandBuffer::PacketHeader* header = *iter;
         auto drawIndex = solver.addDrawCall();
+        if (drawIndex == 0)
+        {
+          for (auto&& acq : acquires)
+          {
+            ResourceHandle h;
+            h.id = acq.id;
+            h.type = acq.type;
+            ViewResourceHandle view;
+            view.resource = h;
+            view.subresourceRange(1, 0, 1, 0, 1);
+            if (h.type == ResourceType::Buffer)
+            {
+              solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, acq.fromOrTo));
+            }
+            else
+            {
+              solver.addTexture(drawIndex, view, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, acq.fromOrTo));
+            }
+          }
+        }
         //F_ILOG("", "packet: %s", gfxpacket::packetTypeToString(header->type));
         switch (header->type)
         {
@@ -568,11 +588,11 @@ namespace faze
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {
-              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget, queue));
+              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget,  queue));
             }
             if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
             {
-              solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil, queue));
+              solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil,  queue));
             }
             break;
           }
@@ -633,6 +653,28 @@ namespace faze
         }
 
         iter++;
+      }
+      if (!releases.empty())
+      {
+        buffer.insert<gfxpacket::ReleaseFromQueue>();
+        auto drawIndex = solver.addDrawCall();
+        for (auto&& rel : releases)
+        {
+          ResourceHandle h;
+          h.id = rel.id;
+          h.type = rel.type;
+          ViewResourceHandle view;
+          view.resource = h;
+          view.subresourceRange(1, 0, 1, 0, 1);
+          if (h.type == ResourceType::Buffer)
+          {
+            solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Common, backend::TextureLayout::Undefined, rel.fromOrTo));
+          }
+          else
+          {
+            solver.addTexture(drawIndex, view, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Common, backend::TextureLayout::Undefined, rel.fromOrTo));
+          }
+        }
       }
 
       solver.makeAllBarriers();
@@ -892,7 +934,7 @@ namespace faze
           buffer.cmdMemory = list.list.list;
 
           // barriers&commands
-          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type);
+          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release);
 
           readyLists.emplace_back(std::move(buffer));
         }

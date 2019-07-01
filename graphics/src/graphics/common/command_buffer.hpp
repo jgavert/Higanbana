@@ -17,6 +17,7 @@ namespace faze
     {
       EndOfPackets = 0,
       RenderBlock,
+      ReleaseFromQueue,
       BufferCopy,
       Dispatch,
       PrepareForPresent,

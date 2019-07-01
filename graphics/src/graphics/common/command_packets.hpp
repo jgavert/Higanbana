@@ -23,6 +23,15 @@ namespace faze
         spn[inputName.size()] = '\0';
       }
     };
+
+    struct ReleaseFromQueue
+    {
+      // constructors
+      static constexpr const backend::PacketType type = backend::PacketType::ReleaseFromQueue;
+      static void constructor(backend::CommandBuffer& buffer, ReleaseFromQueue* packet)
+      {
+      }
+    };
     
     struct PrepareForPresent
     {
