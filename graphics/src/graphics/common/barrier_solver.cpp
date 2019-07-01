@@ -59,17 +59,71 @@ namespace faze
           {
             auto& resource = m_bufferCache[job.resource.resource];
             auto lastAccess = resource.state;
-            if (lastAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
+            if (lastAccess.queue_index != QueueType::Unknown && lastAccess.queue_index != jobResAccess.queue_index)
             {
-              bufferBarriers.emplace_back(BufferBarrier{lastAccess, jobResAccess, job.resource.resource});
+              // acquire/release barrier
+              bool acquire = jobResAccess.usage == AccessUsage::Read;
+              auto src = lastAccess;
+              auto dst = lastAccess;
+              dst.queue_index = jobResAccess.queue_index;
+              if (acquire)
+              {
+                dst.queue_index = src.queue_index;
+                src.queue_index = jobResAccess.queue_index;
+              }
+              else
+              {
+                resource.state.queue_index = jobResAccess.queue_index;
+              }
+              bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resource});
               ++bufferBarrierOffsets;
             }
-            resource.state = jobResAccess;
+            else if (lastAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
+            {
+              auto src = lastAccess;
+              src.queue_index = QueueType::Unknown;
+              auto dst = jobResAccess;
+              dst.queue_index = QueueType::Unknown;
+              bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resource});
+              ++bufferBarrierOffsets;
+              resource.state = job.nextAccess;
+            }
           }
           else
           {
             auto& resource = m_imageCache[job.resource.resource];
             {
+              // check if we are doing queue transfer first, if yes, skip res
+              if (resource.states[0].queue_index != QueueType::Unknown && job.nextAccess.queue_index != resource.states[0].queue_index)
+              {
+                auto src = resource.states[0];
+                auto dst = resource.states[0];
+                dst.queue_index = job.nextAccess.queue_index;
+                // how does I all subresources
+                // so just need mip size, can calculate arraysize then
+                auto allSubresources = resource.states.size();
+                uint32_t mips = job.resource.fullMipSize();
+                uint32_t arrSize = static_cast<uint32_t>(allSubresources) / mips;
+                bool acquire = jobResAccess.usage == AccessUsage::Read;
+                if (acquire)
+                {
+                  dst.queue_index = src.queue_index;
+                  src.queue_index = jobResAccess.queue_index;
+                }
+
+                imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, 0, mips, 0, arrSize});
+                ++imageBarrierOffsets;
+                // fix all the state
+                if (!acquire)
+                {
+                  for (auto&& state : resource.states)
+                  {
+                    state.queue_index = job.nextAccess.queue_index;
+                  }
+                }
+                continue;
+              }
+
               // gothrough all subresources that are modified, create subresource ranges at the same time encompassing all similar states.
 
               struct RangePerAccessType
@@ -83,7 +137,11 @@ namespace faze
 
               auto addImageBarrier = [&](const RangePerAccessType& range)
               {
-                imageBarriers.emplace_back(ImageBarrier{range.access, job.nextAccess, job.resource.resource, range.startMip, range.mipSize, range.startArr, range.arrSize});
+                auto src = range.access;
+                src.queue_index = QueueType::Unknown;
+                auto dst = job.nextAccess;
+                dst.queue_index = QueueType::Unknown;
+                imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, range.startMip, range.mipSize, range.startArr, range.arrSize});
                 ++imageBarrierOffsets;
               };
               RangePerAccessType current{};
@@ -99,10 +157,9 @@ namespace faze
 
                   bool usageDiffers = state.usage != job.nextAccess.usage;
                   bool stageDiffers = state.stage != job.nextAccess.stage;
-                  bool queueDiffers = state.queue_index != job.nextAccess.queue_index;
                   bool layoutDiffers = state.layout != job.nextAccess.layout;
 
-                  if (usageDiffers || stageDiffers || queueDiffers || layoutDiffers) // something was different
+                  if (usageDiffers || stageDiffers ||  layoutDiffers) // something was different
                   {
                     // first check if we have fresh range
                     //   if so, fill it with all data

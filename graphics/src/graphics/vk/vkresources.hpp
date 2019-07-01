@@ -837,7 +837,7 @@ namespace faze
           case QueueType::Dma: return dma;
           case QueueType::External: return VK_QUEUE_FAMILY_EXTERNAL;
           case QueueType::Unknown:
-          default: return 0;
+          default: return VK_QUEUE_FAMILY_IGNORED;
         }
       }
 

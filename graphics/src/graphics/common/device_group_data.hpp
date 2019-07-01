@@ -198,7 +198,7 @@ namespace faze
       void present(Swapchain& swapchain);
 
       // test
-      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue);
+      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release);
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
   }
