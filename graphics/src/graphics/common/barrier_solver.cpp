@@ -59,7 +59,7 @@ namespace faze
           {
             auto& resource = m_bufferCache[job.resource.resource];
             auto lastAccess = resource.state;
-            if (jobResAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
+            if (lastAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
             {
               bufferBarriers.emplace_back(BufferBarrier{lastAccess, jobResAccess, job.resource.resource});
               ++bufferBarrierOffsets;

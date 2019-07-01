@@ -580,6 +580,8 @@ namespace faze
             .setBuffer(vbuffer.native())
             .setOffset(0)
             .setSize(VK_WHOLE_SIZE));
+          if (buffer.after.queue_index != buffer.after.queue_index)
+            F_ILOG("vulkan", "Woah nelly there! buffer %d -> %d", idx.queue(buffer.before.queue_index), idx.queue(buffer.after.queue_index));
         }
         for (auto& image : barriers.textures)
         {
@@ -595,6 +597,8 @@ namespace faze
             .setBaseArrayLayer(image.startArr)
             .setLayerCount(image.arrSize);
 
+          if (image.after.queue_index != image.after.queue_index)
+            F_ILOG("vulkan", "Woah nelly there! Texture %d -> %d", idx.queue(image.before.queue_index), idx.queue(image.after.queue_index));
           imagebar.emplace_back(vk::ImageMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
             .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
