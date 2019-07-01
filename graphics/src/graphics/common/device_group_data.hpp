@@ -124,13 +124,20 @@ namespace faze
         std::shared_ptr<SemaphoreImpl> graphicsQSema;
         std::shared_ptr<SemaphoreImpl> computeQSema;
         std::shared_ptr<SemaphoreImpl> dmaQSema;
+        deque<LiveCommandBuffer2> m_gfxBuffers;
+        deque<LiveCommandBuffer2> m_computeBuffers;
+        deque<LiveCommandBuffer2> m_dmaBuffers;
       };
       vector<VirtualDevice> m_devices;
 
-      SequenceTracker m_seqTracker;
+      SequenceTracker m_seqTracker; // used to track only commandlists
       DelayedRelease m_delayer;
       HandleManager m_handles;
-      deque<LiveCommandBuffer2> m_buffers;
+
+      // used to free resources
+      deque<SeqNum> m_seqNumRequirements;
+      SeqNum m_currentSeqNum = 0;
+      SeqNum m_completedLists = 0;
 
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
       DeviceGroupData(DeviceGroupData&& data) = default;
