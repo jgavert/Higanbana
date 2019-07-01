@@ -882,6 +882,8 @@ namespace faze
 
         checkQueueDependencies(lists);
 
+        deque<LiveCommandBuffer2> readyLists;
+
         for (auto&& list : lists)
         {
           std::shared_ptr<CommandBufferImpl> nativeList;
@@ -911,6 +913,15 @@ namespace faze
           // barriers&commands
           fillCommandBuffer(nativeList, vdev, buffer.cmdMemory);
 
+          readyLists.emplace_back(std::move(buffer));
+        }
+
+        for (auto&& list : lists)
+        {
+          LiveCommandBuffer2 buffer = std::move(readyLists.front());
+          readyLists.pop_front();
+
+          auto& vdev = m_devices[list.device];
           if (list.signal && list.type == CommandGraphNode::NodeType::Graphics)
           {
             vdev.graphicsQSema = vdev.device->createSemaphore();
