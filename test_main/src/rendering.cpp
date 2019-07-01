@@ -174,13 +174,13 @@ namespace app
       tasks.addPass(std::move(node));
     }
     {
-      auto node = tasks.createPass("copyBuffer", CommandGraphNode::NodeType::DMA);
+      auto node = tasks.createPass("copyBuffer", QueueType::Dma);
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }
 
     {
-      auto node = tasks.createPass("copyBuffer", CommandGraphNode::NodeType::Compute);
+      auto node = tasks.createPass("copyBuffer", QueueType::Compute);
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }

@@ -1,7 +1,8 @@
 #pragma once
+#include "graphics/common/handle.hpp"
+#include "graphics/common/resources.hpp"
 #include <cstdint>
 #include <core/datastructures/proxy.hpp>
-#include <graphics/common/handle.hpp>
 
 namespace faze
 {
@@ -65,7 +66,7 @@ namespace faze
         backend::AccessUsage usage : 2;
         backend::AccessStage stage : 16;
         backend::TextureLayout layout : 4;
-        uint32_t queue_index : 10;
+        QueueType queue_index : 10;
       };
       uint32_t raw;        
     };
@@ -74,12 +75,12 @@ namespace faze
       : usage(backend::AccessUsage::Unknown)
       , stage(backend::AccessStage::Common)
       , layout(backend::TextureLayout::Undefined)
-      , queue_index(0)
+      , queue_index(QueueType::Unknown)
     {
     }
 
     
-    ResourceState(backend::AccessUsage usage, backend::AccessStage stage, backend::TextureLayout layout, uint32_t queueIndex)
+    ResourceState(backend::AccessUsage usage, backend::AccessStage stage, backend::TextureLayout layout, QueueType queueIndex)
       : usage(usage)
       , stage(stage)
       , layout(layout)

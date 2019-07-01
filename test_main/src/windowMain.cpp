@@ -38,7 +38,7 @@ void mainWindow(ProgramParams& params)
     while (true)
     {
       vector<GpuInfo> allGpus;
-      GraphicsSubsystem graphics("faze");
+      GraphicsSubsystem graphics("faze", true);
       F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
 #if 1
@@ -179,7 +179,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::DX12, VendorID::Nvidia, true);
+  main(GraphicsApi::DX12, VendorID::Amd, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 

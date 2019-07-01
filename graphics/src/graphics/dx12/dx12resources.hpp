@@ -16,9 +16,7 @@
 #include <graphics/common/allocators.hpp>
 
 #include "graphics/definitions.hpp"
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
-#endif
 
 #include <memory>
 

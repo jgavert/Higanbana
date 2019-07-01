@@ -19,7 +19,7 @@ namespace faze
       const char* engineName;
       unsigned engineVersion;
 
-      SubsystemData(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
+      SubsystemData(const char* appName, bool debugLayer, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1);
       vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All);
       GpuGroup createGroup(FileSystem& fs, vector<GpuInfo> gpu);
       GraphicsSurface createSurface(Window& window, GpuInfo gpu);

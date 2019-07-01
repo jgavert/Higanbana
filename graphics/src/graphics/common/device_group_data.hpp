@@ -77,6 +77,7 @@ namespace faze
     struct LiveCommandBuffer2
     {
       int deviceID;
+      QueueType queue;
       SeqNum started;
       CommandBuffer cmdMemory; // for debug markers on DX12 for now.
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
@@ -87,7 +88,7 @@ namespace faze
     struct PreparedCommandlist
     {
       int device = 0;
-      CommandGraphNode::NodeType type;
+      QueueType type;
       CommandList list;
       DynamicBitfield requirementsBuf;
       DynamicBitfield requirementsTex;
@@ -96,6 +97,14 @@ namespace faze
       std::shared_ptr<SemaphoreImpl> acquireSema;
       bool presents = false;
       bool isLastList = false;
+    };
+
+    struct FirstUseResource
+    {
+      int deviceID;
+      ResourceType type;
+      int id;
+      QueueType queue;
     };
 
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
@@ -173,8 +182,8 @@ namespace faze
       void present(Swapchain& swapchain);
 
       // test
-      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer);
-      void checkQueueDependencies(vector<PreparedCommandlist>& lists);
+      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue);
+      vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
   }
 }

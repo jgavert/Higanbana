@@ -822,6 +822,27 @@ namespace faze
       HandleVector<VulkanHeap> heaps;
     };
 
+    struct QueueIndexes
+    {
+      int graphics;
+      int compute;
+      int dma;
+
+      int queue(QueueType type) const
+      {
+        switch (type)
+        {
+          case QueueType::Graphics: return graphics;
+          case QueueType::Compute: return compute;
+          case QueueType::Dma: return dma;
+          case QueueType::External: return VK_QUEUE_FAMILY_EXTERNAL;
+          case QueueType::Unknown:
+          default: return 0;
+        }
+      }
+
+    };
+
     struct StaticSamplers
     {
       vk::Sampler                 m_bilinearSampler;

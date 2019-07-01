@@ -94,6 +94,8 @@ namespace faze
 
       Resources& allResources() { return m_allRes; }
 
+      QueueIndexes queueIndexes() const { return QueueIndexes{m_mainQueueIndex, m_computeQueueIndex, m_copyQueueIndex}; }
+
       vk::RenderPass createRenderpass(const vk::RenderPassCreateInfo& info);
 
       std::optional<vk::Pipeline> updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass);
