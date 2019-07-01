@@ -1984,6 +1984,7 @@ for (auto&& upload : it.second.dynamicBuffers)
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
+          F_ILOG("WHAT", "DOUBLE WHAT");
         }
         m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())

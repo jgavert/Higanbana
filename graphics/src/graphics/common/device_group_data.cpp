@@ -625,7 +625,7 @@ namespace faze
       nativeList->fillWith(vdev.device, buffer, solver);
     }
 
-#define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
+#define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (1)
 
     vector<FirstUseResource> DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
       DynamicBitfield seenB;
@@ -823,14 +823,17 @@ namespace faze
       if (graphicsList >= 0 && !lists[graphicsList].isLastList)
       {
         lists[graphicsList].signal = true;
+        lists[graphicsList].isLastList = true;
       }
       if (computeList >= 0 && !lists[computeList].isLastList)
       {
         lists[computeList].signal = true;
+        lists[computeList].isLastList = true;
       }
       if(dmaList >= 0 && !lists[dmaList].isLastList)
       {
         lists[dmaList].signal = true;
+        lists[dmaList].isLastList = true;
       }
       return fur;
     }

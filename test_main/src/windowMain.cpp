@@ -179,7 +179,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::DX12, VendorID::Amd, true);
+  main(GraphicsApi::Vulkan, VendorID::Amd, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 
