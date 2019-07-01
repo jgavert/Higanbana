@@ -69,13 +69,17 @@ namespace faze
 {
   namespace backend
   {
-    VulkanSubsystem::VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion)
+    VulkanSubsystem::VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion, bool debug)
       : m_alloc_info(reinterpret_cast<void*>(&m_allocs), allocs::pfnAllocation, allocs::pfnReallocation, allocs::pfnFree, allocs::pfnInternalAllocation, allocs::pfnInternalFree)
       , m_instance(new vk::Instance, [=](vk::Instance* ist)
         {
           (*ist).destroy(&m_alloc_info);
         })
+      , m_debug(debug)
     {
+#ifdef FAZE_GRAPHICS_VALIDATION_LAYER
+      m_debug = true;
+#endif
       /////////////////////////////////
       // getting debug layers
       // TODO: These need to be saved for device creation also. which layers and extensions each use.
@@ -92,6 +96,10 @@ namespace faze
       }
 
 #endif
+      // lunargvalidation list order
+      std::vector<std::string> layerOrder = {
+      };
+      if (m_debug) layerOrder.emplace_back("VK_LAYER_LUNARG_standard_validation");
 
       std::vector<const char*> layers;
       {
@@ -130,6 +138,20 @@ namespace faze
       }
 
 #endif
+
+      std::vector<std::string> extOrder = {
+        VK_KHR_SURFACE_EXTENSION_NAME
+        , VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        , VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME
+        , VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
+        , VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
+        , VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME
+        , VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+  #if defined(FAZE_PLATFORM_WINDOWS)
+          , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+  #endif
+      };
+      if (m_debug) extOrder.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
       std::vector<const char*> extensions;
       {

@@ -557,6 +557,7 @@ namespace faze
 
     void addBarrier(VulkanDevice* device, vk::CommandBuffer buffer, MemoryBarriers barriers)
     {
+      auto idx = device->queueIndexes();
       if (!barriers.buffers.empty() || !barriers.textures.empty())
       {
         int beforeStage = backend::AccessStage::Common; // for pipelineStage barrier
@@ -574,8 +575,8 @@ namespace faze
           bufferbar.emplace_back(vk::BufferMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(buffer.before.stage, buffer.before.usage))
             .setDstAccessMask(translateAccessMask(buffer.after.stage, buffer.after.usage))
-            .setSrcQueueFamilyIndex(buffer.before.queue_index)
-            .setDstQueueFamilyIndex(buffer.after.queue_index)
+            .setSrcQueueFamilyIndex(idx.queue(buffer.before.queue_index))
+            .setDstQueueFamilyIndex(idx.queue(buffer.after.queue_index))
             .setBuffer(vbuffer.native())
             .setOffset(0)
             .setSize(VK_WHOLE_SIZE));
@@ -597,8 +598,8 @@ namespace faze
           imagebar.emplace_back(vk::ImageMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
             .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
-            .setSrcQueueFamilyIndex(image.before.queue_index)
-            .setDstQueueFamilyIndex(image.after.queue_index)
+            .setSrcQueueFamilyIndex(idx.queue(image.before.queue_index))
+            .setDstQueueFamilyIndex(idx.queue(image.after.queue_index))
             .setNewLayout(translateLayout(image.after.layout))
             .setOldLayout(translateLayout(image.before.layout))
             .setImage(vimage.native())

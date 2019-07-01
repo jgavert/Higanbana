@@ -18,18 +18,11 @@ namespace faze
 {
   class CommandGraphNode
   {
-  public:
-    enum class NodeType
-    {
-      Graphics,
-      Compute,
-      DMA
-    };
   private:
     CommandList list;
     std::string name;
     friend struct backend::DeviceGroupData;
-    NodeType type;
+    QueueType type;
     int gpuId;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
@@ -88,7 +81,7 @@ namespace faze
     }
   public:
     CommandGraphNode() {}
-    CommandGraphNode(std::string name, NodeType type, int gpuId)
+    CommandGraphNode(std::string name, QueueType type, int gpuId)
       : name(name)
       , type(type)
       , gpuId(gpuId)
@@ -298,7 +291,7 @@ namespace faze
       , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
     {}
 
-    CommandGraphNode createPass(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics, int gpu = 0)
+    CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
       return CommandGraphNode(name, type, gpu);
     }
@@ -308,7 +301,7 @@ namespace faze
       m_nodes->emplace_back(std::move(node));
     }
 
-    CommandGraphNode& createPass2(std::string name, CommandGraphNode::NodeType type = CommandGraphNode::NodeType::Graphics, int gpu = 0)
+    CommandGraphNode& createPass2(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
       m_nodes->emplace_back(name, type, gpu);
       return m_nodes->back();

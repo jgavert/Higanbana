@@ -19,30 +19,7 @@ namespace faze
       vector<vk::PhysicalDevice> m_devices;
       std::shared_ptr<vk::Instance> m_instance;
       std::shared_ptr<vk::DebugUtilsMessengerEXT> m_debugcallback;
-
-      // lunargvalidation list order
-      std::vector<std::string> layerOrder = {
-  #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-          "VK_LAYER_LUNARG_standard_validation",
-  #endif
-      };
-
-      std::vector<std::string> extOrder = {
-        VK_KHR_SURFACE_EXTENSION_NAME
-        , VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-        , VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME
-        , VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
-        , VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
-        , VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME
-        , VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-  #if defined(FAZE_PLATFORM_WINDOWS)
-          , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
-  #endif
-  #if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-          //, VK_EXT_DEBUG_REPORT_EXTENSION_NAME // VK_EXT_debug_utils
-		  , VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-  #endif
-      };
+      bool m_debug;
 
       std::vector<std::string> devExtOrder = {
         "VK_KHR_8bit_storage",
@@ -110,7 +87,7 @@ namespace faze
         "VK_KHR_variable_pointers",
       };
     public:
-      VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion);
+      VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion, bool debug = false);
       std::string gfxApi();
       vector<GpuInfo> availableGpus();
       std::shared_ptr<backend::prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu);

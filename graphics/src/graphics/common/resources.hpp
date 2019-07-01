@@ -36,6 +36,15 @@ namespace faze
     Unknown
   };
 
+  enum class QueueType : uint32_t
+  {
+    Unknown,
+    Graphics,
+    Compute,
+    Dma,
+    External
+  };
+
   struct GpuInfo
   {
     int id;

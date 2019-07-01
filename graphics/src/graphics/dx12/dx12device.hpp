@@ -14,10 +14,9 @@ namespace faze
     {
     private:
       GpuInfo m_info;
+      bool m_debugLayer;
       ComPtr<ID3D12Device> m_device;
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
       ComPtr<IDXGIDebug1> m_debug;
-#endif
       ComPtr<IDXGIFactory4> m_factory;
 
       FileSystem& m_fs;
@@ -58,7 +57,7 @@ namespace faze
 
       D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
     public:
-      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs);
+      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);
       ~DX12Device();
 
       DX12Resources& allResources();

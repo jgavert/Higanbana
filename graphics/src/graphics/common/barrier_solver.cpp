@@ -13,7 +13,7 @@ namespace faze
     void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
       //m_bufferStates[buffer].state = ResourceState( backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0);
-      m_bufferCache[buffer.resource].state = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+      m_bufferCache[buffer.resource].state = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
       m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access});
       m_uniqueBuffers.insert(buffer.resource);
     }
@@ -59,12 +59,12 @@ namespace faze
           {
             auto& resource = m_bufferCache[job.resource.resource];
             auto lastAccess = resource.state;
-            if (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage)
+            if (jobResAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
             {
               bufferBarriers.emplace_back(BufferBarrier{lastAccess, jobResAccess, job.resource.resource});
-              resource.state = jobResAccess;
               ++bufferBarrierOffsets;
             }
+            resource.state = jobResAccess;
           }
           else
           {

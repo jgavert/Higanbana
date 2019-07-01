@@ -14,9 +14,9 @@ namespace faze
   public:
 
     GraphicsSubsystem() = default;
-    GraphicsSubsystem(const char* appName, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1)
+    GraphicsSubsystem(const char* appName, bool debugLayer = false, unsigned appVersion = 1, const char* engineName = "faze", unsigned engineVersion = 1)
     {
-      makeState(appName, appVersion, engineName, engineVersion);
+      makeState(appName, debugLayer, appVersion, engineName, engineVersion);
     }
     vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All) { return S().availableGpus(api); }
     GpuInfo getVendorDevice(GraphicsApi api, VendorID id = VendorID::Unknown)

@@ -179,7 +179,7 @@ namespace faze
 
         auto subresources = tex.desc().desc.miplevels * tex.desc().desc.arraySize;
         m_devices[0].m_textureStates[*handlePtr].mips = tex.desc().desc.miplevels;
-        m_devices[0].m_textureStates[*handlePtr].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Undefined, 0));
+        m_devices[0].m_textureStates[*handlePtr].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Undefined, QueueType::Unknown));
 
         auto handle = m_handles.allocateViewResource(ViewResourceType::TextureRTV, *handlePtr);
         m_devices[0].device->createTextureView(handle, tex.handle(), tex.desc(), viewDesc.setType(ResourceShaderType::RenderTarget));
@@ -320,7 +320,7 @@ namespace faze
           }); // get heap corresponding to requirements
           vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
           vdev.m_buffers[handle] = allo.allocation;
-          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
           auto shared = vdev.device->openSharedHandle(allo);
           for (int i = 0; i < m_devices.size(); ++i)
           {
@@ -338,7 +338,7 @@ namespace faze
               F_ASSERT(allo2.allocation.block.offset == allo.allocation.block.offset, "wtf!");
               m_devices[i].device->createBuffer(handle, allo2, desc);
               m_devices[i].m_buffers[handle] = allo2.allocation;
-              m_devices[i].m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+              m_devices[i].m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
             }
           }
       }
@@ -355,7 +355,7 @@ namespace faze
           }); // get heap corresponding to requirements
           vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
           vdev.m_buffers[handle] = allo.allocation;
-          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, 0);
+          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
         }
       }
 
@@ -375,7 +375,7 @@ namespace faze
         vdev.device->createTexture(handle, desc);
         auto subresources = desc.desc.miplevels * desc.desc.arraySize;
         vdev.m_textureStates[handle].mips = desc.desc.miplevels;
-        vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+        vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown));
         // shared
         auto shared = vdev.device->openSharedHandle(handle);
         for (int i = 0; i < m_devices.size(); ++i)
@@ -387,7 +387,7 @@ namespace faze
             auto subresources = desc.desc.miplevels * desc.desc.arraySize;
 
             m_devices[i].m_textureStates[handle].mips = desc.desc.miplevels;
-            m_devices[i].m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+            m_devices[i].m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown));
           }
         }
       }
@@ -408,7 +408,7 @@ namespace faze
           auto subresources = desc.desc.miplevels * desc.desc.arraySize;
 
           vdev.m_textureStates[handle].mips = desc.desc.miplevels;
-          vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0));
+          vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown));
         }
       }
 
@@ -526,7 +526,7 @@ namespace faze
       return CommandGraph(m_seqTracker.next()); 
     }
 
-    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer)
+    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue)
     {
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
@@ -553,11 +553,11 @@ namespace faze
             auto& packet = header->data<gfxpacket::RenderPassBegin>();
             for (auto&& rtv : packet.rtvs.convertToMemView())
             {
-              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget, 0));
+              solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget, queue));
             }
             if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
             {
-              solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil, 0));
+              solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil, queue));
             }
             break;
           }
@@ -576,19 +576,19 @@ namespace faze
             {
               if (resource.type == ViewResourceType::BufferSRV)
               {
-                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, 0));
+                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
               }
               else if (resource.type == ViewResourceType::BufferUAV)
               {
-                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, 0));
+                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
               }
               else if (resource.type == ViewResourceType::TextureSRV)
               {
-                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, 0));
+                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
               }
               else if (resource.type == ViewResourceType::TextureUAV)
               {
-                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, 0));
+                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
               }
             }
             break;
@@ -600,8 +600,8 @@ namespace faze
             src.resource = packet.src;
             ViewResourceHandle dst;
             dst.resource = packet.dst;
-            solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, 0));
-            solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, 0));
+            solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+            solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
             break;
           }
           case PacketType::PrepareForPresent:
@@ -610,7 +610,7 @@ namespace faze
             ViewResourceHandle viewhandle{};
             viewhandle.resource = packet.texture;
             viewhandle.subresourceRange(1, 0, 1, 0, 1);
-            solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, 0));
+            solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, queue));
             break;
           }
           default:
@@ -627,11 +627,10 @@ namespace faze
 
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
-    void DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
+    vector<FirstUseResource> DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
       DynamicBitfield seenB;
       DynamicBitfield seenT;
-      vector<std::pair<int, int>> fsb;
-      vector<std::pair<int, int>> fst;
+      vector<FirstUseResource> fur;
 
       struct Intersection
       {
@@ -661,20 +660,20 @@ namespace faze
           tex.subtract(intr.tex);
           return intr;
         };
-        if (list.type == CommandGraphNode::NodeType::Graphics)
+        if (list.type == QueueType::Graphics)
         {
           graphicsList = listIndex;
           IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Graphics %d", listIndex);
           auto fSeen = list.requirementsBuf.exceptFields(seenB);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fsb.emplace_back(std::make_pair(id, 0));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
           });
           seenB.add(fSeen);
           fSeen = list.requirementsTex.exceptFields(seenT);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fst.emplace_back(std::make_pair(id, 0));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
           });
           seenT.add(fSeen);
 
@@ -714,20 +713,20 @@ namespace faze
             }
           }
         }
-        else if (list.type == CommandGraphNode::NodeType::Compute)
+        else if (list.type == QueueType::Compute)
         {
           computeList = listIndex;
           IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "dmalist %d", listIndex);
           auto fSeen = list.requirementsBuf.exceptFields(seenB);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fsb.emplace_back(std::make_pair(id, 1));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
           });
           seenB.add(fSeen);
           fSeen = list.requirementsTex.exceptFields(seenT);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fst.emplace_back(std::make_pair(id, 1));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
           });
           seenT.add(fSeen);
 
@@ -773,13 +772,13 @@ namespace faze
           auto fSeen = list.requirementsBuf.exceptFields(seenB);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
-            fsb.emplace_back(std::make_pair(id, 2));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
           });
           seenB.add(fSeen);
           fSeen = list.requirementsTex.exceptFields(seenT);
           fSeen.foreach([&](int id){
             IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
-            fst.emplace_back(std::make_pair(id, 2));
+            fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
           });
           seenT.add(fSeen);
           queue.db.add(list.requirementsBuf);
@@ -833,6 +832,20 @@ namespace faze
       {
         lists[dmaList].signal = true;
       }
+      return fur;
+    }
+
+    const char* toString(QueueType type)
+    {
+      switch (type)
+      {
+        case QueueType::Graphics: return "GraphicsQueue";
+        case QueueType::Compute: return "ComputeQueue";
+        case QueueType::Dma: return "DMAQueue";
+        case QueueType::External: return "ExternalQueue";
+        case QueueType::Unknown:
+        default: return "UnknownQueue";
+      }
     }
 
     void DeviceGroupData::submit(Swapchain& swapchain, CommandGraph graph)
@@ -880,7 +893,36 @@ namespace faze
         int lsize = lists.size();
         lists[lsize - 1].isLastList = true;
 
-        checkQueueDependencies(lists);
+        auto firstUsageSeen = checkQueueDependencies(lists);
+
+        // check states of first use resources
+        for (auto&& resource : firstUsageSeen)
+        {
+          auto& dev = m_devices[resource.deviceID];
+          if (resource.type == ResourceType::Buffer)
+          {
+            auto state = dev.m_bufferStates.at(resource.id);
+            if (state.queue_index != QueueType::Unknown)
+            {
+              if (state.queue_index != resource.queue)
+              {
+                F_ILOG("", "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
+              }
+            }
+          }
+          else if (resource.type == ResourceType::Texture)
+          {
+            auto state = dev.m_textureStates.at(resource.id);
+            auto firstStateIsEnough = state.states[0]; // because all subresource are required to be in right queue, just decided.
+            if (firstStateIsEnough.queue_index != QueueType::Unknown)
+            {
+              if (firstStateIsEnough.queue_index != resource.queue)
+              {
+                F_ILOG("", "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+              }
+            }
+          }
+        }
 
         deque<LiveCommandBuffer2> readyLists;
 
@@ -892,13 +934,13 @@ namespace faze
 
           switch (list.type)
           {
-          case CommandGraphNode::NodeType::DMA:
+          case QueueType::Dma:
             nativeList = vdev.device->createDMAList();
             break;
-          case CommandGraphNode::NodeType::Compute:
+          case QueueType::Compute:
             nativeList = vdev.device->createComputeList();
             break;
-          case CommandGraphNode::NodeType::Graphics:
+          case QueueType::Graphics:
           default:
             nativeList = vdev.device->createGraphicsList();
           }
@@ -911,7 +953,7 @@ namespace faze
           buffer.cmdMemory = list.list.list;
 
           // barriers&commands
-          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory);
+          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type);
 
           readyLists.emplace_back(std::move(buffer));
         }
@@ -922,17 +964,17 @@ namespace faze
           readyLists.pop_front();
 
           auto& vdev = m_devices[list.device];
-          if (list.signal && list.type == CommandGraphNode::NodeType::Graphics)
+          if (list.signal && list.type == QueueType::Graphics)
           {
             vdev.graphicsQSema = vdev.device->createSemaphore();
             buffer.signal.push_back(vdev.graphicsQSema);
           }
-          if (list.signal && list.type == CommandGraphNode::NodeType::Compute)
+          if (list.signal && list.type == QueueType::Compute)
           {
             vdev.computeQSema = vdev.device->createSemaphore();
             buffer.signal.push_back(vdev.computeQSema);
           }
-          if (list.signal && list.type == CommandGraphNode::NodeType::DMA)
+          if (list.signal && list.type == QueueType::Dma)
           {
             vdev.dmaQSema = vdev.device->createSemaphore();
             buffer.signal.push_back(vdev.dmaQSema);
@@ -973,13 +1015,13 @@ namespace faze
 
           switch (list.type)
           {
-          case CommandGraphNode::NodeType::DMA:
+          case QueueType::Dma:
             vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
             break;
-          case CommandGraphNode::NodeType::Compute:
+          case QueueType::Compute:
             vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
             break;
-          case CommandGraphNode::NodeType::Graphics:
+          case QueueType::Graphics:
           default:
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
           }

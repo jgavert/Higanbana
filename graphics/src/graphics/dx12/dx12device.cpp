@@ -15,16 +15,15 @@
 
 #include <graphics/common/handle.hpp>
 
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
 #include <DXGIDebug.h>
-#endif
 
 namespace faze
 {
   namespace backend
   {
-    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs)
+    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer)
       : m_info(info)
+      , m_debugLayer(debugLayer)
       , m_device(device)
       , m_factory(factory)
       , m_fs(fs)
@@ -40,10 +39,11 @@ namespace faze
       //, m_trash(std::make_shared<Garbage>())
       //, m_seqTracker(std::make_shared<SequenceTracker>())
     {
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-      DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
-      //m_debug->EnableLeakTrackingForThread();
-#endif
+      if (m_debugLayer)
+      {
+        DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
+        //m_debug->EnableLeakTrackingForThread();
+      }
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -164,9 +164,10 @@ namespace faze
     DX12Device::~DX12Device()
     {
       waitGpuIdle();
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-      m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-#endif
+      if (m_debugLayer)
+      {
+        m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
+      }
     }
 
     DX12Resources& DX12Device::allResources()
@@ -607,9 +608,8 @@ namespace faze
 
     void DX12Device::collectTrash()
     {
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
-      m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-#endif
+      if (m_debugLayer)
+        m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
     }
 
     void DX12Device::waitGpuIdle()

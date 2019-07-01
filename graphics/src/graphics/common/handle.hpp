@@ -431,7 +431,7 @@ namespace faze
       {
         objects.resize(handle.id+1);
       }
-      return objects.at(handle.id); 
+      return objects[handle.id]; 
     }
 
     Type& operator[](ViewResourceHandle handle)
@@ -440,7 +440,12 @@ namespace faze
       {
         objects.resize(handle.id+1);
       }
-      return objects.at(handle.id); 
+      return objects[handle.id]; 
+    }
+
+    Type& at(int id)
+    {
+      return objects.at(id); 
     }
 
     MemView<Type> view()

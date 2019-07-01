@@ -11,8 +11,12 @@ namespace faze
 {
   namespace backend
   {
-    DX12Subsystem::DX12Subsystem(const char*, unsigned, const char*, unsigned)
+    DX12Subsystem::DX12Subsystem(const char*, unsigned, const char*, unsigned, bool debug)
+      : m_debug(debug)
     {
+#ifdef FAZE_GRAPHICS_VALIDATION_LAYER
+      m_debug = true;
+#endif
       CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(pFactory.GetAddressOf()));
     }
 
@@ -99,7 +103,7 @@ namespace faze
 
     std::shared_ptr<prototypes::DeviceImpl> DX12Subsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+      if (m_debug)
       {
         ComPtr<ID3D12Debug> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
@@ -113,13 +117,14 @@ namespace faze
 #endif
         }
       }
-#endif
 
       ID3D12Device* device;
       D3D_FEATURE_LEVEL createdLevel;
       constexpr D3D_FEATURE_LEVEL tryToEnable[] = {
         D3D_FEATURE_LEVEL_12_1,
-        D3D_FEATURE_LEVEL_12_0
+        D3D_FEATURE_LEVEL_12_0,
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0
       };
 
       // dxil needs this... still
@@ -144,7 +149,7 @@ namespace faze
       {
         int i = 0;
         HRESULT hr;
-        while (i < 2)
+        while (i < 4)
         {
           hr = D3D12CreateDevice(vAdapters[gpu.id].Get(), tryToEnable[i], IID_PPV_ARGS(&device));
           if (SUCCEEDED(hr))
@@ -158,7 +163,7 @@ namespace faze
         F_ASSERT(SUCCEEDED(hr), "oh no, we didn't get a device");
       }
 
-#if defined(FAZE_GRAPHICS_VALIDATION_LAYER)
+      if (m_debug)
       {
         {
           ComPtr<ID3D12InfoQueue> infoQueue;
@@ -188,9 +193,8 @@ namespace faze
           infoQueue->PushStorageFilter(&filter);
         }
       }
-#endif
 
-      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory, fs),
+      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory, fs, m_debug),
         [device](DX12Device* ptr)
       {
         device->Release();
