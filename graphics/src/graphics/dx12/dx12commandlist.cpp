@@ -935,6 +935,8 @@ namespace faze
           auto flag = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           auto beforeState = translateAccessMask(buffer.before.stage, buffer.before.usage);
           auto afterState = translateAccessMask(buffer.after.stage, buffer.after.usage);
+          if (beforeState == afterState)
+            continue;
           auto& vbuffer = device->allResources().buf[buffer.handle];
 
           D3D12_RESOURCE_TRANSITION_BARRIER transition;
@@ -954,6 +956,8 @@ namespace faze
           auto flag = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           auto beforeState = translateAccessMask(image.before.stage, image.before.usage);
           auto afterState = translateAccessMask(image.after.stage, image.after.usage);
+          if (beforeState == afterState)
+            continue;
           D3D12_RESOURCE_TRANSITION_BARRIER transition;
           transition.pResource = tex.native();
           transition.StateBefore = beforeState;
@@ -969,6 +973,8 @@ namespace faze
             }
           }
         }
+        if (barriers.empty())
+          return;
 #if 0
         for (int i = 0; i < barriers.size(); ++i)
         {
