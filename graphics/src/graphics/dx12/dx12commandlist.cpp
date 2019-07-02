@@ -973,8 +973,6 @@ namespace faze
             }
           }
         }
-        if (barriers.empty())
-          return;
 #if 0
         for (int i = 0; i < barriers.size(); ++i)
         {
@@ -982,7 +980,8 @@ namespace faze
           buffer->ResourceBarrier(1, &barrier);
         }
 #else
-        buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+        if (!barriers.empty())
+          buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 #endif
       }
     }

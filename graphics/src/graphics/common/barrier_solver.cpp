@@ -83,7 +83,7 @@ namespace faze
                 ++bufferBarrierOffsets;
               }
             }
-            else if (lastAccess.usage != AccessUsage::Unknown && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
+            else if (lastAccess.usage != AccessUsage::Unknown && lastAccess.stage != AccessStage::Common && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
             {
               auto src = lastAccess;
               src.queue_index = QueueType::Unknown;
