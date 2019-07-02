@@ -682,7 +682,7 @@ namespace faze
       nativeList->fillWith(vdev.device, buffer, solver);
     }
 
-#define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (1)
+#define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
     vector<FirstUseResource> DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
       DynamicBitfield seenB;
@@ -887,7 +887,7 @@ namespace faze
             {
               if (state.queue_index != resource.queue)
               {
-                F_ILOG("", "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
               }
             }
           }
@@ -899,7 +899,7 @@ namespace faze
             {
               if (firstStateIsEnough.queue_index != resource.queue)
               {
-                F_ILOG("", "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
               }
             }
           }

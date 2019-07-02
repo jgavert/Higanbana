@@ -592,7 +592,7 @@ namespace faze
         {
           hadBackup = true;
         }
-        F_SLOG("Graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
+        F_SLOG("Graphics/Surface", "format: %s colorspace: %s\n", vk::to_string(fmt.format).c_str(), vk::to_string(fmt.colorSpace).c_str());
       }
 
       if (!found)
@@ -659,12 +659,6 @@ namespace faze
       if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()).result != vk::Result::eSuccess)
       {
         F_ASSERT(false, "Was not supported.");
-      }
-
-      for (auto&& f : formats)
-      {
-        auto cs = f.colorSpace;
-        F_LOG("found surface format %s %s\n", vk::to_string(cs).c_str(), vk::to_string(f.format).c_str());
       }
 
       int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), buffers);
@@ -1984,7 +1978,6 @@ for (auto&& upload : it.second.dynamicBuffers)
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
-          F_ILOG("WHAT", "DOUBLE WHAT");
         }
         m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
