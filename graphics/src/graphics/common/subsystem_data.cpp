@@ -15,6 +15,17 @@ namespace faze
     return "Vulkan";
   }
 
+  const char* toString(VendorID id)
+  {
+    if (id == VendorID::Amd)
+      return "AMD";
+    if (id == VendorID::Nvidia)
+      return "Nvidia";
+    if (id == VendorID::Intel)
+      return "Intel";
+    return "Any";
+  }
+
   namespace backend
   {
     SubsystemData::SubsystemData(const char* appName, bool debugLayer, unsigned appVersion, const char* engineName, unsigned engineVersion)
