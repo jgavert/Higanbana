@@ -18,13 +18,62 @@
 using namespace faze;
 using namespace faze::math;
 
+vector<std::string> splitByDelimiter(std::string data, const char* delimiter)
+{
+  vector<std::string> splits;
+  
+  size_t pos = 0;
+  std::string token;
+  while ((pos = data.find(delimiter)) != std::string::npos) {
+    token = data.substr(0, pos);
+    splits.emplace_back(token);
+    data.erase(0, pos + strlen(delimiter));
+  }
+  return splits;
+}
+
+vector<int> convertToInts(vector<std::string> data)
+{
+  vector<int> ints;
+  for (auto&& s : data)
+  {
+    try
+    {
+      auto val = std::stoi(s.c_str());
+      ints.push_back(val);
+    } catch (...)
+    {
+    }
+  }
+  return ints;
+}
+
 void mainWindow(ProgramParams& params)
 {
+  GraphicsApi cmdlineApiId = GraphicsApi::Vulkan;
+  VendorID cmdlineVendorId = VendorID::Amd;
+  auto cmdLength = strlen(params.m_lpCmdLine);
+  F_ILOG("", "cmdline: \"%s\"", params.m_lpCmdLine);
+  std::string cmdline = params.m_lpCmdLine;
+  std::replace(cmdline.begin(), cmdline.end(), '"', ' ');
+  std::replace(cmdline.begin(), cmdline.end(), '\\', ' ');
+  F_ILOG("", "cmdline: \"%s\"", cmdline.c_str());
+  auto splits = splitByDelimiter(cmdline, " ");
+  auto ints = convertToInts(splits);
+  if (ints.size() > 0)
+  {
+    cmdlineApiId = static_cast<GraphicsApi>(ints[0]); 
+  }
+  if (ints.size() > 1)
+  {
+    cmdlineVendorId = static_cast<VendorID>(ints[1]); 
+  }
   Logger log;
   // test_entity();
   // test_bitfield();
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
+    F_LOG("Trying to start with %s api and %s vendor\n", toString(api), toString(preferredVendor));
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
@@ -39,7 +88,6 @@ void mainWindow(ProgramParams& params)
     {
       vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics("faze", true);
-      F_LOG("Have gpu's\n");
       auto gpus = graphics.availableGpus();
 #if 1
       auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
@@ -179,7 +227,7 @@ void mainWindow(ProgramParams& params)
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);
 #else
-  main(GraphicsApi::Vulkan, VendorID::Amd, true);
+  main(cmdlineApiId, cmdlineVendorId, true);
   //lbs.addTask("test1", [&](size_t) {main(GraphicsApi::Vulkan, VendorID::Nvidia, true); });
   //lbs.sleepTillKeywords({ "test1" });
 

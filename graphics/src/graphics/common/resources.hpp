@@ -12,9 +12,9 @@ namespace faze
 {
   enum class GraphicsApi
   {
+	  All,
     Vulkan,
     DX12,
-	  All
   };
 
   const char* toString(GraphicsApi api);
@@ -30,11 +30,12 @@ namespace faze
 
   enum class VendorID
   {
+    Unknown,
     Amd, // = 4098,
     Nvidia, // = 4318,
-    Intel, // = 32902
-    Unknown
+    Intel // = 32902
   };
+  const char* toString(VendorID api);
 
   enum class QueueType : uint32_t
   {
