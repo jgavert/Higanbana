@@ -171,6 +171,54 @@ namespace faze
         initialize();
       }
 
+      CommandBuffer(const CommandBuffer& other)
+        : m_data(other.m_data)
+        , m_totalSize(other.m_totalSize)
+        , m_usedSize(other.m_usedSize)
+        , m_packetBeingCreated(reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]))
+        , m_packets(other.m_packets)
+      {
+      }
+
+      CommandBuffer(CommandBuffer&& other)
+        : m_data(std::move(other.m_data))
+        , m_totalSize(std::move(other.m_totalSize))
+        , m_usedSize(std::move(other.m_usedSize))
+        , m_packetBeingCreated(reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]))
+        , m_packets(other.m_packets)
+      {
+        other.m_data.clear();
+        other.m_totalSize = 0;
+        other.m_usedSize = 0;
+        other.m_packetBeingCreated = nullptr;
+        other.m_packets = 0;
+      }
+
+      CommandBuffer& operator=(const CommandBuffer& other)
+      {
+        m_data = other.m_data;
+        m_totalSize = other.m_totalSize;
+        m_usedSize = other.m_usedSize;
+        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        m_packets = other.m_packets;
+        return *this;
+      }
+
+      CommandBuffer& operator=(CommandBuffer&& other)
+      {
+        m_data = std::move(other.m_data);
+        m_totalSize = std::move(other.m_totalSize);
+        m_usedSize = std::move(other.m_usedSize);
+        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        m_packets = other.m_packets;
+        other.m_data.clear();
+        other.m_totalSize = 0;
+        other.m_usedSize = 0;
+        other.m_packetBeingCreated = nullptr;
+        other.m_packets = 0;
+        return *this;
+      }
+
       size_t size() const
       {
         return m_packets;
