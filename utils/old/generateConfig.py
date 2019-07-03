@@ -83,7 +83,7 @@ cc_library(
 
 def make_library_BUILD(name, glob, deps, copts):
   srcs = """glob(["**/*.cpp"])"""
-  hdrs = """glob(["**/*.hpp"])+glob(["**/*.h"])"""
+  hdrs = """glob(["**/*.hpp"])"""
   if glob:
     srcs = json.dumps(globForBazel(name, ".cpp"))
     hdrs = json.dumps(globForBazel(name, ".hpp") + globForBazel(name, ".h"))
@@ -92,16 +92,20 @@ def make_library_BUILD(name, glob, deps, copts):
 if make_BUILDS:
   graphics_deps = """[
       "//core:core",
-      "//ext:Vulkan", 
-      "//ext:STB", 
-      "//ext:DirectXShaderCompiler", 
-      "@DX12//:DX12", 
-      "@DXGI//:DXGI", 
-      "@DXGUID//:DXGUID"]"""
+      "//ext:STB"] + select({
+          "@bazel_tools//src/conditions:windows": 
+              ["//ext:DirectXShaderCompiler",
+               "//ext:WinPixEventRuntime", 
+               "@VulkanSDKWin//:Vulkan",
+               "@DX12//:DX12", 
+               "@DXGI//:DXGI", 
+               "@DXGUID//:DXGUID"],
+          "//conditions:default": [],
+    })"""
 
   copts = """select({
-          "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
-          "//conditions:default": ["-std=c++2a"],
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
+          "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     })"""
   coreBUILD = make_library_BUILD("core", blob, "[]", copts)
   graphicsBUILD = make_library_BUILD("graphics", blob, graphics_deps, copts)
