@@ -1,1 +1,0 @@
-CALL FBuild.exe -dist

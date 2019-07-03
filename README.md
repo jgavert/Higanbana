@@ -1,17 +1,71 @@
-# Faze
-Name depicts that the projects goal isn't clear, hence its referencing mist.
-It's a collection of libraries to fasten researching or prototyping of multithreaded and/or advanced graphics algorithms.
+# Higanbana
+as the flower depicts, is a library which grows in the lands of Vulkan and DirectX12. Lands which are not very kind to mortals...
 
-### Current situation:
-Working in another branch and this branch is thrown away practically.
-so...
-Switched buildsystem to bazel, working for what it's worth only on windows for now.
-Brought DX12 down to the level of Vulkan and had a triangle on screen before big int handle refactoring.
-Currently got api design down for higher level user code.
-Working on getting lower level back to working with handles and multigpu.
-  - working towards clear screen -> present loop
-    - doesn't work yet. Handles and other design changes "broke" things.
-  - after that, triangle
-    - kind of have all the code for it... just need to figure out few things with new synchronization design that doesn't exist yet.
-      ... I could do another set of platform specific solvers, but that's a pain to upkeep... no thanks.
-    - at this point I will probably make "bazel" the main branch, next update will happen then.
+Aim is to provide simplified, but efficient Graphics API, helping with using the latest and greatest gpu features...
+
+Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also proof of concept on understanding the api's.
+
+## Building
+You will need the following additional software to build.
+* Windows 10 =D
+    * Sorry, no linux yet.
+* Bazel
+* Visual Studio 2019
+* Vulkan SDK
+
+These are required for building DirectXShaderCompiler
+* CMake
+* Python 3
+
+### Build Steps - Windows
+First run 
+
+    fetchExternalsAndBuildDXC.bat
+
+This will ensure that you have all the externals.
+
+small note: This compiles DXC in release mode with spirv, it takes long. like 10minutes or worse.
+
+Building the project is simply
+
+    bazel build test_main
+
+Which results in my test exe. You can test it by running:
+
+    run.bat
+or go to bazel-bin/test_main and run the exe from that location.
+
+
+## Features
+These are partly current features and features I'm aiming for and might have gotten one single case to work. Like with Interop between DX12 and Vulkan.
+* Designed for ease of use
+    * Triangle doesn't need 1500 lines, maybe.. 50? 30? including shader code TODO: update with correct linecount
+* DX12 and Vulkan in one exe through single api
+* Multi GPU support through explicit devices
+    * Won't take advantage of SLI/Crossfire support
+    * This is on-going effort
+    * Cross-device isn't well supported by Vulkan on Windows
+    * DX12 <-> Vulkan is within one device only
+* Easy to make use of Graphics/Compute/Dma queue
+    * all semaphores/synchronization/everything handled for you.
+* Homebrew implementations to many problems :D
+
+## What's next?
+* Write lots of tests
+* Clean unnecessary comments and code
+* Support Raytracing
+* Sharing buffer/image between DX12 and Vulkan for debuggability
+    * Use one code to render on both and show the results in one swapchain buffer
+* Mesh Shaders
+    * Waiting for support from DX12 and DXC
+* Optimise the cpu code
+    * Multithreading and speed was though when designing the architechture
+    * Many low hanging fruits
+* Write benchmarks for cpu and maybe for gpu also
+    * So that I can have good reference for when I optimise    
+* Make many current features as optional
+    * Opt-out threading with possibility to integrate with external system
+    * Opt-out filesystem support with possibility to integrate with external system
+        * Should be possible to only operate in-memory.
+        * Mostly shader related.
+    * Some kind of error callback like vulkan has for error reporting

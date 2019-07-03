@@ -1,0 +1,11 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "native",
+      "name": "test_main",
+      "project": "bazel-bin\\test_main\\test_main.exe"
+    }
+  ]
+}

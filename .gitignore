@@ -3,9 +3,13 @@
 fbuild
 config.bff
 workspace/
+ext/
 externals/
+bazel-*
 package/
 app/external/imgui/
+
+*.cap
 
 test/test_output_*
 
@@ -55,7 +59,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 
-# Visual Studo 2015 cache/options directory
+# Visual Studo cache/options directory
 .vs/
 
 # MSTest test Results
