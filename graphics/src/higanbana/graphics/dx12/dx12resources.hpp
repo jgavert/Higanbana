@@ -44,7 +44,7 @@ namespace higanbana
 
       DX12GPUDescriptor offset(int index) const
       {
-        F_ASSERT(index < block.size && index >= 0, "Invalid index %d", index);
+        HIGAN_ASSERT(index < block.size && index >= 0, "Invalid index %d", index);
         DX12GPUDescriptor desc{};
         desc.cpu.ptr = baseCpuHandle.ptr + static_cast<size_t>(index + block.offset) * increment;
         desc.gpu.ptr = baseGpuHandle.ptr + static_cast<size_t>(index + block.offset) * increment;
@@ -120,7 +120,7 @@ namespace higanbana
       DynamicDescriptorBlock allocate(int value)
       {
         auto offset = allocator.allocate(value);
-        F_ASSERT(offset.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        HIGAN_ASSERT(offset.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
         DynamicDescriptorBlock desc = baseRange;
         desc.block = offset;
         return desc;
@@ -128,7 +128,7 @@ namespace higanbana
 
       void release(DynamicDescriptorBlock range)
       {
-        F_ASSERT(range.block.offset != -1, "halp");
+        HIGAN_ASSERT(range.block.offset != -1, "halp");
         allocator.release(range.block);
       }
 
@@ -169,7 +169,7 @@ namespace higanbana
       DX12CPUDescriptor allocate()
       {
         auto dip = allocator.allocate(1);
-        F_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        HIGAN_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
         DX12CPUDescriptor desc{};
         desc.block = dip;
         desc.type = type;
@@ -285,7 +285,7 @@ namespace higanbana
       UploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        F_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", size);
         return UploadBlock{ data, gpuAddr,  dip };
       }
 
@@ -366,7 +366,7 @@ namespace higanbana
       DX12Query allocate()
       {
         auto dip = allocator.allocate(2);
-        F_ASSERT(dip != -1, "Queryheap out of queries.");
+        HIGAN_ASSERT(dip != -1, "Queryheap out of queries.");
         return DX12Query{ static_cast<unsigned>(dip),  static_cast<unsigned>(dip + 1) };
       }
 
@@ -432,7 +432,7 @@ namespace higanbana
       ReadbackBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes, 512);
-        F_ASSERT(dip != -1, "No space left, make bigger DX12ReadbackHeap :) %d", bytes);
+        HIGAN_ASSERT(dip != -1, "No space left, make bigger DX12ReadbackHeap :) %d", bytes);
         return ReadbackBlock{ static_cast<size_t>(dip),  bytes };
       }
 
@@ -507,7 +507,7 @@ namespace higanbana
           return;
         fence->SetEventOnCompletion(*value, *handle);
         DWORD result = WaitForSingleObject(*handle, dwMilliseconds);
-        F_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
+        HIGAN_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
       }
     };
 

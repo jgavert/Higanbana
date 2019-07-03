@@ -54,7 +54,7 @@ public:
     finalPath = m_sourcePath + filename;
     if (filename.compare("rootSig.h") == 0)
     {
-      F_LOG("Shader include wanted RootSignature!!\n");
+      HIGAN_LOG("Shader include wanted RootSignature!!\n");
 
       ComPtr<IDxcBlobEncoding> asd;
       auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(m_rootSignatureFile.data(), static_cast<UINT32>(m_rootSignatureFile.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
@@ -67,7 +67,7 @@ public:
     }
     else
     {
-      F_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
+      HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
     }
 
     if (m_fileIncluded)
@@ -85,7 +85,7 @@ public:
     }
     else
     {
-      F_LOG("oh no\n");
+      HIGAN_LOG("oh no\n");
     }
 
     return hr;
@@ -186,7 +186,7 @@ namespace higanbana
         case ShaderType::TessEvaluation: // ds_6_0 ??
           return L"ds_6_2";
         default:
-          F_ASSERT(false, "Unknown ShaderType");
+          HIGAN_ASSERT(false, "Unknown ShaderType");
         }
         return L"";
       }

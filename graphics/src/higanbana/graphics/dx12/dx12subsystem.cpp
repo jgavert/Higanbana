@@ -141,7 +141,7 @@ namespace higanbana
         }
         else
         {
-          F_ASSERT(false, ":( no warp");
+          HIGAN_ASSERT(false, ":( no warp");
         }
       }
       else
@@ -159,7 +159,7 @@ namespace higanbana
           }
           ++i;
         }
-        F_ASSERT(SUCCEEDED(hr), "oh no, we didn't get a device");
+        HIGAN_ASSERT(SUCCEEDED(hr), "oh no, we didn't get a device");
       }
 
       if (m_debug)

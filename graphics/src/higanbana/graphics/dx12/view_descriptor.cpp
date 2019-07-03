@@ -164,7 +164,7 @@ namespace higanbana
         }
         else
         {
-          F_ASSERT(false, "dimension not bothered to write yet");
+          HIGAN_ASSERT(false, "dimension not bothered to write yet");
         }
 
         return uavdesc;
@@ -241,7 +241,7 @@ namespace higanbana
         }
         else
         {
-          F_ASSERT(false, "dimension not bothered to write yet");
+          HIGAN_ASSERT(false, "dimension not bothered to write yet");
         }
         return rtv;
       }
@@ -308,7 +308,7 @@ namespace higanbana
         }
         else
         {
-          F_ASSERT(false, "dimension not bothered to write yet");
+          HIGAN_ASSERT(false, "dimension not bothered to write yet");
         }
         return dsv;
       }

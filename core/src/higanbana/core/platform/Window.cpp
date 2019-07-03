@@ -232,7 +232,7 @@ namespace higanbana
     if ((m_width != m_resizeWidth || m_height != m_resizeHeight) && !m_minimized)
     {
 #if DEBUG_LOG_RESIZE
-      F_SLOG("Window", "%s: %s %dx%d\n", m_name.c_str(), eventName, m_resizeWidth, m_resizeHeight);
+      HIGAN_SLOG("Window", "%s: %s %dx%d\n", m_name.c_str(), eventName, m_resizeWidth, m_resizeHeight);
 #endif
       needToResize = true;
 
@@ -320,7 +320,7 @@ namespace higanbana
     auto result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     if (result != S_OK)
     {
-      F_SLOG("Window", "Tried to set dpi awareness.\n");
+      HIGAN_SLOG("Window", "Tried to set dpi awareness.\n");
     }
 
     hWnd = CreateWindowEx(NULL, cnw.c_str(), cnw.c_str(), m_baseWindowFlags, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, params.m_hInstance, NULL);
@@ -465,7 +465,7 @@ namespace higanbana
       POINT point;
       if (GetCursorPos(&point))
       {
-        F_LOG("%dx%d %dx%dx\n", m_mouse.m_pos.x(), m_mouse.m_pos.y(), point.x, point.y);
+        HIGAN_LOG("%dx%d %dx%dx\n", m_mouse.m_pos.x(), m_mouse.m_pos.y(), point.x, point.y);
         //m_mouse.m_pos = ivec2{ point.x, point.y };
       }*/
     }

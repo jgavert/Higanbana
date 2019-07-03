@@ -52,11 +52,11 @@ void mainWindow(ProgramParams& params)
   GraphicsApi cmdlineApiId = GraphicsApi::Vulkan;
   VendorID cmdlineVendorId = VendorID::Amd;
   auto cmdLength = strlen(params.m_lpCmdLine);
-  F_ILOG("", "cmdline: \"%s\"", params.m_lpCmdLine);
+  HIGAN_LOGi( "cmdline: \"%s\"", params.m_lpCmdLine);
   std::string cmdline = params.m_lpCmdLine;
   std::replace(cmdline.begin(), cmdline.end(), '"', ' ');
   std::replace(cmdline.begin(), cmdline.end(), '\\', ' ');
-  F_ILOG("", "cmdline: \"%s\"", cmdline.c_str());
+  HIGAN_LOGi( "cmdline: \"%s\"", cmdline.c_str());
   auto splits = splitByDelimiter(cmdline, " ");
   auto ints = convertToInts(splits);
   if (ints.size() > 0)
@@ -72,7 +72,7 @@ void mainWindow(ProgramParams& params)
   // test_bitfield();
   auto main = [&](GraphicsApi api, VendorID preferredVendor, bool updateLog)
   {
-    F_LOG("Trying to start with %s api and %s vendor\n", toString(api), toString(preferredVendor));
+    HIGAN_LOG("Trying to start with %s api and %s vendor\n", toString(api), toString(preferredVendor));
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
@@ -109,7 +109,7 @@ void mainWindow(ProgramParams& params)
             allGpus.push_back(it);
             break;
           }
-          F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
+          HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
       if (allGpus.empty())
@@ -121,7 +121,7 @@ void mainWindow(ProgramParams& params)
             allGpus.push_back(it);
             break;
           }
-          F_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
+          HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         }
       }
 #endif
@@ -145,7 +145,7 @@ void mainWindow(ProgramParams& params)
 
         for (auto& gpu : allGpus)
         {
-          F_LOG("Created device \"%s\"\n", gpu.name.c_str());
+          HIGAN_LOG("Created device \"%s\"\n", gpu.name.c_str());
         }
 
         bool closeAnyway = false;

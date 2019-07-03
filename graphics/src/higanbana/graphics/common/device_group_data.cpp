@@ -321,7 +321,7 @@ namespace higanbana
       // TODO: sharedbuffers
 
       if (desc.desc.allowCrossAdapter) {
-          F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
+          HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
           //handle.setGpuId(desc.desc.hostGPU);
           auto& vdev = m_devices[desc.desc.hostGPU];
           auto memRes = vdev.device->getReqs(desc); // memory requirements
@@ -349,8 +349,8 @@ namespace higanbana
                 m_devices[i].device->createHeapFromHandle(hh, shared);
                 return GpuHeap(hh, desc);
               }); // get heap corresponding to requirements
-              F_ASSERT(allo2.allocation.block.size == allo.allocation.block.size, "wtf!");
-              F_ASSERT(allo2.allocation.block.offset == allo.allocation.block.offset, "wtf!");
+              HIGAN_ASSERT(allo2.allocation.block.size == allo.allocation.block.size, "wtf!");
+              HIGAN_ASSERT(allo2.allocation.block.offset == allo.allocation.block.offset, "wtf!");
               m_devices[i].device->createBuffer(handle, allo2, desc);
               m_devices[i].m_buffers[handle] = allo2.allocation;
               m_devices[i].m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
@@ -383,7 +383,7 @@ namespace higanbana
 
       if (desc.desc.allowCrossAdapter) // only interopt supported for now
       {
-        F_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
+        HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
         //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
         // texture
@@ -573,7 +573,7 @@ namespace higanbana
             }
           }
         }
-        //F_ILOG("", "packet: %s", gfxpacket::packetTypeToString(header->type));
+        //HIGAN_LOGi( "packet: %s", gfxpacket::packetTypeToString(header->type));
         switch (header->type)
         {
           case PacketType::RenderpassEnd:
@@ -720,13 +720,13 @@ namespace higanbana
 
         auto fSeen = list.requirementsBuf.exceptFields(seenB);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Buffer %d", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Buffer %d", id);
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
         });
         seenB.add(fSeen);
         fSeen = list.requirementsTex.exceptFields(seenT);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "first seen Texture %d", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Texture %d", id);
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
         });
         seenT.add(fSeen);
@@ -734,21 +734,21 @@ namespace higanbana
         if (list.type == QueueType::Graphics)
         {
           graphicsList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Graphics %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Graphics %d", listIndex);
           queue.gb.add(list.requirementsBuf);
           queue.gt.add(list.requirementsTex);
         }
         else if (list.type == QueueType::Compute)
         {
           computeList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Compute %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Compute %d", listIndex);
           queue.cb.add(list.requirementsBuf);
           queue.ct.add(list.requirementsTex);
         }
         else
         {
           dmaList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "dmalist %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "dmalist %d", listIndex);
           queue.db.add(list.requirementsBuf);
           queue.dt.add(list.requirementsTex);
         }
@@ -756,15 +756,15 @@ namespace higanbana
         auto doAcquireReleasePairs = [&](int depList, const char* name, Intersection& ci, QueueType depType){
             if (depList >= 0)
               lists[depList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "%d list had %s dependency!", listIndex, name);
+            IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "%d list had %s dependency!", listIndex, name);
             ci.buf.foreach([&](int id){
-              IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Buffer id: %d is transferred from list %d to %d", id, depList, listIndex);
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Buffer id: %d is transferred from list %d to %d", id, depList, listIndex);
               list.acquire.emplace_back(QueueTransfer{ResourceType::Buffer, id, depType});
               if (depList >= 0)
                 lists[depList].release.emplace_back(QueueTransfer{ResourceType::Buffer, id, list.type});
             });
             ci.tex.foreach([&](int id){
-              IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Texture id: %d is transferred from list %d to %d", id, depList, listIndex);
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Texture id: %d is transferred from list %d to %d", id, depList, listIndex);
               list.acquire.emplace_back(QueueTransfer{ResourceType::Texture, id, depType});
               if (depList >= 0)
                 lists[depList].release.emplace_back(QueueTransfer{ResourceType::Texture, id, list.type});
@@ -887,7 +887,7 @@ namespace higanbana
             {
               if (state.queue_index != resource.queue)
               {
-                IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
               }
             }
           }
@@ -899,7 +899,7 @@ namespace higanbana
             {
               if (firstStateIsEnough.queue_index != resource.queue)
               {
-                IF_QUEUE_DEPENDENCY_DEBUG F_ILOG("", "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
               }
             }
           }

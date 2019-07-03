@@ -247,7 +247,7 @@ namespace higanbana
       case PrimitiveTopology::Triangle:
         return vk::PolygonMode::eFill;
       case PrimitiveTopology::Patch:
-        F_ASSERT(false, "don't know what to do.");
+        HIGAN_ASSERT(false, "don't know what to do.");
       default:
         break;
       }
@@ -336,7 +336,7 @@ namespace higanbana
       {
         // Rasterization
         auto& rd = desc.desc;
-        F_ASSERT(rd.conservativeRaster != higanbana::ConservativeRasterization::On, "Conservative raster ext code not written.");
+        HIGAN_ASSERT(rd.conservativeRaster != higanbana::ConservativeRasterization::On, "Conservative raster ext code not written.");
         rasterState = rasterState.setDepthClampEnable(rd.depthBiasClamp)
           .setRasterizerDiscardEnable(false) // apparently discards everything immediately
           .setPolygonMode(vk::PolygonMode::eLine)

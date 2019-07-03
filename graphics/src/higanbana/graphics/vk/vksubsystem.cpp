@@ -57,7 +57,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   auto queueLabelsCount = pCallbackData->queueLabelCount;
   auto objectCount = pCallbackData->objectCount;
 
-  F_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, pMessage);
+  HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, pMessage);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   if (breakOn && IsDebuggerPresent())
     __debugbreak();
@@ -200,7 +200,7 @@ namespace higanbana
         // quite hot shit baby yeah!
         auto error = vk::to_string(res);
         GFX_ILOG("Instance creation error: %s", error.c_str());
-        F_ASSERT(false, "");
+        HIGAN_ASSERT(false, "");
       }
       auto devRes = m_instance->enumeratePhysicalDevices();
       VK_CHECK_RESULT(devRes);

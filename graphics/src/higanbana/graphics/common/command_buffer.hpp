@@ -294,15 +294,15 @@ namespace higanbana
       void append(const CommandBuffer& other)
       {
         PacketHeader* correctLastPacket = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
-        F_ASSERT(m_packetBeingCreated == correctLastPacket, "sanity check");
+        HIGAN_ASSERT(m_packetBeingCreated == correctLastPacket, "sanity check");
         auto newSize = m_data.size() + other.sizeBytes();
         m_data.resize(newSize);
         // find new end.. since we just resized and invalidated all pointers.
         m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
-        F_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
+        HIGAN_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
         memcpy(m_packetBeingCreated, other.m_data.data(), other.sizeBytes());
         m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize + other.m_usedSize - sizeof(PacketHeader) - sizeof(PacketHeader)]);
-        F_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
+        HIGAN_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
         m_usedSize += other.m_usedSize - sizeof(PacketHeader);
         m_totalSize += other.m_usedSize - sizeof(PacketHeader);
         m_packets += other.m_packets;

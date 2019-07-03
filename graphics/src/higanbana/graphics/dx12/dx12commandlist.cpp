@@ -387,13 +387,13 @@ namespace higanbana
       if (!block)
       {
         auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 16);
-        F_ASSERT(newBlock, "What!");
+        HIGAN_ASSERT(newBlock, "What!");
         m_freeResources->uploadBlocks.push_back(newBlock);
         m_constantsAllocator = UploadLinearAllocator(newBlock);
         block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       }
 
-      F_ASSERT(block, "What!");
+      HIGAN_ASSERT(block, "What!");
       return block;
     }
 
@@ -403,13 +403,13 @@ namespace higanbana
       if (!block)
       {
         auto newBlock = m_descriptors->allocate(1024);
-        F_ASSERT(newBlock, "What!");
+        HIGAN_ASSERT(newBlock, "What!");
         m_freeResources->descriptorBlocks.push_back(newBlock);
         m_descriptorAllocator = LinearDescriptorAllocator(newBlock);
         block = m_descriptorAllocator.allocate(size);
       }
 
-      F_ASSERT(block, "What!");
+      HIGAN_ASSERT(block, "What!");
       return block;
     }
 
@@ -1001,7 +1001,7 @@ namespace higanbana
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        //F_ILOG("addCommandsVK", "type header %d", header->type);
+        //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {

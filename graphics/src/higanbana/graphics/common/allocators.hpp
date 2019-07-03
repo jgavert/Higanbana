@@ -16,7 +16,7 @@ namespace higanbana
     uintptr_t privateAlloc(size_t size)
     {
 	  int64_t alignedCurrent = roundUpMultipleInt(m_current, 16);
-      F_ASSERT(alignedCurrent + size < m_size, "No space in allocator");
+      HIGAN_ASSERT(alignedCurrent + size < m_size, "No space in allocator");
       if (size == 0)
         return 0;
       m_current = alignedCurrent + size;
@@ -109,7 +109,7 @@ namespace higanbana
 
     void release(int val)
     {
-      F_ASSERT(static_cast<int>(m_freelist.size()) != m_size
+      HIGAN_ASSERT(static_cast<int>(m_freelist.size()) != m_size
         && val >= 0 && val < m_size, "freelist already full, is this valid?");
       m_freelist.push_back(val);
     }

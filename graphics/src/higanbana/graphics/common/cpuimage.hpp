@@ -48,7 +48,7 @@ namespace higanbana
         info.rowPitch = formatSize.pixelSize * info.dim.x;
         info.slicePitch = info.rowPitch * info.dim.y;
         mips.push_back(info);
-        F_LOG("dim %dx%dx%d\n", mipDim.x, mipDim.y, mipDim.z);
+        HIGAN_LOG("dim %dx%dx%d\n", mipDim.x, mipDim.y, mipDim.z);
       }
 
       size_t currentOffset = 0;

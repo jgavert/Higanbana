@@ -11,7 +11,7 @@ namespace higanbana
   namespace math
   {
 
-#define printMat(mat) F_LOG("%s\n", higanbana::math::toString(mat).c_str())
+#define printMat(mat) HIGAN_LOG("%s\n", higanbana::math::toString(mat).c_str())
 
 
     template<int hiddenSize, int inputSize, int outputSize, int sampleCount>
@@ -199,14 +199,14 @@ namespace higanbana
           }
           if (prevCost >= sanity)
           {
-            //F_LOG("found a upward slope: iter %zu current err: %.10f\n", iter, prevCost);
+            //HIGAN_LOG("found a upward slope: iter %zu current err: %.10f\n", iter, prevCost);
             return iter;
           }
           sanity = prevCost;
           if (prevCost < underError)
           {
             underError = prevCost * checkProgress;
-            //F_LOG("got under new margin at iter %zu current err: %.10f\n", iter, prevCost);
+            //HIGAN_LOG("got under new margin at iter %zu current err: %.10f\n", iter, prevCost);
           }
         }
         return iter;

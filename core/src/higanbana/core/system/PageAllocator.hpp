@@ -41,7 +41,7 @@ namespace higanbana
 
     void release(PageBlock b)
     {
-      F_ASSERT(b.offset >= 0, "Invalid block released.");
+      HIGAN_ASSERT(b.offset >= 0, "Invalid block released.");
       m_allocator.release(higanbana::RangeBlock{ b.offset / m_pageSize, b.size / m_pageSize });
     }
 

@@ -21,22 +21,22 @@
 #include <locale>
 #include <codecvt>
 
-#define F_DLOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
-#define F_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
-#define F_LOGi(msg, ...) log_im(msg, ##__VA_ARGS__)
-#define F_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
-#define F_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
-#define F_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
+#define HIGAN_DEBUG_LOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
+#define HIGAN_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)
+#define HIGAN_LOGi(msg, ...) log_im(msg, ##__VA_ARGS__)
+#define HIGAN_ILOG(prefix, msg, ...) log_imSys(prefix, msg, ##__VA_ARGS__)
+#define HIGAN_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
+#define HIGAN_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
 
 #if 1 //defined(DEBUG)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-#define F_ERROR(msg, ...) \
+#define HIGAN_ERROR(msg, ...) \
   log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
   if (IsDebuggerPresent()) \
     __debugbreak(); \
   abort();
 
-#define F_ASSERT(cond, msg, ...)\
+#define HIGAN_ASSERT(cond, msg, ...)\
         do \
         { \
         if (!(cond)) \
@@ -63,11 +63,11 @@
           } \
       } while (0)
 #else
-#define F_ERROR(msg, ...) \
+#define HIGAN_ERROR(msg, ...) \
   log_immideate(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
   abort();
 
-#define F_ASSERT(cond, msg, ...)\
+#define HIGAN_ASSERT(cond, msg, ...)\
         do \
         { \
         if (!(cond)) \
@@ -78,8 +78,8 @@
       } while (0)
 #endif
 #else
-#define F_ERROR(msg, ...) do {} while(0)
-#define F_ASSERT(cond, msg, ...) do {} while(0)
+#define HIGAN_ERROR(msg, ...) do {} while(0)
+#define HIGAN_ASSERT(cond, msg, ...) do {} while(0)
 #endif
 
 #ifdef _MSC_VER

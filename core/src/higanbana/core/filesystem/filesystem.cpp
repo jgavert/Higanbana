@@ -8,8 +8,8 @@
 #define HIGANBANA_FS_EXTRA_INFO 0
 
 #if HIGANBANA_FS_EXTRA_INFO
-#define FS_ILOG(msg, ...) F_ILOG("Filesystem", msg, ##__VA_ARGS__)
-#define FS_LOG(msg, ...) F_SLOG("Filesystem", msg, ##__VA_ARGS__)
+#define FS_ILOG(msg, ...) HIGAN_ILOG("Filesystem", msg, ##__VA_ARGS__)
+#define FS_LOG(msg, ...) HIGAN_SLOG("Filesystem", msg, ##__VA_ARGS__)
 #else
 #define FS_ILOG(msg, ...)
 #define FS_LOG(msg, ...)
@@ -102,7 +102,7 @@ FileSystem::FileSystem()
 {
   loadDirectoryContentsRecursive("");
   auto fullPath = system_fs::current_path().string();
-  F_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
+  HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
 }
 
 FileSystem::FileSystem(std::string relativeOffset)
@@ -110,7 +110,7 @@ FileSystem::FileSystem(std::string relativeOffset)
 {
   loadDirectoryContentsRecursive("");
   auto fullPath = getBasePath();
-  F_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
+  HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
 }
 
 std::string FileSystem::getBasePath()
@@ -249,12 +249,12 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
   }
   else if (system_fs::exists(fullPath))
   {
-    F_ASSERT(system_fs::is_regular_file(fullPath), "Tried to overwrite somethign that wasn't a regular file.");
+    HIGAN_ASSERT(system_fs::is_regular_file(fullPath), "Tried to overwrite somethign that wasn't a regular file.");
   }
   auto freeSpace = system_fs::space(fullPath.parent_path());
   if (freeSpace.available < size)
   {
-    F_ASSERT(false, "no disk space !?!?!?!?");
+    HIGAN_ASSERT(false, "no disk space !?!?!?!?");
     return false;
   }
   auto file = fopen(fullPath.string().c_str(), "wb");

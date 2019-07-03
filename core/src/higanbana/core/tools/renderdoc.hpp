@@ -22,14 +22,14 @@ namespace higanbana
 
         int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc_api);
 
-        F_ASSERT(ret == 1, "");
-        F_ASSERT(rdoc_api->StartFrameCapture != nullptr && rdoc_api->EndFrameCapture != nullptr, "");
+        HIGAN_ASSERT(ret == 1, "");
+        HIGAN_ASSERT(rdoc_api->StartFrameCapture != nullptr && rdoc_api->EndFrameCapture != nullptr, "");
 
         int major = 999, minor = 999, patch = 999;
 
         rdoc_api->GetAPIVersion(&major, &minor, &patch);
 
-        F_ASSERT(major == 1 && minor >= 0 && patch >= 0, "");
+        HIGAN_ASSERT(major == 1 && minor >= 0 && patch >= 0, "");
       }
 #endif
     }

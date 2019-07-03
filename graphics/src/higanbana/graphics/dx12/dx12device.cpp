@@ -120,7 +120,7 @@ namespace higanbana
         HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
         if (hr == S_OK)
         {
-          F_SLOG("DX12", "Supported msaa mode with SampleCount %d\n", i);
+          HIGAN_SLOG("DX12", "Supported msaa mode with SampleCount %d\n", i);
         }
       }*/
 
@@ -275,14 +275,14 @@ namespace higanbana
       case ResourceUsage::DepthStencil:
       {
         dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        F_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
+        HIGAN_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
         break;
       }
       case ResourceUsage::DepthStencilRW:
       {
         dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        F_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
+        HIGAN_ASSERT(desc.miplevels == 1, "DepthStencil doesn't support mips");
         break;
       }
       default:
@@ -303,10 +303,10 @@ namespace higanbana
       auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
       RECT rect{};
       BOOL lol = GetClientRect(natSurface->native(), &rect);
-      F_ASSERT(lol, "window rect failed ....?");
+      HIGAN_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      //F_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
+      //HIGAN_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
       DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
       swapChainDesc.Width = width; // I wonder how to get sane sizes in beginning...
       swapChainDesc.Height = height;
@@ -355,10 +355,10 @@ namespace higanbana
 
       RECT rect{};
       BOOL lol = GetClientRect(natSurface.native(), &rect);
-      F_ASSERT(lol, "window rect failed ....?");
+      HIGAN_ASSERT(lol, "window rect failed ....?");
       auto width = rect.right - rect.left;
       auto height = rect.bottom - rect.top;
-      //F_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
+      //HIGAN_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
       // clean old
       natSwapchain->setSwapchain(nullptr);
@@ -516,7 +516,7 @@ namespace higanbana
         {
           //m_dynamicUpload->release(dynBuf);
           //m_allRes.[handle] = DX12DynamicBufferView();
-          F_ASSERT(false, "unhandled type released");
+          HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
         case ResourceType::MemoryHeap:
@@ -530,7 +530,7 @@ namespace higanbana
         }
         default:
         {
-          F_ASSERT(false, "unhandled type released");
+          HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
       }
@@ -594,7 +594,7 @@ namespace higanbana
         }
         default:
         {
-          F_ASSERT(false, "unhandled type released");
+          HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
       }
@@ -1159,7 +1159,7 @@ namespace higanbana
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP);
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_TILED);
         DX12CheckSupport2(D3D12_FORMAT_SUPPORT2_MULTIPLANE_OVERLAY);  */
-        //F_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
+        //HIGAN_ILOG("DX12", "%s supports: \n%s%s", formatToString(format), output.c_str(), output2.c_str());
       }
     }
 
@@ -1350,7 +1350,7 @@ namespace higanbana
     {
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
-      F_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), view.data(), view.size());
 
       auto format = formatTodxFormat(type).view;
@@ -1367,7 +1367,7 @@ namespace higanbana
       desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-      F_ASSERT(upload.block.offset % stride == 0, "oh no");
+      HIGAN_ASSERT(upload.block.offset % stride == 0, "oh no");
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
       m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, descriptor, format, stride);
@@ -1377,7 +1377,7 @@ namespace higanbana
     {
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
-      F_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), view.data(), view.size());
       D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
       desc.Format = DXGI_FORMAT_UNKNOWN;
@@ -1388,7 +1388,7 @@ namespace higanbana
       desc.Buffer.StructureByteStride = stride;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-      F_ASSERT(upload.block.offset % stride == 0, "oh no");
+      HIGAN_ASSERT(upload.block.offset % stride == 0, "oh no");
 
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
@@ -1402,11 +1402,11 @@ namespace higanbana
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
       const auto requiredRowPitch = roundUpMultiplePowerOf2(rowPitch, APIRowPitchAlignmentRequirement);
-      F_LOG("rowPitch %zu\n", requiredRowPitch);
+      HIGAN_LOG("rowPitch %zu\n", requiredRowPitch);
       const auto requiredTotalSize = rows * requiredRowPitch;
 
       auto upload = m_dynamicUpload->allocate(requiredTotalSize);
-      F_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload, "Halp");
       for (size_t row = 0; row < rows; ++row)
       {
         auto srcPosition = rowPitch * row;
@@ -1565,7 +1565,7 @@ namespace higanbana
           if (native->closed())
             natList.emplace_back(native->list());
           else
-            F_ASSERT(false, "Remove when you feel like it.");
+            HIGAN_ASSERT(false, "Remove when you feel like it.");
         }
       }
       if (!natList.empty())

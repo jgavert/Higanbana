@@ -69,7 +69,7 @@ namespace higanbana
 
     void freeBlocks(int64_t startBlock, int64_t blockCount)
     {
-      F_ASSERT(startBlock + blockCount <= s_pageCount, "not enough implementation pages available");
+      HIGAN_ASSERT(startBlock + blockCount <= s_pageCount, "not enough implementation pages available");
 
       for (int64_t i = startBlock; i < startBlock + blockCount; ++i)
       {
@@ -79,7 +79,7 @@ namespace higanbana
 
     int64_t checkIfFreeContiguousMemory(uint64_t blockCount)
     {
-      F_ASSERT(blockCount <= s_pageCount, "Too many pages... %u > %u", blockCount, s_pageCount);
+      HIGAN_ASSERT(blockCount <= s_pageCount, "Too many pages... %u > %u", blockCount, s_pageCount);
 
       // just do the idiot way and forloop the whole bitfield
       // TODO: profile if horribly slow. and wave hands harder
@@ -105,7 +105,7 @@ namespace higanbana
     // should be procted by the mutex outside of this function
     void markUsedPages(int64_t startIndex, int64_t size)
     {
-      F_ASSERT(startIndex + size <= s_pageCount, "not enough pages available");
+      HIGAN_ASSERT(startIndex + size <= s_pageCount, "not enough pages available");
       for (int64_t i = startIndex; i < startIndex + size; ++i)
       {
         m_blocks.setIdxBit(i);
@@ -150,7 +150,7 @@ namespace higanbana
 
     void release(RangeBlock range)
     {
-      F_ASSERT(range.offset + range.size <= m_size, "not enough pages available");
+      HIGAN_ASSERT(range.offset + range.size <= m_size, "not enough pages available");
       for (int64_t i = range.offset; i < range.offset + range.size; ++i)
       {
         m_blocks.setBit(i);
@@ -205,7 +205,7 @@ namespace higanbana
   private:
     int64_t checkIfFreeContiguousMemory(int64_t blockCount)
     {
-      F_ASSERT(blockCount <= m_size, "Too many pages... %u > %u", blockCount, m_size);
+      HIGAN_ASSERT(blockCount <= m_size, "Too many pages... %u > %u", blockCount, m_size);
 
       // just do the idiot way and forloop the whole bitfield
       // TODO: profile if horribly slow. and wave hands harder
@@ -231,7 +231,7 @@ namespace higanbana
     // should be procted by the mutex outside of this function
     void markUsedPages(int64_t startIndex, int64_t size)
     {
-      F_ASSERT(startIndex + size <= m_size, "not enough pages available");
+      HIGAN_ASSERT(startIndex + size <= m_size, "not enough pages available");
       for (int64_t i = startIndex; i < startIndex + size; ++i)
       {
         m_blocks.clearBit(i);

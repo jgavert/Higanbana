@@ -37,7 +37,7 @@ void test_entity()
     for (int i = 0; i < max_entitys; i++)
     {
       auto e = db.createEntity();
-      //F_ILOG("wtf", "id %zu", e);
+      //HIGAN_ILOG("wtf", "id %zu", e);
       pos.insert(e, Position{float4(dist(gen), dist(gen), dist(gen),1.f)});
       vel.insert(e, Velocity{float4(dist2(gen), dist2(gen), dist2(gen),0.f)});
       mass.insert(e, Mass{dist3(gen)});
@@ -80,7 +80,7 @@ void test_entity()
     });
     timer.tick();
     auto val2 = timer.getCurrentNano();
-    F_ILOG("queryParallel", "time took for %d id's simple operation: mt %zuns vs single thread %zuns", ids, val, val2);
+    HIGAN_ILOG("queryParallel", "time took for %d id's simple operation: mt %zuns vs single thread %zuns", ids, val, val2);
   }
 }
 using namespace higanbana;
@@ -97,7 +97,7 @@ void test_bitfield()
   int index = bits.findFirstSetBit(0);
   while (index >= 0 )
   {
-    F_ILOG("setbit", "found index: %d expecting {0, 10, 64, 74, 75}", index);
+    HIGAN_ILOG("setbit", "found index: %d expecting {0, 10, 64, 74, 75}", index);
     index = bits.findFirstSetBit(index+1);
   }
 }

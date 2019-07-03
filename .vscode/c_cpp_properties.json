@@ -4,11 +4,14 @@
             "name": "Windows",
             "includePath": [
                 "${workspaceFolder}/test_main/src",
-                "${workspaceFolder}/higanbana/core/src",
-                "${workspaceFolder}/higanbana/graphics/src",
+                "${workspaceFolder}/core/src",
+                "${workspaceFolder}/graphics/src",
+                "${workspaceFolder}/ext/Catch2/include",
                 "${workspaceFolder}/ext/dxc-bin/include",
                 "${workspaceFolder}/ext/winpixeventruntime/include",
-                "C:/VulkanSDK/1.1.106.0/Include"
+                "${workspaceFolder}/ext/imgui",
+                "${workspaceFolder}/ext/stb",
+                "C:/VulkanSDK/1.1.108.0/Include"
             ],
             "defines": [
                 "_DEBUG",
@@ -18,7 +21,7 @@
                 "WIN32"
             ],
             "windowsSdkVersion": "10.0.17763.0",
-            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.20.27508/bin/Hostx64/x64/cl.exe",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
             "cppStandard": "c++17",
             "intelliSenseMode": "msvc-x64"
         }

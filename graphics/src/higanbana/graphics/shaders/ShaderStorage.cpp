@@ -89,7 +89,7 @@ namespace higanbana
         superSimple += "TessEvaluation(domain?)";
         break;
       default:
-        F_ASSERT(false, "Unknown ShaderType");
+        HIGAN_ASSERT(false, "Unknown ShaderType");
       }
       superSimple += " shader file.\n";
 
@@ -123,7 +123,7 @@ namespace higanbana
         }
         else
         {
-          F_ASSERT(false, "don't know what to generate :D");
+          HIGAN_ASSERT(false, "don't know what to generate :D");
         }
       }
       return superSimple;
@@ -160,8 +160,8 @@ namespace higanbana
         std::string addedHash = "// INTERFACE_HASH:" + std::to_string(h1) + ":" + std::to_string(h2)+"\n";
         addedHash += interfaceData;
         fs.writeFile(interfacePath, makeByteView(addedHash.data(), addedHash.size()));
-        F_LOG("ShaderStorage", "Shader interfacefile \"%s\" was old/missing. Created new one.", interfacePath);
-        // F_LOG("ShaderStorage", "Made a shader file(%s) for if: %s shader", shaderInterfacePath.c_str(), );
+        HIGAN_LOG("ShaderStorage", "Shader interfacefile \"%s\" was old/missing. Created new one.", interfacePath);
+        // HIGAN_LOG("ShaderStorage", "Made a shader file(%s) for if: %s shader", shaderInterfacePath.c_str(), );
       }
       return !needsReplacing;
     }
@@ -182,7 +182,7 @@ namespace higanbana
         std::string superSimple = shaderStubFile(info); 
         m_fs.writeFile(shaderPath, makeByteView(superSimple.data(), superSimple.size()));
 
-        F_LOG("ShaderStorage", "Made a shader file(%s) for %s: %s shader", shaderInterfacePath.c_str(), shaderFileType(info.desc.type), info.desc.shaderName);
+        HIGAN_LOG("ShaderStorage", "Made a shader file(%s) for %s: %s shader", shaderInterfacePath.c_str(), shaderFileType(info.desc.type), info.desc.shaderName);
       }
     }
 
@@ -193,15 +193,15 @@ namespace higanbana
 
       auto func = [](std::string filename)
       {
-        F_LOG("included: %s\n", filename.c_str());
+        HIGAN_LOG("included: %s\n", filename.c_str());
       };
       ensureShaderSourceFilesExist(info);
       if (!m_fs.fileExists(dxilPath))
       {
-        //      F_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
-        //F_ASSERT(compileShader(shaderName, type, tgs), "ups");
-        F_ASSERT(m_compiler, "no compiler");
-        F_ASSERT(m_compiler->compileShader(
+        //      HIGAN_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
+        //HIGAN_ASSERT(compileShader(shaderName, type, tgs), "ups");
+        HIGAN_ASSERT(m_compiler, "no compiler");
+        HIGAN_ASSERT(m_compiler->compileShader(
           m_type,
           shaderPath,
           dxilPath,
@@ -223,7 +223,7 @@ namespace higanbana
 
         if (m_compiler && (shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
         {
-          // F_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
+          // HIGAN_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
           bool result = m_compiler->compileShader(
             m_type,
             shaderPath,
@@ -232,11 +232,11 @@ namespace higanbana
             func);
           if (!result)
           {
-            F_ILOG("DX12", "Shader compile failed.\n");
+            HIGAN_ILOG("ShaderStorage", "Shader compile failed.\n");
           }
         }
       }
-      F_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
+      HIGAN_ASSERT(m_fs.fileExists(dxilPath), "wtf???");
       auto shader = m_fs.readFile(dxilPath);
       return shader;
     }

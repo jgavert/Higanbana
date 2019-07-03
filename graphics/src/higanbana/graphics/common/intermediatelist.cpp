@@ -95,7 +95,7 @@ namespace higanbana
       /*
       if (m_firstPacket != nullptr)
       {
-        F_LOG("Uh oh real data screwing up\n");
+        HIGAN_LOG("Uh oh real data screwing up\n");
       }*/
 
       CommandPacket* current = m_firstPacket;

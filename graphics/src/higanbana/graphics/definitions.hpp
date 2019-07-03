@@ -35,8 +35,8 @@ namespace higanbana
 }
 
 #ifdef HIGANBANA_GRAPHICS_EXTRA_INFO
-#define GFX_ILOG(msg, ...) F_ILOG("Graphics", msg, ##__VA_ARGS__)
-#define GFX_LOG(msg, ...) F_SLOG("Graphics", msg, ##__VA_ARGS__)
+#define GFX_ILOG(msg, ...) HIGAN_ILOG("Graphics", msg, ##__VA_ARGS__)
+#define GFX_LOG(msg, ...) HIGAN_SLOG("Graphics", msg, ##__VA_ARGS__)
 #else
 #define GFX_ILOG(msg, ...)
 #define GFX_LOG(msg, ...)

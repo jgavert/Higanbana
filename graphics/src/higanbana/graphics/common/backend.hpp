@@ -62,7 +62,7 @@ namespace higanbana
       {
         size_t storable = reinterpret_cast<size_t>(val);
         auto checkFirstBits = storable & createMaskWithNBitsSet(4);
-        F_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
+        HIGAN_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
         view &= createMaskWithNBitsSet(4);
         view |= storable
       }
@@ -72,7 +72,7 @@ namespace higanbana
       {
         size_t storable = static_cast<size_t>(val);
         auto checkFirstBits = storable & createMaskWithNBitsSet(4);
-        F_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
+        HIGAN_ASSERT(checkFirstBits == 0, "Expecting first 4 bits to be empty.");
         view &= createMaskWithNBitsSet(4);
         view |= storable;
       }

@@ -213,7 +213,7 @@ namespace higanbana
             fbWidth = static_cast<int>(desc.desc.width);
             fbHeight = static_cast<int>(desc.desc.height);
           }
-          F_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
+          HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
           auto attachmentId = static_cast<int>(attachments.size());
           uidToAttachmendId[it.resource.id] = attachmentId;
           attachments.emplace_back(view.native().view);
@@ -232,7 +232,7 @@ namespace higanbana
             fbWidth = static_cast<int>(desc.desc.width);
             fbHeight = static_cast<int>(desc.desc.height);
           }
-          F_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
+          HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
           auto attachmentId = static_cast<int>(attachments.size());
           uidToAttachmendId[subpass.dsv.resource.id] = attachmentId;
           attachments.emplace_back(view.native().view);
@@ -430,7 +430,7 @@ namespace higanbana
       auto checkStage = [&](int stage, AccessStage access)
       {
         auto what = stage & access;
-        //F_ILOG("", "wut %u & %u == %u => %s", stage, access, what, what == access ? "True" : "False");
+        //HIGAN_LOGi( "wut %u & %u == %u => %s", stage, access, what, what == access ? "True" : "False");
         if (what == access)
         {
           if (!first)
@@ -581,7 +581,7 @@ namespace higanbana
             .setOffset(0)
             .setSize(VK_WHOLE_SIZE));
           if (buffer.after.queue_index != buffer.after.queue_index)
-            F_ILOG("vulkan", "Woah nelly there! buffer %d -> %d", idx.queue(buffer.before.queue_index), idx.queue(buffer.after.queue_index));
+            HIGAN_ILOG("vulkan", "Woah nelly there! buffer %d -> %d", idx.queue(buffer.before.queue_index), idx.queue(buffer.after.queue_index));
         }
         for (auto& image : barriers.textures)
         {
@@ -598,7 +598,7 @@ namespace higanbana
             .setLayerCount(image.arrSize);
 
           if (image.after.queue_index != image.after.queue_index)
-            F_ILOG("vulkan", "Woah nelly there! Texture %d -> %d", idx.queue(image.before.queue_index), idx.queue(image.after.queue_index));
+            HIGAN_ILOG("vulkan", "Woah nelly there! Texture %d -> %d", idx.queue(image.before.queue_index), idx.queue(image.after.queue_index));
           imagebar.emplace_back(vk::ImageMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))
             .setDstAccessMask(translateAccessMask(image.after.stage, image.after.usage))
@@ -611,14 +611,14 @@ namespace higanbana
         }
         //auto beforeStr = buildStageString(beforeStage);
         //auto afterStr = buildStageString(afterStage);
-        //F_ILOG("vkBarriers", "need to conjure some barriers: before:\"%s\" after:\"%s\"", beforeStr.c_str(), afterStr.c_str());
+        //HIGAN_ILOG("vkBarriers", "need to conjure some barriers: before:\"%s\" after:\"%s\"", beforeStr.c_str(), afterStr.c_str());
         auto vkBefore = conjureFlags(beforeStage);
         auto vkAfter = conjureFlags(afterStage);
 
         vk::ArrayProxy<const vk::BufferMemoryBarrier> buffers(bufferbar.size(), bufferbar.data());
         vk::ArrayProxy<const vk::ImageMemoryBarrier> images(imagebar.size(), imagebar.data());
 
-        //F_ILOG("", "PipelineBarrier");
+        //HIGAN_LOGi( "PipelineBarrier");
         buffer.pipelineBarrier(vkBefore, vkAfter, {}, {}, buffers, images);
       }
     }
@@ -631,7 +631,7 @@ namespace higanbana
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
-        //F_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
+        //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
         addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {

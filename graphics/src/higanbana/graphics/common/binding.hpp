@@ -59,13 +59,13 @@ namespace higanbana
       {
         if (it.name.compare(name) == 0)
         {
-          F_ASSERT(it.readonly, "Trying to bind DynamicBufferView \"%s\" as ReadWrite.", name);
+          HIGAN_ASSERT(it.readonly, "Trying to bind DynamicBufferView \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
           return;
         }
         id++;
       }
-      F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
     }
     void bind(const char* name, const BufferSRV& res)
     {
@@ -74,13 +74,13 @@ namespace higanbana
       {
         if (it.name.compare(name) == 0)
         {
-          F_ASSERT(it.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
+          HIGAN_ASSERT(it.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
           return;
         }
         id++;
       }
-      F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
     }
     void bind(const char* name, const TextureSRV& res)
     {
@@ -89,13 +89,13 @@ namespace higanbana
       {
         if (it.name.compare(name) == 0)
         {
-          F_ASSERT(it.readonly, "Trying to bind TextureSRV \"%s\" as ReadWrite.", name);
+          HIGAN_ASSERT(it.readonly, "Trying to bind TextureSRV \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
           return;
         }
         id++;
       }
-      F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
     }
     void bind(const char* name, const BufferUAV& res)
     {
@@ -104,13 +104,13 @@ namespace higanbana
       {
         if (it.name.compare(name) == 0)
         {
-          F_ASSERT(!it.readonly, "Trying to bind BufferUAV \"%s\" as ReadOnly.", name);
+          HIGAN_ASSERT(!it.readonly, "Trying to bind BufferUAV \"%s\" as ReadOnly.", name);
           m_handles[id] = res.handle();
           return;
         }
         id++;
       }
-      F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
     }
     void bind(const char* name, const TextureUAV& res)
     {
@@ -119,13 +119,13 @@ namespace higanbana
       {
         if (it.name.compare(name) == 0)
         {
-          F_ASSERT(!it.readonly, "Trying to bind TextureUAV \"%s\" as ReadOnly.", name);
+          HIGAN_ASSERT(!it.readonly, "Trying to bind TextureUAV \"%s\" as ReadOnly.", name);
           m_handles[id] = res.handle();
           return;
         }
         id++;
       }
-      F_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
     }
 
     uint3 baseGroups()

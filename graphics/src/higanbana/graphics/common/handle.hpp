@@ -261,7 +261,7 @@ namespace higanbana
         m_currentSize++;
         return ResourceHandle{id, 0, m_type, ResourceHandle::AllGpus};
       }
-      F_ASSERT(!m_freelist.empty(), "No free handles.");
+      HIGAN_ASSERT(!m_freelist.empty(), "No free handles.");
       auto id = m_freelist.back();
       m_freelist.pop_back();
       auto generation = m_generation[id]; // take current generation
@@ -270,9 +270,9 @@ namespace higanbana
 
     void release(ResourceHandle val)
     {
-      F_ASSERT(val.id != ResourceHandle::InvalidId, "Invalid handle was released.");
-      F_ASSERT(val.id < m_size, "Invalid handle was released.");
-      F_ASSERT(val.generation == m_generation[val.id], "Invalid handle was released.");
+      HIGAN_ASSERT(val.id != ResourceHandle::InvalidId, "Invalid handle was released.");
+      HIGAN_ASSERT(val.id < m_size, "Invalid handle was released.");
+      HIGAN_ASSERT(val.generation == m_generation[val.id], "Invalid handle was released.");
       m_freelist.push_back(val.id);
       m_generation[val.id]++; // offset the generation to detect double free's
     }
@@ -311,7 +311,7 @@ namespace higanbana
         m_currentSize++;
         return ViewResourceHandle(id, 0, m_type);
       }
-      F_ASSERT(!m_freelist.empty(), "No free handles.");
+      HIGAN_ASSERT(!m_freelist.empty(), "No free handles.");
       auto id = m_freelist.back();
       m_freelist.pop_back();
       auto generation = m_generation[id]; // take current generation
@@ -320,9 +320,9 @@ namespace higanbana
 
     void release(ViewResourceHandle val)
     {
-      F_ASSERT(val.id != ViewResourceHandle::InvalidViewId, "Invalid view handle was released.");
-      F_ASSERT(val.id < m_size, "Invalidview handle was released.");
-      F_ASSERT(val.generation == m_generation[val.id], "Invalid view handle was released.");
+      HIGAN_ASSERT(val.id != ViewResourceHandle::InvalidViewId, "Invalid view handle was released.");
+      HIGAN_ASSERT(val.id < m_size, "Invalidview handle was released.");
+      HIGAN_ASSERT(val.generation == m_generation[val.id], "Invalid view handle was released.");
       m_freelist.push_back(val.id);
       m_generation[val.id]++; // offset the generation to detect double free's
     }
@@ -363,7 +363,7 @@ namespace higanbana
 
     ResourceHandle allocateResource(ResourceType type)
     {
-      F_ASSERT(type != ResourceType::Unknown, "please valide type.");
+      HIGAN_ASSERT(type != ResourceType::Unknown, "please valide type.");
       int index = static_cast<int>(type) - 1;
       auto& pool = m_pools[index];
       return pool.allocate();
@@ -371,7 +371,7 @@ namespace higanbana
 
     ViewResourceHandle allocateViewResource(ViewResourceType type, ResourceHandle resource)
     {
-      F_ASSERT(type != ViewResourceType::Unknown, "please valide type.");
+      HIGAN_ASSERT(type != ViewResourceType::Unknown, "please valide type.");
       int index = static_cast<int>(type) - 1;
       auto& pool = m_views[index];
       auto view = pool.allocate();
@@ -381,7 +381,7 @@ namespace higanbana
 
     void release(ResourceHandle handle)
     {
-      F_ASSERT(handle.type != ResourceType::Unknown, "please valied type");
+      HIGAN_ASSERT(handle.type != ResourceType::Unknown, "please valied type");
       int typeIndex = static_cast<int>(handle.type) - 1;
       auto& pool = m_pools[typeIndex];
       pool.release(handle);
@@ -399,7 +399,7 @@ namespace higanbana
     }
     void release(ViewResourceHandle handle)
     {
-      F_ASSERT(handle.type != ViewResourceType::Unknown, "please valied type");
+      HIGAN_ASSERT(handle.type != ViewResourceType::Unknown, "please valied type");
       int typeIndex = static_cast<int>(handle.type) - 1;
       auto& pool = m_views[typeIndex];
       pool.release(handle);

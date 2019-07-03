@@ -12,8 +12,8 @@
 #include <higanbana/core/system/MemoryPools.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
 
-#define VK_CHECK_RESULT(value) F_ASSERT(value.result == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value.result).c_str())
-#define VK_CHECK_RESULT_RAW(value) F_ASSERT(value == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value).c_str())
+#define VK_CHECK_RESULT(value) HIGAN_ASSERT(value.result == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value.result).c_str())
+#define VK_CHECK_RESULT_RAW(value) HIGAN_ASSERT(value == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value).c_str())
 
 
 namespace higanbana
@@ -648,7 +648,7 @@ namespace higanbana
         auto memProp = physDevice.getMemoryProperties();
         auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
         auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
-        F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+        HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
 
         vk::MemoryAllocateInfo allocInfo;
 
@@ -677,7 +677,7 @@ namespace higanbana
       VkUploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        F_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
         return VkUploadBlock{ data, m_buffer,  dip };
       }
 
@@ -727,7 +727,7 @@ namespace higanbana
         auto memProp = physDevice.getMemoryProperties();
         auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
         auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
-        F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+        HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
 
         vk::MemoryAllocateInfo allocInfo;
 
@@ -756,7 +756,7 @@ namespace higanbana
       VkUploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        F_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
         return VkUploadBlock{ data, m_buffer,  dip };
       }
 

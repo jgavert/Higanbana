@@ -20,13 +20,13 @@ namespace higanbana
 
   size_t roundUpMultiplePowerOf(size_t value, size_t multiple)
   {
-    F_ASSERT(multiple, "multiple needs to be power of 2 was %d", multiple);
+    HIGAN_ASSERT(multiple, "multiple needs to be power of 2 was %d", multiple);
     return ((value + multiple - 1) / multiple) * multiple;
   }
 
   size_t roundUpMultiplePowerOf2(size_t numToRound, size_t multiple)
   {
-    F_ASSERT(multiple && ((multiple & (multiple - 1)) == 0), "multiple needs to be power of 2 was %d", multiple);
+    HIGAN_ASSERT(multiple && ((multiple & (multiple - 1)) == 0), "multiple needs to be power of 2 was %d", multiple);
     return (numToRound + multiple - 1) & ~(multiple - 1);
   }
 }

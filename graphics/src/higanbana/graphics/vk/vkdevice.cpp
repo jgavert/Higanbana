@@ -26,7 +26,7 @@ namespace higanbana
     {
       auto desc = descriptor.desc;
       auto bufSize = desc.stride*desc.width;
-      F_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
+      HIGAN_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
       vk::BufferCreateInfo info = vk::BufferCreateInfo()
         .setSharingMode(vk::SharingMode::eExclusive);
 
@@ -128,14 +128,14 @@ namespace higanbana
       case ResourceUsage::DepthStencil:
       {
         usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
-        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        HIGAN_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
         break;
       }
       case ResourceUsage::DepthStencilRW:
       {
         usage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
         usage |= vk::ImageUsageFlagBits::eStorage;
-        F_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
+        HIGAN_ASSERT(mipLevels == 1, "DepthStencil doesn't support mips");
         break;
       }
       case ResourceUsage::Upload:
@@ -242,31 +242,31 @@ namespace higanbana
       {
         return (type.propertyFlags & flag) == flag;
       };
-      F_ILOG("higanbana/graphics/Memory", "heapCount %u memTypeCount %u", prop.memoryHeapCount, prop.memoryTypeCount);
+      HIGAN_ILOG("higanbana/graphics/Memory", "heapCount %u memTypeCount %u", prop.memoryHeapCount, prop.memoryTypeCount);
       for (int i = 0; i < static_cast<int>(prop.memoryTypeCount); ++i)
       {
         auto memType = prop.memoryTypes[i];
-        F_ILOG("higanbana/graphics/Memory", "propertyFlags %u", memType.propertyFlags.operator unsigned int());
+        HIGAN_ILOG("higanbana/graphics/Memory", "propertyFlags %u", memType.propertyFlags.operator unsigned int());
         if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eDeviceLocal))
         {
-          F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eDeviceLocal", memType.heapIndex, i);
+          HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eDeviceLocal", memType.heapIndex, i);
           if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
           {
-            F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
+            HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
             if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
-              F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
+              HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
             if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
-              F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
+              HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
           }
         }
         else if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostVisible))
         {
-          F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
+          HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostVisible", memType.heapIndex, i);
           if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCoherent))
-            F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
+            HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCoherent", memType.heapIndex, i);
           if (checkFlagSet(memType, vk::MemoryPropertyFlagBits::eHostCached))
           {
-            F_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
+            HIGAN_ILOG("higanbana/graphics/Memory", "heap %u type %u was eHostCached", memType.heapIndex, i);
           }
         }
       }
@@ -346,7 +346,7 @@ namespace higanbana
       }
       if (totalQueues == 0)
       {
-        F_ERROR("wtf, not sane device.");
+        HIGAN_ERROR("wtf, not sane device.");
       }
       else if (totalQueues == 1)
       {
@@ -359,7 +359,7 @@ namespace higanbana
       if (m_freeQueueIndexes.universal.size() > 0
         && m_freeQueueIndexes.graphics.size() > 0)
       {
-        F_ERROR("abort mission. Too many variations of queues.");
+        HIGAN_ERROR("abort mission. Too many variations of queues.");
       }
 
       m_computeQueues = !m_freeQueueIndexes.compute.empty();
@@ -461,10 +461,10 @@ namespace higanbana
       /* if VK_KHR_display is a things, use the below. For now, Borderless fullscreen!
       {
           auto displayProperties = m_physDevice.getDisplayPropertiesKHR();
-          F_SLOG("Vulkan", "Trying to query available displays...\n");
+          HIGAN_SLOG("Vulkan", "Trying to query available displays...\n");
           for (auto&& prop : displayProperties)
           {
-              F_LOG("%s Physical Dimensions: %dx%d Resolution: %dx%d %s %s\n",
+              HIGAN_LOG("%s Physical Dimensions: %dx%d Resolution: %dx%d %s %s\n",
                   prop.displayName, prop.physicalDimensions.width, prop.physicalDimensions.height,
                   prop.physicalResolution.width, prop.physicalResolution.height,
                   ((prop.planeReorderPossible) ? " Plane Reorder possible " : ""),
@@ -567,11 +567,11 @@ namespace higanbana
       VK_CHECK_RESULT(surfaceCapRes);
       auto surfaceCap = surfaceCapRes.value;
 #ifdef HIGANBANA_GRAPHICS_EXTRA_INFO
-      F_SLOG("higanbana/graphics/Surface", "surface details\n");
-      F_SLOG("higanbana/graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
-      F_SLOG("higanbana/graphics/Surface", "current res %dx%d\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
-      F_SLOG("higanbana/graphics/Surface", "min res %dx%d\n", surfaceCap.minImageExtent.width, surfaceCap.minImageExtent.height);
-      F_SLOG("higanbana/graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
+      HIGAN_SLOG("higanbana/graphics/Surface", "surface details\n");
+      HIGAN_SLOG("higanbana/graphics/Surface", "min image Count: %d\n", surfaceCap.minImageCount);
+      HIGAN_SLOG("higanbana/graphics/Surface", "current res %dx%d\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
+      HIGAN_SLOG("higanbana/graphics/Surface", "min res %dx%d\n", surfaceCap.minImageExtent.width, surfaceCap.minImageExtent.height);
+      HIGAN_SLOG("higanbana/graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
 #endif
 
       auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
@@ -592,12 +592,12 @@ namespace higanbana
         {
           hadBackup = true;
         }
-        F_SLOG("higanbana/graphics/Surface", "format: %s colorspace: %s\n", vk::to_string(fmt.format).c_str(), vk::to_string(fmt.colorSpace).c_str());
+        HIGAN_SLOG("higanbana/graphics/Surface", "format: %s colorspace: %s\n", vk::to_string(fmt.format).c_str(), vk::to_string(fmt.colorSpace).c_str());
       }
 
       if (!found)
       {
-        F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
+        HIGAN_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
         wantedFormat = backupFormat;
         format = FormatType::Unorm8BGRA;
       }
@@ -629,13 +629,13 @@ namespace higanbana
       {
 #ifdef        HIGANBANA_GRAPHICS_EXTRA_INFO
         if (fmt == vk::PresentModeKHR::eImmediate)
-          F_SLOG("higanbana/graphics/AvailablePresentModes", "Immediate\n");
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Immediate\n");
         if (fmt == vk::PresentModeKHR::eMailbox)
-          F_SLOG("higanbana/graphics/AvailablePresentModes", "Mailbox\n");
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Mailbox\n");
         if (fmt == vk::PresentModeKHR::eFifo)
-          F_SLOG("higanbana/graphics/AvailablePresentModes", "Fifo\n");
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Fifo\n");
         if (fmt == vk::PresentModeKHR::eFifoRelaxed)
-          F_SLOG("higanbana/graphics/AvailablePresentModes", "FifoRelaxed\n");
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "FifoRelaxed\n");
 #endif
         if (fmt == khrmode)
           hadChosenMode = true;
@@ -658,11 +658,11 @@ namespace higanbana
 
       if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface->native()).result != vk::Result::eSuccess)
       {
-        F_ASSERT(false, "Was not supported.");
+        HIGAN_ASSERT(false, "Was not supported.");
       }
 
       int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), buffers);
-      F_SLOG("Vulkan", "creating swapchain to %ux%u, buffers %d\n", extent.width, extent.height, minImageCount);
+      HIGAN_SLOG("Vulkan", "creating swapchain to %ux%u, buffers %d\n", extent.width, extent.height, minImageCount);
 
       vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
         .setSurface(natSurface->native())
@@ -722,12 +722,12 @@ namespace higanbana
         {
           hadBackup = true;
         }
-        F_SLOG("higanbana/graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
+        HIGAN_SLOG("higanbana/graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
       }
 
       if (!found)
       {
-        F_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
+        HIGAN_ASSERT(hadBackup, "uh oh, backup format wasn't supported either.");
         wantedFormat = backupFormat;
         format = FormatType::Unorm8BGRA;
       }
@@ -750,7 +750,7 @@ namespace higanbana
 
       if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()).result != vk::Result::eSuccess)
       {
-        F_ASSERT(false, "Was not supported.");
+        HIGAN_ASSERT(false, "Was not supported.");
       }
       vk::PresentModeKHR khrmode;
       switch (mode)
@@ -791,7 +791,7 @@ namespace higanbana
       natSwapchain->setSwapchain(scRes.value);
 
       m_device.destroySwapchainKHR(oldSwapchain);
-      //F_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
+      //HIGAN_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
     }
 
@@ -822,7 +822,7 @@ namespace higanbana
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
       {
-        F_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+        HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
         return -1;
       }
       native->setCurrentPresentableImageIndex(res.value);
@@ -841,7 +841,7 @@ namespace higanbana
 
       if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
       {
-        F_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+        HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
         return -1;
       }
       native->setCurrentPresentableImageIndex(res.value);
@@ -1065,7 +1065,7 @@ namespace higanbana
       }
       vp.m_pipeline = compiled.value;
       vp.m_hasPipeline = true;
-      F_ILOG("Vulkan", "Pipeline compiled...");
+      HIGAN_ILOG("Vulkan", "Pipeline compiled...");
       return ret;
     }
 
@@ -1316,7 +1316,7 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         default:
         {
-          F_ASSERT(false, "unhandled type released");
+          HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
       }
@@ -1389,7 +1389,7 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
         default:
         {
-          F_ASSERT(false, "unhandled type released");
+          HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
       }
@@ -1486,7 +1486,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto memProp = m_physDevice.getMemoryProperties();
       auto searchProperties = getMemoryProperties(desc.desc.usage);
       auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
-      F_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.def
+      HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.def
 
       int32_t customBit = 0;
       if (desc.desc.allowCrossAdapter)
@@ -1497,7 +1497,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto packed = packInt64(index, customBit);
       //int32_t v1, v2;
       //unpackInt64(packed, v1, v2);
-      //F_ILOG("Vulkan", "Did (unnecessary) packing tricks, packed %d -> %zd -> %d", index, packed, v1);
+      //HIGAN_ILOG("Vulkan", "Did (unnecessary) packing tricks, packed %d -> %zd -> %d", index, packed, v1);
       reqs.heapType = packed;
       reqs.alignment = requirements.alignment;
       reqs.bytes = requirements.size;
@@ -1880,7 +1880,7 @@ for (auto&& upload : it.second.dynamicBuffers)
     VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)
     {
       auto upload = m_constantAllocators->allocate(bytes.size());
-      F_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload, "Halp");
 
       memcpy(upload.data(), bytes.data(), bytes.size());
 
@@ -1895,7 +1895,7 @@ for (auto&& upload : it.second.dynamicBuffers)
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
       auto upload = m_dynamicUpload->allocate(dataRange.size());
-      F_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
 
       auto format = formatToVkFormat(desiredFormat).view;
@@ -2154,7 +2154,7 @@ for (auto&& upload : it.second.dynamicBuffers)
       auto native = std::static_pointer_cast<VulkanFence>(fence);
       vk::ArrayProxy<const vk::Fence> proxy(native->native());
       auto res = m_device.waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
-      F_ASSERT(res == vk::Result::eSuccess, "uups");
+      HIGAN_ASSERT(res == vk::Result::eSuccess, "uups");
     }
 
     bool VulkanDevice::checkFence(std::shared_ptr<FenceImpl> fence)

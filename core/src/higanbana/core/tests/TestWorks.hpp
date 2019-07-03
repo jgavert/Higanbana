@@ -36,11 +36,11 @@ namespace higanbana
 
     bool runTests()
     {
-      F_LOG("----------------------------------------------------------------\n");
-      F_LOG("Testing %s \n", m_name.c_str());
+      HIGAN_LOG("----------------------------------------------------------------\n");
+      HIGAN_LOG("Testing %s \n", m_name.c_str());
       int testCount = 0;
-      F_LOG("Running %zu tests.\n", m_tests.size());
-      F_LOG("----------------------------------------------------------------\n");
+      HIGAN_LOG("Running %zu tests.\n", m_tests.size());
+      HIGAN_LOG("----------------------------------------------------------------\n");
       for (auto& it : m_tests)
       {
         std::string ok = "[FAILED] ";
@@ -65,11 +65,11 @@ namespace higanbana
         {
           padding += " ";
         }
-        F_LOG("%s %s%f ms Test %s\n", ok.c_str(),padding.c_str(), timef, it.first.c_str());
+        HIGAN_LOG("%s %s%f ms Test %s\n", ok.c_str(),padding.c_str(), timef, it.first.c_str());
       };
-      F_LOG("----------------------------------------------------------------\n");
-      F_LOG("Tests %zu / %zu completed\n", testCount, m_tests.size());
-      F_LOG("----------------------------------------------------------------\n");
+      HIGAN_LOG("----------------------------------------------------------------\n");
+      HIGAN_LOG("Tests %zu / %zu completed\n", testCount, m_tests.size());
+      HIGAN_LOG("----------------------------------------------------------------\n");
       //logs.update();
       return (testCount - m_tests.size() == 0);
     }

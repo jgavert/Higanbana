@@ -21,7 +21,7 @@ namespace higanbana
       case ShaderType::TessEvaluation: // domain?
         return "te";
       default:
-        F_ASSERT(false, "Unknown ShaderType");
+        HIGAN_ASSERT(false, "Unknown ShaderType");
       }
       return "";
     }
@@ -37,7 +37,7 @@ namespace higanbana
       auto shaderPath = shaderSourcePath;
       auto dxilPath = shaderBinaryPath;
 
-      F_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
+      HIGAN_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
       auto view = m_fs.viewToFile(shaderPath);
       std::string text;
       text.resize(view.size());
@@ -144,11 +144,11 @@ namespace higanbana
         OutputDebugStringA(msg.c_str());
         OutputDebugStringA("\n");
 
-        F_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), msg.c_str());
-        //F_ASSERT(false, "Temp assertion for strange errors");
+        HIGAN_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), msg.c_str());
+        //HIGAN_ASSERT(false, "Temp assertion for strange errors");
         return false;
       }
-      F_ILOG("ShaderStorage", "Compiled: \"%s\"", d.shaderName.c_str());
+      HIGAN_ILOG("ShaderStorage", "Compiled: \"%s\"", d.shaderName.c_str());
       ComPtr<IDxcBlob> blob;
       pResult->GetResult(blob.ReleaseAndGetAddressOf());
       auto thingA = blob->GetBufferPointer();

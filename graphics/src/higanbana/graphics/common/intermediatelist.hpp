@@ -74,7 +74,7 @@ namespace higanbana
           allocator.resize(refSize);
           offset = allocator.allocate(size, 16);
         }
-        F_ASSERT(offset != -1, "should always be fine here");
+        HIGAN_ASSERT(offset != -1, "should always be fine here");
         return static_cast<uintptr_t>(offset);
       }
     public:

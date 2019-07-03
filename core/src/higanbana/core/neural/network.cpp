@@ -42,11 +42,11 @@ namespace higanbana
 
 		NeuralNetwork<100, 2, 1, 1> ann;
 		auto result = ann.forward(input);
-    F_LOG("%s\n", toString(result).c_str());
+    HIGAN_LOG("%s\n", toString(result).c_str());
 		Matrix<1, 1, double> expected { 2.0};
-    F_LOG("%s\n", toString(expected).c_str());
+    HIGAN_LOG("%s\n", toString(expected).c_str());
 		auto oo = ann.costFunction(expected);
-		F_LOG("costFunction: %f\n", oo);
+		HIGAN_LOG("costFunction: %f\n", oo);
 		//ann.costFunctionPrime(input, expected);
 
 		//auto numGrad = ann.computeNumericalGradient(input, expected);
@@ -57,7 +57,7 @@ namespace higanbana
 		//printMat(ann.forward(input));
 		auto trainNetwork = [&](auto& nn, auto input, auto output)
 		{
-			F_LOG("TRAINING A NETWORK!!!!!!!!!!!\n");
+			HIGAN_LOG("TRAINING A NETWORK!!!!!!!!!!!\n");
 			//printMat(input);
 			//printMat(output);
 			//printMat(nn.forward(input));
@@ -65,8 +65,8 @@ namespace higanbana
 			auto iter = nn.train(input, output);
 			nn.forward(input);
 			auto after = nn.costFunction(output);
-			F_LOG("costFunction before: %.6f after: %.6f\n", before, after);
-			F_LOG("training took %zu iterations.\n", iter);
+			HIGAN_LOG("costFunction before: %.6f after: %.6f\n", before, after);
+			HIGAN_LOG("training took %zu iterations.\n", iter);
 			//printMat(nn.computeGradients(input, output));
 			//printMat(nn.computeNumericalGradient(input, output));
 			//printMat(nn.forward(input));
@@ -77,7 +77,7 @@ namespace higanbana
 		totalIterations += trainNetwork(ann, Matrix<1, 2, double>{ 0.0, 1.0}, Matrix<1, 1, double>{ 1.0});
 		totalIterations += trainNetwork(ann, Matrix<1, 2, double>{ 1.0, 0.0}, Matrix<1, 1, double>{ 1.0});
 
-		F_LOG("Overall %zu iterations to train the network.\n", totalIterations);
+		HIGAN_LOG("Overall %zu iterations to train the network.\n", totalIterations);
 
 		printMat(ann.forward(Matrix<1, 2, double>{ 5, 12}));
 		printMat(ann.forward(Matrix<1, 2, double>{ 100, 50}));
@@ -106,7 +106,7 @@ namespace higanbana
 
 		auto val = b.stop();
 
-		F_LOG("matrices took %f milliseconds\n", static_cast<float>(val) / 1000000.f);
+		HIGAN_LOG("matrices took %f milliseconds\n", static_cast<float>(val) / 1000000.f);
 	}
 
 }

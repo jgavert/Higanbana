@@ -94,7 +94,7 @@ namespace higanbana
 
     void HeapManager::release(GpuHeapAllocation object)
     {
-      F_ASSERT(object.valid(), "invalid object was released");
+      HIGAN_ASSERT(object.valid(), "invalid object was released");
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
         return vec.alignment == object.alignment

@@ -138,7 +138,7 @@ void allocs::pfnInternalAllocation(
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
   auto tmp = info->internalUse.fetch_add(size, std::memory_order_relaxed);
-  F_LOG("internal memory used: %u bytes", tmp);
+  HIGAN_LOG("internal memory used: %u bytes", tmp);
 };
 
 void allocs::pfnInternalFree(
@@ -149,5 +149,5 @@ void allocs::pfnInternalFree(
 {
   allocs* info = reinterpret_cast<allocs*>(pUserData);
   auto tmp = info->internalUse.fetch_sub(size, std::memory_order_relaxed);
-  F_LOG("internal memory used: %u bytes", tmp);
+  HIGAN_LOG("internal memory used: %u bytes", tmp);
 };

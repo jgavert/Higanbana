@@ -58,7 +58,7 @@ public:
     auto howFar = std::fabs((m_frametimeTarget - frametimeInMilli)*10.f);
     if (frametimeInMilli > m_frametimeTarget)
     {
-      //F_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
+      //HIGAN_LOG("Decreasing scale %d %f %f\n", m_scale, frametimeInMilli, m_frametimeTarget);
       m_scale -= int(howFar * 2);
     }
     else if (frametimeInMilli < m_frametimeTarget - m_targetThreshold)

@@ -19,7 +19,7 @@ namespace higanbana
   }
   void SequenceTracker::complete(SeqNum num)
   {
-    F_ASSERT(fullCompletedSeq < num, "Sequence was already completed %zi", num);
+    HIGAN_ASSERT(fullCompletedSeq < num, "Sequence was already completed %zi", num);
     auto offset = num - fullCompletedSeq;
 
     // first check if we have enough space to record the completed sequence
@@ -37,7 +37,7 @@ namespace higanbana
     auto index = offset / BitfieldBlockSize;
     auto offsetIndex = offset % BitfieldBlockSize;
 
-    F_ASSERT(!m_incomplete[index].checkIdxBit(offsetIndex), "Sequence was already completed.");
+    HIGAN_ASSERT(!m_incomplete[index].checkIdxBit(offsetIndex), "Sequence was already completed.");
     m_incomplete[index].setIdxBit(offsetIndex);
 
     // check completed full sequences
@@ -53,8 +53,8 @@ namespace higanbana
   }
   bool SequenceTracker::hasCompleted(SeqNum num)
   {
-    F_ASSERT(num > InvalidSeqNum, "Input wasn't valid sequence number %zi", num);
-    F_ASSERT(num < nextSequence, "Too large sequence number which hasn't been started yet. %zi < %zi", num, nextSequence);
+    HIGAN_ASSERT(num > InvalidSeqNum, "Input wasn't valid sequence number %zi", num);
+    HIGAN_ASSERT(num < nextSequence, "Too large sequence number which hasn't been started yet. %zi < %zi", num, nextSequence);
     if (num <= fullCompletedSeq)
     {
       return true;
@@ -71,8 +71,8 @@ namespace higanbana
 
   bool SequenceTracker::hasCompletedTill(SeqNum num)
   {
-	  F_ASSERT(num > InvalidSeqNum, "Input wasn't valid sequence number %zi", num);
-	  F_ASSERT(num < nextSequence, "Too large sequence number which hasn't been started yet. %zi < %zi", num, nextSequence);
+	  HIGAN_ASSERT(num > InvalidSeqNum, "Input wasn't valid sequence number %zi", num);
+	  HIGAN_ASSERT(num < nextSequence, "Too large sequence number which hasn't been started yet. %zi < %zi", num, nextSequence);
 	  if (num <= fullCompletedSeq)
 	  {
 		  return true;
