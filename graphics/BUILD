@@ -6,10 +6,11 @@ cc_library(
   strip_include_prefix = "src",
   deps = [
       "//core:core",
+      "//ext:IMGui",
+      "//ext:DirectXShaderCompiler",
       "//ext:STB"] + select({
           "@bazel_tools//src/conditions:windows": 
-              ["//ext:DirectXShaderCompiler",
-               "//ext:WinPixEventRuntime", 
+              ["//ext:WinPixEventRuntime", 
                "@VulkanSDKWin//:Vulkan",
                "@DX12//:DX12", 
                "@DXGI//:DXGI", 

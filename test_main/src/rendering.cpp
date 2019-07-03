@@ -21,6 +21,7 @@ namespace app
   Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
    : graphics(graphics)
    , dev(dev)
+   , imgui(dev)
   {
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)

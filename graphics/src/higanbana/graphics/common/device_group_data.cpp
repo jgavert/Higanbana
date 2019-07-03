@@ -532,7 +532,40 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
+      HIGAN_ASSERT(false, "not implemented, just use CommandGraph for this and reuse submits");
+      for (auto& vdev : m_devices)
+      {
+      }
+      /*
+      auto arraySize = image.desc().desc.arraySize;
+      for (auto slice = 0u; slice < arraySize; ++slice)
+      {
+        CommandList list;
 
+        for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
+        {
+          auto sr = image.subresource(mip, slice);
+          DynamicBufferView dynBuffer = m_impl->dynamicImage(makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
+          list.updateTexture(tex, dynBuffer, mip, slice);
+        }
+        unordered_set<TrackedState> lols;
+        lols.insert(tex.dependency());
+        list.prepareForQueueSwitch(lols);
+
+        // just submit the list
+        auto nativeList = m_impl->createDMAList();
+        nativeList->fillWith(m_impl, list.list);
+        LiveCommandBuffer buffer{};
+        buffer.lists.emplace_back(nativeList);
+
+        buffer.fence = m_impl->createFence();
+        buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
+        buffer.intermediateLists->emplace_back(std::move(list.list));
+
+        m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
+        m_buffers.emplace_back(buffer);
+      }
+      */
       return true;
     }
 

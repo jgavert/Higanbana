@@ -59,3 +59,19 @@ cc_library(
     linkstatic = False,
     visibility = ["//visibility:public"], 
 )
+
+cc_library(
+    name = "Catch2",
+    hdrs = ["Catch2/include/catch.hpp",
+     "Catch2/include/catch_with_main.hpp",],
+    includes = ["Catch2/include"],
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
+    name = "IMGui",
+    srcs = ["imgui/imgui.cpp", "imgui/imgui_widgets.cpp", "imgui/imgui_draw.cpp", "imgui/imgui_demo.cpp"],
+    hdrs = ["imgui/imgui.h", "imgui/imconfig.h", "imgui/imgui_internal.h", "imgui/imstb_rectpack.h", "imgui/imstb_textedit.h", "imgui/imstb_truetype.h"],
+    includes = ["imgui"],
+    visibility = ["//visibility:public"], 
+)

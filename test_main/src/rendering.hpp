@@ -5,6 +5,7 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
+#include "renderer/imgui.hpp"
 
 namespace app
 {
@@ -42,6 +43,8 @@ namespace app
     higanbana::BufferSRV sBufSRV;
     
     higanbana::Texture sTex;
+
+    renderer::IMGui imgui;
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
     void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
