@@ -46,7 +46,7 @@ These are partly current features and features I'm aiming for and might have got
     * This is on-going effort
     * Cross-device isn't well supported by Vulkan on Windows
     * DX12 <-> Vulkan is within one device only
-* Easy to make use of Graphics/Compute/Dma queue
+* Easy to make use of higanbana/graphics/Compute/Dma queue
     * all semaphores/synchronization/everything handled for you.
 * Homebrew implementations to many problems :D
 

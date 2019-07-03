@@ -1,8 +1,8 @@
 #include "entity_test.hpp"
-#include <core/system/LBS.hpp>
-#include <core/system/time.hpp>
-#include <core/math/math.hpp>
-#include <core/entity/database.hpp>
+#include <higanbana/core/system/LBS.hpp>
+#include <higanbana/core/system/time.hpp>
+#include <higanbana/core/math/math.hpp>
+#include <higanbana/core/entity/database.hpp>
 
 struct Position
 {
@@ -22,7 +22,7 @@ struct Mass
 
 void test_entity()
 {
-  using namespace faze;
+  using namespace higanbana;
   Database<2048> db;
   auto& pos = db.get<Position>();
   auto& vel = db.get<Velocity>();
@@ -52,7 +52,7 @@ void test_entity()
     WTime timer;
     timer.startFrame();
     auto task = desc::Task("Kekbur", {"startTimer"}, {});
-    queryParallel(lbs, task, pack(pos, vel, mass), [](faze::Id id, Position& pos, Velocity& vel, Mass& mass)
+    queryParallel(lbs, task, pack(pos, vel, mass), [](higanbana::Id id, Position& pos, Velocity& vel, Mass& mass)
     {
       pos.val = math::mul(math::mul(pos.val, vel.val), mass.mass);
       mass.mass -= 0.00001f;
@@ -71,7 +71,7 @@ void test_entity()
     auto val = timer.getCurrentNano();
     timer.startFrame();
     int ids = 0;
-    query(pack(pos, vel, mass),[&ids](faze::Id id, Position& pos, Velocity& vel, Mass& mass)
+    query(pack(pos, vel, mass),[&ids](higanbana::Id id, Position& pos, Velocity& vel, Mass& mass)
     {
       pos.val = math::mul(math::mul(pos.val, vel.val), mass.mass);
       mass.mass -= 0.00001f;
@@ -83,7 +83,7 @@ void test_entity()
     F_ILOG("queryParallel", "time took for %d id's simple operation: mt %zuns vs single thread %zuns", ids, val, val2);
   }
 }
-using namespace faze;
+using namespace higanbana;
 void test_bitfield()
 {
   DynamicBitfield bits;

@@ -1,8 +1,8 @@
 #include "blit.if.hlsl"
 
-#ifdef FAZE_VULKAN
+#ifdef HIGANBANA_VULKAN
 #define VK_LOCATION(index) [[vk::location(index)]]
-#else // FAZE_DX12
+#else // HIGANBANA_DX12
 #define VK_LOCATION(index) 
 #endif
 

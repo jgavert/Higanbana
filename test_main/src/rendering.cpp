@@ -1,6 +1,6 @@
-#include "rendering.hpp"
+#include <rendering.hpp>
 
-using namespace faze;
+using namespace higanbana;
 
 SHADER_STRUCT(PixelConstants,
   float resx;
@@ -18,7 +18,7 @@ SHADER_STRUCT(ComputeConstants,
 
 namespace app
 {
-  Renderer::Renderer(faze::GraphicsSubsystem& graphics, faze::GpuGroup& dev)
+  Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
    : graphics(graphics)
    , dev(dev)
   {
@@ -55,7 +55,7 @@ namespace app
     buffer3 = dev.createBuffer(bufferdesc3);
     testOut = dev.createBufferUAV(buffer3);
 
-    faze::ShaderInputDescriptor babyInf = ShaderInputDescriptor()
+    higanbana::ShaderInputDescriptor babyInf = ShaderInputDescriptor()
       .constants<PixelConstants>()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
 
@@ -78,7 +78,7 @@ namespace app
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTargetRW));
 
-    faze::ShaderInputDescriptor babyInf2 = ShaderInputDescriptor()
+    higanbana::ShaderInputDescriptor babyInf2 = ShaderInputDescriptor()
       .constants<ComputeConstants>()
       .readWrite(ShaderResourceType::Texture2D, "float4", "output");
 
@@ -87,7 +87,7 @@ namespace app
     .setShader("simpleEffect")
     .setThreadGroups(uint3(8, 8, 1)));
 
-    faze::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
+    higanbana::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
       .constants<PixelConstants>()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
       .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
@@ -123,7 +123,7 @@ namespace app
     time.startFrame();
   }
 
-  void Renderer::initWindow(faze::Window& window, faze::GpuInfo info)
+  void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info)
   {
     surface = graphics.createSurface(window, info);
     swapchain = dev.createSwapchain(surface, scdesc);

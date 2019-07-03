@@ -113,8 +113,8 @@ if make_BUILDS:
   # print(coreBUILD)
   # print(graphicsBUILD)
 
-  with open('core/BUILD', 'w') as out:
+  with open('higanbana/core/BUILD', 'w') as out:
     out.write(coreBUILD)
 
-  with open('graphics/BUILD', 'w') as out:
+  with open('higanbana/graphics/BUILD', 'w') as out:
     out.write(graphicsBUILD)

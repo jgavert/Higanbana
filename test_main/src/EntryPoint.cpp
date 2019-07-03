@@ -1,4 +1,4 @@
-#include "core/platform/EntryPoint.hpp"
+#include <higanbana/core/platform/EntryPoint.hpp>
 #include "windowMain.hpp"
 
 int EntryPoint::main()

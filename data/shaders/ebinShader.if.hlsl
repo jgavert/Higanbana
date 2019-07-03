@@ -1,8 +1,8 @@
 // INTERFACE_HASH:7940331014023579972:13939906432982306273
 // This file is reflected from code.
-#ifdef FAZE_VULKAN
+#ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index) [[vk::binding(index)]]
-#else // FAZE_DX12
+#else // HIGANBANA_DX12
 #define VK_BINDING(index) 
 #endif
 

@@ -3,7 +3,7 @@
 
 
 [RootSignature(ROOTSIG)]
-[numthreads(FAZE_THREADGROUP_X, FAZE_THREADGROUP_Y, FAZE_THREADGROUP_Z)] // @nolint
+[numthreads(HIGANBANA_THREADGROUP_X, HIGANBANA_THREADGROUP_Y, HIGANBANA_THREADGROUP_Z)] // @nolint
 void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 { 
   const float sx = float(id.x) / constants.resx; 

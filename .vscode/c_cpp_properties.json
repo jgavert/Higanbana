@@ -4,8 +4,8 @@
             "name": "Windows",
             "includePath": [
                 "${workspaceFolder}/test_main/src",
-                "${workspaceFolder}/core/src",
-                "${workspaceFolder}/graphics/src",
+                "${workspaceFolder}/higanbana/core/src",
+                "${workspaceFolder}/higanbana/graphics/src",
                 "${workspaceFolder}/ext/dxc-bin/include",
                 "${workspaceFolder}/ext/winpixeventruntime/include",
                 "C:/VulkanSDK/1.1.106.0/Include"
@@ -14,7 +14,7 @@
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "FAZE_PLATFORM_WINDOWS",
+                "HIGANBANA_PLATFORM_WINDOWS",
                 "WIN32"
             ],
             "windowsSdkVersion": "10.0.17763.0",

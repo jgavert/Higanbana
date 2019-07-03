@@ -1,0 +1,1 @@
+#include "higanbana/graphics/vk/vkresources.hpp"

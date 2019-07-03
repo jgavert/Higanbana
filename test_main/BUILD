@@ -1,5 +1,3 @@
-
-
 cc_binary(
         name = "test_main",
         srcs = glob(["**/*.cpp"]) + glob(["**/*.hpp"]),

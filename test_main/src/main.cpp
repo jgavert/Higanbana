@@ -1,9 +1,9 @@
 // entrypoint.cpp
 
-#include "core/platform/ProgramParams.hpp"
-#include "core/platform/EntryPoint.hpp" // client entrypoint
+#include <higanbana/core/platform/ProgramParams.hpp>
+#include <higanbana/core/platform/EntryPoint.hpp> // client entrypoint
 
-#ifdef FAZE_PLATFORM_WINDOWS
+#ifdef HIGANBANA_PLATFORM_WINDOWS
 int WINAPI WinMain(HINSTANCE hInstance,
   HINSTANCE hPrevInstance,
   LPSTR lpCmdLine,
@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     returnValue = ep.main();
   }
 
-#ifdef FAZE_PLATFORM_WINDOWS
+#ifdef HIGANBANA_PLATFORM_WINDOWS
   //_CrtDumpMemoryLeaks(); // finds my hack message class thingies from globalspace.
 #endif
   return returnValue;

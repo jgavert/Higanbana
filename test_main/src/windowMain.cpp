@@ -1,22 +1,21 @@
 #include "windowMain.hpp"
-#include "core/system/LBS.hpp"
-#include "graphics/GraphicsCore.hpp"
-#include "core/filesystem/filesystem.hpp"
-#include "core/Platform/Window.hpp"
-#include "core/system/logger.hpp"
-#include "core/system/time.hpp"
-#include "core/global_debug.hpp"
-#include <core/entity/bitfield.hpp>
+#include <higanbana/core/system/LBS.hpp>
+#include <higanbana/core/filesystem/filesystem.hpp>
+#include <higanbana/core/Platform/Window.hpp>
+#include <higanbana/core/system/logger.hpp>
+#include <higanbana/core/system/time.hpp>
+#include <higanbana/core/global_debug.hpp>
+#include <higanbana/core/entity/bitfield.hpp>
+#include <higanbana/core/system/misc.hpp>
+#include <higanbana/graphics/GraphicsCore.hpp>
+#include <random>
+#include <tuple>
 
 #include "entity_test.hpp"
-#include <tuple>
-#include <core/system/misc.hpp>
-#include <random>
-
 #include "rendering.hpp"
 
-using namespace faze;
-using namespace faze::math;
+using namespace higanbana;
+using namespace higanbana::math;
 
 vector<std::string> splitByDelimiter(std::string data, const char* delimiter)
 {
@@ -87,7 +86,7 @@ void mainWindow(ProgramParams& params)
     while (true)
     {
       vector<GpuInfo> allGpus;
-      GraphicsSubsystem graphics("faze", true);
+      GraphicsSubsystem graphics("higanbana", true);
       auto gpus = graphics.availableGpus();
 #if 1
       auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);

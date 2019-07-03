@@ -1,50 +1,50 @@
 #pragma once
-#include <graphics/GraphicsCore.hpp>
-#include <core/filesystem/filesystem.hpp>
-#include <core/platform/Window.hpp>
-#include <core/datastructures/proxy.hpp>
-#include <core/system/time.hpp>
-#include <graphics/helpers/pingpongTexture.hpp>
+#include <higanbana/graphics/GraphicsCore.hpp>
+#include <higanbana/core/filesystem/filesystem.hpp>
+#include <higanbana/core/platform/Window.hpp>
+#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/system/time.hpp>
+#include <higanbana/graphics/helpers/pingpongTexture.hpp>
 
 namespace app
 {
   class Renderer
   {
-    faze::GraphicsSubsystem& graphics;
-    faze::GpuGroup& dev;
-    faze::GraphicsSurface surface;
+    higanbana::GraphicsSubsystem& graphics;
+    higanbana::GpuGroup& dev;
+    higanbana::GraphicsSurface surface;
 
-    faze::SwapchainDescriptor scdesc;
-    faze::Swapchain swapchain;
+    higanbana::SwapchainDescriptor scdesc;
+    higanbana::Swapchain swapchain;
     // resources
-    faze::Buffer buffer;
-    faze::Buffer buffer2;
-    faze::Buffer buffer3;
-    faze::BufferSRV testSRV;
-    faze::BufferSRV test2SRV;
-    faze::BufferUAV testOut;
+    higanbana::Buffer buffer;
+    higanbana::Buffer buffer2;
+    higanbana::Buffer buffer3;
+    higanbana::BufferSRV testSRV;
+    higanbana::BufferSRV test2SRV;
+    higanbana::BufferUAV testOut;
 
-    faze::GraphicsPipeline triangle;
+    higanbana::GraphicsPipeline triangle;
 
-    faze::Renderpass triangleRP;
+    higanbana::Renderpass triangleRP;
 
-    faze::PingPongTexture proxyTex;
-    faze::ComputePipeline genTexCompute;
+    higanbana::PingPongTexture proxyTex;
+    higanbana::ComputePipeline genTexCompute;
 
-    faze::GraphicsPipeline composite;
-    faze::Renderpass compositeRP;
+    higanbana::GraphicsPipeline composite;
+    higanbana::Renderpass compositeRP;
     // info
-    faze::WTime time;
+    higanbana::WTime time;
 
     // shared textures
-    faze::PingPongTexture targetRT;
-    faze::Buffer sBuf;
-    faze::BufferSRV sBufSRV;
+    higanbana::PingPongTexture targetRT;
+    higanbana::Buffer sBuf;
+    higanbana::BufferSRV sBufSRV;
     
-    faze::Texture sTex;
+    higanbana::Texture sTex;
   public:
-    Renderer(faze::GraphicsSubsystem& graphics, faze::GpuGroup& dev);
-    void initWindow(faze::Window& window, faze::GpuInfo info);
+    Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
+    void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
     void windowResized();
     void render();
   };
