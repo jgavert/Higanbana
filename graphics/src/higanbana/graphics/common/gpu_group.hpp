@@ -127,6 +127,12 @@ namespace higanbana
       return S().dynamicBuffer(reinterpret_memView<uint8_t>(view), sizeof(Type));
     }
 
+    template <typename Type>
+    DynamicBufferView dynamicImage(MemView<Type> view, size_t rowPitch)
+    {
+      return S().dynamicImage(reinterpret_memView<uint8_t>(view), static_cast<unsigned>(rowPitch));
+    }
+
     Renderpass createRenderpass()
     {
       return S().createRenderpass();

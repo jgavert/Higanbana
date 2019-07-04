@@ -1928,19 +1928,37 @@ for (auto&& upload : it.second.dynamicBuffers)
       }
     }
 
-    void VulkanDevice::dynamic(ViewResourceHandle, MemView<uint8_t> , unsigned)
+    void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)
     {
-      /*
-      vk::BufferViewCreateInfo info = vk::BufferViewCreateInfo()
-        .setOffset(0) // dynamic offset here?
-        .setFormat(vk::Format::eR8Unorm)
-        .setRange(1) // dynamic size here
-        .setBuffer(vk::Buffer()); // ? Lets look at spec
-        */
+      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      HIGAN_ASSERT(upload, "Halp");
+      memcpy(upload.data(), dataRange.data(), dataRange.size());
+
+      auto type = vk::DescriptorType::eStorageBuffer;
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(upload.buffer())
+        .setOffset(upload.block.offset)
+        .setRange(upload.block.size);
+
+      HIGAN_ASSERT(upload.block.offset % stride == 0, "oh no");
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), info, upload);
+      // will be collected promtly
     }
 
-    void VulkanDevice::dynamicImage(ViewResourceHandle handle, MemView<uint8_t>, unsigned)
+    void VulkanDevice::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned rowPitch)
     {
+      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      HIGAN_ASSERT(upload, "Halp");
+      memcpy(upload.data(), dataRange.data(), dataRange.size());
+
+      auto type = vk::DescriptorType::eStorageBuffer;
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(upload.buffer())
+        .setOffset(upload.block.offset)
+        .setRange(upload.block.size);
+
+      HIGAN_ASSERT(upload.block.offset % rowPitch == 0, "oh no");
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), info, upload, rowPitch);
     }
 
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)

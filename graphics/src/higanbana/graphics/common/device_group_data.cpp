@@ -525,47 +525,61 @@ namespace higanbana
       return DynamicBufferView(handle);
     }
 
-    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> , unsigned )
+    DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride)
     {
-      return DynamicBufferView();
+      auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
+      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
+      {
+        vdev.device->dynamic(handle, range, stride);
+      }
+      return DynamicBufferView(handle);
+    }
+
+    DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch)
+    {
+      auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
+      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
+      {
+        vdev.device->dynamicImage(handle, range, rowPitch);
+      }
+      return DynamicBufferView(handle);
     }
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
-      HIGAN_ASSERT(false, "not implemented, just use CommandGraph for this and reuse submits");
-      for (auto& vdev : m_devices)
-      {
-      }
-      /*
+      auto graph = startCommandGraph();
+
+      vector<DynamicBufferView> allBufferToImages;
       auto arraySize = image.desc().desc.arraySize;
       for (auto slice = 0u; slice < arraySize; ++slice)
       {
-        CommandList list;
-
         for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
         {
-          auto sr = image.subresource(mip, slice);
-          DynamicBufferView dynBuffer = m_impl->dynamicImage(makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
-          list.updateTexture(tex, dynBuffer, mip, slice);
+          auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
+          m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+          for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
+          {
+            auto sr = image.subresource(mip, slice);
+            vdev.device->dynamicImage(handle, makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
+          }
+          allBufferToImages.emplace_back(DynamicBufferView(handle));
         }
-        unordered_set<TrackedState> lols;
-        lols.insert(tex.dependency());
-        list.prepareForQueueSwitch(lols);
-
-        // just submit the list
-        auto nativeList = m_impl->createDMAList();
-        nativeList->fillWith(m_impl, list.list);
-        LiveCommandBuffer buffer{};
-        buffer.lists.emplace_back(nativeList);
-
-        buffer.fence = m_impl->createFence();
-        buffer.intermediateLists = std::make_shared<vector<IntermediateList>>();
-        buffer.intermediateLists->emplace_back(std::move(list.list));
-
-        m_impl->submitDMA(buffer.lists, buffer.wait, buffer.signal, buffer.fence);
-        m_buffers.emplace_back(buffer);
       }
-      */
+      for (auto& vdev : m_devices)
+      {
+        for (auto slice = 0u; slice < arraySize; ++slice)
+        {
+          auto node = graph.createPass2(std::string("copyTexture") + std::to_string(slice), QueueType::Dma, vdev.id);
+          for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
+          {
+            auto index = slice * image.desc().desc.miplevels + mip;
+            node.copy(tex, allBufferToImages[index], Subresource().mip(mip).slice(slice));
+          }
+        }
+      }
+      submit(std::optional<Swapchain>(), graph);
       return true;
     }
 
@@ -670,6 +684,15 @@ namespace higanbana
             dst.resource = packet.dst;
             solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
             solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+            break;
+          }
+          case PacketType::UpdateTexture:
+          {
+            auto& packet = header->data<gfxpacket::UpdateTexture>();
+            ViewResourceHandle viewhandle{};
+            viewhandle.resource = packet.tex;
+            viewhandle.subresourceRange(packet.allMips, packet.mip, 1, packet.slice, 1);
+            solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
             break;
           }
           case PacketType::PrepareForPresent:

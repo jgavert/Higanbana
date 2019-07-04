@@ -29,6 +29,7 @@ namespace higanbana
     vector<sbinfo> m_subresources;
     ResourceDescriptor m_desc;
   public:
+  CpuImage(){}
     CpuImage(ResourceDescriptor desc)
       : m_desc(desc)
     {

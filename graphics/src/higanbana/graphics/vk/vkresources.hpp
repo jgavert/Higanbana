@@ -450,16 +450,20 @@ namespace higanbana
         vk::DescriptorBufferInfo bufferInfo;
         vk::DescriptorType type;
         VkUploadBlock block;
+        unsigned rowPitch;
       } m;
 
     public:
       VulkanDynamicBufferView()
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView view, VkUploadBlock block)
-        : m{ buffer, view, {}, vk::DescriptorType::eUniformTexelBuffer, block }
+        : m{ buffer, view, {}, vk::DescriptorType::eUniformTexelBuffer, block, 0 }
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block)
-        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block }
+        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block, 0 }
+      {}
+      VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block, unsigned rowPitch)
+        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block, rowPitch }
       {}
       Info& native()
       {

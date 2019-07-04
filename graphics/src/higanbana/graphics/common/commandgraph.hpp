@@ -254,6 +254,19 @@ namespace higanbana
       list.copy(target, source);
     }
 
+    void copy(Texture target, Buffer source, Subresource sub)
+    {
+      m_referencedBuffers.setBit(target.handle().id);
+      m_referencedBuffers.setBit(source.handle().id);
+      HIGAN_ASSERT(false, "Not implemented");
+    }
+
+    void copy(Texture target, DynamicBufferView source, Subresource sub)
+    {
+      m_referencedTextures.setBit(target.handle().id);
+      list.updateTexture(target, source, sub.mipLevel, sub.arraySlice);
+    }
+
     void readback(Texture tex, Subresource resource, std::function<void(SubresourceData)> func)
     {
       m_referencedTextures.setBit(tex.handle().id);

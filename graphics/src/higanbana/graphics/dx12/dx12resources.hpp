@@ -887,6 +887,14 @@ namespace higanbana
         view.SizeInBytes = static_cast<unsigned>(block.size());
         return view;
       }
+      int rowPitch()
+      {
+        return m_rowPitch;
+      }
+      uint64_t offset()
+      {
+        return static_cast<uint64_t>(block.block.offset) / m_stride;
+      }
 
 /*
       backend::RawView view() override
@@ -896,15 +904,7 @@ namespace higanbana
         return view;
       }
 
-      int rowPitch() override
-      {
-        return m_rowPitch;
-      }
 
-      uint64_t offset() override
-      {
-        return static_cast<uint64_t>(block.block.offset) / m_stride;
-      }
 
       uint64_t size() override
       {

@@ -200,6 +200,28 @@ namespace higanbana
       }
     };
 
+    struct UpdateTexture
+    {
+      ResourceHandle tex;
+      ViewResourceHandle dynamic;
+      int allMips;
+      int mip;
+      int slice;
+      int width;
+      int height;
+
+      static constexpr const backend::PacketType type = backend::PacketType::UpdateTexture;
+      static void constructor(backend::CommandBuffer& , UpdateTexture* packet, ResourceHandle tex, ViewResourceHandle dynamic, int allMips, int mip, int slice, int width, int height)
+      {
+        packet->tex = tex;
+        packet->dynamic = dynamic;
+        packet->allMips = allMips;
+        packet->mip = mip; 
+        packet->slice = slice;
+        packet->width = width;
+        packet->height = height;
+      }
+    };
     /*
     // helpers
 
@@ -244,27 +266,6 @@ namespace higanbana
       }
     };
 
-    class UpdateTexture : public backend::CommandPacket
-    {
-    public:
-      Texture dst;
-      DynamicBufferView src;
-      int mip;
-      int slice;
-
-      UpdateTexture(backend::ListAllocator, Texture dst, DynamicBufferView view, int mip, int slice)
-        : dst(dst)
-        , src(view)
-        , mip(mip)
-        , slice(slice)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::UpdateTexture;
-      }
-    };
 
     class ClearRT : public backend::CommandPacket
     {

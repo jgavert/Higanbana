@@ -49,8 +49,8 @@ vector<int> convertToInts(vector<std::string> data)
 
 void mainWindow(ProgramParams& params)
 {
-  GraphicsApi cmdlineApiId = GraphicsApi::Vulkan;
-  VendorID cmdlineVendorId = VendorID::Amd;
+  GraphicsApi cmdlineApiId = GraphicsApi::DX12;
+  VendorID cmdlineVendorId = VendorID::Nvidia;
   auto cmdLength = strlen(params.m_lpCmdLine);
   HIGAN_LOGi( "cmdline: \"%s\"", params.m_lpCmdLine);
   std::string cmdline = params.m_lpCmdLine;

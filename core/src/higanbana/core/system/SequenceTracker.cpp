@@ -19,7 +19,7 @@ namespace higanbana
   }
   void SequenceTracker::complete(SeqNum num)
   {
-    HIGAN_ASSERT(fullCompletedSeq < num, "Sequence was already completed %zi", num);
+    HIGAN_ASSERT(fullCompletedSeq <= num, "Sequence was already completed %zi", num);
     auto offset = num - fullCompletedSeq;
 
     // first check if we have enough space to record the completed sequence

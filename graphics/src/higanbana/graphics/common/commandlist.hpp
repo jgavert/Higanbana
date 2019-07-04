@@ -27,7 +27,10 @@ namespace higanbana
 
     void updateTexture(Texture& tex, DynamicBufferView& dynBuffer, int mip, int slice)
     {
-      //list.insert<gfxpacket::UpdateTexture>(tex, dynBuffer, mip, slice);
+      auto size = tex.desc().desc.size3D();
+      size.x = size.x << mip;
+      size.y = size.y << mip;
+      list.insert<gfxpacket::UpdateTexture>(tex.handle(), dynBuffer.handle(), tex.desc().desc.miplevels, mip, slice, size.x, size.y);
     }
 
     void clearRT(TextureRTV& rtv, float4 color)

@@ -698,6 +698,31 @@ namespace higanbana
           buffer.copyBuffer(src, dst, {info});
           break;
         }
+        case PacketType::UpdateTexture:
+        {
+          auto params = header->data<gfxpacket::UpdateTexture>();
+          auto texture = device->allResources().tex[params.tex];
+          auto dynamic = device->allResources().dynBuf[params.dynamic].native();
+
+          auto rows = dynamic.block.size() / dynamic.rowPitch;
+
+          vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
+            .setMipLevel(params.mip)
+            .setLayerCount(params.slice)
+            .setLayerCount(1)
+            .setAspectMask(texture.aspectFlags());
+
+          vk::BufferImageCopy info = vk::BufferImageCopy()
+            .setBufferOffset(dynamic.block.block.offset)
+            .setBufferRowLength(dynamic.rowPitch)
+            .setBufferImageHeight(params.height)
+            .setImageOffset(vk::Offset3D(0, 0, 0))
+            .setImageExtent(vk::Extent3D(params.width, params.height, 1))
+            .setImageSubresource(layers);
+
+          buffer.copyBufferToImage(dynamic.buffer, texture.native(), vk::ImageLayout::eTransferDstOptimal, {info});
+          break;
+        }
         case PacketType::RenderpassEnd:
         {
           buffer.endRenderPass();

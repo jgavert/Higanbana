@@ -19,6 +19,7 @@ namespace higanbana
       RenderBlock,
       ReleaseFromQueue,
       BufferCopy,
+      UpdateTexture,
       Dispatch,
       PrepareForPresent,
       RenderpassBegin,
