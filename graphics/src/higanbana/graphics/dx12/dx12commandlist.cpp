@@ -127,7 +127,7 @@ namespace higanbana
       {
         for (unsigned i = 0; i < maxSize; ++i)
         {
-          auto& rtv = allRes.texRTV[rtvs[i].resource];
+          auto& rtv = allRes.texRTV[rtvs[i]];
           //trtvs[i].ptr = rtv.native().cpu.ptr;
           rtvDesc[i].cpuDescriptor.ptr = rtv.native().cpu.ptr;
           if (rtvs[i].loadOp() == LoadOp::Load)
@@ -157,7 +157,7 @@ namespace higanbana
       }
       if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
-        auto& ndsv = allRes.texRTV[packet.dsv.resource];
+        auto& ndsv = allRes.texDSV[packet.dsv];
         //dsv.ptr = ndsv.native().cpu.ptr;
         //dsvPtr = &dsv;
 

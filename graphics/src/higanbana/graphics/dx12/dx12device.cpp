@@ -466,7 +466,11 @@ namespace higanbana
       {
         ID3D12Resource* renderTarget;
         HIGANBANA_CHECK_HR(native->native()->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
-        m_allRes.tex[handles[i]] = DX12Texture(renderTarget,swapchain->desc(), 1);
+        auto desc = swapchain->desc().setName("renderTarget_" + std::to_string(i) + "_id_" + std::to_string(handles[i].id));
+        auto wstr = s2ws(desc.desc.name);
+        renderTarget->SetName(wstr.c_str());
+        
+        m_allRes.tex[handles[i]] = DX12Texture(renderTarget, desc, 1);
       }
       return static_cast<int>(textures.size());
     }
@@ -1009,6 +1013,7 @@ namespace higanbana
 
     void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_ASSERT(handle.type == ResourceType::Buffer, "handle should be correct");
       auto& native = m_allRes.heaps[allocation.heap.handle];
       auto dxDesc = fillPlacedBufferInfo(desc);
 
@@ -1165,6 +1170,7 @@ namespace higanbana
 
     void DX12Device::createTexture(ResourceHandle handle, ResourceDescriptor& desc)
     {
+      HIGAN_ASSERT(handle.type == ResourceType::Texture, "handle should be correct");
       auto dxDesc = fillPlacedTextureInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
 
@@ -1234,6 +1240,7 @@ namespace higanbana
 
     void DX12Device::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_ASSERT(handle.type == ResourceType::Texture, "handle should be correct");
       auto& native = m_allRes.heaps[allocation.heap.handle];
       auto dxDesc = fillPlacedTextureInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
@@ -1344,10 +1351,15 @@ namespace higanbana
         m_device->CreateDepthStencilView(native.native(), &natDesc, descriptor.cpu);
         m_allRes.texDSV[handle] = DX12TextureView(descriptor, natDesc.Format);
       }
+      else
+      {
+        HIGAN_ASSERT(false, "WTF!");
+      }
     }
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
     {
+      HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       HIGAN_ASSERT(upload, "Halp");
@@ -1375,6 +1387,7 @@ namespace higanbana
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, unsigned stride)
     {
+      HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size());
       HIGAN_ASSERT(upload, "Halp");
@@ -1397,6 +1410,7 @@ namespace higanbana
 
     void DX12Device::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch)
     {
+      HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto rows = bytes.size() / rowPitch;
 
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
