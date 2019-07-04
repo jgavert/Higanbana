@@ -222,6 +222,19 @@ namespace higanbana
         packet->height = height;
       }
     };
+
+    struct ScissorRect
+    {
+      int2 topleft;
+      int2 bottomright;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ScissorRect;
+      static void constructor(backend::CommandBuffer& , ScissorRect* packet, int2 topleft, int2 bottomright)
+      {
+        packet->topleft = topleft;
+        packet->bottomright = bottomright;
+      }
+    };
     /*
     // helpers
 

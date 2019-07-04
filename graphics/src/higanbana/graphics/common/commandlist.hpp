@@ -99,7 +99,7 @@ namespace higanbana
 
     void setScissorRect(int2 topLeft, int2 bottomRight)
     {
-      //list.insert<gfxpacket::SetScissorRect>(topLeft, bottomRight);
+      list.insert<gfxpacket::ScissorRect>(topLeft, bottomRight);
     }
 
     void draw(
@@ -130,7 +130,7 @@ namespace higanbana
       int BaseVertexLocation,
       unsigned StartInstanceLocation)
     {
-      //list.insert<gfxpacket::DrawDynamicIndexed>(buffer, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list.insert<gfxpacket::DrawIndexed>(buffer.handle(), IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void dispatch(

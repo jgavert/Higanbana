@@ -51,6 +51,7 @@ namespace app
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
     void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
+    int2 windowSize();
     void windowResized();
     void render();
   };

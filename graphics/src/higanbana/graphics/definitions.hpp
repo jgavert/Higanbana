@@ -1,6 +1,7 @@
 #pragma once
 
 // Enables debug validation layers for dx12/vulkan
+// slows perf, goes unnoticed, incompatible with nsight in every way on any API supported.
 #define HIGANBANA_GRAPHICS_VALIDATION_LAYER
 
 // you can control which implementations are visible with these enums

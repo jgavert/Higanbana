@@ -991,6 +991,7 @@ namespace higanbana
       int framebuffer = 0;
       bool pixevent = false;
       ResourceHandle boundPipeline;
+      std::string currentBlock;
 
       if (!m_buffer->dma())
       {
@@ -1008,6 +1009,7 @@ namespace higanbana
         case PacketType::RenderBlock:
         {
           auto block = header->data<gfxpacket::RenderBlock>().name.convertToMemView();
+          currentBlock = std::string(block.data());
           if (pixevent)
           {
             PIXEndEvent(buffer);
@@ -1024,6 +1026,17 @@ namespace higanbana
         {
           handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
           framebuffer++;
+          break;
+        }
+        case PacketType::ScissorRect:
+        {
+          gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
+          D3D12_RECT rect{};
+          rect.bottom = packet.bottomright.y;
+          rect.right = packet.bottomright.x;
+          rect.top = packet.topleft.y;
+          rect.left = packet.topleft.x;
+          buffer->RSSetScissorRects(1, &rect);
           break;
         }
         case PacketType::GraphicsPipelineBind:
@@ -1060,6 +1073,28 @@ namespace higanbana
         {
           auto params = header->data<gfxpacket::Draw>();
           buffer->DrawInstanced(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+          break;
+        }
+        case PacketType::DrawIndexed:
+        {
+          auto params = header->data<gfxpacket::DrawIndexed>();
+          D3D12_INDEX_BUFFER_VIEW ib{};
+          if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+          {
+            auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+            auto& buf = device->allResources().buf[params.indexbuffer.resource];
+            ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
+            ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+            ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+          }
+          else
+          {
+            auto& ibv = device->allResources().dynSRV[params.indexbuffer];
+            ib = ibv.indexBufferView();
+          }
+          buffer->IASetIndexBuffer(&ib);
+
+          buffer->DrawIndexedInstanced(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
           break;
         }
         case PacketType::Dispatch:

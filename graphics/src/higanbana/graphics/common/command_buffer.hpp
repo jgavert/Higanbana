@@ -29,6 +29,8 @@ namespace higanbana
       ResourceBinding,
       Draw,
       DrawIndexed,
+      DrawDynamicIndexed,
+      ScissorRect,
       Count
     };
 
@@ -73,6 +75,35 @@ namespace higanbana
       size_t m_packets = 0;
       PacketHeader* m_packetBeingCreated = nullptr;
 
+      PacketHeader* packetBeingCreated()
+      {
+        return reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+      }
+
+      void doubleSize()
+      {
+        auto diff = reinterpret_cast<size_t>(m_packetBeingCreated) - reinterpret_cast<size_t>(m_data.data());
+        auto sample = reinterpret_cast<PacketHeader*>(m_data.data()+diff);
+        HIGAN_ASSERT(m_packetBeingCreated == sample, "these should match :p");
+        auto newSize = m_totalSize * 2;
+        m_data.resize(newSize);
+        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(m_data.data()+diff);
+        m_totalSize = newSize;
+      }
+
+      uint8_t* allocate(size_t size)
+      {
+        auto current = m_usedSize;
+        while (m_usedSize + size > m_totalSize)
+        {
+          doubleSize();
+        }
+        m_usedSize += size;
+        //printf("allocated %zu size %zu\n", current, size);
+        return &m_data[current];
+      }
+
+      /*
       uint8_t* allocate(size_t size)
       {
         auto current = m_usedSize;
@@ -81,7 +112,7 @@ namespace higanbana
           return nullptr;
         //printf("allocated %zu size %zu\n", current, size);
         return &m_data[current];
-      }
+      }*/
 
       void beginNewPacket(PacketType type)
       {
@@ -294,12 +325,12 @@ namespace higanbana
 
       void append(const CommandBuffer& other)
       {
-        PacketHeader* correctLastPacket = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        PacketHeader* correctLastPacket = packetBeingCreated();
         HIGAN_ASSERT(m_packetBeingCreated == correctLastPacket, "sanity check");
         auto newSize = m_data.size() + other.sizeBytes();
         m_data.resize(newSize);
         // find new end.. since we just resized and invalidated all pointers.
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        m_packetBeingCreated = packetBeingCreated();
         HIGAN_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
         memcpy(m_packetBeingCreated, other.m_data.data(), other.sizeBytes());
         m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize + other.m_usedSize - sizeof(PacketHeader) - sizeof(PacketHeader)]);

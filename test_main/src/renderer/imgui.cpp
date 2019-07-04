@@ -27,7 +27,7 @@ namespace app
         .setRasterizer(RasterizerDescriptor()
           .setCullMode(CullMode::None)
           .setFillMode(FillMode::Solid))
-
+        .setRenderTargetCount(1)
         .setBlend(BlendDescriptor()
           .setRenderTarget(0, RTBlendDescriptor()
             .setBlendEnable(true)
@@ -44,15 +44,13 @@ namespace app
 
       uint8_t *pixels = nullptr;
       int x, y;
-      auto ctx = ImGui::CreateContext();
-      ImGui::SetCurrentContext(ctx);
 
       auto &io = ::ImGui::GetIO();
       io.DeltaTime = 1.f / 60.f;
       io.Fonts->AddFontDefault();
       io.Fonts->GetTexDataAsAlpha8(&pixels, &x, &y);
 
-      CpuImage image(ResourceDescriptor()
+      image = CpuImage(ResourceDescriptor()
         .setSize(int2{ x, y })
         .setFormat(FormatType::Unorm8)
         .setName("ImGui Font Atlas")
@@ -86,20 +84,12 @@ namespace app
       io.KeyMap[ImGuiKey_Z] = 'Z';
     }
 
-    void IMGui::beginFrame(TextureRTV& target)
+    void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
     {
-      ImGuiIO &io = ::ImGui::GetIO();
-      io.DisplaySize = { float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) };
-
-      ::ImGui::NewFrame();
-    }
-
-    void IMGui::endFrame(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
-    {
-      ::ImGui::Render();
       auto drawData = ::ImGui::GetDrawData();
       HIGAN_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
-
+      target.setOp(higanbana::LoadOp::Load);
+      target.setOp(higanbana::StoreOp::Store);
       node.renderpass(renderpass, target);
 
       auto binding = node.bind(pipeline);
@@ -113,7 +103,7 @@ namespace app
       {
         auto list = drawData->CmdLists[i];
         // 5x 32bit thing...
-        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Uint32);
+        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Raw32);
         auto ibv = device.dynamicBuffer(makeByteView(list->IdxBuffer.Data, list->IdxBuffer.size() * sizeof(list->IdxBuffer[0])), FormatType::Uint16);
 
         binding.bind("vertices", vbv);

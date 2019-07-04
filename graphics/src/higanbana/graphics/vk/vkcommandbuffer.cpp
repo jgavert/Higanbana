@@ -633,6 +633,8 @@ namespace higanbana
       int drawIndex = 0;
       int framebuffer = 0;
       ResourceHandle boundPipeline;
+      std::string currentBlock;
+      bool beganLabel = false;
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
@@ -642,6 +644,22 @@ namespace higanbana
         {
           //        case CommandPacket::PacketType::BufferCopy:
           //        case CommandPacket::PacketType::Dispatch:
+        case PacketType::RenderBlock:
+        {
+          gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
+          auto view = packet.name.convertToMemView();
+          currentBlock = std::string(view.data());
+          if (beganLabel)
+          {
+            buffer.endDebugUtilsLabelEXT(device->dispatcher());
+          }
+          else
+          {
+            beganLabel = true;
+          }
+          vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
+          buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+        }
         case PacketType::PrepareForPresent:
         {
           break;
@@ -650,6 +668,14 @@ namespace higanbana
         {
           handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
           framebuffer++;
+          break;
+        }
+        case PacketType::ScissorRect:
+        {
+          gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
+          auto extent = math::sub(packet.bottomright, packet.topleft);
+          auto scissorRect = vk::Rect2D(vk::Offset2D(packet.topleft.x, packet.topleft.y), vk::Extent2D(extent.x, extent.y));
+          buffer.setScissor(0, {scissorRect});
           break;
         }
         case PacketType::GraphicsPipelineBind:
@@ -737,6 +763,10 @@ namespace higanbana
           break;
         }
         drawIndex++;
+      }
+      if (beganLabel)
+      {
+        buffer.endDebugUtilsLabelEXT(device->dispatcher());
       }
     }
 

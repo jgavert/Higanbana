@@ -13,10 +13,11 @@ namespace app
       higanbana::Renderpass renderpass;
       higanbana::Texture fontatlas;
       higanbana::TextureSRV fontatlasSrv;
+
+      higanbana::CpuImage image;
     public:
       IMGui(higanbana::GpuGroup& device);
-      void beginFrame(higanbana::TextureRTV& target);
-      void endFrame(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target);
+      void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target);
     };
   }
 }

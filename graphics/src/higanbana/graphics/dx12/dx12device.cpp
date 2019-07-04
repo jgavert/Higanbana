@@ -1013,7 +1013,7 @@ namespace higanbana
       auto wstr = s2ws(desc.desc.name);
       buffer->SetName(wstr.c_str());
 
-      m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
+      m_allRes.buf[handle] = DX12Buffer(buffer,desc);
     }
 
     void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
@@ -1047,7 +1047,7 @@ namespace higanbana
       auto wstr = s2ws(desc.desc.name);
       buffer->SetName(wstr.c_str());
 
-      m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
+      m_allRes.buf[handle] = DX12Buffer(buffer, desc);
     }
 
     void DX12Device::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
@@ -1763,7 +1763,7 @@ namespace higanbana
       auto wstr = s2ws(desc.desc.name);
       buffer->SetName(wstr.c_str());
       
-      m_allRes.buf[handle] = DX12Buffer(buffer, std::make_shared<DX12ResourceState>(state));
+      m_allRes.buf[handle] = DX12Buffer(buffer, desc);
     }
     
     void DX12Device::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc)

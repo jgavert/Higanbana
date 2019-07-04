@@ -549,7 +549,7 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
-      auto graph = startCommandGraph();
+      auto graph = CommandGraph(InvalidSeqNum);
 
       vector<DynamicBufferView> allBufferToImages;
       auto arraySize = image.desc().desc.arraySize;
@@ -571,7 +571,7 @@ namespace higanbana
       {
         for (auto slice = 0u; slice < arraySize; ++slice)
         {
-          auto node = graph.createPass2(std::string("copyTexture") + std::to_string(slice), QueueType::Dma, vdev.id);
+          auto& node = graph.createPass2(std::string("copyTexture") + std::to_string(slice), QueueType::Graphics, vdev.id);
           for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
           {
             auto index = slice * image.desc().desc.miplevels + mip;
@@ -600,6 +600,7 @@ namespace higanbana
       {
         CommandBuffer::PacketHeader* header = *iter;
         auto drawIndex = solver.addDrawCall();
+        HIGAN_ASSERT(drawIndex >= 0, "ups, infinite");
         if (drawIndex == 0)
         {
           for (auto&& acq : acquires)
@@ -1017,11 +1018,11 @@ namespace higanbana
             buffer.signal.push_back(vdev.dmaQSema);
           }
 
-          if (list.waitGraphics)
+          if (list.waitGraphics && vdev.graphicsQSema)
             buffer.wait.push_back(vdev.graphicsQSema);
-          if (list.waitCompute)
+          if (list.waitCompute && vdev.computeQSema)
             buffer.wait.push_back(vdev.computeQSema);
-          if (list.waitDMA)
+          if (list.waitDMA && vdev.dmaQSema)
             buffer.wait.push_back(vdev.dmaQSema);
 
           if (list.acquireSema)
@@ -1070,8 +1071,11 @@ namespace higanbana
         }
       }
       //m_buffers.back().started = graph.m_sequence;
-      m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
-      gc();
+      if (graph.m_sequence != InvalidSeqNum)
+      {
+        m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
+        gc();
+      }
     }
 
     void DeviceGroupData::garbageCollection()

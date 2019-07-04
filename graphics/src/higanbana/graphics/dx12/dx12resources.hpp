@@ -800,27 +800,23 @@ namespace higanbana
     {
     private:
       ID3D12Resource* resource;
-      std::shared_ptr<DX12ResourceState> statePtr;
+      ResourceDescriptor descriptor;
 
     public:
       DX12Buffer()
       {}
-      DX12Buffer(ID3D12Resource* resource, std::shared_ptr<DX12ResourceState> state)
+      DX12Buffer(ID3D12Resource* resource, ResourceDescriptor descriptor)
         : resource(resource)
-        , statePtr(state)
+        , descriptor(descriptor)
       {}
       ID3D12Resource* native()
       {
         return resource;
       }
-      std::shared_ptr<DX12ResourceState> state()
-      {
-        return statePtr;
-      }
 
-      void resetState()
+      ResourceDescriptor& desc()
       {
-        statePtr = nullptr;
+        return descriptor;
       }
     };
 
@@ -828,16 +824,26 @@ namespace higanbana
     {
     private:
       DX12CPUDescriptor resource;
+      ID3D12Resource* refResource;
 
     public:
       DX12BufferView()
       {}
       DX12BufferView(DX12CPUDescriptor resource)
         : resource(resource)
+        , refResource(nullptr)
+      {}
+      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes)
+        : resource(resource)
+        , refResource(refRes)
       {}
       DX12CPUDescriptor native()
       {
         return resource;
+      }
+      ID3D12Resource* ref()
+      {
+        return refResource;
       }
     };
 

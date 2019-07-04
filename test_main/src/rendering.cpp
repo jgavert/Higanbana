@@ -132,6 +132,13 @@ namespace app
     swapchain = dev.createSwapchain(surface, scdesc);
   }
 
+  int2 Renderer::windowSize()
+  {
+    if (swapchain.buffers().empty())
+      return int2(1,1);
+    return swapchain.buffers().front().desc().desc.size3D().xy();
+  }
+
   void Renderer::windowResized()
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -249,6 +256,13 @@ namespace app
       }
       node.endRenderpass();
 
+      tasks.addPass(std::move(node));
+    }
+
+    // IMGUI
+    {
+      auto node = tasks.createPass("IMGui");
+      imgui.render(dev, node, backbuffer);
       tasks.addPass(std::move(node));
     }
     

@@ -92,6 +92,8 @@ namespace higanbana
 
       vk::Device native() { return m_device; }
 
+      vk::DispatchLoaderDynamic dispatcher() { return m_dynamicDispatch; }
+
       Resources& allResources() { return m_allRes; }
 
       QueueIndexes queueIndexes() const { return QueueIndexes{m_mainQueueIndex, m_computeQueueIndex, m_copyQueueIndex}; }
