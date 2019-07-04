@@ -892,6 +892,10 @@ namespace higanbana
       {
         GFX_LOG("Updating Compute pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
       }
+      else
+      {
+        GFX_LOG("First time create Compute pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
+      }
 
       ShaderCreateInfo sci = ShaderCreateInfo(pipe.m_computeDesc.shaderSourcePath, ShaderType::Compute, pipe.m_computeDesc.layout)
         .setComputeGroups(pipe.m_computeDesc.shaderGroups);
@@ -915,6 +919,7 @@ namespace higanbana
       computeDesc.NodeMask = 0;
       //computeDesc.pRootSignature = ptr->root.Get();
       computeDesc.pRootSignature = nullptr;
+      pipe.m_hasPipeline = true;
 
       HIGANBANA_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&pipe.pipeline)));
       return oldPipe;

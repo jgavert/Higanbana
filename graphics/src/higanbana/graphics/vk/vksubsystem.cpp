@@ -59,8 +59,15 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
 
   HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, pMessage);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-  if (breakOn && IsDebuggerPresent())
+  if (breakOn /*&& IsDebuggerPresent()*/)
+  {
+    DebugBreak();
+  }
+#else
+  if (breakOn)
+  {
     __debugbreak();
+  }
 #endif
   return false;
 }

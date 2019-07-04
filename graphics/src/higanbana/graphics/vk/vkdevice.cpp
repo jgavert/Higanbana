@@ -887,6 +887,7 @@ namespace higanbana
       if (vp.m_hasPipeline && !vp.needsUpdating())
         return {};
 
+      GFX_LOG("Updating Graphics Pipeline %s", vp.m_gfxDesc.desc.vertexShaderPath.c_str());
       //if (!ptr->needsUpdating())
       //  return;
 
@@ -1075,6 +1076,8 @@ namespace higanbana
 
       if (pipe.m_hasPipeline && !pipe.cs.updated())
         return {};
+
+      GFX_LOG("Updating Compute Pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
 
       auto sci = ShaderCreateInfo(pipe.m_computeDesc.shader(), ShaderType::Compute, pipe.m_computeDesc.layout)
         .setComputeGroups(pipe.m_computeDesc.shaderGroups);
@@ -2103,9 +2106,14 @@ for (auto&& upload : it.second.dynamicBuffers)
         }
       }
 
-      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eTopOfPipe;
+      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands;
+
+      vector<vk::PipelineStageFlags> semaphoreWaitStages;
+      for (int i = 0; i < waitList.size(); ++i)
+        semaphoreWaitStages.push_back(waitMask);
+
       auto info = vk::SubmitInfo()
-        .setPWaitDstStageMask(&waitMask)
+        .setPWaitDstStageMask(semaphoreWaitStages.data())
         .setCommandBufferCount(static_cast<uint32_t>(bufferList.size()))
         .setPCommandBuffers(bufferList.data())
         .setWaitSemaphoreCount(static_cast<uint32_t>(waitList.size()))

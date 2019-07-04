@@ -123,27 +123,6 @@ namespace app
       .allowCrossAdapter(1));
       */
 
-
-    uint8_t *pixels = nullptr;
-    int x, y;
-    auto ctx = ImGui::CreateContext();
-    ImGui::SetCurrentContext(ctx);
-
-    auto &io = ::ImGui::GetIO();
-    io.DeltaTime = 1.f / 60.f;
-    io.Fonts->AddFontDefault();
-    io.Fonts->GetTexDataAsAlpha8(&pixels, &x, &y);
-
-    image = CpuImage(ResourceDescriptor()
-      .setSize(int2{ x, y })
-      .setFormat(FormatType::Unorm8)
-      .setName("ImGui Font Atlas")
-      .setUsage(ResourceUsage::GpuReadOnly));
-    auto sr = image.subresource(0, 0);
-    memcpy(sr.data(), pixels, sr.size());
-
-    fontatlas = dev.createTexture(image);
-
     time.startFrame();
   }
 
@@ -201,15 +180,6 @@ namespace app
     }
     /*
     {
-      auto node = tasks.createPass("copy texture from buffer");
-      auto sr = image.subresource(0, 0);
-      auto bufferData = dev.dynamicImage(makeMemView(sr.data(), sr.size()), sr.rowPitch());
-      node.copy(fontatlas, bufferData, Subresource());
-      tasks.addPass(std::move(node));
-    }
-    */
-    /*
-    {
       auto node = tasks.createPass("copyBuffer", QueueType::Dma);
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
@@ -220,7 +190,6 @@ namespace app
       node.copy(sBuf, buffer);
       tasks.addPass(std::move(node));
     }*/
-    /*
     {
       auto node = tasks.createPass("composite");
       node.acquirePresentableImage(swapchain);
@@ -252,7 +221,6 @@ namespace app
       node.endRenderpass();
       tasks.addPass(std::move(node));
     }
-    */
 
     {
       auto node = tasks.createPass("Triangle");

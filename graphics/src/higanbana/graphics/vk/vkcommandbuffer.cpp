@@ -460,12 +460,17 @@ namespace higanbana
 
     vk::PipelineStageFlags conjureFlags(int stage)
     {
-      vk::PipelineStageFlags allStages = vk::PipelineStageFlagBits::eBottomOfPipe;
+      vk::PipelineStageFlags allStages = vk::PipelineStageFlagBits::eAllCommands;
       bool first = true;
       auto checkStage = [&](int stage, AccessStage access, vk::PipelineStageFlagBits bit)
       {
         auto what = stage & access;
-        if (what == access)
+        if (first)
+        {
+          first = false;
+          allStages = bit;
+        }
+        else if (what == access)
         {
           allStages |= bit;
         }
