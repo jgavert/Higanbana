@@ -192,9 +192,7 @@ namespace higanbana
 
       // commandgraph
       CommandGraph startCommandGraph();
-      void submit(Swapchain& swapchain, CommandGraph graph);
-      void submit(CommandGraph graph);
-      void explicitSubmit(CommandGraph graph);
+      void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain);
 
       // test

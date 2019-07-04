@@ -862,7 +862,7 @@ namespace higanbana
       }
     }
 
-    void DeviceGroupData::submit(Swapchain& swapchain, CommandGraph graph)
+    void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph)
     {
       auto& nodes = *graph.m_nodes;
 
@@ -1006,9 +1006,10 @@ namespace higanbana
             buffer.wait.push_back(list.acquireSema);
           }
 
-          if (list.presents)
+          if (list.presents && swapchain)
           {
-            auto presenene = swapchain.impl()->renderSemaphore();
+            auto sc = swapchain.value();
+            auto presenene = sc.impl()->renderSemaphore();
             if (presenene)
             {
               buffer.signal.push_back(presenene);
@@ -1048,15 +1049,6 @@ namespace higanbana
       //m_buffers.back().started = graph.m_sequence;
       m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
       gc();
-    }
-
-    void DeviceGroupData::submit(CommandGraph graph)
-    {
-    }
-
-    void DeviceGroupData::explicitSubmit(CommandGraph graph)
-    {
-
     }
 
     void DeviceGroupData::garbageCollection()

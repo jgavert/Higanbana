@@ -176,12 +176,7 @@ namespace higanbana
 
     void submit(CommandGraph graph)
     {
-      S().submit(graph);
-    }
-
-    void explicitSubmit(CommandGraph graph)
-    {
-      S().explicitSubmit(graph);
+      S().submit(std::optional<Swapchain>(), graph);
     }
 
     void present(Swapchain& swapchain)
