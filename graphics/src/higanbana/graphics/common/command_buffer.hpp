@@ -29,7 +29,6 @@ namespace higanbana
       ResourceBinding,
       Draw,
       DrawIndexed,
-      DrawDynamicIndexed,
       ScissorRect,
       Count
     };

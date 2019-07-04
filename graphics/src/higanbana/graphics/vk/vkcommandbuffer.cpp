@@ -709,6 +709,28 @@ namespace higanbana
           buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
           break;
         }
+        case PacketType::DrawIndexed:
+        {
+          auto params = header->data<gfxpacket::DrawIndexed>();
+          if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+          {
+            HIGAN_ASSERT(false, "unimplemented");
+            /*
+            auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+            auto& buf = device->allResources().buf[params.indexbuffer.resource];
+            ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
+            ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+            ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+            */
+          }
+          else
+          {
+            auto& ibv = device->allResources().dynBuf[params.indexbuffer];
+            buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index);
+          }
+          buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
+          break;
+        }
         case PacketType::Dispatch:
         {
           auto params = header->data<gfxpacket::Dispatch>();

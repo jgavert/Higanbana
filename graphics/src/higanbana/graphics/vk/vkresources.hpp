@@ -449,6 +449,7 @@ namespace higanbana
         vk::BufferView texelView;
         vk::DescriptorBufferInfo bufferInfo;
         vk::DescriptorType type;
+        vk::IndexType index;
         VkUploadBlock block;
         unsigned rowPitch;
       } m;
@@ -456,14 +457,14 @@ namespace higanbana
     public:
       VulkanDynamicBufferView()
       {}
-      VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView view, VkUploadBlock block)
-        : m{ buffer, view, {}, vk::DescriptorType::eUniformTexelBuffer, block, 0 }
+      VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView view, VkUploadBlock block, vk::IndexType indextype)
+        : m{ buffer, view, {}, vk::DescriptorType::eUniformTexelBuffer, indextype, block, 0 }
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block)
-        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block, 0 }
+        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, vk::IndexType::eUint16, block, 0 }
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block, unsigned rowPitch)
-        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, block, rowPitch }
+        : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, vk::IndexType::eUint16, block, rowPitch }
       {}
       Info& native()
       {
@@ -638,6 +639,7 @@ namespace higanbana
           .setWidth(allocationSize*allocationCount)
           .setFormat(FormatType::Uint8)
           .setUsage(ResourceUsage::Upload)
+          .setIndexBuffer()
           .setName("DynUpload");
 
         auto natBufferInfo = fillBufferInfo(bufDesc);

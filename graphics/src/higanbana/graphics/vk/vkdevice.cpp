@@ -1917,8 +1917,18 @@ for (auto&& upload : it.second.dynamicBuffers)
         auto view = m_device.createBufferView(desc);
         VK_CHECK_RESULT(view);
 
+        vk::IndexType indextype = vk::IndexType::eUint16;
+        if (formatBitDepth(desiredFormat) == 16)
+        {
+          indextype = vk::IndexType::eUint16;
+        }
+        else if(formatBitDepth(desiredFormat) == 32)
+        {
+          indextype = vk::IndexType::eUint32;
+        }
+
         // will be collected promtly
-        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload);
+        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload, indextype);
       }
       else {
         vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
