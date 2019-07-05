@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) test_main",
+            "name": "test_main win64 fastbuild",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
@@ -15,9 +15,11 @@
             "environment": [],
             "externalConsole": true,
             "preLaunchTask": "test main(bazel build)",
+            "logging": { "moduleLoad": false, "engineLogging": false},
+            "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "(Windows) test_main dbg",
+            "name": "test_main win64 dbg",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
@@ -27,9 +29,11 @@
             "environment": [],
             "externalConsole": true,
             "preLaunchTask": "test main(bazel dbg)",
+            "logging": { "moduleLoad": false, "engineLogging": false},
+            "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "(Windows) test_main opt",
+            "name": "test_main win64 opt",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
@@ -39,6 +43,21 @@
             "environment": [],
             "externalConsole": true,
             "preLaunchTask": "test main(bazel opt)",
-        }
+            "logging": { "moduleLoad": false, "engineLogging": false},
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "tests graphics commandbuffer win64 dbg",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/tests/test_graphics_commandbuffer.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/tests",
+            "environment": [],
+            "preLaunchTask": "test graphics(bazel dbg)",
+            "logging": { "moduleLoad": false, "engineLogging": false},
+            "internalConsoleOptions": "openOnSessionStart"
+        },
     ]
 }

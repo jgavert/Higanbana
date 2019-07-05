@@ -6,12 +6,12 @@
                 "${workspaceFolder}/test_main/src",
                 "${workspaceFolder}/core/src",
                 "${workspaceFolder}/graphics/src",
-                "${workspaceFolder}/ext/Catch2/include",
                 "${workspaceFolder}/ext/dxc-bin/include",
                 "${workspaceFolder}/ext/winpixeventruntime/include",
                 "${workspaceFolder}/ext/imgui",
                 "${workspaceFolder}/ext/stb",
-                "C:/VulkanSDK/1.1.108.0/Include"
+                "C:/VulkanSDK/1.1.108.0/Include",
+                "${workspaceFolder}/ext/Catch2/single_include"
             ],
             "defines": [
                 "_DEBUG",
@@ -21,7 +21,7 @@
                 "WIN32"
             ],
             "windowsSdkVersion": "10.0.17763.0",
-            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
             "cppStandard": "c++17",
             "intelliSenseMode": "msvc-x64"
         }

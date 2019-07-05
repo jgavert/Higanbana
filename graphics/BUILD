@@ -1,4 +1,3 @@
-
 cc_library(
   name = "graphics",
   srcs = glob(["**/*.cpp"]),

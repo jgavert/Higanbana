@@ -40,6 +40,30 @@
             }
         },
         {
+            "label": "test graphics(bazel dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "tests:all-graphics-tests" , "--compilation_mode=dbg"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test graphics(bazel)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "tests:all-graphics-tests"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "bazel clean",
             "type": "shell",
             "command": "bazel.exe",

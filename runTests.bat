@@ -1,3 +1,4 @@
 @echo off
 call .\utils\setEnv.bat
-CALL cmd
+bazel test tests:all-tests
+pause

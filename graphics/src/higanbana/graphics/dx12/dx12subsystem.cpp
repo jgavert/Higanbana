@@ -114,6 +114,15 @@ namespace higanbana
           debugController1->SetEnableGPUBasedValidation(true);
           debugController1->SetEnableSynchronizedCommandQueueValidation(true);
 #endif
+          // TODO: Figure out which Windows SDK this needs.
+          /*
+          ComPtr<ID3D12DeviceRemovedExtendedDataSettings> pDredSettings;
+          HIGANBANA_CHECK_HR(D3D12GetDebugInterface(IID_PPV_ARGS(&pDredSettings)));
+
+          // Turn on auto-breadcrumbs and page fault reporting.
+          pDredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+          pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+          */
         }
       }
 
@@ -126,7 +135,7 @@ namespace higanbana
         D3D_FEATURE_LEVEL_11_0
       };
 
-      // dxil needs this... still
+      // dxil needs this... still(?)
       UUID experimentalFeatures[] = { D3D12ExperimentalShaderModels };
       D3D12EnableExperimentalFeatures(1, experimentalFeatures, NULL, NULL);
 

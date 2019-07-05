@@ -62,9 +62,8 @@ cc_library(
 
 cc_library(
     name = "Catch2",
-    hdrs = ["Catch2/include/catch.hpp",
-     "Catch2/include/catch_with_main.hpp",],
-    includes = ["Catch2/include"],
+    hdrs = ["Catch2/single_include/catch2/catch.hpp"],
+    includes = ["Catch2/single_include"],
     visibility = ["//visibility:public"], 
 )
 
