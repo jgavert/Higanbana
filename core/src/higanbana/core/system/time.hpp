@@ -20,6 +20,15 @@ typedef std::chrono::high_resolution_clock::time_point timepoint;
 
 namespace higanbana
 {
+  class Timer 
+  {
+  public:
+    Timer();
+    int64_t reset();
+    int64_t timeFromLastReset();
+  private:
+    timepoint start;
+  };
 
   class WTime
   {

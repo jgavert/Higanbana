@@ -152,17 +152,18 @@ namespace higanbana
         , VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME
         , VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
         , VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
+        , VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME
         , VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME
   #if defined(HIGANBANA_PLATFORM_WINDOWS)
           , VK_KHR_WIN32_SURFACE_EXTENSION_NAME
   #endif
       };
-      if (m_debug) extOrder.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+      extOrder.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
       std::vector<const char*> extensions;
       {
         // lunargvalidation list order
-        //GFX_ILOG("Enabled Vulkan extensions:");
+        GFX_ILOG("Enabled Vulkan extensions:");
 
         for (auto&& it : extOrder)
         {
@@ -178,7 +179,7 @@ namespace higanbana
           }
           else
           {
-            //GFX_ILOG("not enabled %s", it.c_str());
+            GFX_ILOG("not enabled %s", it.c_str());
           }
         }
       }

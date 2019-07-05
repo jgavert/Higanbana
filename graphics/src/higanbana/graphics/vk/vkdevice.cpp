@@ -574,25 +574,30 @@ namespace higanbana
       HIGAN_SLOG("higanbana/graphics/Surface", "max res %dx%d\n", surfaceCap.maxImageExtent.width, surfaceCap.maxImageExtent.height);
 #endif
 
-      auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface->native());
+      //m_physDevice.getSurfacePresentModes2EXT
+
+      auto formatsRes = m_physDevice.getSurfaceFormats2KHR(natSurface->native(), m_dynamicDispatch);
       VK_CHECK_RESULT(formatsRes);
       auto formats = formatsRes.value;
 
       auto wantedFormat = formatToVkFormat(format).storage;
       auto backupFormat = vk::Format::eB8G8R8A8Unorm;
+      auto colorspace = vk::ColorSpaceKHR::eSrgbNonlinear;
       bool found = false;
       bool hadBackup = false;
       for (auto&& fmt : formats)
       {
-        if (wantedFormat == fmt.format)
+        if (wantedFormat == fmt.surfaceFormat.format)
         {
           found = true;
+          colorspace = fmt.surfaceFormat.colorSpace;
         }
-        if (backupFormat == fmt.format)
+        if (backupFormat == fmt.surfaceFormat.format)
         {
+          colorspace = fmt.surfaceFormat.colorSpace;
           hadBackup = true;
         }
-        HIGAN_SLOG("higanbana/graphics/Surface", "format: %s colorspace: %s\n", vk::to_string(fmt.format).c_str(), vk::to_string(fmt.colorSpace).c_str());
+        HIGAN_SLOG("higanbana/graphics/Surface", "format: %s colorspace: %s\n", vk::to_string(fmt.surfaceFormat.format).c_str(), vk::to_string(fmt.surfaceFormat.colorSpace).c_str());
       }
 
       if (!found)
@@ -601,8 +606,7 @@ namespace higanbana
         wantedFormat = backupFormat;
         format = FormatType::Unorm8BGRA;
       }
-
-      auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native());
+      auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native(), m_dynamicDispatch);
       VK_CHECK_RESULT(asd);
       auto presentModes = asd.value;
 
@@ -668,7 +672,7 @@ namespace higanbana
         .setSurface(natSurface->native())
         .setMinImageCount(minImageCount)
         .setImageFormat(wantedFormat)
-        .setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
+        .setImageColorSpace(colorspace)
         .setImageExtent(surfaceCap.currentExtent)
         .setImageArrayLayers(1)
         .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst)  // linear to here

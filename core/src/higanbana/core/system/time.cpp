@@ -2,6 +2,27 @@
 #include "higanbana/core/global_debug.hpp"
 using namespace higanbana;
 
+Timer::Timer() 
+  : start(HighPrecisionClock::now())
+{
+
+}
+
+int64_t Timer::reset()
+{
+  auto current = HighPrecisionClock::now();
+  auto val = std::chrono::duration_cast<std::chrono::nanoseconds>(current - start).count();
+  start = current;
+  return val;
+}
+
+int64_t Timer::timeFromLastReset()
+{
+  auto current = HighPrecisionClock::now();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(current - start).count();
+}
+
+
 WTime::WTime() : start(HighPrecisionClock::now())
 {
   frametime_high = 0;

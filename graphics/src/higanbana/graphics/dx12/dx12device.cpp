@@ -316,7 +316,7 @@ namespace higanbana
       swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
       swapChainDesc.BufferCount = static_cast<UINT>(descriptor.desc.bufferCount); // conviently array can be used to describe bufferCount
       swapChainDesc.Scaling = DXGI_SCALING_NONE; // scaling.. hmm ignore for now
-      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
+      swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // just use flip_sequential, DXGI_SWAP_EFFECT_FLIP_DISCARD
       swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING interesting
                                                                     // also DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
 
@@ -1656,8 +1656,15 @@ namespace higanbana
         m_graphicsQueue->Wait(native->fence.Get(), *native->value);
       }
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-      unsigned syncInterval = (native->getDesc().descriptor.desc.mode == PresentMode::Fifo) ? 1 : 0;
-      HIGANBANA_CHECK_HR(native->native()->Present(syncInterval, 0));
+      unsigned syncInterval = 0;
+      uint flag = 0;
+      auto mode = native->getDesc().descriptor.desc.mode;
+      if (mode == PresentMode::Fifo) {
+        syncInterval = 1;
+      } else {
+        flag = DXGI_PRESENT_ALLOW_TEARING;
+      }
+      HIGANBANA_CHECK_HR(native->native()->Present(syncInterval, flag));
     }
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSharedSemaphore()

@@ -20,7 +20,8 @@
         "NDEBUG",
         "UNICODE",
         "_UNICODE",
-        "HIGANBANA_PLATFORM_WINDOWS"
+        "HIGANBANA_PLATFORM_WINDOWS",
+        "VK_USE_PLATFORM_WIN32_KHR"
       ]
     }
   ]

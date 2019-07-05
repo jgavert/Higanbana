@@ -231,10 +231,10 @@ namespace higanbana
   enum class PresentMode
   {
     Unknown,
-    Immediate,
-    Mailbox,
-    Fifo,
-    FifoRelaxed
+    Immediate, // Fullscreen Immediate - ?? Use for Windowed
+    Mailbox, // Fullscreen Mailbox - hack ?? also suggested for Windowed
+    Fifo, // fallback for Relaxed
+    FifoRelaxed // Fullscreen V-Sync
   };
 
   enum class Colorspace
