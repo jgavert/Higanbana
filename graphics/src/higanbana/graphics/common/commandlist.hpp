@@ -15,7 +15,7 @@ namespace higanbana
     friend struct backend::DeviceGroupData;
   public:
     CommandList()
-      : list(2048)
+      : list(256)
     {
 
     }

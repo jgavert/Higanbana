@@ -90,13 +90,13 @@ namespace higanbana
       uint8_t* allocate(size_t size)
       {
         auto current = m_usedSize;
-        while (m_usedSize + size > m_totalSize)
+        while (m_usedSize + size >= m_totalSize)
         {
           doubleSize();
         }
         m_usedSize += size;
         //printf("allocated %zu size %zu\n", current, size);
-        return &m_data[current];
+        return &m_data.at(current);
       }
 
       /*
@@ -146,6 +146,11 @@ namespace higanbana
 
       void initialize()
       {
+        if (m_totalSize < sizeof(PacketHeader))
+        {
+          m_data.resize(sizeof(PacketHeader));
+          m_totalSize = m_data.size();
+        }
         newHeader();
       }
 
@@ -284,18 +289,24 @@ namespace higanbana
         initialize();
       }
 
-      template <typename Object>
-      void allocateElements(PacketVectorHeader<Object>& header, size_t elements)
+      template <typename Object,typename PacketType>
+      PacketType* allocateElements(PacketVectorHeader<Object>& header, size_t elements, PacketType* packetPtr)
       {
+        auto hdrPtrOffset = reinterpret_cast<size_t>(&header) - reinterpret_cast<size_t>(m_data.data()); 
+        auto packetOffset = reinterpret_cast<int64_t>(packetPtr) - reinterpret_cast<int64_t>(m_data.data()); 
         auto ptr = allocate(sizeof(Object) * elements);
-        header = PacketVectorHeader<Object>{};
-        header.beginOffset = 0;
-        header.elements = 0;
+        PacketVectorHeader<Object>& hdr = *reinterpret_cast<PacketVectorHeader<Object>*>(m_data.data() + hdrPtrOffset);
+        hdr = PacketVectorHeader<Object>{};
+        hdr.beginOffset = 0;
+        hdr.elements = 0;
         if (ptr)
         {
-          header.beginOffset = static_cast<uint32_t>(reinterpret_cast<size_t>(ptr) - reinterpret_cast<size_t>(&header));
-          header.elements = static_cast<uint32_t>(elements);
+          auto allocPtr = reinterpret_cast<size_t>(ptr);
+          auto packetPTr = reinterpret_cast<size_t>(&hdr);
+          hdr.beginOffset = static_cast<uint32_t>(allocPtr - packetPTr);
+          hdr.elements = static_cast<uint32_t>(elements);
         }
+        return reinterpret_cast<PacketType*>(m_data.data() + packetOffset);
       }
 
       template <typename Packet, typename... Args>

@@ -17,10 +17,10 @@ namespace higanbana
       static constexpr const backend::PacketType type = backend::PacketType::RenderBlock;
       static void constructor(backend::CommandBuffer& buffer, RenderBlock* packet, MemView<char> inputName)
       {
-        buffer.allocateElements<char>(packet->name, inputName.size()+1);
+        packet = buffer.allocateElements<char>(packet->name, inputName.size()+1, packet);
         auto spn = packet->name.convertToMemView();
         memcpy(spn.data(), inputName.data(), inputName.size_bytes());
-        spn[inputName.size()] = '\0';
+        spn[inputName.size_bytes()] = '\0';
       }
     };
 
@@ -59,13 +59,13 @@ namespace higanbana
       static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepth)
       {
         packet->renderpass = renderpass;
-        buffer.allocateElements<ViewResourceHandle>(packet->rtvs, rtvs.size());
+        packet = buffer.allocateElements<ViewResourceHandle>(packet->rtvs, rtvs.size(), packet);
         {
           auto spn = packet->rtvs.convertToMemView();
           memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
         }
         packet->dsv = dsv;
-        buffer.allocateElements<float4>(packet->clearValues, clearVals.size());
+        packet = buffer.allocateElements<float4>(packet->clearValues, clearVals.size(), packet);
         {
           auto spn = packet->clearValues.convertToMemView();
           memcpy(spn.data(), clearVals.data(), clearVals.size_bytes());
@@ -122,10 +122,10 @@ namespace higanbana
       static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ViewResourceHandle>& views)
       {
         packet->graphicsBinding = type;
-        buffer.allocateElements<uint8_t>(packet->constants, constants.size());
+        packet = buffer.allocateElements<uint8_t>(packet->constants, constants.size(), packet);
         auto spn = packet->constants.convertToMemView();
         memcpy(spn.data(), constants.data(), constants.size_bytes());
-        buffer.allocateElements<ViewResourceHandle>(packet->resources, views.size());
+        packet = buffer.allocateElements<ViewResourceHandle>(packet->resources, views.size(), packet);
         auto spn2 = packet->resources.convertToMemView();
         memcpy(spn2.data(), views.data(), views.size_bytes());
       }
