@@ -87,8 +87,8 @@ namespace app
 
     genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
     .setLayout(babyInf2)
-    .setShader("simpleEffect")
-    .setThreadGroups(uint3(8, 8, 1)));
+    .setShader("oldRaymarch")
+    .setThreadGroups(uint3(8, 4, 1)));
 
     higanbana::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
       .constants<PixelConstants>()
