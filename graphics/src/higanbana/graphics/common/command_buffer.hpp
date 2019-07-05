@@ -15,7 +15,7 @@ namespace higanbana
   {
     enum PacketType : uint32_t
     {
-      EndOfPackets = 0,
+      Invalid = 0,
       RenderBlock,
       ReleaseFromQueue,
       BufferCopy,
@@ -30,7 +30,7 @@ namespace higanbana
       Draw,
       DrawIndexed,
       ScissorRect,
-      Count
+      EndOfPackets,
     };
 
     // data is expected o be in memory after the header
@@ -53,6 +53,7 @@ namespace higanbana
       vector<uint8_t> m_data;
       size_t m_totalSize;
       size_t m_usedSize;
+      size_t m_packetBeingCreated;
 
     public:
       // commandbuffer header
@@ -72,21 +73,17 @@ namespace higanbana
     private:
 
       size_t m_packets = 0;
-      PacketHeader* m_packetBeingCreated = nullptr;
+      //PacketHeader* m_packetBeingCreated = nullptr;
 
       PacketHeader* packetBeingCreated()
       {
-        return reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        return reinterpret_cast<PacketHeader*>(&m_data[m_packetBeingCreated]);
       }
 
       void doubleSize()
       {
-        auto diff = reinterpret_cast<size_t>(m_packetBeingCreated) - reinterpret_cast<size_t>(m_data.data());
-        auto sample = reinterpret_cast<PacketHeader*>(m_data.data()+diff);
-        HIGAN_ASSERT(m_packetBeingCreated == sample, "these should match :p");
         auto newSize = m_totalSize * 2;
         m_data.resize(newSize);
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(m_data.data()+diff);
         m_totalSize = newSize;
       }
 
@@ -116,29 +113,31 @@ namespace higanbana
       void beginNewPacket(PacketType type)
       {
         // patch current EOP to be actual packet header.
-        m_packetBeingCreated->type = type;
+        packetBeingCreated()->type = type;
       }
 
       void newHeader()
       {
-        auto ptr = allocate(sizeof(PacketHeader));
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(ptr);
-        m_packetBeingCreated->type = static_cast<PacketType>(0);
-    #if defined(SIZE_DEBUG)
-        m_packetBeingCreated->length = 0;
+        uint8_t* ptr = allocate(sizeof(PacketHeader));
+        size_t offset = reinterpret_cast<size_t>(ptr) - reinterpret_cast<size_t>(m_data.data());
+        m_packetBeingCreated = offset;
+        auto& packet = *packetBeingCreated();
+        packet.type = PacketType::EndOfPackets;
+    #if defined(size_debug)
+        packet.length = 0;
     #endif
-        m_packetBeingCreated->offsetFromThis = 0;
+        packet.offsetFromThis = 0;
       }
 
       void endNewPacket()
       {
         // patch old packet
-        size_t currentTop = reinterpret_cast<size_t>(&m_data[m_usedSize]);
-        size_t thisPacket = reinterpret_cast<size_t>(m_packetBeingCreated);
+        size_t currentTop = m_usedSize;
+        size_t thisPacket = m_packetBeingCreated;
         size_t diff = currentTop - thisPacket;
-        m_packetBeingCreated->offsetFromThis = static_cast<unsigned>(diff);
+        packetBeingCreated()->offsetFromThis = static_cast<unsigned>(diff);
     #if defined(SIZE_DEBUG)
-        m_packetBeingCreated->length = m_usedSize - m_packetBeingCreated->length;
+        packetBeingCreated()->length = m_usedSize - packetBeingCreated()->length;
     #endif
         m_packets++;
         // create new EOP
@@ -200,28 +199,31 @@ namespace higanbana
       {
         // minimum requirements is one packet which indicates end of packets.
         initialize();
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
       }
 
       CommandBuffer(const CommandBuffer& other)
         : m_data(other.m_data)
         , m_totalSize(other.m_totalSize)
         , m_usedSize(other.m_usedSize)
-        , m_packetBeingCreated(reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]))
+        , m_packetBeingCreated(other.m_packetBeingCreated)
         , m_packets(other.m_packets)
       {
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
       }
 
       CommandBuffer(CommandBuffer&& other)
         : m_data(std::move(other.m_data))
         , m_totalSize(std::move(other.m_totalSize))
         , m_usedSize(std::move(other.m_usedSize))
-        , m_packetBeingCreated(reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]))
+        , m_packetBeingCreated(std::move(other.m_packetBeingCreated))
         , m_packets(other.m_packets)
       {
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         other.m_data.clear();
         other.m_totalSize = 0;
         other.m_usedSize = 0;
-        other.m_packetBeingCreated = nullptr;
+        other.m_packetBeingCreated = 0;
         other.m_packets = 0;
       }
 
@@ -230,8 +232,9 @@ namespace higanbana
         m_data = other.m_data;
         m_totalSize = other.m_totalSize;
         m_usedSize = other.m_usedSize;
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        m_packetBeingCreated = other.m_packetBeingCreated;
         m_packets = other.m_packets;
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         return *this;
       }
 
@@ -240,12 +243,13 @@ namespace higanbana
         m_data = std::move(other.m_data);
         m_totalSize = std::move(other.m_totalSize);
         m_usedSize = std::move(other.m_usedSize);
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize - sizeof(PacketHeader)]);
+        m_packetBeingCreated = std::move(other.m_packetBeingCreated);
         m_packets = other.m_packets;
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         other.m_data.clear();
         other.m_totalSize = 0;
         other.m_usedSize = 0;
-        other.m_packetBeingCreated = nullptr;
+        other.m_packetBeingCreated = 0;
         other.m_packets = 0;
         return *this;
       }
@@ -271,7 +275,7 @@ namespace higanbana
 
       CommandBufferIterator end()
       {
-        return CommandBufferIterator(m_packetBeingCreated);
+        return CommandBufferIterator(packetBeingCreated());
       }
 
       void reset()
@@ -324,16 +328,28 @@ namespace higanbana
 
       void append(const CommandBuffer& other)
       {
-        PacketHeader* correctLastPacket = packetBeingCreated();
-        HIGAN_ASSERT(m_packetBeingCreated == correctLastPacket, "sanity check");
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         auto newSize = m_data.size() + other.sizeBytes();
+        auto copy = m_data;
         m_data.resize(newSize);
-        // find new end.. since we just resized and invalidated all pointers.
-        m_packetBeingCreated = packetBeingCreated();
-        HIGAN_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
-        memcpy(m_packetBeingCreated, other.m_data.data(), other.sizeBytes());
-        m_packetBeingCreated = reinterpret_cast<PacketHeader*>(&m_data[m_usedSize + other.m_usedSize - sizeof(PacketHeader) - sizeof(PacketHeader)]);
-        HIGAN_ASSERT(m_packetBeingCreated->type == PacketType::EndOfPackets, "Enforced EOP");
+        for (int i = 0; i < m_usedSize; ++i)
+        {
+          HIGAN_ASSERT(copy[i] == m_data[i], "Data should be equal");
+        }
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "Enforced EOP");
+        auto copyOther = other.m_data;
+        memcpy(packetBeingCreated(), other.m_data.data(), other.sizeBytes());
+        for (int i = 0; i < other.m_usedSize; ++i)
+        {
+          auto offset = m_packetBeingCreated + i;
+          HIGAN_ASSERT(copyOther[i] == m_data[offset], "Data should be equal");
+        }
+        for (int i = 0; i < m_packetBeingCreated; ++i)
+        {
+          HIGAN_ASSERT(copy[i] == m_data[i], "Data should be equal");
+        }
+        m_packetBeingCreated = m_packetBeingCreated + other.m_packetBeingCreated; 
+        HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "Enforced EOP");
         m_usedSize += other.m_usedSize - sizeof(PacketHeader);
         m_totalSize += other.m_usedSize - sizeof(PacketHeader);
         m_packets += other.m_packets;
