@@ -19,11 +19,13 @@ test_suite(
 )
 
 src_graphics_test("commandbuffer")
+src_graphics_test("device_creation")
 
 test_suite(
     name = "all-graphics-tests",
     tests = [
-        "test_graphics_commandbuffer"
+        "test_graphics_commandbuffer",
+        "test_graphics_device_creation"
     ]
 )
 

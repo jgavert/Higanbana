@@ -228,7 +228,7 @@ namespace app
       node.endRenderpass();
       tasks.addPass(std::move(node));
     }
-
+/*
     {
       auto node = tasks.createPass("Triangle");
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
@@ -258,6 +258,7 @@ namespace app
 
       tasks.addPass(std::move(node));
     }
+    */
 
     // IMGUI
     {
