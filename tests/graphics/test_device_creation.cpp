@@ -1,4 +1,5 @@
 #include <higanbana/graphics/GraphicsCore.hpp>
+#include "graphics_config.hpp"
 #include <string>
 #include <catch2/catch.hpp>
 
@@ -11,7 +12,7 @@ TEST_CASE("instance creation") {
 
 TEST_CASE("device creation") {
   GraphicsSubsystem graphics("higanbana", false);
-  FileSystem fs("/../../tests/data");
+  FileSystem fs(TESTS_FILESYSTEM_PATH);
   {
     auto gpus = graphics.availableGpus();
     if (gpus.empty())
@@ -24,7 +25,7 @@ TEST_CASE("device creation") {
 
 TEST_CASE("create 2 devices of same info") {
   GraphicsSubsystem graphics("higanbana", false);
-  FileSystem fs("/../../tests/data");
+  FileSystem fs(TESTS_FILESYSTEM_PATH);
   {
     auto gpus = graphics.availableGpus();
     if (gpus.empty())
@@ -38,7 +39,7 @@ TEST_CASE("create 2 devices of same info") {
 
 TEST_CASE("create buffer") {
   GraphicsSubsystem graphics("higanbana", false);
-  FileSystem fs("/../../tests/data");
+  FileSystem fs(TESTS_FILESYSTEM_PATH);
   {
     auto gpus = graphics.availableGpus();
     if (gpus.empty())

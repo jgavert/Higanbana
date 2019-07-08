@@ -1,7 +1,7 @@
 def src_graphics_test(target_name):
   native.cc_test(
     name = "test_graphics_" + target_name,
-    srcs = ["graphics/test_" + target_name + ".cpp"],
+    srcs = ["graphics/test_" + target_name + ".cpp", "graphics/graphics_config.hpp"],
     deps = ["//graphics:graphics", "catch-main"],
     copts = select({
       "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],

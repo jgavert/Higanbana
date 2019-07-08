@@ -4,7 +4,8 @@ load(":macros.bzl", "src_core_test")
 cc_library(
     name = "catch-main",
     srcs = ["main.cpp"],
-    deps = ["//ext:Catch2"]
+    deps = ["//ext:Catch2"],
+    linkstatic = True
 )
 
 src_core_test("entity")
@@ -20,6 +21,7 @@ test_suite(
 
 src_graphics_test("commandbuffer")
 src_graphics_test("device_creation")
+src_graphics_test("resource_creation")
 
 test_suite(
     name = "all-graphics-tests",
