@@ -625,13 +625,13 @@ namespace higanbana
 #endif
         if (fmt == khrmode)
           hadChosenMode = true;
-        if (vsyncMode(presentModeVKToHigan(fmt)))
+        if (vsyncMode(presentModeVKToHigan(fmt)) && vsyncMode(mode))
         {
-          backupMode = khrmode;
+          backupMode = fmt;
         }
         else
         {
-          backupMode = khrmode;
+          backupMode = fmt;
         }
       }
       if (!hadChosenMode)
