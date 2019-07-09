@@ -28,7 +28,8 @@ namespace app
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)
       .colorspace(Colorspace::BT709)
-      .bufferCount(2).presentMode(PresentMode::FifoRelaxed);
+      .bufferCount(2).presentMode(PresentMode::Mailbox);
+      //.bufferCount(2).presentMode(PresentMode::FifoRelaxed);
 
     auto bufferdesc = ResourceDescriptor()
       .setName("testBuffer1")

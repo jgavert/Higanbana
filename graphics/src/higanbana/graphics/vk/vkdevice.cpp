@@ -556,10 +556,94 @@ namespace higanbana
       m_device.destroy();
     }
 
+    vk::PresentModeKHR presentModeToVk(PresentMode mode)
+    {
+      switch (mode)
+      {
+      case PresentMode::Mailbox:
+        return vk::PresentModeKHR::eMailbox;
+        break;
+      case PresentMode::Fifo:
+        return vk::PresentModeKHR::eFifo;
+        break;
+      case PresentMode::FifoRelaxed:
+        return vk::PresentModeKHR::eFifoRelaxed;
+        break;
+      case PresentMode::Immediate:
+      default:
+        return vk::PresentModeKHR::eImmediate;
+        break;
+      }
+    }
+    PresentMode presentModeVKToHigan(vk::PresentModeKHR mode)
+    {
+      switch (mode)
+      {
+      case vk::PresentModeKHR::eMailbox:
+        return PresentMode::Mailbox;
+        break;
+      case vk::PresentModeKHR::eFifo:
+        return PresentMode::Fifo;
+        break;
+      case vk::PresentModeKHR::eFifoRelaxed:
+        return PresentMode::FifoRelaxed;
+        break;
+      case vk::PresentModeKHR::eImmediate:
+      default:
+        return PresentMode::Immediate;
+        break;
+      }
+    }
+
+    bool vsyncMode(PresentMode mode)
+    {
+      return mode == PresentMode::Fifo || mode == PresentMode::FifoRelaxed;
+    }
+
+    template <typename Dispatch>
+    vk::PresentModeKHR getValidPresentMode(vk::PhysicalDevice dev, vk::SurfaceKHR surface, Dispatch dyncamic, PresentMode mode)
+    {
+      auto asd = dev.getSurfacePresentModesKHR(surface, dyncamic);
+      VK_CHECK_RESULT(asd);
+      auto presentModes = asd.value;
+
+      vk::PresentModeKHR khrmode = presentModeToVk(mode);
+      vk::PresentModeKHR backupMode;
+
+      bool hadChosenMode = false;
+      for (auto&& fmt : presentModes)
+      {
+#ifdef        HIGANBANA_GRAPHICS_EXTRA_INFO
+        if (fmt == vk::PresentModeKHR::eImmediate)
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Immediate\n");
+        if (fmt == vk::PresentModeKHR::eMailbox)
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Mailbox\n");
+        if (fmt == vk::PresentModeKHR::eFifo)
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Fifo\n");
+        if (fmt == vk::PresentModeKHR::eFifoRelaxed)
+          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "FifoRelaxed\n");
+#endif
+        if (fmt == khrmode)
+          hadChosenMode = true;
+        if (vsyncMode(presentModeVKToHigan(fmt)))
+        {
+          backupMode = khrmode;
+        }
+        else
+        {
+          backupMode = khrmode;
+        }
+      }
+      if (!hadChosenMode)
+      {
+        khrmode = backupMode; // guaranteed by spec
+      }
+      return khrmode;
+    }
+
     std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
       auto format = descriptor.desc.format;
-      auto mode = descriptor.desc.mode;
       auto buffers = descriptor.desc.bufferCount;
 
       auto natSurface = std::static_pointer_cast<VulkanGraphicsSurface>(surface.native());
@@ -606,49 +690,8 @@ namespace higanbana
         wantedFormat = backupFormat;
         format = FormatType::Unorm8BGRA;
       }
-      auto asd = m_physDevice.getSurfacePresentModesKHR(natSurface->native(), m_dynamicDispatch);
-      VK_CHECK_RESULT(asd);
-      auto presentModes = asd.value;
-
-      vk::PresentModeKHR khrmode;
-      switch (mode)
-      {
-      case PresentMode::Mailbox:
-        khrmode = vk::PresentModeKHR::eMailbox;
-        break;
-      case PresentMode::Fifo:
-        khrmode = vk::PresentModeKHR::eFifo;
-        break;
-      case PresentMode::FifoRelaxed:
-        khrmode = vk::PresentModeKHR::eFifoRelaxed;
-        break;
-      case PresentMode::Immediate:
-      default:
-        khrmode = vk::PresentModeKHR::eImmediate;
-        break;
-      }
-
-      bool hadChosenMode = false;
-      for (auto&& fmt : presentModes)
-      {
-#ifdef        HIGANBANA_GRAPHICS_EXTRA_INFO
-        if (fmt == vk::PresentModeKHR::eImmediate)
-          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Immediate\n");
-        if (fmt == vk::PresentModeKHR::eMailbox)
-          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Mailbox\n");
-        if (fmt == vk::PresentModeKHR::eFifo)
-          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "Fifo\n");
-        if (fmt == vk::PresentModeKHR::eFifoRelaxed)
-          HIGAN_SLOG("higanbana/graphics/AvailablePresentModes", "FifoRelaxed\n");
-#endif
-        if (fmt == khrmode)
-          hadChosenMode = true;
-      }
-      if (!hadChosenMode)
-      {
-        khrmode = vk::PresentModeKHR::eFifo; // guaranteed by spec
-        mode = PresentMode::Fifo;
-      }
+      
+      auto khrmode = getValidPresentMode(m_physDevice,natSurface->native(), m_dynamicDispatch, descriptor.desc.mode);
 
       auto extent = surfaceCap.currentExtent;
       if (extent.height == 0)
@@ -690,7 +733,7 @@ namespace higanbana
         dev.destroySwapchainKHR(ptr->native());
         delete ptr;
       });
-      sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
+      sc->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, presentModeVKToHigan(khrmode));
       return sc;
     }
 
@@ -756,23 +799,7 @@ namespace higanbana
       {
         HIGAN_ASSERT(false, "Was not supported.");
       }
-      vk::PresentModeKHR khrmode;
-      switch (mode)
-      {
-      case PresentMode::Mailbox:
-        khrmode = vk::PresentModeKHR::eMailbox;
-        break;
-      case PresentMode::Fifo:
-        khrmode = vk::PresentModeKHR::eFifo;
-        break;
-      case PresentMode::FifoRelaxed:
-        khrmode = vk::PresentModeKHR::eFifoRelaxed;
-        break;
-      case PresentMode::Immediate:
-      default:
-        khrmode = vk::PresentModeKHR::eImmediate;
-        break;
-      }
+      vk::PresentModeKHR khrmode = getValidPresentMode(m_physDevice, natSurface.native(), m_dynamicDispatch, mode);
 
       vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
         .setSurface(natSurface.native())
@@ -796,7 +823,7 @@ namespace higanbana
 
       m_device.destroySwapchainKHR(oldSwapchain);
       //HIGAN_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
-      natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, mode);
+      natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, presentModeVKToHigan(khrmode));
     }
 
     int VulkanDevice::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles)
@@ -1235,44 +1262,7 @@ namespace higanbana
 
       return bindings;
     }
-/*
-for (auto&& upload : it.second.dynamicBuffers)
-        {
-          m_dynamicUpload->release(upload);
-        }
-        for (auto&& tex : it.second.textureviews)
-        {
-          m_device.destroyImageView(tex);
-        }
-        for (auto&& tex : it.second.textures)
-        {
-          m_device.destroyImage(tex);
-        }
-        for (auto&& descriptor : it.second.bufferviews)
-        {
-          m_device.destroyBufferView(descriptor);
-        }
-        for (auto&& descriptor : it.second.buffers)
-        {
-          m_device.destroyBuffer(descriptor);
-        }
-        for (auto&& descriptor : it.second.heaps)
-        {
-          m_device.freeMemory(descriptor);
-        }
-        for (auto&& pipeline : it.second.pipelines)
-        {
-          m_device.destroyPipeline(pipeline);
-        }
-        for (auto&& pl : it.second.pipelineLayouts)
-        {
-          m_device.destroyPipelineLayout(pl);
-        }
-        for (auto&& descLayout : it.second.descriptorSetLayouts)
-        {
-          m_device.destroyDescriptorSetLayout(descLayout);
-        }
- */
+
     void VulkanDevice::releaseHandle(ResourceHandle handle)
     {
       switch(handle.type)
@@ -1404,67 +1394,6 @@ for (auto&& upload : it.second.dynamicBuffers)
 
     void VulkanDevice::collectTrash()
     {
-      /*
-      auto latestSequenceStarted = m_seqTracker->lastSequence();
-
-      m_collectableTrash.emplace_back(std::make_pair(latestSequenceStarted, *m_trash));
-      m_trash->dynamicBuffers.clear();
-      m_trash->buffers.clear();
-      m_trash->textures.clear();
-      m_trash->bufferviews.clear();
-      m_trash->textureviews.clear();
-      m_trash->heaps.clear();
-      m_trash->pipelines.clear();
-      m_trash->pipelineLayouts.clear();
-      m_trash->descriptorSetLayouts.clear();
-
-      while (!m_collectableTrash.empty())
-      {
-        auto&& it = m_collectableTrash.front();
-        if (!m_seqTracker->hasCompletedTill(it.first))
-        {
-          break;
-        }
-        for (auto&& upload : it.second.dynamicBuffers)
-        {
-          m_dynamicUpload->release(upload);
-        }
-        for (auto&& tex : it.second.textureviews)
-        {
-          m_device.destroyImageView(tex);
-        }
-        for (auto&& tex : it.second.textures)
-        {
-          m_device.destroyImage(tex);
-        }
-        for (auto&& descriptor : it.second.bufferviews)
-        {
-          m_device.destroyBufferView(descriptor);
-        }
-        for (auto&& descriptor : it.second.buffers)
-        {
-          m_device.destroyBuffer(descriptor);
-        }
-        for (auto&& descriptor : it.second.heaps)
-        {
-          m_device.freeMemory(descriptor);
-        }
-        for (auto&& pipeline : it.second.pipelines)
-        {
-          m_device.destroyPipeline(pipeline);
-        }
-        for (auto&& pl : it.second.pipelineLayouts)
-        {
-          m_device.destroyPipelineLayout(pl);
-        }
-        for (auto&& descLayout : it.second.descriptorSetLayouts)
-        {
-          m_device.destroyDescriptorSetLayout(descLayout);
-        }
-
-        m_collectableTrash.pop_front();
-      }
-      */
     }
 
     void VulkanDevice::waitGpuIdle()

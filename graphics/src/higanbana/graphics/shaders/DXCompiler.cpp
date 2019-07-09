@@ -60,18 +60,24 @@ namespace higanbana
       {
         ppArgs.push_back(L"-spirv"); // enable spirv codegen
         ppArgs.push_back(L"-fspv-target-env=vulkan1.1");
+        //ppArgs.push_back(L"-Oconfig=-O");
+        //ppArgs.push_back(L"-Oconfig=--loop-unroll,--scalar-replacement=300,--eliminate-dead-code-aggressive");
+        ppArgs.push_back(L"-0d");
       }
-
+      else
+      {
+        ppArgs.push_back(L"/O3");
+        //ppArgs.push_back(L"-Od"); // Disable optimizations. /Od implies /Gfp though output may not be identical to /Od /Gfp. 
+                                // /Gfp Prefer flow control constructs.
+      }
 
       // other various settings
       ppArgs.push_back(L"/Zi"); // Enable debugging information.
       ppArgs.push_back(L"/WX"); // Treat warnings as errors.
-      ppArgs.push_back(L"/Od"); // Disable optimizations. /Od implies /Gfp though output may not be identical to /Od /Gfp. 
-                                // /Gfp Prefer flow control constructs.
       ppArgs.push_back(L"/Ges"); //Enable strict mode.
       ppArgs.push_back(L"/enable_unbounded_descriptor_tables"); //Enables unbounded descriptor tables.
       ppArgs.push_back(L"/all_resources_bound"); // Enable aggressive flattening in SM5.1+.
-      ppArgs.push_back(L"-enable-16bit-types"); 
+      ppArgs.push_back(L"/enable-16bit-types"); 
       /*
         /Zpc	Pack matrices in column-major order.
         /Zpr	Pack matrices in row-major order.
