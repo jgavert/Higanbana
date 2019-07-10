@@ -50,7 +50,7 @@
             "name": "tests graphics commandbuffer win64 dbg",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/tests/test_graphics_commandbuffer.exe",
+            "program": "${workspaceFolder}/bazel-bin/tests/test_graphics_readback_future.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/tests",

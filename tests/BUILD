@@ -1,5 +1,7 @@
 load(":macros.bzl", "src_graphics_test")
 load(":macros.bzl", "src_core_test")
+load(":macros.bzl", "src_graphics_test_with_header")
+load(":macros.bzl", "src_core_test_with_header")
 
 cc_library(
     name = "catch-main",
@@ -21,13 +23,16 @@ test_suite(
 
 src_graphics_test("commandbuffer")
 src_graphics_test("device_creation")
-src_graphics_test("resource_creation")
+src_graphics_test_with_header("resource_creation")
+src_graphics_test_with_header("readback_future")
 
 test_suite(
     name = "all-graphics-tests",
     tests = [
         "test_graphics_commandbuffer",
-        "test_graphics_device_creation"
+        "test_graphics_device_creation",
+        "test_graphics_readback_future",
+        "test_graphics_resource_creation"
     ]
 )
 

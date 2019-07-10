@@ -133,11 +133,6 @@ namespace higanbana
       return S().dynamicImage(reinterpret_memView<uint8_t>(view), static_cast<unsigned>(rowPitch));
     }
 
-    ReadbackBuffer readback()
-    {
-      return ReadbackBuffer();
-    }
-
     Renderpass createRenderpass()
     {
       return S().createRenderpass();

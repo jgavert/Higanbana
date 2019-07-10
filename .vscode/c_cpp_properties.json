@@ -3,6 +3,7 @@
         {
             "name": "Windows",
             "includePath": [
+                "${workspaceFolder}",
                 "${workspaceFolder}/test_main/src",
                 "${workspaceFolder}/core/src",
                 "${workspaceFolder}/graphics/src",

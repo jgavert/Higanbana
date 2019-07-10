@@ -116,26 +116,4 @@ namespace higanbana
       return m_id;
     }
   };
-
-  class ReadbackBuffer
-  {
-    std::shared_ptr<ViewResourceHandle> m_id;
-    std::shared_ptr<std::atomic<int>> m_ready;
-  public:
-    ReadbackBuffer()
-    {
-
-    }
-    ReadbackBuffer(std::shared_ptr<ViewResourceHandle> id)
-      : m_id(id)
-    {
-    }
-
-    explicit operator bool() const noexcept
-    {
-      if (m_ready)
-        return m_ready->load(std::memory_order::memory_order_relaxed) > 0;
-      return false;
-    }
-  };
 };
