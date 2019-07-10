@@ -2,6 +2,9 @@
 rd /Q /S ext\Catch2
 git clone https://github.com/catchorg/Catch2.git ext/Catch2
 
+rd /Q /S ext\GSL
+git clone https://github.com/microsoft/GSL.git ext/GSL
+
 rd /s /Q ext\stb
 git clone https://github.com/nothings/stb.git ext/stb
 

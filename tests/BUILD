@@ -23,7 +23,7 @@ test_suite(
 
 src_graphics_test("commandbuffer")
 src_graphics_test("device_creation")
-src_graphics_test_with_header("resource_creation")
+src_graphics_test("resource_creation")
 src_graphics_test_with_header("readback_future")
 
 test_suite(

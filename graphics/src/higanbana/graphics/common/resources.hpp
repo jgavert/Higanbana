@@ -91,6 +91,7 @@ namespace higanbana
   class TextureRTV;
   class TextureDSV;
   class DynamicBufferView;
+  class ReadbackData;
 
   class Swapchain;
   class Renderpass;

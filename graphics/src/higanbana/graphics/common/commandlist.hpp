@@ -165,12 +165,12 @@ namespace higanbana
       //list.insert<gfxpacket::BufferCpuToGpuCopy>(target, source);
     }
 
-    void readback(Texture& texture, Subresource range, Box srcbox, std::function<void(SubresourceData)> func)
+    void readback(Texture& texture, Subresource range, Box srcbox)
     {
       //list.insert<gfxpacket::ReadbackTexture>(texture, range, srcbox, texture.desc().desc.format, func);
     }
 
-    void readback(Buffer& buffer, uint startElement, uint size, std::function<void(MemView<uint8_t>)> func)
+    void readback(Buffer& buffer, uint startElement, uint size)
     {
       //list.insert<gfxpacket::Readback>(buffer, startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride, func);
     }

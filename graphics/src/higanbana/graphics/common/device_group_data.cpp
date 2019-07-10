@@ -81,6 +81,13 @@ namespace higanbana
                 m_seqTracker.complete(buffer.started);
                 currentSeqNum = buffer.started;
               }
+              if (!buffer.readbacks.empty())
+              {
+                for (auto&& rb : buffer.readbacks)
+                {
+                  rb->set_value(ReadbackData());
+                }
+              }
               buffers.pop_front();
               buffersToFree--;
             }
@@ -905,13 +912,19 @@ namespace higanbana
           plist.list.list.append(nodes[i].list.list);
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
+          plist.readbacks = nodes[i].m_readbackPromises;
           plist.acquireSema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
+
+          if (!plist.readbacks.empty())
+          {
+            HIGAN_LOGi("found readbacks!\n");
+          }
 
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
-            if (nodes[i].type != plist.type)
+            if (nodes[i].type != plist.type || !plist.readbacks.empty())
               break;
             plist.list.list.append(nodes[i].list.list);
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
@@ -989,6 +1002,7 @@ namespace higanbana
           buffer.started = m_seqTracker.next();
           buffer.lists.emplace_back(nativeList);
           buffer.cmdMemory = list.list.list;
+          buffer.readbacks = std::move(list.readbacks);
 
           // barriers&commands
           fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release);
@@ -1040,7 +1054,7 @@ namespace higanbana
             }
           }
 
-          if (list.isLastList)
+          if (list.isLastList || !buffer.readbacks.empty())
           {
             buffer.fence = vdev.device->createFence();
           }

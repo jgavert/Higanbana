@@ -69,6 +69,17 @@
         "__mutex_base": "cpp",
         "filesystem": "cpp",
         "xtree": "cpp",
-        "string_view": "cpp"
-    }
+        "string_view": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp",
+        "map": "cpp",
+        "numeric": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "stack": "cpp",
+        "variant": "cpp"
+    },
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.renderWhitespace": "boundary"
 }

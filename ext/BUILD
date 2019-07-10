@@ -4,6 +4,20 @@ cc_library(
     includes = ["stb"],
     visibility = ["//visibility:public"], 
 )
+cc_library(
+    name = "GSL",
+    hdrs = ["GSL/include/gsl/gsl",
+    "GSL/include/gsl/gsl_algorithm",
+    "GSL/include/gsl/gsl_assert",
+    "GSL/include/gsl/gsl_byte",
+    "GSL/include/gsl/gsl_util",
+    "GSL/include/gsl/multi_span",
+    "GSL/include/gsl/pointers",
+    "GSL/include/gsl/span",
+    "GSL/include/gsl/string_span"],
+    includes = ["GSL/include"],
+    visibility = ["//visibility:public"], 
+)
 
 cc_library(
     name = "DXC_headers",

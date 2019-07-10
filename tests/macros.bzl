@@ -1,7 +1,7 @@
 def src_graphics_test(target_name):
   native.cc_test(
     name = "test_graphics_" + target_name,
-    srcs = ["graphics/test_" + target_name + ".cpp", "graphics/graphics_config.hpp"],
+    srcs = ["graphics/test_" + target_name + ".cpp", "graphics/graphics_config.hpp", "graphics/graphics_config.cpp"],
     deps = ["//graphics:graphics", "catch-main"],
     copts = select({
       "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
@@ -17,7 +17,7 @@ def src_graphics_test(target_name):
 def src_graphics_test_with_header(target_name):
   native.cc_test(
     name = "test_graphics_" + target_name,
-    srcs = ["graphics/test_" + target_name + ".cpp", "graphics/test_" + target_name + ".hpp", "graphics/graphics_config.hpp"],
+    srcs = ["graphics/test_" + target_name + ".cpp", "graphics/test_" + target_name + ".hpp", "graphics/graphics_config.hpp", "graphics/graphics_config.cpp"],
     deps = ["//graphics:graphics", "catch-main"],
     copts = select({
       "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
