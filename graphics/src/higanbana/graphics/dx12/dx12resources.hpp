@@ -463,10 +463,9 @@ namespace higanbana
       }
     };
 
-    struct DX12ReadbackLambda
+    struct DX12Readback
     {
       ReadbackBlock dataLocation;
-      std::function<void(MemView<uint8_t>)> func;
     };
 
     class DX12Fence : public FenceImpl
@@ -565,7 +564,7 @@ namespace higanbana
     {
       vector<UploadBlock> uploadBlocks;
       vector<DynamicDescriptorBlock> descriptorBlocks;
-      vector<DX12ReadbackLambda> readbacks;
+      vector<DX12Readback> readbacks;
       vector<QueryBracket> queries;
       vector<DX12OldPipeline> pipelines;
     };

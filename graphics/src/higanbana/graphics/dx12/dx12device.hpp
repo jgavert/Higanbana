@@ -44,6 +44,7 @@ namespace higanbana
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
+      std::shared_ptr<DX12ReadbackHeap> m_dynamicReadback;
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 
@@ -113,6 +114,8 @@ namespace higanbana
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
       void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;
+
+      void readbackBuffer(ResourceHandle readback, size_t bytes) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
       DX12QueryHeap createGraphicsQueryHeap(unsigned counters);

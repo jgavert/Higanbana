@@ -85,7 +85,7 @@ namespace higanbana
               {
                 for (auto&& rb : buffer.readbacks)
                 {
-                  rb->set_value(ReadbackData());
+                  rb.promise->set_value(ReadbackData(rb.promiseId)); // TODO: SET READBACK HERE FOR USER
                 }
               }
               buffers.pop_front();
@@ -595,6 +595,37 @@ namespace higanbana
       return CommandGraph(++m_currentSeqNum); 
     }
 
+    // we have given promises of readbacks to user, we need backing memory for those readbacks and patch commandbuffer with valid resources.
+    void DeviceGroupData::generateReadbackCommands(VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<ReadbackPromise>& readbacks)
+    {
+      int currentReadback = 0;
+      auto iter = buffer.begin();
+      while((*iter)->type != PacketType::EndOfPackets)
+      {
+        CommandBuffer::PacketHeader* header = *iter;
+        switch(header->type)
+        {
+          case PacketType::ReadbackBuffer:
+          {
+            HIGAN_LOGi("found readback!\n");
+            auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
+            handle.setGpuId(vdev.id);
+            readbacks[currentReadback].promiseId = sharedHandle(handle);
+            auto& packet = header->data<gfxpacket::ReadbackBuffer>();
+            vdev.device->readbackBuffer(handle, packet.numBytes);
+
+            packet.dst = handle;
+            break;
+          }
+          default:
+          {
+            break;
+          }
+        }
+        iter++;
+      }
+    }
+
     void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquires, vector<QueueTransfer>& releases)
     {
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
@@ -691,6 +722,14 @@ namespace higanbana
             ViewResourceHandle dst;
             dst.resource = packet.dst;
             solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+            solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+            break;
+          }
+          case PacketType::ReadbackBuffer:
+          {
+            auto& packet = header->data<gfxpacket::ReadbackBuffer>();
+            ViewResourceHandle src;
+            src.resource = packet.src;
             solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
             break;
           }
@@ -924,11 +963,12 @@ namespace higanbana
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
-            if (nodes[i].type != plist.type || !plist.readbacks.empty())
+            if (nodes[i].type != plist.type)
               break;
             plist.list.list.append(nodes[i].list.list);
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
             plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
+            plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
             if (!plist.acquireSema)
             {
               plist.acquireSema = nodes[i].acquireSemaphore;
@@ -1003,6 +1043,9 @@ namespace higanbana
           buffer.lists.emplace_back(nativeList);
           buffer.cmdMemory = list.list.list;
           buffer.readbacks = std::move(list.readbacks);
+
+          // patch readbacks
+          generateReadbackCommands(vdev, buffer.cmdMemory, list.type, buffer.readbacks);
 
           // barriers&commands
           fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release);

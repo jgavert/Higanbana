@@ -67,12 +67,14 @@ namespace higanbana
         {
           if (!ptr->readbacks.empty())
           {
+            /*
             readback->map();
             for (auto&& it : ptr->readbacks)
             {
               it.func(readback->getView(it.dataLocation));
             }
             readback->unmap();
+            */
           }
         }
 

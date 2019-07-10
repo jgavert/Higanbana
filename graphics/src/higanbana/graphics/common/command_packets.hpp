@@ -235,6 +235,23 @@ namespace higanbana
         packet->bottomright = bottomright;
       }
     };
+
+    struct ReadbackBuffer
+    {
+      ResourceHandle dst; // patched later when we know it.
+      ResourceHandle src;
+      uint32_t srcOffset;
+      uint32_t numBytes;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ReadbackBuffer;
+      static void constructor(backend::CommandBuffer& , ReadbackBuffer* packet, ResourceHandle src, uint64_t srcOffset, uint64_t numBytes)
+      {
+        packet->src = src; 
+        packet->srcOffset = srcOffset; 
+        packet->numBytes = numBytes;
+        packet->dst = ResourceHandle(); // invalid handle for now
+      }
+    };
     /*
     // helpers
 

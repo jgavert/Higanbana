@@ -139,6 +139,9 @@ namespace higanbana
         virtual void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) = 0;
         virtual void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) = 0;
 
+        // create readback resources
+        virtual void readbackBuffer(ResourceHandle readback, size_t bytes) = 0;
+
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
         virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;
         virtual std::shared_ptr<backend::CommandBufferImpl> createComputeList() = 0;

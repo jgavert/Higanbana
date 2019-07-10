@@ -13,7 +13,6 @@
 #include <higanbana/core/math/utils.hpp>
 
 #include <string>
-#include <future>
 #include "higanbana/graphics/common/readback.hpp"
 
 namespace higanbana
@@ -31,7 +30,7 @@ namespace higanbana
 
     DynamicBitfield m_referencedBuffers;
     DynamicBitfield m_referencedTextures;
-    vector<std::shared_ptr<std::promise<ReadbackData>>> m_readbackPromises;
+    vector<ReadbackPromise> m_readbackPromises;
 
     const DynamicBitfield& refBuf() const
     {
@@ -273,7 +272,7 @@ namespace higanbana
     std::future<ReadbackData> readback(Texture tex, Subresource resource)
     {
       auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back(promise);
+      m_readbackPromises.push_back({nullptr, promise});
       m_referencedTextures.setBit(tex.handle().id);
       auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
@@ -284,7 +283,7 @@ namespace higanbana
     std::future<ReadbackData> readback(Buffer buffer)
     {
       auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back(promise);
+      m_readbackPromises.push_back({nullptr, promise});
       m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, 0, buffer.desc().desc.width);
       return promise->get_future();
@@ -293,7 +292,7 @@ namespace higanbana
     std::future<ReadbackData> readback(Buffer buffer, unsigned startElement, unsigned size)
     {
       auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back(promise);
+      m_readbackPromises.push_back({nullptr, promise});
       m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, startElement, size);
       return promise->get_future();

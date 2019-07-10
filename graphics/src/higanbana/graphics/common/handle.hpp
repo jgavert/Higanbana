@@ -18,7 +18,9 @@ namespace higanbana
     Renderpass,
     Buffer,
     DynamicBuffer,
+    ReadbackBuffer,
     Texture,
+    ReadbackTexture,
     MemoryHeap,
     // Insert some raytracing things here?
     Count

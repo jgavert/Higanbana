@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/common/handle.hpp"
+#include <future>
 
 namespace higanbana
 {
@@ -23,5 +24,11 @@ namespace higanbana
         return *m_id;
       return ResourceHandle();
     }
+  };
+
+  struct ReadbackPromise
+  {
+    std::shared_ptr<ResourceHandle> promiseId;
+    std::shared_ptr<std::promise<ReadbackData>> promise;
   };
 }

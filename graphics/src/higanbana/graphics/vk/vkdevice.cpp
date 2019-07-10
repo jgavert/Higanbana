@@ -1907,6 +1907,11 @@ namespace higanbana
       m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), info, upload, rowPitch);
     }
 
+    void VulkanDevice::readbackBuffer(ResourceHandle readback, size_t bytes)
+    {
+
+    }
+
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)
     {
       vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()

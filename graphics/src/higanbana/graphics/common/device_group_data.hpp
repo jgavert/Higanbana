@@ -84,7 +84,7 @@ namespace higanbana
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
-      vector<std::shared_ptr<std::promise<ReadbackData>>> readbacks;
+      vector<ReadbackPromise> readbacks;
     };
 
     struct QueueTransfer 
@@ -107,7 +107,7 @@ namespace higanbana
       std::shared_ptr<SemaphoreImpl> acquireSema;
       bool presents = false;
       bool isLastList = false;
-      vector<std::shared_ptr<std::promise<ReadbackData>>> readbacks;
+      vector<ReadbackPromise> readbacks;
     };
 
     struct FirstUseResource
@@ -199,6 +199,7 @@ namespace higanbana
       void present(Swapchain& swapchain);
 
       // test
+      void generateReadbackCommands(VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<ReadbackPromise>& readbacks);
       void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release);
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };

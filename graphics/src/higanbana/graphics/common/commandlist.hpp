@@ -167,12 +167,12 @@ namespace higanbana
 
     void readback(Texture& texture, Subresource range, Box srcbox)
     {
-      //list.insert<gfxpacket::ReadbackTexture>(texture, range, srcbox, texture.desc().desc.format, func);
+      //list.insert<gfxpacket::ReadbackTexture>(texture, range, srcbox, texture.desc().desc.format);
     }
 
     void readback(Buffer& buffer, uint startElement, uint size)
     {
-      //list.insert<gfxpacket::Readback>(buffer, startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride, func);
+      list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
     }
 
     void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)

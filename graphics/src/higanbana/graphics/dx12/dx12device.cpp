@@ -1435,6 +1435,11 @@ namespace higanbana
       m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, requiredRowPitch);
     }
 
+    void DX12Device::readbackBuffer(ResourceHandle readback, size_t bytes)
+    {
+      // get description of source and allocate readback memory based on the bytes required
+    }
+
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)
     {
       return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
