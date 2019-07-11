@@ -158,13 +158,15 @@ namespace higanbana
     {
       auto dstOffset = dstStart * target.desc().desc.stride;
       auto srcOffset = srcStart * source.desc().desc.stride;
-      auto bytes = source.desc().desc.sizeBytesBuffer();
+      auto bytes = elements*source.desc().desc.stride;
       list.insert<gfxpacket::BufferCopy>(target.handle(), dstOffset, source.handle(), srcOffset, bytes);
     }
 
-    void copy(Buffer& target, uint dstStart, DynamicBufferView& source)
+    void copy(Buffer& target, uint dstStart, DynamicBufferView& source, uint srcStart, uint elements)
     {
       auto dstOffset = dstStart * target.desc().desc.stride;
+      auto srcOffset = srcStart * source.elementSize();
+      auto bytes = source.elementSize()*elements;
       list.insert<gfxpacket::DynamicBufferCopy>(target.handle(), dstOffset, source.handle(), source.logicalSize());
     }
 

@@ -78,7 +78,8 @@
         "set": "cpp",
         "stack": "cpp",
         "variant": "cpp",
-        "pointers": "cpp"
+        "pointers": "cpp",
+        "gsl_algorithm": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

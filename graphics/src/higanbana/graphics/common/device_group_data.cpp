@@ -85,7 +85,8 @@ namespace higanbana
               {
                 for (auto&& rb : buffer.readbacks)
                 {
-                  auto view = m_devices[buffer.deviceID].device->mapReadback(*rb.promiseId);
+                  auto handle = *rb.promiseId;
+                  auto view = m_devices[buffer.deviceID].device->mapReadback(handle);
                   rb.promise->set_value(ReadbackData(rb.promiseId, view)); // TODO: SET READBACK HERE FOR USER
                 }
               }
@@ -530,7 +531,7 @@ namespace higanbana
       {
         vdev.device->dynamic(handle, range, format);
       }
-      return DynamicBufferView(handle, range.size_bytes());
+      return DynamicBufferView(handle, formatSizeInfo(format).pixelSize, range.size_bytes());
     }
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride)
@@ -541,7 +542,7 @@ namespace higanbana
       {
         vdev.device->dynamic(handle, range, stride);
       }
-      return DynamicBufferView(handle, range.size_bytes());
+      return DynamicBufferView(handle, stride, range.size_bytes());
     }
 
     DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch)
@@ -552,7 +553,7 @@ namespace higanbana
       {
         vdev.device->dynamicImage(handle, range, rowPitch);
       }
-      return DynamicBufferView(handle, range.size_bytes());
+      return DynamicBufferView(handle, rowPitch, range.size_bytes());
     }
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
@@ -572,7 +573,7 @@ namespace higanbana
           {
             vdev.device->dynamicImage(handle, makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
           }
-          allBufferToImages.emplace_back(DynamicBufferView(handle, sr.slicePitch()));
+          allBufferToImages.emplace_back(DynamicBufferView(handle, formatSizeInfo(image.desc().desc.format).pixelSize, sr.slicePitch()));
         }
       }
       for (auto& vdev : m_devices)
@@ -613,8 +614,8 @@ namespace higanbana
             readbacks[currentReadback].promiseId = sharedHandle(handle);
             auto& packet = header->data<gfxpacket::ReadbackBuffer>();
             vdev.device->readbackBuffer(handle, packet.numBytes);
-
             packet.dst = handle;
+            currentReadback++;
             break;
           }
           default:

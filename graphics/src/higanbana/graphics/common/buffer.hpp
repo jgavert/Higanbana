@@ -101,6 +101,7 @@ namespace higanbana
   class DynamicBufferView
   {
     ViewResourceHandle m_id;
+    size_t m_elementSize;
     size_t m_logicalSize;
 
   public:
@@ -108,8 +109,9 @@ namespace higanbana
     {
 
     }
-    DynamicBufferView(ViewResourceHandle id, size_t logicalSize)
+    DynamicBufferView(ViewResourceHandle id, size_t elementSize, size_t logicalSize)
       : m_id(id)
+      , m_elementSize(elementSize)
       , m_logicalSize(logicalSize)
     {
     }
@@ -121,6 +123,11 @@ namespace higanbana
     size_t logicalSize()
     {
       return m_logicalSize;
+    }
+
+    size_t elementSize()
+    {
+      return m_elementSize;
     }
   };
 };

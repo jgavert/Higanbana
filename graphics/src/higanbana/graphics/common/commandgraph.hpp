@@ -251,10 +251,32 @@ namespace higanbana
       list.copy(target, 0, source, 0, source.desc().desc.width);
     }
 
+    void copy(Buffer target, uint targetElementOffset, Buffer source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
+    {
+      if (sourceElementsToCopy == -1)
+      {
+        sourceElementsToCopy = source.desc().desc.width;
+      }
+      m_referencedBuffers.setBit(target.handle().id);
+      m_referencedBuffers.setBit(source.handle().id);
+      list.copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
+    }
+
     void copy(Buffer target, DynamicBufferView source)
     {
+      auto elements = source.logicalSize() / source.elementSize();
       m_referencedBuffers.setBit(target.handle().id);
-      list.copy(target, 0, source);
+      list.copy(target, 0, source, 0, elements);
+    }
+
+    void copy(Buffer target, uint targetElementOffset, DynamicBufferView source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
+    {
+      if (sourceElementsToCopy == -1)
+      {
+        sourceElementsToCopy = source.logicalSize() / source.elementSize();
+      }
+      m_referencedBuffers.setBit(target.handle().id);
+      list.copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
     }
 
     void copy(Texture target, Buffer source, Subresource sub)
