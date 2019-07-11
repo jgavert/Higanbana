@@ -292,21 +292,21 @@ namespace higanbana
       list.updateTexture(target, source, sub.mipLevel, sub.arraySlice);
     }
 
-    std::future<ReadbackData> readback(Texture tex, Subresource resource)
+    ReadbackFuture readback(Texture tex, Subresource resource)
     {
-      auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back({nullptr, promise});
+      auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
+      m_readbackPromises.push_back(promise);
       m_referencedTextures.setBit(tex.handle().id);
       auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
       list.readback(tex, resource, srcBox);
-      return promise->get_future();
+      return promise.future();
     }
 
-    std::shared_ptr<std::future<ReadbackData>> readback(Buffer buffer, int offset = -1, int size = -1)
+    ReadbackFuture readback(Buffer buffer, int offset = -1, int size = -1)
     {
-      auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back({nullptr, promise});
+      auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
+      m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);
 
       if (offset == -1)
@@ -320,16 +320,16 @@ namespace higanbana
       }
 
       list.readback(buffer, offset, size);
-      return std::make_shared<std::future<ReadbackData>>(promise->get_future());
+      return promise.future();
     }
 
-    std::shared_ptr<std::future<ReadbackData>> readback(Buffer buffer, unsigned startElement, unsigned size)
+    ReadbackFuture readback(Buffer buffer, unsigned startElement, unsigned size)
     {
-      auto promise = std::make_shared<std::promise<ReadbackData>>();
-      m_readbackPromises.push_back({nullptr, promise});
+      auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
+      m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, startElement, size);
-      return std::make_shared<std::future<ReadbackData>>(promise->get_future());
+      return promise.future();
     }
 
     void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)

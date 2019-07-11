@@ -34,9 +34,41 @@ namespace higanbana
     }
   };
 
+  class ReadbackFuture
+  {
+    std::shared_ptr<std::future<ReadbackData>> m_future;
+  public:
+    ReadbackFuture(){}
+    ReadbackFuture(std::shared_ptr<std::future<ReadbackData>> rb)
+      : m_future(rb)
+    {
+
+    }
+
+    ReadbackData get()
+    {
+      return m_future->get();
+    }
+
+    void wait() const
+    {
+      m_future->wait();
+    }
+
+    bool ready() const
+    {
+      return m_future->_Is_ready();
+    }
+  };
+
   struct ReadbackPromise
   {
     std::shared_ptr<ResourceHandle> promiseId;
     std::shared_ptr<std::promise<ReadbackData>> promise;
+
+    ReadbackFuture future()
+    {
+      return std::make_shared<std::future<ReadbackData>>(promise->get_future());
+    }
   };
 }

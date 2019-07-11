@@ -43,11 +43,11 @@ TEST_CASE_METHOD(GraphicsFixture, "create readback in graph") {
   auto asyncReadback = node.readback(buffer);
   graph.addPass(std::move(node));
 
-  REQUIRE(!asyncReadback->_Is_ready());
+  REQUIRE(!asyncReadback.ready());
   gpu().submit(graph);
   gpu().waitGpuIdle();
 
-  REQUIRE(asyncReadback->_Is_ready()); // result should be ready at some point after gpu idle
+  REQUIRE(asyncReadback.ready()); // result should be ready at some point after gpu idle
 }
 
 TEST_CASE_METHOD(GraphicsFixture, "create readback in graph&check data") {
@@ -68,10 +68,10 @@ TEST_CASE_METHOD(GraphicsFixture, "create readback in graph&check data") {
   gpu().submit(graph);
   gpu().waitGpuIdle();
 
-  REQUIRE(asyncReadback->_Is_ready());
+  REQUIRE(asyncReadback.ready());
 
   // check actual data
-  auto rb = asyncReadback->get();
+  auto rb = asyncReadback.get();
   auto rbdata = rb.view<float>();
   for (int i = 0; i < 8; i++)
   {
@@ -106,10 +106,10 @@ TEST_CASE_METHOD(GraphicsFixture, "test copying&readback: small copies") {
   gpu().submit(graph);
   gpu().waitGpuIdle();
 
-  REQUIRE(asyncReadback->_Is_ready());
+  REQUIRE(asyncReadback.ready());
 
   // check actual data
-  auto rb = asyncReadback->get();
+  auto rb = asyncReadback.get();
   auto rbdata = rb.view<float>();
   for (int i = 0; i < 8; i++)
   {
@@ -138,10 +138,10 @@ TEST_CASE_METHOD(GraphicsFixture, "test copying&readback: small readbacks") {
   gpu().submit(graph);
   gpu().waitGpuIdle();
 
-  REQUIRE(ar1->_Is_ready());
-  REQUIRE(ar2->_Is_ready());
-  REQUIRE(ar3->_Is_ready());
-  REQUIRE(ar4->_Is_ready());
+  REQUIRE(ar1.ready());
+  REQUIRE(ar2.ready());
+  REQUIRE(ar3.ready());
+  REQUIRE(ar4.ready());
 
   // check actual data
   int sarr = 0;
@@ -153,14 +153,14 @@ TEST_CASE_METHOD(GraphicsFixture, "test copying&readback: small readbacks") {
       sarr++;
     }
   };
-  auto rb = ar1->get();
+  auto rb = ar1.get();
   auto rbdata = rb.view<float>();
 
-  auto rb2 = ar2->get();
+  auto rb2 = ar2.get();
   auto rbdata2 = rb2.view<float>();
-  auto rb3 = ar3->get();
+  auto rb3 = ar3.get();
   auto rbdata3 = rb3.view<float>();
-  auto rb4 = ar4->get();
+  auto rb4 = ar4.get();
   auto rbdata4 = rb4.view<float>();
 
   checkReadback(rbdata);
