@@ -154,15 +154,18 @@ namespace higanbana
       //list.insert<gfxpacket::TextureCopy>(target.dependency(), source.dependency(), range);
     }
 
-    void copy(Buffer& target, Buffer& source)
+    void copy(Buffer& target, uint dstStart, Buffer& source, uint srcStart, uint elements)
     {
-      uint32_t maxbytes = std::min(target.desc().desc.sizeBytesBuffer(), source.desc().desc.sizeBytesBuffer());
-      list.insert<gfxpacket::BufferCopy>(target.handle(), 0, source.handle(), 0, maxbytes);
+      auto dstOffset = dstStart * target.desc().desc.stride;
+      auto srcOffset = srcStart * source.desc().desc.stride;
+      auto bytes = source.desc().desc.sizeBytesBuffer();
+      list.insert<gfxpacket::BufferCopy>(target.handle(), dstOffset, source.handle(), srcOffset, bytes);
     }
 
-    void copy(Buffer& target, DynamicBufferView& source)
+    void copy(Buffer& target, uint dstStart, DynamicBufferView& source)
     {
-      //list.insert<gfxpacket::BufferCpuToGpuCopy>(target, source);
+      auto dstOffset = dstStart * target.desc().desc.stride;
+      list.insert<gfxpacket::DynamicBufferCopy>(target.handle(), dstOffset, source.handle(), source.logicalSize());
     }
 
     void readback(Texture& texture, Subresource range, Box srcbox)

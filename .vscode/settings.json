@@ -77,7 +77,8 @@
         "regex": "cpp",
         "set": "cpp",
         "stack": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "pointers": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

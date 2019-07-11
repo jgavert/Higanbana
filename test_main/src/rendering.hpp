@@ -48,6 +48,7 @@ namespace app
 
     higanbana::CpuImage image;
     higanbana::Texture fontatlas;
+
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
     void initWindow(higanbana::Window& window, higanbana::GpuInfo info);

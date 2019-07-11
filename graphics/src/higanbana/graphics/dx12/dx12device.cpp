@@ -82,7 +82,7 @@ namespace higanbana
 
       m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
       {
-        return createReadback(256 * 10, 1024 * 4); // maybe 10 megs of readback?
+        return createReadback(256 * 10, 1024); // maybe 10 megs of readback?
       });
 
       m_copyListPool = Rabbitpool2<DX12CommandBuffer>([&]()
@@ -158,10 +158,11 @@ namespace higanbana
     DX12Device::~DX12Device()
     {
       waitGpuIdle();
+      /*
       if (m_debugLayer)
       {
         m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-      }
+      }*/
     }
 
     DX12Resources& DX12Device::allResources()
@@ -523,6 +524,12 @@ namespace higanbana
           HIGAN_ASSERT(false, "unhandled type released");
           break;
         }
+        case ResourceType::ReadbackBuffer:
+        {
+          m_allRes.rbbuf[handle].native()->Release();
+          m_allRes.rbbuf[handle] = DX12Readback();
+          break;
+        }
         case ResourceType::MemoryHeap:
         {
           m_allRes.heaps[handle] = DX12Heap();
@@ -606,8 +613,10 @@ namespace higanbana
 
     void DX12Device::collectTrash()
     {
+      /*
       if (m_debugLayer)
         m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
+        */
     }
 
     void DX12Device::waitGpuIdle()
@@ -1438,6 +1447,36 @@ namespace higanbana
     void DX12Device::readbackBuffer(ResourceHandle readback, size_t bytes)
     {
       // get description of source and allocate readback memory based on the bytes required
+      ResourceDescriptor desc = ResourceDescriptor()
+        .setCount(bytes)
+        .setFormat(FormatType::Unorm8)
+        .setUsage(ResourceUsage::Readback);
+
+      auto dxDesc = fillPlacedBufferInfo(desc);
+
+      D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COPY_DEST;
+      ID3D12Resource* buffer;
+      D3D12_HEAP_PROPERTIES prop{};
+      prop.Type = D3D12_HEAP_TYPE_READBACK;
+      m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+
+      auto wstr = s2ws(desc.desc.name);
+      buffer->SetName(wstr.c_str());
+
+      m_allRes.rbbuf[readback] = DX12Readback(buffer, 0, bytes);
+    }
+
+    MemView<uint8_t> DX12Device::mapReadback(ResourceHandle readback)
+    {
+      auto& res = m_allRes.rbbuf[readback];
+      uint8_t* data = res.map();
+      return MemView<uint8_t>(data, res.size());
+    }
+
+    void DX12Device::unmapReadback(ResourceHandle readback)
+    {
+      auto& res = m_allRes.rbbuf[readback];
+      res.unmap();
     }
 
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)

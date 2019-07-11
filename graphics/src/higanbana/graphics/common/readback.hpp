@@ -7,15 +7,23 @@ namespace higanbana
   class ReadbackData
   {
     std::shared_ptr<ResourceHandle> m_id; // only id for now
+    MemView<uint8_t> m_view;
   public: 
     ReadbackData()
       : m_id(std::make_shared<ResourceHandle>())
     {
     }
 
-    ReadbackData(std::shared_ptr<ResourceHandle> id)
+    ReadbackData(std::shared_ptr<ResourceHandle> id, MemView<uint8_t> view)
       : m_id(id)
+      , m_view(view)
     {
+    }
+
+    template <typename T>
+    MemView<T> view()
+    {
+      return reinterpret_memView<T, uint8_t>(m_view);
     }
 
     ResourceHandle handle() const

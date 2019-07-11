@@ -85,7 +85,8 @@ namespace higanbana
               {
                 for (auto&& rb : buffer.readbacks)
                 {
-                  rb.promise->set_value(ReadbackData(rb.promiseId)); // TODO: SET READBACK HERE FOR USER
+                  auto view = m_devices[buffer.deviceID].device->mapReadback(*rb.promiseId);
+                  rb.promise->set_value(ReadbackData(rb.promiseId, view)); // TODO: SET READBACK HERE FOR USER
                 }
               }
               buffers.pop_front();
@@ -529,7 +530,7 @@ namespace higanbana
       {
         vdev.device->dynamic(handle, range, format);
       }
-      return DynamicBufferView(handle);
+      return DynamicBufferView(handle, range.size_bytes());
     }
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride)
@@ -540,7 +541,7 @@ namespace higanbana
       {
         vdev.device->dynamic(handle, range, stride);
       }
-      return DynamicBufferView(handle);
+      return DynamicBufferView(handle, range.size_bytes());
     }
 
     DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch)
@@ -551,7 +552,7 @@ namespace higanbana
       {
         vdev.device->dynamicImage(handle, range, rowPitch);
       }
-      return DynamicBufferView(handle);
+      return DynamicBufferView(handle, range.size_bytes());
     }
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
@@ -566,12 +567,12 @@ namespace higanbana
         {
           auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
           m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+          auto sr = image.subresource(mip, slice);
           for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
           {
-            auto sr = image.subresource(mip, slice);
             vdev.device->dynamicImage(handle, makeByteView(sr.data(), sr.size()), static_cast<unsigned>(sr.rowPitch()));
           }
-          allBufferToImages.emplace_back(DynamicBufferView(handle));
+          allBufferToImages.emplace_back(DynamicBufferView(handle, sr.slicePitch()));
         }
       }
       for (auto& vdev : m_devices)
@@ -607,7 +608,6 @@ namespace higanbana
         {
           case PacketType::ReadbackBuffer:
           {
-            HIGAN_LOGi("found readback!\n");
             auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
             handle.setGpuId(vdev.id);
             readbacks[currentReadback].promiseId = sharedHandle(handle);
@@ -723,6 +723,14 @@ namespace higanbana
             dst.resource = packet.dst;
             solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
             solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+            break;
+          }
+          case PacketType::DynamicBufferCopy:
+          {
+            auto& packet = header->data<gfxpacket::DynamicBufferCopy>();
+            ViewResourceHandle dst;
+            dst.resource = packet.dst;
+            solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
             break;
           }
           case PacketType::ReadbackBuffer:
@@ -954,11 +962,13 @@ namespace higanbana
           plist.readbacks = nodes[i].m_readbackPromises;
           plist.acquireSema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
-
+           
+          /*
           if (!plist.readbacks.empty())
           {
             HIGAN_LOGi("found readbacks!\n");
           }
+          */
 
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
@@ -1035,7 +1045,6 @@ namespace higanbana
           default:
             nativeList = vdev.device->createGraphicsList();
           }
-
 
           LiveCommandBuffer2 buffer{};
           buffer.deviceID = list.device;
@@ -1165,7 +1174,12 @@ namespace higanbana
             device.heaps.release(device.m_textures[handle]);
           }
           auto ownerGpuId = handle.ownerGpuId();
-          if (ownerGpuId == -1 || ownerGpuId == device.id)
+          if (handle.type == ResourceType::ReadbackBuffer && ownerGpuId == device.id)
+          {
+            device.device->unmapReadback(handle);
+            device.device->releaseHandle(handle);
+          }
+          else if (ownerGpuId == -1 || ownerGpuId == device.id)
           {
             device.device->releaseHandle(handle);
           }

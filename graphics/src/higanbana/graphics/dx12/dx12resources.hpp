@@ -187,7 +187,13 @@ namespace higanbana
     {
       uint8_t* m_data;
       D3D12_GPU_VIRTUAL_ADDRESS m_resourceAddress;
+      ID3D12Resource* m_resPtr;
       PageBlock block;
+
+      ID3D12Resource* native()
+      {
+        return m_resPtr;
+      }
 
       uint8_t* data()
       {
@@ -227,7 +233,7 @@ namespace higanbana
       {
         auto offset = allocator.allocate(bytes, alignment);
         if (offset < 0)
-          return UploadBlock{ nullptr, 0, PageBlock{} };
+          return UploadBlock{ nullptr, 0, nullptr, PageBlock{} };
 
         UploadBlock b = block;
         b.block.offset += offset;
@@ -286,7 +292,7 @@ namespace higanbana
       {
         auto dip = allocator.allocate(bytes);
         HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", size);
-        return UploadBlock{ data, gpuAddr,  dip };
+        return UploadBlock{ data, gpuAddr, resource.Get(), dip };
       }
 
       void release(UploadBlock desc)
@@ -463,11 +469,6 @@ namespace higanbana
       }
     };
 
-    struct DX12Readback
-    {
-      ReadbackBlock dataLocation;
-    };
-
     class DX12Fence : public FenceImpl
     {
     public:
@@ -564,7 +565,7 @@ namespace higanbana
     {
       vector<UploadBlock> uploadBlocks;
       vector<DynamicDescriptorBlock> descriptorBlocks;
-      vector<DX12Readback> readbacks;
+      //vector<DX12Readback> readbacks;
       vector<QueryBracket> queries;
       vector<DX12OldPipeline> pipelines;
     };
@@ -819,6 +820,62 @@ namespace higanbana
       }
     };
 
+    class DX12Readback
+    {
+      ID3D12Resource* buffer;
+      size_t m_offset;
+      size_t m_size;
+      uint8_t* m_data;
+      bool m_mapped = false;
+    public:
+      DX12Readback()
+        : buffer(nullptr)
+        , m_offset(0)
+        , m_size(0)
+        , m_data(nullptr)
+        , m_mapped(false)
+      {}
+      DX12Readback(ID3D12Resource* resource, size_t offset, size_t size)
+        : buffer(resource)
+        , m_offset(offset)
+        , m_size(size)
+        , m_data(nullptr)
+        , m_mapped(false)
+      {}
+      ID3D12Resource* native()
+      {
+        return buffer;
+      }
+      size_t offset() const
+      {
+        return m_offset;
+      }
+      size_t size() const
+      {
+        return m_size;
+      }
+      uint8_t* map()
+      {
+        HIGAN_ASSERT(!m_mapped, "Resource is already mapped.");
+        D3D12_RANGE range;
+        range.Begin = m_offset;
+        range.End = m_offset+m_size;
+        HIGANBANA_CHECK_HR(buffer->Map(0, &range, reinterpret_cast<void**>(&m_data)));
+        m_mapped = true;
+        return m_data;
+      }
+      void unmap()
+      {
+        HIGAN_ASSERT(m_mapped, "Resource wasn't mapped.");
+        D3D12_RANGE range;
+        range.Begin = 0;
+        range.End = 0;
+        buffer->Unmap(0, &range);
+        m_mapped = false;
+        m_data = nullptr;
+      }
+    };
+
     class DX12BufferView 
     {
     private:
@@ -892,13 +949,17 @@ namespace higanbana
         view.SizeInBytes = static_cast<unsigned>(block.size());
         return view;
       }
+      ID3D12Resource* nativePtr()
+      {
+        return block.native();
+      }
       int rowPitch()
       {
         return m_rowPitch;
       }
       uint64_t offset()
       {
-        return static_cast<uint64_t>(block.block.offset) / m_stride;
+        return static_cast<uint64_t>(block.block.offset);
       }
 
 /*
@@ -995,6 +1056,7 @@ namespace higanbana
     {
       HandleVector<DX12Texture> tex;
       HandleVector<DX12Buffer> buf;
+      HandleVector<DX12Readback> rbbuf;
       HandleVector<DX12BufferView> bufSRV;
       HandleVector<DX12BufferView> bufUAV;
       HandleVector<DX12BufferView> bufIBV;

@@ -141,6 +141,8 @@ namespace higanbana
 
         // create readback resources
         virtual void readbackBuffer(ResourceHandle readback, size_t bytes) = 0;
+        virtual MemView<uint8_t> mapReadback(ResourceHandle readback) = 0;
+        virtual void unmapReadback(ResourceHandle readback) = 0;
 
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
         virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;

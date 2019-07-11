@@ -33,7 +33,7 @@ namespace app
 
     auto bufferdesc = ResourceDescriptor()
       .setName("testBuffer1")
-      .setFormat(FormatType::Raw32)
+      .setFormat(FormatType::Float32)
       .setCount(1024*1024)
       .setDimension(FormatDimension::Buffer)
       .setUsage(ResourceUsage::GpuReadOnly);

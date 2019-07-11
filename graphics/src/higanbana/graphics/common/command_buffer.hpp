@@ -20,6 +20,7 @@ namespace higanbana
       ReleaseFromQueue,
       BufferCopy,
       ReadbackBuffer,
+      DynamicBufferCopy,
       UpdateTexture,
       Dispatch,
       PrepareForPresent,
@@ -68,6 +69,7 @@ namespace higanbana
         template <typename T>
         T& data() 
         {
+          HIGAN_ASSERT(type == T::type, "Uh oh, this is not allowed =D. header and requested data type's differ.");
           return *reinterpret_cast<T*>(this + 1);
         }
       };

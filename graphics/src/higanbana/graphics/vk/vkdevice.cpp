@@ -1912,6 +1912,24 @@ namespace higanbana
 
     }
 
+    MemView<uint8_t> VulkanDevice::mapReadback(ResourceHandle readback)
+    {
+      /*
+      auto& res = m_allRes.rbbuf[readback];
+      uint8_t* data = res.map();
+      return MemView<uint8_t>(data, res.size());
+      */
+      return MemView<uint8_t>();
+    }
+
+    void VulkanDevice::unmapReadback(ResourceHandle readback)
+    {
+      /*
+      auto& res = m_allRes.rbbuf[readback];
+      res.unmap();
+      */
+    }
+
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)
     {
       vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()

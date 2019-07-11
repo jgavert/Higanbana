@@ -101,19 +101,26 @@ namespace higanbana
   class DynamicBufferView
   {
     ViewResourceHandle m_id;
+    size_t m_logicalSize;
 
   public:
     DynamicBufferView()
     {
 
     }
-    DynamicBufferView(ViewResourceHandle id)
+    DynamicBufferView(ViewResourceHandle id, size_t logicalSize)
       : m_id(id)
+      , m_logicalSize(logicalSize)
     {
     }
     ViewResourceHandle handle() const
     {
       return m_id;
+    }
+
+    size_t logicalSize()
+    {
+      return m_logicalSize;
     }
   };
 };

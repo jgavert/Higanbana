@@ -116,6 +116,8 @@ namespace higanbana
       void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;
 
       void readbackBuffer(ResourceHandle readback, size_t bytes) override;
+      MemView<uint8_t> mapReadback(ResourceHandle readback) override;
+      void unmapReadback(ResourceHandle readback) override;
 
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
       DX12QueryHeap createGraphicsQueryHeap(unsigned counters);

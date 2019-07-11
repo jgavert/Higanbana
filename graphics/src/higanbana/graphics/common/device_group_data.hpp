@@ -93,6 +93,7 @@ namespace higanbana
       int id;
       QueueType fromOrTo;
     };
+    
     struct PreparedCommandlist
     {
       int device = 0;

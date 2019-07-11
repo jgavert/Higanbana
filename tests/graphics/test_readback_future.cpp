@@ -43,12 +43,11 @@ TEST_CASE_METHOD(GraphicsFixture, "create readback in graph") {
   auto asyncReadback = node.readback(buffer);
   graph.addPass(std::move(node));
 
-  REQUIRE(!asyncReadback._Is_ready());
+  REQUIRE(!asyncReadback->_Is_ready());
   gpu().submit(graph);
-  //REQUIRE(!asyncReadback._Is_ready()); // Gpu shouldn't ever be this fast... right?
   gpu().waitGpuIdle();
 
-  REQUIRE(asyncReadback._Is_ready()); // result should be ready at some point after gpu idle
+  REQUIRE(asyncReadback->_Is_ready()); // result should be ready at some point after gpu idle
 }
 
 TEST_CASE_METHOD(GraphicsFixture, "create readback in graph&check data") {
@@ -69,8 +68,13 @@ TEST_CASE_METHOD(GraphicsFixture, "create readback in graph&check data") {
   gpu().submit(graph);
   gpu().waitGpuIdle();
 
-  REQUIRE(asyncReadback._Is_ready());
+  REQUIRE(asyncReadback->_Is_ready());
 
   // check actual data
-  // TODO: how?
+  auto rb = asyncReadback->get();
+  auto rbdata = rb.view<float>();
+  for (int i = 0; i < 8; i++)
+  {
+    REQUIRE(arr[i] == rbdata[i]);
+  }
 }

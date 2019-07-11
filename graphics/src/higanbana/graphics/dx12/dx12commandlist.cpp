@@ -63,20 +63,20 @@ namespace higanbana
         }
 
         // handle readbacks
+        /*
         if (auto readback = read.lock())
         {
           if (!ptr->readbacks.empty())
           {
-            /*
             readback->map();
             for (auto&& it : ptr->readbacks)
             {
               it.func(readback->getView(it.dataLocation));
             }
             readback->unmap();
-            */
           }
         }
+        */
 
         delete ptr;
       });
@@ -1105,6 +1105,15 @@ namespace higanbana
           buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
           break;
         }
+        case PacketType::DynamicBufferCopy:
+        {
+          auto params = header->data<gfxpacket::DynamicBufferCopy>();
+          auto dst = device->allResources().buf[params.dst].native();
+          auto src = device->allResources().dynSRV[params.src];
+          auto srcOffset = src.offset();
+          buffer->CopyBufferRegion(dst, params.dstOffset, src.nativePtr(), srcOffset, params.numBytes);
+          break;
+        }
         case PacketType::BufferCopy:
         {
           auto params = header->data<gfxpacket::BufferCopy>();
@@ -1127,6 +1136,15 @@ namespace higanbana
         case PacketType::RenderpassEnd:
         {
           buffer->EndRenderPass();
+          break;
+        }
+        case PacketType::ReadbackBuffer:
+        {
+          // TODO: dst offset for not buffers
+          auto params = header->data<gfxpacket::ReadbackBuffer>();
+          auto& dst = device->allResources().rbbuf[params.dst];
+          auto src = device->allResources().buf[params.src].native();
+          buffer->CopyBufferRegion(dst.native(), dst.offset(), src, params.srcOffset, params.numBytes);
           break;
         }
         default:

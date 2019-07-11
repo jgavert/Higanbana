@@ -14,6 +14,7 @@
 
 #include <string>
 #include "higanbana/graphics/common/readback.hpp"
+#include <memory>
 
 namespace higanbana
 {
@@ -247,13 +248,13 @@ namespace higanbana
     {
       m_referencedBuffers.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
-      list.copy(target, source);
+      list.copy(target, 0, source, 0, source.desc().desc.width);
     }
 
     void copy(Buffer target, DynamicBufferView source)
     {
       m_referencedBuffers.setBit(target.handle().id);
-      list.copy(target, source);
+      list.copy(target, 0, source);
     }
 
     void copy(Texture target, Buffer source, Subresource sub)
@@ -280,22 +281,33 @@ namespace higanbana
       return promise->get_future();
     }
 
-    std::future<ReadbackData> readback(Buffer buffer)
+    std::shared_ptr<std::future<ReadbackData>> readback(Buffer buffer, int offset = -1, int size = -1)
     {
       auto promise = std::make_shared<std::promise<ReadbackData>>();
       m_readbackPromises.push_back({nullptr, promise});
       m_referencedBuffers.setBit(buffer.handle().id);
-      list.readback(buffer, 0, buffer.desc().desc.width);
-      return promise->get_future();
+
+      if (offset == -1)
+      {
+        offset = 0;
+      }
+
+      if (size == -1)
+      {
+        size = buffer.desc().desc.width;
+      }
+
+      list.readback(buffer, offset, size);
+      return std::make_shared<std::future<ReadbackData>>(promise->get_future());
     }
 
-    std::future<ReadbackData> readback(Buffer buffer, unsigned startElement, unsigned size)
+    std::shared_ptr<std::future<ReadbackData>> readback(Buffer buffer, unsigned startElement, unsigned size)
     {
       auto promise = std::make_shared<std::promise<ReadbackData>>();
       m_readbackPromises.push_back({nullptr, promise});
       m_referencedBuffers.setBit(buffer.handle().id);
       list.readback(buffer, startElement, size);
-      return promise->get_future();
+      return std::make_shared<std::future<ReadbackData>>(promise->get_future());
     }
 
     void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)

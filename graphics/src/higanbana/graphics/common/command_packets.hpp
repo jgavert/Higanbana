@@ -181,6 +181,23 @@ namespace higanbana
       }
     };
 
+    struct DynamicBufferCopy
+    {
+      ResourceHandle dst;
+      uint32_t dstOffset;
+      ViewResourceHandle src;
+      uint32_t numBytes;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DynamicBufferCopy;
+      static void constructor(backend::CommandBuffer& , DynamicBufferCopy* packet, ResourceHandle dst, uint32_t dstOffset, ViewResourceHandle src, uint32_t numBytes)
+      {
+        packet->dst = dst;
+        packet->dstOffset = dstOffset;
+        packet->src = src; 
+        packet->numBytes = numBytes;
+      }
+    };
+
     struct BufferCopy
     {
       ResourceHandle dst;
