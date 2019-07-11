@@ -781,6 +781,32 @@ namespace higanbana
           buffer.endRenderPass();
           break;
         }
+        case PacketType::DynamicBufferCopy:
+        {
+          auto params = header->data<gfxpacket::DynamicBufferCopy>();
+          auto dst = device->allResources().buf[params.dst].native();
+          auto& src = device->allResources().dynBuf[params.src];
+
+          vk::BufferCopy info = vk::BufferCopy()
+            .setSrcOffset(src.native().block.block.offset)
+            .setDstOffset(params.dstOffset)
+            .setSize(params.numBytes);
+
+          buffer.copyBuffer(src.native().buffer, dst, info);
+          break;
+        }
+        case PacketType::ReadbackBuffer:
+        {
+          auto params = header->data<gfxpacket::ReadbackBuffer>();
+          auto src = device->allResources().buf[params.src];
+          auto dst = device->allResources().rbBuf[params.dst];
+          vk::BufferCopy region = vk::BufferCopy()
+            .setSrcOffset(params.srcOffset)
+            .setDstOffset(dst.offset())
+            .setSize(params.numBytes);
+          buffer.copyBuffer(src.native(), dst.native(), region);
+          break;
+        }
         default:
           break;
         }

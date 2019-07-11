@@ -379,6 +379,12 @@ namespace higanbana
             //GFX_ILOG("\t\t%s", found->extensionName);
           }
         }
+
+        // vk version 1.1 extensions, don't have to check according to spec.
+        for (auto&& it : dev1_1Exts)
+        {
+          extensions.push_back(it);
+        }
       }
 
       // queue

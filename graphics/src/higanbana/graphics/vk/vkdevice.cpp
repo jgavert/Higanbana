@@ -1311,6 +1311,13 @@ namespace higanbana
           m_allRes.renderpasses[handle] = VulkanRenderpass();
           break;
         }
+        case ResourceType::ReadbackBuffer:
+        {
+          m_device.destroyBuffer(m_allRes.rbBuf[handle].native());
+          m_device.freeMemory(m_allRes.rbBuf[handle].memory());
+          m_allRes.rbBuf[handle] = VulkanReadback();
+          break;
+        }
         default:
         {
           HIGAN_ASSERT(false, "unhandled type released");
@@ -1909,25 +1916,45 @@ namespace higanbana
 
     void VulkanDevice::readbackBuffer(ResourceHandle readback, size_t bytes)
     {
+      ResourceDescriptor desc = ResourceDescriptor()
+        .setCount(bytes)
+        .setFormat(FormatType::Unorm8)
+        .setUsage(ResourceUsage::Readback);
 
+      auto vkdesc = fillBufferInfo(desc);
+      auto buffer = m_device.createBuffer(vkdesc);
+      VK_CHECK_RESULT(buffer);
+      
+      vk::MemoryDedicatedAllocateInfoKHR dediInfo;
+      dediInfo.setBuffer(buffer.value);
+
+      //auto bufMemReq = m_device.getBufferMemoryRequirements(buffer.value);
+      auto bufMemReq = m_device.getBufferMemoryRequirements2KHR(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
+      auto memProp = m_physDevice.getMemoryProperties();
+      auto searchProperties = getMemoryProperties(desc.desc.usage);
+      auto index = FindProperties(memProp, bufMemReq.memoryRequirements.memoryTypeBits, searchProperties.optimal);
+
+      auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
+      VK_CHECK_RESULT(res);
+
+      m_device.bindBufferMemory(buffer.value, res.value, 0);
+
+      m_allRes.rbBuf[readback] = VulkanReadback(res.value, buffer.value, 0, bytes);
     }
 
     MemView<uint8_t> VulkanDevice::mapReadback(ResourceHandle readback)
     {
-      /*
-      auto& res = m_allRes.rbbuf[readback];
-      uint8_t* data = res.map();
-      return MemView<uint8_t>(data, res.size());
-      */
-      return MemView<uint8_t>();
+      auto& vrb = m_allRes.rbBuf[readback];
+      auto res = m_device.mapMemory(vrb.memory(), vrb.offset(), vrb.size());
+      VK_CHECK_RESULT(res);
+      uint8_t* ptr = reinterpret_cast<uint8_t*>(res.value);
+      return MemView<uint8_t>(ptr, vrb.size());
     }
 
     void VulkanDevice::unmapReadback(ResourceHandle readback)
     {
-      /*
-      auto& res = m_allRes.rbbuf[readback];
-      res.unmap();
-      */
+      auto& vrb = m_allRes.rbBuf[readback];
+      m_device.unmapMemory(vrb.memory());
     }
 
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)

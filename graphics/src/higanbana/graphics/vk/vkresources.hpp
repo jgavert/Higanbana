@@ -488,6 +488,42 @@ namespace higanbana
       */
     };
 
+    class VulkanReadback
+    {
+      vk::DeviceMemory m_memory;
+      vk::Buffer m_buffer;
+      size_t m_offset;
+      size_t m_size;
+    public:
+      VulkanReadback()
+        : m_offset(0)
+        , m_size(0)
+      {}
+      VulkanReadback(vk::DeviceMemory memory, vk::Buffer buffer, size_t offset, size_t size)
+        : m_memory(memory)
+        , m_buffer(buffer)
+        , m_offset(offset)
+        , m_size(size)
+      {}
+      
+      vk::Buffer native()
+      {
+        return m_buffer;
+      }
+      vk::DeviceMemory memory()
+      {
+        return m_memory;
+      }
+      size_t offset() const
+      {
+        return m_offset;
+      }
+      size_t size() const
+      {
+        return m_size;
+      }
+    };
+
     class VulkanHeap
     {
     private:
@@ -815,6 +851,7 @@ namespace higanbana
       HandleVector<VulkanBufferView> bufUAV;
       HandleVector<VulkanBufferView> bufIBV;
       HandleVector<VulkanDynamicBufferView> dynBuf;
+      HandleVector<VulkanReadback>          rbBuf;
       HandleVector<VulkanTextureView> texSRV;
       HandleVector<VulkanTextureView> texUAV;
       HandleVector<VulkanTextureView> texRTV;

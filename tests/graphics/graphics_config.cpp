@@ -4,7 +4,7 @@ SResources::SResources()
   : subsystem("higanbana", false)
   , fileSystem(TESTS_FILESYSTEM_PATH)
 {
-  auto gpus = subsystem.getVendorDevice(GraphicsApi::DX12); // TODO: make it so that it always tests both api at once
+  auto gpus = subsystem.getVendorDevice(GraphicsApi::Vulkan); // TODO: make it so that it always tests both api at once
   gpu = subsystem.createGroup(fileSystem, {gpus});
 }
 
