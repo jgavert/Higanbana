@@ -1929,7 +1929,19 @@ namespace higanbana
       dediInfo.setBuffer(buffer.value);
 
       //auto bufMemReq = m_device.getBufferMemoryRequirements(buffer.value);
-      auto bufMemReq = m_device.getBufferMemoryRequirements2KHR(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
+      auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
+
+      auto dedReq = chain.get<vk::MemoryDedicatedRequirementsKHR>();
+
+      /* bonus info
+      bool dedicatedAllocation =
+              (dedReq.requiresDedicatedAllocation != VK_FALSE) ||
+              (dedReq.prefersDedicatedAllocation != VK_FALSE);
+      HIGAN_ASSERT(dedicatedAllocation, "We really want dedicated here");
+      */
+
+      auto bufMemReq = chain.get<vk::MemoryRequirements2>();
+
       auto memProp = m_physDevice.getMemoryProperties();
       auto searchProperties = getMemoryProperties(desc.desc.usage);
       auto index = FindProperties(memProp, bufMemReq.memoryRequirements.memoryTypeBits, searchProperties.optimal);
