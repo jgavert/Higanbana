@@ -62,7 +62,7 @@ namespace higanbana
         ppArgs.push_back(L"-fspv-target-env=vulkan1.1");
         //ppArgs.push_back(L"-Oconfig=-O");
         //ppArgs.push_back(L"-Oconfig=--loop-unroll,--scalar-replacement=300,--eliminate-dead-code-aggressive");
-        ppArgs.push_back(L"-0d");
+        //ppArgs.push_back(L"-0d");
       }
       else
       {

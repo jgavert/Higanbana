@@ -7,6 +7,7 @@
 #include "higanbana/graphics/common/barrier_solver.hpp"
 #include "higanbana/graphics/common/command_buffer.hpp"
 #include "higanbana/graphics/common/commandgraph.hpp"
+#include "higanbana/graphics/desc/timing.hpp"
 
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
@@ -85,6 +86,9 @@ namespace higanbana
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
       vector<ReadbackPromise> readbacks;
+      // timings
+      uint64_t submitID;
+      CommandListTiming listTiming;
     };
 
     struct QueueTransfer 
@@ -151,6 +155,11 @@ namespace higanbana
       SeqNum m_currentSeqNum = 0;
       SeqNum m_completedLists = 0;
 
+      // timings
+      uint64_t m_submitIDs = 0;
+      deque<SubmitTiming> timeOnFlightSubmits;
+      deque<SubmitTiming> timeSubmitsFinished;
+
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
       DeviceGroupData(DeviceGroupData&& data) = default;
       DeviceGroupData(const DeviceGroupData& data) = delete;
@@ -201,7 +210,7 @@ namespace higanbana
 
       // test
       void generateReadbackCommands(VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<ReadbackPromise>& readbacks);
-      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release);
+      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing);
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
   }

@@ -2,21 +2,12 @@
 
 #include "higanbana/core/system/ringbuffer.hpp"
 #include "higanbana/core/math/math.hpp"
+#include "higanbana/core/system/HighResClock.hpp"
 
 #include <chrono>
 #include <thread>
 #include <iostream>
 #include <algorithm>
-
-#if 0 //def HIGANBANA_PLATFORM_WINDOWS
-#include "HighResClock.hpp"
-typedef HighResClock HighPrecisionClock;
-typedef std::chrono::time_point<HighResClock> timepoint;
-#else
-typedef std::chrono::high_resolution_clock HighPrecisionClock;
-typedef std::chrono::high_resolution_clock::time_point timepoint;
-#endif
-
 
 namespace higanbana
 {

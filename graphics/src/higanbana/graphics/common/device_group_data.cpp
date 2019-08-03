@@ -90,6 +90,31 @@ namespace higanbana
                   rb.promise->set_value(ReadbackData(rb.promiseId, view)); // TODO: SET READBACK HERE FOR USER
                 }
               }
+              auto queueId = buffer.submitID;
+              for (auto&& submit : timeOnFlightSubmits)
+              {
+                if (submit.id == queueId)
+                {
+                  submit.lists.push_back(buffer.listTiming);
+                  break;
+                }
+              }
+              while(!timeOnFlightSubmits.empty())
+              {
+                auto& first = timeOnFlightSubmits.front();
+                if (first.listsCount == first.lists.size())
+                {
+                  timeSubmitsFinished.push_back(first);
+                  timeOnFlightSubmits.pop_front();
+                  continue;
+                }
+                break;
+              }
+              while (timeSubmitsFinished.size() > 10)
+              {
+                timeSubmitsFinished.pop_front();
+              }
+
               buffers.pop_front();
               buffersToFree--;
             }
@@ -627,8 +652,16 @@ namespace higanbana
       }
     }
 
-    void DeviceGroupData::fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquires, vector<QueueTransfer>& releases)
+    void DeviceGroupData::fillCommandBuffer(
+      std::shared_ptr<CommandBufferImpl> nativeList,
+      VirtualDevice& vdev,
+      CommandBuffer& buffer,
+      QueueType queue,
+      vector<QueueTransfer>& acquires,
+      vector<QueueTransfer>& releases,
+      CommandListTiming& timing)
     {
+      timing.barrierSolve.start();
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
       bool insideRenderpass = false;
@@ -790,8 +823,10 @@ namespace higanbana
       }
 
       solver.makeAllBarriers();
-
+      timing.barrierSolve.stop();
+      timing.fillNativeList.start();
       nativeList->fillWith(vdev.device, buffer, solver);
+      timing.fillNativeList.stop();
     }
 
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
@@ -943,6 +978,11 @@ namespace higanbana
 
     void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph)
     {
+      SubmitTiming timing;
+      timing.id = m_submitIDs++;
+      timing.listsCount = 0;
+      timing.submitCpuTime.start();
+      timing.graphSolve.start();
       auto& nodes = *graph.m_nodes;
 
       if (!nodes.empty())
@@ -1025,12 +1065,17 @@ namespace higanbana
             }
           }
         }
-
+        timing.graphSolve.stop();
+        timing.fillCommandLists.start();
         deque<LiveCommandBuffer2> readyLists;
 
         for (auto&& list : lists)
         {
           std::shared_ptr<CommandBufferImpl> nativeList;
+          LiveCommandBuffer2 buffer{};
+          buffer.submitID = timing.id;
+          timing.listsCount++;
+          buffer.listTiming.cpuBackendTime.start();
 
           auto& vdev = m_devices[list.device];
 
@@ -1047,7 +1092,6 @@ namespace higanbana
             nativeList = vdev.device->createGraphicsList();
           }
 
-          LiveCommandBuffer2 buffer{};
           buffer.deviceID = list.device;
           buffer.started = m_seqTracker.next();
           buffer.lists.emplace_back(nativeList);
@@ -1058,11 +1102,13 @@ namespace higanbana
           generateReadbackCommands(vdev, buffer.cmdMemory, list.type, buffer.readbacks);
 
           // barriers&commands
-          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release);
+          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release, buffer.listTiming);
 
+          buffer.listTiming.cpuBackendTime.stop();
           readyLists.emplace_back(std::move(buffer));
         }
-
+        timing.fillCommandLists.stop();
+        timing.submitSolve.start();
         for (auto&& list : lists)
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());
@@ -1136,6 +1182,7 @@ namespace higanbana
           }
           //m_buffers.emplace_back(buffer);
         }
+        timing.submitSolve.stop();
       }
       //m_buffers.back().started = graph.m_sequence;
       if (graph.m_sequence != InvalidSeqNum)
@@ -1143,6 +1190,8 @@ namespace higanbana
         m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
         gc();
       }
+      timing.submitCpuTime.stop();
+      timeOnFlightSubmits.push_back(timing);
     }
 
     void DeviceGroupData::garbageCollection()

@@ -88,7 +88,7 @@ namespace app
 
     genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
     .setLayout(babyInf2)
-    .setShader("oldRaymarch")
+    .setShader("simpleEffectAssyt")
     .setThreadGroups(uint3(8, 4, 1)));
 
     higanbana::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
@@ -156,6 +156,14 @@ namespace app
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTarget)
       .setName("targetRT"));
+  }
+
+  std::optional<higanbana::SubmitTiming> Renderer::timings()
+  {
+    auto info = dev.submitTimingInfo();
+    if (info.empty())
+      return std::optional<higanbana::SubmitTiming>();
+    return info.front();
   }
 
   void Renderer::render()

@@ -17,12 +17,15 @@ namespace
   }();
 }
 
-HighResClock::time_point HighResClock::now()
+namespace higanbana
 {
-  LARGE_INTEGER count;
-  QueryPerformanceCounter(&count);
-  LARGE_INTEGER frequency;
-  QueryPerformanceFrequency(&frequency);
-  return time_point(duration(count.QuadPart * static_cast<rep>(period::den) / frequency.QuadPart));
-}
+  HighResClock::time_point HighResClock::now()
+  {
+    LARGE_INTEGER count;
+    QueryPerformanceCounter(&count);
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    return time_point(duration(count.QuadPart * static_cast<rep>(period::den) / frequency.QuadPart));
+  }
+};
 #endif

@@ -55,5 +55,6 @@ namespace app
     int2 windowSize();
     void windowResized();
     void render();
+    std::optional<higanbana::SubmitTiming> timings();
   };
 }

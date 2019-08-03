@@ -1,17 +1,9 @@
 #pragma once
 #include "higanbana/core/global_debug.hpp"
+#include "higanbana/core/system/HighResClock.hpp"
 #include <iostream>
 #include <chrono>
 #include <functional>
-
-#ifdef HIGANBANA_PLATFORM_WINDOWS
-#include "higanbana/core/system/HighResClock.hpp"
-typedef HighResClock HighPrecisionClock;
-typedef std::chrono::time_point<HighResClock> timepoint;
-#else
-typedef std::chrono::high_resolution_clock HighPrecisionClock;
-typedef std::chrono::high_resolution_clock::time_point timepoint;
-#endif
 
 namespace higanbana
 {

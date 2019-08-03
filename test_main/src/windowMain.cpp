@@ -243,6 +243,20 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
               ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
 
+              auto si = rend.timings();
+              if (si)
+              {
+                auto rsi = si.value();
+                auto submitLength = float(rsi.submitCpuTime.nanoseconds()) / 1000000.f;
+                auto graphSolve = float(rsi.graphSolve.nanoseconds()) / 1000000.f;
+                auto fillList = float(rsi.fillCommandLists.nanoseconds()) / 1000000.f;
+                auto submitSolve = float(rsi.submitSolve.nanoseconds()) / 1000000.f;
+                ImGui::Text("Graph solving %.3fms", graphSolve);
+                ImGui::Text("Filling Lists %.3fms", fillList);
+                ImGui::Text("Submitting Lists %.3fms", submitSolve);
+                ImGui::Text("Submit total %.2fms", submitLength);
+              }
+
               ImGui::End();
             }
             ImGui::Render();

@@ -204,5 +204,12 @@ namespace higanbana
     {
       return valid();
     }
+
+    deque<SubmitTiming> submitTimingInfo()
+    {
+      auto infos = S().timeSubmitsFinished;
+      S().timeSubmitsFinished.clear();
+      return infos;
+    }
   };
 };
