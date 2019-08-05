@@ -93,6 +93,7 @@ namespace higanbana
       vk::Device native() { return m_device; }
 
       vk::DispatchLoaderDynamic dispatcher() { return m_dynamicDispatch; }
+      bool debugDevice() { return m_debugLayer; }
 
       Resources& allResources() { return m_allRes; }
 

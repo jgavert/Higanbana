@@ -106,7 +106,8 @@ namespace higanbana
       // lunargvalidation list order
       std::vector<std::string> layerOrder = {
       };
-      if (m_debug) layerOrder.emplace_back("VK_LAYER_LUNARG_standard_validation");
+      if (m_debug)
+        layerOrder.emplace_back("VK_LAYER_LUNARG_standard_validation");
 
       std::vector<const char*> layers;
       {
@@ -214,41 +215,27 @@ namespace higanbana
       m_devices = devRes.value;
 
       // get addresses for few functions
-      PFN_vkCreateDebugUtilsMessengerEXT dbgCreateDebugUtilsCallback;
-      PFN_vkDestroyDebugUtilsMessengerEXT dbgDestroyDebugUtilsCallback;
+      // the debug things
+      auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
+      auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
+      vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
+        .setMessageSeverity(severityFlags)
+        .setMessageType(flags)
+        .setPfnUserCallback(debugCallbackNew);
 
-      dbgCreateDebugUtilsCallback =
-        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-          *m_instance, "vkCreateDebugUtilsMessengerEXT");
-      if (!dbgCreateDebugUtilsCallback)
-      {
-        GFX_ILOG("GetInstanceProcAddr: Unable to find vkCreateDebugUtilsMessengerEXT function.");;
-      }
-      else
-      {
-        dbgDestroyDebugUtilsCallback =
-          (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-            *m_instance, "vkDestroyDebugUtilsMessengerEXT");
-        if (!dbgDestroyDebugUtilsCallback)
+      auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
+      auto allocInfo = m_alloc_info;
+      m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo](vk::DebugUtilsMessengerEXT * ist)
         {
-          GFX_ILOG("GetInstanceProcAddr: Unable to find vkDestroyDebugUtilsMessengerEXT function.");
-        }
-        // the debug things
-        auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
-        auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
-        vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
-          .setMessageSeverity(severityFlags)
-          .setMessageType(flags)
-          .setPfnUserCallback(debugCallbackNew);
-
-        auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
-        auto allocInfo = m_alloc_info;
-        m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo, dbgDestroyDebugUtilsCallback](vk::DebugUtilsMessengerEXT * ist)
-          {
-            dbgDestroyDebugUtilsCallback(*lol, *ist, reinterpret_cast<const VkAllocationCallbacks*>(&allocInfo));
-          });
-        dbgCreateDebugUtilsCallback(*m_instance, reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&info), reinterpret_cast<const VkAllocationCallbacks*>(&m_alloc_info), reinterpret_cast<VkDebugUtilsMessengerEXT*>(m_debugcallback.get()));
-      }
+          vk::DispatchLoaderDynamic loader(*lol);
+          lol->destroyDebugUtilsMessengerEXT(*ist, allocInfo, loader);
+        });
+        
+      vk::DispatchLoaderDynamic loader(*m_instance);
+      auto rduc = m_instance->createDebugUtilsMessengerEXT(info, m_alloc_info, loader);
+      VK_CHECK_RESULT(rduc);
+      
+      *m_debugcallback = rduc.value;
     }
 
     std::string VulkanSubsystem::gfxApi()

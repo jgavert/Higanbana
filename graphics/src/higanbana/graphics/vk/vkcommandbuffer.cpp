@@ -646,19 +646,24 @@ namespace higanbana
           //        case CommandPacket::PacketType::Dispatch:
         case PacketType::RenderBlock:
         {
-          gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
-          auto view = packet.name.convertToMemView();
-          currentBlock = std::string(view.data());
-          if (beganLabel)
+          // can only call if standard validation is enabled :(
+          if (device->debugDevice())
           {
-            buffer.endDebugUtilsLabelEXT(device->dispatcher());
+            gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
+            auto view = packet.name.convertToMemView();
+            currentBlock = std::string(view.data());
+            if (beganLabel)
+            {
+              buffer.endDebugUtilsLabelEXT(device->dispatcher());
+            }
+            else
+            {
+              beganLabel = true;
+            }
+            vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
+            buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
           }
-          else
-          {
-            beganLabel = true;
-          }
-          vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
-          buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+          break;
         }
         case PacketType::PrepareForPresent:
         {
