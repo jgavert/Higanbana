@@ -28,7 +28,7 @@
 #define HIGAN_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
 #define HIGAN_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
 
-#if 1 //defined(DEBUG)
+#if 0 //defined(DEBUG)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #define HIGAN_ERROR(msg, ...) \
   log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
@@ -39,7 +39,7 @@
 #define HIGAN_ASSERT(cond, msg, ...)\
         do \
         { \
-        if (!(cond)) \
+          if (!(cond)) \
           { \
             log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
             if (IsDebuggerPresent()) \
@@ -78,8 +78,15 @@
       } while (0)
 #endif
 #else
-#define HIGAN_ERROR(msg, ...) do {} while(0)
-#define HIGAN_ASSERT(cond, msg, ...) do {} while(0)
+#ifdef _MSC_VER
+#define HIGAN_ERROR(msg, ...) __assume(false);
+#define HIGAN_ASSERT(cond, msg, ...) __assume(cond);
+#define HIGANBANA_CHECK_HR(hr) do { hr; } while (0)
+#else
+#define HIGAN_ERROR(msg, ...) __builtin_unreachable();
+#define HIGAN_ASSERT(cond, msg, ...) do { if (!(cond)) { __builtin_unreachable(); } } while(0)
+#define HIGANBANA_CHECK_HR(hr) do { hr; } while (0)
+#endif
 #endif
 
 #ifdef _MSC_VER

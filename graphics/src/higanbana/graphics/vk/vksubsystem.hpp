@@ -81,7 +81,7 @@ namespace higanbana
         "VK_KHR_maintenance3",
         "VK_KHR_multiview",
         "VK_KHR_relaxed_block_layout",
-        "VK_KHR_sampler_ycbcr_conversion",
+        //"VK_KHR_sampler_ycbcr_conversion",
         "VK_KHR_shader_draw_parameters",
         "VK_KHR_storage_buffer_storage_class",
         "VK_KHR_variable_pointers",

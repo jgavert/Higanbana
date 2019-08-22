@@ -196,19 +196,25 @@ namespace higanbana
         HIGAN_LOG("included: %s\n", filename.c_str());
       };
       ensureShaderSourceFilesExist(info);
-      if (!m_fs.fileExists(dxilPath))
+      auto foundBinary = m_fs.fileExists(dxilPath);
+      if (!foundBinary)
       {
         //      HIGAN_ILOG("ShaderStorage", "First time compiling \"%s\"", shaderName.c_str());
         //HIGAN_ASSERT(compileShader(shaderName, type, tgs), "ups");
         HIGAN_ASSERT(m_compiler, "no compiler");
-        HIGAN_ASSERT(m_compiler->compileShader(
+        auto compiled = m_compiler->compileShader(
           m_type,
           shaderPath,
           dxilPath,
           info,
-          func), "ups");
+          func);
+        HIGAN_ASSERT(compiled, "ups");
+        auto testF = [](){ HIGAN_LOGi("LAWL\n"); return true;};
+        HIGAN_ASSERT(testF(), "wtf");
+        HIGAN_LOGi("LAWL\n");
       }
-      if (m_fs.fileExists(dxilPath) && m_fs.fileExists(shaderPath))
+      foundBinary = m_fs.fileExists(dxilPath);
+      if (foundBinary && m_fs.fileExists(shaderPath))
       {
         auto shaderInterfacePath = sourcePath + info.desc.shaderName + ".if.hlsl";
 

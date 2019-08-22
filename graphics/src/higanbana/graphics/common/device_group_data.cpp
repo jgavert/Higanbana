@@ -91,14 +91,18 @@ namespace higanbana
                 }
               }
               auto queueId = buffer.submitID;
+              auto foundTiming = false;
               for (auto&& submit : timeOnFlightSubmits)
               {
                 if (submit.id == queueId)
                 {
                   submit.lists.push_back(buffer.listTiming);
+                  foundTiming = true;
                   break;
                 }
               }
+              HIGAN_ASSERT(foundTiming, "Err, didn't find timing, error");
+              HIGAN_ASSERT(timeOnFlightSubmits.size() < 10, "wtf!"); 
               while(!timeOnFlightSubmits.empty())
               {
                 auto& first = timeOnFlightSubmits.front();
@@ -108,7 +112,10 @@ namespace higanbana
                   timeOnFlightSubmits.pop_front();
                   continue;
                 }
-                break;
+                else
+                {
+                  break;
+                }
               }
               while (timeSubmitsFinished.size() > 10)
               {
@@ -1185,13 +1192,13 @@ namespace higanbana
         timing.submitSolve.stop();
       }
       //m_buffers.back().started = graph.m_sequence;
+      timing.submitCpuTime.stop();
+      timeOnFlightSubmits.push_back(timing);
       if (graph.m_sequence != InvalidSeqNum)
       {
         m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
         gc();
       }
-      timing.submitCpuTime.stop();
-      timeOnFlightSubmits.push_back(timing);
     }
 
     void DeviceGroupData::garbageCollection()

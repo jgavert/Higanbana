@@ -125,7 +125,10 @@ bool FileSystem::fileExists(std::string path)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
 #endif
-  return (m_files.find(fullPath) != m_files.end());
+  auto found = m_files.find(fullPath);
+  auto end = m_files.end();
+  auto hasFile = found && found != end;
+  return hasFile;
 }
 
 bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
