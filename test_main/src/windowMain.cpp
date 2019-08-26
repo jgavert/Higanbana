@@ -247,14 +247,25 @@ void mainWindow(ProgramParams& params)
               if (si)
               {
                 auto rsi = si.value();
-                auto submitLength = float(rsi.submitCpuTime.nanoseconds()) / 1000000.f;
-                auto graphSolve = float(rsi.graphSolve.nanoseconds()) / 1000000.f;
-                auto fillList = float(rsi.fillCommandLists.nanoseconds()) / 1000000.f;
-                auto submitSolve = float(rsi.submitSolve.nanoseconds()) / 1000000.f;
-                ImGui::Text("Graph solving %.3fms", graphSolve);
-                ImGui::Text("Filling Lists %.3fms", fillList);
-                ImGui::Text("Submitting Lists %.3fms", submitSolve);
-                ImGui::Text("Submit total %.2fms", submitLength);
+                ImGui::Text("Graph solving %.3fms", rsi.graphSolve.milliseconds());
+                ImGui::Text("Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
+                ImGui::Text("Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
+                ImGui::Text("Submit total %.2fms", rsi.submitCpuTime.milliseconds());
+
+                for (auto& cmdlist : rsi.lists)
+                {
+                  ImGui::Text("\nCommandlist");
+                  ImGui::Text("\tbarrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
+                  ImGui::Text("\tfillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
+                  ImGui::Text("\tcpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
+                  ImGui::Text("\ttotalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                  ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
+                  ImGui::Text("\tGPU nodes:");
+                  for (auto& graphNode : cmdlist.nodes)
+                  {
+                    ImGui::Text("\t\t%s %.3fms (%.3fms cpu)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                  }
+                }
               }
 
               ImGui::End();

@@ -15,6 +15,7 @@ namespace higanbana
     void start();
     void stop();
     uint64_t nanoseconds() const;
+    float milliseconds() const;
   };
 
   struct GraphNodeTiming
@@ -30,6 +31,7 @@ namespace higanbana
     Timestamp barrierSolve;
     Timestamp fillNativeList;
     Timestamp gpuTime;
+    Timestamp fromSubmitToFence;
     vector<GraphNodeTiming> nodes;
   };
 

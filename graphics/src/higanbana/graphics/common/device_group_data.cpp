@@ -96,6 +96,7 @@ namespace higanbana
               {
                 if (submit.id == queueId)
                 {
+                  buffer.listTiming.fromSubmitToFence.stop();
                   submit.lists.push_back(buffer.listTiming);
                   foundTiming = true;
                   break;
@@ -1172,6 +1173,7 @@ namespace higanbana
             viewToFences = buffer.fence;
           }
 
+          buffer.listTiming.fromSubmitToFence.start();
           switch (list.type)
           {
           case QueueType::Dma:
