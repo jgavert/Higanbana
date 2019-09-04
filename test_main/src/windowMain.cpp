@@ -8,6 +8,7 @@
 #include <higanbana/core/entity/bitfield.hpp>
 #include <higanbana/core/system/misc.hpp>
 #include <higanbana/core/system/time.hpp>
+#include <higanbana/core/system/AtomicBuffered.hpp>
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <random>
 #include <tuple>
@@ -79,6 +80,7 @@ void mainWindow(ProgramParams& params)
     int64_t frame = 1;
     FileSystem fs("/../../data");
     bool quit = false;
+    LBS lbs;
 
     log.update();
 
@@ -161,26 +163,20 @@ void mainWindow(ProgramParams& params)
         }
 
         bool closeAnyway = false;
+        bool renderActive = true;
+        bool renderResize = false;
         bool captureMouse = false;
         bool controllerConnected = false;
 
-        while (!window.simpleReadMessages(frame++))
-        {
-          // update inputs and our position
-          //directInputs.pollDevices(gamepad::Fic::PollOptions::AllowDeviceEnumeration);
-          // update fs
-          log.update();
-          fs.updateWatchedFiles();
-          if (window.hasResized() || toggleHDR)
-          {
-            //dev.adjustSwapchain(swapchain, scdesc);
-            rend.windowResized();
-            window.resizeHandled();
-            toggleHDR = false;
-          }
+        AtomicDoubleBuffered<InputBuffer> ainputs;
+        ainputs.writeValue(window.inputs());
+        AtomicDoubleBuffered<MouseState> amouse;
+        amouse.writeValue(window.mouse());
+        std::atomic<int> inputsUpdated = 0;
+        std::atomic<int> inputsRead = 0;
 
-
-          auto& inputs = window.inputs();
+        lbs.addTask("logic&render loop", [&](size_t) {
+          while (renderActive)
           {
             ImGuiIO &io = ::ImGui::GetIO();
             auto windowSize = rend.windowSize();
@@ -189,134 +185,164 @@ void mainWindow(ProgramParams& params)
             io.DeltaTime = time.getFrameTimeDelta();
             if (io.DeltaTime < 0.f)
               io.DeltaTime = 0.00001f;
-
-            auto& mouse = window.mouse();
-
-            if (mouse.captured)
+            
+            auto lastRead = inputsRead.load();
+            auto inputs = ainputs.readValue();
+            auto currentInput = inputs.frame();
+            auto diff = currentInput - lastRead;
+            if (diff > 0)
             {
-              io.MousePos.x = static_cast<float>(mouse.m_pos.x);
-              io.MousePos.y = static_cast<float>(mouse.m_pos.y);
+              inputsRead.store(currentInput);
+              auto mouse = amouse.readValue();
 
-              io.MouseWheel = static_cast<float>(mouse.mouseWheel)*0.1f;
-            }
-
-            inputs.goThroughThisFrame([&](Input i)
-            {
-              if (i.key >= 0)
+              if (mouse.captured)
               {
-                switch (i.key)
-                {
-                case VK_LBUTTON:
-                {
-                  io.MouseDown[0] = (i.action > 0);
-                  break;
-                }
-                case VK_RBUTTON:
-                {
-                  io.MouseDown[1] = (i.action > 0);
-                  break;
-                }
-                case VK_MBUTTON:
-                {
-                  io.MouseDown[2] = (i.action > 0);
-                  break;
-                }
-                default:
-                  if (i.key < 512)
-                    io.KeysDown[i.key] = (i.action > 0);
-                  break;
-                }
+                io.MousePos.x = static_cast<float>(mouse.m_pos.x);
+                io.MousePos.y = static_cast<float>(mouse.m_pos.y);
+
+                io.MouseWheel = static_cast<float>(mouse.mouseWheel)*0.1f;
               }
-            });
 
-            for (auto ch : window.charInputs())
-              io.AddInputCharacter(static_cast<ImWchar>(ch));
-
-            io.KeyCtrl = inputs.isPressedThisFrame(VK_CONTROL, 2);
-            io.KeyShift = inputs.isPressedThisFrame(VK_SHIFT, 2);
-            io.KeyAlt = inputs.isPressedThisFrame(VK_MENU, 2);
-            io.KeySuper = false;
-            ::ImGui::NewFrame();
-            {
-              ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-              ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
-              ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
-
-              auto si = rend.timings();
-              if (si)
+              inputs.goThroughNFrames(diff, [&](Input i)
               {
-                auto rsi = si.value();
-                ImGui::Text("Graph solving %.3fms", rsi.graphSolve.milliseconds());
-                ImGui::Text("Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
-                ImGui::Text("Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
-                ImGui::Text("Submit total %.2fms", rsi.submitCpuTime.milliseconds());
-
-                for (auto& cmdlist : rsi.lists)
+                if (i.key >= 0)
                 {
-                  ImGui::Text("\nCommandlist");
-                  ImGui::Text("\tbarrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
-                  ImGui::Text("\tfillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
-                  ImGui::Text("\tcpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
-                  ImGui::Text("\ttotalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
-                  ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
-                  ImGui::Text("\tGPU nodes:");
-                  for (auto& graphNode : cmdlist.nodes)
+                  switch (i.key)
                   {
-                    ImGui::Text("\t\t%s %.3fms (%.3fms cpu)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                  case VK_LBUTTON:
+                  {
+                    io.MouseDown[0] = (i.action > 0);
+                    break;
+                  }
+                  case VK_RBUTTON:
+                  {
+                    io.MouseDown[1] = (i.action > 0);
+                    break;
+                  }
+                  case VK_MBUTTON:
+                  {
+                    io.MouseDown[2] = (i.action > 0);
+                    break;
+                  }
+                  default:
+                    if (i.key < 512)
+                      io.KeysDown[i.key] = (i.action > 0);
+                    break;
                   }
                 }
+              });
+
+              for (auto ch : window.charInputs())
+                io.AddInputCharacter(static_cast<ImWchar>(ch));
+
+              io.KeyCtrl = inputs.isPressedWithinNFrames(diff, VK_CONTROL, 2);
+              io.KeyShift = inputs.isPressedWithinNFrames(diff, VK_SHIFT, 2);
+              io.KeyAlt = inputs.isPressedWithinNFrames(diff, VK_MENU, 2);
+              io.KeySuper = false;
+
+              if (inputs.isPressedWithinNFrames(diff, VK_F1, 1))
+              {
+                window.captureMouse(true);
+                captureMouse = true;
+              }
+              if (inputs.isPressedWithinNFrames(diff, VK_F2, 1))
+              {
+                window.captureMouse(false);
+                captureMouse = false;
               }
 
-              ImGui::End();
+              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '1', 1))
+              {
+                window.toggleBorderlessFullscreen();
+              }
+
+              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '2', 1))
+              {
+                reInit = true;
+                if (api == GraphicsApi::DX12)
+                  api = GraphicsApi::Vulkan;
+                else
+                  api = GraphicsApi::DX12;
+                renderActive = false;
+              }
+
+              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '3', 1))
+              {
+                reInit = true;
+                if (preferredVendor == VendorID::Amd)
+                  preferredVendor = VendorID::Nvidia;
+                else
+                  preferredVendor = VendorID::Amd;
+                renderActive = false;
+              }
+
+              if (frame > 10 && (closeAnyway || inputs.isPressedWithinNFrames(diff, VK_ESCAPE, 1)))
+              {
+                renderActive = false;
+              }
             }
+            ::ImGui::NewFrame();
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Text("Missed %zd frames of inputs. current: %zd read %zd", diff, currentInput, lastRead);
+
+            ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
+            ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+
+            auto si = rend.timings();
+            if (si)
+            {
+              auto rsi = si.value();
+              ImGui::Text("Graph solving %.3fms", rsi.graphSolve.milliseconds());
+              ImGui::Text("Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
+              ImGui::Text("Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
+              ImGui::Text("Submit total %.2fms", rsi.submitCpuTime.milliseconds());
+
+              for (auto& cmdlist : rsi.lists)
+              {
+                ImGui::Text("\nCommandlist");
+                ImGui::Text("\tbarrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
+                ImGui::Text("\tfillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
+                ImGui::Text("\tcpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
+                ImGui::Text("\ttotalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
+                ImGui::Text("\tGPU nodes:");
+                for (auto& graphNode : cmdlist.nodes)
+                {
+                  ImGui::Text("\t\t%s %.3fms (%.3fms cpu)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                }
+              }
+            }
+
+            ImGui::End();
             ImGui::Render();
+            //HIGAN_LOG("Rendering...");
+            if (renderResize)
+            {
+              renderResize = false;
+              rend.windowResized();
+            }
+            rend.render();
+          }
+        });
+        while (!window.simpleReadMessages(frame++))
+        {
+          log.update();
+          fs.updateWatchedFiles();
+          if (window.hasResized())
+          {
+            renderResize = true;
+            window.resizeHandled();
           }
 
-          if (inputs.isPressedThisFrame(VK_F1, 1))
-          {
-            window.captureMouse(true);
-            captureMouse = true;
-          }
-          if (inputs.isPressedThisFrame(VK_F2, 1))
-          {
-            window.captureMouse(false);
-            captureMouse = false;
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('1', 1))
-          {
-            window.toggleBorderlessFullscreen();
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('2', 1))
-          {
-            reInit = true;
-            if (api == GraphicsApi::DX12)
-              api = GraphicsApi::Vulkan;
-            else
-              api = GraphicsApi::DX12;
+          auto inputs = window.inputs();
+          ainputs.writeValue(inputs);
+          amouse.writeValue(window.mouse());
+          inputsUpdated = inputs.frame();
+          if (!renderActive)
             break;
-          }
-
-          if (inputs.isPressedThisFrame(VK_MENU, 2) && inputs.isPressedThisFrame('3', 1))
-          {
-            reInit = true;
-            if (preferredVendor == VendorID::Amd)
-              preferredVendor = VendorID::Nvidia;
-            else
-              preferredVendor = VendorID::Amd;
-            break;
-          }
-
-          if (frame > 10 && (closeAnyway || inputs.isPressedThisFrame(VK_ESCAPE, 1)))
-          {
-            break;
-          }
-          if (updateLog) log.update();
-
-          rend.render();
         }
+        renderActive = false;
+        lbs.sleepTillKeywords({"logic&render loop"});
         dev.waitGpuIdle();
       }
       if (!reInit)

@@ -199,12 +199,12 @@ namespace higanbana
 
     void captureMouse(bool val);
 
-    higanbana::InputBuffer& inputs()
+    higanbana::InputBuffer inputs()
     {
       return m_inputs;
     }
 
-    MouseState& mouse()
+    MouseState mouse()
     {
       return m_mouse;
     }

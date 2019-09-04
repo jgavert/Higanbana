@@ -26,7 +26,9 @@ namespace higanbana
     void readUntil(std::function<bool(int, int)> func);
     void readTill(int64_t time, std::function<void(int, int, int64_t)> func);
     bool findAndDisableThisFrame(int key, int action);
+    void goThroughNFrames(int frames, std::function<void(Input)> func);
     void goThroughThisFrame(std::function<void(Input)> func);
+    bool isPressedWithinNFrames(int frames, int key, int action);
     bool isPressedThisFrame(int key, int action);
     void setF_translator(std::function<int(int)> const &translator)
     {
@@ -35,6 +37,10 @@ namespace higanbana
     void setFrame(int64_t frame)
     {
       m_frame = frame;
+    }
+    int64_t frame() const
+    {
+      return m_frame;
     }
 
   private:

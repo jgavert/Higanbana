@@ -447,15 +447,15 @@ namespace higanbana
 
         if (pressedCurrent && !(pressedOld))
         {
-          inputs().insert(i, 1, m_frame);
+          m_inputs.insert(i, 1, m_frame);
         }
         else if (pressedCurrent)
         {
-          inputs().insert(i, 2, m_frame);
+          m_inputs.insert(i, 2, m_frame);
         }
         else if (!(pressedCurrent) && pressedOld)
         {
-          inputs().insert(i, 0, m_frame);
+          m_inputs.insert(i, 0, m_frame);
         }
       }
 
@@ -476,7 +476,7 @@ namespace higanbana
       {
         bool pressedOld = static_cast<bool>((m_oldKeyboardState[i] & 0xF0) > 0);
         if (pressedOld)
-          inputs().insert(i, 0, m_frame);
+          m_inputs.insert(i, 0, m_frame);
       }
       memcpy(m_oldKeyboardState, cur, 256 * sizeof(BYTE));
     }

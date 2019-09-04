@@ -65,6 +65,62 @@ bool InputBuffer::findAndDisableThisFrame(int key, int action)
   return false;
 }
 
+void InputBuffer::goThroughNFrames(int frames, std::function<void(Input)> func)
+{
+  int oldestFrame = m_inputs[m_tail].time;
+  if (frames > m_frame - oldestFrame)
+    frames = m_frame - oldestFrame;
+  int stopAt = m_frame - frames;
+
+  int foundOldestIndex = 0;
+  int indexes = 0;
+  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  {
+    indexes++;
+    if (m_inputs[m_tail - i].time <= stopAt)
+    {
+      foundOldestIndex = m_tail-i;
+      break;
+    }
+  }
+
+  for (int i = 1; i < indexes; ++i)
+  {
+    func(m_inputs[foundOldestIndex+i]);
+  }
+}
+
+bool InputBuffer::isPressedWithinNFrames(int frames, int key, int action)
+{
+  int oldestFrame = m_inputs[m_tail].time;
+  if (frames > m_frame - oldestFrame)
+    frames = m_frame - oldestFrame;
+  int stopAt = m_frame - frames;
+
+  int foundOldestIndex = 0;
+  int indexes = 0;
+  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  {
+    indexes++;
+    if (m_inputs[m_tail - i].time <= stopAt)
+    {
+      foundOldestIndex = m_tail-i;
+      break;
+    }
+  }
+
+  for (int i = 1; i < indexes; ++i)
+  {
+    auto index = foundOldestIndex + i;
+    auto val = m_inputs[index];
+    if (val.key == key && val.action == action)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 void InputBuffer::goThroughThisFrame(std::function<void(Input)> func)
 {
   for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
