@@ -54,6 +54,7 @@ namespace higanbana
     VendorID vendor;
     DeviceType type;
     bool canPresent;
+    bool canRaytrace;
     GraphicsApi api;
     uint32_t apiVersion;
     std::string apiVersionStr;

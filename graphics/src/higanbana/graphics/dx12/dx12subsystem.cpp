@@ -82,6 +82,15 @@ namespace higanbana
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;
 
+          {
+            ComPtr<ID3D12Device> testDevice;
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+
+            info.canRaytrace = SUCCEEDED(D3D12CreateDevice(wanted.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
+                && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
+                && featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+          }
+
           infos.push_back(info);
         }
         ++i;
@@ -92,6 +101,7 @@ namespace higanbana
         info.name = "Warp";
         info.id = static_cast<int>(vAdapters.size());
         info.canPresent = true;
+        info.canRaytrace = false;
         info.type = DeviceType::Cpu;
         info.vendor = VendorID::Unknown;
         infos.push_back(info);
