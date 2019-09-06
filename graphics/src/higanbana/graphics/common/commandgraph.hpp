@@ -4,6 +4,7 @@
 #include "higanbana/graphics/common/binding.hpp"
 #include "higanbana/graphics/common/swapchain.hpp"
 #include "higanbana/graphics/common/handle.hpp"
+#include "higanbana/graphics/desc/timing.hpp"
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -24,6 +25,7 @@ namespace higanbana
     CommandList list;
     std::string name;
     friend struct backend::DeviceGroupData;
+    friend struct CommandGraph;
     QueueType type;
     int gpuId;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
@@ -32,6 +34,7 @@ namespace higanbana
     DynamicBitfield m_referencedBuffers;
     DynamicBitfield m_referencedTextures;
     vector<ReadbackPromise> m_readbackPromises;
+    GraphNodeTiming timing;
 
     const DynamicBitfield& refBuf() const
     {
@@ -90,6 +93,8 @@ namespace higanbana
       , gpuId(gpuId)
     {
       list.renderTask(name);
+      timing.nodeName = name;
+      timing.cpuTime.start();
     }
 
     void resetState(Texture& tex)
@@ -341,13 +346,16 @@ namespace higanbana
   class CommandGraph
   {
     SeqNum m_sequence;
+    SubmitTiming m_timing;
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
     friend struct backend::DeviceGroupData;
   public:
     CommandGraph(SeqNum seq)
       : m_sequence(seq)
       , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
-    {}
+    {
+      m_timing.timeBeforeSubmit.start();
+    }
 
     CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
@@ -356,13 +364,14 @@ namespace higanbana
 
     void addPass(CommandGraphNode&& node)
     {
+      node.timing.cpuTime.stop();
       m_nodes->emplace_back(std::move(node));
     }
-
+    /*
     CommandGraphNode& createPass2(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
       m_nodes->emplace_back(name, type, gpu);
       return m_nodes->back();
-    }
+    }*/
   };
 }

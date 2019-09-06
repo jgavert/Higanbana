@@ -3,6 +3,7 @@
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/common/resources.hpp"
+#include "higanbana/graphics/desc/timing.hpp"
 #include "higanbana/graphics/dx12/dx12.hpp"
 #include "higanbana/graphics/shaders/ShaderStorage.hpp"
 #include "higanbana/graphics/common/handle.hpp"

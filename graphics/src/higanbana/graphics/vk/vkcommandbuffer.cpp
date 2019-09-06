@@ -886,5 +886,10 @@ namespace higanbana
 
       m_list->list().end();
     }
+
+    void VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)
+    {
+
+    }
   }
 }

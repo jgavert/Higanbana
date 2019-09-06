@@ -17,6 +17,8 @@ namespace higanbana
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
+      vector<DX12Query> queries;
+      ReadbackBlock readback;
 
       UploadLinearAllocator m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
@@ -41,6 +43,7 @@ namespace higanbana
         DX12CPUDescriptor nullBufferSRV);
 
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
+      void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       bool closed() const
       {

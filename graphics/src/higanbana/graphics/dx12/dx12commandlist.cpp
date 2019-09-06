@@ -991,9 +991,12 @@ namespace higanbana
     {
       int drawIndex = 0;
       int framebuffer = 0;
+      int renderBlockTimeIndex = 0;
       bool pixevent = false;
       ResourceHandle boundPipeline;
       std::string currentBlock;
+
+      DX12Query timestamp;
 
       if (!m_buffer->dma())
       {
@@ -1015,9 +1018,14 @@ namespace higanbana
           if (pixevent)
           {
             PIXEndEvent(buffer);
+            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.endIndex);
+            queries.emplace_back(timestamp);
           }
           PIXBeginEvent(buffer, PIX_COLOR_INDEX(drawIndex), block.data());
           pixevent = true;
+          
+          timestamp = m_queryheap->allocate();
+          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.beginIndex);
           break;
         }
         case PacketType::PrepareForPresent:
@@ -1062,7 +1070,6 @@ namespace higanbana
             buffer->SetPipelineState(pipe.pipeline.Get());
             boundPipeline = packet.pipeline;
           }
-
           break;
         }
         case PacketType::ResourceBinding:
@@ -1155,6 +1162,11 @@ namespace higanbana
       if (pixevent)
       {
         PIXEndEvent(buffer);
+        buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.endIndex);
+        queries.emplace_back(timestamp);
+        
+        readback = m_readback->allocate(m_queryheap->size()*m_queryheap->counterSize());
+        buffer->ResolveQueryData(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, 0, UINT(m_queryheap->size()), m_readback->native(), readback.offset);
       }
     }
 
@@ -1214,6 +1226,31 @@ namespace higanbana
 #endif
 
       m_buffer->closeList();
+    }
+
+    void DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes)
+    {
+      m_readback->map();
+      auto view = m_readback->getView(readback);
+      auto ticksPerSecond = m_queryheap->getGpuTicksPerSecond();
+      auto properView = reinterpret_memView<uint64_t>(view);
+      if (nodes.size() >= queries.size())
+      {
+        for (int i = 0; i < queries.size(); ++i)
+        {
+          auto query = queries[i];
+          auto begin = properView[query.beginIndex] * 1000000000ull;
+          begin = begin / ticksPerSecond;
+          auto end = properView[query.endIndex] * 1000000000ull;
+          end = end / ticksPerSecond;
+          auto& node = nodes[i];
+          node.gpuTime.begin = begin;
+          node.gpuTime.end = end;
+        }
+      }
+      m_readback->unmap();
+      m_readback->reset();
+      m_queryheap->reset();
     }
   }
 }

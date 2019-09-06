@@ -910,6 +910,7 @@ namespace higanbana
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
     public:
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
+      void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       vk::CommandBuffer list()
       {

@@ -113,6 +113,7 @@ namespace higanbana
       bool presents = false;
       bool isLastList = false;
       vector<ReadbackPromise> readbacks;
+      CommandListTiming timing;
     };
 
     struct FirstUseResource

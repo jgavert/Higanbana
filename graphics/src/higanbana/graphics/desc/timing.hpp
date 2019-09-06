@@ -1,5 +1,6 @@
 #pragma once
 
+#include "higanbana/graphics/common/resources.hpp"
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <cstdint>
 
@@ -27,6 +28,7 @@ namespace higanbana
 
   struct CommandListTiming
   {
+    QueueType type;
     Timestamp cpuBackendTime;
     Timestamp barrierSolve;
     Timestamp fillNativeList;

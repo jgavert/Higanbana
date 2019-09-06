@@ -97,6 +97,9 @@ namespace higanbana
                 if (submit.id == queueId)
                 {
                   buffer.listTiming.fromSubmitToFence.stop();
+                  buffer.lists.front()->readbackTimestamps(m_devices[buffer.deviceID].device, buffer.listTiming.nodes);
+                  buffer.listTiming.gpuTime.begin = buffer.listTiming.nodes.front().gpuTime.begin;
+                  buffer.listTiming.gpuTime.end = buffer.listTiming.nodes.back().gpuTime.end;
                   submit.lists.push_back(buffer.listTiming);
                   foundTiming = true;
                   break;
@@ -613,12 +616,13 @@ namespace higanbana
       {
         for (auto slice = 0u; slice < arraySize; ++slice)
         {
-          auto& node = graph.createPass2(std::string("copyTexture") + std::to_string(slice), QueueType::Graphics, vdev.id);
+          auto node = graph.createPass(std::string("copyTexture") + std::to_string(slice), QueueType::Graphics, vdev.id);
           for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
           {
             auto index = slice * image.desc().desc.miplevels + mip;
             node.copy(tex, allBufferToImages[index], Subresource().mip(mip).slice(slice));
           }
+          graph.addPass(std::move(node));
         }
       }
       submit(std::optional<Swapchain>(), graph);
@@ -971,24 +975,12 @@ namespace higanbana
       return fur;
     }
 
-    const char* toString(QueueType type)
-    {
-      switch (type)
-      {
-        case QueueType::Graphics: return "GraphicsQueue";
-        case QueueType::Compute: return "ComputeQueue";
-        case QueueType::Dma: return "DMAQueue";
-        case QueueType::External: return "ExternalQueue";
-        case QueueType::Unknown:
-        default: return "UnknownQueue";
-      }
-    }
-
     void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph)
     {
-      SubmitTiming timing;
+      SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;
+      timing.timeBeforeSubmit.stop();
       timing.submitCpuTime.start();
       timing.graphSolve.start();
       auto& nodes = *graph.m_nodes;
@@ -1011,6 +1003,8 @@ namespace higanbana
           plist.readbacks = nodes[i].m_readbackPromises;
           plist.acquireSema = nodes[i].acquireSemaphore;
           plist.presents = nodes[i].preparesPresent;
+          plist.timing.nodes.emplace_back(nodes[i].timing);
+          plist.timing.type = firstList->type;
            
           /*
           if (!plist.readbacks.empty())
@@ -1028,6 +1022,7 @@ namespace higanbana
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
             plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
             plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
+            plist.timing.nodes.emplace_back(nodes[i].timing);
             if (!plist.acquireSema)
             {
               plist.acquireSema = nodes[i].acquireSemaphore;
@@ -1082,6 +1077,7 @@ namespace higanbana
           std::shared_ptr<CommandBufferImpl> nativeList;
           LiveCommandBuffer2 buffer{};
           buffer.submitID = timing.id;
+          buffer.listTiming = list.timing;
           timing.listsCount++;
           buffer.listTiming.cpuBackendTime.start();
 

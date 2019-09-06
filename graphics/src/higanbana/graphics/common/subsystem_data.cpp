@@ -25,6 +25,19 @@ namespace higanbana
     return "Any";
   }
 
+  const char* toString(QueueType id)
+  {
+    if (id == QueueType::Graphics)
+      return "Graphics";
+    if (id == QueueType::Compute)
+      return "Compute";
+    if (id == QueueType::Dma)
+      return "Dma";
+    if (id == QueueType::External)
+      return "External";
+    return "Unknown";
+  }
+
   namespace backend
   {
     SubsystemData::SubsystemData(const char* appName, bool debugLayer, unsigned appVersion, const char* engineName, unsigned engineVersion)

@@ -292,23 +292,38 @@ void mainWindow(ProgramParams& params)
             if (si)
             {
               auto rsi = si.value();
-              ImGui::Text("Graph solving %.3fms", rsi.graphSolve.milliseconds());
-              ImGui::Text("Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
-              ImGui::Text("Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
-              ImGui::Text("Submit total %.2fms", rsi.submitCpuTime.milliseconds());
+              ImGui::NewLine();
+              ImGui::Text("RenderGraph statistics");
+              float gpuTotal = 0.f;
+              for (auto& list : rsi.lists)
+              {
+                gpuTotal += list.gpuTime.milliseconds();
+              }
+              float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
+              if (gpuTotal > cpuTotal)
+                ImGui::Text("Bottleneck: GPU");
+              else
+                ImGui::Text("Bottleneck: CPU");
+              ImGui::Text("GPU execution %.3fms", gpuTotal);
+              ImGui::Text("CPU execution %.3fms", cpuTotal);
+              ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
+              ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());
+              ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
+              ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
+              ImGui::Text("- Submit total %.2fms", rsi.submitCpuTime.milliseconds());
 
               for (auto& cmdlist : rsi.lists)
               {
-                ImGui::Text("\nCommandlist");
-                ImGui::Text("\tbarrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
-                ImGui::Text("\tfillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
-                ImGui::Text("\tcpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
-                ImGui::Text("\ttotalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
                 ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
+                ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                ImGui::Text("\t- barrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
+                ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
+                ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
                 ImGui::Text("\tGPU nodes:");
                 for (auto& graphNode : cmdlist.nodes)
                 {
-                  ImGui::Text("\t\t%s %.3fms (%.3fms cpu)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                  ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
                 }
               }
             }

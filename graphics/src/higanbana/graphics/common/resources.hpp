@@ -35,7 +35,7 @@ namespace higanbana
     Nvidia, // = 4318,
     Intel // = 32902
   };
-  const char* toString(VendorID api);
+  const char* toString(VendorID vendor);
 
   enum class QueueType : uint32_t
   {
@@ -45,6 +45,7 @@ namespace higanbana
     Dma,
     External
   };
+  const char* toString(QueueType queue);
 
   struct GpuInfo
   {

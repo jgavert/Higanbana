@@ -2,6 +2,7 @@
 #include "higanbana/graphics/common/heap_descriptor.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
 #include "higanbana/graphics/common/pipeline_descriptor.hpp"
+#include "higanbana/graphics/desc/timing.hpp"
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <string>
@@ -54,6 +55,7 @@ namespace higanbana
     {
     public:
       virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list, BarrierSolver& solver) = 0;
+      virtual void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) = 0;
       virtual ~CommandBufferImpl() = default;
     };
 
