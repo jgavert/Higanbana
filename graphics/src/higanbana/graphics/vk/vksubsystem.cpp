@@ -243,7 +243,7 @@ namespace higanbana
       return "Vulkan";
     }
 
-    vector<GpuInfo> VulkanSubsystem::availableGpus()
+    vector<GpuInfo> VulkanSubsystem::availableGpus(VendorID vendor)
     {
       auto canPresent = [](vk::PhysicalDevice dev)
       {
@@ -267,10 +267,6 @@ namespace higanbana
       {
         GpuInfo info{};
         auto stuff = m_devices[devId].getProperties();
-        if (canPresent(m_devices[devId]))
-        {
-          info.canPresent = true;
-        }
         info.id = devId;
         info.name = std::string(stuff.deviceName);
         info.vendor = VendorID::Unknown;
@@ -285,6 +281,12 @@ namespace higanbana
         else if (stuff.vendorID == 32902)
         {
           info.vendor = VendorID::Intel;
+        }
+        if (vendor != VendorID::All && info.vendor != vendor)
+          continue;
+        if (canPresent(m_devices[devId]))
+        {
+          info.canPresent = true;
         }
         switch (stuff.deviceType)
         {

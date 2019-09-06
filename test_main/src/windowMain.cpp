@@ -62,6 +62,7 @@ void mainWindow(ProgramParams& params)
   HIGAN_LOGi( "cmdline: \"%s\"", cmdline.c_str());
   auto splits = splitByDelimiter(cmdline, " ");
   auto ints = convertToInts(splits);
+  bool rgpCapture = false;
   if (ints.size() > 0)
   {
     cmdlineApiId = static_cast<GraphicsApi>(ints[0]); 
@@ -93,44 +94,30 @@ void mainWindow(ProgramParams& params)
     {
       vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics("higanbana", false);
-      auto gpus = graphics.availableGpus();
-#if 1
-      auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
-      auto api2 = GraphicsApi::Vulkan;
-      if (api == GraphicsApi::Vulkan)
+      vector<GpuInfo> gpus;
+      if (rgpCapture)
       {
-        api2 = GraphicsApi::DX12;
+        gpus = graphics.availableGpus(api, VendorID::Amd);
+        if (!gpus.empty())
+          allGpus.push_back(gpus[0]);
+        else
+          HIGAN_LOGi("Failed to find AMD RGP compliant device in %s api", toString(api));
       }
-      auto gpuInfo2 = graphics.getVendorDevice(api2, preferredVendor);
-      allGpus.emplace_back(gpuInfo);
+      else
+      {
+        gpus = graphics.availableGpus();
+        
+        //HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
+        auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
+        auto api2 = GraphicsApi::Vulkan;
+        if (api == GraphicsApi::Vulkan)
+        {
+          api2 = GraphicsApi::DX12;
+        }
+        auto gpuInfo2 = graphics.getVendorDevice(api2, preferredVendor);
+        allGpus.emplace_back(gpuInfo);
+      }
       //allGpus.emplace_back(gpuInfo2);
-#else
-      if (!explicitID)
-      {
-        //gpuinfo = graphics.getVendorDevice(api);
-        for (auto&& it : gpus)
-        {
-          if (it.api == api && it.vendor == preferredVendor)
-          {
-            allGpus.push_back(it);
-            break;
-          }
-          HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
-        }
-      }
-      if (allGpus.empty())
-      {
-        for (auto&& it : gpus)
-        {
-          if (it.api == api)
-          {
-            allGpus.push_back(it);
-            break;
-          }
-          HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
-        }
-      }
-#endif
       if (updateLog) log.update();
       if (gpus.empty())
         return;

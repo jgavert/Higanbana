@@ -57,17 +57,17 @@ namespace higanbana
       implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
 #endif
     }
-    vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api)
+    vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api, VendorID id)
     {
       vector<GpuInfo> infos;
       if (implVulkan && api == GraphicsApi::All || api == GraphicsApi::Vulkan)
       {
-        infos = implVulkan->availableGpus();
+        infos = implVulkan->availableGpus(id);
         for (auto&& it : infos) it.api = GraphicsApi::Vulkan;
       }
       if (implDX12 && (api == GraphicsApi::All || api == GraphicsApi::DX12))
       {
-        vector<GpuInfo> dx12Gpus = implDX12->availableGpus();
+        vector<GpuInfo> dx12Gpus = implDX12->availableGpus(id);
         for (auto&& it : dx12Gpus) it.api = GraphicsApi::DX12;
         infos.insert(infos.end(), dx12Gpus.begin(), dx12Gpus.end());
       }

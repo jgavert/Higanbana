@@ -24,7 +24,24 @@ namespace higanbana
       return "DX12";
     }
 
-    vector<GpuInfo> DX12Subsystem::availableGpus()
+    VendorID vendorIDto(UINT id)
+    {
+      if (id == 4098)
+      {
+        return VendorID::Amd;
+      }
+      else if (id == 4318)
+      {
+        return VendorID::Nvidia;
+      }
+      else if (id == 32902)
+      {
+        return VendorID::Intel;
+      }
+      return VendorID::Unknown;
+    }
+
+    vector<GpuInfo> DX12Subsystem::availableGpus(VendorID vendor)
     {
       vAdapters.clear();
       UINT i = 0;
@@ -33,6 +50,11 @@ namespace higanbana
       {
         DXGI_ADAPTER_DESC desc;
         pAdapter->GetDesc(&desc);
+        if (vendor != VendorID::All && vendorIDto(desc.VendorId) != vendor)
+        {
+          i++;
+          continue;
+        }
         HRESULT hr = D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
@@ -63,19 +85,10 @@ namespace higanbana
           }
           info.vendor = VendorID::Unknown;
           info.type = DeviceType::Unknown;
-          if (desc.VendorId == 4098)
+          info.vendor = vendorIDto(desc.VendorId);
+          info.type = DeviceType::DiscreteGpu;
+          if (info.vendor == VendorID::Intel)
           {
-            info.vendor = VendorID::Amd;
-            info.type = DeviceType::DiscreteGpu;
-          }
-          else if (desc.VendorId == 4318)
-          {
-            info.vendor = VendorID::Nvidia;
-            info.type = DeviceType::DiscreteGpu;
-          }
-          else if (desc.VendorId == 32902)
-          {
-            info.vendor = VendorID::Intel;
             info.type = DeviceType::IntegratedGpu;
           }
           info.id = static_cast<int>(vAdapters.size()) - 1;
@@ -96,6 +109,7 @@ namespace higanbana
         ++i;
       }
 
+      if (vendor == VendorID::All)
       {
         GpuInfo info{};
         info.name = "Warp";

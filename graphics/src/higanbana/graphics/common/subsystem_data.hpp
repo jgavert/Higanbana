@@ -19,7 +19,7 @@ namespace higanbana
       unsigned engineVersion;
 
       SubsystemData(const char* appName, bool debugLayer, unsigned appVersion = 1, const char* engineName = "higanbana", unsigned engineVersion = 1);
-      vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All);
+      vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All, VendorID id = VendorID::All);
       GpuGroup createGroup(FileSystem& fs, vector<GpuInfo> gpu);
       GraphicsSurface createSurface(Window& window, GpuInfo gpu);
     };

@@ -31,6 +31,7 @@ namespace higanbana
   enum class VendorID
   {
     Unknown,
+    All,
     Amd, // = 4098,
     Nvidia, // = 4318,
     Intel // = 32902

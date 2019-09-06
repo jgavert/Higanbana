@@ -18,7 +18,7 @@ namespace higanbana
     {
       makeState(appName, debugLayer, appVersion, engineName, engineVersion);
     }
-    vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All) { return S().availableGpus(api); }
+    vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All, VendorID id = VendorID::All) { return S().availableGpus(api, id); }
     GpuInfo getVendorDevice(GraphicsApi api, VendorID id = VendorID::Unknown)
     {
       auto gpus = availableGpus();

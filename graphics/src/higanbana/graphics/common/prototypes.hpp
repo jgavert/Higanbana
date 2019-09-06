@@ -181,7 +181,7 @@ namespace higanbana
       {
       public:
         virtual std::string gfxApi() = 0;
-        virtual vector<GpuInfo> availableGpus() = 0;
+        virtual vector<GpuInfo> availableGpus(VendorID vendor) = 0;
         virtual std::shared_ptr<prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) = 0;
         virtual GraphicsSurface createSurface(Window& window) = 0;
         virtual ~SubsystemImpl() {}

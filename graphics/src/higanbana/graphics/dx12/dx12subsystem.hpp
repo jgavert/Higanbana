@@ -16,7 +16,7 @@ namespace higanbana
     public:
       DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion, bool debug = false);
       std::string gfxApi() override;
-      vector<GpuInfo> availableGpus() override;
+      vector<GpuInfo> availableGpus(VendorID vendor) override;
       std::shared_ptr<prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
       GraphicsSurface createSurface(Window& window) override;
     };
