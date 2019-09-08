@@ -56,6 +56,14 @@ namespace app
     higanbana::Texture depth;
     higanbana::TextureDSV depthDSV;
 
+    // camera
+
+    float3 position;
+    float3 dir;
+    float3 updir;
+    float3 sideVec;
+    quaternion direction;
+
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
     void initWindow(higanbana::Window& window, higanbana::GpuInfo info);

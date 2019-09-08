@@ -82,6 +82,7 @@ namespace higanbana
         /Zpc	Pack matrices in column-major order.
         /Zpr	Pack matrices in row-major order.
       */
+      ppArgs.push_back(L"/Zpr"); // row-major matrices.
 
       ComPtr<IDxcCompiler> pCompiler;
       DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);

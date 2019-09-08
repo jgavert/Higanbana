@@ -18,6 +18,15 @@ SHADER_STRUCT(ComputeConstants,
   int unused;
 );
 
+SHADER_STRUCT(OpaqueConsts,
+  float resx;
+  float resy;
+  float time;
+  int unused;
+  float4x4 worldMat;
+  float4x4 viewMat;
+);
+
 namespace app
 {
   Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
@@ -78,7 +87,7 @@ namespace app
     triangleRP = dev.createRenderpass();
 
     higanbana::ShaderInputDescriptor opaquePassInterface = ShaderInputDescriptor()
-      .constants<PixelConstants>()
+      .constants<OpaqueConsts>()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
 
     auto opaqueDescriptor = GraphicsPipelineDescriptor()
@@ -87,9 +96,10 @@ namespace app
       .setLayout(opaquePassInterface)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
       .setRTVFormat(0, FormatType::Unorm8BGRA)
+      .setDSVFormat(FormatType::Depth32)
       .setRenderTargetCount(1)
       .setDepthStencil(DepthStencilDescriptor()
-        .setDepthEnable(false));
+        .setDepthEnable(true));
     
     opaque = dev.createGraphicsPipeline(opaqueDescriptor);
 
@@ -148,6 +158,12 @@ namespace app
       .setUsage(ResourceUsage::GpuReadOnly)
       .allowCrossAdapter(1));
       */
+
+    position = { 1.f, 0.f, 1.f };
+    dir = { 1.f, 0.f, 0.f };
+    updir = { 0.f, 1.f, 0.f };
+    sideVec = { 0.f, 0.f, 1.f };
+    direction = { 1.f, 0.f, 0.f, 0.f };
 
     time.startFrame();
   }
@@ -310,10 +326,21 @@ namespace app
         };
         auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
-        PixelConstants consts{};
+        quaternion yaw = math::rotateAxis(updir, 0.f);
+        quaternion pitch = math::rotateAxis(sideVec, 0.f);
+        quaternion roll = math::rotateAxis(dir, 0.f);
+        direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+
+        auto rotationMatrix = math::rotationMatrixRH(direction);
+        auto perspective = math::perspectiverh(90.f, float(backbuffer.desc().desc.width)/float(backbuffer.desc().desc.height), 0.f, 100.f);
+        auto worldMat = math::mul(rotationMatrix, math::translation(position));
+
+        OpaqueConsts consts{};
         consts.time = time.getFTime();
         consts.resx = backbuffer.desc().desc.width; 
         consts.resy = backbuffer.desc().desc.height;
+        consts.worldMat = worldMat;
+        consts.viewMat = perspective;
         binding.constants(consts);
         binding.bind("vertexInput", vert);
 
