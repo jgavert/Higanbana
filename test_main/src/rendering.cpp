@@ -77,6 +77,31 @@ namespace app
 
     triangleRP = dev.createRenderpass();
 
+    higanbana::ShaderInputDescriptor opaquePassInterface = ShaderInputDescriptor()
+      .constants<PixelConstants>()
+      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
+
+    auto opaqueDescriptor = GraphicsPipelineDescriptor()
+      .setVertexShader("opaquePass")
+      .setPixelShader("opaquePass")
+      .setLayout(opaquePassInterface)
+      .setPrimitiveTopology(PrimitiveTopology::Triangle)
+      .setRTVFormat(0, FormatType::Unorm8BGRA)
+      .setRenderTargetCount(1)
+      .setDepthStencil(DepthStencilDescriptor()
+        .setDepthEnable(false));
+    
+    opaque = dev.createGraphicsPipeline(opaqueDescriptor);
+
+    opaqueRP = dev.createRenderpass();
+
+    depth = dev.createTexture(higanbana::ResourceDescriptor()
+      .setSize(uint2(1280, 720))
+      .setFormat(FormatType::Depth32)
+      .setUsage(ResourceUsage::DepthStencil)
+      .setName("opaqueDepth"));
+    depthDSV = dev.createTextureDSV(depth);
+
     proxyTex.resize(dev, ResourceDescriptor()
       .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
@@ -156,6 +181,14 @@ namespace app
       .setFormat(desc.desc.format)
       .setUsage(ResourceUsage::RenderTarget)
       .setName("targetRT"));
+
+    depth = dev.createTexture(higanbana::ResourceDescriptor()
+      .setSize(desc.desc.size3D())
+      .setFormat(FormatType::Depth32)
+      .setUsage(ResourceUsage::DepthStencil)
+      .setName("opaqueDepth"));
+
+    depthDSV = dev.createTextureDSV(depth);
   }
 
   std::optional<higanbana::SubmitTiming> Renderer::timings()
@@ -173,7 +206,7 @@ namespace app
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
     if (!obackbuffer.has_value())
     {
-      HIGAN_LOGi( "No backbuffer available");
+      HIGAN_LOGi( "No backbuffer available\n");
       return;
     }
     TextureRTV backbuffer = obackbuffer.value();
@@ -237,22 +270,45 @@ namespace app
       node.endRenderpass();
       tasks.addPass(std::move(node));
     }
-/*
+
     {
-      auto node = tasks.createPass("Triangle");
+      auto node = tasks.createPass("opaquePass");
       float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
       //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
       backbuffer.setOp(LoadOp::Load);
-      node.renderpass(triangleRP, backbuffer);
+      depthDSV.clearOp({});
+      node.renderpass(opaqueRP, backbuffer, depthDSV);
       {
-        auto binding = node.bind(triangle);
+        auto binding = node.bind(opaque);
 
         vector<float> vertexData = {
-          -0.8f, -0.8f, 
-          0.0f, 0.8f,
-          0.8f, -0.8f};
+          1.0f, -1.f, -1.f,
+          1.0f, -1.f, 1.f, 
+          1.0f, 1.f, -1.f,
+          1.0f, 1.f, 1.f,
+          -1.0f, -1.f, -1.f,
+          -1.0f, -1.f, 1.f, 
+          -1.0f, 1.f, -1.f,
+          -1.0f, 1.f, 1.f,
+        };
+
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+        vector<uint16_t> indexData = {
+          0, 1, 2,
+          1, 2, 3,
+          4, 5, 0,
+          5, 0, 1,
+          6, 7, 2,
+          7, 2, 3,
+          4, 5, 6,
+          5, 6, 7,
+          4, 6, 0,
+          6, 0, 2,
+          5, 7, 1,
+          7, 1, 3,
+        };
+        auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
         PixelConstants consts{};
         consts.time = time.getFTime();
@@ -261,13 +317,12 @@ namespace app
         binding.constants(consts);
         binding.bind("vertexInput", vert);
 
-        node.draw(binding, 3);
+        node.drawIndexed(binding, ind, 36);
       }
       node.endRenderpass();
 
       tasks.addPass(std::move(node));
     }
-    */
 
     // IMGUI
     {

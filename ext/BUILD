@@ -88,3 +88,10 @@ cc_library(
     includes = ["imgui"],
     visibility = ["//visibility:public"], 
 )
+
+cc_library(
+    name = "cxxopts",
+    hdrs = ["cxxopts/include/cxxopts.hpp"],
+    includes = ["cxxopts/include"],
+    visibility = ["//visibility:public"], 
+)

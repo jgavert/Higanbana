@@ -29,6 +29,9 @@ namespace app
 
     higanbana::Renderpass triangleRP;
 
+    higanbana::GraphicsPipeline opaque;
+    higanbana::Renderpass opaqueRP;
+
     higanbana::PingPongTexture proxyTex;
     higanbana::ComputePipeline genTexCompute;
 
@@ -48,6 +51,10 @@ namespace app
 
     higanbana::CpuImage image;
     higanbana::Texture fontatlas;
+
+    // gbuffer??
+    higanbana::Texture depth;
+    higanbana::TextureDSV depthDSV;
 
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);

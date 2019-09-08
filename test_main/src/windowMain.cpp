@@ -13,6 +13,7 @@
 #include <random>
 #include <tuple>
 #include <imgui.h>
+#include <cxxopts.hpp>
 
 #include "entity_test.hpp"
 #include "rendering.hpp"
@@ -52,24 +53,31 @@ vector<int> convertToInts(vector<std::string> data)
 
 void mainWindow(ProgramParams& params)
 {
+  cxxopts::Options options("TestMain", "TestMain tests some practical functionality of Higanbana.");
+  options.add_options()
+    ("rgp", "forces Radeon GPU Profiler, allows only AMD gpu's.")
+    ("vulkan", "priorizes Vulkan API")
+    ("dx12", "priorizes DirectX 12 API")
+    ("intel", "priorizes Intel GPU's")
+    ("nvidia", "priorizes NVidia GPU's")
+    ("amd", "priorizes AMD GPU's")
+    ;
+
+  auto results = options.parse(params.m_argc, params.m_argv);
   GraphicsApi cmdlineApiId = GraphicsApi::DX12;
   VendorID cmdlineVendorId = VendorID::Nvidia;
-  auto cmdLength = strlen(params.m_lpCmdLine);
-  HIGAN_LOGi( "cmdline: \"%s\"", params.m_lpCmdLine);
-  std::string cmdline = params.m_lpCmdLine;
-  std::replace(cmdline.begin(), cmdline.end(), '"', ' ');
-  std::replace(cmdline.begin(), cmdline.end(), '\\', ' ');
-  HIGAN_LOGi( "cmdline: \"%s\"", cmdline.c_str());
-  auto splits = splitByDelimiter(cmdline, " ");
-  auto ints = convertToInts(splits);
-  bool rgpCapture = false;
-  if (ints.size() > 0)
+  bool rgpCapture = results.count("rgp") == 1;
+  if (results.count("vulkan") == 1)
   {
-    cmdlineApiId = static_cast<GraphicsApi>(ints[0]); 
+    cmdlineApiId = GraphicsApi::Vulkan;
   }
-  if (ints.size() > 1)
+  if (results.count("amd") == 1)
   {
-    cmdlineVendorId = static_cast<VendorID>(ints[1]); 
+    cmdlineVendorId = VendorID::Amd;
+  }
+  if (results.count("intel"))
+  {
+    cmdlineVendorId = VendorID::Intel;
   }
   Logger log;
   // test_entity();
@@ -135,6 +143,7 @@ void mainWindow(ProgramParams& params)
       ImGui::CreateContext();
       {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.IniFilename = nullptr;
       }
       ImGui::StyleColorsDark();
 

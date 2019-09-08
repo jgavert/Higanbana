@@ -128,16 +128,16 @@ namespace higanbana
       addViewTex(rtv);
       list.renderpass(pass, {rtv}, {});
     }
-    int renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
+    void renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
     {
       addViewTex(rtv);
       addViewTex(dsv);
-      list.renderpass(pass, {rtv}, {dsv});
+      list.renderpass(pass, {rtv}, dsv);
     }
-    int renderpass(Renderpass& pass, TextureDSV& dsv)
+      void renderpass(Renderpass& pass, TextureDSV& dsv)
     {
       addViewTex(dsv);
-      list.renderpass(pass, {}, {dsv});
+      list.renderpass(pass, {}, dsv);
     }
     void endRenderpass()
     {

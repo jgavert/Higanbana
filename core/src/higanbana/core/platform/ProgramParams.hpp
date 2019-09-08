@@ -13,6 +13,8 @@ public:
     , m_hPrevInstance(hPrevInstance)
     , m_lpCmdLine(lpCmdLine)
     , m_nCmdShow(nCmdShow)
+    , m_argc(__argc)
+    , m_argv(__argv)
   {
 	  // super cool!
 	  AllocConsole();
@@ -29,8 +31,11 @@ public:
 
   HINSTANCE m_hInstance;
   HINSTANCE m_hPrevInstance;
-  LPSTR     m_lpCmdLine;
+  LPSTR    m_lpCmdLine;
   int       m_nCmdShow;
+
+  int         m_argc;
+  char**      m_argv;
 };
 
 #else
