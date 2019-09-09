@@ -64,7 +64,7 @@ void mainWindow(ProgramParams& params)
     ("h,help", "Print help and exit.")
     ;
 
-  GraphicsApi cmdlineApiId = GraphicsApi::Vulkan;
+  GraphicsApi cmdlineApiId = GraphicsApi::DX12;
   VendorID cmdlineVendorId = VendorID::Amd;
   bool rgpCapture = false;
   try
