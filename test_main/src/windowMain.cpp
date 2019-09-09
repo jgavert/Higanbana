@@ -61,24 +61,58 @@ void mainWindow(ProgramParams& params)
     ("intel", "priorizes Intel GPU's")
     ("nvidia", "priorizes NVidia GPU's")
     ("amd", "priorizes AMD GPU's")
+    ("h,help", "Print help and exit.")
     ;
 
-  auto results = options.parse(params.m_argc, params.m_argv);
   GraphicsApi cmdlineApiId = GraphicsApi::DX12;
   VendorID cmdlineVendorId = VendorID::Nvidia;
-  bool rgpCapture = results.count("rgp") == 1;
-  if (results.count("vulkan") == 1)
+  bool rgpCapture = false;
+  try
   {
-    cmdlineApiId = GraphicsApi::Vulkan;
+    auto results = options.parse(params.m_argc, params.m_argv);
+    cmdlineApiId = GraphicsApi::DX12;
+    cmdlineVendorId = VendorID::Nvidia;
+    if (results.count("vulkan"))
+    {
+      cmdlineApiId = GraphicsApi::Vulkan;
+    }
+    if (results.count("dx12"))
+    {
+      cmdlineApiId = GraphicsApi::DX12;
+    }
+    if (results.count("amd"))
+    {
+      cmdlineVendorId = VendorID::Amd;
+    }
+    if (results.count("intel"))
+    {
+      cmdlineVendorId = VendorID::Intel;
+    }
+    if (results.count("nvidia"))
+    {
+      cmdlineVendorId = VendorID::Nvidia;
+    }
+    if (results.count("rgp"))
+    {
+      rgpCapture = true;
+      cmdlineVendorId = VendorID::Amd;
+      HIGAN_LOGi("Preparing for RGP capture...\n");
+    }
+    if (results.count("help"))
+    {
+      HIGAN_LOGi("%s\n", options.help({""}).c_str());
+      Sleep(10000);
+      return;
+    }
   }
-  if (results.count("amd") == 1)
+  catch(const std::exception& e)
   {
-    cmdlineVendorId = VendorID::Amd;
+    //std::cerr << e.what() << '\n';
+    HIGAN_LOGi("Bad commandline! reason: %s\n%s", e.what(), options.help({""}).c_str());
+    Sleep(10000);
+    return;
   }
-  if (results.count("intel"))
-  {
-    cmdlineVendorId = VendorID::Intel;
-  }
+  
   Logger log;
   // test_entity();
   // test_bitfield();
@@ -278,18 +312,19 @@ void mainWindow(ProgramParams& params)
               }
             }
             ::ImGui::NewFrame();
+            ImGui::SetNextWindowSize(ImVec2(360, 500), ImGuiCond_Once);
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
             ImGui::Text("Missed %zd frames of inputs. current: %zd read %zd", diff, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+            ImGui::NewLine();
+            ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
 
             auto si = rend.timings();
             if (si)
             {
               auto rsi = si.value();
-              ImGui::NewLine();
-              ImGui::Text("RenderGraph statistics");
               float gpuTotal = 0.f;
               for (auto& list : rsi.lists)
               {
@@ -381,6 +416,6 @@ void mainWindow(ProgramParams& params)
   RangeMath::difference({ 0, 2, 0, 2 }, { 1, 1, 1, 1 }, [](SubresourceRange r) {printRange(r);});
   RangeMath::difference({ 0, 1, 0, 1 }, { 1, 1, 1, 1 }, [](SubresourceRange r) {printRange(r);});
   */
-
   log.update();
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 }

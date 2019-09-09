@@ -7,9 +7,12 @@ ext/
 externals/
 bazel-*
 package/
+releaseDir/
 app/external/imgui/
 
+data/*.jpg
 *.cap
+*.zip
 
 test/test_output_*
 

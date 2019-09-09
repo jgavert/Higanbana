@@ -12,7 +12,7 @@
                 "${workspaceFolder}/ext/imgui",
                 "${workspaceFolder}/ext/stb",
                 "${workspaceFolder}/ext/cxxopts/include",
-                "C:/VulkanSDK/1.1.108.0/Include",
+                "C:/VulkanSDK/1.1.114.0/Include",
                 "${workspaceFolder}/ext/Catch2/single_include"
             ],
             "defines": [

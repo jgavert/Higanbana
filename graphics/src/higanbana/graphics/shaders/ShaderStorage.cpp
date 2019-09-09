@@ -209,9 +209,6 @@ namespace higanbana
           info,
           func);
         HIGAN_ASSERT(compiled, "ups");
-        auto testF = [](){ HIGAN_LOGi("LAWL\n"); return true;};
-        HIGAN_ASSERT(testF(), "wtf");
-        HIGAN_LOGi("LAWL\n");
       }
       foundBinary = m_fs.fileExists(dxilPath);
       if (foundBinary && m_fs.fileExists(shaderPath))
