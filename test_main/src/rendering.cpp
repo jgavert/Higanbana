@@ -95,11 +95,14 @@ namespace app
       .setPixelShader("opaquePass")
       .setLayout(opaquePassInterface)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
+      .setRasterizer(RasterizerDescriptor()
+        .setFrontCounterClockwise(true))
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setDSVFormat(FormatType::Depth32)
       .setRenderTargetCount(1)
       .setDepthStencil(DepthStencilDescriptor()
-        .setDepthEnable(true));
+        .setDepthEnable(true)
+        .setDepthFunc(ComparisonFunc::Greater));
     
     opaque = dev.createGraphicsPipeline(opaqueDescriptor);
 
@@ -159,7 +162,7 @@ namespace app
       .allowCrossAdapter(1));
       */
 
-    position = { 1.f, 0.f, 1.f };
+    position = { -10.f, 0.f, -10.f };
     dir = { 1.f, 0.f, 0.f };
     updir = { 0.f, 1.f, 0.f };
     sideVec = { 0.f, 0.f, 1.f };
@@ -325,14 +328,15 @@ namespace app
         };
         auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
-        quaternion yaw = math::rotateAxis(updir, 0.f);
+        quaternion yaw = math::rotateAxis(updir, 0.01f);
         quaternion pitch = math::rotateAxis(sideVec, 0.f);
         quaternion roll = math::rotateAxis(dir, 0.f);
         direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
 
+        position.x -= 0.001f;
         auto rotationMatrix = math::rotationMatrixRH(direction);
-        auto perspective = math::perspectiverh(90.f, float(backbuffer.desc().desc.width)/float(backbuffer.desc().desc.height), 0.f, 100.f);
-        auto worldMat = math::mul(rotationMatrix, math::translation(position));
+        auto perspective = math::perspectiverh(90.f, float(backbuffer.desc().desc.width)/float(backbuffer.desc().desc.height), 0.1f, 100.f);
+        auto worldMat = math::mul(math::translation(position), rotationMatrix);
 
         OpaqueConsts consts{};
         consts.time = time.getFTime();

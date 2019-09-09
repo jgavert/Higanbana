@@ -20,6 +20,7 @@ VertexOut main(uint id: SV_VertexID)
   vtxOut.pos.w = 1.f;
   float4x4 world = constants.worldMat;
   vtxOut.pos = mul(mul(world, constants.viewMat), vtxOut.pos);
+  vtxOut.pos.z = 1.f - vtxOut.pos.z;
   vtxOut.pos.w = 1.f;
   vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
   vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
