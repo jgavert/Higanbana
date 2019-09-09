@@ -64,14 +64,12 @@ void mainWindow(ProgramParams& params)
     ("h,help", "Print help and exit.")
     ;
 
-  GraphicsApi cmdlineApiId = GraphicsApi::DX12;
-  VendorID cmdlineVendorId = VendorID::Nvidia;
+  GraphicsApi cmdlineApiId = GraphicsApi::Vulkan;
+  VendorID cmdlineVendorId = VendorID::Amd;
   bool rgpCapture = false;
   try
   {
     auto results = options.parse(params.m_argc, params.m_argv);
-    cmdlineApiId = GraphicsApi::DX12;
-    cmdlineVendorId = VendorID::Nvidia;
     if (results.count("vulkan"))
     {
       cmdlineApiId = GraphicsApi::Vulkan;
@@ -312,12 +310,20 @@ void mainWindow(ProgramParams& params)
               }
             }
             ::ImGui::NewFrame();
-            ImGui::SetNextWindowSize(ImVec2(360, 500), ImGuiCond_Once);
+            ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
             ImGui::Text("Missed %zd frames of inputs. current: %zd read %zd", diff, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+            ImGui::NewLine();
+            ImGui::Text("Keys");
+            ImGui::Text(" Exit:                         ESC");
+            ImGui::Text(" Capture Mouse:                F1");
+            ImGui::Text(" Release Mouse:                F2");
+            ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+            ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
+            ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
             ImGui::NewLine();
             ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
 

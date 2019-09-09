@@ -608,9 +608,19 @@ namespace higanbana
       auto presentModes = asd.value;
 
       vk::PresentModeKHR khrmode = presentModeToVk(mode);
+      vk::PresentModeKHR similarMode = presentModeToVk(mode);
+      if (mode == PresentMode::Mailbox)
+      {
+        similarMode = presentModeToVk(PresentMode::Immediate);
+      }
+      else if (mode == PresentMode::Immediate)
+      {
+        similarMode = presentModeToVk(PresentMode::Mailbox);
+      }
       vk::PresentModeKHR backupMode;
 
       bool hadChosenMode = false;
+      bool hadSimilarMode = false;
       for (auto&& fmt : presentModes)
       {
 #ifdef        HIGANBANA_GRAPHICS_EXTRA_INFO
@@ -625,6 +635,8 @@ namespace higanbana
 #endif
         if (fmt == khrmode)
           hadChosenMode = true;
+        if (fmt == similarMode)
+          hadSimilarMode = true;
         if (vsyncMode(presentModeVKToHigan(fmt)) && vsyncMode(mode))
         {
           backupMode = fmt;
@@ -636,7 +648,12 @@ namespace higanbana
       }
       if (!hadChosenMode)
       {
-        khrmode = backupMode; // guaranteed by spec
+        if (hadSimilarMode)
+        {
+          khrmode = similarMode;
+        }
+        else
+          khrmode = backupMode; // guaranteed by spec
       }
       return khrmode;
     }

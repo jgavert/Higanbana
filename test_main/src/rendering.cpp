@@ -37,7 +37,7 @@ namespace app
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)
       .colorspace(Colorspace::BT709)
-      .bufferCount(2).presentMode(PresentMode::Mailbox);
+      .bufferCount(3).presentMode(PresentMode::Mailbox);
       //.bufferCount(2).presentMode(PresentMode::FifoRelaxed);
 
     auto bufferdesc = ResourceDescriptor()
@@ -174,8 +174,7 @@ namespace app
     swapchain = dev.createSwapchain(surface, scdesc);
   }
 
-  int2 Renderer::windowSize()
-  {
+  int2 Renderer::windowSize()  {
     if (swapchain.buffers().empty())
       return int2(1,1);
     return swapchain.buffers().front().desc().desc.size3D().xy();

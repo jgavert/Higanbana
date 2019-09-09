@@ -35,8 +35,8 @@ namespace higanbana
       { vk::Format::eB8G8R8A8Srgb,        vk::Format::eB8G8R8A8Srgb,          FormatType::Unorm8SBGRA },
       { vk::Format::eA2R10G10B10UnormPack32,   vk::Format::eA2R10G10B10UnormPack32,    FormatType::Unorm10RGB2A },
       { vk::Format::eR32Uint,             vk::Format::eR32Uint,               FormatType::Raw32 },
-      { vk::Format::eD32Sfloat,           vk::Format::eR32Sfloat,             FormatType::Depth32 },
-      { vk::Format::eD32SfloatS8Uint,     vk::Format::eR32Sfloat,             FormatType::Depth32_Stencil8 },
+      { vk::Format::eD32Sfloat,           vk::Format::eD32Sfloat,             FormatType::Depth32 },
+      { vk::Format::eD32SfloatS8Uint,     vk::Format::eD32Sfloat,             FormatType::Depth32_Stencil8 },
     };
 
     FormatVulkanConversion formatToHiganbanaFormat(vk::Format format)

@@ -245,7 +245,10 @@ namespace higanbana
         if (m_desc.desc.usage == ResourceUsage::DepthStencil 
          || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
         {
-          m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+          if (desc.desc.format == FormatType::Depth32_Stencil8)
+            m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+          else
+            m_aspectFlags = vk::ImageAspectFlagBits::eDepth;
         }
       }
 
@@ -260,7 +263,10 @@ namespace higanbana
         if (m_desc.desc.usage == ResourceUsage::DepthStencil 
          || m_desc.desc.usage == ResourceUsage::DepthStencilRW)
         {
-          m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+          if (desc.desc.format == FormatType::Depth32_Stencil8)
+            m_aspectFlags = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+          else
+            m_aspectFlags = vk::ImageAspectFlagBits::eDepth;
         }
       }
 

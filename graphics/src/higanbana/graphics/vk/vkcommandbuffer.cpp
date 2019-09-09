@@ -266,16 +266,14 @@ namespace higanbana
       
       vk::ClearValue clearValues[8];
       uint32_t attachmentCount = 0;
-      uint32_t clearValueCount = 0;
 
       for (auto&& rtv : packet.rtvs.convertToMemView())
       {
         if (rtv.loadOp() == LoadOp::Clear)
         {
           auto v = packet.clearValues.convertToMemView()[attachmentCount];
-          clearValues[clearValueCount] = clearValues[clearValueCount]
+          clearValues[attachmentCount] = clearValues[attachmentCount]
             .setColor(vk::ClearColorValue().setFloat32({v.x, v.y, v.z, v.w})); 
-          clearValueCount++;
         }
         attachmentCount++;
       }
@@ -284,10 +282,10 @@ namespace higanbana
         if (packet.dsv.loadOp() == LoadOp::Clear)
         {
           auto v = packet.clearDepth;
-          clearValues[clearValueCount] = clearValues[clearValueCount]
+          clearValues[attachmentCount] = clearValues[attachmentCount]
             .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v).setStencil(0));
-          clearValueCount++;
         }
+        attachmentCount++;
       }
       
       auto scissorRect = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(packet.fbWidth, packet.fbHeight));
@@ -295,7 +293,7 @@ namespace higanbana
         .setRenderPass(rp.native())
         .setFramebuffer(fb)
         .setRenderArea(scissorRect)
-        .setClearValueCount(clearValueCount)
+        .setClearValueCount(attachmentCount)
         .setPClearValues(clearValues);
 
       buffer.beginRenderPass(&info, vk::SubpassContents::eInline);      
@@ -311,6 +309,8 @@ namespace higanbana
 
       buffer.setViewport(0, {port});
       buffer.setScissor(0, {scissorRect});
+
+      buffer.setDepthBounds(0.f, 1.f);
     }
 
     void handle(vk::CommandBuffer buffer, gfxpacket::Draw& packet)
@@ -482,7 +482,8 @@ namespace higanbana
       checkStage(stage, AccessStage::Index, vk::PipelineStageFlagBits::eVertexShader);
       checkStage(stage, AccessStage::Indirect, vk::PipelineStageFlagBits::eDrawIndirect);
       checkStage(stage, AccessStage::Rendertarget, vk::PipelineStageFlagBits::eColorAttachmentOutput);
-      checkStage(stage, AccessStage::DepthStencil, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+      checkStage(stage, AccessStage::DepthStencil, vk::PipelineStageFlagBits::eLateFragmentTests);
+      checkStage(stage, AccessStage::DepthStencil, vk::PipelineStageFlagBits::eEarlyFragmentTests);
       checkStage(stage, AccessStage::Present, vk::PipelineStageFlagBits::eBottomOfPipe);
       checkStage(stage, AccessStage::Raytrace, vk::PipelineStageFlagBits::eRayTracingShaderNV);
       checkStage(stage, AccessStage::AccelerationStructure, vk::PipelineStageFlagBits::eAccelerationStructureBuildNV);
