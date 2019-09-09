@@ -14,9 +14,10 @@ robocopy bazel-bin\test_main releaseDir\bazel-bin\test_main dxcompiler.dll
 robocopy bazel-bin\test_main releaseDir\bazel-bin\test_main WinPixEventRuntime.dll
 robocopy bazel-bin\test_main releaseDir\bazel-bin\test_main test_main.pdb
 robocopy bazel-bin\test_main releaseDir\bazel-bin\test_main DXIL.dll
-robocopy . releaseDir run.bat
-robocopy . releaseDir runWithRGPDX12.bat
-robocopy . releaseDir runWithRGPVulkan.bat
+robocopy . releaseDir runDX12.bat
+robocopy . releaseDir runDX12_RGP.bat
+robocopy . releaseDir runVulkan.bat
+robocopy . releaseDir runVulkan_RGP.bat
 
 del higanbana_win64_fastbuild.zip
-powershell -Command "Compress-Archive -Path releaseDir -DestinationPath higanbana_win64_fastbuild.zip"
+powershell -Command "Compress-Archive -Path releaseDir\* -DestinationPath higanbana_win64_fastbuild.zip"

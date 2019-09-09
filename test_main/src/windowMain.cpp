@@ -61,12 +61,15 @@ void mainWindow(ProgramParams& params)
     ("intel", "priorizes Intel GPU's")
     ("nvidia", "priorizes NVidia GPU's")
     ("amd", "priorizes AMD GPU's")
+    ("gfx_debug", "enables vulkan/dx12 api validation layer")
     ("h,help", "Print help and exit.")
     ;
 
   GraphicsApi cmdlineApiId = GraphicsApi::DX12;
   VendorID cmdlineVendorId = VendorID::Amd;
+  GraphicsApi allowedApis = GraphicsApi::All;
   bool rgpCapture = false;
+  bool validationLayer = false;
   try
   {
     auto results = options.parse(params.m_argc, params.m_argv);
@@ -90,11 +93,16 @@ void mainWindow(ProgramParams& params)
     {
       cmdlineVendorId = VendorID::Nvidia;
     }
+    if (results.count("gfx_debug"))
+    {
+      validationLayer = true;
+    }
     if (results.count("rgp"))
     {
       rgpCapture = true;
       cmdlineVendorId = VendorID::Amd;
       HIGAN_LOGi("Preparing for RGP capture...\n");
+      allowedApis = cmdlineApiId;
     }
     if (results.count("help"))
     {
@@ -133,7 +141,7 @@ void mainWindow(ProgramParams& params)
     while (true)
     {
       vector<GpuInfo> allGpus;
-      GraphicsSubsystem graphics("higanbana", false);
+      GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
       vector<GpuInfo> gpus;
       if (rgpCapture)
       {
@@ -326,6 +334,7 @@ void mainWindow(ProgramParams& params)
             ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
             ImGui::NewLine();
             ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
+            ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
 
             auto si = rend.timings();
             if (si)

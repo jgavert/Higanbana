@@ -40,7 +40,7 @@ namespace higanbana
 
   namespace backend
   {
-    SubsystemData::SubsystemData(const char* appName, bool debugLayer, unsigned appVersion, const char* engineName, unsigned engineVersion)
+    SubsystemData::SubsystemData(GraphicsApi allowedApi, const char* appName, bool debugLayer, unsigned appVersion, const char* engineName, unsigned engineVersion)
       : implDX12(nullptr)
       , implVulkan(nullptr)
       , appName(appName)
@@ -49,13 +49,15 @@ namespace higanbana
       , engineVersion(engineVersion)
     {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-#if defined(HIGANBANA_GRAPHICS_AD_DX12)
-      implDX12 = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
+      if (allowedApi == GraphicsApi::DX12 || allowedApi == GraphicsApi::All)
+      {
+        implDX12 = std::make_shared<DX12Subsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
+      }
 #endif
-#endif
-#if defined(HIGANBANA_GRAPHICS_AD_VULKAN)
-      implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
-#endif
+      if (allowedApi == GraphicsApi::Vulkan || allowedApi == GraphicsApi::All)
+      {
+        implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
+      }
     }
     vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api, VendorID id)
     {

@@ -16,7 +16,11 @@ namespace higanbana
     GraphicsSubsystem() = default;
     GraphicsSubsystem(const char* appName, bool debugLayer = false, unsigned appVersion = 1, const char* engineName = "higanbana", unsigned engineVersion = 1)
     {
-      makeState(appName, debugLayer, appVersion, engineName, engineVersion);
+      makeState(GraphicsApi::All, appName, debugLayer, appVersion, engineName, engineVersion);
+    }
+    GraphicsSubsystem(GraphicsApi specificAPI, const char* appName, bool debugLayer = false, unsigned appVersion = 1, const char* engineName = "higanbana", unsigned engineVersion = 1)
+    {
+      makeState(specificAPI, appName, debugLayer, appVersion, engineName, engineVersion);
     }
     vector<GpuInfo> availableGpus(GraphicsApi api = GraphicsApi::All, VendorID id = VendorID::All) { return S().availableGpus(api, id); }
     GpuInfo getVendorDevice(GraphicsApi api, VendorID id = VendorID::Unknown)
