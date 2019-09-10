@@ -1,7 +1,7 @@
 #include "tests/graphics/graphics_config.hpp"
 
 SResources::SResources()
-  : subsystem("higanbana", false)
+  : subsystem("higanbana", true)
   , fileSystem(TESTS_FILESYSTEM_PATH)
 {
   auto gpus = subsystem.getVendorDevice(GraphicsApi::Vulkan); // TODO: make it so that it always tests both api at once
