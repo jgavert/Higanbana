@@ -74,6 +74,20 @@ namespace higanbana
           ComPtr<IDXGIAdapter3> wanted;
           hr = pAdapter->QueryInterface(IID_PPV_ARGS(&wanted));
 
+          {
+            ComPtr<ID3D12Device> testDevice;
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+
+            auto success = SUCCEEDED(D3D12CreateDevice(wanted.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
+                        && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)));
+            if (!success)
+            {
+              i++;
+              continue;
+            }
+            info.canRaytrace = featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+          }
+
           if (SUCCEEDED(hr))
           {
             vAdapters.push_back(wanted);
@@ -94,15 +108,6 @@ namespace higanbana
           info.id = static_cast<int>(vAdapters.size()) - 1;
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;
-
-          {
-            ComPtr<ID3D12Device> testDevice;
-            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
-
-            info.canRaytrace = SUCCEEDED(D3D12CreateDevice(wanted.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
-                && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
-                && featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
-          }
 
           infos.push_back(info);
         }
@@ -158,10 +163,6 @@ namespace higanbana
         D3D_FEATURE_LEVEL_11_1,
         D3D_FEATURE_LEVEL_11_0
       };
-
-      // dxil needs this... still(?)
-      UUID experimentalFeatures[] = { D3D12ExperimentalShaderModels };
-      D3D12EnableExperimentalFeatures(1, experimentalFeatures, NULL, NULL);
 
       if (gpu.id == static_cast<int>(vAdapters.size()))
       {
