@@ -792,22 +792,22 @@ namespace higanbana
       float4x4 result{};
       result(0, 0) = aspect * b;
       result(1, 1) = b;
-      result(2, 2) = FarZ / (FarZ - NearZ);
-      result(3, 2) = 1.f;
-      result(2, 3) = -1.f * NearZ * result(2, 2);
+      result(2, 2) = - FarZ / (NearZ - FarZ) - 1;
+      result(2, 3) = 1.f;
+      result(3, 2) = 1.f * ((NearZ*FarZ)/(NearZ - FarZ));
       return result;
     }
 
     inline float4x4 perspectiverh(float fov, float aspect, float NearZ, float FarZ)
     {
       auto kek = perspectivelh(fov, aspect, NearZ, FarZ);
-      kek(3, 2) = -1.f;
-      kek(2, 3) = 1.f * NearZ * kek(2, 2);
+      kek(2, 3) = -1.f;
+      kek(3, 2) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
       return kek;
     }
 
     // http://www.cs.virginia.edu/~gfx/Courses/1999/intro.fall99.html/lookat.html
-    // https://www.gamedev.net/articles/programming/higanbana/graphics/perspective-projections-in-lh-and-rh-systems-r3598/
+    // https://www.gamedev.net/articles/programming/graphics/perspective-projections-in-lh-and-rh-systems-r3598/
     // top link sort of dead. oh well :), great article below.
     inline float4x4 lookAt(Vector<4, float> cameraPos, Vector<4, float> cameraTarget, Vector<4, float> upVec = Vector<4, float>(0.f, 1.f, 0.f, 0.f))
     {

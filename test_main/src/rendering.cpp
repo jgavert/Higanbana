@@ -96,7 +96,7 @@ namespace app
       .setLayout(opaquePassInterface)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
       .setRasterizer(RasterizerDescriptor()
-        .setFrontCounterClockwise(true))
+        .setFrontCounterClockwise(false))
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setDSVFormat(FormatType::Depth32)
       .setRenderTargetCount(1)
@@ -335,8 +335,10 @@ namespace app
 
         position.x -= 0.001f;
         auto rotationMatrix = math::rotationMatrixRH(direction);
+        rotationMatrix = math::lookAt(float4(1,0,0,1), float4(0,0,0,1));
         auto perspective = math::perspectiverh(90.f, float(backbuffer.desc().desc.width)/float(backbuffer.desc().desc.height), 0.1f, 100.f);
-        auto worldMat = math::mul(math::translation(position), rotationMatrix);
+        //auto worldMat = math::mul(math::translation(position), rotationMatrix);
+        auto worldMat = math::translation(float4(-0.5f, 0, -0.5f, 1.f ));
 
         OpaqueConsts consts{};
         consts.time = time.getFTime();
