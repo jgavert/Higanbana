@@ -1,7 +1,6 @@
 @echo off
 cd ..
 call .\utils\setEnv.bat
-call .\utils\copyDXIL.bat
 bazel build test_main --compilation_mode=fastbuild
 
 rd /s /Q releaseDir
