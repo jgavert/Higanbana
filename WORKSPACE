@@ -77,3 +77,15 @@ cc_import(
 )
   """
 )
+
+new_local_repository(
+  name = "DXIL",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.17763.0\\x64",
+  build_file_content = """
+cc_import(
+    name = "DXIL",
+    shared_library = "dxil.dll",
+    visibility = ["//visibility:public"], 
+)
+  """
+)

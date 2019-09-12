@@ -328,7 +328,7 @@ namespace app
         };
         auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
-        quaternion yaw = math::rotateAxis(updir, 0.01f);
+        quaternion yaw = math::rotateAxis(updir, 0.0f);
         quaternion pitch = math::rotateAxis(sideVec, 0.f);
         quaternion roll = math::rotateAxis(dir, 0.f);
         direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);

@@ -13,7 +13,8 @@ cc_library(
                "@VulkanSDKWin//:Vulkan",
                "@DX12//:DX12", 
                "@DXGI//:DXGI", 
-               "@DXGUID//:DXGUID"],
+               "@DXGUID//:DXGUID",
+               "@DXIL//:DXIL"],
           "//conditions:default": [],
     }),
   copts = select({
