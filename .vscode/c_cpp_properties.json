@@ -22,9 +22,9 @@
                 "HIGANBANA_PLATFORM_WINDOWS",
                 "WIN32"
             ],
-            "windowsSdkVersion": "10.0.17763.0",
+            "windowsSdkVersion": "10.0.18368.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
-            "cppStandard": "c++17",
+            "cppStandard": "c++20",
             "intelliSenseMode": "msvc-x64"
         }
     ],

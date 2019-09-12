@@ -1,6 +1,6 @@
 @echo off
 cd bazel-bin\test_main
-start test_main.exe "1" "1"
-start test_main.exe "2" "2"
-start test_main.exe "2" "1"
-start test_main.exe "1" "2"
+start test_main.exe --dx12 --amd
+start test_main.exe --vulkan --amd
+start test_main.exe --dx12 --nvidia
+start test_main.exe --vulkan --nvidia

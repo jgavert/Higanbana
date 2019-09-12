@@ -85,7 +85,40 @@ namespace higanbana
               i++;
               continue;
             }
+            GFX_LOG("Gpu: %s\n", info.name.c_str());
             info.canRaytrace = featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+            GFX_LOG("Raytracing Tier %d\n", featureSupportData.RaytracingTier);
+            GFX_LOG("Renderpasses Tier %d\n", featureSupportData.RenderPassesTier);
+
+            D3D12_FEATURE_DATA_ARCHITECTURE1 archi = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &archi, sizeof(archi))))
+            {
+              info.type = archi.UMA ? DeviceType::IntegratedGpu : DeviceType::DiscreteGpu;
+            }
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS opt0 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opt0, sizeof(opt0))))
+            {
+              GFX_LOG("Conservative Rasterization Tier %d\n", opt0.ConservativeRasterizationTier);
+            }
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS3 opt3 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &opt3, sizeof(opt3))))
+            {
+              GFX_LOG("Copy Queue Timestamps %s\n", opt3.CopyQueueTimestampQueriesSupported ? "Supported" : "Unsupported");
+            }
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS4 opt4 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &opt4, sizeof(opt4))))
+            {
+              GFX_LOG("Native 16bit Shader Ops %s\n", opt4.Native16BitShaderOpsSupported ? "Supported" : "Unsupported");
+            }
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opt6, sizeof(opt6))))
+            {
+              GFX_LOG("Variable Shading Tier %d\n", opt6.VariableShadingRateTier);
+            }
           }
 
           if (SUCCEEDED(hr))
@@ -100,11 +133,6 @@ namespace higanbana
           info.vendor = VendorID::Unknown;
           info.type = DeviceType::Unknown;
           info.vendor = vendorIDto(desc.VendorId);
-          info.type = DeviceType::DiscreteGpu;
-          if (info.vendor == VendorID::Intel)
-          {
-            info.type = DeviceType::IntegratedGpu;
-          }
           info.id = static_cast<int>(vAdapters.size()) - 1;
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;
