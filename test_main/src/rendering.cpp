@@ -313,14 +313,14 @@ namespace app
 
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
         vector<uint16_t> indexData = {
-          0, 1, 2,
-          1, 2, 3,
+          2, 1, 0,
+          2, 1, 3,
           4, 5, 0,
-          5, 0, 1,
+          1, 5, 0,
           6, 7, 2,
-          7, 2, 3,
+          3, 7, 2,
           4, 5, 6,
-          5, 6, 7,
+          7, 5, 6,
           4, 6, 0,
           6, 0, 2,
           5, 7, 1,

@@ -179,10 +179,5 @@ namespace higanbana
     {
       list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
     }
-
-    void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)
-    {
-      //list.insert<gfxpacket::QueryCounters>(func);
-    }
   };
 }

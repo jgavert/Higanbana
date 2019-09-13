@@ -216,26 +216,29 @@ namespace higanbana
 
       // get addresses for few functions
       // the debug things
-      auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
-      auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
-      vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
-        .setMessageSeverity(severityFlags)
-        .setMessageType(flags)
-        .setPfnUserCallback(debugCallbackNew);
+      if (m_debug)
+      {
+        auto flags = vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral;
+        auto severityFlags = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
+        vk::DebugUtilsMessengerCreateInfoEXT info = vk::DebugUtilsMessengerCreateInfoEXT()
+          .setMessageSeverity(severityFlags)
+          .setMessageType(flags)
+          .setPfnUserCallback(debugCallbackNew);
 
-      auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
-      auto allocInfo = m_alloc_info;
-      m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo](vk::DebugUtilsMessengerEXT * ist)
-        {
-          vk::DispatchLoaderDynamic loader(*lol);
-          lol->destroyDebugUtilsMessengerEXT(*ist, allocInfo, loader);
-        });
+        auto lol = m_instance; // callback needs to keep instance alive until its destroyed... so this works :DD
+        auto allocInfo = m_alloc_info;
+        m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo](vk::DebugUtilsMessengerEXT * ist)
+          {
+            vk::DispatchLoaderDynamic loader(*lol);
+            lol->destroyDebugUtilsMessengerEXT(*ist, allocInfo, loader);
+          });
+          
+        vk::DispatchLoaderDynamic loader(*m_instance);
+        auto rduc = m_instance->createDebugUtilsMessengerEXT(info, m_alloc_info, loader);
+        VK_CHECK_RESULT(rduc);
         
-      vk::DispatchLoaderDynamic loader(*m_instance);
-      auto rduc = m_instance->createDebugUtilsMessengerEXT(info, m_alloc_info, loader);
-      VK_CHECK_RESULT(rduc);
-      
-      *m_debugcallback = rduc.value;
+        *m_debugcallback = rduc.value;
+      }
     }
 
     std::string VulkanSubsystem::gfxApi()

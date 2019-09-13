@@ -97,12 +97,6 @@ namespace higanbana
       timing.cpuTime.start();
     }
 
-    void resetState(Texture& tex)
-    {
-      // This was probably used for resetting state for queue ownership transfers.
-      //needSpecialAttention.insert(tex.dependency());
-    }
-
     void acquirePresentableImage(Swapchain& swapchain)
     {
       acquireSemaphore = swapchain.impl()->acquireSemaphore();
@@ -120,25 +114,25 @@ namespace higanbana
       preparesPresent = true;
     }
 
-    // starting another subpass will end the last one.
-    // collecting the dependencies here.
-    // refactoring later if too cubersome.
     void renderpass(Renderpass& pass, TextureRTV& rtv)
     {
       addViewTex(rtv);
       list.renderpass(pass, {rtv}, {});
     }
+
     void renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
     {
       addViewTex(rtv);
       addViewTex(dsv);
       list.renderpass(pass, {rtv}, dsv);
     }
-      void renderpass(Renderpass& pass, TextureDSV& dsv)
+
+    void renderpass(Renderpass& pass, TextureDSV& dsv)
     {
       addViewTex(dsv);
       list.renderpass(pass, {}, dsv);
     }
+
     void endRenderpass()
     {
       list.renderpassEnd();
@@ -164,6 +158,7 @@ namespace higanbana
     {
       list.setScissorRect(tl, br);
     }
+
     // draws/dispatches
 
     void draw(
@@ -175,6 +170,7 @@ namespace higanbana
     {
       addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
@@ -189,6 +185,7 @@ namespace higanbana
     {
       addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
@@ -203,6 +200,7 @@ namespace higanbana
     {
       addMemview(binding.bResources());
       list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
@@ -214,6 +212,7 @@ namespace higanbana
       unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(binding.baseGroups().x)));
       unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(binding.baseGroups().y)));
       unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(binding.baseGroups().z)));
+      HIGAN_ASSERT(x*y*z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", x, y, z);
       list.dispatch(uint3(x,y,z));
     }
 
@@ -222,12 +221,12 @@ namespace higanbana
     {
       addMemview(binding.bResources());
       list.bindComputeResources(binding.bResources(), binding.bConstants());
+      HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       list.dispatch(groups);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
-      //addViewBuf(target)
       m_referencedBuffers.setBit(target.handle().id);
       auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
@@ -238,6 +237,7 @@ namespace higanbana
     {
       m_referencedTextures.setBit(target.handle().id);
       m_referencedTextures.setBit(source.handle().id);
+      HIGAN_ASSERT(false, "Not implemented.");
       //auto lol = source.dependency();
       /*
       SubresourceRange range{
@@ -336,11 +336,6 @@ namespace higanbana
       list.readback(buffer, startElement, size);
       return promise.future();
     }
-
-    void queryCounters(std::function<void(MemView<std::pair<std::string, double>>)> func)
-    {
-      list.queryCounters(func);
-    }
   };
 
   class CommandGraph
@@ -367,11 +362,5 @@ namespace higanbana
       node.timing.cpuTime.stop();
       m_nodes->emplace_back(std::move(node));
     }
-    /*
-    CommandGraphNode& createPass2(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
-    {
-      m_nodes->emplace_back(name, type, gpu);
-      return m_nodes->back();
-    }*/
   };
 }
