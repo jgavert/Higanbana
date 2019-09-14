@@ -774,7 +774,7 @@ namespace higanbana
     inline float4x4 translation(Vector<4, float> vec)
     {
       float4x4 result = float4x4::identity();
-      result(0, 1) = vec.x; result(1, 3) = vec.y; result(2, 3) = vec.z;
+      result(0, 3) = vec.x; result(1, 3) = vec.y; result(2, 3) = vec.z; 
       return result;
     }
 
@@ -793,16 +793,16 @@ namespace higanbana
       result(0, 0) = aspect * b;
       result(1, 1) = b;
       result(2, 2) = - FarZ / (NearZ - FarZ) - 1;
-      result(2, 3) = 1.f;
-      result(3, 2) = 1.f * ((NearZ*FarZ)/(NearZ - FarZ));
+      result(3, 2) = 1.f;
+      result(2, 3) = 1.f * ((NearZ*FarZ)/(NearZ - FarZ));
       return result;
     }
 
     inline float4x4 perspectiverh(float fov, float aspect, float NearZ, float FarZ)
     {
       auto kek = perspectivelh(fov, aspect, NearZ, FarZ);
-      kek(2, 3) = -1.f;
-      kek(3, 2) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
+      kek(3, 2) = -1.f;
+      kek(2, 3) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
       return kek;
     }
 

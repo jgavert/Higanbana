@@ -95,8 +95,7 @@ namespace app
       .setPixelShader("opaquePass")
       .setLayout(opaquePassInterface)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
-      .setRasterizer(RasterizerDescriptor()
-        .setFrontCounterClockwise(false))
+      .setRasterizer(RasterizerDescriptor())
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setDSVFormat(FormatType::Depth32)
       .setRenderTargetCount(1)
@@ -313,18 +312,18 @@ namespace app
 
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
         vector<uint16_t> indexData = {
-          2, 1, 0,
+          0, 1, 2,
           2, 1, 3,
           4, 5, 0,
-          1, 5, 0,
-          6, 7, 2,
+          0, 5, 1,
+          2, 7, 6,
           3, 7, 2,
-          4, 5, 6,
+          6, 5, 4,
           7, 5, 6,
-          4, 6, 0,
-          6, 0, 2,
+          0, 6, 4,
+          2, 6, 0,
           5, 7, 1,
-          7, 1, 3,
+          1, 7, 3,
         };
         auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
@@ -335,10 +334,10 @@ namespace app
 
         position.x -= 0.001f;
         auto rotationMatrix = math::rotationMatrixRH(direction);
-        rotationMatrix = math::lookAt(float4(1,0,0,1), float4(0,0,0,1));
-        auto perspective = math::perspectiverh(90.f, float(backbuffer.desc().desc.width)/float(backbuffer.desc().desc.height), 0.1f, 100.f);
+        auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
+        auto perspective = math::perspectiverh(90.f, aspect, 0.1f, 100.f);
         //auto worldMat = math::mul(math::translation(position), rotationMatrix);
-        auto worldMat = math::translation(float4(-0.5f, 0, -0.5f, 1.f ));
+        auto worldMat = math::translation(float4(0, 0, -3.75, 1.f ));
 
         OpaqueConsts consts{};
         consts.time = time.getFTime();

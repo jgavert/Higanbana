@@ -432,5 +432,5 @@ void mainWindow(ProgramParams& params)
   RangeMath::difference({ 0, 1, 0, 1 }, { 1, 1, 1, 1 }, [](SubresourceRange r) {printRange(r);});
   */
   log.update();
-  std::this_thread::sleep_for(std::chrono::seconds(5));
+  //std::this_thread::sleep_for(std::chrono::seconds(5));
 }
