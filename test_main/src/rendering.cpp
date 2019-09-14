@@ -312,43 +312,57 @@ namespace app
 
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
         vector<uint16_t> indexData = {
-          0, 1, 2,
-          2, 1, 3,
-          4, 5, 0,
-          0, 5, 1,
-          2, 7, 6,
-          3, 7, 2,
-          6, 5, 4,
-          7, 5, 6,
-          0, 6, 4,
-          2, 6, 0,
-          5, 7, 1,
-          1, 7, 3,
+          1, 0, 2,
+          1, 2, 3,
+          5, 4, 0,
+          5, 0, 1,
+          7, 2, 6,
+          7, 3, 2,
+          5, 6, 4,
+          5, 7, 6,
+          6, 0, 4,
+          6, 2, 0,
+          7, 5, 1,
+          7, 1, 3,
         };
         auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
-        quaternion yaw = math::rotateAxis(updir, 0.0f);
+        quaternion yaw = math::rotateAxis(updir, 0.001f);
         quaternion pitch = math::rotateAxis(sideVec, 0.f);
         quaternion roll = math::rotateAxis(dir, 0.f);
         direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
 
-        position.x -= 0.001f;
-        auto rotationMatrix = math::rotationMatrixRH(direction);
+        auto rotationMatrix = math::rotationMatrixLH(direction);
         auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
-        auto perspective = math::perspectiverh(90.f, aspect, 0.1f, 100.f);
-        //auto worldMat = math::mul(math::translation(position), rotationMatrix);
-        auto worldMat = math::translation(float4(0, 0, -3.75, 1.f ));
+        auto perspective = math::mul(math::translation(3, 0, 8), math::perspectivelh(90.f, aspect, 0.1f, 100.f));
+
+        auto worldMat = math::mul(math::scale(0.2f), rotationMatrix);
 
         OpaqueConsts consts{};
         consts.time = time.getFTime();
         consts.resx = backbuffer.desc().desc.width; 
         consts.resy = backbuffer.desc().desc.height;
-        consts.worldMat = worldMat;
+        consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
         consts.viewMat = perspective;
         binding.constants(consts);
         binding.bind("vertexInput", vert);
 
-        node.drawIndexed(binding, ind, 36);
+        //node.drawIndexed(binding, ind, 36);
+        int gridSize = 11;
+        for (int x = 0; x < gridSize; ++x)
+        {
+          for (int y = 0; y < gridSize; ++y)
+          {
+            for (int z = 0; z < gridSize; ++z)
+            {
+              float offset = gridSize*1.5f/2.f;
+              float3 pos = float3(x*1.5f-offset, y*1.5f-offset, z*1.5f-offset);
+              consts.worldMat = math::mul(worldMat, math::translation(pos));
+              binding.constants(consts);
+              node.drawIndexed(binding, ind, 36);
+            }
+          }
+        }
       }
       node.endRenderpass();
 

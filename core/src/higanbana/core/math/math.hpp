@@ -758,6 +758,18 @@ namespace higanbana
       return outResult;
     }
 
+    inline float4x4 scale(float x, float y, float z)
+    {
+      float4x4 result = float4x4::identity();
+      result(0, 0) = x; result(1, 1) = y; result(2, 2) = z;
+      return result;
+    }
+    
+    inline float4x4 scale(float whole)
+    {
+      return scale(whole, whole, whole);
+    }
+
     inline float4x4 translation(float x, float y, float z)
     {
       float4x4 result = float4x4::identity();
@@ -792,17 +804,20 @@ namespace higanbana
       float4x4 result{};
       result(0, 0) = aspect * b;
       result(1, 1) = b;
-      result(2, 2) = - FarZ / (NearZ - FarZ) - 1;
+      result(2, 2) = ((-FarZ / (NearZ - FarZ)) - 1);
+      //result(2, 2) = 0.f;
       result(3, 2) = 1.f;
-      result(2, 3) = 1.f * ((NearZ*FarZ)/(NearZ - FarZ));
+      result(2, 3) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
+      //result(2, 3) = NearZ;
       return result;
     }
 
     inline float4x4 perspectiverh(float fov, float aspect, float NearZ, float FarZ)
     {
       auto kek = perspectivelh(fov, aspect, NearZ, FarZ);
-      kek(3, 2) = -1.f;
-      kek(2, 3) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
+      //kek(2,2) = -1 * kek(2,2);
+      kek(3, 2) = -1.f * kek(3,2);
+      //kek(2, 3) = -1.f * kek(2,3);
       return kek;
     }
 

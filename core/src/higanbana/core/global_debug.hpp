@@ -28,7 +28,7 @@
 #define HIGAN_SLOG(prefix, msg, ...) log_sys(prefix, msg, ##__VA_ARGS__)
 #define HIGAN_LOG_UNFORMATTED(msg, ...) log_def(msg, ##__VA_ARGS__);
 
-#if 0 //defined(DEBUG)
+#if 1 //defined(DEBUG)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #define HIGAN_ERROR(msg, ...) \
   log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
