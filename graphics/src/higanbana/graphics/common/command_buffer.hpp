@@ -8,6 +8,8 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/global_debug.hpp>
 
+#define VERIFY_PACKETS_ONE_BY_BY 0
+
 // #define SIZE_DEBUG
 namespace higanbana
 {
@@ -346,13 +348,16 @@ namespace higanbana
         auto newSize = m_data.size() + other.sizeBytes();
         auto copy = m_data;
         m_data.resize(newSize);
+#if VERIFY_PACKETS_ONE_BY_BY
         for (int i = 0; i < m_usedSize; ++i)
         {
           HIGAN_ASSERT(copy[i] == m_data[i], "Data should be equal");
         }
+#endif
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "Enforced EOP");
         auto copyOther = other.m_data;
         memcpy(packetBeingCreated(), other.m_data.data(), other.sizeBytes());
+#if VERIFY_PACKETS_ONE_BY_BY
         for (int i = 0; i < other.m_usedSize; ++i)
         {
           auto offset = m_packetBeingCreated + i;
@@ -362,6 +367,7 @@ namespace higanbana
         {
           HIGAN_ASSERT(copy[i] == m_data[i], "Data should be equal");
         }
+#endif
         m_packetBeingCreated = m_packetBeingCreated + other.m_packetBeingCreated; 
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "Enforced EOP");
         m_usedSize += other.m_usedSize - sizeof(PacketHeader);
