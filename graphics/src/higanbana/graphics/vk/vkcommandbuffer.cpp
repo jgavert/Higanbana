@@ -310,7 +310,7 @@ namespace higanbana
       buffer.setViewport(0, {port});
       buffer.setScissor(0, {scissorRect});
 
-      buffer.setDepthBounds(0.f, 1.f);
+      //buffer.setDepthBounds(0.f, 1.f);
     }
 
     void handle(vk::CommandBuffer buffer, gfxpacket::Draw& packet)
@@ -670,19 +670,22 @@ namespace higanbana
           //        case CommandPacket::PacketType::Dispatch:
         case PacketType::RenderBlock:
         {
-          gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
-          auto view = packet.name.convertToMemView();
-          currentBlock = std::string(view.data());
-          if (beganLabel)
+          if (device->dispatcher().vkCmdBeginDebugUtilsLabelEXT)
           {
-            buffer.endDebugUtilsLabelEXT(device->dispatcher());
+            gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
+            auto view = packet.name.convertToMemView();
+            currentBlock = std::string(view.data());
+            if (beganLabel)
+            {
+              buffer.endDebugUtilsLabelEXT(device->dispatcher());
+            }
+            else
+            {
+              beganLabel = true;
+            }
+            vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
+            buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
           }
-          else
-          {
-            beganLabel = true;
-          }
-          vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
-          buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
           break;
         }
         case PacketType::PrepareForPresent:

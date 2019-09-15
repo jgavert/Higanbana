@@ -387,7 +387,7 @@ namespace higanbana
         depthstencil = depthstencil.setDepthTestEnable(dss.depthEnable);
         depthstencil = depthstencil.setDepthWriteEnable(dss.depthEnable); // TODO: separate written depth from testing
         depthstencil = depthstencil.setDepthCompareOp(convertComparisonFunc(dss.depthFunc));
-        depthstencil = depthstencil.setDepthBoundsTestEnable(dss.depthEnable); // TODO: fix/expose
+        //depthstencil = depthstencil.setDepthBoundsTestEnable(dss.depthEnable); // TODO: fix/expose
         depthstencil = depthstencil.setStencilTestEnable(dss.stencilEnable);
 
         /*

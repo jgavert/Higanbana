@@ -9,7 +9,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
-            "args": ["--nvidia", "--vulkan"],
+            "args": ["--intel", "--dx12"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/test_main",
             "environment": [],
