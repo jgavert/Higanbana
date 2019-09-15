@@ -348,7 +348,7 @@ namespace app
         binding.bind("vertexInput", vert);
 
         //node.drawIndexed(binding, ind, 36);
-        int gridSize = 16;
+        int gridSize = 12;
         for (int x = 0; x < gridSize; ++x)
         {
           for (int y = 0; y < gridSize; ++y)

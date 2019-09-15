@@ -324,6 +324,22 @@ namespace higanbana
       buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
     }
 
+    VkUploadBlock VulkanCommandBuffer::allocateConstants(size_t size)
+    {
+      constexpr const size_t VulkanConstantAlignment = 256;
+      auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
+      if (!block)
+      {
+        auto newBlock = m_constants->allocate(VulkanConstantAlignment * 32);
+        HIGAN_ASSERT(newBlock, "What!");
+        m_allocatedConstants.push_back(newBlock);
+        m_constantsAllocator = VkUploadLinearAllocator(newBlock);
+        block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
+      }
+      HIGAN_ASSERT(block, "What!");
+      return block;
+    }
+
     void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline)
     {
       // get dynamicbuffer for constants
@@ -336,14 +352,21 @@ namespace higanbana
 
       vector<vk::WriteDescriptorSet> writeDescriptors;
 
-      auto constantBuffer = device->allocateConstants(packet.constants.convertToMemView());
-      m_constants.push_back(constantBuffer);
+      auto pconstants = packet.constants.convertToMemView();
+      auto block = allocateConstants(pconstants.size());
+      memcpy(block.data(), pconstants.data(), pconstants.size());
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(block.buffer())
+        .setOffset(0)
+        .setRange(block.size());
+
       int index = 0;
       writeDescriptors.emplace_back(vk::WriteDescriptorSet()
         .setDstSet(set)
         .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
         .setDescriptorCount(1)
-        .setPBufferInfo(&constantBuffer.native().bufferInfo)
+        .setPBufferInfo(&info)
         .setDstBinding(index++));
 
       auto resources = packet.resources.convertToMemView();
@@ -419,7 +442,7 @@ namespace higanbana
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
       //vk::ArrayProxy<const vk::DescriptorSet> sets(1, &set);
-      buffer.bindDescriptorSets(bindpoint, layout, 0, {set}, {static_cast<uint32_t>(constantBuffer.native().block.block.offset)});
+      buffer.bindDescriptorSets(bindpoint, layout, 0, {set}, {static_cast<uint32_t>(block.offset())});
 
     }
 

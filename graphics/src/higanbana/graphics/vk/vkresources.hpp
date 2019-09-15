@@ -418,6 +418,11 @@ namespace higanbana
         return m_buffer;
       }
 
+      size_t offset()
+      {
+        return block.offset;
+      }
+
       size_t size()
       {
         return block.size;
@@ -814,6 +819,32 @@ namespace higanbana
       }
     };
 
+    class VkUploadLinearAllocator
+    {
+      LinearAllocator allocator;
+      VkUploadBlock block;
+
+    public:
+      VkUploadLinearAllocator() {}
+      VkUploadLinearAllocator(VkUploadBlock block)
+        : allocator(block.size())
+        , block(block)
+      {
+      }
+
+      VkUploadBlock allocate(size_t bytes, size_t alignment)
+      {
+        auto offset = allocator.allocate(bytes, alignment);
+        if (offset < 0)
+          return VkUploadBlock{ nullptr, vk::Buffer{}, PageBlock{} };
+
+        VkUploadBlock b = block;
+        b.block.offset += offset;
+        b.block.size = roundUpMultipleInt(bytes, alignment);
+        return b;
+      }
+    };
+
     class VulkanDescriptorPool
     {
       vk::DescriptorPool pool;
@@ -902,18 +933,22 @@ namespace higanbana
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
       VulkanDescriptorPool m_descriptors;
       vector<vk::DescriptorSet> m_allocatedSets;
-      vector<VulkanConstantBuffer> m_constants;
+      std::shared_ptr<VulkanConstantUploadHeap> m_constants;
+      vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
 
+      VkUploadLinearAllocator m_constantsAllocator;
+
     public:
-      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors)
-        : m_list(list), m_descriptors(descriptors)
+      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators)
+        : m_list(list), m_descriptors(descriptors), m_constants(constantAllocators)
       {}
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
+      VkUploadBlock allocateConstants(size_t size);
     public:
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
       void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
@@ -927,9 +962,9 @@ namespace higanbana
       {
         return m_allocatedSets;
       }
-      vector<VulkanConstantBuffer>& freeableConstants()
+      vector<VkUploadBlock>& freeableConstants()
       {
-        return m_constants;
+        return m_allocatedConstants;
       }
       vector<vk::Pipeline>& oldPipelines()
       {

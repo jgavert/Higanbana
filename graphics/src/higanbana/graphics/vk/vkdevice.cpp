@@ -294,7 +294,7 @@ namespace higanbana
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256, 1024*64)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256*64, 512)) // TODO: implement dynamically adjusted
 //      , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
@@ -2015,7 +2015,7 @@ namespace higanbana
 
       auto list = m_copyListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2025,7 +2025,7 @@ namespace higanbana
         m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant.native().block);
+          m_constantAllocators->release(constant);
         }
         delete buffer;
       });
@@ -2037,7 +2037,7 @@ namespace higanbana
 
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2047,7 +2047,7 @@ namespace higanbana
         m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant.native().block);
+          m_constantAllocators->release(constant);
         }
         delete buffer;
       });
@@ -2059,7 +2059,7 @@ namespace higanbana
 
       auto list = m_graphicsListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2069,7 +2069,7 @@ namespace higanbana
         m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant.native().block);
+          m_constantAllocators->release(constant);
         }
         for (auto&& oldPipe : buffer->oldPipelines())
         {

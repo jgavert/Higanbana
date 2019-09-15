@@ -652,5 +652,16 @@ namespace higanbana
         index = findFirstSetBit(index+1);
       }
     }
+
+    void findNotSetRange(int notSetBitCount = 10)
+    {
+      int di = 0;
+      int bitsToFind = notSetBitCount;
+      int cdi = 0;
+      while(di < m_pages)
+      {
+        ++di;
+      }
+    }
   };
 }
