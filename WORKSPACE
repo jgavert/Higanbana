@@ -12,7 +12,7 @@ new_git_repository(
 
 new_local_repository(
   name = "VulkanSDKWin",
-  path = "C:\\VulkanSDK\\1.1.114.0",
+  path = "C:\\VulkanSDK\\1.1.121.0",
   build_file_content = """
 cc_library(
     name = "Vulkan_headers",
@@ -41,7 +41,7 @@ cc_library(
 
 new_local_repository(
   name = "DX12",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DX12",
@@ -54,7 +54,7 @@ cc_import(
 
 new_local_repository(
   name = "DXGI",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DXGI",
@@ -67,7 +67,7 @@ cc_import(
 
 new_local_repository(
   name = "DXGUID",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DXGUID",
@@ -80,7 +80,7 @@ cc_import(
 
 new_local_repository(
   name = "DXIL",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.17763.0\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.18362.0\\x64",
   build_file_content = """
 cc_import(
     name = "DXIL",
