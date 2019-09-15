@@ -9,6 +9,7 @@ bazel-*
 package/
 releaseDir/
 app/external/imgui/
+msbuild/
 
 data/*.jpg
 *.cap
