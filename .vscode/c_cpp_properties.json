@@ -20,6 +20,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "HIGANBANA_PLATFORM_WINDOWS",
+                "DEBUG",
                 "WIN32"
             ],
             "windowsSdkVersion": "10.0.18368.0",
