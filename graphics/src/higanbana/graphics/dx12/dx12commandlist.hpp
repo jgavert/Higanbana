@@ -31,6 +31,10 @@ namespace higanbana
       void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, backend::CommandBuffer& list, BarrierSolver& solver);
       void processRenderpasses(DX12Device* dev, backend::CommandBuffer& list);
+
+      // static memory needs for perf
+      vector<D3D12_CPU_DESCRIPTOR_HANDLE> cpudescriptors;
+      vector<unsigned> cpudescriptorSizes;
     public:
       DX12CommandList(
         std::shared_ptr<DX12CommandBuffer> buffer,

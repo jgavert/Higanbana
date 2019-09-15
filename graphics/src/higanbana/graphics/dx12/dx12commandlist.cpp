@@ -35,6 +35,8 @@ namespace higanbana
       , m_descriptors(descriptors)
       , m_nullBufferUAV(nullBufferUAV)
       , m_nullBufferSRV(nullBufferSRV)
+      , cpudescriptors(256, D3D12_CPU_DESCRIPTOR_HANDLE{})
+      , cpudescriptorSizes(256, 1)
     {
       m_buffer->resetList();
       m_readback->reset();
@@ -435,51 +437,56 @@ namespace higanbana
       auto pviews = ding.resources.convertToMemView();
       if (pviews.size() > 0)
       {
-        vector<D3D12_CPU_DESCRIPTOR_HANDLE> views;
+        int i = 0;
         auto& ar = dev->allResources();
         for (auto&& handle : pviews)
         {
+          HIGAN_ASSERT(i < 256, "Wow nelly, so many shader views!");
           switch (handle.type)
           {
             case ViewResourceType::BufferSRV:
             {
-              views.push_back(ar.bufSRV[handle].native().cpu);
+              cpudescriptors[i] = ar.bufSRV[handle].native().cpu;
+              i++;
               break;
             }
             case ViewResourceType::BufferUAV:
             {
-              views.push_back(ar.bufUAV[handle].native().cpu);
+              cpudescriptors[i] = ar.bufUAV[handle].native().cpu;
+              i++;
               break;
             }
             case ViewResourceType::DynamicBufferSRV:
             {
-              views.push_back(ar.dynSRV[handle].native().cpu);
+              cpudescriptors[i] = ar.dynSRV[handle].native().cpu;
+              i++;
               break;
             }
             case ViewResourceType::TextureSRV:
             {
-              views.push_back(ar.texSRV[handle].native().cpu);
+              cpudescriptors[i] = ar.texSRV[handle].native().cpu;
+              i++;
               break;
             }
             case ViewResourceType::TextureUAV:
             {
-              views.push_back(ar.texUAV[handle].native().cpu);
+              cpudescriptors[i] = ar.texUAV[handle].native().cpu;
+              i++;
               break;
             }
             default:
               break;
           }
         }
-        const unsigned viewsCount = static_cast<unsigned>(views.size());
+        const unsigned viewsCount = static_cast<unsigned>(i);
         auto descriptors = allocateDescriptors(viewsCount);
         auto start = descriptors.offset(0);
 
         unsigned destSizes[1] = { viewsCount };
-        vector<unsigned> viewSizes(viewsCount, 1);
 
         dev->m_device->CopyDescriptors(
           1, &(start.cpu), destSizes,
-          viewsCount, reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(views.data()), viewSizes.data(),
+          viewsCount, reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(cpudescriptors.data()), cpudescriptorSizes.data(),
           D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
