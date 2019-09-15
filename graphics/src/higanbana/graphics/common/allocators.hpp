@@ -13,7 +13,7 @@ namespace higanbana
     size_t m_current;
     size_t m_size;
 
-    uintptr_t privateAlloc(size_t size)
+    inline uintptr_t privateAlloc(size_t size)
     {
 	  int64_t alignedCurrent = roundUpMultipleInt(m_current, 16);
       HIGAN_ASSERT(alignedCurrent + size < m_size, "No space in allocator");
@@ -31,13 +31,13 @@ namespace higanbana
     {}
 
     template <typename T>
-    T* alloc()
+    inline T* alloc()
     {
       return reinterpret_cast<T*>(privateAlloc(sizeof(T)));
     }
 
     template <typename T>
-    T* allocList(size_t count)
+    inline T* allocList(size_t count)
     {
       return reinterpret_cast<T*>(privateAlloc(sizeof(T)*count));
     }
@@ -61,7 +61,7 @@ namespace higanbana
       , m_size(static_cast<int64_t>(size))
     {}
 
-    int64_t allocate(size_t size, size_t alignment = 1)
+    inline int64_t allocate(size_t size, size_t alignment = 1)
     {
       int64_t alignedCurrent = roundUpMultipleInt(m_current, alignment);
       if (alignedCurrent + static_cast<int64_t>(size) > m_size)
@@ -72,12 +72,12 @@ namespace higanbana
       return alignedCurrent;
     }
 
-    void resize(int64_t size)
+    inline void resize(int64_t size)
     {
       m_size = size;
     }
 
-    void reset()
+    inline void reset()
     {
       m_current = 0;
     }
@@ -91,12 +91,12 @@ namespace higanbana
     FreelistAllocator()
     {}
 
-    void grow()
+    inline void grow()
     {
       m_freelist.emplace_back(m_size++);
     }
 
-    int allocate()
+    inline int allocate()
     {
       if (m_freelist.empty())
       {
@@ -107,7 +107,7 @@ namespace higanbana
       return ret;
     }
 
-    void release(int val)
+    inline void release(int val)
     {
       HIGAN_ASSERT(static_cast<int>(m_freelist.size()) != m_size
         && val >= 0 && val < m_size, "freelist already full, is this valid?");
