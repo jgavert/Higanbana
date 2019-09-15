@@ -997,7 +997,8 @@ namespace higanbana
 
           PreparedCommandlist plist{};
           plist.type = firstList->type;
-          plist.list.list.append(nodes[i].list.list);
+          plist.list.list = std::move(nodes[i].list.list);
+          //plist.list.list.append(nodes[i].list.list);
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
           plist.readbacks = nodes[i].m_readbackPromises;
@@ -1016,7 +1017,7 @@ namespace higanbana
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
-            if (nodes[i].type != plist.type)
+            if (nodes[i].type != plist.type)// || nodes[i].list.list.sizeBytes() > 1024)
               break;
             plist.list.list.append(nodes[i].list.list);
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());

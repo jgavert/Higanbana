@@ -20,10 +20,19 @@ namespace higanbana
 		return divideRoundUp(val, multiplier) * multiplier;
 	}
 
+#if 0
   inline int64_t roundUpMultipleInt(int64_t value, int64_t multiplier)
   {
     return value + ((multiplier - (value % multiplier)) % multiplier);
   }
+#else
+  inline int64_t roundUpMultipleInt(int64_t numToRound, int64_t multiple) 
+  {
+    HIGAN_ASSERT(multiple, "needs to be non zero");
+    int isPositive = (int)(numToRound >= 0);
+    return ((numToRound + isPositive * (multiple - 1)) / multiple) * multiple;
+  }
+#endif
 
   inline size_t roundUpMultiplePowerOf(size_t value, size_t multiple)
   {

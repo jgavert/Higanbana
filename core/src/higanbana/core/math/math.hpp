@@ -78,7 +78,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<2, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)) {}
 
-      inline vType& operator()(unsigned index)
+      __forceinline vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -108,7 +108,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<3, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)) {}
 
-      inline vType& operator()(unsigned index)
+      __forceinline vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -144,7 +144,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<4, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)), w(static_cast<vType>(o.w)) {}
 
-      inline vType& operator()(unsigned index)
+      __forceinline vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -368,7 +368,7 @@ namespace higanbana
     {
       vType data[rowCount*columnCount];
 
-      inline vType& operator()(unsigned x, unsigned y)
+      __forceinline vType& operator()(unsigned x, unsigned y)
       {
         return data[y * columnCount + x];
       }
@@ -377,7 +377,7 @@ namespace higanbana
         return data[y * columnCount + x];
       }
 
-      inline vType& operator()(unsigned x)
+      __forceinline vType& operator()(unsigned x)
       {
         return data[x];
       }
@@ -590,6 +590,28 @@ namespace higanbana
           for (int j = 0; j < rows2; ++j)
           {
             outResult(y, x) += a(j, x) * b(y, j);
+            //printf("m: y:%d x:%d j:%d %f %f %f\n", y, x, j, outResult(x, y), a(j, x), b(j, y));
+          }
+        }
+      }
+      return outResult;
+    }
+
+    template <typename vType, int rows, int cols, int rows2, int cols2>
+    inline Matrix<rows, cols2, vType> mul2(Matrix<rows, cols, vType> a, Matrix<rows2, cols2, vType> b)
+    {
+      // a = <2, 3>, b = <3, 2>
+      // rows = 2
+      // cols2 = 2
+      Matrix<rows, cols2, vType> outResult{};
+      for (int i = 0; i < cols2; ++i)
+      {
+        for (int k = 0; k < rows; ++k)
+        {
+          for (int j = 0; j < rows2; ++j)
+          {
+            outResult(j, i) += a(k, i) * b(j, k);
+            // i j i k k j
             //printf("m: y:%d x:%d j:%d %f %f %f\n", y, x, j, outResult(x, y), a(j, x), b(j, y));
           }
         }

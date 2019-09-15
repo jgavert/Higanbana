@@ -1015,7 +1015,8 @@ namespace higanbana
       {
         auto* header = *iter;
         //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
-        addBarrier(device, buffer, solver.runBarrier(drawIndex));
+        if (solver.hasBarrier(drawIndex))
+          addBarrier(device, buffer, solver.runBarrier(drawIndex));
         switch (header->type)
         {
         case PacketType::RenderBlock:

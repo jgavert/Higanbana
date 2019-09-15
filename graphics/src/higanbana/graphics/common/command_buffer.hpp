@@ -346,18 +346,18 @@ namespace higanbana
       {
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         auto newSize = m_data.size() + other.sizeBytes();
-        auto copy = m_data;
         m_data.resize(newSize);
 #if VERIFY_PACKETS_ONE_BY_BY
+        auto copy = m_data;
         for (int i = 0; i < m_usedSize; ++i)
         {
           HIGAN_ASSERT(copy[i] == m_data[i], "Data should be equal");
         }
 #endif
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "Enforced EOP");
-        auto copyOther = other.m_data;
         memcpy(packetBeingCreated(), other.m_data.data(), other.sizeBytes());
 #if VERIFY_PACKETS_ONE_BY_BY
+        auto copyOther = other.m_data;
         for (int i = 0; i < other.m_usedSize; ++i)
         {
           auto offset = m_packetBeingCreated + i;

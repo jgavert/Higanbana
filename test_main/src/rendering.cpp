@@ -348,7 +348,7 @@ namespace app
         binding.bind("vertexInput", vert);
 
         //node.drawIndexed(binding, ind, 36);
-        int gridSize = 11;
+        int gridSize = 16;
         for (int x = 0; x < gridSize; ++x)
         {
           for (int y = 0; y < gridSize; ++y)
@@ -357,7 +357,7 @@ namespace app
             {
               float offset = gridSize*1.5f/2.f;
               float3 pos = float3(x*1.5f-offset, y*1.5f-offset, z*1.5f-offset);
-              consts.worldMat = math::mul(worldMat, math::translation(pos));
+              consts.worldMat = math::mul2(worldMat, math::translation(pos));
               binding.constants(consts);
               node.drawIndexed(binding, ind, 36);
             }

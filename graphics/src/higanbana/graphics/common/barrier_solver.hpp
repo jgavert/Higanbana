@@ -96,6 +96,16 @@ namespace higanbana
       MemoryBarriers runBarrier(int drawCall);
       void reset();
 
+      inline bool hasBarrier(int drawCall)
+      {
+        auto bufferOffset = m_barrierOffsets[drawCall];
+        auto bufferSize = m_barrierOffsets[drawCall + 1] - bufferOffset;
+        auto imageOffset = m_imageBarrierOffsets[drawCall];
+        auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
+
+        return bufferSize > 0 || imageSize > 0;
+      }
+
     private:
       //UsageHint getUsageFromAccessFlags(vk::AccessFlags flags);
     };

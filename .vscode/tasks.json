@@ -32,7 +32,7 @@
             "type": "shell",
             "command": "bazel.exe",
             "args": [
-                "build", "test_main" , "--compilation_mode=opt", "--copt=\"/DEBUG:FASTLINK\""
+                "build", "test_main" , "--compilation_mode=opt"
             ],
             "group": {
                 "kind": "build",
