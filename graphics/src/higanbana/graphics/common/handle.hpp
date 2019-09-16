@@ -22,6 +22,8 @@ namespace higanbana
     Texture,
     ReadbackTexture,
     MemoryHeap,
+    ShaderArguments, // yeah... :)
+    ShaderArgumentsLayout,
     // Insert some raytracing things here?
     Count
   };

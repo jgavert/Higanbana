@@ -96,6 +96,8 @@ namespace higanbana
   class DynamicBufferView;
   class ReadbackData;
 
+  class ShaderArguments;
+
   class Swapchain;
   class Renderpass;
   class GraphicsSurface;

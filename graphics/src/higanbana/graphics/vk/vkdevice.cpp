@@ -537,7 +537,6 @@ namespace higanbana
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
-      collectTrash();
       m_fences.clear();
       m_semaphores.clear();
       m_copyListPool.clear();
@@ -1335,6 +1334,11 @@ namespace higanbana
           m_allRes.rbBuf[handle] = VulkanReadback();
           break;
         }
+        case ResourceType::ShaderArguments:
+        {
+          HIGAN_ASSERT(false, "dealloc descriptors here");
+          break;
+        }
         default:
         {
           HIGAN_ASSERT(false, "unhandled type released");
@@ -1414,10 +1418,6 @@ namespace higanbana
           break;
         }
       }
-    }
-
-    void VulkanDevice::collectTrash()
-    {
     }
 
     void VulkanDevice::waitGpuIdle()
@@ -1835,6 +1835,86 @@ namespace higanbana
         imageType = vk::DescriptorType::eInputAttachment;
         m_allRes.texRTV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
+    }
+
+    void VulkanDevice::createShaderArguments(ResourceHandle handle, ResourceHandle pipeline, Binding& binding)
+    {
+      auto desclayout = allResources().pipelines[pipeline].m_descriptorSetLayout;
+      auto set = m_descriptors.allocate(native(), desclayout, 1)[0];
+      m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
+      //m_allocatedSets.push_back(set);
+
+      vector<vk::WriteDescriptorSet> writeDescriptors;
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(block.buffer())
+        .setOffset(0)
+        .setRange(block.size());
+
+      int index = 0;
+
+      auto resources = packet.resources.convertToMemView();
+      for (auto&& descriptor : resources)
+      {
+        vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
+        .setDstSet(set)
+        .setDescriptorCount(1)
+        .setDstBinding(index++);
+        switch (descriptor.type)
+        {
+          case ViewResourceType::BufferSRV:
+          {
+            auto& desc = device->allResources().bufSRV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.view);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          case ViewResourceType::BufferUAV:
+          {
+            auto& desc = device->allResources().bufUAV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eStorageTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.view);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          case ViewResourceType::TextureSRV:
+          {
+            auto& desc = device->allResources().texSRV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.viewType)
+                        .setPImageInfo(&desc.info);
+            break;
+          }
+          case ViewResourceType::TextureUAV:
+          {
+            auto& desc = device->allResources().texUAV[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.viewType)
+                        .setPImageInfo(&desc.info);
+            break;
+          }
+          case ViewResourceType::DynamicBufferSRV:
+          {
+            auto& desc = device->allResources().dynBuf[descriptor].native();
+            writeSet = writeSet.setDescriptorType(desc.type);
+            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+              writeSet = writeSet.setPTexelBufferView(&desc.texelView);
+            else
+              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            break;
+          }
+          default:
+            continue;
+        }
+
+        writeDescriptors.emplace_back(writeSet);
+      }
+
+      vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
+      device->native().updateDescriptorSets(writes, {});
     }
 
     VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)

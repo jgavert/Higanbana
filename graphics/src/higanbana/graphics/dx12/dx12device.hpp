@@ -85,7 +85,6 @@ namespace higanbana
 
       void releaseHandle(ResourceHandle handle) override;
       void releaseViewHandle(ViewResourceHandle handle) override;
-      void collectTrash() override;
       void waitGpuIdle() override;
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
@@ -99,6 +98,7 @@ namespace higanbana
       void createTexture(ResourceHandle handle, ResourceDescriptor& desc) override;
       void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) override;
       void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
+      void createShaderArguments(ResourceHandle handle, Binding& binding) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
 

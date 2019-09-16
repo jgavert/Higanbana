@@ -8,6 +8,7 @@
 #include "higanbana/graphics/common/commandgraph.hpp"
 #include "higanbana/graphics/common/commandlist.hpp"
 #include "higanbana/graphics/common/cpuimage.hpp"
+#include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
 
 #include <optional>
@@ -131,6 +132,11 @@ namespace higanbana
     DynamicBufferView dynamicImage(MemView<Type> view, size_t rowPitch)
     {
       return S().dynamicImage(reinterpret_memView<uint8_t>(view), static_cast<unsigned>(rowPitch));
+    }
+
+    ShaderArguments createShaderArguments(Binding& binding)
+    {
+      return S().createShaderArguments(binding);
     }
 
     Renderpass createRenderpass()

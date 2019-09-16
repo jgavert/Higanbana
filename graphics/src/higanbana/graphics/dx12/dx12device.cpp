@@ -539,6 +539,11 @@ namespace higanbana
         {
           break; // shrug, what renderpass
         }
+        case ResourceType::ShaderArguments:
+        {
+          HIGAN_ASSERT(false, "dealloc descriptors here");
+          break;
+        }
         default:
         {
           HIGAN_ASSERT(false, "unhandled type released");
@@ -609,14 +614,6 @@ namespace higanbana
           break;
         }
       }
-    }
-
-    void DX12Device::collectTrash()
-    {
-      /*
-      if (m_debugLayer)
-        m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-        */
     }
 
     void DX12Device::waitGpuIdle()
@@ -1369,6 +1366,11 @@ namespace higanbana
       {
         HIGAN_ASSERT(false, "WTF!");
       }
+    }
+
+    void DX12Device::createShaderArguments(ResourceHandle handle, Binding& binding)
+    {
+
     }
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)

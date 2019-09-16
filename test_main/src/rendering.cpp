@@ -282,6 +282,8 @@ namespace app
         binding.bind("vertexInput", vert);
         binding.bind("texInput", proxyTex.srv());
 
+        auto rip = dev.createShaderArguments(binding);
+
         node.draw(binding, 3);
       }
       node.endRenderpass();

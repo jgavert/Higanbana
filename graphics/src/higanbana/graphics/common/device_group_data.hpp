@@ -201,6 +201,10 @@ namespace higanbana
       DynamicBufferView dynamicBuffer(MemView<uint8_t> view, unsigned stride);
       DynamicBufferView dynamicImage(MemView<uint8_t> range, unsigned stride);
 
+      // ShaderArguments
+      ShaderArgumentsLayout createShaderArgumentsLayout();
+      ShaderArguments createShaderArguments(Binding& binding);
+
       // streaming
       bool uploadInitialTexture(Texture& tex, CpuImage& image);
 

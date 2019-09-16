@@ -18,6 +18,7 @@ namespace higanbana
     vector<uint8_t> m_constants;
     uint3 m_baseGroups;
 
+  public:
     Binding(GraphicsPipeline pipeline)
     : m_resources(pipeline.descriptor.desc.layout.sortedResources)
     , m_handles(m_resources.size())
@@ -44,7 +45,6 @@ namespace higanbana
       return MemView<uint8_t>(m_constants);
     }
 
-  public:
     template <typename T>
     void constants(T consts)
     {

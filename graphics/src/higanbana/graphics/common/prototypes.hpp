@@ -17,6 +17,7 @@ namespace higanbana
   // descriptors
   class SwapchainDescriptor;
   class ResourceDescriptor;
+  class Binding;
   class FileSystem;
   class Window;
   struct MemoryRequirements;
@@ -97,7 +98,6 @@ namespace higanbana
       public:
 
         // utility
-        virtual void collectTrash() = 0;
         virtual void waitGpuIdle() = 0;
         virtual MemoryRequirements getReqs(ResourceDescriptor desc) = 0;
 
@@ -124,6 +124,9 @@ namespace higanbana
         virtual void createTexture(ResourceHandle handle, ResourceDescriptor& desc) = 0;
         virtual void createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc) = 0;
         virtual void createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
+
+        // descriptors sets or ShaderArguments
+        virtual void createShaderArguments(ResourceHandle handle, Binding& binding) = 0;
 
         virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
 

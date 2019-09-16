@@ -879,6 +879,18 @@ namespace higanbana
       }
     };
 
+    class VulkanShaderArguments
+    {
+      vk::DescriptorSet m_set;
+    public:
+      VulkanShaderArguments(vk::DescriptorSet set)
+        : m_set(set)
+      {}
+      vk::DescriptorSet native()
+      {
+        return m_set;
+      }
+    };
 
     struct Resources
     {
@@ -896,6 +908,7 @@ namespace higanbana
       HandleVector<VulkanPipeline> pipelines;
       HandleVector<VulkanRenderpass> renderpasses;
       HandleVector<VulkanHeap> heaps;
+      HandleVector<VulkanShaderArguments> shaArgs;
     };
 
     struct QueueIndexes
