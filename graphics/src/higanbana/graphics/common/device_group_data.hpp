@@ -202,7 +202,7 @@ namespace higanbana
       DynamicBufferView dynamicImage(MemView<uint8_t> range, unsigned stride);
 
       // ShaderArguments
-      ShaderArgumentsLayout createShaderArgumentsLayout();
+      ShaderArgumentsLayout createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor desc);
       ShaderArguments createShaderArguments(Binding& binding);
 
       // streaming

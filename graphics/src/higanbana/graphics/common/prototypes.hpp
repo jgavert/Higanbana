@@ -126,6 +126,7 @@ namespace higanbana
         virtual void createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) = 0;
 
         // descriptors sets or ShaderArguments
+        virtual void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) = 0;
         virtual void createShaderArguments(ResourceHandle handle, Binding& binding) = 0;
 
         virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;

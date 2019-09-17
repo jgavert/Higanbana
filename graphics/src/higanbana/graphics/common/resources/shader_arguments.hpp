@@ -4,17 +4,20 @@
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
 #include "higanbana/graphics/common/handle.hpp"
+#include "higanbana/graphics/desc/shader_input_descriptor.hpp"
 
 namespace higanbana
 {
   class ShaderArgumentsLayout
   {
     std::shared_ptr<ResourceHandle> m_id;
-    //std::shared_ptr<ResourceDescriptor> m_desc;
+    std::shared_ptr<vector<std::string>> m_structs;
+    std::shared_ptr<vector<ShaderResource>> m_resources;
   public:
     ShaderArgumentsLayout()
       : m_id(std::make_shared<ResourceHandle>())
-      //, m_desc(std::make_shared<ResourceDescriptor>())
+      , m_structs(std::make_shared<vector<std::string>>())
+      , m_resources(std::make_shared<vector<ShaderResource>>())
     {
     }
 
@@ -27,18 +30,21 @@ namespace higanbana
     {
     }
 
-    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id)
+    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::string> structs, vector<ShaderResource> resources)
       : m_id(id)
-      //, m_desc(desc)
+      , m_structs(std::make_shared<vector<std::string>>(structs))
+      , m_resources(std::make_shared<vector<ShaderResource>>(resources))
     {
     }
 
-    /*
-    ResourceDescriptor& desc()
+    vector<std::string>& structs()
     {
-      return *m_desc;
+      return *m_structs;
     }
-    */
+    vector<ShaderResource>& resources()
+    {
+      return *m_resources;
+    }
 
     ResourceHandle handle() const
     {
@@ -51,11 +57,9 @@ namespace higanbana
   class ShaderArguments
   {
     std::shared_ptr<ResourceHandle> m_id;
-    //std::shared_ptr<ResourceDescriptor> m_desc;
   public:
     ShaderArguments()
       : m_id(std::make_shared<ResourceHandle>())
-      //, m_desc(std::make_shared<ResourceDescriptor>())
     {
     }
 
@@ -70,16 +74,8 @@ namespace higanbana
 
     ShaderArguments(std::shared_ptr<ResourceHandle> id)
       : m_id(id)
-      //, m_desc(desc)
     {
     }
-
-    /*
-    ResourceDescriptor& desc()
-    {
-      return *m_desc;
-    }
-    */
 
     ResourceHandle handle() const
     {

@@ -1836,6 +1836,11 @@ namespace higanbana
         m_allRes.texRTV[handle] = VulkanTextureView(view.value, info, formatToVkFormat(format).view, imageType, range, imgFlags);
       }
     }
+    
+    void DX12Device::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
+    {
+
+    }
 
     void VulkanDevice::createShaderArguments(ResourceHandle handle, ResourceHandle pipeline, Binding& binding)
     {

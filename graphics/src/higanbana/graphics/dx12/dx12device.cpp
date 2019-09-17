@@ -1367,6 +1367,10 @@ namespace higanbana
         HIGAN_ASSERT(false, "WTF!");
       }
     }
+    void DX12Device::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
+    {
+
+    }
 
     void DX12Device::createShaderArguments(ResourceHandle handle, Binding& binding)
     {

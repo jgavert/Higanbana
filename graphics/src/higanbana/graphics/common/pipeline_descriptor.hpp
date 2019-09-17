@@ -1,6 +1,7 @@
 #pragma once
 #include "higanbana/graphics/desc/formats.hpp"
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
+#include "higanbana/graphics/desc/shader_interface_descriptor.hpp"
 #include <higanbana/core/math/math.hpp>
 #include <string>
 #include <array>
@@ -12,7 +13,7 @@ namespace higanbana
   public:
     std::string shaderSourcePath;
     std::string rootSignature;
-    ShaderInputDescriptor layout;
+    ShaderInterfaceDescriptor layout;
     uint3 shaderGroups;
 
     ComputePipelineDescriptor()
@@ -36,7 +37,7 @@ namespace higanbana
       return *this;
     }
 
-    ComputePipelineDescriptor& setLayout(ShaderInputDescriptor val)
+    ComputePipelineDescriptor& setLayout(ShaderInterfaceDescriptor val)
     {
       layout = val;
       return *this;
@@ -468,7 +469,7 @@ namespace higanbana
     struct Desc
     {
       std::string rootSignature;
-      ShaderInputDescriptor layout;
+      ShaderInterfaceDescriptor layout;
       std::string vertexShaderPath;
       std::string pixelShaderPath;
       std::string domainShaderPath;
@@ -557,9 +558,9 @@ namespace higanbana
       desc.sampleCount = SampleCount;
       return *this;
     }
-    GraphicsPipelineDescriptor& setLayout(ShaderInputDescriptor layout)
+    GraphicsPipelineDescriptor& setLayout(ShaderInterfaceDescriptor val)
     {
-      desc.layout = layout;
+      desc.layout = val;
       return *this;
     }
   };

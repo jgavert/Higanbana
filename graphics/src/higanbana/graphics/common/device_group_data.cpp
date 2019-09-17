@@ -8,6 +8,7 @@
 #include "higanbana/graphics/common/pipeline.hpp"
 #include "higanbana/graphics/common/commandgraph.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
+#include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 
 #include <higanbana/core/math/utils.hpp>
 
@@ -591,6 +592,16 @@ namespace higanbana
         vdev.device->dynamicImage(handle, range, rowPitch);
       }
       return DynamicBufferView(handle, rowPitch, range.size_bytes());
+    }
+
+    ShaderArgumentsLayout DeviceGroupData::createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor desc)
+    {
+      auto handle = m_handles.allocateResource(ResourceType::ShaderArgumentsLayout);
+      for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
+      {
+        vdev.device->createShaderArgumentsLayout(handle, desc);
+      }
+      return ShaderArgumentsLayout(sharedHandle(handle), desc.structDeclarations(), desc.getResources());
     }
 
     ShaderArguments DeviceGroupData::createShaderArguments(Binding& binding)
