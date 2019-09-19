@@ -4,52 +4,28 @@
 #include "higanbana/graphics/common/texture.hpp"
 #include "higanbana/graphics/common/pipeline.hpp"
 #include "higanbana/graphics/common/handle.hpp"
+#include "higanbana/graphics/common/resources/shader_arguments.hpp"
 
 #include <higanbana/core/datastructures/proxy.hpp>
 
-
 namespace higanbana
 {
-  class Binding
+  class ShaderArgumentsDescriptor 
   {
-    friend class CommandGraphNode;
     vector<ShaderResource> m_resources;
     vector<ViewResourceHandle> m_handles;
-    vector<uint8_t> m_constants;
-    uint3 m_baseGroups;
 
   public:
-    Binding(GraphicsPipeline pipeline)
-    : m_resources(pipeline.descriptor.desc.layout.sortedResources)
+    ShaderArgumentsDescriptor(ShaderArgumentsLayout layout)
+    : m_resources(layout.resources())
     , m_handles(m_resources.size())
-    , m_constants(pipeline.descriptor.desc.layout.constantsSizeOf)
     {
 
-    }
-    Binding(ComputePipeline pipeline)
-    : m_resources(pipeline.descriptor.layout.sortedResources)
-    , m_handles(m_resources.size())
-    , m_constants(pipeline.descriptor.layout.constantsSizeOf)
-    , m_baseGroups(pipeline.descriptor.shaderGroups)
-    {
-      
     }
 
     MemView<ViewResourceHandle> bResources()
     {
       return MemView<ViewResourceHandle>(m_handles);
-    }
-
-    MemView<uint8_t> bConstants()
-    {
-      return MemView<uint8_t>(m_constants);
-    }
-
-    template <typename T>
-    void constants(T consts)
-    {
-      m_constants.resize(sizeof(T));
-      memcpy(m_constants.data(), &consts, sizeof(T));
     }
 
     void bind(const char* name, const DynamicBufferView& res)
@@ -126,11 +102,6 @@ namespace higanbana
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
-    }
-
-    uint3 baseGroups()
-    {
-      return m_baseGroups;
     }
   };
 }

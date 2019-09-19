@@ -1,6 +1,9 @@
 #include "higanbana/graphics/vk/vkdevice.hpp"
 #include "higanbana/graphics/vk/util/formats.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
+#include "higanbana/graphics/common/resources/shader_arguments.hpp"
+#include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
+#include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 #include "higanbana/graphics/vk/util/pipeline_helpers.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -532,6 +535,18 @@ namespace higanbana
       VK_CHECK_RESULT(poolRes);
 
       m_descriptors = VulkanDescriptorPool(poolRes.value);
+
+      // constant+static samplers descriptorlayout
+      {
+        auto bindings = defaultSetLayoutBindings(vk::ShaderStageFlagBits::eAll);
+        vk::DescriptorSetLayoutCreateInfo dslinfo = vk::DescriptorSetLayoutCreateInfo()
+          .setBindingCount(static_cast<uint32_t>(bindings.size()))
+          .setPBindings(bindings.data());
+
+        auto setlayout = m_device.createDescriptorSetLayout(dslinfo);
+        VK_CHECK_RESULT(setlayout);
+        m_defaultDescriptorLayout = VulkanShaderArgumentsLayout(setlayout.value);
+      }
     }
 
     VulkanDevice::~VulkanDevice()
@@ -545,6 +560,7 @@ namespace higanbana
       m_renderpasses.clear();
       m_dynamicUpload.reset();
       m_constantAllocators.reset();
+      m_device.destroyDescriptorSetLayout(m_defaultDescriptorLayout.native());
 
       m_device.destroySampler(m_samplers.m_bilinearSampler);
       m_device.destroySampler(m_samplers.m_pointSampler);
@@ -1164,55 +1180,79 @@ namespace higanbana
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
     {
-      auto bindings = gatherSetLayoutBindings(desc.desc.layout, vk::ShaderStageFlagBits::eAllGraphics);
-      vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
-        .setBindingCount(static_cast<uint32_t>(bindings.size()))
-        .setPBindings(bindings.data());
-
-      auto setlayout = m_device.createDescriptorSetLayout(info);
-      VK_CHECK_RESULT(setlayout);
+      vector<vk::DescriptorSetLayout> layouts;
+      for (auto&& layout : desc.desc.layout.m_sets)
+      {
+        layouts.push_back(m_allRes.shaArgsLayouts[layout.handle()].native());
+      }
+      layouts.push_back(m_defaultDescriptorLayout.native());
 
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
-        .setSetLayoutCount(1)
-        .setPSetLayouts(&setlayout.value));
+        .setSetLayoutCount(layouts.size())
+        .setPSetLayouts(layouts.data()));
       VK_CHECK_RESULT(pipelineLayout);
 
-      m_allRes.pipelines[handle] = VulkanPipeline(setlayout.value, pipelineLayout.value, desc);
+      m_allRes.pipelines[handle] = VulkanPipeline(pipelineLayout.value, desc);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
     {
-      auto bindings = gatherSetLayoutBindings(desc.layout, vk::ShaderStageFlagBits::eCompute);
-      vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
-        .setBindingCount(static_cast<uint32_t>(bindings.size()))
-        .setPBindings(bindings.data());
-
-      auto setlayout = m_device.createDescriptorSetLayout(info);
-      VK_CHECK_RESULT(setlayout);
+      vector<vk::DescriptorSetLayout> layouts;
+      for (auto&& layout : desc.layout.m_sets)
+      {
+        layouts.push_back(m_allRes.shaArgsLayouts[layout.handle()].native());
+      }
+      layouts.push_back(m_defaultDescriptorLayout.native());
 
       auto pipelineLayout = m_device.createPipelineLayout(vk::PipelineLayoutCreateInfo()
-        .setSetLayoutCount(1)
-        .setPSetLayouts(&setlayout.value));
+        .setSetLayoutCount(layouts.size())
+        .setPSetLayouts(layouts.data()));
       VK_CHECK_RESULT(pipelineLayout);
 
-      m_allRes.pipelines[handle] = VulkanPipeline(setlayout.value, pipelineLayout.value, desc);
+      m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc);
     }
 
-    vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags)
+    vector<vk::DescriptorSetLayoutBinding> VulkanDevice::defaultSetLayoutBindings(vk::ShaderStageFlags flags)
+    {
+      vector<vk::DescriptorSetLayoutBinding> bindings;
+
+      int slot = 0;
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+        .setStageFlags(flags));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_samplers.m_bilinearSampler)
+        .setStageFlags(flags));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_samplers.m_pointSampler)
+        .setStageFlags(flags));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_samplers.m_bilinearSamplerWrap)
+        .setStageFlags(flags));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampler)
+        .setPImmutableSamplers(&m_samplers.m_pointSamplerWrap)
+        .setStageFlags(flags));
+
+      return bindings;
+    }
+
+    vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderArgumentsLayoutDescriptor desc, vk::ShaderStageFlags flags)
     {
       auto layout = desc;
       vector<vk::DescriptorSetLayoutBinding> bindings;
 
       int slot = 0;
-      if (!layout.constantStructBody.empty())
-      {
-        bindings.push_back(vk::DescriptorSetLayoutBinding()
-          .setBinding(slot++).setDescriptorCount(1)
-          .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
-          .setStageFlags(flags));
-      }
 
-      auto resources = layout.sortedResources;
+      auto resources = layout.getResources();
 
       auto getDescriptor = [](ShaderResourceType type, bool ro)
       {
@@ -1255,27 +1295,6 @@ namespace higanbana
           .setStageFlags(flags));
       }
 
-      bindings.push_back(vk::DescriptorSetLayoutBinding()
-        .setBinding(slot++).setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_samplers.m_bilinearSampler)
-        .setStageFlags(flags));
-      bindings.push_back(vk::DescriptorSetLayoutBinding()
-        .setBinding(slot++).setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_samplers.m_pointSampler)
-        .setStageFlags(flags));
-      bindings.push_back(vk::DescriptorSetLayoutBinding()
-        .setBinding(slot++).setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_samplers.m_bilinearSamplerWrap)
-        .setStageFlags(flags));
-      bindings.push_back(vk::DescriptorSetLayoutBinding()
-        .setBinding(slot++).setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eSampler)
-        .setPImmutableSamplers(&m_samplers.m_pointSamplerWrap)
-        .setStageFlags(flags));
-
       return bindings;
     }
 
@@ -1304,7 +1323,6 @@ namespace higanbana
         {
           m_device.destroyPipeline(m_allRes.pipelines[handle].m_pipeline);
           m_device.destroyPipelineLayout(m_allRes.pipelines[handle].m_pipelineLayout);
-          m_device.destroyDescriptorSetLayout(m_allRes.pipelines[handle].m_descriptorSetLayout);
           m_allRes.pipelines[handle] = VulkanPipeline();
           break;
         }
@@ -1334,9 +1352,18 @@ namespace higanbana
           m_allRes.rbBuf[handle] = VulkanReadback();
           break;
         }
+        case ResourceType::ShaderArgumentsLayout:
+        {
+          m_device.destroyDescriptorSetLayout(m_allRes.shaArgsLayouts[handle].native());
+          m_allRes.shaArgsLayouts[handle] = VulkanShaderArgumentsLayout();
+          break;
+        }
         case ResourceType::ShaderArguments:
         {
-          HIGAN_ASSERT(false, "dealloc descriptors here");
+          auto& dyn = m_allRes.shaArgs[handle];
+          auto set = dyn.native();
+          m_descriptors.freeSets(m_device, makeMemView(set));
+          dyn = VulkanShaderArguments();
           break;
         }
         default:
@@ -1837,28 +1864,36 @@ namespace higanbana
       }
     }
     
-    void DX12Device::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
+    void VulkanDevice::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
     {
+      auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAllGraphics);
+      vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
+        .setBindingCount(static_cast<uint32_t>(bindings.size()))
+        .setPBindings(bindings.data());
 
+      auto setlayout = m_device.createDescriptorSetLayout(info);
+      VK_CHECK_RESULT(setlayout);
+      m_allRes.shaArgsLayouts[handle] = VulkanShaderArgumentsLayout(setlayout.value);
     }
 
-    void VulkanDevice::createShaderArguments(ResourceHandle handle, ResourceHandle pipeline, Binding& binding)
+    void VulkanDevice::createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding)
     {
-      auto desclayout = allResources().pipelines[pipeline].m_descriptorSetLayout;
+      auto desclayout = allResources().shaArgsLayouts[layout].native();
       auto set = m_descriptors.allocate(native(), desclayout, 1)[0];
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);
 
       vector<vk::WriteDescriptorSet> writeDescriptors;
-
+/*
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(block.buffer())
         .setOffset(0)
         .setRange(block.size());
+        */
 
       int index = 0;
 
-      auto resources = packet.resources.convertToMemView();
+      auto resources = binding.bResources();
       for (auto&& descriptor : resources)
       {
         vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
@@ -1869,7 +1904,7 @@ namespace higanbana
         {
           case ViewResourceType::BufferSRV:
           {
-            auto& desc = device->allResources().bufSRV[descriptor].native();
+            auto& desc = allResources().bufSRV[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.type);
             if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
               writeSet = writeSet.setPTexelBufferView(&desc.view);
@@ -1879,7 +1914,7 @@ namespace higanbana
           }
           case ViewResourceType::BufferUAV:
           {
-            auto& desc = device->allResources().bufUAV[descriptor].native();
+            auto& desc = allResources().bufUAV[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.type);
             if (desc.type == vk::DescriptorType::eStorageTexelBuffer)
               writeSet = writeSet.setPTexelBufferView(&desc.view);
@@ -1889,21 +1924,21 @@ namespace higanbana
           }
           case ViewResourceType::TextureSRV:
           {
-            auto& desc = device->allResources().texSRV[descriptor].native();
+            auto& desc = allResources().texSRV[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.viewType)
                         .setPImageInfo(&desc.info);
             break;
           }
           case ViewResourceType::TextureUAV:
           {
-            auto& desc = device->allResources().texUAV[descriptor].native();
+            auto& desc = allResources().texUAV[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.viewType)
                         .setPImageInfo(&desc.info);
             break;
           }
           case ViewResourceType::DynamicBufferSRV:
           {
-            auto& desc = device->allResources().dynBuf[descriptor].native();
+            auto& desc = allResources().dynBuf[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.type);
             if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
               writeSet = writeSet.setPTexelBufferView(&desc.texelView);
@@ -1919,7 +1954,7 @@ namespace higanbana
       }
 
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
-      device->native().updateDescriptorSets(writes, {});
+      m_device.updateDescriptorSets(writes, {});
     }
 
     VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)

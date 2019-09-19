@@ -1372,7 +1372,7 @@ namespace higanbana
 
     }
 
-    void DX12Device::createShaderArguments(ResourceHandle handle, Binding& binding)
+    void DX12Device::createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding)
     {
 
     }

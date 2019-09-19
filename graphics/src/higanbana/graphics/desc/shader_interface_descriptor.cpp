@@ -31,7 +31,7 @@ namespace higanbana
           {
             lol += " UAV(u" + std::to_string(uavC);
           }
-          lol += ", numDescriptors = " + std::to_string(count) + ")";
+          lol += ", numDescriptors = " + std::to_string(count) + ", space=" + std::to_string(setNumber) + " )";
           if (currentMode)
           {
             srvC += count;
@@ -64,10 +64,12 @@ namespace higanbana
 
   void resourceDeclarations(std::string& lol, int set, ShaderArgumentsLayout& args)
   {
-    auto resourceToString = [](bool writeRes, int gindex, int index, ShaderResource res) -> std::string
+    auto sset = ", " + std::to_string(set);
+    auto sspace = ", space" + std::to_string(set);
+    auto resourceToString = [sset, sspace](bool writeRes, int gindex, int index, ShaderResource res) -> std::string
     {
       std::string resOut;
-      resOut = "VK_BINDING("+ std::to_string(gindex) + ") ";
+      resOut = "VK_BINDING("+ std::to_string(gindex) + sset + ") ";
       if (writeRes)
       {
         resOut += "RW";
@@ -86,7 +88,7 @@ namespace higanbana
       {
         resOut += "t";
       }
-      resOut += std::to_string(index) + " );";
+      resOut += std::to_string(index) + sspace + " );";
       return resOut;
     };
     
@@ -124,13 +126,13 @@ namespace higanbana
     std::string lol;
     lol += "// This file is generated from code.\n";
     lol += "#ifdef HIGANBANA_VULKAN\n";
-    lol += "#define VK_BINDING(index) [[vk::binding(index)]]\n";
+    lol += "#define VK_BINDING(index, set) [[vk::binding(index, set)]]\n";
     lol += "#else // HIGANBANA_DX12\n";
-    lol += "#define VK_BINDING(index) \n";
+    lol += "#define VK_BINDING(index, set) \n";
     lol += "#endif\n";
     lol += "\n";
 
-    //lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  "; // , DescriptorTable()";
+    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  "; // , DescriptorTable()";
 
     int set = 0;
     for (auto&& arg : m_sets)
@@ -163,7 +165,7 @@ namespace higanbana
     {
       gi++;
       lol += "struct Constants\n{" + constantStructBody + " };\n";
-      lol += "VK_BINDING(0) ConstantBuffer<Constants> constants : register( b0 );\n";
+      lol += "VK_BINDING(0, " + std::to_string(m_sets.size()) + ") ConstantBuffer<Constants> constants : register( b0 );\n";
     }
     set = 0;
     for (auto&& arg : m_sets)
@@ -178,10 +180,10 @@ namespace higanbana
     
 
     lol += "\n// Usable Static Samplers\n";
-    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState bilinearSampler : register( s0 );\n";
-    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState pointSampler : register( s1 );\n";
-    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState bilinearSamplerWarp : register( s2 );\n";
-    lol += "VK_BINDING(" + std::to_string(gi++) +  ") SamplerState pointSamplerWrap : register( s3 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState bilinearSampler : register( s0 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState pointSampler : register( s1 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState bilinearSamplerWarp : register( s2 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState pointSamplerWrap : register( s3 );\n";
     
     return lol;
   }

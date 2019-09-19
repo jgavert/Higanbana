@@ -80,7 +80,7 @@ namespace higanbana
     }
 
     void bindGraphicsResources(
-      MemView<ViewResourceHandle> resources,
+      MemView<ShaderArguments> resources,
       MemView<uint8_t> constants)
     {
       list.insert<gfxpacket::ResourceBinding>(
@@ -89,7 +89,7 @@ namespace higanbana
     }
 
     void bindComputeResources(
-      MemView<ViewResourceHandle> resources,
+      MemView<ShaderArguments> resources,
       MemView<uint8_t> constants)
     {
       list.insert<gfxpacket::ResourceBinding>(

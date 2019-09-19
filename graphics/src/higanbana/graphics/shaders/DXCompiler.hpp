@@ -7,7 +7,7 @@
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
 #endif
-#include "higanbana/graphics/desc/shader_input_descriptor.hpp"
+#include "higanbana/graphics/desc/shader_interface_descriptor.hpp"
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -133,7 +133,7 @@ namespace higanbana
         std::string interfaceDeclaration = "";
       } desc;
 
-      ShaderCreateInfo(std::string shaderName, ShaderType type, ShaderInputDescriptor shaderInterface)
+      ShaderCreateInfo(std::string shaderName, ShaderType type, ShaderInterfaceDescriptor shaderInterface)
       {
         desc.shaderName = shaderName;
         desc.type = type;

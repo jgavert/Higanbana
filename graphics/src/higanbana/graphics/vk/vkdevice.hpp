@@ -58,6 +58,9 @@ namespace higanbana
       std::shared_ptr<VulkanUploadHeap> m_dynamicUpload;
       std::shared_ptr<VulkanConstantUploadHeap> m_constantAllocators;
 
+      // descriptor stuff
+      VulkanShaderArgumentsLayout m_defaultDescriptorLayout;
+
 /*
       struct Garbage
       {
@@ -117,7 +120,8 @@ namespace higanbana
       MemoryRequirements getReqs(ResourceDescriptor desc) override;
 
       void createRenderpass(ResourceHandle handle) override;
-      vector<vk::DescriptorSetLayoutBinding> gatherSetLayoutBindings(ShaderInputDescriptor desc, vk::ShaderStageFlags flags);
+      vector<vk::DescriptorSetLayoutBinding> defaultSetLayoutBindings(vk::ShaderStageFlags flags);
+      vector<vk::DescriptorSetLayoutBinding> gatherSetLayoutBindings(ShaderArgumentsLayoutDescriptor desc, vk::ShaderStageFlags flags);
       void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
       void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
 
@@ -131,7 +135,7 @@ namespace higanbana
       void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
       void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) override;
-      void createShaderArguments(ResourceHandle handle, Binding& binding) override;
+      void createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
 

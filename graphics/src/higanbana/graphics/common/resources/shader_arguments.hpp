@@ -56,10 +56,41 @@ namespace higanbana
   
   class ShaderArguments
   {
-    std::shared_ptr<ResourceHandle> m_id;
+    std::shared_ptr<ViewResourceHandle> m_id;
+    std::shared_ptr<DynamicBitfield> m_referencedBuffers;
+    std::shared_ptr<DynamicBitfield> m_referencedTextures;
+
+    void addMemview(MemView<ViewResourceHandle> views)
+    {
+      for (auto&& view : views)
+      {
+        switch (view.type)
+        {
+          case ViewResourceType::BufferSRV:
+          case ViewResourceType::BufferUAV:
+          case ViewResourceType::BufferIBV:
+          {
+            m_referencedBuffers->setBit(view.resource.id);
+            break;
+          }
+          case ViewResourceType::TextureSRV:
+          case ViewResourceType::TextureUAV:
+          case ViewResourceType::TextureRTV:
+          case ViewResourceType::TextureDSV:
+          {
+            m_referencedTextures->setBit(view.resource.id);
+            break;
+          }
+          default:
+            break;
+        }
+      }
+    }
   public:
     ShaderArguments()
-      : m_id(std::make_shared<ResourceHandle>())
+      : m_id(std::make_shared<ViewResourceHandle>())
+      , m_referencedBuffers(std::make_shared<DynamicBitfield>())
+      , m_referencedTextures(std::make_shared<DynamicBitfield>())
     {
     }
 
@@ -72,16 +103,29 @@ namespace higanbana
     {
     }
 
-    ShaderArguments(std::shared_ptr<ResourceHandle> id)
+    ShaderArguments(std::shared_ptr<ViewResourceHandle> id, MemView<ViewResourceHandle> views)
       : m_id(id)
+      , m_referencedBuffers(std::make_shared<DynamicBitfield>())
+      , m_referencedTextures(std::make_shared<DynamicBitfield>())
     {
+      addMemview(views);
     }
 
-    ResourceHandle handle() const
+    const DynamicBitfield& refBuffers() const
+    {
+      return *m_referencedBuffers;
+    }
+
+    const DynamicBitfield& refTextures() const
+    {
+      return *m_referencedTextures;
+    }
+
+    ViewResourceHandle handle() const
     {
       if (m_id)
         return *m_id;
-      return ResourceHandle();
+      return ViewResourceHandle();
     }
   };
 };

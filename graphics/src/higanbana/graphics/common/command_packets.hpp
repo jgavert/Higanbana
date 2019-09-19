@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/common/command_buffer.hpp"
+#include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include <higanbana/core/math/math.hpp>
 
@@ -119,7 +120,7 @@ namespace higanbana
       backend::PacketVectorHeader<ViewResourceHandle> resources;
 
       static constexpr const backend::PacketType type = backend::PacketType::ResourceBinding;
-      static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ViewResourceHandle>& views)
+      static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
       {
         packet->graphicsBinding = type;
         packet = buffer.allocateElements<uint8_t>(packet->constants, constants.size(), packet);
@@ -127,7 +128,10 @@ namespace higanbana
         memcpy(spn.data(), constants.data(), constants.size_bytes());
         packet = buffer.allocateElements<ViewResourceHandle>(packet->resources, views.size(), packet);
         auto spn2 = packet->resources.convertToMemView();
-        memcpy(spn2.data(), views.data(), views.size_bytes());
+        for (int i = 0; i < views.size(); ++i)
+        {
+          spn2[i] = views[i].handle();
+        }
       }
     };
 

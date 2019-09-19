@@ -552,12 +552,28 @@ namespace higanbana
       }
     };
 
+    class VulkanShaderArgumentsLayout
+    {
+    private:
+      vk::DescriptorSetLayout m_resource;
+
+    public:
+      VulkanShaderArgumentsLayout(){}
+      VulkanShaderArgumentsLayout(vk::DescriptorSetLayout layout)
+        : m_resource(layout)
+      {}
+
+      vk::DescriptorSetLayout native()
+      {
+        return m_resource;
+      }
+    };
+
     class VulkanPipeline
     {
     public:
       vk::Pipeline            m_pipeline;
       bool                    m_hasPipeline;
-      vk::DescriptorSetLayout m_descriptorSetLayout;
       vk::PipelineLayout      m_pipelineLayout;
       GraphicsPipelineDescriptor m_gfxDesc;
       ComputePipelineDescriptor m_computeDesc;
@@ -585,24 +601,21 @@ namespace higanbana
 
       VulkanPipeline() {}
 
-      VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc)
+      VulkanPipeline(vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc)
         : m_hasPipeline(false)
-        , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
         , m_gfxDesc(gfxDesc)
       {}
 
-      VulkanPipeline(vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
+      VulkanPipeline(vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
         : m_hasPipeline(false)
-        , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
         , m_computeDesc(computeDesc)
       {}
 
-      VulkanPipeline(vk::Pipeline pipeline, vk::DescriptorSetLayout descriptorSetLayout, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
+      VulkanPipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
         : m_pipeline(pipeline)
         , m_hasPipeline(true)
-        , m_descriptorSetLayout(descriptorSetLayout)
         , m_pipelineLayout(pipelineLayout)
         , m_computeDesc(computeDesc)
       {}
@@ -883,6 +896,7 @@ namespace higanbana
     {
       vk::DescriptorSet m_set;
     public:
+      VulkanShaderArguments(){}
       VulkanShaderArguments(vk::DescriptorSet set)
         : m_set(set)
       {}
@@ -909,6 +923,7 @@ namespace higanbana
       HandleVector<VulkanRenderpass> renderpasses;
       HandleVector<VulkanHeap> heaps;
       HandleVector<VulkanShaderArguments> shaArgs;
+      HandleVector<VulkanShaderArgumentsLayout> shaArgsLayouts;
     };
 
     struct QueueIndexes

@@ -1,7 +1,7 @@
 #pragma once
 #include "higanbana/graphics/common/commandlist.hpp"
 #include "higanbana/graphics/common/semaphore.hpp"
-#include "higanbana/graphics/common/binding.hpp"
+#include "higanbana/graphics/common/shader_arguments_binding.hpp"
 #include "higanbana/graphics/common/swapchain.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/desc/timing.hpp"
@@ -31,8 +31,12 @@ namespace higanbana
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
 
+    uint3 m_currentBaseGroups;
+
+    DynamicBitfield m_filterArguments;
     DynamicBitfield m_referencedBuffers;
     DynamicBitfield m_referencedTextures;
+
     vector<ReadbackPromise> m_readbackPromises;
     GraphNodeTiming timing;
 
@@ -58,33 +62,21 @@ namespace higanbana
       auto h = type.handle();
       m_referencedTextures.setBit(h.resource.id);
     }
-
-    void addMemview(MemView<ViewResourceHandle> views)
+    
+    void addRefArgs(MemView<ShaderArguments> args)
     {
-      for (auto&& view : views)
+      for (auto&& arg : args)
       {
-        switch (view.type)
-        {
-          case ViewResourceType::BufferSRV:
-          case ViewResourceType::BufferUAV:
-          case ViewResourceType::BufferIBV:
-          {
-            m_referencedBuffers.setBit(view.resource.id);
-            break;
-          }
-          case ViewResourceType::TextureSRV:
-          case ViewResourceType::TextureUAV:
-          case ViewResourceType::TextureRTV:
-          case ViewResourceType::TextureDSV:
-          {
-            m_referencedTextures.setBit(view.resource.id);
-            break;
-          }
-          default:
-            break;
-        }
+        if (m_filterArguments.checkBit(arg.handle().id))
+          continue;
+        m_filterArguments.setBit(arg.handle().id);
+        const auto& thing = arg.refBuffers();
+        m_referencedBuffers.unionFields(thing);
+        const auto& thing2 = arg.refTextures();
+        m_referencedTextures.unionFields(thing2);
       }
     }
+
   public:
     CommandGraphNode() {}
     CommandGraphNode(std::string name, QueueType type, int gpuId)
@@ -140,18 +132,19 @@ namespace higanbana
 
     // bindings
 
-    Binding bind(GraphicsPipeline& pipeline)
+    ShaderArgumentsBinding bind(GraphicsPipeline& pipeline)
     {
       list.bindPipeline(pipeline);
 
-      return Binding(pipeline);
+      return ShaderArgumentsBinding(pipeline);
     }
 
-    Binding bind(ComputePipeline& pipeline)
+    ShaderArgumentsBinding bind(ComputePipeline& pipeline)
     {
       list.bindPipeline(pipeline);
+      m_currentBaseGroups = pipeline.descriptor.shaderGroups;
 
-      return Binding(pipeline);
+      return ShaderArgumentsBinding(pipeline);
     }
 
     void setScissor(int2 tl, int2 br)
@@ -162,20 +155,20 @@ namespace higanbana
     // draws/dispatches
 
     void draw(
-      Binding& binding,
+      ShaderArgumentsBinding& binding,
       unsigned vertexCountPerInstance,
       unsigned instanceCount = 1,
       unsigned startVertex = 0,
       unsigned startInstance = 0)
     {
-      addMemview(binding.bResources());
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      addRefArgs(binding.bShaderArguments());
+      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
       list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
     void drawIndexed(
-      Binding& binding,
+      ShaderArgumentsBinding& binding,
       DynamicBufferView view,
       unsigned IndexCountPerInstance,
       unsigned instanceCount = 1,
@@ -183,14 +176,14 @@ namespace higanbana
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
-      addMemview(binding.bResources());
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      addRefArgs(binding.bShaderArguments());
+      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void drawIndexed(
-      Binding& binding,
+      ShaderArgumentsBinding& binding,
       BufferIBV view,
       unsigned IndexCountPerInstance,
       unsigned instanceCount = 1,
@@ -198,29 +191,29 @@ namespace higanbana
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
-      addMemview(binding.bResources());
-      list.bindGraphicsResources(binding.bResources(), binding.bConstants());
+      addRefArgs(binding.bShaderArguments());
+      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void dispatchThreads(
-      Binding& binding, uint3 groups)
+      ShaderArgumentsBinding& binding, uint3 groups)
     {
-      addMemview(binding.bResources());
-      list.bindComputeResources(binding.bResources(), binding.bConstants());
-      unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(binding.baseGroups().x)));
-      unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(binding.baseGroups().y)));
-      unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(binding.baseGroups().z)));
+      addRefArgs(binding.bShaderArguments());
+      list.bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(m_currentBaseGroups.x)));
+      unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(m_currentBaseGroups.y)));
+      unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(m_currentBaseGroups.z)));
       HIGAN_ASSERT(x*y*z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", x, y, z);
       list.dispatch(uint3(x,y,z));
     }
 
     void dispatch(
-      Binding& binding, uint3 groups)
+      ShaderArgumentsBinding& binding, uint3 groups)
     {
-      addMemview(binding.bResources());
-      list.bindComputeResources(binding.bResources(), binding.bConstants());
+      addRefArgs(binding.bShaderArguments());
+      list.bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       list.dispatch(groups);
     }

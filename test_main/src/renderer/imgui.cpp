@@ -12,10 +12,15 @@ namespace app
   {
     IMGui::IMGui(GpuGroup& device)
     {
-      higanbana::ShaderInputDescriptor imguiInterface = ShaderInputDescriptor()
-        .constants<imguiConstants>()
+      ShaderArgumentsLayoutDescriptor argsLayoutDesc = ShaderArgumentsLayoutDescriptor()
         .readOnly(ShaderResourceType::ByteAddressBuffer, "vertices")
         .readOnly(ShaderResourceType::Texture2D, "float", "tex");
+      argsLayout = device.createShaderArgumentsLayout(argsLayoutDesc);
+
+      higanbana::ShaderInterfaceDescriptor imguiInterface = ShaderInterfaceDescriptor()
+        .constants<imguiConstants>()
+        .shaderArguments(0, argsLayout);
+
       auto pipelineDescriptor = GraphicsPipelineDescriptor()
         .setLayout(imguiInterface)
         .setVertexShader("imgui")
@@ -97,7 +102,9 @@ namespace app
       imguiConstants constants;
       constants.reciprocalResolution = math::div(float2{ 1.f, 1.f }, float2{ float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) });
       binding.constants(constants);
-      binding.bind("tex", fontatlasSrv);
+      //binding.bind("tex", fontatlasSrv);
+      auto bindArgs = ShaderArgumentsDescriptor(argsLayout);
+      bindArgs.bind("tex", fontatlasSrv);
 
       for (int i = 0; i < drawData->CmdListsCount; ++i)
       {
@@ -106,7 +113,9 @@ namespace app
         auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Raw32);
         auto ibv = device.dynamicBuffer(makeByteView(list->IdxBuffer.Data, list->IdxBuffer.size() * sizeof(list->IdxBuffer[0])), FormatType::Uint16);
 
-        binding.bind("vertices", vbv);
+        bindArgs.bind("vertices", vbv);
+        auto args = device.createShaderArguments(bindArgs);
+        binding.bind(0, args);
 
         uint indexOffset = 0;
         for (auto &d : list->CmdBuffer)

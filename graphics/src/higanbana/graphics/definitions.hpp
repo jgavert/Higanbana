@@ -14,6 +14,8 @@
 // Could probably convert above to be global booleans instead, so I could toggle them runtime.
 // Though many of them require to create all resources from scratch.
 
+#define HIGANBANA_USABLE_SHADER_ARGUMENT_SETS 3
+
 namespace higanbana
 {
   namespace globalconfig

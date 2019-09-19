@@ -9,6 +9,7 @@ namespace app
   {
     class IMGui
     {
+      higanbana::ShaderArgumentsLayout argsLayout;
       higanbana::GraphicsPipeline pipeline;
       higanbana::Renderpass renderpass;
       higanbana::Texture fontatlas;

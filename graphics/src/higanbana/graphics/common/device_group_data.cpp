@@ -604,7 +604,7 @@ namespace higanbana
       return ShaderArgumentsLayout(sharedHandle(handle), desc.structDeclarations(), desc.getResources());
     }
 
-    ShaderArguments DeviceGroupData::createShaderArguments(Binding& binding)
+    ShaderArguments DeviceGroupData::createShaderArguments(ShaderArgumentsDescriptor& binding)
     {
       auto handle = m_handles.allocateResource(ResourceType::ShaderArguments);
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now

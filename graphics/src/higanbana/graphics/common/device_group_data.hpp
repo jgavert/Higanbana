@@ -203,7 +203,7 @@ namespace higanbana
 
       // ShaderArguments
       ShaderArgumentsLayout createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor desc);
-      ShaderArguments createShaderArguments(Binding& binding);
+      ShaderArguments createShaderArguments(ShaderArgumentsDescriptor& binding);
 
       // streaming
       bool uploadInitialTexture(Texture& tex, CpuImage& image);

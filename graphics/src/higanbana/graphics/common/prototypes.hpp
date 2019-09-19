@@ -15,6 +15,7 @@ namespace higanbana
   class GraphicsSurface;
 
   // descriptors
+  class ShaderArgumentsDescriptor;
   class SwapchainDescriptor;
   class ResourceDescriptor;
   class Binding;
@@ -127,7 +128,7 @@ namespace higanbana
 
         // descriptors sets or ShaderArguments
         virtual void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) = 0;
-        virtual void createShaderArguments(ResourceHandle handle, Binding& binding) = 0;
+        virtual void createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding) = 0;
 
         virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
 

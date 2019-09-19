@@ -25,6 +25,7 @@ namespace app
     higanbana::BufferSRV test2SRV;
     higanbana::BufferUAV testOut;
 
+    higanbana::ShaderArgumentsLayout triangleLayout;
     higanbana::GraphicsPipeline triangle;
 
     higanbana::Renderpass triangleRP;
@@ -33,8 +34,10 @@ namespace app
     higanbana::Renderpass opaqueRP;
 
     higanbana::PingPongTexture proxyTex;
+    higanbana::ShaderArgumentsLayout compLayout;
     higanbana::ComputePipeline genTexCompute;
 
+    higanbana::ShaderArgumentsLayout blitLayout;
     higanbana::GraphicsPipeline composite;
     higanbana::Renderpass compositeRP;
     // info

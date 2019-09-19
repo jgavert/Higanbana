@@ -68,9 +68,12 @@ namespace app
     buffer3 = dev.createBuffer(bufferdesc3);
     testOut = dev.createBufferUAV(buffer3);
 
-    higanbana::ShaderInputDescriptor babyInf = ShaderInputDescriptor()
-      .constants<PixelConstants>()
+    higanbana::ShaderArgumentsLayoutDescriptor triangleLayoutDesc = ShaderArgumentsLayoutDescriptor()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
+    triangleLayout = dev.createShaderArgumentsLayout(triangleLayoutDesc);
+    higanbana::ShaderInterfaceDescriptor babyInf = ShaderInterfaceDescriptor()
+      .constants<PixelConstants>()
+      .shaderArguments(0, triangleLayout);
 
     auto basicDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
@@ -86,9 +89,9 @@ namespace app
 
     triangleRP = dev.createRenderpass();
 
-    higanbana::ShaderInputDescriptor opaquePassInterface = ShaderInputDescriptor()
+    higanbana::ShaderInterfaceDescriptor opaquePassInterface = ShaderInterfaceDescriptor()
       .constants<OpaqueConsts>()
-      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
+      .shaderArguments(0, triangleLayout);
 
     auto opaqueDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("opaquePass")
@@ -119,19 +122,25 @@ namespace app
       .setFormat(FormatType::Unorm8RGBA)
       .setUsage(ResourceUsage::RenderTargetRW));
 
-    higanbana::ShaderInputDescriptor babyInf2 = ShaderInputDescriptor()
-      .constants<ComputeConstants>()
+    higanbana::ShaderArgumentsLayoutDescriptor layoutdesc = ShaderArgumentsLayoutDescriptor()
       .readWrite(ShaderResourceType::Texture2D, "float4", "output");
+    compLayout = dev.createShaderArgumentsLayout(layoutdesc);
+    higanbana::ShaderInterfaceDescriptor babyInf2 = ShaderInterfaceDescriptor()
+      .constants<ComputeConstants>()
+      .shaderArguments(0, compLayout);
 
     genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
     .setLayout(babyInf2)
     .setShader("simpleEffectAssyt")
     .setThreadGroups(uint3(8, 4, 1)));
 
-    higanbana::ShaderInputDescriptor blitInf = ShaderInputDescriptor()
-      .constants<PixelConstants>()
+    higanbana::ShaderArgumentsLayoutDescriptor layoutdesc2 = ShaderArgumentsLayoutDescriptor()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
       .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
+    blitLayout = dev.createShaderArgumentsLayout(layoutdesc2);
+    higanbana::ShaderInterfaceDescriptor blitInf = ShaderInterfaceDescriptor()
+      .constants<PixelConstants>()
+      .shaderArguments(0, blitLayout);
     composite = dev.createGraphicsPipeline(basicDescriptor
       .setVertexShader("blit")
       .setPixelShader("blit")
@@ -231,8 +240,13 @@ namespace app
 
     {
       auto node = tasks.createPass("generate Texture");
+
+      auto bindArgs = ShaderArgumentsDescriptor(compLayout);
+      bindArgs.bind("output", proxyTex.uav());
+      auto args = dev.createShaderArguments(bindArgs);
+
       auto binding = node.bind(genTexCompute);
-      binding.bind("output", proxyTex.uav());
+      binding.bind(0, args);
       ComputeConstants consts{};
       consts.time = time.getFTime();
       consts.resx = proxyTex.desc().desc.width; 
@@ -279,10 +293,11 @@ namespace app
           3.0f, -1.0f};
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
 
-        binding.bind("vertexInput", vert);
-        binding.bind("texInput", proxyTex.srv());
-
-        auto rip = dev.createShaderArguments(binding);
+        auto bindArgs = ShaderArgumentsDescriptor(blitLayout);
+        bindArgs.bind("vertexInput", vert);
+        bindArgs.bind("texInput", proxyTex.srv());
+        auto args = dev.createShaderArguments(bindArgs);
+        binding.bind(0, args);
 
         node.draw(binding, 3);
       }
@@ -347,7 +362,10 @@ namespace app
         consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
         consts.viewMat = perspective;
         binding.constants(consts);
-        binding.bind("vertexInput", vert);
+        auto bindArgs = ShaderArgumentsDescriptor(triangleLayout);
+        bindArgs.bind("vertexInput", vert);
+        auto args = dev.createShaderArguments(bindArgs);
+        binding.bind(0, args);
 
         //node.drawIndexed(binding, ind, 36);
         int gridSize = 10;

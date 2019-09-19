@@ -1,5 +1,5 @@
 #pragma once
-
+#include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include <string>
 
@@ -15,7 +15,7 @@ namespace higanbana
     ShaderInterfaceDescriptor()
       : constantsSizeOf(0)
     {
-      m_sets.resize(3);
+      m_sets.resize(HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
     }
   public:
 
@@ -29,7 +29,7 @@ namespace higanbana
 
     ShaderInterfaceDescriptor& shaderArguments(unsigned setNumber, ShaderArgumentsLayout layout)
     {
-      HIGAN_ASSERT(setNumber <= 2, "Only 3 usable sets, please manage.");
+      HIGAN_ASSERT(setNumber < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS, "Only %d usable sets, please manage.", HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
       m_sets[setNumber] = layout;
       return *this;
     }
