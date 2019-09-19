@@ -56,7 +56,7 @@ namespace higanbana
   
   class ShaderArguments
   {
-    std::shared_ptr<ViewResourceHandle> m_id;
+    std::shared_ptr<ResourceHandle> m_id;
     std::shared_ptr<DynamicBitfield> m_referencedBuffers;
     std::shared_ptr<DynamicBitfield> m_referencedTextures;
 
@@ -88,7 +88,7 @@ namespace higanbana
     }
   public:
     ShaderArguments()
-      : m_id(std::make_shared<ViewResourceHandle>())
+      : m_id(std::make_shared<ResourceHandle>())
       , m_referencedBuffers(std::make_shared<DynamicBitfield>())
       , m_referencedTextures(std::make_shared<DynamicBitfield>())
     {
@@ -103,7 +103,7 @@ namespace higanbana
     {
     }
 
-    ShaderArguments(std::shared_ptr<ViewResourceHandle> id, MemView<ViewResourceHandle> views)
+    ShaderArguments(std::shared_ptr<ResourceHandle> id, MemView<ViewResourceHandle> views)
       : m_id(id)
       , m_referencedBuffers(std::make_shared<DynamicBitfield>())
       , m_referencedTextures(std::make_shared<DynamicBitfield>())
@@ -121,11 +121,11 @@ namespace higanbana
       return *m_referencedTextures;
     }
 
-    ViewResourceHandle handle() const
+    ResourceHandle handle() const
     {
       if (m_id)
         return *m_id;
-      return ViewResourceHandle();
+      return ResourceHandle();
     }
   };
 };

@@ -339,15 +339,16 @@ namespace higanbana
       HIGAN_ASSERT(block, "What!");
       return block;
     }
+    // new handle binding, recycle constant+sampler sets, only update constants, bind descriptor sets directly
 
     void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline)
     {
       // get dynamicbuffer for constants
       // collect otherviews and indexes
       // build... DescriptorSet... I need the pipeline
-      auto desclayout = device->allResources().pipelines[pipeline].m_descriptorSetLayout;
+      auto defaultDescLayout = device->defaultDescLayout();
       auto layout = device->allResources().pipelines[pipeline].m_pipelineLayout;
-      auto set = m_descriptors.allocate(device->native(), desclayout, 1)[0];
+      auto set = m_descriptors.allocate(device->native(), defaultDescLayout, 1)[0];
       m_allocatedSets.push_back(set);
 
       vector<vk::WriteDescriptorSet> writeDescriptors;
@@ -369,66 +370,6 @@ namespace higanbana
         .setPBufferInfo(&info)
         .setDstBinding(index++));
 
-      auto resources = packet.resources.convertToMemView();
-      for (auto&& descriptor : resources)
-      {
-        vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
-        .setDstSet(set)
-        .setDescriptorCount(1)
-        .setDstBinding(index++);
-        switch (descriptor.type)
-        {
-          case ViewResourceType::BufferSRV:
-          {
-            auto& desc = device->allResources().bufSRV[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
-              writeSet = writeSet.setPTexelBufferView(&desc.view);
-            else
-              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
-            break;
-          }
-          case ViewResourceType::BufferUAV:
-          {
-            auto& desc = device->allResources().bufUAV[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eStorageTexelBuffer)
-              writeSet = writeSet.setPTexelBufferView(&desc.view);
-            else
-              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
-            break;
-          }
-          case ViewResourceType::TextureSRV:
-          {
-            auto& desc = device->allResources().texSRV[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.viewType)
-                        .setPImageInfo(&desc.info);
-            break;
-          }
-          case ViewResourceType::TextureUAV:
-          {
-            auto& desc = device->allResources().texUAV[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.viewType)
-                        .setPImageInfo(&desc.info);
-            break;
-          }
-          case ViewResourceType::DynamicBufferSRV:
-          {
-            auto& desc = device->allResources().dynBuf[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
-              writeSet = writeSet.setPTexelBufferView(&desc.texelView);
-            else
-              writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
-            break;
-          }
-          default:
-            continue;
-        }
-
-        writeDescriptors.emplace_back(writeSet);
-      }
-
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
       device->native().updateDescriptorSets(writes, {});
 
@@ -442,8 +383,13 @@ namespace higanbana
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
       //vk::ArrayProxy<const vk::DescriptorSet> sets(1, &set);
-      buffer.bindDescriptorSets(bindpoint, layout, 0, {set}, {static_cast<uint32_t>(block.offset())});
-
+      vector<vk::DescriptorSet> sets;
+      for (auto&& shaderArguments : packet.resources.convertToMemView())
+      {
+        sets.push_back(device->allResources().shaArgs[shaderArguments].native());
+      }
+      sets.push_back(set);
+      buffer.bindDescriptorSets(bindpoint, layout, 0, sets, {static_cast<uint32_t>(block.offset())});
     }
 
     std::string buildStageString(int stage)

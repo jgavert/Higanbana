@@ -95,6 +95,8 @@ namespace higanbana
 
       vk::Device native() { return m_device; }
 
+      vk::DescriptorSetLayout defaultDescLayout() { return m_defaultDescriptorLayout.native(); }
+
       vk::DispatchLoaderDynamic dispatcher() { return m_dynamicDispatch; }
       bool debugDevice() { return m_debugLayer; }
 
