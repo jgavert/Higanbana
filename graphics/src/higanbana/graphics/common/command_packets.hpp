@@ -137,7 +137,7 @@ namespace higanbana
         int allResourceCount = 0;
         for (int i = 0; i < views.size(); ++i)
         {
-          allResourceCount += views[i].allViews();
+          allResourceCount += views[i].allViews().size();
         }
 
         packet = buffer.allocateElements<ViewResourceHandle>(packet->allResources, allResourceCount, packet);
