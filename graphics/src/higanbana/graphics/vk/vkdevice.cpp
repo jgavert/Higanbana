@@ -1866,7 +1866,7 @@ namespace higanbana
     
     void VulkanDevice::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
     {
-      auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAllGraphics);
+      auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAll);
       vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
         .setBindingCount(static_cast<uint32_t>(bindings.size()))
         .setPBindings(bindings.data());

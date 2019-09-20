@@ -15,7 +15,6 @@ namespace higanbana
     ShaderInterfaceDescriptor()
       : constantsSizeOf(0)
     {
-      m_sets.resize(HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
     }
   public:
 
@@ -30,6 +29,10 @@ namespace higanbana
     ShaderInterfaceDescriptor& shaderArguments(unsigned setNumber, ShaderArgumentsLayout layout)
     {
       HIGAN_ASSERT(setNumber < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS, "Only %d usable sets, please manage.", HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
+      if (m_sets.size() < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS)
+      {
+        m_sets.resize(setNumber+1);
+      }
       m_sets[setNumber] = layout;
       return *this;
     }

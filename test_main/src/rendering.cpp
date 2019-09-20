@@ -111,7 +111,7 @@ namespace app
     opaqueRP = dev.createRenderpass();
 
     depth = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(uint2(1280, 720))
+      .setSize(uint2(1278, 712))
       .setFormat(FormatType::Depth32)
       .setUsage(ResourceUsage::DepthStencil)
       .setName("opaqueDepth"));
@@ -232,7 +232,8 @@ namespace app
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
     if (!obackbuffer.has_value())
     {
-      HIGAN_LOGi( "No backbuffer available\n");
+      HIGAN_LOGi( "No backbuffer available, Resizing\n");
+      windowResized();
       return;
     }
     TextureRTV backbuffer = obackbuffer.value();

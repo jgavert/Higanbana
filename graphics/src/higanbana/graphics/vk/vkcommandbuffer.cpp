@@ -232,7 +232,7 @@ namespace higanbana
             fbWidth = static_cast<int>(desc.desc.width);
             fbHeight = static_cast<int>(desc.desc.height);
           }
-          HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
+          HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be correct.");
           auto attachmentId = static_cast<int>(attachments.size());
           uidToAttachmendId[subpass.dsv.resource.id] = attachmentId;
           attachments.emplace_back(view.native().view);

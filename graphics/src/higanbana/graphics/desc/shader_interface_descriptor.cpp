@@ -107,17 +107,21 @@ namespace higanbana
     for (auto&& res : args.resources())
     {
       if (res.readonly)
+      {
         lol += resourceToString(false, gi, i++, res) + "\n";
-      gi++;
+        gi++;
+      }
     }
     i = 0;
-    gi = 1;
+    //gi = 1;
     lol += "\n// Read Write resources\n";
     for (auto&& res : args.resources())
     {
       if (!res.readonly)
+      {
         lol += resourceToString(true, gi, i++, res) + "\n";
-      gi++;
+        gi++;
+      }
     }
   }
 
@@ -139,7 +143,7 @@ namespace higanbana
     {
       if (arg.handle().id != ResourceHandle::InvalidId)
       {
-        hlslTablesFromShaderArguments(set, arg);
+        lol += hlslTablesFromShaderArguments(set, arg);
       }
       set++;
     }
@@ -173,7 +177,7 @@ namespace higanbana
       if (arg.handle().id != ResourceHandle::InvalidId)
       {
         resourceDeclarations(lol, set, arg);
-        gi += arg.resources().size();
+        //gi += arg.resources().size();
       }
       set++;
     }
