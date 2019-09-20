@@ -434,7 +434,7 @@ namespace higanbana
         }
       }
       UINT rootIndex = 1;
-      auto pviews = ding.resources.convertToMemView();
+      auto pviews = ding.allResources.convertToMemView();
       if (pviews.size() > 0)
       {
         int i = 0;

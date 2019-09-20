@@ -1876,9 +1876,9 @@ namespace higanbana
       m_allRes.shaArgsLayouts[handle] = VulkanShaderArgumentsLayout(setlayout.value);
     }
 
-    void VulkanDevice::createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding)
+    void VulkanDevice::createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding)
     {
-      auto desclayout = allResources().shaArgsLayouts[layout].native();
+      auto desclayout = allResources().shaArgsLayouts[binding.layout()].native();
       auto set = m_descriptors.allocate(native(), desclayout, 1)[0];
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);

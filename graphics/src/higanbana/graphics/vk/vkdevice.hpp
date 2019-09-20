@@ -137,7 +137,7 @@ namespace higanbana
       void createTextureView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& desc, ShaderViewDescriptor& viewDesc) override;
 
       void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) override;
-      void createShaderArguments(ResourceHandle handle, ResourceHandle layout, ShaderArgumentsDescriptor& binding) override;
+      void createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding) override;
 
       std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
 

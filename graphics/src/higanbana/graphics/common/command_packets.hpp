@@ -118,6 +118,7 @@ namespace higanbana
       BindingType graphicsBinding;
       backend::PacketVectorHeader<uint8_t> constants;
       backend::PacketVectorHeader<ResourceHandle> resources;
+      backend::PacketVectorHeader<ViewResourceHandle> allResources;
 
       static constexpr const backend::PacketType type = backend::PacketType::ResourceBinding;
       static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
@@ -131,6 +132,23 @@ namespace higanbana
         for (int i = 0; i < views.size(); ++i)
         {
           spn2[i] = views[i].handle();
+        }
+
+        int allResourceCount = 0;
+        for (int i = 0; i < views.size(); ++i)
+        {
+          allResourceCount += views[i].allViews();
+        }
+
+        packet = buffer.allocateElements<ViewResourceHandle>(packet->allResources, allResourceCount, packet);
+        auto spn3 = packet->allResources.convertToMemView();
+        int k = 0;
+        for (int i = 0; i < views.size(); ++i)
+        {
+          for (auto&& view : views[i].allViews())
+          {
+            spn3[k++] = view;
+          }
         }
       }
     };

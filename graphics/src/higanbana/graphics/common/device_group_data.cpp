@@ -8,6 +8,7 @@
 #include "higanbana/graphics/common/pipeline.hpp"
 #include "higanbana/graphics/common/commandgraph.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
+#include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 
 #include <higanbana/core/math/utils.hpp>
@@ -611,7 +612,7 @@ namespace higanbana
       {
         vdev.device->createShaderArguments(handle, binding);
       }
-      return ShaderArguments(sharedHandle(handle));
+      return ShaderArguments(sharedHandle(handle), binding.bResources());
     }
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
@@ -761,7 +762,7 @@ namespace higanbana
             {
               usedDrawIndex = drawIndexBeginRenderpass;
             }
-            for (auto&& resource : packet.resources.convertToMemView())
+            for (auto&& resource : packet.allResources.convertToMemView())
             {
               if (resource.type == ViewResourceType::BufferSRV)
               {

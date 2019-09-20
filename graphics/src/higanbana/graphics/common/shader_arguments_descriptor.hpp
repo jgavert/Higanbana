@@ -12,20 +12,27 @@ namespace higanbana
 {
   class ShaderArgumentsDescriptor 
   {
+    ResourceHandle m_layout;
     vector<ShaderResource> m_resources;
     vector<ViewResourceHandle> m_handles;
 
   public:
     ShaderArgumentsDescriptor(ShaderArgumentsLayout layout)
-    : m_resources(layout.resources())
+    : m_layout(layout.handle())
+    , m_resources(layout.resources())
     , m_handles(m_resources.size())
     {
 
     }
 
-    MemView<ViewResourceHandle> bResources()
+    ResourceHandle layout()
     {
-      return MemView<ViewResourceHandle>(m_handles);
+      return m_layout;
+    }
+
+    const vector<ViewResourceHandle>& bResources() const
+    {
+      return m_handles;
     }
 
     void bind(const char* name, const DynamicBufferView& res)
