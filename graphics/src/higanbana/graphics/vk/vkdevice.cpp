@@ -2277,7 +2277,6 @@ namespace higanbana
         {
           seqTracker->complete(seqNumber);
         }
-        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
           m_constantAllocators->release(constant);
@@ -2299,7 +2298,6 @@ namespace higanbana
         {
           seqTracker->complete(seqNumber);
         }
-        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
           m_constantAllocators->release(constant);
@@ -2321,7 +2319,6 @@ namespace higanbana
         {
           seqTracker->complete(seqNumber);
         }
-        m_descriptors.freeSets(m_device, makeMemView(buffer->freeableDescriptors()));
         for (auto&& constant : buffer->freeableConstants())
         {
           m_constantAllocators->release(constant);

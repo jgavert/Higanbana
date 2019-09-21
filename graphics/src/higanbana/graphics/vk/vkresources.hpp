@@ -1025,10 +1025,10 @@ namespace higanbana
       std::shared_ptr<VulkanCommandList> m_list;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
       VulkanDescriptorPool m_descriptors;
-      vector<vk::DescriptorSet> m_allocatedSets;
       std::shared_ptr<VulkanConstantUploadHeap> m_constants;
       vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
+      vector<vk::DescriptorSet> m_tempSets;
 
       VkUploadLinearAllocator m_constantsAllocator;
 
@@ -1049,11 +1049,6 @@ namespace higanbana
       vk::CommandBuffer list()
       {
         return m_list->list();
-      }
-
-      vector<vk::DescriptorSet>& freeableDescriptors()
-      {
-        return m_allocatedSets;
       }
       vector<VkUploadBlock>& freeableConstants()
       {
