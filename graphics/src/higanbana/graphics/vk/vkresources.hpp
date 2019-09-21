@@ -280,6 +280,11 @@ namespace higanbana
         return deviceMem;
       }
 
+      explicit operator bool()
+      {
+        return resource && (isDedicatedAllocation == ((bool)deviceMem));
+      }
+
       bool hasDedicatedMemory() const
       {
         return isDedicatedAllocation;
@@ -323,6 +328,11 @@ namespace higanbana
       Info& native()
       {
         return m;
+      }
+
+      explicit operator bool()
+      {
+        return m.view;
       }
 
       vk::ImageSubresourceRange range()
@@ -375,6 +385,11 @@ namespace higanbana
       {
         return memory;
       }
+
+      explicit operator bool()
+      {
+        return resource && (sharedMemory == ((bool)memory));
+      }
     };
 
     class VulkanBufferView
@@ -399,6 +414,10 @@ namespace higanbana
       Info& native()
       {
         return m;
+      }
+      explicit operator bool()
+      {
+        return m.view;
       }
     };
 
@@ -481,6 +500,11 @@ namespace higanbana
       {
         return m;
       }
+
+      explicit operator bool()
+      {
+        return m.buffer;
+      }
 /*
       int rowPitch() override
       {
@@ -533,6 +557,11 @@ namespace higanbana
       {
         return m_size;
       }
+
+      explicit operator bool()
+      {
+        return m_memory || m_buffer;
+      }
     };
 
     class VulkanHeap
@@ -550,6 +579,10 @@ namespace higanbana
       {
         return m_resource;
       }
+      explicit operator bool()
+      {
+        return m_resource;
+      }
     };
 
     class VulkanShaderArgumentsLayout
@@ -564,6 +597,10 @@ namespace higanbana
       {}
 
       vk::DescriptorSetLayout native()
+      {
+        return m_resource;
+      }
+      explicit operator bool()
       {
         return m_resource;
       }
@@ -619,6 +656,11 @@ namespace higanbana
         , m_pipelineLayout(pipelineLayout)
         , m_computeDesc(computeDesc)
       {}
+      
+      explicit operator bool()
+      {
+        return m_pipelineLayout || m_pipeline;
+      }
     };
 
     class VulkanRenderpass
@@ -643,6 +685,11 @@ namespace higanbana
       }
 
       vk::RenderPass& native()
+      {
+        return m_renderpass;
+      }
+
+      explicit operator bool()
       {
         return m_renderpass;
       }
@@ -890,6 +937,11 @@ namespace higanbana
       {
         return pool;
       }
+
+      explicit operator bool()
+      {
+        return pool;
+      }
     };
 
     class VulkanShaderArguments
@@ -901,6 +953,10 @@ namespace higanbana
         : m_set(set)
       {}
       vk::DescriptorSet native()
+      {
+        return m_set;
+      }
+      explicit operator bool()
       {
         return m_set;
       }

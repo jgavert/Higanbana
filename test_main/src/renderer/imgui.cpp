@@ -103,7 +103,7 @@ namespace app
       constants.reciprocalResolution = math::div(float2{ 1.f, 1.f }, float2{ float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) });
       binding.constants(constants);
       //binding.bind("tex", fontatlasSrv);
-      auto bindArgs = ShaderArgumentsDescriptor(argsLayout);
+      auto bindArgs = ShaderArgumentsDescriptor("IMGui descriptors", argsLayout);
       bindArgs.bind("tex", fontatlasSrv);
 
       for (int i = 0; i < drawData->CmdListsCount; ++i)

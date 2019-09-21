@@ -12,17 +12,24 @@ namespace higanbana
 {
   class ShaderArgumentsDescriptor 
   {
+    std::string m_name;
     ResourceHandle m_layout;
     vector<ShaderResource> m_resources;
     vector<ViewResourceHandle> m_handles;
 
   public:
-    ShaderArgumentsDescriptor(ShaderArgumentsLayout layout)
-    : m_layout(layout.handle())
+    ShaderArgumentsDescriptor(std::string name, ShaderArgumentsLayout layout)
+    : m_name(name)
+    , m_layout(layout.handle())
     , m_resources(layout.resources())
     , m_handles(m_resources.size())
     {
 
+    }
+
+    std::string name()
+    {
+      return m_name;
     }
 
     ResourceHandle layout()

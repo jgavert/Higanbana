@@ -6,7 +6,7 @@ cc_binary(
           "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
         }),
-        defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE", "VK_USE_PLATFORM_WIN32_KHR"],
+        defines = ["_WIN64"],
         linkopts = select({
         "@bazel_tools//src/conditions:windows": ["/subsystem:WINDOWS"],
         "//conditions:default": [""],

@@ -95,5 +95,18 @@
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
-    "editor.renderWhitespace": "boundary"
+    "editor.renderWhitespace": "boundary",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.windowsSdkVersion": "10.0.18362.0",
+    "C_Cpp.experimentalFeatures": "Enabled",
+    "C_Cpp.updateChannel": "Insiders",
+    "files.exclude": {
+        "bazel*": true
+    },
+    "files.watcherExclude": {
+        "bazel*": true
+    },
+    "search.exclude": {
+        "bazel*": true
+    }
 }

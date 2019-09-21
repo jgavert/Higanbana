@@ -95,6 +95,19 @@ namespace higanbana
 
       vk::Device native() { return m_device; }
 
+      template<typename VulkanObject>
+      void setDebugUtilsObjectNameEXT(VulkanObject obj, const char* name)
+      {
+        if (m_dynamicDispatch.vkSetDebugUtilsObjectNameEXT)
+        {
+          m_device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT()
+          .setObjectType(VulkanObject::objectType)
+          .setObjectHandle((uint64_t)(static_cast<typename VulkanObject::CType>(obj)))
+          .setPObjectName(name)
+            , m_dynamicDispatch);
+        }
+      }
+
       vk::DescriptorSetLayout defaultDescLayout() { return m_defaultDescriptorLayout.native(); }
 
       vk::DispatchLoaderDynamic dispatcher() { return m_dynamicDispatch; }

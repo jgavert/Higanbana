@@ -507,9 +507,7 @@ namespace higanbana
 
       /////////////////// DESCRIPTORS ////////////////////////////////
       // aim for total 512k single descriptors
-      constexpr const int singleDescriptors = 10240; 
-
-      constexpr const int totalDrawCalls = 10240;
+      constexpr const int totalDrawCalls = 131072; // 2^17
       constexpr const int samplers = totalDrawCalls*4; // 4 samplers always bound, lazy
       constexpr const int dynamicUniform = totalDrawCalls;
       constexpr const int uav = totalDrawCalls * 4; // support average of 4 uavs per drawcall... could be less :D
@@ -527,7 +525,7 @@ namespace higanbana
 
 
       auto poolRes = m_device.createDescriptorPool(vk::DescriptorPoolCreateInfo()
-        .setMaxSets(10240)
+        .setMaxSets(totalDrawCalls)
         .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
         .setPoolSizeCount(dps.size())
         .setPPoolSizes(dps.data()));
@@ -552,6 +550,96 @@ namespace higanbana
     VulkanDevice::~VulkanDevice()
     {
       m_device.waitIdle();
+      // Clear all user resources nicely
+      // descriptorSets
+      for (auto&& arg : m_allRes.shaArgs.view()) {
+        if (arg) {
+          auto set = arg.native();
+          m_descriptors.freeSets(m_device, makeMemView(set));
+        }
+      }
+      // descriptors
+      for (auto&& view : m_allRes.dynBuf.view()) {
+        if (view) {
+          auto nat = view.native();
+          if (nat.type == vk::DescriptorType::eUniformTexelBuffer) {
+            m_device.destroyBufferView(nat.texelView);
+          }
+        }
+      }
+      for (auto&& view : m_allRes.bufSRV.view()) {
+        if (view) {
+          auto nat = view.native();
+          if (nat.type == vk::DescriptorType::eUniformTexelBuffer) {
+            m_device.destroyBufferView(nat.view);
+          }
+        }
+      }
+      for (auto&& view : m_allRes.bufUAV.view()) {
+        if (view) {
+          auto nat = view.native();
+          if (nat.type == vk::DescriptorType::eStorageTexelBuffer) {
+            m_device.destroyBufferView(nat.view);
+          }
+        }
+      }
+      for (auto&& view : m_allRes.texSRV.view()) {
+        if (auto nat = view.native().view) {
+          m_device.destroyImageView(nat);
+        }
+      }
+      for (auto&& view : m_allRes.texUAV.view()) {
+        if (auto nat = view.native().view) {
+          m_device.destroyImageView(nat);
+        }
+      }
+      for (auto&& view : m_allRes.texRTV.view()) {
+        if (auto nat = view.native().view) {
+          m_device.destroyImageView(nat);
+        }
+      }
+      for (auto&& view : m_allRes.texDSV.view()) {
+        if (auto nat = view.native().view) {
+          m_device.destroyImageView(nat);
+        }
+      }
+      // resources
+      for (auto&& res : m_allRes.tex.view()) {
+        if (res.canRelease()) {
+          if (res.native())
+            m_device.destroyImage(res.native());
+          if (res.memory())
+            m_device.freeMemory(res.memory());
+        }
+      }
+      for (auto&& res : m_allRes.buf.view()) {
+        if (res.native()) {
+          m_device.destroyBuffer(res.native());
+        }
+      }
+      for (auto&& res : m_allRes.rbBuf.view()) {
+        if (res.native())
+          m_device.destroyBuffer(res.native());
+        if (res.memory())
+          m_device.freeMemory(res.memory());
+      }
+      for (auto&& pipe : m_allRes.pipelines.view()) {
+        if (pipe) {
+          m_device.destroyPipeline(pipe.m_pipeline);
+          m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
+        }
+      }
+      for (auto&& memory : m_allRes.heaps.view()) {
+        if (memory) {
+          m_device.freeMemory(memory.native());
+        }
+      }
+      for (auto&& layout : m_allRes.shaArgsLayouts.view()) {
+        if (layout) {
+          m_device.destroyDescriptorSetLayout(layout.native());
+        }
+      }
+      // clear our system resources
       m_fences.clear();
       m_semaphores.clear();
       m_copyListPool.clear();
@@ -1118,6 +1206,9 @@ namespace higanbana
 
       auto compiled = m_device.createGraphicsPipeline(nullptr, pipelineInfo);
       VK_CHECK_RESULT(compiled);
+
+      setDebugUtilsObjectNameEXT(compiled.value, desc.desc.pixelShaderPath.c_str());
+
       for (auto&& it : shaders)
       {
         m_device.destroyShaderModule(it.module);
@@ -1165,6 +1256,8 @@ namespace higanbana
       auto result = m_device.createComputePipeline(nullptr, pipelineDesc);
       m_device.destroyShaderModule(smodule.value);
 
+      setDebugUtilsObjectNameEXT(result.value, pipe.m_computeDesc.shader());
+
       std::optional<vk::Pipeline> oldPipe;
       if (result.result == vk::Result::eSuccess)
       {
@@ -1192,6 +1285,8 @@ namespace higanbana
         .setPSetLayouts(layouts.data()));
       VK_CHECK_RESULT(pipelineLayout);
 
+      setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.pixelShaderPath.c_str());
+
       m_allRes.pipelines[handle] = VulkanPipeline(pipelineLayout.value, desc);
     }
 
@@ -1208,6 +1303,8 @@ namespace higanbana
         .setSetLayoutCount(layouts.size())
         .setPSetLayouts(layouts.data()));
       VK_CHECK_RESULT(pipelineLayout);
+
+      setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.shader());
 
       m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc);
     }
@@ -1873,6 +1970,7 @@ namespace higanbana
 
       auto setlayout = m_device.createDescriptorSetLayout(info);
       VK_CHECK_RESULT(setlayout);
+      setDebugUtilsObjectNameEXT(setlayout.value, "some layout");
       m_allRes.shaArgsLayouts[handle] = VulkanShaderArgumentsLayout(setlayout.value);
     }
 
@@ -1880,6 +1978,7 @@ namespace higanbana
     {
       auto desclayout = allResources().shaArgsLayouts[binding.layout()].native();
       auto set = m_descriptors.allocate(native(), desclayout, 1)[0];
+      setDebugUtilsObjectNameEXT(set, binding.name().c_str());
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);
 

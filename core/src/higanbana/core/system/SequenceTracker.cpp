@@ -116,6 +116,6 @@ namespace higanbana
         return base + i - 1;
       }
     }
-    return base + BitfieldBlockSize;
+    return base + BitfieldBlockSize-1;
   }
 };

@@ -21,5 +21,6 @@ cc_library(
           "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
+  defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE","_WIN64"],
   visibility = ["//visibility:public"], 
 )

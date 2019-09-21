@@ -111,7 +111,7 @@ namespace app
     opaqueRP = dev.createRenderpass();
 
     depth = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(uint2(1278, 712))
+      .setSize(uint2(1280, 720))
       .setFormat(FormatType::Depth32)
       .setUsage(ResourceUsage::DepthStencil)
       .setName("opaqueDepth"));
@@ -242,7 +242,7 @@ namespace app
     {
       auto node = tasks.createPass("generate Texture");
 
-      auto bindArgs = ShaderArgumentsDescriptor(compLayout);
+      auto bindArgs = ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout);
       bindArgs.bind("output", proxyTex.uav());
       auto args = dev.createShaderArguments(bindArgs);
 
@@ -294,7 +294,7 @@ namespace app
           3.0f, -1.0f};
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
 
-        auto bindArgs = ShaderArgumentsDescriptor(blitLayout);
+        auto bindArgs = ShaderArgumentsDescriptor("blit descriptors", blitLayout);
         bindArgs.bind("vertexInput", vert);
         bindArgs.bind("texInput", proxyTex.srv());
         auto args = dev.createShaderArguments(bindArgs);
@@ -363,13 +363,13 @@ namespace app
         consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
         consts.viewMat = perspective;
         binding.constants(consts);
-        auto bindArgs = ShaderArgumentsDescriptor(triangleLayout);
+        auto bindArgs = ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout);
         bindArgs.bind("vertexInput", vert);
         auto args = dev.createShaderArguments(bindArgs);
         binding.bind(0, args);
 
         //node.drawIndexed(binding, ind, 36);
-        int gridSize = 10;
+        int gridSize = 8;
         for (int x = 0; x < gridSize; ++x)
         {
           for (int y = 0; y < gridSize; ++y)
