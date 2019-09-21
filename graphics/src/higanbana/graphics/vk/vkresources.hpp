@@ -612,6 +612,7 @@ namespace higanbana
       vk::Pipeline            m_pipeline;
       bool                    m_hasPipeline;
       vk::PipelineLayout      m_pipelineLayout;
+      vk::DescriptorSet       m_staticSet;
       GraphicsPipelineDescriptor m_gfxDesc;
       ComputePipelineDescriptor m_computeDesc;
 
@@ -638,28 +639,31 @@ namespace higanbana
 
       VulkanPipeline() {}
 
-      VulkanPipeline(vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc)
+      VulkanPipeline(vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc, vk::DescriptorSet set)
         : m_hasPipeline(false)
         , m_pipelineLayout(pipelineLayout)
+        , m_staticSet(set)
         , m_gfxDesc(gfxDesc)
       {}
 
-      VulkanPipeline(vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
+      VulkanPipeline(vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc, vk::DescriptorSet set)
         : m_hasPipeline(false)
         , m_pipelineLayout(pipelineLayout)
+        , m_staticSet(set)
         , m_computeDesc(computeDesc)
       {}
 
-      VulkanPipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc)
+      VulkanPipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc, vk::DescriptorSet set)
         : m_pipeline(pipeline)
         , m_hasPipeline(true)
         , m_pipelineLayout(pipelineLayout)
+        , m_staticSet(set)
         , m_computeDesc(computeDesc)
       {}
       
       explicit operator bool()
       {
-        return m_pipelineLayout || m_pipeline;
+        return m_pipelineLayout || m_pipeline || m_staticSet;
       }
     };
 
@@ -876,6 +880,11 @@ namespace higanbana
       void release(VkUploadBlock desc)
       {
         allocator.release(desc.block);
+      }
+
+      vk::Buffer buffer()
+      {
+        return m_buffer;
       }
     };
 

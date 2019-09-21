@@ -296,8 +296,8 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256*64, 512)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 2024)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
 //      , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
@@ -627,6 +627,7 @@ namespace higanbana
         if (pipe) {
           m_device.destroyPipeline(pipe.m_pipeline);
           m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
+          m_descriptors.freeSets(m_device, makeMemView(pipe.m_staticSet));
         }
       }
       for (auto&& memory : m_allRes.heaps.view()) {
@@ -1287,7 +1288,24 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.pixelShaderPath.c_str());
 
-      m_allRes.pipelines[handle] = VulkanPipeline(pipelineLayout.value, desc);
+      auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(m_constantAllocators->buffer())
+        .setOffset(0)
+        .setRange(1024);
+
+      int index = 0;
+      vk::WriteDescriptorSet wds = vk::WriteDescriptorSet()
+        .setDstSet(set[0])
+        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+        .setDescriptorCount(1)
+        .setPBufferInfo(&info)
+        .setDstBinding(0);
+
+      m_device.updateDescriptorSets({wds}, {});
+
+      m_allRes.pipelines[handle] = VulkanPipeline(pipelineLayout.value, desc, set[0]);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
@@ -1306,7 +1324,24 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.shader());
 
-      m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc);
+      auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
+
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(m_constantAllocators->buffer())
+        .setOffset(0)
+        .setRange(1024);
+
+      int index = 0;
+      vk::WriteDescriptorSet wds = vk::WriteDescriptorSet()
+        .setDstSet(set[0])
+        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+        .setDescriptorCount(1)
+        .setPBufferInfo(&info)
+        .setDstBinding(0);
+
+      m_device.updateDescriptorSets({wds}, {});
+
+      m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc, set[0]);
     }
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::defaultSetLayoutBindings(vk::ShaderStageFlags flags)
@@ -1420,6 +1455,7 @@ namespace higanbana
         {
           m_device.destroyPipeline(m_allRes.pipelines[handle].m_pipeline);
           m_device.destroyPipelineLayout(m_allRes.pipelines[handle].m_pipelineLayout);
+          m_descriptors.freeSets(m_device, makeMemView(m_allRes.pipelines[handle].m_staticSet));
           m_allRes.pipelines[handle] = VulkanPipeline();
           break;
         }

@@ -348,30 +348,14 @@ namespace higanbana
       // build... DescriptorSet... I need the pipeline
       auto defaultDescLayout = device->defaultDescLayout();
       auto layout = device->allResources().pipelines[pipeline].m_pipelineLayout;
-      auto set = m_descriptors.allocate(device->native(), defaultDescLayout, 1)[0];
-      m_allocatedSets.push_back(set);
+      auto set = device->allResources().pipelines[pipeline].m_staticSet;
 
       vector<vk::WriteDescriptorSet> writeDescriptors;
 
       auto pconstants = packet.constants.convertToMemView();
       auto block = allocateConstants(pconstants.size());
+      HIGAN_ASSERT(block.block.size <= 1024, "Constants larger than 1024bytes not supported...");
       memcpy(block.data(), pconstants.data(), pconstants.size());
-
-      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
-        .setBuffer(block.buffer())
-        .setOffset(0)
-        .setRange(block.size());
-
-      int index = 0;
-      writeDescriptors.emplace_back(vk::WriteDescriptorSet()
-        .setDstSet(set)
-        .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
-        .setDescriptorCount(1)
-        .setPBufferInfo(&info)
-        .setDstBinding(index++));
-
-      vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
-      device->native().updateDescriptorSets(writes, {});
 
       vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eGraphics;
       if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Compute)
