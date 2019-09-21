@@ -6,21 +6,16 @@ namespace higanbana
   {
     int BarrierSolver::addDrawCall()
     {
-      //auto index = m_drawCallStage.size();
-      //m_drawCallStage.push_back(baseFlags);
       return drawCallsAdded++; 
     }
     void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
-      //m_bufferStates[buffer].state = ResourceState( backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0);
       m_bufferCache[buffer.resource].state = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::General, m_bufferStates[buffer.resource].queue_index);
       m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access});
       m_uniqueBuffers.insert(buffer.resource);
     }
     void BarrierSolver::addTexture(int drawCallIndex, ViewResourceHandle texture, ResourceState access)
     {
-      //m_textureStates[buffer] = ResourceState( backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, 0);
-      //m_imageCache[texture].states.resize(m_textureStates[texture.resource].states.size());
       m_imageCache[texture.resource].states = m_textureStates[texture.resource].states;
       m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access});
       m_uniqueTextures.insert(texture.resource);
@@ -30,6 +25,7 @@ namespace higanbana
       m_jobs.clear();
       m_bufferCache.clear();
       m_imageCache.clear();
+      m_drawBarries.clear();
     }
 
     void BarrierSolver::makeAllBarriers()
@@ -41,13 +37,19 @@ namespace higanbana
 
       int drawIndex = -1;
 
+      BarrierInfo currentInfo{};
+
       while (jobIndex < jobsSize)
       {
         int draw = m_jobs[jobIndex].drawIndex;
-        for (int skippedDraw = drawIndex; skippedDraw < draw; ++skippedDraw)
+        if (currentInfo.bufferOffset != bufferBarrierOffsets || currentInfo.imageOffset != imageBarrierOffsets)
         {
-          m_barrierOffsets.emplace_back(bufferBarrierOffsets);
-          m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
+          currentInfo.bufferCount = bufferBarrierOffsets - currentInfo.bufferOffset;
+          currentInfo.imageCount = imageBarrierOffsets - currentInfo.imageOffset;
+          currentInfo.drawcall = drawIndex;
+          m_drawBarries.push_back(currentInfo);
+          currentInfo.bufferOffset = bufferBarrierOffsets;
+          currentInfo.imageOffset = imageBarrierOffsets;
         }
         drawIndex = draw;
 
@@ -214,10 +216,12 @@ namespace higanbana
           ++jobIndex;
         }
       }
-      for (int skippedDraw = drawIndex; skippedDraw < drawCallsAdded; ++skippedDraw)
+      if (currentInfo.bufferOffset != bufferBarrierOffsets || currentInfo.imageOffset != imageBarrierOffsets)
       {
-        m_barrierOffsets.emplace_back(bufferBarrierOffsets);
-        m_imageBarrierOffsets.emplace_back(imageBarrierOffsets);
+        currentInfo.bufferCount = bufferBarrierOffsets - currentInfo.bufferOffset;
+        currentInfo.imageCount = imageBarrierOffsets - currentInfo.imageOffset;
+        currentInfo.drawcall = drawIndex;
+        m_drawBarries.push_back(currentInfo);
       }
 
       // update global state
@@ -237,28 +241,13 @@ namespace higanbana
         }
       }
     }
-    /*
-    bool BarrierSolver::hasBarrier(int drawCall)
-    {
-      auto bufferOffset = m_barrierOffsets[drawCall];
-      auto bufferSize = m_barrierOffsets[drawCall + 1] - bufferOffset;
-      auto imageOffset = m_imageBarrierOffsets[drawCall];
-      auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
 
-      return bufferSize > 0 || imageSize > 0;
-    }*/
-
-    MemoryBarriers BarrierSolver::runBarrier(int drawCall)
+    MemoryBarriers BarrierSolver::runBarrier(const BarrierInfo& drawCall)
     {
       MemoryBarriers barrier;
 
-      auto bufferOffset = m_barrierOffsets[drawCall];
-      auto bufferSize = m_barrierOffsets[drawCall + 1] - bufferOffset;
-      auto imageOffset = m_imageBarrierOffsets[drawCall];
-      auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
-
-      barrier.buffers = MemView<BufferBarrier>(bufferBarriers.data()+bufferOffset, bufferSize);
-      barrier.textures = MemView<ImageBarrier>(imageBarriers.data()+imageOffset, imageSize);
+      barrier.buffers = MemView<BufferBarrier>(bufferBarriers.data()+drawCall.bufferOffset, drawCall.bufferCount);
+      barrier.textures = MemView<ImageBarrier>(imageBarriers.data()+drawCall.imageOffset, drawCall.imageCount);
 
       return barrier;
     }

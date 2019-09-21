@@ -13,6 +13,15 @@ namespace higanbana
       MemView<ImageBarrier> textures;
     };
 
+    struct BarrierInfo
+    {
+      int drawcall;
+      int bufferOffset;
+      int bufferCount;
+      int imageOffset;
+      int imageCount;
+    };
+
     class BarrierSolver 
     {
     private:
@@ -28,7 +37,6 @@ namespace higanbana
       // general info needed
       unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
 
-      //vector<backend::AccessStage> m_drawCallStage;
       int drawCallsAdded = 0;
 
       // global state tables
@@ -57,9 +65,8 @@ namespace higanbana
       //};
       //vector<WriteCall> m_cacheWrites;
       //vector<int> m_readRes;
+      vector<BarrierInfo> m_drawBarries;
 
-      vector<int> m_barrierOffsets;
-      vector<int> m_imageBarrierOffsets;
       vector<BufferBarrier> bufferBarriers;
       vector<ImageBarrier> imageBarriers;
 
@@ -93,21 +100,13 @@ namespace higanbana
       // void resolveGraph(); //... hmm, not implementing for now.
       // void printStuff(std::function<void(std::string)> func);
       void makeAllBarriers();
-      MemoryBarriers runBarrier(int drawCall);
       void reset();
 
-      inline bool hasBarrier(int drawCall)
+      MemoryBarriers runBarrier(const BarrierInfo& drawCall);
+      vector<BarrierInfo>& barrierInfos()
       {
-        auto bufferOffset = m_barrierOffsets[drawCall];
-        auto bufferSize = m_barrierOffsets[drawCall + 1] - bufferOffset;
-        auto imageOffset = m_imageBarrierOffsets[drawCall];
-        auto imageSize = m_imageBarrierOffsets[drawCall + 1] - imageOffset;
-
-        return bufferSize > 0 || imageSize > 0;
+        return m_drawBarries;
       }
-
-    private:
-      //UsageHint getUsageFromAccessFlags(vk::AccessFlags flags);
     };
   }
 }

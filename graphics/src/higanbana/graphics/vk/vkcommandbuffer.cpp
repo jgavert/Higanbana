@@ -589,11 +589,17 @@ namespace higanbana
       ResourceHandle boundPipeline;
       std::string currentBlock;
       bool beganLabel = false;
+      auto barrierInfoIndex = 0;
+      auto& barrierInfos = solver.barrierInfos();
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
         //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
-        addBarrier(device, buffer, solver.runBarrier(drawIndex));
+        if (barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        {
+          addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
+          barrierInfoIndex++;
+        }
         switch (header->type)
         {
           //        case CommandPacket::PacketType::BufferCopy:

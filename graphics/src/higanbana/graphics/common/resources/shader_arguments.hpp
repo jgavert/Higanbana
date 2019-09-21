@@ -59,11 +59,10 @@ namespace higanbana
     std::shared_ptr<ResourceHandle> m_id;
     std::shared_ptr<DynamicBitfield> m_referencedBuffers;
     std::shared_ptr<DynamicBitfield> m_referencedTextures;
-    std::shared_ptr<vector<ViewResourceHandle>> m_resources;
 
-    void addMemview()
+    void addMemview(const vector<ViewResourceHandle>& m_resources)
     {
-      for (auto&& view : *m_resources)
+      for (auto&& view : m_resources)
       {
         switch (view.type)
         {
@@ -92,7 +91,6 @@ namespace higanbana
       : m_id(std::make_shared<ResourceHandle>())
       , m_referencedBuffers(std::make_shared<DynamicBitfield>())
       , m_referencedTextures(std::make_shared<DynamicBitfield>())
-      , m_resources(std::make_shared<vector<ViewResourceHandle>>())
     {
     }
 
@@ -105,13 +103,12 @@ namespace higanbana
     {
     }
 
-    ShaderArguments(std::shared_ptr<ResourceHandle> id, vector<ViewResourceHandle> views)
+    ShaderArguments(std::shared_ptr<ResourceHandle> id, const vector<ViewResourceHandle>& views)
       : m_id(id)
       , m_referencedBuffers(std::make_shared<DynamicBitfield>())
       , m_referencedTextures(std::make_shared<DynamicBitfield>())
-      , m_resources(std::make_shared<vector<ViewResourceHandle>>(views))
     {
-      addMemview();
+      addMemview(views);
     }
 
     const DynamicBitfield& refBuffers() const
@@ -122,11 +119,6 @@ namespace higanbana
     const DynamicBitfield& refTextures() const
     {
       return *m_referencedTextures;
-    }
-
-    MemView<ViewResourceHandle> allViews() const
-    {
-      return *m_resources;
     }
 
     ResourceHandle handle() const

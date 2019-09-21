@@ -137,6 +137,7 @@ namespace higanbana
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;
         HandleVector<TextureResourceState> m_textureStates;
+        HandleVector<vector<ViewResourceHandle>> shaderArguments;
         QueueStates qStates;
         std::shared_ptr<SemaphoreImpl> graphicsQSema;
         std::shared_ptr<SemaphoreImpl> computeQSema;

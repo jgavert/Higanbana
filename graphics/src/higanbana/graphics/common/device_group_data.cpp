@@ -611,6 +611,7 @@ namespace higanbana
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->createShaderArguments(handle, binding);
+        vdev.shaderArguments[handle] = binding.bResources();
       }
       return ShaderArguments(sharedHandle(handle), binding.bResources());
     }
@@ -762,23 +763,27 @@ namespace higanbana
             {
               usedDrawIndex = drawIndexBeginRenderpass;
             }
-            for (auto&& resource : packet.allResources.convertToMemView())
+            for (auto&& handle : packet.resources.convertToMemView())
             {
-              if (resource.type == ViewResourceType::BufferSRV)
+              const auto& views = vdev.shaderArguments[handle];
+              for (auto&& resource : views)
               {
-                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
-              }
-              else if (resource.type == ViewResourceType::BufferUAV)
-              {
-                solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
-              }
-              else if (resource.type == ViewResourceType::TextureSRV)
-              {
-                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
-              }
-              else if (resource.type == ViewResourceType::TextureUAV)
-              {
-                solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                if (resource.type == ViewResourceType::BufferSRV)
+                {
+                  solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
+                }
+                else if (resource.type == ViewResourceType::BufferUAV)
+                {
+                  solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
+                }
+                else if (resource.type == ViewResourceType::TextureSRV)
+                {
+                  solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
+                }
+                else if (resource.type == ViewResourceType::TextureUAV)
+                {
+                  solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                }
               }
             }
             break;
@@ -1020,7 +1025,7 @@ namespace higanbana
 
           PreparedCommandlist plist{};
           plist.type = firstList->type;
-          plist.list.list = std::move(nodes[i].list.list);
+          plist.list.list = std::move(nodes[i].list->list);
           //plist.list.list.append(nodes[i].list.list);
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
@@ -1042,7 +1047,7 @@ namespace higanbana
           {
             if (nodes[i].type != plist.type)// || nodes[i].list.list.sizeBytes() > 1024)
               break;
-            plist.list.list.append(nodes[i].list.list);
+            plist.list.list.append(nodes[i].list->list);
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
             plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
             plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());

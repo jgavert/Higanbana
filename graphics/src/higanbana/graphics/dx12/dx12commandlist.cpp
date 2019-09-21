@@ -954,6 +954,9 @@ namespace higanbana
       ResourceHandle boundPipeline;
       std::string currentBlock;
 
+      auto barrierInfoIndex = 0;
+      auto& barrierInfos = solver.barrierInfos();
+
       DX12Query timestamp;
 
       if (!m_buffer->dma())
@@ -966,8 +969,11 @@ namespace higanbana
       {
         auto* header = *iter;
         //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
-        if (solver.hasBarrier(drawIndex))
-          addBarrier(device, buffer, solver.runBarrier(drawIndex));
+        if (barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        {
+          addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
+          barrierInfoIndex++;
+        }
         switch (header->type)
         {
         case PacketType::RenderBlock:
@@ -1173,17 +1179,6 @@ namespace higanbana
       DX12Device* dev = static_cast<DX12Device*>(device.get());
       processRenderpasses(dev, buffer);
       addCommands(dev, m_buffer->list(), buffer, solver);
-#if 0
-      addDepedencyDataAndSolve(m_buffer->solver(), list);
-      processRenderpasses(dev, list);
-      addCommands(dev, m_buffer->list(), m_buffer->solver(), list);
-#elif 0
-      DX12DependencySolver solver;
-      addDepedencyDataAndSolve(&solver, list);
-      processRenderpasses(dev, list);
-      addCommands(dev, m_buffer->list(), &solver, list);
-#endif
-
       m_buffer->closeList();
     }
 

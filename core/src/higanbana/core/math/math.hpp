@@ -600,9 +600,6 @@ namespace higanbana
     template <typename vType, int rows, int cols, int rows2, int cols2>
     inline Matrix<rows, cols2, vType> mul2(Matrix<rows, cols, vType> a, Matrix<rows2, cols2, vType> b)
     {
-      // a = <2, 3>, b = <3, 2>
-      // rows = 2
-      // cols2 = 2
       Matrix<rows, cols2, vType> outResult{};
       for (int i = 0; i < cols2; ++i)
       {
@@ -611,8 +608,6 @@ namespace higanbana
           for (int j = 0; j < rows2; ++j)
           {
             outResult(j, i) += a(k, i) * b(j, k);
-            // i j i k k j
-            //printf("m: y:%d x:%d j:%d %f %f %f\n", y, x, j, outResult(x, y), a(j, x), b(j, y));
           }
         }
       }

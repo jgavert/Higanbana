@@ -22,7 +22,7 @@ namespace higanbana
   class CommandGraphNode
   {
   private:
-    CommandList list;
+    std::shared_ptr<CommandList> list;
     std::string name;
     friend struct backend::DeviceGroupData;
     friend struct CommandGraph;
@@ -80,11 +80,12 @@ namespace higanbana
   public:
     CommandGraphNode() {}
     CommandGraphNode(std::string name, QueueType type, int gpuId)
-      : name(name)
+      : list(std::make_shared<CommandList>())
+      , name(name)
       , type(type)
       , gpuId(gpuId)
     {
-      list.renderTask(name);
+      list->renderTask(name);
       timing.nodeName = name;
       timing.cpuTime.start();
     }
@@ -97,51 +98,51 @@ namespace higanbana
     void clearRT(TextureRTV& rtv, float4 color)
     {
       addViewTex(rtv);
-      list.clearRT(rtv, color);
+      list->clearRT(rtv, color);
     }
 
     void prepareForPresent(TextureRTV& rtv)
     {
-      list.prepareForPresent(rtv);
+      list->prepareForPresent(rtv);
       preparesPresent = true;
     }
 
     void renderpass(Renderpass& pass, TextureRTV& rtv)
     {
       addViewTex(rtv);
-      list.renderpass(pass, {rtv}, {});
+      list->renderpass(pass, {rtv}, {});
     }
 
     void renderpass(Renderpass& pass, TextureRTV& rtv, TextureDSV& dsv)
     {
       addViewTex(rtv);
       addViewTex(dsv);
-      list.renderpass(pass, {rtv}, dsv);
+      list->renderpass(pass, {rtv}, dsv);
     }
 
     void renderpass(Renderpass& pass, TextureDSV& dsv)
     {
       addViewTex(dsv);
-      list.renderpass(pass, {}, dsv);
+      list->renderpass(pass, {}, dsv);
     }
 
     void endRenderpass()
     {
-      list.renderpassEnd();
+      list->renderpassEnd();
     }
 
     // bindings
 
     ShaderArgumentsBinding bind(GraphicsPipeline& pipeline)
     {
-      list.bindPipeline(pipeline);
+      list->bindPipeline(pipeline);
 
       return ShaderArgumentsBinding(pipeline);
     }
 
     ShaderArgumentsBinding bind(ComputePipeline& pipeline)
     {
-      list.bindPipeline(pipeline);
+      list->bindPipeline(pipeline);
       m_currentBaseGroups = pipeline.descriptor.shaderGroups;
 
       return ShaderArgumentsBinding(pipeline);
@@ -149,7 +150,7 @@ namespace higanbana
 
     void setScissor(int2 tl, int2 br)
     {
-      list.setScissorRect(tl, br);
+      list->setScissorRect(tl, br);
     }
 
     // draws/dispatches
@@ -162,9 +163,9 @@ namespace higanbana
       unsigned startInstance = 0)
     {
       addRefArgs(binding.bShaderArguments());
-      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
-      list.draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+      list->draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
     }
 
     void drawIndexed(
@@ -177,9 +178,9 @@ namespace higanbana
       unsigned StartInstanceLocation = 0)
     {
       addRefArgs(binding.bShaderArguments());
-      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
-      list.drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list->drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void drawIndexed(
@@ -192,30 +193,30 @@ namespace higanbana
       unsigned StartInstanceLocation = 0)
     {
       addRefArgs(binding.bShaderArguments());
-      list.bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
-      list.drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      list->drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
     }
 
     void dispatchThreads(
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
-      list.bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(m_currentBaseGroups.x)));
       unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(m_currentBaseGroups.y)));
       unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(m_currentBaseGroups.z)));
       HIGAN_ASSERT(x*y*z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", x, y, z);
-      list.dispatch(uint3(x,y,z));
+      list->dispatch(uint3(x,y,z));
     }
 
     void dispatch(
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
-      list.bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
-      list.dispatch(groups);
+      list->dispatch(groups);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
@@ -223,7 +224,7 @@ namespace higanbana
       m_referencedBuffers.setBit(target.handle().id);
       auto mipDim = calculateMipDim(source.desc().size(), sub.mipLevel);
       Box srcBox(uint3(0), mipDim);
-      list.copy(target, elementOffset, source, sub, srcBox);
+      list->copy(target, elementOffset, source, sub, srcBox);
     }
 
     void copy(Texture target, Texture source)
@@ -246,7 +247,7 @@ namespace higanbana
     {
       m_referencedBuffers.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
-      list.copy(target, 0, source, 0, source.desc().desc.width);
+      list->copy(target, 0, source, 0, source.desc().desc.width);
     }
 
     void copy(Buffer target, uint targetElementOffset, Buffer source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
@@ -257,14 +258,14 @@ namespace higanbana
       }
       m_referencedBuffers.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
-      list.copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
+      list->copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
     }
 
     void copy(Buffer target, DynamicBufferView source)
     {
       auto elements = source.logicalSize() / source.elementSize();
       m_referencedBuffers.setBit(target.handle().id);
-      list.copy(target, 0, source, 0, elements);
+      list->copy(target, 0, source, 0, elements);
     }
 
     void copy(Buffer target, uint targetElementOffset, DynamicBufferView source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
@@ -274,7 +275,7 @@ namespace higanbana
         sourceElementsToCopy = source.logicalSize() / source.elementSize();
       }
       m_referencedBuffers.setBit(target.handle().id);
-      list.copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
+      list->copy(target, targetElementOffset, source, sourceElementOffset, sourceElementsToCopy);
     }
 
     void copy(Texture target, Buffer source, Subresource sub)
@@ -287,7 +288,7 @@ namespace higanbana
     void copy(Texture target, DynamicBufferView source, Subresource sub)
     {
       m_referencedTextures.setBit(target.handle().id);
-      list.updateTexture(target, source, sub.mipLevel, sub.arraySlice);
+      list->updateTexture(target, source, sub.mipLevel, sub.arraySlice);
     }
 
     ReadbackFuture readback(Texture tex, Subresource resource)
@@ -297,7 +298,7 @@ namespace higanbana
       m_referencedTextures.setBit(tex.handle().id);
       auto mipDim = calculateMipDim(tex.desc().size(), resource.mipLevel);
       Box srcBox(uint3(0), mipDim);
-      list.readback(tex, resource, srcBox);
+      list->readback(tex, resource, srcBox);
       return promise.future();
     }
 
@@ -317,7 +318,7 @@ namespace higanbana
         size = buffer.desc().desc.width;
       }
 
-      list.readback(buffer, offset, size);
+      list->readback(buffer, offset, size);
       return promise.future();
     }
 
@@ -326,7 +327,7 @@ namespace higanbana
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
       m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);
-      list.readback(buffer, startElement, size);
+      list->readback(buffer, startElement, size);
       return promise.future();
     }
   };

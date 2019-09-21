@@ -36,7 +36,7 @@ namespace higanbana
 
     MemView<ShaderArguments> bShaderArguments()
     {
-      return MemView<ShaderArguments>(m_arguments);
+      return MemView<ShaderArguments>(m_arguments.data(), m_arguments.size());
     }
 
     template <typename T>

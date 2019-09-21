@@ -87,7 +87,7 @@ namespace higanbana
 
       void doubleSize()
       {
-        auto newSize = m_totalSize * 2;
+        auto newSize = m_totalSize * 4;
         m_data.resize(newSize);
         m_totalSize = newSize;
       }
