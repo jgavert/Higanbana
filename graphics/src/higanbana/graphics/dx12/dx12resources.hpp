@@ -89,6 +89,18 @@ namespace higanbana
       }
     };
 
+    class DX12ShaderArguments
+    {
+      public:
+      DynamicDescriptorBlock descriptorTable;
+      DX12ShaderArguments(){}
+
+      DX12ShaderArguments(DynamicDescriptorBlock block)
+        : descriptorTable(block)
+        {}
+
+    };
+
     class DX12DynamicDescriptorHeap
     {
       FixedSizeAllocator allocator;
@@ -1068,6 +1080,7 @@ namespace higanbana
       HandleVector<DX12DynamicBufferView> dynSRV;
       HandleVector<DX12Pipeline> pipelines;
       HandleVector<DX12Heap> heaps;
+      HandleVector<DX12ShaderArguments> shaArgs;
     };
   }
 }

@@ -5,6 +5,7 @@
 #include "higanbana/graphics/dx12/view_descriptor.hpp"
 #include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/dx12/util/pipeline_helpers.hpp"
+#include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -541,8 +542,13 @@ namespace higanbana
         }
         case ResourceType::ShaderArguments:
         {
-          HIGAN_ASSERT(false, "dealloc descriptors here");
+          m_dynamicGpuDescriptors->release(m_allRes.shaArgs[handle].descriptorTable);
+          m_allRes.shaArgs[handle] = DX12ShaderArguments();
           break;
+        }
+        case ResourceType::ShaderArgumentsLayout:
+        {
+          break; // nothing here
         }
         default:
         {
@@ -1367,14 +1373,59 @@ namespace higanbana
         HIGAN_ASSERT(false, "WTF!");
       }
     }
-    void DX12Device::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
+    void DX12Device::createShaderArgumentsLayout(ResourceHandle, ShaderArgumentsLayoutDescriptor&)
     {
-
+      // nothing to do??
     }
 
     void DX12Device::createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding)
     {
+      vector<D3D12_CPU_DESCRIPTOR_HANDLE> cpudescriptors;
+      auto& ar = allResources();
+      for (auto&& handle : binding.bResources())
+      {
+        switch (handle.type)
+        {
+          case ViewResourceType::BufferSRV:
+          {
+            cpudescriptors.push_back(ar.bufSRV[handle].native().cpu);
+            break;
+          }
+          case ViewResourceType::BufferUAV:
+          {
+            cpudescriptors.push_back(ar.bufUAV[handle].native().cpu);
+            break;
+          }
+          case ViewResourceType::DynamicBufferSRV:
+          {
+            cpudescriptors.push_back(ar.dynSRV[handle].native().cpu);
+            break;
+          }
+          case ViewResourceType::TextureSRV:
+          {
+            cpudescriptors.push_back(ar.texSRV[handle].native().cpu);
+            break;
+          }
+          case ViewResourceType::TextureUAV:
+          {
+            cpudescriptors.push_back(ar.texUAV[handle].native().cpu);
+            break;
+          }
+          default:
+            break;
+        }
+      }
+      auto viewsCount = cpudescriptors.size();
+      auto descriptors = m_dynamicGpuDescriptors->allocate(viewsCount);
+      auto start = descriptors.offset(0);
+      vector<unsigned> cpudescriptorSizes(viewsCount, 1);
+      unsigned destSizes[1] = { viewsCount };
+      m_device->CopyDescriptors(
+        1, &(start.cpu), destSizes,
+        viewsCount, reinterpret_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(cpudescriptors.data()), cpudescriptorSizes.data(),
+        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+      m_allRes.shaArgs[handle] = DX12ShaderArguments(descriptors);
     }
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
