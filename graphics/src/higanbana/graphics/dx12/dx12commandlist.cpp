@@ -956,6 +956,7 @@ namespace higanbana
 
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
+      auto barrierInfosSize = barrierInfos.size();
 
       DX12Query timestamp;
 
@@ -969,7 +970,7 @@ namespace higanbana
       {
         auto* header = *iter;
         //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
-        if (barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
         {
           addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
           barrierInfoIndex++;

@@ -591,11 +591,12 @@ namespace higanbana
       bool beganLabel = false;
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
+      auto barrierInfosSize = barrierInfos.size();
       for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
       {
         auto* header = *iter;
         //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
-        if (barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
         {
           addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
           barrierInfoIndex++;
