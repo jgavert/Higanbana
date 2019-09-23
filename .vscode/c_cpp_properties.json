@@ -12,7 +12,9 @@
                 "${workspaceFolder}/ext/imgui",
                 "${workspaceFolder}/ext/stb",
                 "${workspaceFolder}/ext/cxxopts/include",
-                "C:/VulkanSDK/1.1.121.0/Include",
+                "${workspaceFolder}/ext/rapidjson/include",
+                "${workspaceFolder}/ext/GSL/include",
+                "C:/VulkanSDK/1.1.121.2/Include",
                 "${workspaceFolder}/ext/Catch2/single_include"
             ],
             "defines": [
@@ -21,7 +23,8 @@
                 "_UNICODE",
                 "HIGANBANA_PLATFORM_WINDOWS",
                 "DEBUG",
-                "WIN32"
+                "WIN32",
+                "WIN64"
             ],
             "windowsSdkVersion": "10.0.18368.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",

@@ -4,6 +4,7 @@ cc_library(
     includes = ["stb"],
     visibility = ["//visibility:public"], 
 )
+
 cc_library(
     name = "GSL",
     hdrs = ["GSL/include/gsl/gsl",
@@ -16,6 +17,13 @@ cc_library(
     "GSL/include/gsl/span",
     "GSL/include/gsl/string_span"],
     includes = ["GSL/include"],
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
+    name = "rapidjson",
+    hdrs = glob(["rapidjson/include/**/*.cpp"]),
+    includes = ["rapidjson/include"],
     visibility = ["//visibility:public"], 
 )
 
