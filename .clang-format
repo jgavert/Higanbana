@@ -1,0 +1,9 @@
+﻿---
+BasedOnStyle: Google
+ColumnLimit: '140'
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'true'
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+
+...
