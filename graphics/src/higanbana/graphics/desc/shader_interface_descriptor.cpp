@@ -125,7 +125,7 @@ namespace higanbana
     }
   }
 
-  std::string ShaderInterfaceDescriptor::createInterface()
+  std::string PipelineInterfaceDescriptor::createInterface()
   {
     std::string lol;
     lol += "// This file is generated from code.\n";

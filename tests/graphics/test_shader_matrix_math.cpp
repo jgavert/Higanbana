@@ -18,12 +18,13 @@ SHADER_STRUCT(TestConsts2,
 
 TEST_CASE_METHOD(GraphicsFixture, "verify matrixes end up on gpu correctly") {
 
-  higanbana::ShaderInputDescriptor intrface = ShaderInputDescriptor()
-    .constants<TestConsts>()
-    .readWrite(ShaderResourceType::Buffer, "float", "diff");
+  higanbana::ShaderArgumentsLayout argsLayout = gpu().createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
+    .readWrite(ShaderResourceType::Buffer, "float", "diff"));
 
   auto comp = gpu().createComputePipeline(ComputePipelineDescriptor()
-  .setLayout(intrface)
+  .setInterface(PipelineInterfaceDescriptor()
+    .constants<TestConsts>()
+    .shaderArguments(0, argsLayout))
   .setShader("verify_matrix_upload")
   .setThreadGroups(uint3(1, 1, 1)));
 
@@ -34,6 +35,11 @@ TEST_CASE_METHOD(GraphicsFixture, "verify matrixes end up on gpu correctly") {
 
   auto bufferUAV = gpu().createBufferUAV(buffer);
 
+  auto argsDesc = ShaderArgumentsDescriptor("computeCopyArgs", argsLayout);
+  argsDesc.bind("diff", bufferUAV);
+
+  auto args = gpu().createShaderArguments(argsDesc);
+
   auto refMat = float4x4({16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
 
   auto graph = gpu().createGraph();
@@ -41,7 +47,7 @@ TEST_CASE_METHOD(GraphicsFixture, "verify matrixes end up on gpu correctly") {
   auto node = graph.createPass("computeCopy");
   {
     auto binding = node.bind(comp);
-    binding.bind("diff", bufferUAV);
+    binding.arguments(0, args);
     TestConsts consts{};
     consts.matr = refMat;
     consts.row1 = refMat.row(0);
@@ -98,14 +104,15 @@ TEST_CASE_METHOD(GraphicsFixture, "verify matrixes end up on gpu correctly") {
 // Honestly just documents hlsl code for achieving correct results.
 TEST_CASE_METHOD(GraphicsFixture, "test that gpu multiplication is same as cpu") {
 
-  higanbana::ShaderInputDescriptor intrface = ShaderInputDescriptor()
-    .constants<TestConsts2>()
-    .readWrite(ShaderResourceType::Buffer, "float", "result");
+  higanbana::ShaderArgumentsLayout argsLayout = gpu().createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
+    .readWrite(ShaderResourceType::Buffer, "float", "result"));
 
   auto comp = gpu().createComputePipeline(ComputePipelineDescriptor()
-  .setLayout(intrface)
-  .setShader("matrix_multiplication")
-  .setThreadGroups(uint3(1, 1, 1)));
+    .setInterface(PipelineInterfaceDescriptor()
+      .constants<TestConsts2>()
+      .shaderArguments(0, argsLayout))
+    .setShader("matrix_multiplication")
+    .setThreadGroups(uint3(1, 1, 1)));
 
   auto buffer = gpu().createBuffer(ResourceDescriptor()
     .setFormat(FormatType::Float32)
@@ -121,8 +128,13 @@ TEST_CASE_METHOD(GraphicsFixture, "test that gpu multiplication is same as cpu")
 
   auto node = graph.createPass("computeCopy");
   {
+    auto argsDesc = ShaderArgumentsDescriptor("computeCopyArgs", argsLayout);
+    argsDesc.bind("result", bufferUAV);
+
+    auto args = gpu().createShaderArguments(argsDesc);
+
     auto binding = node.bind(comp);
-    binding.bind("result", bufferUAV);
+    binding.arguments(0, args);
     TestConsts2 consts{};
     consts.matr1 = refMat;
     consts.matr2 = refMat2;

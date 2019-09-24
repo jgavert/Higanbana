@@ -46,7 +46,7 @@ namespace higanbana
       memcpy(m_constants.data(), &consts, sizeof(T));
     }
 
-    void bind(int set, ShaderArguments args)
+    void arguments(int set, ShaderArguments args)
     {
       HIGAN_ASSERT(set < m_layouts.size() && set >= 0, "Invalid set");
       HIGAN_ASSERT(args.handle().id != ResourceHandle::InvalidId, "Invalid ShaderArguments given.");

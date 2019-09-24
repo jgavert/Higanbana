@@ -133,7 +133,7 @@ namespace higanbana
         std::string interfaceDeclaration = "";
       } desc;
 
-      ShaderCreateInfo(std::string shaderName, ShaderType type, ShaderInterfaceDescriptor shaderInterface)
+      ShaderCreateInfo(std::string shaderName, ShaderType type, PipelineInterfaceDescriptor shaderInterface)
       {
         desc.shaderName = shaderName;
         desc.type = type;

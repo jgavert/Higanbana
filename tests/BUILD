@@ -26,10 +26,12 @@ src_graphics_test("device_creation")
 src_graphics_test("resource_creation")
 src_graphics_test_with_header("readback_future")
 src_graphics_test("shader_matrix_math")
+src_graphics_test("basics")
 
 test_suite(
     name = "all-graphics-tests",
     tests = [
+        "test_graphics_basics",
         "test_graphics_commandbuffer",
         "test_graphics_device_creation",
         "test_graphics_readback_future",

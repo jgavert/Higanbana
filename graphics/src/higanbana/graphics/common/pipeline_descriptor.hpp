@@ -13,7 +13,7 @@ namespace higanbana
   public:
     std::string shaderSourcePath;
     std::string rootSignature;
-    ShaderInterfaceDescriptor layout;
+    PipelineInterfaceDescriptor layout;
     uint3 shaderGroups;
 
     ComputePipelineDescriptor()
@@ -37,7 +37,7 @@ namespace higanbana
       return *this;
     }
 
-    ComputePipelineDescriptor& setLayout(ShaderInterfaceDescriptor val)
+    ComputePipelineDescriptor& setInterface(PipelineInterfaceDescriptor val)
     {
       layout = val;
       return *this;
@@ -469,7 +469,7 @@ namespace higanbana
     struct Desc
     {
       std::string rootSignature;
-      ShaderInterfaceDescriptor layout;
+      PipelineInterfaceDescriptor layout;
       std::string vertexShaderPath;
       std::string pixelShaderPath;
       std::string domainShaderPath;
@@ -558,7 +558,7 @@ namespace higanbana
       desc.sampleCount = SampleCount;
       return *this;
     }
-    GraphicsPipelineDescriptor& setLayout(ShaderInterfaceDescriptor val)
+    GraphicsPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val)
     {
       desc.layout = val;
       return *this;

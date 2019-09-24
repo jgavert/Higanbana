@@ -5,28 +5,28 @@
 
 namespace higanbana
 {
-  class ShaderInterfaceDescriptor 
+  class PipelineInterfaceDescriptor 
   {
   public:
     std::string constantStructBody;
     vector<ShaderArgumentsLayout> m_sets;
     size_t constantsSizeOf;
 
-    ShaderInterfaceDescriptor()
+    PipelineInterfaceDescriptor()
       : constantsSizeOf(0)
     {
     }
   public:
 
     template<typename Strct>
-    ShaderInterfaceDescriptor& constants()
+    PipelineInterfaceDescriptor& constants()
     {
       constantsSizeOf = sizeof(Strct);
       constantStructBody = Strct::structMembersAsString;
       return *this;
     }
 
-    ShaderInterfaceDescriptor& shaderArguments(unsigned setNumber, ShaderArgumentsLayout layout)
+    PipelineInterfaceDescriptor& shaderArguments(unsigned setNumber, ShaderArgumentsLayout layout)
     {
       HIGAN_ASSERT(setNumber < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS, "Only %d usable sets, please manage.", HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
       if (m_sets.size() < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS)

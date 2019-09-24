@@ -566,25 +566,19 @@ namespace higanbana
       for (auto&& view : m_allRes.dynBuf.view()) {
         if (view) {
           auto nat = view.native();
-          if (nat.type == vk::DescriptorType::eUniformTexelBuffer) {
-            m_device.destroyBufferView(nat.texelView);
-          }
+          m_device.destroyBufferView(nat.texelView);
         }
       }
       for (auto&& view : m_allRes.bufSRV.view()) {
         if (view) {
           auto nat = view.native();
-          if (nat.type == vk::DescriptorType::eUniformTexelBuffer) {
-            m_device.destroyBufferView(nat.view);
-          }
+          m_device.destroyBufferView(nat.view);
         }
       }
       for (auto&& view : m_allRes.bufUAV.view()) {
         if (view) {
           auto nat = view.native();
-          if (nat.type == vk::DescriptorType::eStorageTexelBuffer) {
-            m_device.destroyBufferView(nat.view);
-          }
+          m_device.destroyBufferView(nat.view);
         }
       }
       for (auto&& view : m_allRes.texSRV.view()) {
@@ -1481,6 +1475,11 @@ namespace higanbana
         {
           auto& dyn = m_allRes.dynBuf[handle];
           m_dynamicUpload->release(dyn.native().block);
+          if (dyn.native().texelView)
+          {
+            m_device.destroyBufferView(dyn.native().texelView);
+          }
+          m_dynamicUpload->release(dyn.native().block);
           dyn = VulkanDynamicBufferView();
           break;
         }
@@ -1539,7 +1538,7 @@ namespace higanbana
         case ViewResourceType::BufferSRV:
         {
           auto view = m_allRes.bufSRV[handle].native();
-          if (view.type == vk::DescriptorType::eUniformTexelBuffer)
+          if (view.view)
           {
             m_device.destroyBufferView(view.view);
           }
@@ -1549,7 +1548,7 @@ namespace higanbana
         case ViewResourceType::BufferUAV:
         {
           auto view = m_allRes.bufUAV[handle].native();
-          if (view.type == vk::DescriptorType::eStorageTexelBuffer)
+          if (view.view)
           {
             m_device.destroyBufferView(view.view);
           }
@@ -1583,7 +1582,7 @@ namespace higanbana
         case ViewResourceType::DynamicBufferSRV:
         {
           auto& dyn = m_allRes.dynBuf[handle];
-          if (dyn.native().type == vk::DescriptorType::eUniformTexelBuffer)
+          if (dyn.native().texelView)
           {
             m_device.destroyBufferView(dyn.native().texelView);
           }
@@ -2048,9 +2047,11 @@ namespace higanbana
 
       int index = 0;
 
-      auto resources = binding.bResources();
+      auto& resources = binding.bResources();
+      auto& descriptions = binding.bDescriptors();
       for (auto&& descriptor : resources)
       {
+        const auto& binddesc = descriptions[index];
         vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
         .setDstSet(set)
         .setDescriptorCount(1)
@@ -2061,20 +2062,31 @@ namespace higanbana
           {
             auto& desc = allResources().bufSRV[descriptor].native();
             writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+            if (binddesc.type == ShaderResourceType::Buffer)
+            {
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
               writeSet = writeSet.setPTexelBufferView(&desc.view);
+            }
             else
+            {
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageBuffer);
               writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            }
             break;
           }
           case ViewResourceType::BufferUAV:
           {
             auto& desc = allResources().bufUAV[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eStorageTexelBuffer)
+            if (binddesc.type == ShaderResourceType::Buffer)
+            {
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageTexelBuffer);
               writeSet = writeSet.setPTexelBufferView(&desc.view);
+            }
             else
+            {
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageBuffer);
               writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+            }
             break;
           }
           case ViewResourceType::TextureSRV:
@@ -2094,11 +2106,16 @@ namespace higanbana
           case ViewResourceType::DynamicBufferSRV:
           {
             auto& desc = allResources().dynBuf[descriptor].native();
-            writeSet = writeSet.setDescriptorType(desc.type);
-            if (desc.type == vk::DescriptorType::eUniformTexelBuffer)
+            if (binddesc.type == ShaderResourceType::Buffer)
+            {
               writeSet = writeSet.setPTexelBufferView(&desc.texelView);
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+            }
             else
+            {
               writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
+              writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            }
             break;
           }
           default:
@@ -2136,41 +2153,33 @@ namespace higanbana
       auto format = formatToVkFormat(desiredFormat).view;
       //auto stride = formatSizeInfo(desiredFormat).pixelSize;
 
-      if (desiredFormat != FormatType::Unknown && desiredFormat != FormatType::Raw32)
+      auto type = vk::DescriptorType::eUniformTexelBuffer;
+
+      vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
+        .setBuffer(upload.buffer())
+        .setFormat(format)
+        .setOffset(upload.block.offset)
+        .setRange(upload.block.size);
+
+      auto view = m_device.createBufferView(desc);
+      VK_CHECK_RESULT(view);
+
+      vk::IndexType indextype = vk::IndexType::eUint16;
+      if (formatBitDepth(desiredFormat) == 16)
       {
-        auto type = vk::DescriptorType::eUniformTexelBuffer;
-
-        vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
-          .setBuffer(upload.buffer())
-          .setFormat(format)
-          .setOffset(upload.block.offset)
-          .setRange(upload.block.size);
-
-        auto view = m_device.createBufferView(desc);
-        VK_CHECK_RESULT(view);
-
-        vk::IndexType indextype = vk::IndexType::eUint16;
-        if (formatBitDepth(desiredFormat) == 16)
-        {
-          indextype = vk::IndexType::eUint16;
-        }
-        else if(formatBitDepth(desiredFormat) == 32)
-        {
-          indextype = vk::IndexType::eUint32;
-        }
-
-        // will be collected promtly
-        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, upload, indextype);
+        indextype = vk::IndexType::eUint16;
       }
-      else {
-        vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
-          .setBuffer(upload.buffer())
-          .setOffset(upload.block.offset)
-          .setRange(upload.block.size);
-
-        // will be collected promtly
-        m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), info, upload);
+      else if(formatBitDepth(desiredFormat) == 32)
+      {
+        indextype = vk::IndexType::eUint32;
       }
+      
+      vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
+        .setBuffer(upload.buffer())
+        .setOffset(upload.block.offset)
+        .setRange(upload.block.size);
+
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, info, upload);
     }
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)

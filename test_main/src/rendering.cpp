@@ -71,14 +71,14 @@ namespace app
     higanbana::ShaderArgumentsLayoutDescriptor triangleLayoutDesc = ShaderArgumentsLayoutDescriptor()
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
     triangleLayout = dev.createShaderArgumentsLayout(triangleLayoutDesc);
-    higanbana::ShaderInterfaceDescriptor babyInf = ShaderInterfaceDescriptor()
+    higanbana::PipelineInterfaceDescriptor babyInf = PipelineInterfaceDescriptor()
       .constants<PixelConstants>()
       .shaderArguments(0, triangleLayout);
 
     auto basicDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
       .setPixelShader("Triangle")
-      .setLayout(babyInf)
+      .setInterface(babyInf)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setRenderTargetCount(1)
@@ -89,14 +89,14 @@ namespace app
 
     triangleRP = dev.createRenderpass();
 
-    higanbana::ShaderInterfaceDescriptor opaquePassInterface = ShaderInterfaceDescriptor()
+    higanbana::PipelineInterfaceDescriptor opaquePassInterface = PipelineInterfaceDescriptor()
       .constants<OpaqueConsts>()
       .shaderArguments(0, triangleLayout);
 
     auto opaqueDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("opaquePass")
       .setPixelShader("opaquePass")
-      .setLayout(opaquePassInterface)
+      .setInterface(opaquePassInterface)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
       .setRasterizer(RasterizerDescriptor())
       .setRTVFormat(0, FormatType::Unorm8BGRA)
@@ -125,12 +125,12 @@ namespace app
     higanbana::ShaderArgumentsLayoutDescriptor layoutdesc = ShaderArgumentsLayoutDescriptor()
       .readWrite(ShaderResourceType::Texture2D, "float4", "output");
     compLayout = dev.createShaderArgumentsLayout(layoutdesc);
-    higanbana::ShaderInterfaceDescriptor babyInf2 = ShaderInterfaceDescriptor()
+    higanbana::PipelineInterfaceDescriptor babyInf2 = PipelineInterfaceDescriptor()
       .constants<ComputeConstants>()
       .shaderArguments(0, compLayout);
 
     genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
-    .setLayout(babyInf2)
+    .setInterface(babyInf2)
     .setShader("simpleEffectAssyt")
     .setThreadGroups(uint3(8, 4, 1)));
 
@@ -138,13 +138,12 @@ namespace app
       .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
       .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
     blitLayout = dev.createShaderArgumentsLayout(layoutdesc2);
-    higanbana::ShaderInterfaceDescriptor blitInf = ShaderInterfaceDescriptor()
-      .constants<PixelConstants>()
-      .shaderArguments(0, blitLayout);
     composite = dev.createGraphicsPipeline(basicDescriptor
       .setVertexShader("blit")
       .setPixelShader("blit")
-      .setLayout(blitInf));
+      .setInterface(PipelineInterfaceDescriptor()
+        .constants<PixelConstants>()
+        .shaderArguments(0, blitLayout)));
     compositeRP = dev.createRenderpass();
 
     targetRT.resize(dev, ResourceDescriptor()
@@ -242,17 +241,16 @@ namespace app
     {
       auto node = tasks.createPass("generate Texture");
 
-      auto bindArgs = ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout);
-      bindArgs.bind("output", proxyTex.uav());
-      auto args = dev.createShaderArguments(bindArgs);
+      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout)
+        .bind("output", proxyTex.uav()));
 
       auto binding = node.bind(genTexCompute);
-      binding.bind(0, args);
       ComputeConstants consts{};
       consts.time = time.getFTime();
       consts.resx = proxyTex.desc().desc.width; 
       consts.resy = proxyTex.desc().desc.height;
       binding.constants(consts);
+      binding.arguments(0, args);
 
       node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
 
@@ -294,11 +292,11 @@ namespace app
           3.0f, -1.0f};
         auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
 
-        auto bindArgs = ShaderArgumentsDescriptor("blit descriptors", blitLayout);
-        bindArgs.bind("vertexInput", vert);
-        bindArgs.bind("texInput", proxyTex.srv());
-        auto args = dev.createShaderArguments(bindArgs);
-        binding.bind(0, args);
+        auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("blit descriptors", blitLayout)
+          .bind("vertexInput", vert)
+          .bind("texInput", proxyTex.srv()));
+
+        binding.arguments(0, args);
 
         node.draw(binding, 3);
       }
@@ -363,10 +361,11 @@ namespace app
         consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
         consts.viewMat = perspective;
         binding.constants(consts);
-        auto bindArgs = ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout);
-        bindArgs.bind("vertexInput", vert);
-        auto args = dev.createShaderArguments(bindArgs);
-        binding.bind(0, args);
+
+        auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
+          .bind("vertexInput", vert));
+
+        binding.arguments(0, args);
 
         //node.drawIndexed(binding, ind, 36);
         int gridSize = 8;

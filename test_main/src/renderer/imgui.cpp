@@ -17,12 +17,12 @@ namespace app
         .readOnly(ShaderResourceType::Texture2D, "float", "tex");
       argsLayout = device.createShaderArgumentsLayout(argsLayoutDesc);
 
-      higanbana::ShaderInterfaceDescriptor imguiInterface = ShaderInterfaceDescriptor()
+      higanbana::PipelineInterfaceDescriptor imguiInterface = PipelineInterfaceDescriptor()
         .constants<imguiConstants>()
         .shaderArguments(0, argsLayout);
 
       auto pipelineDescriptor = GraphicsPipelineDescriptor()
-        .setLayout(imguiInterface)
+        .setInterface(imguiInterface)
         .setVertexShader("imgui")
         .setPixelShader("imgui")
         .setPrimitiveTopology(PrimitiveTopology::Triangle)
@@ -115,7 +115,7 @@ namespace app
 
         bindArgs.bind("vertices", vbv);
         auto args = device.createShaderArguments(bindArgs);
-        binding.bind(0, args);
+        binding.arguments(0, args);
 
         uint indexOffset = 0;
         for (auto &d : list->CmdBuffer)

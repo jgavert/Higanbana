@@ -37,12 +37,17 @@ namespace higanbana
       return m_layout;
     }
 
+    const vector<ShaderResource>& bDescriptors() const
+    {
+      return m_resources;
+    }
+
     const vector<ViewResourceHandle>& bResources() const
     {
       return m_handles;
     }
 
-    void bind(const char* name, const DynamicBufferView& res)
+    ShaderArgumentsDescriptor& bind(const char* name, const DynamicBufferView& res)
     {
       int id = 0;
       for (auto&& it : m_resources)
@@ -51,13 +56,14 @@ namespace higanbana
         {
           HIGAN_ASSERT(it.readonly, "Trying to bind DynamicBufferView \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
-          return;
+          return *this;
         }
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
     }
-    void bind(const char* name, const BufferSRV& res)
+    ShaderArgumentsDescriptor& bind(const char* name, const BufferSRV& res)
     {
       int id = 0;
       for (auto&& it : m_resources)
@@ -66,13 +72,14 @@ namespace higanbana
         {
           HIGAN_ASSERT(it.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
-          return;
+          return *this;
         }
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
     }
-    void bind(const char* name, const TextureSRV& res)
+    ShaderArgumentsDescriptor& bind(const char* name, const TextureSRV& res)
     {
       int id = 0;
       for (auto&& it : m_resources)
@@ -81,13 +88,14 @@ namespace higanbana
         {
           HIGAN_ASSERT(it.readonly, "Trying to bind TextureSRV \"%s\" as ReadWrite.", name);
           m_handles[id] = res.handle();
-          return;
+          return *this;
         }
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
     }
-    void bind(const char* name, const BufferUAV& res)
+    ShaderArgumentsDescriptor& bind(const char* name, const BufferUAV& res)
     {
       int id = 0;
       for (auto&& it : m_resources)
@@ -96,13 +104,14 @@ namespace higanbana
         {
           HIGAN_ASSERT(!it.readonly, "Trying to bind BufferUAV \"%s\" as ReadOnly.", name);
           m_handles[id] = res.handle();
-          return;
+          return *this;
         }
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
     }
-    void bind(const char* name, const TextureUAV& res)
+    ShaderArgumentsDescriptor& bind(const char* name, const TextureUAV& res)
     {
       int id = 0;
       for (auto&& it : m_resources)
@@ -111,11 +120,12 @@ namespace higanbana
         {
           HIGAN_ASSERT(!it.readonly, "Trying to bind TextureUAV \"%s\" as ReadOnly.", name);
           m_handles[id] = res.handle();
-          return;
+          return *this;
         }
         id++;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
     }
   };
 }
