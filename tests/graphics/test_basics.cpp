@@ -9,50 +9,58 @@ TEST_CASE_METHOD(GraphicsFixture, "basic compute and readback") {
   float dynamicBufferInput = 2.f;
   float constantInput = 8.f;
 
-  auto inputArgumentsLayout = gpu().createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
-    .readOnly(ShaderResourceType::Buffer, "float", "input"));
-  auto outputArgumentsLayout = gpu().createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
-    .readWrite(ShaderResourceType::Buffer, "float", "output"));
+  auto inputArgumentsLayout = gpu().createShaderArgumentsLayout(
+    ShaderArgumentsLayoutDescriptor()
+      .readOnly(ShaderResourceType::Buffer, "float", "input"));
+  auto outputArgumentsLayout = gpu().createShaderArgumentsLayout(
+    ShaderArgumentsLayoutDescriptor()
+      .readWrite(ShaderResourceType::Buffer, "float", "output"));
 
-  auto comp = gpu().createComputePipeline(ComputePipelineDescriptor()
-    .setInterface(PipelineInterfaceDescriptor()
-      .constants<TestConsts>()
-      .shaderArguments(0, inputArgumentsLayout)
-      .shaderArguments(1, outputArgumentsLayout))
-    .setShader("addTogether")
-    .setThreadGroups(uint3(1, 1, 1)));
+  auto comp = gpu().createComputePipeline(
+    ComputePipelineDescriptor()
+      .setInterface(PipelineInterfaceDescriptor()
+        .constants<TestConsts>()
+        .shaderArguments(0, inputArgumentsLayout)
+        .shaderArguments(1, outputArgumentsLayout))
+      .setShader("addTogether") // will generate/find <shader_path> / <name>.if.hlsl <name>.cs.hlsl files
+      .setThreadGroups(uint3(1, 1, 1)));
 
-  auto outputBuffer = gpu().createBufferUAV(ResourceDescriptor()
-    .setFormat(FormatType::Float32)
-    .setUsage(ResourceUsage::GpuRW)
-    .setCount(1)); 
+  auto outputBuffer = gpu().createBufferUAV(
+    ResourceDescriptor()
+      .setFormat(FormatType::Float32)
+      .setUsage(ResourceUsage::GpuRW)
+      .setCount(1)); 
 
-  auto outputArguments = gpu().createShaderArguments(ShaderArgumentsDescriptor("output arguments", inputArgumentsLayout)
-    .bind("output", outputBuffer));
+  auto outputArguments = gpu().createShaderArguments(
+    ShaderArgumentsDescriptor("DescriptorSet for output", outputArgumentsLayout)
+      .bind("output", outputBuffer));
 
   auto graph = gpu().createGraph();
 
-  auto upload = gpu().dynamicBuffer(MemView<float>(&dynamicBufferInput, 1), FormatType::Float32);
+  {
+    auto node = graph.createPass("add values");
 
-  auto inputArguments = gpu().createShaderArguments(ShaderArgumentsDescriptor("input arguments", inputArgumentsLayout)
-    .bind("input", upload));
+    auto upload = gpu().dynamicBuffer(MemView<float>(&dynamicBufferInput, 1), FormatType::Float32);
 
-  auto node = graph.createPass("computeCopy", QueueType::Compute);
-  auto binding = node.bind(comp);
+    auto inputArguments = gpu().createShaderArguments(
+      ShaderArgumentsDescriptor("DescriptorSet for input", inputArgumentsLayout)
+        .bind("input", upload));
 
-  TestConsts consts{};
-  consts.value = constantInput;
-  binding.constants(consts);
+    auto binding = node.bind(comp);
 
-  binding.arguments(0, inputArguments);
-  binding.arguments(1, outputArguments);
+    TestConsts consts{};
+    consts.value = constantInput;
+    binding.constants(consts);
 
-  node.dispatch(binding, uint3(1, 1, 1));
+    binding.arguments(0, inputArguments);
+    binding.arguments(1, outputArguments);
 
-  auto readbackNode = graph.createPass("readback", QueueType::Dma);
+    node.dispatch(binding, uint3(1, 1, 1));
+    graph.addPass(std::move(node));
+  }
+
+  auto readbackNode = graph.createPass("read values");
   auto asyncReadback = readbackNode.readback(outputBuffer.buffer());
-  
-  graph.addPass(std::move(node));
   graph.addPass(std::move(readbackNode));
 
   gpu().submit(graph);
