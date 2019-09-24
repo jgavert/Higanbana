@@ -52,15 +52,20 @@ namespace higanbana
 
     bool empty()
     {
-      return freesize() == size();
+      return freesize() == max_size();
     }
 
-    size_t size()
+    size_t size() const noexcept
+    {
+      return max_size() - freesize();
+    }
+
+    size_t max_size() const noexcept
     {
       return m_sizeInPages * static_cast<size_t>(m_pageSize);
     }
 
-    size_t freesize()
+    size_t freesize() const noexcept
     {
       return m_allocator.freespace() * static_cast<size_t>(m_pageSize);
     }

@@ -91,7 +91,10 @@
         "shared_mutex": "cpp",
         "strstream": "cpp",
         "valarray": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "multi_span": "cpp",
+        "span": "cpp",
+        "string_span": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

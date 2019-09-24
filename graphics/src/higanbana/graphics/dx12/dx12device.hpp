@@ -44,7 +44,6 @@ namespace higanbana
 
       std::shared_ptr<DX12UploadHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
-      std::shared_ptr<DX12ReadbackHeap> m_dynamicReadback;
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;
 
@@ -60,6 +59,8 @@ namespace higanbana
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);
       ~DX12Device();
+
+      DeviceStatistics statsOfResourcesInUse() override;
 
       DX12Resources& allResources();
 

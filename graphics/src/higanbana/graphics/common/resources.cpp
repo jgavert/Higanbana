@@ -109,6 +109,10 @@ namespace higanbana
         heapPtr->allocator.release(object.block);
       }
     }
+    uint64_t HeapManager::memoryInUse()
+    {
+      return m_totalMemory;
+    }
 
     vector<GpuHeap> HeapManager::emptyHeaps()
     {

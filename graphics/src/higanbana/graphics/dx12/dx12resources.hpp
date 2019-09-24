@@ -107,7 +107,7 @@ namespace higanbana
       ComPtr<ID3D12DescriptorHeap> heap;
       D3D12_DESCRIPTOR_HEAP_TYPE type;
       DynamicDescriptorBlock baseRange;
-      int size = -1;
+      int m_size = -1;
     public:
       DX12DynamicDescriptorHeap()
         : allocator(0, 0)
@@ -115,13 +115,13 @@ namespace higanbana
       DX12DynamicDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int blockSize, int blockCount)
         : allocator(blockSize, blockCount)
         , type(type)
-        , size(blockSize*blockCount)
+        , m_size(blockSize*blockCount)
       {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
         desc.Type = type;
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         desc.NodeMask = 0;
-        desc.NumDescriptors = static_cast<UINT>(size);
+        desc.NumDescriptors = static_cast<UINT>(m_size);
 
         HIGANBANA_CHECK_HR(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&heap)));
 
@@ -133,7 +133,7 @@ namespace higanbana
       DynamicDescriptorBlock allocate(int value)
       {
         auto offset = allocator.allocate(value);
-        HIGAN_ASSERT(offset.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        HIGAN_ASSERT(offset.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", max_size(), static_cast<int>(type));
         DynamicDescriptorBlock desc = baseRange;
         desc.block = offset;
         return desc;
@@ -149,6 +149,15 @@ namespace higanbana
       {
         return heap.Get();
       }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
+      }
     };
 
     class StagingDescriptorHeap
@@ -159,13 +168,13 @@ namespace higanbana
       D3D12_CPU_DESCRIPTOR_HANDLE start;
       UINT increment;
 
-      int size = -1;
+      int m_size = -1;
     public:
       StagingDescriptorHeap() {}
       StagingDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int count)
         : allocator(count)
         , type(type)
-        , size(count)
+        , m_size(count)
       {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
         desc.Type = type;
@@ -182,7 +191,7 @@ namespace higanbana
       DX12CPUDescriptor allocate()
       {
         auto dip = allocator.allocate(1);
-        HIGAN_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", size, static_cast<int>(type));
+        HIGAN_ASSERT(dip.offset != -1, "No descriptors left, make bigger Staging :) %d type: %d", max_size(), static_cast<int>(type));
         DX12CPUDescriptor desc{};
         desc.block = dip;
         desc.type = type;
@@ -193,6 +202,15 @@ namespace higanbana
       void release(DX12CPUDescriptor desc)
       {
         allocator.release(desc.block);
+      }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
       }
     };
 
@@ -256,13 +274,12 @@ namespace higanbana
     };
 
     // TODO: protect with mutex
-    // accessed in dx12commandbuffer
     class DX12UploadHeap
     {
       FixedSizeAllocator allocator;
       ComPtr<ID3D12Resource> resource;
       unsigned fixedSize = 1;
-      unsigned size = 1;
+      unsigned m_size = 1;
 
       uint8_t* data = nullptr;
       D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
@@ -271,7 +288,7 @@ namespace higanbana
       DX12UploadHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
         : allocator(allocationSize, allocationCount)
         , fixedSize(allocationSize)
-        , size(allocationSize*allocationCount)
+        , m_size(allocationSize*allocationCount)
       {
         {
           D3D12_RESOURCE_DESC dxdesc{};
@@ -304,7 +321,7 @@ namespace higanbana
       UploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", max_size());
         return UploadBlock{ data, gpuAddr, resource.Get(), dip };
       }
 
@@ -316,6 +333,15 @@ namespace higanbana
       ID3D12Resource* native()
       {
         return resource.Get();
+      }
+      
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
       }
     };
 
@@ -394,9 +420,14 @@ namespace higanbana
         return heap.Get();
       }
 
-      size_t size()
+      size_t size() const noexcept
       {
-        return m_size;
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
       }
 
       size_t counterSize()
@@ -405,12 +436,13 @@ namespace higanbana
       }
     };
 
+
     class DX12ReadbackHeap
     {
       LinearAllocator allocator;
       ComPtr<ID3D12Resource> resource;
       unsigned fixedSize = 1;
-      unsigned size = 1;
+      unsigned m_size = 1;
 
       uint8_t* data = nullptr;
       D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
@@ -421,7 +453,7 @@ namespace higanbana
       DX12ReadbackHeap(ID3D12Device* device, unsigned allocationSize, unsigned allocationCount)
         : allocator(allocationSize * allocationCount)
         , fixedSize(allocationSize)
-        , size(allocationSize*allocationCount)
+        , m_size(allocationSize*allocationCount)
       {
         {
           D3D12_RESOURCE_DESC dxdesc{};
@@ -457,7 +489,7 @@ namespace higanbana
 
       void reset()
       {
-        allocator = LinearAllocator(size);
+        allocator = LinearAllocator(m_size);
       }
 
       void map()
@@ -479,6 +511,16 @@ namespace higanbana
       ID3D12Resource* native()
       {
         return resource.Get();
+      }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
       }
     };
 
@@ -974,22 +1016,6 @@ namespace higanbana
       {
         return static_cast<uint64_t>(block.block.offset);
       }
-
-/*
-      backend::RawView view() override
-      {
-        backend::RawView view{};
-        view.view = resource.cpu.ptr;
-        return view;
-      }
-
-
-
-      uint64_t size() override
-      {
-        return static_cast<uint64_t>(block.block.size) / m_stride;
-      }
-      */
     };
 
     class DX12Heap

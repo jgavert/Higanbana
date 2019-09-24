@@ -12,6 +12,7 @@
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
+#include "higanbana/graphics/desc/device_stats.hpp"
 
 #include <optional>
 
@@ -223,6 +224,29 @@ namespace higanbana
       auto infos = S().timeSubmitsFinished;
       S().timeSubmitsFinished.clear();
       return infos;
+    }
+
+    uint64_t gpuMemoryUsed()
+    {
+      uint64_t allMemoryUsed = 0;
+      for (auto&& dev : S().m_devices)
+      {
+        allMemoryUsed += dev.heaps.memoryInUse();
+      }
+      return allMemoryUsed;
+    }
+
+    vector<DeviceStatistics> gpuStatistics()
+    {
+      vector<DeviceStatistics> allMemoryUsed;
+      for (auto&& dev : S().m_devices)
+      {
+        auto stat = dev.device->statsOfResourcesInUse();
+        stat.gpuMemoryAllocated = dev.heaps.memoryInUse();
+        stat.commandlistsOnGpu = dev.m_gfxBuffers.size() + dev.m_computeBuffers.size() + dev.m_dmaBuffers.size();
+        allMemoryUsed.push_back(stat);
+      }
+      return allMemoryUsed;
     }
   };
 };

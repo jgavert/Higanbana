@@ -13,17 +13,17 @@ namespace higanbana
   private:
     std::shared_ptr<vector<T>> m_pool;
     std::function<T()> m_makeItem;
-    int size;
+    int m_size;
   public:
     Rabbitpool()
       : m_pool(nullptr)
-      , size(0)
+      , m_size(0)
     {
     }
     Rabbitpool(std::function<T()> makeItem)
       : m_pool(std::make_shared<vector<T>>())
       , m_makeItem(makeItem)
-      , size(0)
+      , m_size(0)
     {
     }
 
@@ -61,7 +61,7 @@ namespace higanbana
       if (m_pool.empty())
       {
         m_pool->emplace_back(std::move(m_makeItem()));
-        ++size;
+        ++m_size;
       }
       auto obj = std::make_shared<Item>(m_pool->back(), m_pool);
       m_pool->pop_back();
@@ -72,7 +72,7 @@ namespace higanbana
     void clear() noexcept
     {
       m_pool = std::make_shared<vector<T>>();
-      size = 0;
+      m_size = 0;
     }
   };
 
@@ -82,17 +82,17 @@ namespace higanbana
   private:
     std::shared_ptr<vector<T>> m_pool;
     std::function<T()> m_makeItem;
-    int size;
+    int m_size;
   public:
     Rabbitpool2()
       : m_pool(nullptr)
-      , size(0)
+      , m_size(0)
     {
     }
     Rabbitpool2(std::function<T()> makeItem)
       : m_pool(std::make_shared<vector<T>>())
       , m_makeItem(makeItem)
-      , size(0)
+      , m_size(0)
     {
     }
 
@@ -101,7 +101,7 @@ namespace higanbana
       if (m_pool->empty())
       {
         m_pool->emplace_back(std::move(m_makeItem()));
-        ++size;
+        ++m_size;
       }
 
       std::weak_ptr<vector<T>> weakpool = m_pool;
@@ -123,7 +123,17 @@ namespace higanbana
     void clear() noexcept
     {
       m_pool = std::make_shared<vector<T>>();
-      size = 0;
+      m_size = 0;
+    }
+
+    size_t size() const noexcept
+    {
+      return m_pool->size();
+    }
+
+    size_t max_size() const noexcept
+    {
+      return m_size;
     }
   };
 }

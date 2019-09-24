@@ -187,6 +187,8 @@ namespace higanbana
       void release(GpuHeapAllocation allocation);
 
       vector<GpuHeap> emptyHeaps();
+
+      uint64_t memoryInUse();
     };
 /*
     struct LiveCommandBuffer

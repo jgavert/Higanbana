@@ -319,26 +319,27 @@ void mainWindow(ProgramParams& params)
             }
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("main");                          // Create a window called "Hello, world!" and append into it.
             ImGui::Text("Missed %zd frames of inputs. current: %zd read %zd", diff, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
-            ImGui::NewLine();
-            ImGui::Text("Keys");
-            ImGui::Text(" Exit:                         ESC");
-            ImGui::Text(" Capture Mouse:                F1");
-            ImGui::Text(" Release Mouse:                F2");
-            ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
-            ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
-            ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
-            ImGui::NewLine();
-            ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
+
             ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
+            if (ImGui::CollapsingHeader("Keys"))
+            {
+              ImGui::Text(" Exit:                         ESC");
+              ImGui::Text(" Capture Mouse:                F1");
+              ImGui::Text(" Release Mouse:                F2");
+              ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+              ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
+              ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
+            }
 
             auto si = rend.timings();
-            if (si)
+            if (si && ImGui::CollapsingHeader("Renderpass"))
             {
+              ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
               auto rsi = si.value();
               float gpuTotal = 0.f;
               for (auto& list : rsi.lists)
@@ -371,6 +372,23 @@ void mainWindow(ProgramParams& params)
                 {
                   ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
                 }
+              }
+            }
+            if (ImGui::CollapsingHeader("Gpu statistics"))
+            {
+              auto stats = dev.gpuStatistics();
+              auto bytesToMb = [](uint64_t bytes){ return bytes / 1024.f / 1024.f; };
+              auto unitsToK = [](uint64_t units){ return units / 1000.f; };
+              for (auto& stat : stats)
+              {
+                ImGui::Text("Commandbuffers on gpu       %zu", stat.commandlistsOnGpu);
+                ImGui::Text("GPU Memory allocated        %.2fmb", bytesToMb(stat.gpuMemoryAllocated));
+                ImGui::Text("Memory used by constants    %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.constantsUploadMemoryInUse), bytesToMb(stat.maxConstantsUploadMemory), bytesToMb(stat.constantsUploadMemoryInUse) / bytesToMb(stat.maxConstantsUploadMemory) * 100.f);
+                ImGui::Text("Generic upload memory used  %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.genericUploadMemoryInUse), bytesToMb(stat.maxGenericUploadMemory), bytesToMb(stat.genericUploadMemoryInUse) / bytesToMb(stat.maxGenericUploadMemory) * 100.f);
+                if (stat.descriptorsInShaderArguments)
+                  ImGui::Text("ShaderArguments             %zu / %zu  %.2f%%", stat.descriptorsAllocated, stat.maxDescriptors, float(stat.descriptorsAllocated) / float(stat.maxDescriptors) * 100.f);
+                else
+                  ImGui::Text("Descriptors                 %.2fk / %.2fk %.2f%%", unitsToK(stat.descriptorsAllocated), unitsToK(stat.maxDescriptors), unitsToK(stat.descriptorsAllocated) / unitsToK(stat.maxDescriptors) * 100.f);
               }
             }
 

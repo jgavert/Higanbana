@@ -6,6 +6,7 @@
 #include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/dx12/util/pipeline_helpers.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
+#include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -30,7 +31,7 @@ namespace higanbana
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 1024)) // we have room for 64*1024 drawcalls worth of constants.
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024)) // we have room 64 / 4megs of dynamic buffers
-      , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024, 480))
+      , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64, 2048))
       //, m_trash(std::make_shared<Garbage>())
       //, m_seqTracker(std::make_shared<SequenceTracker>())
     {
@@ -164,6 +165,20 @@ namespace higanbana
       {
         m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
       }*/
+    }
+
+    DeviceStatistics DX12Device::statsOfResourcesInUse()
+    {
+      // descriptors (static + shaderArguments)
+      DeviceStatistics stats = {};
+      stats.maxConstantsUploadMemory = m_constantsUpload->max_size();
+      stats.constantsUploadMemoryInUse = m_constantsUpload->size();
+      stats.maxGenericUploadMemory = m_dynamicUpload->max_size();
+      stats.genericUploadMemoryInUse = m_dynamicUpload->size();
+      stats.descriptorsInShaderArguments = false;
+      stats.descriptorsAllocated = m_dynamicGpuDescriptors->size();
+      stats.maxDescriptors = m_dynamicGpuDescriptors->max_size();
+      return stats;
     }
 
     DX12Resources& DX12Device::allResources()

@@ -81,6 +81,16 @@ namespace higanbana
     {
       m_current = 0;
     }
+
+    size_t size() const noexcept
+    {
+      return m_current;
+    }
+
+    size_t max_size() const noexcept
+    {
+      return m_size;
+    }
   };
 
   class FreelistAllocator

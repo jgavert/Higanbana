@@ -4,6 +4,7 @@
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
+#include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/vk/util/pipeline_helpers.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -298,6 +299,7 @@ namespace higanbana
       , m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 2024)) // TODO: implement dynamically adjusted
       , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
+      , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
       // try to figure out unique queues, abort or something when finding unsupported count.
@@ -530,6 +532,8 @@ namespace higanbana
         .setPoolSizeCount(dps.size())
         .setPPoolSizes(dps.data()));
 
+      m_maxDescriptorSets = totalDrawCalls;
+
       VK_CHECK_RESULT(poolRes);
 
       m_descriptors = VulkanDescriptorPool(poolRes.value);
@@ -658,6 +662,19 @@ namespace higanbana
       m_device.destroyDescriptorPool(m_descriptors.native());
 
       m_device.destroy();
+    }
+
+    DeviceStatistics VulkanDevice::statsOfResourcesInUse()
+    {
+      DeviceStatistics stats = {};
+      stats.maxConstantsUploadMemory = m_constantAllocators->max_size();
+      stats.constantsUploadMemoryInUse = m_constantAllocators->size();
+      stats.maxGenericUploadMemory = m_dynamicUpload->max_size();
+      stats.genericUploadMemoryInUse = m_dynamicUpload->size();
+      stats.descriptorsInShaderArguments = true;
+      stats.descriptorsAllocated = m_descriptorSetsInUse;
+      stats.maxDescriptors = m_maxDescriptorSets;
+      return stats;
     }
 
     vk::PresentModeKHR presentModeToVk(PresentMode mode)
@@ -1325,6 +1342,7 @@ namespace higanbana
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.shader());
 
       auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
+      m_descriptorSetsInUse++;
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(m_constantAllocators->buffer())
@@ -1495,6 +1513,7 @@ namespace higanbana
         {
           auto& dyn = m_allRes.shaArgs[handle];
           auto set = dyn.native();
+          m_descriptorSetsInUse--;
           m_descriptors.freeSets(m_device, makeMemView(set));
           dyn = VulkanShaderArguments();
           break;
@@ -2017,6 +2036,7 @@ namespace higanbana
       setDebugUtilsObjectNameEXT(set, binding.name().c_str());
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);
+      m_descriptorSetsInUse++;
 
       vector<vk::WriteDescriptorSet> writeDescriptors;
 /*

@@ -61,6 +61,10 @@ namespace higanbana
       // descriptor stuff
       VulkanShaderArgumentsLayout m_defaultDescriptorLayout;
 
+      // descriptor stats
+      size_t m_descriptorSetsInUse;
+      size_t m_maxDescriptorSets;
+
 /*
       struct Garbage
       {
@@ -113,6 +117,7 @@ namespace higanbana
       vk::DispatchLoaderDynamic dispatcher() { return m_dynamicDispatch; }
       bool debugDevice() { return m_debugLayer; }
 
+      DeviceStatistics statsOfResourcesInUse() override;
       Resources& allResources() { return m_allRes; }
 
       QueueIndexes queueIndexes() const { return QueueIndexes{m_mainQueueIndex, m_computeQueueIndex, m_copyQueueIndex}; }

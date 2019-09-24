@@ -13,6 +13,7 @@ namespace higanbana
   struct GpuInfo;
   class GpuDevice;
   class GraphicsSurface;
+  struct DeviceStatistics;
 
   // descriptors
   class ShaderArgumentsDescriptor;
@@ -97,6 +98,8 @@ namespace higanbana
       class DeviceImpl
       {
       public:
+        // statistics
+        virtual DeviceStatistics statsOfResourcesInUse() = 0;
 
         // utility
         virtual void waitGpuIdle() = 0;

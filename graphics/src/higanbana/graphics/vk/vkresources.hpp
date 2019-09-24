@@ -729,7 +729,7 @@ namespace higanbana
     {
       FixedSizeAllocator allocator;
       unsigned fixedSize = 1;
-      unsigned size = 1;
+      unsigned m_size = 1;
       vk::Buffer m_buffer;
       vk::DeviceMemory m_memory;
       vk::Device m_device;
@@ -743,7 +743,7 @@ namespace higanbana
                      , unsigned allocationCount)
         : allocator(allocationSize, allocationCount)
         , fixedSize(allocationSize)
-        , size(allocationSize*allocationCount)
+        , m_size(allocationSize*allocationCount)
         , m_device(device)
       {
         auto bufDesc = ResourceDescriptor()
@@ -794,7 +794,7 @@ namespace higanbana
       VkUploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", m_size);
         return VkUploadBlock{ data, m_buffer,  dip };
       }
 
@@ -802,13 +802,23 @@ namespace higanbana
       {
         allocator.release(desc.block);
       }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
+      }
     };
 
     class VulkanConstantUploadHeap
     {
       FixedSizeAllocator allocator;
       unsigned fixedSize = 1;
-      unsigned size = 1;
+      unsigned m_size = 1;
       vk::Buffer m_buffer;
       vk::DeviceMemory m_memory;
       vk::Device m_device;
@@ -822,7 +832,7 @@ namespace higanbana
                      , unsigned allocationCount)
         : allocator(allocationSize, allocationCount)
         , fixedSize(allocationSize)
-        , size(allocationSize*allocationCount)
+        , m_size(allocationSize*allocationCount)
         , m_device(device)
       {
         auto bufDesc = ResourceDescriptor()
@@ -873,7 +883,7 @@ namespace higanbana
       VkUploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", size);
+        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", m_size);
         return VkUploadBlock{ data, m_buffer,  dip };
       }
 
@@ -885,6 +895,16 @@ namespace higanbana
       vk::Buffer buffer()
       {
         return m_buffer;
+      }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
       }
     };
 

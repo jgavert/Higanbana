@@ -158,7 +158,17 @@ namespace higanbana
       m_freespace += range.size;
     }
 
-    size_t freespace()
+    size_t size() const noexcept
+    {
+      return max_size() - freespace();
+    }
+
+    size_t max_size() const noexcept
+    {
+      return m_size;
+    }
+
+    size_t freespace() const noexcept
     {
       return static_cast<size_t>(m_freespace);
     }
