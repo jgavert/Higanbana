@@ -38,13 +38,13 @@ namespace higanbana
   };
   const char* toString(VendorID vendor);
 
-  enum class QueueType : uint32_t
+  enum QueueType : uint32_t
   {
-    Unknown,
-    Graphics,
-    Compute,
-    Dma,
-    External
+    Unknown = 0,
+    Dma = 0x1,
+    Compute = 0x2 | QueueType::Dma,
+    Graphics = 0x4 | QueueType::Compute,
+    External = 0x8
   };
   const char* toString(QueueType queue);
 

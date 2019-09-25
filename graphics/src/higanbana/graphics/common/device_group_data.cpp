@@ -872,6 +872,7 @@ namespace higanbana
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
     vector<FirstUseResource> DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
+      IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "\nRenderGraph %d\n", m_currentSeqNum);
       DynamicBitfield seenB;
       DynamicBitfield seenT;
       vector<FirstUseResource> fur;
@@ -907,13 +908,13 @@ namespace higanbana
 
         auto fSeen = list.requirementsBuf.exceptFields(seenB);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Buffer %d", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Buffer %d\n", id);
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
         });
         seenB.add(fSeen);
         fSeen = list.requirementsTex.exceptFields(seenT);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Texture %d", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Texture %d\n", id);
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
         });
         seenT.add(fSeen);
@@ -921,21 +922,21 @@ namespace higanbana
         if (list.type == QueueType::Graphics)
         {
           graphicsList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Graphics %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Graphics %d\n", listIndex);
           queue.gb.add(list.requirementsBuf);
           queue.gt.add(list.requirementsTex);
         }
         else if (list.type == QueueType::Compute)
         {
           computeList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Compute %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Compute %d\n", listIndex);
           queue.cb.add(list.requirementsBuf);
           queue.ct.add(list.requirementsTex);
         }
         else
         {
           dmaList = listIndex;
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "dmalist %d", listIndex);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "dmalist %d\n", listIndex);
           queue.db.add(list.requirementsBuf);
           queue.dt.add(list.requirementsTex);
         }
@@ -943,15 +944,15 @@ namespace higanbana
         auto doAcquireReleasePairs = [&](int depList, const char* name, Intersection& ci, QueueType depType){
             if (depList >= 0)
               lists[depList].signal = true;
-            IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "%d list had %s dependency!", listIndex, name);
+            IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "%d list had %s dependency!\n", listIndex, name);
             ci.buf.foreach([&](int id){
-              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Buffer id: %d is transferred from list %d to %d", id, depList, listIndex);
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Buffer id: %d is transferred from list %d to %d\n", id, depList, listIndex);
               list.acquire.emplace_back(QueueTransfer{ResourceType::Buffer, id, depType});
               if (depList >= 0)
                 lists[depList].release.emplace_back(QueueTransfer{ResourceType::Buffer, id, list.type});
             });
             ci.tex.foreach([&](int id){
-              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Texture id: %d is transferred from list %d to %d", id, depList, listIndex);
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Texture id: %d is transferred from list %d to %d\n", id, depList, listIndex);
               list.acquire.emplace_back(QueueTransfer{ResourceType::Texture, id, depType});
               if (depList >= 0)
                 lists[depList].release.emplace_back(QueueTransfer{ResourceType::Texture, id, list.type});
@@ -1061,6 +1062,29 @@ namespace higanbana
 
         auto firstUsageSeen = checkQueueDependencies(lists);
 
+        for (auto&& resource : firstUsageSeen)
+        {
+          for (int index = static_cast<int>(lists.size()) - 1; index >= 0; --index )
+          {
+            bool found = false;
+            auto queType = lists[index].type;
+            for (auto&& acquire : lists[index].acquire)
+            {
+              if (acquire.type == resource.type && acquire.id == resource.id && queType != resource.queue)
+              {
+                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found last acquire that needs releasing, explicit queue transfer! %d %s -> %s\n", resource.id, toString(queType), toString(resource.queue));
+                auto release = acquire;
+                release.fromOrTo = resource.queue;
+                lists[index].release.push_back(release);
+                found = true;
+                break;
+              }
+            }
+            if (found)
+              break;
+          }
+        }
+
         // check states of first use resources
         for (auto&& resource : firstUsageSeen)
         {
@@ -1072,7 +1096,7 @@ namespace higanbana
             {
               if (state.queue_index != resource.queue)
               {
-                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found buffer that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(state.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found buffer that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(state.queue_index), toString(resource.queue));
               }
             }
           }
@@ -1084,7 +1108,7 @@ namespace higanbana
             {
               if (firstStateIsEnough.queue_index != resource.queue)
               {
-                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found texture that needs handling, explicit queue transfer! %d %s -> %s", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+                IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found texture that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
               }
             }
           }

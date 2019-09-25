@@ -123,6 +123,16 @@ namespace higanbana
                     dst.queue_index = src.queue_index;
                     src.queue_index = jobResAccess.queue_index;
                   }
+                  else
+                  {
+                    auto transitionToCommon = src;
+                    transitionToCommon.stage = AccessStage::Common;
+                    dst.stage = AccessStage::Common;
+
+                    imageBarriers.emplace_back(ImageBarrier{src, transitionToCommon, job.resource.resource, 0, mips, 0, arrSize});
+                    ++imageBarrierOffsets;
+                    src.stage = AccessStage::Common;
+                  }
 
                   imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, 0, mips, 0, arrSize});
                   ++imageBarrierOffsets;
@@ -132,6 +142,7 @@ namespace higanbana
                     for (auto&& state : resource.states)
                     {
                       state.queue_index = job.nextAccess.queue_index;
+                      state.stage = AccessStage::Common;
                     }
                   }
                 }

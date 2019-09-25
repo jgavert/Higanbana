@@ -9,6 +9,7 @@ namespace higanbana
   {
     class DX12CommandList : public CommandBufferImpl
     {
+      QueueType m_type;
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
       std::shared_ptr<DX12UploadHeap> m_upload;
@@ -34,6 +35,7 @@ namespace higanbana
 
     public:
       DX12CommandList(
+        QueueType type,
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
         std::shared_ptr<DX12UploadHeap> dynamicUpload,

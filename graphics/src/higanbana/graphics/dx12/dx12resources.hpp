@@ -380,14 +380,14 @@ namespace higanbana
       uint64_t m_gpuTicksPerSecond = 0;
     public:
       DX12QueryHeap() : allocator(1) {}
-      DX12QueryHeap(ID3D12Device* device, ID3D12CommandQueue* queue, unsigned counterCount)
+      DX12QueryHeap(ID3D12Device* device, ID3D12CommandQueue* queue, D3D12_QUERY_HEAP_TYPE type, unsigned counterCount)
         : allocator(counterCount)
         , m_size(counterCount)
       {
         static int queryHeapCount = 0;
 
         D3D12_QUERY_HEAP_DESC desc{};
-        desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        desc.Type = type;
         desc.Count = counterCount;
         desc.NodeMask = 0;
 

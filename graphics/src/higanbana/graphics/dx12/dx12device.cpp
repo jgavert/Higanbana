@@ -82,6 +82,11 @@ namespace higanbana
         return createComputeQueryHeap(128);
       });
 
+      m_dmaQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
+      {
+        return createDMAQueryHeap(128);
+      });
+
       m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
       {
         return createReadback(256 * 10, 1024); // maybe 10 megs of readback?
@@ -1553,12 +1558,17 @@ namespace higanbana
 
     DX12QueryHeap DX12Device::createGraphicsQueryHeap(unsigned counters)
     {
-      return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), counters);
+      return DX12QueryHeap(m_device.Get(), m_graphicsQueue.Get(), D3D12_QUERY_HEAP_TYPE_TIMESTAMP, counters);
     }
 
     DX12QueryHeap DX12Device::createComputeQueryHeap(unsigned counters)
     {
-      return DX12QueryHeap(m_device.Get(), m_computeQueue.Get(), counters);
+      return DX12QueryHeap(m_device.Get(), m_computeQueue.Get(), D3D12_QUERY_HEAP_TYPE_TIMESTAMP, counters);
+    }
+
+    DX12QueryHeap DX12Device::createDMAQueryHeap(unsigned counters)
+    {
+      return DX12QueryHeap(m_device.Get(), m_dmaQueue.Get(), D3D12_QUERY_HEAP_TYPE_COPY_QUEUE_TIMESTAMP, counters);
     }
 
     DX12ReadbackHeap DX12Device::createReadback(unsigned pages, unsigned pageSize)
@@ -1596,11 +1606,12 @@ namespace higanbana
       //auto seqNumber = m_seqTracker->next();
       //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        QueueType::Dma,
         m_copyListPool.allocate(),
         m_constantsUpload,
         m_dynamicUpload,
         m_readbackPool.allocate(),
-        m_queryHeapPool.allocate(),
+        m_dmaQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
         m_nullBufferSRV),
@@ -1622,6 +1633,7 @@ namespace higanbana
       //auto seqNumber = m_seqTracker->next();
       //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        QueueType::Compute,
         m_computeListPool.allocate(),
         m_constantsUpload,
         m_dynamicUpload,
@@ -1647,6 +1659,7 @@ namespace higanbana
       //auto seqNumber = m_seqTracker->next();
       //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
       auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+        QueueType::Graphics,
         m_graphicsListPool.allocate(),
         m_constantsUpload,
         m_dynamicUpload,

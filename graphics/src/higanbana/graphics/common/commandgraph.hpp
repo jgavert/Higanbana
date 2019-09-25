@@ -71,9 +71,9 @@ namespace higanbana
           continue;
         m_filterArguments.setBit(arg.handle().id);
         const auto& thing = arg.refBuffers();
-        m_referencedBuffers.unionFields(thing);
+        m_referencedBuffers = m_referencedBuffers.unionFields(thing);
         const auto& thing2 = arg.refTextures();
-        m_referencedTextures.unionFields(thing2);
+        m_referencedTextures = m_referencedTextures.unionFields(thing2);
       }
     }
 

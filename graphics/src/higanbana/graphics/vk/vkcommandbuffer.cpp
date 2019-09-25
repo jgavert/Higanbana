@@ -418,7 +418,7 @@ namespace higanbana
       auto checkStage = [&](int stage, AccessStage access, vk::PipelineStageFlagBits bit)
       {
         auto what = stage & access;
-        if (first)
+        if (first && what == access)
         {
           first = false;
           allStages = bit;

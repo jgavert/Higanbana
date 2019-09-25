@@ -36,6 +36,7 @@ namespace higanbana
       Rabbitpool2<DX12ReadbackHeap> m_readbackPool; // make this a new kind of pool, which keeps alive recently used.
       Rabbitpool2<DX12QueryHeap> m_queryHeapPool;
       Rabbitpool2<DX12QueryHeap> m_computeQueryHeapPool;
+      Rabbitpool2<DX12QueryHeap> m_dmaQueryHeapPool;
       Rabbitpool2<DX12CommandBuffer> m_copyListPool;
       Rabbitpool2<DX12CommandBuffer> m_computeListPool;
       Rabbitpool2<DX12CommandBuffer> m_graphicsListPool;
@@ -124,6 +125,7 @@ namespace higanbana
       // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
       DX12QueryHeap createGraphicsQueryHeap(unsigned counters);
       DX12QueryHeap createComputeQueryHeap(unsigned counters);
+      DX12QueryHeap createDMAQueryHeap(unsigned counters);
 
       DX12ReadbackHeap createReadback(unsigned pages, unsigned pageSize);
       DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);

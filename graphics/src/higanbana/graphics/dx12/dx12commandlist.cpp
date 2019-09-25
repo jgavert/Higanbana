@@ -19,6 +19,7 @@ namespace higanbana
   namespace backend
   {
     DX12CommandList::DX12CommandList(
+      QueueType type,
       std::shared_ptr<DX12CommandBuffer> buffer,
       std::shared_ptr<DX12UploadHeap> constants,
       std::shared_ptr<DX12UploadHeap> dynamicUpload,
@@ -27,7 +28,8 @@ namespace higanbana
       std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
       DX12CPUDescriptor nullBufferUAV,
       DX12CPUDescriptor nullBufferSRV)
-      : m_buffer(buffer)
+      : m_type(type)
+      , m_buffer(buffer)
       , m_constants(constants)
       , m_upload(dynamicUpload)
       , m_readback(readback)
