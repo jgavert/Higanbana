@@ -1085,6 +1085,10 @@ namespace higanbana
           }
         }
 
+        vector<QueueTransfer> uhOhGfx;
+        vector<QueueTransfer> uhOhCompute;
+        vector<QueueTransfer> uhOhDma;
+
         // check states of first use resources
         for (auto&& resource : firstUsageSeen)
         {
@@ -1097,6 +1101,16 @@ namespace higanbana
               if (state.queue_index != resource.queue)
               {
                 IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found buffer that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(state.queue_index), toString(resource.queue));
+                QueueTransfer info{};
+                info.fromOrTo = resource.queue;
+                info.id = resource.id;
+                info.type = resource.type;
+                if (state.queue_index == QueueType::Graphics)
+                  uhOhGfx.push_back(info);
+                if (state.queue_index == QueueType::Compute)
+                  uhOhCompute.push_back(info);
+                if (state.queue_index == QueueType::Dma)
+                  uhOhDma.push_back(info);
               }
             }
           }
@@ -1109,10 +1123,25 @@ namespace higanbana
               if (firstStateIsEnough.queue_index != resource.queue)
               {
                 IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found texture that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+                QueueTransfer info{};
+                info.fromOrTo = resource.queue;
+                info.id = resource.id;
+                info.type = resource.type;
+                if (firstStateIsEnough.queue_index == QueueType::Graphics)
+                  uhOhGfx.push_back(info);
+                if (firstStateIsEnough.queue_index == QueueType::Compute)
+                  uhOhCompute.push_back(info);
+                if (firstStateIsEnough.queue_index == QueueType::Dma)
+                  uhOhDma.push_back(info);
               }
             }
           }
         }
+
+        HIGAN_ASSERT(uhOhGfx.empty(), "Need to make lists to fix these resources...");
+        HIGAN_ASSERT(uhOhCompute.empty(), "Need to make lists to fix these resources...");
+        HIGAN_ASSERT(uhOhDma.empty(), "Need to make lists to fix these resources...");
+
         timing.graphSolve.stop();
         timing.fillCommandLists.start();
         deque<LiveCommandBuffer2> readyLists;
