@@ -111,8 +111,10 @@ namespace higanbana
       Pixel,
       Compute,
       Geometry,
-      TessControl,
-      TessEvaluation
+      TessControl, // hull
+      TessEvaluation, // domain
+      Amplification, // Task shader
+      Mesh, // Mesh shader
     };
 
     enum class ShaderBinaryType
