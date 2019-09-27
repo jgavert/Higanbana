@@ -821,71 +821,66 @@ namespace higanbana
 
       GraphicsPipelineDescriptor::Desc& d = vp.m_gfxDesc.desc;
       vector<MemoryBlob> blobs;
-      if (!d.vertexShaderPath.empty())
+
+      for (auto&& [shaderType, sourcePath] : d.shaders)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+        auto shader = m_shaders.shader(ShaderCreateInfo(sourcePath, shaderType, d.layout));
         blobs.emplace_back(shader);
-        desc.VS.BytecodeLength = blobs.back().size();
-        desc.VS.pShaderBytecode = blobs.back().data();
-
-        if (vp.vs.empty())
+        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [shaderType](std::pair<WatchFile, ShaderType>& shader) {
+            if (shader.second == shaderType)
+            {
+              shader.first.react();
+              return true;
+            }
+            return false;
+          });
+        if (found == vp.m_watchedShaders.end())
         {
-          vp.vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          vp.m_watchedShaders.push_back(std::make_pair(m_shaders.watch(sourcePath, shaderType), shaderType));
         }
-        vp.vs.react();
-      }
-
-      if (!d.hullShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
-        blobs.emplace_back(shader);
-        desc.HS.BytecodeLength = blobs.back().size();
-        desc.HS.pShaderBytecode = blobs.back().data();
-
-        if (vp.hs.empty())
+        switch (shaderType)
         {
-          vp.hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
-        }
-        vp.hs.react();
-      }
+          case ShaderType::Vertex:
+          {
+            desc.VS.BytecodeLength = blobs.back().size();
+            desc.VS.pShaderBytecode = blobs.back().data();
+            break;
+          }
+          case ShaderType::Geometry:
+          {
+            desc.GS.BytecodeLength = blobs.back().size();
+            desc.GS.pShaderBytecode = blobs.back().data();
+            break;
+          }
+          case ShaderType::Hull:
+          {
+            desc.HS.BytecodeLength = blobs.back().size();
+            desc.HS.pShaderBytecode = blobs.back().data();
+            break;
+          }
+          case ShaderType::Domain:
+          {
+            desc.DS.BytecodeLength = blobs.back().size();
+            desc.DS.pShaderBytecode = blobs.back().data();
+            break;
+          }
+          case ShaderType::Pixel:
+          {
+            desc.PS.BytecodeLength = blobs.back().size();
+            desc.PS.pShaderBytecode = blobs.back().data();
+            break;
+          }
+          case ShaderType::Amplification:
+          {
 
-      if (!d.domainShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
-        blobs.emplace_back(shader);
-        desc.DS.BytecodeLength = blobs.back().size();
-        desc.DS.pShaderBytecode = blobs.back().data();
-        if (vp.ds.empty())
-        {
-          vp.ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
-        }
-        vp.ds.react();
-      }
+          }
+          case ShaderType::Mesh:
+          {
 
-      if (!d.geometryShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
-        blobs.emplace_back(shader);
-        desc.GS.BytecodeLength = blobs.back().size();
-        desc.GS.pShaderBytecode = blobs.back().data();
-        if (vp.gs.empty())
-        {
-          vp.gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
+          }
+          default:
+            break;
         }
-        vp.gs.react();
-      }
-
-      if (!d.pixelShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
-        blobs.emplace_back(shader);
-        desc.PS.BytecodeLength = blobs.back().size();
-        desc.PS.pShaderBytecode = blobs.back().data();
-        if (vp.ps.empty())
-        {
-          vp.ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
-        }
-        vp.ps.react();
       }
 
       ComPtr<ID3D12RootSignature> root;

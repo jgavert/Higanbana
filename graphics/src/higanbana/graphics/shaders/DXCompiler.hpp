@@ -7,7 +7,7 @@
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
 #endif
-#include "higanbana/graphics/desc/shader_interface_descriptor.hpp"
+#include "higanbana/graphics/desc/shader_desc.hpp"
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -105,54 +105,6 @@ namespace higanbana
 {
   namespace backend
   {
-    enum class ShaderType
-    {
-      Vertex,
-      Pixel,
-      Compute,
-      Geometry,
-      TessControl, // hull
-      TessEvaluation, // domain
-      Amplification, // Task shader
-      Mesh, // Mesh shader
-    };
-
-    enum class ShaderBinaryType
-    {
-      SPIRV,
-      DXIL
-    };
-
-    struct ShaderCreateInfo
-    {
-      struct Descriptor
-      {
-        std::string shaderName = "";
-        ShaderType type = ShaderType::Compute;
-        std::vector<std::string> definitions = {};
-        uint3 tgs = uint3(1,1,1);
-        std::string rootSignature = "";
-        std::string interfaceDeclaration = "";
-      } desc;
-
-      ShaderCreateInfo(std::string shaderName, ShaderType type, PipelineInterfaceDescriptor shaderInterface)
-      {
-        desc.shaderName = shaderName;
-        desc.type = type;
-        desc.interfaceDeclaration = shaderInterface.createInterface();
-      }
-      ShaderCreateInfo& setDefinitions(std::vector<std::string> value)
-      {
-        desc.definitions = value;
-        return *this;
-      }
-      ShaderCreateInfo& setComputeGroups(uint3 value)
-      {
-        desc.tgs = value;
-        return *this;
-      }
-    };
-
     const char* shaderFileType(ShaderType type);
 
     class ShaderCompiler
@@ -176,17 +128,21 @@ namespace higanbana
         switch (type)
         {
         case ShaderType::Vertex:
-          return L"vs_6_2";
+          return L"vs_6_4";
         case ShaderType::Pixel:
-          return L"ps_6_2";
+          return L"ps_6_4";
         case ShaderType::Compute:
-          return L"cs_6_2";
+          return L"cs_6_4";
         case ShaderType::Geometry:
-          return L"gs_6_2";
-        case ShaderType::TessControl: // hs_6_0 ??
-          return L"hs_6_2";
-        case ShaderType::TessEvaluation: // ds_6_0 ??
-          return L"ds_6_2";
+          return L"gs_6_4";
+        case ShaderType::Hull: // hs_6_0 ??
+          return L"hs_6_4";
+        case ShaderType::Domain: // ds_6_0 ??
+          return L"ds_6_4";
+        case ShaderType::Amplification: //
+          return L"as_6_5";
+        case ShaderType::Mesh: //
+          return L"ms_6_5";
         default:
           HIGAN_ASSERT(false, "Unknown ShaderType");
         }

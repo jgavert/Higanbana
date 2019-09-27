@@ -1,7 +1,8 @@
 #pragma once
 #include "higanbana/graphics/desc/formats.hpp"
+#include "higanbana/graphics/desc/shader_desc.hpp"
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
-#include "higanbana/graphics/desc/shader_interface_descriptor.hpp"
+#include "higanbana/graphics/desc/pipeline_interface_descriptor.hpp"
 #include <higanbana/core/math/math.hpp>
 #include <string>
 #include <array>
@@ -470,11 +471,12 @@ namespace higanbana
     {
       std::string rootSignature;
       PipelineInterfaceDescriptor layout;
-      std::string vertexShaderPath;
+      /*std::string vertexShaderPath;
       std::string pixelShaderPath;
       std::string domainShaderPath;
       std::string hullShaderPath;
-      std::string geometryShaderPath;
+      std::string geometryShaderPath;*/
+      std::vector<std::pair<backend::ShaderType, std::string>> shaders;
       BlendDescriptor blendDesc;
       RasterizerDescriptor rasterDesc;
       DepthStencilDescriptor dsdesc;
@@ -495,27 +497,44 @@ namespace higanbana
 
     GraphicsPipelineDescriptor& setVertexShader(std::string path)
     {
-      desc.vertexShaderPath = path;
+      //desc.vertexShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Vertex, path));
       return *this;
     }
     GraphicsPipelineDescriptor& setPixelShader(std::string path)
     {
-      desc.pixelShaderPath = path;
+      //desc.pixelShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Pixel, path));
       return *this;
     }
     GraphicsPipelineDescriptor& setDomainShader(std::string path)
     {
-      desc.domainShaderPath = path;
+      //desc.domainShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Domain, path));
       return *this;
     }
     GraphicsPipelineDescriptor& setHullShader(std::string path)
     {
-      desc.hullShaderPath = path;
+      //desc.hullShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Hull, path));
       return *this;
     }
     GraphicsPipelineDescriptor& setGeometryShader(std::string path)
     {
-      desc.geometryShaderPath = path;
+      //desc.geometryShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Geometry, path));
+      return *this;
+    }
+    GraphicsPipelineDescriptor& setAmplificationShader(std::string path)
+    {
+      //desc.geometryShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Amplification, path));
+      return *this;
+    }
+    GraphicsPipelineDescriptor& setMeshShader(std::string path)
+    {
+      //desc.geometryShaderPath = path;
+      desc.shaders.push_back(std::make_pair(backend::ShaderType::Mesh, path));
       return *this;
     }
     GraphicsPipelineDescriptor& setBlend(BlendDescriptor blend)

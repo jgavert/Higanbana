@@ -14,6 +14,7 @@
 #include <higanbana/core/system/SequenceTracker.hpp>
 #include <DXGIDebug.h>
 
+#include <algorithm>
 #include <memory>
 
 namespace higanbana
@@ -1070,25 +1071,16 @@ namespace higanbana
       GraphicsPipelineDescriptor m_gfxDesc;
       ComputePipelineDescriptor m_computeDesc;
 
-      WatchFile vs;
-      WatchFile ds;
-      WatchFile hs;
-      WatchFile gs;
-      WatchFile ps;
-
+      vector<std::pair<WatchFile, ShaderType>> m_watchedShaders;
       WatchFile cs;
-      bool needsUpdating()
+      bool needsUpdating() noexcept
       {
-        return vs.updated() || ps.updated() || ds.updated() || hs.updated() || gs.updated();
+        return std::any_of(m_watchedShaders.begin(), m_watchedShaders.end(), [](std::pair<WatchFile, ShaderType>& shader){ return shader.first.updated();});
       }
 
       void updated()
       {
-        vs.react();
-        ds.react();
-        hs.react();
-        gs.react();
-        ps.react();
+        std::for_each(m_watchedShaders.begin(), m_watchedShaders.end(), [](std::pair<WatchFile, ShaderType>& shader){ shader.first.react();});
       }
     };
     struct DX12Resources

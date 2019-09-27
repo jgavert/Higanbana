@@ -41,9 +41,6 @@ call python .\utils\hct\hctgettaef.py
 REM # Configure and build
 call .\utils\hct\hctbuild.cmd -rel -parallel -spirv
 
-rem remember to download Bazel from https://github.com/bazelbuild/bazel/releases
-rem too hard to programmatically get it from there for you :)
-
 cd ..
 cd ..
 
@@ -57,4 +54,8 @@ robocopy /s ext\DirectXShaderCompiler\dxc-bin\include ext\dxc-bin\include
 robocopy /s ext\DirectXShaderCompiler\include ext\dxc-bin\include
 
 echo You can now remove "ext\DirectXShaderCompiler" if you want to reduce amount of bloat :) "ext\dxc-bin" has all the relevant data now
+
+rem remember to download Bazel from https://github.com/bazelbuild/bazel/releases
+rem too hard to programmatically get it from there for you :)
+
 pause

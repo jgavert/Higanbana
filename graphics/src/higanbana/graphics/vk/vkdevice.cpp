@@ -1043,6 +1043,28 @@ namespace higanbana
       return *newRP;
     }
 
+    vk::ShaderStageFlagBits shaderTypeToVulkan(ShaderType type)
+    {
+      switch (type)
+      {
+        case ShaderType::Vertex: return vk::ShaderStageFlagBits::eVertex;
+        case ShaderType::Geometry: return vk::ShaderStageFlagBits::eGeometry;
+        case ShaderType::Hull: return vk::ShaderStageFlagBits::eTessellationControl;
+        case ShaderType::Domain: return vk::ShaderStageFlagBits::eTessellationEvaluation;
+        case ShaderType::Pixel: return vk::ShaderStageFlagBits::eFragment;
+        case ShaderType::Amplification: return vk::ShaderStageFlagBits::eTaskNV;
+        case ShaderType::Mesh: return vk::ShaderStageFlagBits::eMeshNV;
+        case ShaderType::Compute: return vk::ShaderStageFlagBits::eCompute;
+        case ShaderType::Raytracing:
+        {
+          HIGAN_ASSERT(false, "not sure what to do here...");
+          return vk::ShaderStageFlagBits();
+        }
+        case ShaderType::Unknown: HIGAN_ASSERT(false, "Unknown shaders halp");
+        default:
+          return vk::ShaderStageFlagBits();
+      }
+    }
 
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
     {
@@ -1067,9 +1089,10 @@ namespace higanbana
       vector<ReadyShader> shaders;
 
       auto& d = desc.desc;
-      if (!d.vertexShaderPath.empty())
+
+      for (auto&& [shaderType, sourcePath] : d.shaders)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.vertexShaderPath, ShaderType::Vertex, d.layout));
+        auto shader = m_shaders.shader(ShaderCreateInfo(sourcePath, shaderType, d.layout));
         vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
@@ -1077,94 +1100,21 @@ namespace higanbana
         VK_CHECK_RESULT(module);
 
         ReadyShader ss;
-        ss.stage = vk::ShaderStageFlagBits::eVertex;
+        ss.stage = shaderTypeToVulkan(shaderType);
         ss.module = module.value;
         shaders.push_back(ss);
-        if (vp.vs.empty())
+        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [shaderType](std::pair<WatchFile, ShaderType>& shader) {
+            if (shader.second == shaderType)
+            {
+              shader.first.react();
+              return true;
+            }
+            return false;
+          });
+        if (found == vp.m_watchedShaders.end())
         {
-          vp.vs = m_shaders.watch(d.vertexShaderPath, ShaderType::Vertex);
+          vp.m_watchedShaders.push_back(std::make_pair(m_shaders.watch(sourcePath, shaderType), shaderType));
         }
-        vp.vs.react();
-      }
-
-      if (!d.hullShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.hullShaderPath, ShaderType::TessControl, d.layout));
-        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
-          .setCodeSize(shader.size())
-          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
-        auto module = m_device.createShaderModule(si);
-        VK_CHECK_RESULT(module);
-
-        ReadyShader ss;
-        ss.stage = vk::ShaderStageFlagBits::eTessellationControl;
-        ss.module = module.value;
-        shaders.push_back(ss);
-        if (vp.hs.empty())
-        {
-          vp.hs = m_shaders.watch(d.hullShaderPath, ShaderType::TessControl);
-        }
-        vp.hs.react();
-      }
-
-      if (!d.domainShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.domainShaderPath, ShaderType::TessEvaluation, d.layout));
-        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
-          .setCodeSize(shader.size())
-          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
-        auto module = m_device.createShaderModule(si);
-        VK_CHECK_RESULT(module);
-
-        ReadyShader ss;
-        ss.stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
-        ss.module = module.value;
-        shaders.push_back(ss);
-        if (vp.ds.empty())
-        {
-          vp.ds = m_shaders.watch(d.domainShaderPath, ShaderType::TessEvaluation);
-        }
-        vp.ds.react();
-      }
-
-      if (!d.geometryShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.geometryShaderPath, ShaderType::Geometry, d.layout));
-        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
-          .setCodeSize(shader.size())
-          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
-        auto module = m_device.createShaderModule(si);
-        VK_CHECK_RESULT(module);
-
-        ReadyShader ss;
-        ss.stage = vk::ShaderStageFlagBits::eGeometry;
-        ss.module = module.value;
-        shaders.push_back(ss);
-        if (vp.gs.empty())
-        {
-          vp.gs = m_shaders.watch(d.geometryShaderPath, ShaderType::Geometry);
-        }
-        vp.gs.react();
-      }
-
-      if (!d.pixelShaderPath.empty())
-      {
-        auto shader = m_shaders.shader(ShaderCreateInfo(d.pixelShaderPath, ShaderType::Pixel, d.layout));
-        vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
-          .setCodeSize(shader.size())
-          .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
-        auto module = m_device.createShaderModule(si);
-        VK_CHECK_RESULT(module);
-
-        ReadyShader ss;
-        ss.stage = vk::ShaderStageFlagBits::eFragment;
-        ss.module = module.value;
-        shaders.push_back(ss);
-        if (vp.ps.empty())
-        {
-          vp.ps = m_shaders.watch(d.pixelShaderPath, ShaderType::Pixel);
-        }
-        vp.ps.react();
       }
 
       vector<vk::PipelineShaderStageCreateInfo> shaderInfos;
@@ -1219,7 +1169,7 @@ namespace higanbana
       auto compiled = m_device.createGraphicsPipeline(nullptr, pipelineInfo);
       VK_CHECK_RESULT(compiled);
 
-      setDebugUtilsObjectNameEXT(compiled.value, desc.desc.pixelShaderPath.c_str());
+      setDebugUtilsObjectNameEXT(compiled.value, desc.desc.shaders.begin()->second.c_str());
 
       for (auto&& it : shaders)
       {
@@ -1297,7 +1247,7 @@ namespace higanbana
         .setPSetLayouts(layouts.data()));
       VK_CHECK_RESULT(pipelineLayout);
 
-      setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.pixelShaderPath.c_str());
+      setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.shaders.front().second.c_str());
 
       auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
 

@@ -16,9 +16,9 @@ namespace higanbana
         return "cs";
       case ShaderType::Geometry:
         return "gs";
-      case ShaderType::TessControl: // hull?
+      case ShaderType::Hull: // hull?
         return "tc";
-      case ShaderType::TessEvaluation: // domain?
+      case ShaderType::Domain: // domain?
         return "te";
       default:
         HIGAN_ASSERT(false, "Unknown ShaderType");

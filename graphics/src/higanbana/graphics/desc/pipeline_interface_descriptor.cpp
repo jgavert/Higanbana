@@ -1,4 +1,4 @@
-#include "higanbana/graphics/desc/shader_interface_descriptor.hpp"
+#include "higanbana/graphics/desc/pipeline_interface_descriptor.hpp"
 
 namespace higanbana
 {

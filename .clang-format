@@ -1,7 +1,7 @@
 ﻿---
 BasedOnStyle: Google
 ColumnLimit: '140'
-AlignConsecutiveAssignments: 'true'
+AlignConsecutiveAssignments: 'false'
 AlignConsecutiveDeclarations: 'true'
 BinPackArguments: 'false'
 BinPackParameters: 'false'

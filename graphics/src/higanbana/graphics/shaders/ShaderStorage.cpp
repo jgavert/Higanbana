@@ -82,11 +82,11 @@ namespace higanbana
       case ShaderType::Geometry:
         superSimple += "Geometry";
         break;
-      case ShaderType::TessControl: // hull?
-        superSimple += "TessControl(hull?)";
+      case ShaderType::Hull: // hull?
+        superSimple += "Hull(hull?)";
         break;
-      case ShaderType::TessEvaluation: // domain?
-        superSimple += "TessEvaluation(domain?)";
+      case ShaderType::Domain: // domain?
+        superSimple += "Domain(domain?)";
         break;
       default:
         HIGAN_ASSERT(false, "Unknown ShaderType");
