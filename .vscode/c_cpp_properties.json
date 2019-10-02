@@ -7,6 +7,7 @@
                 "${workspaceFolder}/test_main/src",
                 "${workspaceFolder}/core/src",
                 "${workspaceFolder}/graphics/src",
+                "${workspaceFolder}/benchmarks",
                 "${workspaceFolder}/ext/dxc-bin/include",
                 "${workspaceFolder}/ext/winpixeventruntime/include",
                 "${workspaceFolder}/ext/imgui",
@@ -24,7 +25,8 @@
                 "HIGANBANA_PLATFORM_WINDOWS",
                 "DEBUG",
                 "WIN32",
-                "WIN64"
+                "WIN64",
+                "CATCH_CONFIG_ENABLE_BENCHMARKING"
             ],
             "windowsSdkVersion": "10.0.18368.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",

@@ -16,8 +16,9 @@
         "${workspaceRoot}/ext/cxxopts/include",
         "${workspaceRoot}/ext/winpixeventruntime/Include",
         "${workspaceRoot}/ext/Catch2/single_include",
-        "${workspaceRoot}/higanbana/core/src",
-        "${workspaceRoot}/higanbana/graphics/src",
+        "${workspaceRoot}/benchmarks",
+        "${workspaceRoot}/core/src",
+        "${workspaceRoot}/graphics/src",
         "${workspaceRoot}/test_main/src"
       ],
       "defines": [
@@ -26,7 +27,8 @@
         "UNICODE",
         "_UNICODE",
         "HIGANBANA_PLATFORM_WINDOWS",
-        "VK_USE_PLATFORM_WIN32_KHR"
+        "VK_USE_PLATFORM_WIN32_KHR",
+        "CATCH_CONFIG_ENABLE_BENCHMARKING"
       ]
     }
   ]

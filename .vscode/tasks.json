@@ -40,6 +40,18 @@
             }
         },
         {
+            "label": "build benchmarks(bazel opt)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "benchmarks" , "--compilation_mode=opt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "test graphics(bazel dbg)",
             "type": "shell",
             "command": "bazel.exe",
