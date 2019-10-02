@@ -368,7 +368,7 @@ namespace app
         binding.arguments(0, args);
 
         //node.drawIndexed(binding, ind, 36);
-        int gridSize = 20;
+        int gridSize = 8;
         for (int x = 0; x < gridSize; ++x)
         {
           for (int y = 0; y < gridSize; ++y)
