@@ -656,11 +656,11 @@ namespace higanbana
       bool supportsHDR = false;
       DisplayCurve curve = DisplayCurve::sRGB;
       DXGI_COLOR_SPACE_TYPE colorSpace;
+      bool m_outOfDate = false;
 
       struct Desc
       {
-        int width = 0;
-        int height = 0;
+        int2 res;
         SwapchainDescriptor descriptor;
       } m_desc;
 
@@ -676,8 +676,8 @@ namespace higanbana
       ResourceDescriptor desc() override
       {
         return ResourceDescriptor()
-          .setWidth(m_desc.width)
-          .setHeight(m_desc.height)
+          .setWidth(m_desc.res.x)
+          .setHeight(m_desc.res.y)
           .setFormat(m_desc.descriptor.desc.format)
           .setUsage(ResourceUsage::RenderTarget)
           .setDimension(FormatDimension::Texture2D)
@@ -732,10 +732,19 @@ namespace higanbana
         return curve;
       }
 
+      void setOutOfDate(bool value)
+      {
+        m_outOfDate = value;
+      }
+
+      bool outOfDate() override
+      {
+        return m_outOfDate;
+      }
+
       void setBufferMetadata(int x, int y, SwapchainDescriptor descriptor)
       {
-        m_desc.width = x;
-        m_desc.height = y;
+        m_desc.res = int2(x, y);
         m_desc.descriptor = descriptor;
       }
 

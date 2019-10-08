@@ -110,6 +110,7 @@ namespace higanbana
       std::shared_ptr<VulkanSemaphore> renderingFinished = nullptr;
 
       int m_index = -1;
+      bool m_outOfDate = false;
       struct Desc
       {
         int width = 0;
@@ -183,6 +184,16 @@ namespace higanbana
       Desc getDesc()
       {
         return m_desc;
+      }
+
+      void setOutOfDate(bool value = true)
+      {
+        m_outOfDate = value;
+      }
+
+      bool outOfDate() override
+      {
+        return m_outOfDate;
       }
 
       void setCurrentPresentableImageIndex(int index)

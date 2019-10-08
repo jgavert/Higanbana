@@ -34,5 +34,10 @@ namespace higanbana
     {
       return m_backbuffers;
     }
+
+    bool outOfDate()
+    {
+      return m_impl->outOfDate();
+    }
   };
 };

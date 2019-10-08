@@ -226,13 +226,16 @@ namespace app
 
   void Renderer::render()
   {
-    // If you acquire, you must submit it. Next, try to first present empty image.
-    // On vulkan, need to at least clear the image or we will just get error about it. (... well at least when the contents are invalid in the beginning.)
+    if (swapchain.outOfDate()) // swapchain can end up being outOfDate
+    {
+      windowResized();
+    }
+
+    // If you acquire, you must submit it.
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
     if (!obackbuffer.has_value())
     {
       HIGAN_LOGi( "No backbuffer available, Resizing\n");
-      windowResized();
       return;
     }
     TextureRTV backbuffer = obackbuffer.value();

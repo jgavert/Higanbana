@@ -901,7 +901,7 @@ namespace higanbana
         {
           hadBackup = true;
         }
-        HIGAN_SLOG("higanbana/graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
+        //HIGAN_SLOG("higanbana/graphics/Surface", "format: %s\n", vk::to_string(fmt.format).c_str());
       }
 
       if (!found)
@@ -983,10 +983,14 @@ namespace higanbana
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
       auto res = m_device.acquireNextImageKHR(native->native(), 0, freeSemaphore->native(), nullptr);
 
-      if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
+      if (res.result != vk::Result::eSuccess)
       {
-        HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
-        return -1;
+        native->setOutOfDate(true);
+        if (res.result != vk::Result::eSuboptimalKHR)
+        {
+          HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+          return -1;
+        }
       }
       native->setCurrentPresentableImageIndex(res.value);
       native->setAcquireSemaphore(freeSemaphore);
@@ -1002,10 +1006,14 @@ namespace higanbana
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
       auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), freeSemaphore->native(), nullptr);
 
-      if (res.result != vk::Result::eSuboptimalKHR && res.result != vk::Result::eSuccess)
+      if (res.result != vk::Result::eSuccess)
       {
-        HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
-        return -1;
+        native->setOutOfDate(true);
+        if (res.result != vk::Result::eSuboptimalKHR)
+        {
+          HIGAN_ILOG("Vulkan/AcquireNextImage", "error: %s\n", to_string(res.result).c_str());
+          return -1;
+        }
       }
       native->setCurrentPresentableImageIndex(res.value);
       native->setAcquireSemaphore(freeSemaphore);
@@ -2458,19 +2466,19 @@ namespace higanbana
         semaphoreCount = 1;
       }
 
-      try
+      auto result = m_mainQueue.presentKHR(vk::PresentInfoKHR()
+        .setSwapchainCount(1)
+        .setPSwapchains(&swap)
+        .setPImageIndices(&index)
+        .setWaitSemaphoreCount(semaphoreCount)
+        .setPWaitSemaphores(&renderFinish));
+      
+      if (result != vk::Result::eSuccess)
       {
-        m_mainQueue.presentKHR(vk::PresentInfoKHR()
-          .setSwapchainCount(1)
-          .setPSwapchains(&swap)
-          .setPImageIndices(&index)
-          .setWaitSemaphoreCount(semaphoreCount)
-          .setPWaitSemaphores(&renderFinish));
-      }
-      catch (...)
-      {
+        native->setOutOfDate(true);
       }
     }
+    
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore()
     {
       vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR();

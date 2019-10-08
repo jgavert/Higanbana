@@ -79,21 +79,9 @@ namespace higanbana
         virtual ResourceDescriptor desc() = 0;
         virtual bool HDRSupport() = 0;
         virtual DisplayCurve displayCurve() = 0;
+        virtual bool outOfDate() = 0;
         virtual ~SwapchainImpl() = default;
       };
-
-      // questionable
-      /*
-      class DynamicBufferViewImpl
-      {
-      public:
-        virtual ~DynamicBufferViewImpl() = default;
-        virtual backend::RawView view() = 0;
-        virtual int rowPitch() = 0;
-        virtual uint64_t offset() = 0;
-        virtual uint64_t size() = 0;
-      };
-      */
 
       class DeviceImpl
       {

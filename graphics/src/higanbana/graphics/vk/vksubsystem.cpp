@@ -40,7 +40,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   {
     msgType += "WARNING:";
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-    breakOn = true;
+    //breakOn = true;
 #endif
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
@@ -57,7 +57,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   auto queueLabelsCount = pCallbackData->queueLabelCount;
   auto objectCount = pCallbackData->objectCount;
 
-  HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, pMessage);
+  HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, msgType.c_str(), pMessage);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   if (breakOn /*&& IsDebuggerPresent()*/)
   {

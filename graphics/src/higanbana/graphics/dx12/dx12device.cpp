@@ -377,9 +377,15 @@ namespace higanbana
 
       RECT rect{};
       BOOL lol = GetClientRect(natSurface.native(), &rect);
-      HIGAN_ASSERT(lol, "window rect failed ....?");
-      auto width = rect.right - rect.left;
-      auto height = rect.bottom - rect.top;
+      auto width = 0;
+      auto height = 0;
+      if (lol)
+      {
+        width = rect.right - rect.left;
+        height = rect.bottom - rect.top;
+      }
+      width = width == 0? 8 : width;
+      height = height == 0? 8 : height;
       //HIGAN_SLOG("DX12", "adjusting swapchain to %ux%u\n", width, height);
 
       // clean old
@@ -497,19 +503,34 @@ namespace higanbana
       return static_cast<int>(textures.size());
     }
 
+    bool isSwapchainOutOfDate(HWND hwnd, RECT rect, int2 res)
+    {
+      auto width = rect.right - rect.left;
+      auto height = rect.bottom - rect.top;
+      return res.x != width || res.y != height;
+    }
+
     int DX12Device::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-        auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
-        if (!native->checkFrameLatency())
-            return -1;
-        int index = native->native()->GetCurrentBackBufferIndex();
-        native->setBackbufferIndex(index);
-        return index;
+      auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      RECT rect{};
+      if (!GetClientRect(native->surface().native(), &rect))
+        return -1;
+      native->setOutOfDate(isSwapchainOutOfDate(native->surface().native(), rect, native->getDesc().res));
+      if (!native->checkFrameLatency())
+          return -1;
+      int index = native->native()->GetCurrentBackBufferIndex();
+      native->setBackbufferIndex(index);
+      return index;
     }
 
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
+      RECT rect{};
+      if (!GetClientRect(native->surface().native(), &rect))
+        return -1;
+      native->setOutOfDate(isSwapchainOutOfDate(native->surface().native(), rect, native->getDesc().res));
       native->waitForFrameLatency();
       int index = native->native()->GetCurrentBackBufferIndex();
       native->setBackbufferIndex(index);

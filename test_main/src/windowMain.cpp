@@ -394,12 +394,7 @@ void mainWindow(ProgramParams& params)
 
             ImGui::End();
             ImGui::Render();
-            //HIGAN_LOG("Rendering...");
-            if (renderResize)
-            {
-              renderResize = false;
-              rend.windowResized();
-            }
+            
             rend.render();
           }
         });
