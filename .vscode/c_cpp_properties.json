@@ -12,6 +12,7 @@
                 "${workspaceFolder}/ext/winpixeventruntime/include",
                 "${workspaceFolder}/ext/imgui",
                 "${workspaceFolder}/ext/stb",
+                "${workspaceFolder}/ext/tinygltf",
                 "${workspaceFolder}/ext/cxxopts/include",
                 "${workspaceFolder}/ext/rapidjson/include",
                 "${workspaceFolder}/ext/GSL/include",

@@ -87,12 +87,17 @@ MemoryBlob::MemoryBlob(std::vector<uint8_t> data)
 {
 }
 
-size_t MemoryBlob::size()
+size_t MemoryBlob::size() const noexcept
 {
   return m_data.size();
 }
 
-uint8_t* MemoryBlob::data()
+uint8_t* MemoryBlob::data() noexcept
+{
+  return m_data.data();
+}
+
+const uint8_t* MemoryBlob::cdata() const noexcept
 {
   return m_data.data();
 }

@@ -6,6 +6,13 @@ cc_library(
 )
 
 cc_library(
+    name = "tinygltf",
+    hdrs = ["tinygltf/stb_image.h", "tinygltf/stb_image_write.h", "tinygltf/json.hpp", "tinygltf/tiny_gltf.h"],
+    includes = ["tinygltf"],
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
     name = "GSL",
     hdrs = ["GSL/include/gsl/gsl",
     "GSL/include/gsl/gsl_algorithm",

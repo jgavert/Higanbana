@@ -55,8 +55,9 @@ namespace higanbana
   public:
     MemoryBlob();
     MemoryBlob(std::vector<uint8_t> data);
-    size_t size();
-    uint8_t* data();
+    uint8_t* data() noexcept;
+    size_t size() const noexcept;
+    const uint8_t* cdata() const noexcept;
   };
 
   class FileSystem

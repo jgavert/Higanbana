@@ -17,6 +17,9 @@ git clone https://github.com/ocornut/imgui.git ext/imgui
 rd /s /Q ext\rapidjson
 git clone https://github.com/Tencent/rapidjson.git ext/rapidjson
 
+rd /s /Q ext\tinygltf
+git clone https://github.com/syoyo/tinygltf.git
+
 REM  https://www.nuget.org/api/v2/package/WinPixEventRuntime
 rd /s /Q ext\winpixeventruntime
 powershell -Command "Invoke-WebRequest https://www.nuget.org/api/v2/package/WinPixEventRuntime -OutFile ext\wper.zip"
