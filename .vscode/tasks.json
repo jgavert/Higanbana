@@ -76,6 +76,18 @@
             }
         },
         {
+            "label": "test core(bazel dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "tests:all-core-tests" , "--compilation_mode=dbg"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "bazel clean",
             "type": "shell",
             "command": "bazel.exe",

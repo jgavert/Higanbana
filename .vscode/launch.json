@@ -72,5 +72,18 @@
             "logging": { "moduleLoad": false, "engineLogging": false},
             "internalConsoleOptions": "openOnSessionStart"
         },
+        {
+            "name": "tests core single test win64 dbg",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/tests/test_core_experimental_threading.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/tests",
+            "environment": [],
+            "preLaunchTask": "test core(bazel dbg)",
+            "logging": { "moduleLoad": false, "engineLogging": false},
+            "internalConsoleOptions": "openOnSessionStart"
+        },
     ]
 }

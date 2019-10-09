@@ -12,11 +12,13 @@ cc_library(
 
 src_core_test("entity")
 src_core_test("bitfield")
+src_core_test("experimental_threading")
 
 test_suite(
     name = "all-core-tests",
     tests = [
         "test_core_entity",
+        "test_core_experimental_threading",
         "test_core_bitfield"
     ]
 )
