@@ -18,7 +18,7 @@ rd /s /Q ext\rapidjson
 git clone https://github.com/Tencent/rapidjson.git ext/rapidjson
 
 rd /s /Q ext\tinygltf
-git clone https://github.com/syoyo/tinygltf.git
+git clone https://github.com/syoyo/tinygltf.git ext/tinygltf
 
 REM  https://www.nuget.org/api/v2/package/WinPixEventRuntime
 rd /s /Q ext\winpixeventruntime
