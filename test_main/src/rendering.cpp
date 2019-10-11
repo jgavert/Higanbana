@@ -219,9 +219,10 @@ namespace app
   std::optional<higanbana::SubmitTiming> Renderer::timings()
   {
     auto info = dev.submitTimingInfo();
-    if (info.empty())
-      return std::optional<higanbana::SubmitTiming>();
-    return info.front();
+    if (!info.empty())
+      m_previousInfo = info.front();
+    
+    return m_previousInfo;
   }
 
   void Renderer::render()
@@ -242,7 +243,7 @@ namespace app
     CommandGraph tasks = dev.createGraph();
 
     {
-      auto node = tasks.createPass("generate Texture", QueueType::Compute);
+      auto node = tasks.createPass("generate Texture");
 
       auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout)
         .bind("output", proxyTex.uav()));

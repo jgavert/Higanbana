@@ -411,7 +411,7 @@ void mainWindow(ProgramParams& params)
             auto si = rend.timings();
             if (si && ImGui::CollapsingHeader("Renderpass"))
             {
-              ImGui::Text("RenderGraph statistics: (might flicker, by design...)");
+              ImGui::Text("RenderGraph statistics:");
               auto rsi = si.value();
               float gpuTotal = 0.f;
               for (auto& list : rsi.lists)

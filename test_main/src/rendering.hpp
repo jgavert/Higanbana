@@ -67,6 +67,8 @@ namespace app
     float3 sideVec;
     quaternion direction;
 
+    std::optional<higanbana::SubmitTiming> m_previousInfo;
+
   public:
     Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
     void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
