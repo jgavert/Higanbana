@@ -1111,8 +1111,8 @@ namespace higanbana
         ss.stage = shaderTypeToVulkan(shaderType);
         ss.module = module.value;
         shaders.push_back(ss);
-        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [shaderType](std::pair<WatchFile, ShaderType>& shader) {
-            if (shader.second == shaderType)
+        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [stype = shaderType](std::pair<WatchFile, ShaderType>& shader) {
+            if (shader.second == stype)
             {
               shader.first.react();
               return true;
@@ -2336,7 +2336,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       vector<vk::Semaphore> waitList;
       vector<vk::CommandBuffer> bufferList;
@@ -2381,21 +2381,18 @@ namespace higanbana
         .setPWaitSemaphores(waitList.data())
         .setSignalSemaphoreCount(static_cast<uint32_t>(signalList.size()))
         .setPSignalSemaphores(signalList.data());
-      if (!fence.empty())
+      if (fence)
       {
-        auto native = std::static_pointer_cast<VulkanFence>(fence[0]);
+        auto native = std::static_pointer_cast<VulkanFence>(*fence);
         {
-          vk::ArrayProxy<const vk::Fence> proxy(native->native());
           // TODO: is this ok to do always?
-          m_device.resetFences(proxy);
+          m_device.resetFences({native->native()});
         }
-        vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
-        queue.submit(proxy, native->native());
+        queue.submit({info}, native->native());
       }
       else
       {
-        vk::ArrayProxy<const vk::SubmitInfo> proxy(info);
-        queue.submit(proxy, nullptr);
+        queue.submit({info}, nullptr);
       }
     }
 
@@ -2403,7 +2400,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       vk::Queue target = m_copyQueue;
       if (m_singleQueue)
@@ -2417,7 +2414,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       vk::Queue target = m_computeQueue;
       if (m_singleQueue)
@@ -2431,7 +2428,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       submitToQueue(m_mainQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }

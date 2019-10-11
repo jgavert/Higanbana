@@ -160,7 +160,7 @@ namespace higanbana
         std::string addedHash = "// INTERFACE_HASH:" + std::to_string(h1) + ":" + std::to_string(h2)+"\n";
         addedHash += interfaceData;
         fs.writeFile(interfacePath, makeByteView(addedHash.data(), addedHash.size()));
-        HIGAN_LOG("ShaderStorage", "Shader interfacefile \"%s\" was old/missing. Created new one.", interfacePath);
+        HIGAN_LOG("ShaderStorage", "Shader interfacefile \"%s\" was old/missing. Created new one.", interfacePath.c_str());
         // HIGAN_LOG("ShaderStorage", "Made a shader file(%s) for if: %s shader", shaderInterfacePath.c_str(), );
       }
       return !needsReplacing;
@@ -182,7 +182,7 @@ namespace higanbana
         std::string superSimple = shaderStubFile(info); 
         m_fs.writeFile(shaderPath, makeByteView(superSimple.data(), superSimple.size()));
 
-        HIGAN_LOG("ShaderStorage", "Made a shader file(%s) for %s: %s shader", shaderInterfacePath.c_str(), shaderFileType(info.desc.type), info.desc.shaderName);
+        HIGAN_LOG("ShaderStorage", "Made a shader file(%s) for %s: %s shader", shaderInterfacePath.c_str(), shaderFileType(info.desc.type), info.desc.shaderName.c_str());
       }
     }
 

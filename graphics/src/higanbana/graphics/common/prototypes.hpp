@@ -7,6 +7,7 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <string>
 #include <memory>
+#include <optional>
 
 namespace higanbana
 {
@@ -153,19 +154,19 @@ namespace higanbana
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          MemView<std::shared_ptr<backend::FenceImpl>> fence) = 0;
+          std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void submitCompute(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          MemView<std::shared_ptr<backend::FenceImpl>> fence) = 0;
+          std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void submitGraphics(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          MemView<std::shared_ptr<backend::FenceImpl>> fence) = 0;
+          std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void waitFence(std::shared_ptr<backend::FenceImpl> fence) = 0;
         virtual bool checkFence(std::shared_ptr<backend::FenceImpl> fence) = 0;

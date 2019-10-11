@@ -847,8 +847,8 @@ namespace higanbana
       {
         auto shader = m_shaders.shader(ShaderCreateInfo(sourcePath, shaderType, d.layout));
         blobs.emplace_back(shader);
-        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [shaderType](std::pair<WatchFile, ShaderType>& shader) {
-            if (shader.second == shaderType)
+        auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [stype = shaderType](std::pair<WatchFile, ShaderType>& shader) {
+            if (shader.second == stype)
             {
               shader.first.react();
               return true;
@@ -1710,7 +1710,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       if (!wait.empty())
       {
@@ -1743,14 +1743,11 @@ namespace higanbana
           queue->Signal(native->fence.Get(), native->start());
         }
       }
-      if (!fence.empty())
+      if (fence)
       {
-        for (auto&& fe : fence)
-        {
-          auto native = std::static_pointer_cast<DX12Fence>(fe);
-          auto value = native->start();
-          queue->Signal(native->fence.Get(), value);
-        }
+        auto native = std::static_pointer_cast<DX12Fence>(*fence);
+        auto value = native->start();
+        queue->Signal(native->fence.Get(), value);
       }
     }
 
@@ -1758,7 +1755,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       submit(m_dmaQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
@@ -1767,7 +1764,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
@@ -1776,7 +1773,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<std::shared_ptr<FenceImpl>>         fence)
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       submit(m_graphicsQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }

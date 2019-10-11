@@ -20,6 +20,7 @@ namespace higanbana
     // device
     DeviceGroupData::DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impls, vector<GpuInfo> infos)
     {
+      m_delayer = std::make_unique<DelayedRelease>();
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
       {
@@ -343,7 +344,7 @@ namespace higanbana
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(dev->m_currentSeqNum, *ptr);
+          dev->m_delayer->insert(dev->m_currentSeqNum, *ptr);
         }
         delete ptr;
       });
@@ -356,7 +357,7 @@ namespace higanbana
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer.insert(dev->m_currentSeqNum, *ptr);
+          dev->m_delayer->insert(dev->m_currentSeqNum, *ptr);
         }
         delete ptr;
       });
@@ -565,7 +566,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format)
     {
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, format);
@@ -576,7 +577,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride)
     {
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, stride);
@@ -587,7 +588,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch)
     {
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamicImage(handle, range, rowPitch);
@@ -627,7 +628,7 @@ namespace higanbana
         for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
         {
           auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-          m_delayer.insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+          m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
           auto sr = image.subresource(mip, slice);
           for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
           {
@@ -1236,27 +1237,27 @@ namespace higanbana
             buffer.fence = vdev.device->createFence();
           }
 
-          MemView<std::shared_ptr<FenceImpl>> viewToFences;
+          std::optional<std::shared_ptr<FenceImpl>> viewToFence;
 
           if (buffer.fence)
           {
-            viewToFences = buffer.fence;
+            viewToFence = buffer.fence;
           }
 
           buffer.listTiming.fromSubmitToFence.start();
           switch (list.type)
           {
           case QueueType::Dma:
-            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
-            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
           default:
-            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFences);
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
           //m_buffers.emplace_back(buffer);
@@ -1281,7 +1282,7 @@ namespace higanbana
         m_seqNumRequirements.pop_front();
         m_completedLists++;
       }
-      auto garb = m_delayer.garbageCollection(m_completedLists);
+      auto garb = m_delayer->garbageCollection(m_completedLists);
       for (auto&& device : m_devices)
       {
         for (auto&& handle : garb.viewTrash)

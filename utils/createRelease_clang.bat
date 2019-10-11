@@ -1,11 +1,11 @@
 @echo off
 cd ..
 call .\utils\setEnv.bat
-set USE_CLANG_CL=0
+set USE_CLANG_CL=1
 bazel build test_main --compilation_mode=opt
 
-set location="releaseDir_msvc"
-set outputZip="higanbana_win64_fastbuild_msvc"
+set location="releaseDir_clang"
+set outputZip="higanbana_win64_fastbuild_clang"
 
 rd /s /Q %location%
 mkdir %location%

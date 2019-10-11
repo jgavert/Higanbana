@@ -1,5 +1,5 @@
 #pragma once
-#include "higanbana/core/Platform/ProgramParams.hpp"
+#include "higanbana/core/platform/ProgramParams.hpp"
 
 class EntryPoint
 {

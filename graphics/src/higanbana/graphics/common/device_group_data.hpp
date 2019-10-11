@@ -149,7 +149,7 @@ namespace higanbana
       vector<VirtualDevice> m_devices;
 
       SequenceTracker m_seqTracker; // used to track only commandlists
-      DelayedRelease m_delayer;
+      std::unique_ptr<DelayedRelease> m_delayer;
       HandleManager m_handles;
 
       // used to free resources

@@ -77,7 +77,7 @@
           } \
       } while (0)
 #endif
-#else if NDEBUG
+#elif NDEBUG
 #ifdef _MSC_VER
 #define HIGAN_ERROR(msg, ...) __assume(false);
 #define HIGAN_ASSERT(cond, msg, ...) __assume(cond);

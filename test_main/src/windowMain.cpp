@@ -1,7 +1,7 @@
 #include "windowMain.hpp"
 #include <higanbana/core/system/LBS.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
-#include <higanbana/core/Platform/Window.hpp>
+#include <higanbana/core/platform/Window.hpp>
 #include <higanbana/core/system/logger.hpp>
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -392,7 +392,7 @@ void mainWindow(ProgramParams& params)
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
             ImGui::Begin("main");                          // Create a window called "Hello, world!" and append into it.
-            ImGui::Text("Missed %zd frames of inputs. current: %zd read %zd", diff, currentInput, lastRead);
+            ImGui::Text("Missed %zd frames of inputs. current: %zd read %d", diff, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());

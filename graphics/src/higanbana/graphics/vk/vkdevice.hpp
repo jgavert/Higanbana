@@ -192,25 +192,25 @@ namespace higanbana
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence);
+        std::optional<std::shared_ptr<FenceImpl>>         fence);
 
       void submitDMA(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
+        std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void submitCompute(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
+        std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void submitGraphics(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<std::shared_ptr<FenceImpl>>         fence) override;
+        std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;
       bool checkFence(std::shared_ptr<FenceImpl>    fence) override;

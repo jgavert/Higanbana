@@ -36,14 +36,14 @@ public:
   DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
     virtual ~DXCIncludeHandler2() {}
 
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) {
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override {
     return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
   }
 
   HRESULT STDMETHODCALLTYPE LoadSource(
     _In_ LPCWSTR pFilename,                                   // Candidate filename.
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
-  )
+  ) override
   {
     //ppIncludeSource = nullptr;
     std::string filename = ws2s(pFilename);

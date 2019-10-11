@@ -88,9 +88,9 @@ namespace higanbana
       };
     public:
       VulkanSubsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion, bool debug = false);
-      std::string gfxApi();
-      vector<GpuInfo> availableGpus(VendorID vendor);
-      std::shared_ptr<backend::prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu);
+      std::string gfxApi() override;
+      vector<GpuInfo> availableGpus(VendorID vendor) override;
+      std::shared_ptr<backend::prototypes::DeviceImpl> createGpuDevice(FileSystem& fs, GpuInfo gpu) override;
       GraphicsSurface createSurface(Window& window) override;
     };
   }
