@@ -93,6 +93,27 @@ bool customWriteWholeFile(std::string* err, const std::string& filepath, const s
   return true;
 }
 
+const char* componentTypeToString(uint32_t ty) {
+  if (ty == TINYGLTF_TYPE_SCALAR) {
+    return "Float";
+  } else if (ty == TINYGLTF_TYPE_VEC2) {
+    return "Float32x2";
+  } else if (ty == TINYGLTF_TYPE_VEC3) {
+    return "Float32x3";
+  } else if (ty == TINYGLTF_TYPE_VEC4) {
+    return "Float32x4";
+  } else if (ty == TINYGLTF_TYPE_MAT2) {
+    return "Mat2";
+  } else if (ty == TINYGLTF_TYPE_MAT3) {
+    return "Mat3";
+  } else if (ty == TINYGLTF_TYPE_MAT4) {
+    return "Mat4";
+  } else {
+    // Unknown componenty type
+    return "Unknown";
+  }
+}
+
 void mainWindow(ProgramParams& params)
 {
   cxxopts::Options options("TestMain", "TestMain tests some practical functionality of Higanbana.");
@@ -197,6 +218,47 @@ void mainWindow(ProgramParams& params)
 
       if (!ret) {
         HIGAN_LOGi("Failed to parse glTF\n");
+      }
+
+      if (ret)
+      {
+        // find the one model
+        for (auto&& mesh : model.meshes)
+        {
+          HIGAN_LOGi("mesh found: %s with %zu primitives\n", mesh.name.c_str(), mesh.primitives.size());
+          for (auto&& primitive : mesh.primitives)
+          {
+            {
+              auto& indiceAccessor = model.accessors[primitive.indices];
+              auto& indiceView = model.bufferViews[indiceAccessor.bufferView];
+              auto indType = componentTypeToString(indiceAccessor.type);
+
+              HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceAccessor.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
+              auto& data = model.buffers[indiceView.buffer];
+              
+              uint16_t* dataPtr = reinterpret_cast<uint16_t*>(data.data.data() + indiceView.byteOffset + indiceAccessor.byteOffset);
+              for (int i = 0; i < indiceAccessor.count; ++i)
+              {
+                HIGAN_LOGi("   %u%s", dataPtr[i], ((i+1)%3==0?"\n":""));
+              }
+            }
+            for (auto&& attribute : primitive.attributes)
+            {
+              auto& accessor = model.accessors[attribute.second];
+              auto& bufferView = model.bufferViews[accessor.bufferView];
+              auto type = componentTypeToString(accessor.type);
+              HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, accessor.byteOffset, accessor.count, accessor.ByteStride(bufferView));
+              auto& data = model.buffers[bufferView.buffer];
+              
+              float3* dataPtr = reinterpret_cast<float3*>(data.data.data()+accessor.byteOffset);
+              for (int i = 0; i < accessor.count; ++i)
+              {
+                HIGAN_LOGi("   %.2f %.2f %.2f\n", dataPtr[i].x, dataPtr[i].y, dataPtr[i].z);
+              }
+            }
+          }
+        }
+        return;
       }
     }
 
