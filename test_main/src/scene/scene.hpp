@@ -1,5 +1,5 @@
 #pragma once
-#include "scene/components.hpp"
+#include "components.hpp"
 
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>

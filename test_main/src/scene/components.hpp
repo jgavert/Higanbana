@@ -2,6 +2,7 @@
 
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/entity/database.hpp>
 
 namespace app
 {
