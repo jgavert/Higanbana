@@ -7,7 +7,7 @@ ext/
 externals/
 bazel-*
 package/
-releaseDir/
+releaseDir*
 app/external/imgui/
 msbuild/
 

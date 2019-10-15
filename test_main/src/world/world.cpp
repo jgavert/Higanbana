@@ -1,4 +1,4 @@
-#include "scene.hpp"
+#include "world.hpp"
 
 #include <higanbana/core/filesystem/filesystem.hpp>
 // Define these only in *one* .cc file.
@@ -66,7 +66,7 @@ const char* componentTypeToString(uint32_t ty) {
 
 namespace app
 {
-void Scene::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path)
+void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path)
 {
   if (fs.fileExists(path))
   {
@@ -102,8 +102,12 @@ void Scene::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       for (auto&& mesh : model.meshes)
       {
         HIGAN_LOGi("mesh found: %s with %zu primitives\n", mesh.name.c_str(), mesh.primitives.size());
+
+        components::Childs childs;
         for (auto&& primitive : mesh.primitives)
         {
+          MeshData md{};
+
           {
             auto& indiceAccessor = model.accessors[primitive.indices];
             auto& indiceView = model.bufferViews[indiceAccessor.bufferView];
@@ -111,13 +115,15 @@ void Scene::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 
             HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceAccessor.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
             auto& data = model.buffers[indiceView.buffer];
-            
-            uint16_t* dataPtr = reinterpret_cast<uint16_t*>(data.data.data() + indiceView.byteOffset + indiceAccessor.byteOffset);
-            for (int i = 0; i < indiceAccessor.count; ++i)
-            {
-              HIGAN_LOGi("   %u%s", dataPtr[i], ((i+1)%3==0?"\n":""));
-            }
+
+            md.indiceFormat = higanbana::FormatType::Uint16;
+            auto offset = indiceView.byteOffset + indiceAccessor.byteOffset;
+            auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indiceFormat).pixelSize;
+            md.indices.resize(dataSize);
+            memcpy(md.indices.data(), data.data.data()+offset, dataSize); 
           }
+
+
           for (auto&& attribute : primitive.attributes)
           {
             auto& accessor = model.accessors[attribute.second];
@@ -131,8 +137,40 @@ void Scene::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             {
               HIGAN_LOGi("   %.2f %.2f %.2f\n", dataPtr[i].x, dataPtr[i].y, dataPtr[i].z);
             }
+
+            if (attribute.first.compare("POSITION") == 0)
+            {
+              md.vertexFormat = higanbana::FormatType::Float32RGB;
+              auto offset = bufferView.byteOffset + accessor.byteOffset;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertexFormat).pixelSize;
+              md.vertices.resize(dataSize);
+              memcpy(md.vertices.data(), data.data.data()+offset, dataSize); 
+            }
+            else if (attribute.first.compare("NORMAL") == 0)
+            {
+              md.normalFormat = higanbana::FormatType::Float32RGB;
+              auto offset = bufferView.byteOffset + accessor.byteOffset;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
+              md.normals.resize(dataSize);
+              memcpy(md.normals.data(), data.data.data()+offset, dataSize); 
+            }
           }
+
+          auto id = freelist.allocate();
+          if (rawMeshData.size() <= id) rawMeshData.resize(id+1);
+
+          rawMeshData[id] = md;
+
+          auto ent = database.createEntity();
+          auto& table = database.get<components::RawMeshData>();
+          table.insert(ent, {id});
+
+          childs.childs.push_back(id);
         }
+
+        auto ent = database.createEntity();
+        auto& table = database.get<components::Childs>();
+        table.insert(ent, std::move(childs));
       }
     }
   }

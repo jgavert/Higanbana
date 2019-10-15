@@ -18,7 +18,7 @@
 
 #include "entity_test.hpp"
 #include "rendering.hpp"
-#include "scene/scene.hpp"
+#include "world/world.hpp"
 
 using namespace higanbana;
 using namespace higanbana::math;
@@ -132,8 +132,8 @@ void mainWindow(ProgramParams& params)
     FileSystem fs("/../../data");
     Database<2048> ecs;
 
-    app::Scene scene;
-    scene.loadGLTFScene(ecs, fs, "/test.gltf");
+    app::World world;
+    world.loadGLTFScene(ecs, fs, "/test.gltf");
 
     bool quit = false;
     LBS lbs;

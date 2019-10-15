@@ -4,7 +4,7 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/entity/database.hpp>
 
-namespace app
+namespace components
 {
 struct WorldPosition
 {
@@ -21,12 +21,7 @@ struct Childs
   higanbana::vector<higanbana::Id> childs;
 };
 
-struct Material
-{
-
-};
-
-struct LoadedOnGPU
+struct RawMeshData
 {
   int id;
 };
