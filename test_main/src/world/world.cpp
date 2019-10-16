@@ -99,6 +99,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
     if (ret)
     {
       // find the one model
+      components::Childs sceneChilds;
       for (auto&& mesh : model.meshes)
       {
         HIGAN_LOGi("mesh found: %s with %zu primitives\n", mesh.name.c_str(), mesh.primitives.size());
@@ -171,7 +172,13 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         auto ent = database.createEntity();
         auto& table = database.get<components::Childs>();
         table.insert(ent, std::move(childs));
+        sceneChilds.childs.push_back(ent);
       }
+      auto ent = database.createEntity();
+      auto& table = database.get<components::Childs>();
+      table.insert(ent, std::move(sceneChilds));
+      auto& names = database.get<components::Name>();
+      names.insert(ent, {path});
     }
   }
 }

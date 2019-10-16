@@ -4,6 +4,8 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/entity/database.hpp>
 
+#include <string>
+
 namespace components
 {
 struct WorldPosition
@@ -14,6 +16,11 @@ struct WorldPosition
 struct Rotation
 {
   quaternion rot;
+};
+
+struct Name
+{
+  std::string str;
 };
 
 struct Childs
