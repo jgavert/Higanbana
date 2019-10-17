@@ -19,6 +19,8 @@
 #include "entity_test.hpp"
 #include "rendering.hpp"
 #include "world/world.hpp"
+#include "world/components.hpp"
+#include "world/entity_viewer.hpp"
 
 using namespace higanbana;
 using namespace higanbana::math;
@@ -134,6 +136,7 @@ void mainWindow(ProgramParams& params)
 
     app::World world;
     world.loadGLTFScene(ecs, fs, "/test.gltf");
+    app::EntityView entityViewer;
 
     bool quit = false;
     LBS lbs;
@@ -398,8 +401,10 @@ void mainWindow(ProgramParams& params)
                   ImGui::Text("Descriptors                 %.2fk / %.2fk %.2f%%", unitsToK(stat.descriptorsAllocated), unitsToK(stat.maxDescriptors), unitsToK(stat.descriptorsAllocated) / unitsToK(stat.maxDescriptors) * 100.f);
               }
             }
-
             ImGui::End();
+            // render entities
+            entityViewer.render(ecs);
+
             ImGui::Render();
             
             rend.render();

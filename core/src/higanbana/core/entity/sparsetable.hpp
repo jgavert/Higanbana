@@ -3,6 +3,7 @@
 #include <memory>
 #include <array>
 #include <cassert>
+#include <optional>
 
 namespace higanbana
 {
@@ -45,6 +46,15 @@ namespace higanbana
     inline T& get(Id id)
     {
       return (*m_array)[id];
+    }
+
+    std::optional<T> tryGet(Id id)
+    {
+      if (check(id))
+      {
+        return get(id);
+      }
+      return std::optional<T>{};
     }
 
     size_t size() const

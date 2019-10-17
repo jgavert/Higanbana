@@ -98,12 +98,42 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 
     if (ret)
     {
-      // find the one model
-      components::Childs sceneChilds;
+      higanbana::vector<higanbana::Id> scenes;
+
+      auto& childtable = database.get<components::Childs>();
+      auto& names = database.get<components::Name>();
+
+      // create entities for all scenenodes
+      higanbana::vector<higanbana::Id> entityNodes;
+      for (auto&& node : model.nodes)
+      {
+        auto id = database.createEntity();
+        names.insert(id, {node.name});
+        database.getTag<components::SceneNode>().insert(id);
+        entityNodes.emplace_back(id);
+      }
+
+      // create scene entities and link scenenodes as childs
+      for (auto&& scene : model.scenes)
+      {
+        auto id = database.createEntity();
+        names.insert(id,{scene.name});
+
+        higanbana::vector<higanbana::Id> childs;
+        for (auto&& sceneChildNode : scene.nodes)
+        {
+          childs.push_back(entityNodes[sceneChildNode]);
+        }
+        childtable.insert(id, {childs});
+        database.getTag<components::Scene>().insert(id);
+        scenes.push_back(id);
+      }
+
+      // create mesh entities
+      higanbana::vector<higanbana::Id> meshes;
       for (auto&& mesh : model.meshes)
       {
         HIGAN_LOGi("mesh found: %s with %zu primitives\n", mesh.name.c_str(), mesh.primitives.size());
-
         components::Childs childs;
         for (auto&& primitive : mesh.primitives)
         {
@@ -170,15 +200,52 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         }
 
         auto ent = database.createEntity();
-        auto& table = database.get<components::Childs>();
-        table.insert(ent, std::move(childs));
-        sceneChilds.childs.push_back(ent);
+        childtable.insert(ent, std::move(childs));
+        database.getTag<components::MeshNode>().insert(ent);
+        meshes.push_back(ent);
       }
+
+      // create camera entities
+      higanbana::vector<higanbana::Id> cameras;
+      for (auto&& camera : model.cameras)
+      {
+        auto cameraId = database.createEntity();
+        names.insert(cameraId, {camera.name});
+        database.getTag<components::CameraNode>().insert(cameraId);
+        cameras.push_back(cameraId);
+      }
+
+      // link meshes and cameras and other scenenodes to other as childs
+      for (int i = 0; i < model.nodes.size(); ++i)
+      {
+        auto id = entityNodes[i];
+        if (!model.nodes[i].children.empty())
+        {
+          higanbana::vector<higanbana::Id> childs;
+          for (auto&& sceneChildNode : model.nodes[i].children)
+          {
+            childs.push_back(entityNodes[sceneChildNode]);
+          }
+          if (!childs.empty())
+            childtable.insert(id, {childs});
+        }
+        if (model.nodes[i].mesh >= 0)
+        {
+          auto& meshtable = database.get<components::Mesh>();
+          meshtable.insert(id, {meshes[model.nodes[i].mesh]});
+        }
+        if (model.nodes[i].camera >= 0)
+        {
+          auto& meshtable = database.get<components::Camera>();
+          meshtable.insert(id, {cameras[model.nodes[i].camera]});
+        }
+      }
+
+      // create gltfnode with scenes as childs.
       auto ent = database.createEntity();
-      auto& table = database.get<components::Childs>();
-      table.insert(ent, std::move(sceneChilds));
-      auto& names = database.get<components::Name>();
+      childtable.insert(ent, {scenes});
       names.insert(ent, {path});
+      database.getTag<components::GltfNode>().insert(ent);
     }
   }
 }

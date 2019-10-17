@@ -28,8 +28,23 @@ struct Childs
   higanbana::vector<higanbana::Id> childs;
 };
 
+struct Mesh
+{
+  higanbana::Id target;
+};
+
+struct Camera
+{
+  higanbana::Id target;
+};
 struct RawMeshData
 {
   int id;
 };
+
+struct GltfNode;
+struct CameraNode;
+struct MeshNode;
+struct Scene;
+struct SceneNode;
 }
