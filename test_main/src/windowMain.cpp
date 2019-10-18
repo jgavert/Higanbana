@@ -199,6 +199,16 @@ void mainWindow(ProgramParams& params)
 
       auto dev = graphics.createGroup(fs, allGpus);
       app::Renderer rend(graphics, dev);
+
+      // Load meshes to gpu
+      {
+        auto& gpuMesh = ecs.get<components::MeshInstance>();
+        query(pack(ecs.get<components::RawMeshData>()), // pack(ecs.getTag<components::MeshNode>()),
+          [&](higanbana::Id id, components::RawMeshData index) {
+          components::MeshInstance instance{rend.loadMesh(world.getMesh(index.id))};
+          gpuMesh.insert(id, instance);
+        });
+      }
       {
         auto toggleHDR = false;
         rend.initWindow(window, allGpus[0]);

@@ -221,6 +221,7 @@ namespace higanbana
       D3D12_GPU_VIRTUAL_ADDRESS m_resourceAddress;
       ID3D12Resource* m_resPtr;
       PageBlock block;
+      int alignOffset;
 
       ID3D12Resource* native()
       {
@@ -229,12 +230,12 @@ namespace higanbana
 
       uint8_t* data()
       {
-        return m_data + block.offset;
+        return m_data + block.offset + alignOffset;
       }
 
       D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress()
       {
-        return m_resourceAddress + block.offset;
+        return m_resourceAddress + block.offset + alignOffset;
       }
 
       size_t size()
@@ -319,11 +320,16 @@ namespace higanbana
         HIGANBANA_CHECK_HR(resource->Map(0, &range, reinterpret_cast<void**>(&data)));
       }
 
-      UploadBlock allocate(size_t bytes)
+      UploadBlock allocate(size_t bytes, size_t alignment = 1)
       {
-        auto dip = allocator.allocate(bytes);
+        auto dip = allocator.allocate(bytes + alignment);
         HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger DX12UploadHeap :) %d", max_size());
-        return UploadBlock{ data, gpuAddr, resource.Get(), dip };
+        int offBy = dip.offset % alignment;
+        if (offBy != 0)
+        {
+          offBy = alignment - offBy;
+        }
+        return UploadBlock{ data, gpuAddr, resource.Get(), dip, offBy };
       }
 
       void release(UploadBlock desc)

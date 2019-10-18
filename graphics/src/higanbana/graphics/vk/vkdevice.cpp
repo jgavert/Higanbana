@@ -2104,7 +2104,8 @@ namespace higanbana
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
-      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      auto alignment = formatSizeInfo(desiredFormat).pixelSize * 16;
+      auto upload = m_dynamicUpload->allocate(dataRange.size(), alignment);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
 
@@ -2116,8 +2117,8 @@ namespace higanbana
       vk::BufferViewCreateInfo desc = vk::BufferViewCreateInfo()
         .setBuffer(upload.buffer())
         .setFormat(format)
-        .setOffset(upload.block.offset)
-        .setRange(upload.block.size);
+        .setOffset(upload.offset())
+        .setRange(dataRange.size());
 
       auto view = m_device.createBufferView(desc);
       VK_CHECK_RESULT(view);
@@ -2134,8 +2135,8 @@ namespace higanbana
       
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(upload.buffer())
-        .setOffset(upload.block.offset)
-        .setRange(upload.block.size);
+        .setOffset(upload.offset())
+        .setRange(dataRange.size());
 
       m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, info, upload);
     }

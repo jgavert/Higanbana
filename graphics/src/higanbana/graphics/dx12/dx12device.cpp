@@ -1468,8 +1468,11 @@ namespace higanbana
     {
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
-      auto upload = m_dynamicUpload->allocate(view.size());
+
+      auto algn = formatSizeInfo(type).pixelSize;
+      auto upload = m_dynamicUpload->allocate(view.size(), algn);
       HIGAN_ASSERT(upload, "Halp");
+
       memcpy(upload.data(), view.data(), view.size());
 
       auto format = formatTodxFormat(type).view;
@@ -1486,7 +1489,7 @@ namespace higanbana
       desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-      HIGAN_ASSERT(upload.block.offset % stride == 0, "oh no");
+      HIGAN_ASSERT((upload.block.offset + upload.alignOffset) % stride == 0, "oh no");
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
       m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, descriptor, format, stride);

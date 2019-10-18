@@ -525,6 +525,8 @@ namespace higanbana
       auto maxSize = std::max(m_pages, other.m_pages);
       auto interSize = std::min(m_pages, other.m_pages);
       DynamicBitfield result(maxSize);
+      if (interSize == 0)
+        return result; 
       const __m128i* vec1 = data();
       const __m128i* vec0 = other.data();
       __m128i* p = reinterpret_cast<__m128i*>(result.data());

@@ -42,7 +42,13 @@ struct Camera
 {
   higanbana::Id target;
 };
+
 struct RawMeshData
+{
+  int id;
+};
+
+struct MeshInstance
 {
   int id;
 };

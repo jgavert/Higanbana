@@ -439,10 +439,11 @@ namespace higanbana
       uint8_t* m_data;
       vk::Buffer m_buffer;
       PageBlock block;
+      int alignOffset;
 
       uint8_t* data()
       {
-        return m_data + block.offset;
+        return m_data + block.offset + alignOffset;
       }
 
       vk::Buffer buffer()
@@ -452,7 +453,7 @@ namespace higanbana
 
       size_t offset()
       {
-        return block.offset;
+        return block.offset + alignOffset;
       }
 
       size_t size()
@@ -783,11 +784,16 @@ namespace higanbana
         m_device.freeMemory(m_memory);
       }
 
-      VkUploadBlock allocate(size_t bytes)
+      VkUploadBlock allocate(size_t bytes, size_t alignment = 1)
       {
-        auto dip = allocator.allocate(bytes);
+        auto dip = allocator.allocate(bytes + alignment);
         HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", m_size);
-        return VkUploadBlock{ data, m_buffer,  dip };
+        int offBy = dip.offset % alignment;
+        if (offBy != 0)
+        {
+          offBy = alignment - offBy;
+        }
+        return VkUploadBlock{ data, m_buffer,  dip, offBy };
       }
 
       void release(VkUploadBlock desc)

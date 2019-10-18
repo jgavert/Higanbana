@@ -11,20 +11,6 @@
 
 namespace app
 {
-struct MeshData
-{
-  higanbana::FormatType indiceFormat;
-  higanbana::FormatType vertexFormat;
-  higanbana::FormatType normalFormat;
-  higanbana::FormatType texCoordFormat;
-  higanbana::FormatType tangentFormat;
-  higanbana::vector<unsigned char> indices;
-  higanbana::vector<unsigned char> vertices;
-  higanbana::vector<unsigned char> normals;
-  higanbana::vector<unsigned char> texCoords;
-  higanbana::vector<unsigned char> tangents;
-};
-
 class World 
 {
   higanbana::vector<higanbana::Id> entities;
@@ -32,5 +18,6 @@ class World
   higanbana::vector<MeshData> rawMeshData;
   public:
   void loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
+  MeshData& getMesh(int index); 
 };
 };

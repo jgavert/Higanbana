@@ -98,6 +98,9 @@ higanbana::FormatType gltfComponentTypeToFormatType(int value)
 
 namespace app
 {
+  MeshData& World::getMesh(int index) {
+    return rawMeshData[index];
+  }
 void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
   for (auto&& file : fs.recursiveList(dir, ".gltf"))

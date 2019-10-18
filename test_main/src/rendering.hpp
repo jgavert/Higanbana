@@ -5,76 +5,100 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
+#include <higanbana/core/system/FreelistAllocator.hpp>
 #include "renderer/imgui.hpp"
+#include "world/visual_data_structures.hpp"
+
 
 namespace app
 {
-  class Renderer
-  {
-    higanbana::GraphicsSubsystem& graphics;
-    higanbana::GpuGroup& dev;
-    higanbana::GraphicsSurface surface;
+struct MeshViews
+{
+  higanbana::BufferSRV indices;
+  higanbana::BufferSRV vertices;
+};
+class MeshSystem
+{
+  higanbana::FreelistAllocator freelist;
+  higanbana::vector<MeshViews> views;
 
-    higanbana::SwapchainDescriptor scdesc;
-    higanbana::Swapchain swapchain;
-    // resources
-    higanbana::Buffer buffer;
-    higanbana::Buffer buffer2;
-    higanbana::Buffer buffer3;
-    higanbana::BufferSRV testSRV;
-    higanbana::BufferSRV test2SRV;
-    higanbana::BufferUAV testOut;
+public:
+  int allocate(higanbana::GpuGroup& gpu, MeshData& data);
+  MeshViews operator[](int index) { return views[index]; }
+  void free(int index);
+};
 
-    higanbana::ShaderArgumentsLayout triangleLayout;
-    higanbana::GraphicsPipeline triangle;
+class Renderer
+{
+  higanbana::GraphicsSubsystem& graphics;
+  higanbana::GpuGroup& dev;
+  higanbana::GraphicsSurface surface;
 
-    higanbana::Renderpass triangleRP;
+  higanbana::SwapchainDescriptor scdesc;
+  higanbana::Swapchain swapchain;
+  // resources
+  higanbana::Buffer buffer;
+  higanbana::Buffer buffer2;
+  higanbana::Buffer buffer3;
+  higanbana::BufferSRV testSRV;
+  higanbana::BufferSRV test2SRV;
+  higanbana::BufferUAV testOut;
 
-    higanbana::GraphicsPipeline opaque;
-    higanbana::Renderpass opaqueRP;
+  higanbana::ShaderArgumentsLayout triangleLayout;
+  higanbana::GraphicsPipeline triangle;
 
-    higanbana::PingPongTexture proxyTex;
-    higanbana::ShaderArgumentsLayout compLayout;
-    higanbana::ComputePipeline genTexCompute;
+  higanbana::Renderpass triangleRP;
 
-    higanbana::ShaderArgumentsLayout blitLayout;
-    higanbana::GraphicsPipeline composite;
-    higanbana::Renderpass compositeRP;
-    // info
-    higanbana::WTime time;
+  higanbana::GraphicsPipeline opaque;
+  higanbana::Renderpass opaqueRP;
 
-    // shared textures
-    higanbana::PingPongTexture targetRT;
-    higanbana::Buffer sBuf;
-    higanbana::BufferSRV sBufSRV;
-    
-    higanbana::Texture sTex;
+  higanbana::PingPongTexture proxyTex;
+  higanbana::ShaderArgumentsLayout compLayout;
+  higanbana::ComputePipeline genTexCompute;
 
-    renderer::IMGui imgui;
+  higanbana::ShaderArgumentsLayout blitLayout;
+  higanbana::GraphicsPipeline composite;
+  higanbana::Renderpass compositeRP;
+  // info
+  higanbana::WTime time;
 
-    higanbana::CpuImage image;
-    higanbana::Texture fontatlas;
+  // shared textures
+  higanbana::PingPongTexture targetRT;
+  higanbana::Buffer sBuf;
+  higanbana::BufferSRV sBufSRV;
+  
+  higanbana::Texture sTex;
 
-    // gbuffer??
-    higanbana::Texture depth;
-    higanbana::TextureDSV depthDSV;
+  renderer::IMGui imgui;
 
-    // camera
+  higanbana::CpuImage image;
+  higanbana::Texture fontatlas;
 
-    float3 position;
-    float3 dir;
-    float3 updir;
-    float3 sideVec;
-    quaternion direction;
+  // gbuffer??
+  higanbana::Texture depth;
+  higanbana::TextureDSV depthDSV;
 
-    std::optional<higanbana::SubmitTiming> m_previousInfo;
+  // meshes
+  MeshSystem meshes;
 
-  public:
-    Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
-    void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
-    int2 windowSize();
-    void windowResized();
-    void render();
-    std::optional<higanbana::SubmitTiming> timings();
-  };
+  // camera
+  float3 position;
+  float3 dir;
+  float3 updir;
+  float3 sideVec;
+  quaternion direction;
+
+  std::optional<higanbana::SubmitTiming> m_previousInfo;
+
+public:
+  Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
+  void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
+  int2 windowSize();
+  void windowResized();
+  void render();
+  std::optional<higanbana::SubmitTiming> timings();
+
+  int loadMesh(MeshData& data);
+  void unloadMesh(int index);
+};
 }

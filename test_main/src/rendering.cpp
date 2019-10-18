@@ -29,6 +29,51 @@ SHADER_STRUCT(OpaqueConsts,
 
 namespace app
 {
+  int MeshSystem::allocate(higanbana::GpuGroup& gpu, MeshData& data)
+  {
+    auto val = freelist.allocate();
+    if (views.size() < val+1) views.resize(val+1);
+
+    auto sizeInfo = higanbana::formatSizeInfo(data.indiceFormat);
+    auto& view = views[val];
+    view.indices = gpu.createBufferSRV(ResourceDescriptor()
+    .setFormat(data.indiceFormat)
+    .setCount(data.indices.size() / sizeInfo.pixelSize)
+    .setUsage(ResourceUsage::GpuReadOnly)
+    .setIndexBuffer());
+
+    sizeInfo = higanbana::formatSizeInfo(data.vertexFormat);
+    view.vertices = gpu.createBufferSRV(ResourceDescriptor()
+    .setFormat(data.vertexFormat)
+    .setCount(data.vertices.size() / sizeInfo.pixelSize)
+    .setUsage(ResourceUsage::GpuReadOnly));
+
+    auto graph = gpu.createGraph();
+    auto node = graph.createPass("Update mesh data");
+    auto indData = gpu.dynamicBuffer(makeMemView(data.indices), data.indiceFormat);
+    node.copy(view.indices.buffer(), indData);
+    auto vertData = gpu.dynamicBuffer(makeMemView(data.vertices), data.vertexFormat);
+    node.copy(view.vertices.buffer(), vertData);
+    graph.addPass(std::move(node));
+    gpu.submit(graph);
+    return val;
+  }
+
+  void MeshSystem::free(int index)
+  {
+    views[index] = {};
+  }
+
+  int Renderer::loadMesh(MeshData& data)
+  {
+    return meshes.allocate(dev, data);
+  }
+
+  void Renderer::unloadMesh(int index)
+  {
+    return meshes.free(index);
+  }
+
   Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
    : graphics(graphics)
    , dev(dev)
