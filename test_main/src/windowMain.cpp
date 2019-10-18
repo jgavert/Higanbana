@@ -135,7 +135,7 @@ void mainWindow(ProgramParams& params)
     Database<2048> ecs;
 
     app::World world;
-    world.loadGLTFScene(ecs, fs, "/test.gltf");
+    world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
 
     bool quit = false;

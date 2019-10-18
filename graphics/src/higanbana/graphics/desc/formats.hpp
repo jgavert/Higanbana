@@ -17,10 +17,12 @@ namespace higanbana
   enum class FormatType
   {
     Unknown = 0,
+    Double,
     Uint32RGBA,
     Uint32RGB,
     Uint32RG,
     Uint32,
+    Int32,
     Float32RGBA,
     Float32RGB,
     Float32RG,
@@ -34,6 +36,7 @@ namespace higanbana
     Uint16RGBA,
     Uint16RG,
     Uint16,
+    Int16,
     Uint8RGBA,
     Uint8RG,
     Int8RGBA,
@@ -45,6 +48,7 @@ namespace higanbana
     Raw32,
     Depth32,
     Depth32_Stencil8,
+    Int8,
     Uint8,
     Unorm8,
     Count

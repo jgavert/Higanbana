@@ -10,6 +10,7 @@ package/
 releaseDir*
 app/external/imgui/
 msbuild/
+data/scenes
 
 data/*.jpg
 *.cap

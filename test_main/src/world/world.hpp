@@ -1,5 +1,6 @@
 #pragma once
 #include "components.hpp"
+#include "visual_data_structures.hpp"
 
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
@@ -10,15 +11,19 @@
 
 namespace app
 {
-  struct MeshData
-  {
-    higanbana::FormatType indiceFormat;
-    higanbana::FormatType vertexFormat;
-    higanbana::FormatType normalFormat;
-    higanbana::vector<unsigned char> indices;
-    higanbana::vector<unsigned char> vertices;
-    higanbana::vector<unsigned char> normals;
-  };
+struct MeshData
+{
+  higanbana::FormatType indiceFormat;
+  higanbana::FormatType vertexFormat;
+  higanbana::FormatType normalFormat;
+  higanbana::FormatType texCoordFormat;
+  higanbana::FormatType tangentFormat;
+  higanbana::vector<unsigned char> indices;
+  higanbana::vector<unsigned char> vertices;
+  higanbana::vector<unsigned char> normals;
+  higanbana::vector<unsigned char> texCoords;
+  higanbana::vector<unsigned char> tangents;
+};
 
 class World 
 {

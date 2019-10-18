@@ -200,6 +200,46 @@ void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::str
   }
 }
 
+vector<std::string> FileSystem::getFilesWithinDir(std::string path)
+{
+  std::lock_guard<std::mutex> guard(m_lock);
+  const auto currentPath = getBasePath();
+  auto fullPath = currentPath + path;
+  std::vector<std::string> files;
+  getFiles(fullPath.c_str(), files);
+  std::for_each(files.begin(), files.end(), [&](std::string& file){
+    auto newString = file.substr(currentPath.size());
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+    std::replace(newString.begin(), newString.end(), '\\', '/');
+#endif
+    newString = newString.substr(path.size()+1);
+    file = newString;
+  });
+  return files;
+}
+
+
+vector<std::string> FileSystem::recursiveList(std::string path, std::string filter)
+{
+  std::lock_guard<std::mutex> guard(m_lock);
+  const auto currentPath = getBasePath();
+  auto fullPath = currentPath + path;
+  std::vector<std::string> files;
+  getFilesRecursive(fullPath.c_str(), files);
+  std::vector<std::string> outFiles;
+  std::for_each(files.begin(), files.end(), [&](std::string& file){
+    auto newString = file.substr(currentPath.size());
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+    std::replace(newString.begin(), newString.end(), '\\', '/');
+#endif
+    newString = newString.substr(path.size()+1);
+    file = newString;
+    if (file.find(filter) != std::string::npos)
+      outFiles.emplace_back(file);
+  });
+  return outFiles;
+}
+
 MemoryBlob FileSystem::readFile(std::string path)
 {
   MemoryBlob blob;

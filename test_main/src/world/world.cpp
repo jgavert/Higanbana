@@ -9,24 +9,30 @@
 #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
 #include <tiny_gltf.h>
 
+struct gltfUserData
+{
+  higanbana::FileSystem& fs;
+  std::string prefixFolder;
+};
+
 bool customFileExists(const std::string& abs_filename, void* userData)
 {
-  higanbana::FileSystem& fs = *reinterpret_cast<higanbana::FileSystem*>(userData);
+  higanbana::FileSystem& fs = reinterpret_cast<gltfUserData*>(userData)->fs;
   return fs.fileExists(abs_filename);
 }
 
 std::string customExpandFilePath(const std::string& filepath, void* userData)
 {
-  higanbana::FileSystem& fs = *reinterpret_cast<higanbana::FileSystem*>(userData);
+  higanbana::FileSystem& fs = reinterpret_cast<gltfUserData*>(userData)->fs;
   //HIGAN_ASSERT(false, "WTF %s\n", filepath.c_str());
-  std::string newPath = "/";
-  newPath += filepath;
-  return newPath;
+  //std::string newPath = reinterpret_cast<gltfUserData*>(userData)->prefixFolder + "/";
+  //newPath += filepath;
+  return filepath;
 }
 
 bool customReadWholeFile(std::vector<unsigned char>* out, std::string* err, const std::string& filepath, void* userData)
 {
-  higanbana::FileSystem& fs = *reinterpret_cast<higanbana::FileSystem*>(userData);
+  higanbana::FileSystem& fs = reinterpret_cast<gltfUserData*>(userData)->fs;
 
   HIGAN_ASSERT(fs.fileExists(filepath), "file didn't exist. %s", filepath.c_str());
   auto mem = fs.readFile(filepath);
@@ -38,7 +44,7 @@ bool customReadWholeFile(std::vector<unsigned char>* out, std::string* err, cons
 
 bool customWriteWholeFile(std::string* err, const std::string& filepath, const std::vector<unsigned char>& contents, void* userData)
 {
-  higanbana::FileSystem& fs = *reinterpret_cast<higanbana::FileSystem*>(userData);
+  higanbana::FileSystem& fs = reinterpret_cast<gltfUserData*>(userData)->fs;
   fs.writeFile(filepath, contents);
   return true;
 }
@@ -64,12 +70,41 @@ const char* componentTypeToString(uint32_t ty) {
   }
 }
 
+higanbana::FormatType gltfComponentTypeToFormatType(int value)
+{
+  switch (value)
+  {
+  case TINYGLTF_COMPONENT_TYPE_BYTE:
+    return higanbana::FormatType::Int8;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+    return higanbana::FormatType::Uint8;
+  case TINYGLTF_COMPONENT_TYPE_SHORT:
+    return higanbana::FormatType::Int16;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+    return higanbana::FormatType::Uint16;
+  case TINYGLTF_COMPONENT_TYPE_INT:
+    return higanbana::FormatType::Int32;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+    return higanbana::FormatType::Uint32;
+  case TINYGLTF_COMPONENT_TYPE_FLOAT:
+    return higanbana::FormatType::Float32;
+  case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+    return higanbana::FormatType::Double;
+  default:
+    HIGAN_ASSERT(false, "Unknown gltf component type %d", value);
+  }
+  return higanbana::FormatType::Unknown;
+}
+
 namespace app
 {
-void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path)
+void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
-  if (fs.fileExists(path))
+  for (auto&& file : fs.recursiveList(dir, ".gltf"))
   {
+    if (!fs.fileExists(dir+"/"+file))
+      continue;
+
     using namespace tinygltf;
 
     Model model;
@@ -77,11 +112,13 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
     std::string err;
     std::string warn;
 
-    FsCallbacks fscallbacks = {&customFileExists, &customExpandFilePath, &customReadWholeFile, &customWriteWholeFile, &fs};
+    gltfUserData usrData = {fs, dir};
+
+    FsCallbacks fscallbacks = {&customFileExists, &customExpandFilePath, &customReadWholeFile, &customWriteWholeFile, &usrData};
 
     loader.SetFsCallbacks(fscallbacks);
 
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, path);
+    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, dir+"/"+file);
     //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
 
     if (!warn.empty()) {
@@ -102,6 +139,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 
       auto& childtable = database.get<components::Childs>();
       auto& names = database.get<components::Name>();
+      auto& matrices = database.get<components::Matrix>();
 
       // create entities for all scenenodes
       higanbana::vector<higanbana::Id> entityNodes;
@@ -109,6 +147,15 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       {
         auto id = database.createEntity();
         names.insert(id, {node.name});
+        if (!node.matrix.empty())
+        {
+          components::Matrix mat{};
+          for (int i = 0 ; i < node.matrix.size(); ++i)
+          {
+            mat.mat(i) = node.matrix[i];
+          }
+          matrices.insert(id, mat);
+        }
         database.getTag<components::SceneNode>().insert(id);
         entityNodes.emplace_back(id);
       }
@@ -139,15 +186,22 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         {
           MeshData md{};
 
+          if (primitive.indices >= 0)
           {
             auto& indiceAccessor = model.accessors[primitive.indices];
             auto& indiceView = model.bufferViews[indiceAccessor.bufferView];
             auto indType = componentTypeToString(indiceAccessor.type);
 
+            auto componentType = gltfComponentTypeToFormatType(indiceAccessor.componentType);
+            md.indiceFormat = higanbana::FormatType::Uint8;
+            if (componentType == higanbana::FormatType::Uint16)
+            {
+              md.indiceFormat = higanbana::FormatType::Uint16;
+            }
+
             HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceAccessor.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
             auto& data = model.buffers[indiceView.buffer];
 
-            md.indiceFormat = higanbana::FormatType::Uint16;
             auto offset = indiceView.byteOffset + indiceAccessor.byteOffset;
             auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indiceFormat).pixelSize;
             md.indices.resize(dataSize);
@@ -162,16 +216,12 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto type = componentTypeToString(accessor.type);
             HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, accessor.byteOffset, accessor.count, accessor.ByteStride(bufferView));
             auto& data = model.buffers[bufferView.buffer];
-            
-            float3* dataPtr = reinterpret_cast<float3*>(data.data.data()+accessor.byteOffset);
-            for (int i = 0; i < accessor.count; ++i)
-            {
-              HIGAN_LOGi("   %.2f %.2f %.2f\n", dataPtr[i].x, dataPtr[i].y, dataPtr[i].z);
-            }
 
             if (attribute.first.compare("POSITION") == 0)
             {
               md.vertexFormat = higanbana::FormatType::Float32RGB;
+              HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
+              HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
               auto offset = bufferView.byteOffset + accessor.byteOffset;
               auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertexFormat).pixelSize;
               md.vertices.resize(dataSize);
@@ -180,10 +230,32 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             else if (attribute.first.compare("NORMAL") == 0)
             {
               md.normalFormat = higanbana::FormatType::Float32RGB;
+              HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
+              HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
               auto offset = bufferView.byteOffset + accessor.byteOffset;
               auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
               md.normals.resize(dataSize);
               memcpy(md.normals.data(), data.data.data()+offset, dataSize); 
+            }
+            else if (attribute.first.compare("TEXCOORD_0") == 0)
+            {
+              md.texCoordFormat = higanbana::FormatType::Float32RG;
+              HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC2, "Expectations betrayed.");
+              HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
+              auto offset = bufferView.byteOffset + accessor.byteOffset;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
+              md.texCoords.resize(dataSize);
+              memcpy(md.texCoords.data(), data.data.data()+offset, dataSize); 
+            }
+            else if (attribute.first.compare("TANGENT") == 0)
+            {
+              md.tangentFormat = higanbana::FormatType::Float32RGBA;
+              HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC4, "Expectations betrayed.");
+              HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
+              auto offset = bufferView.byteOffset + accessor.byteOffset;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
+              md.tangents.resize(dataSize);
+              memcpy(md.tangents.data(), data.data.data()+offset, dataSize); 
             }
           }
 
@@ -200,8 +272,11 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         }
 
         auto ent = database.createEntity();
-        childtable.insert(ent, std::move(childs));
-        database.getTag<components::MeshNode>().insert(ent);
+        if (!childs.childs.empty())
+        {
+          childtable.insert(ent, std::move(childs));
+          database.getTag<components::MeshNode>().insert(ent);
+        }
         meshes.push_back(ent);
       }
 
@@ -244,7 +319,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       // create gltfnode with scenes as childs.
       auto ent = database.createEntity();
       childtable.insert(ent, {scenes});
-      names.insert(ent, {path});
+      names.insert(ent, {file});
       database.getTag<components::GltfNode>().insert(ent);
     }
   }

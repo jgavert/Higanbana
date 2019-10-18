@@ -89,7 +89,9 @@ namespace higanbana
     MemoryBlob readFile(std::string path);
     higanbana::MemView<const uint8_t> viewToFile(std::string path);
     void loadDirectoryContentsRecursive(std::string path);
-	void getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func);
+    void getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func);
+    vector<std::string> getFilesWithinDir(std::string path);
+    vector<std::string> recursiveList(std::string path, std::string filter);
     size_t timeModified(std::string path);
 
     bool writeFile(std::string path, const uint8_t* ptr, size_t size);

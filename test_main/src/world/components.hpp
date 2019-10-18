@@ -18,6 +18,11 @@ struct Rotation
   quaternion rot;
 };
 
+struct Matrix
+{
+  float4x4 mat;
+};
+
 struct Name
 {
   std::string str;
