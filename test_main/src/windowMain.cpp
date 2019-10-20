@@ -339,7 +339,7 @@ void mainWindow(ProgramParams& params)
             }
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
-            ImGui::Begin("main");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("main");
             ImGui::Text("Missed %zd frames of inputs. current: %zd read %d", diff, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());

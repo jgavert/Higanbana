@@ -53,6 +53,11 @@ struct MeshInstance
   int id;
 };
 
+struct SceneInstance
+{
+  higanbana::Id target;
+};
+
 struct GltfNode;
 struct CameraNode;
 struct MeshNode;

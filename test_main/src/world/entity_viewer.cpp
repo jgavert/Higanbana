@@ -2,6 +2,7 @@
 #include <higanbana/core/entity/query.hpp>
 #include "components.hpp"
 #include <imgui.h>
+#include <optional>
 
 using namespace higanbana;
 
@@ -18,6 +19,57 @@ void EntityView::render(Database<2048>& ecs)
   auto& meshes = ecs.get<components::Mesh>();
   auto& matrices = ecs.get<components::Matrix>();
 
+  auto& activeScenes = ecs.get<components::SceneInstance>();
+  higanbana::Id oldActiveScene = 0;
+  bool wasActive = false;
+
+  higanbana::Id activeGameObject;
+
+  query(pack(activeScenes), [&](higanbana::Id id, components::SceneInstance target){
+    oldActiveScene = target.target;
+    activeGameObject = id;
+    wasActive = true;
+  });
+
+  if (!wasActive)
+  {
+    auto id = ecs.createEntity();
+    activeScenes.insert(id, components::SceneInstance{oldActiveScene});
+    ecs.get<components::WorldPosition>().insert(id, components::WorldPosition{float3(0,0,0)});
+    activeGameObject = id;
+  }
+
+  // choose active gltf scene... take first one for now.
+  auto nameInstance = names.tryGet(oldActiveScene);
+  std::string currentSceneStr = "null";
+  if (nameInstance)
+  {
+    currentSceneStr = nameInstance.value().str;
+  }
+  bool activeSceneSet = false;
+  higanbana::Id newActiveScene = oldActiveScene;
+  if (ImGui::BeginCombo("Active GLTF scene", currentSceneStr.c_str()))
+  {
+    query(pack(names), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name)
+    {
+      bool selected = id == newActiveScene;
+      if (ImGui::Selectable(name.str.c_str(), selected))
+      {
+        newActiveScene = id;
+      }
+      if (selected)
+      {
+        ImGui::SetItemDefaultFocus();
+      }
+    });
+    ImGui::EndCombo();
+  }
+
+  activeScenes.insert(activeGameObject, components::SceneInstance{newActiveScene});
+
+
+  // viewer part functionality
+  ImGui::NewLine();
   auto hasMesh = [&](higanbana::Id id){
     if (auto meshId = meshes.tryGet(id))
     {
@@ -57,54 +109,52 @@ void EntityView::render(Database<2048>& ecs)
     hasMatrix(id);
   };
 
-  query(pack(names, childsTable), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name, components::Childs& childs)
+  auto forSingleId = [&](higanbana::Id id) -> std::optional<components::Childs>
   {
-    //HIGAN_LOGi("found gltfnode: %s\n", name.str.c_str());
-    if (ImGui::TreeNode(name.str.c_str()))
+    std::string nodeName = "node ";
+    if (auto name = names.tryGet(id))
     {
-      for (auto&& child : childs.childs) {
-        std::string sceneName = "scene ";
-        if (auto name = names.tryGet(child))
-        {
-          sceneName += name.value().str;
-        }
-        sceneName += std::to_string(child);
-        if (ImGui::TreeNode(sceneName.c_str())) {
-          allChecks(child);
-          if (auto sceneChilds = childsTable.tryGet(child)) {
-            for (auto&& cc : sceneChilds.value().childs) {
-              std::string sceneNodeName = "scenenode ";
-              if (auto name = names.tryGet(cc))
-              {
-                sceneNodeName += name.value().str;
-              }
-              sceneNodeName += std::to_string(cc);
-              if (ImGui::TreeNode(sceneNodeName.c_str())) {
-                allChecks(cc);
-                if (auto snChilds = childsTable.tryGet(cc)) {
-                  for (auto&& snc : snChilds.value().childs) {
-                    std::string nodeName = "node ";
-                    if (auto name = names.tryGet(snc))
-                    {
-                      nodeName += name.value().str;
-                    }
-                    nodeName += std::to_string(snc);
-                    if (ImGui::TreeNode(nodeName.c_str())) {
-                      allChecks(snc);
-                      ImGui::TreePop();
-                    }
-                  }
-                }
-                ImGui::TreePop();
-              }
-            }
-          }
-          ImGui::TreePop();
-        }
+      nodeName += name.value().str;
+    }
+    nodeName += std::to_string(id);
+    if (ImGui::TreeNode(nodeName.c_str())) {
+      allChecks(id);
+      if (auto opt = childsTable.tryGet(id))
+      {
+        return opt; // early out to form a tree, defer TreePop to later date.
       }
       ImGui::TreePop();
     }
+    return {};
+  };
+
+  query(pack(names, childsTable), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name, components::Childs& childs)
+  {
+    higanbana::deque<higanbana::vector<higanbana::Id>> stack;
+    auto clds = forSingleId(id);
+    if (clds)
+    {
+      // memoize tree traversal
+      stack.push_back(clds.value().childs);
+      while (!stack.empty())
+      {
+        if (stack.back().empty())
+        {
+          stack.pop_back();
+          ImGui::TreePop(); // to match ImGui TreeNode counts.
+          continue;
+        }
+        auto& workingSet = stack.back();
+        auto val = workingSet.back();
+        workingSet.pop_back();
+        if (auto new_chlds = forSingleId(val))
+        {
+          stack.push_back(new_chlds.value().childs);
+        }
+      }
+    }
   });
+
   ImGui::End();
 }
 };
