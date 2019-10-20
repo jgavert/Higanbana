@@ -95,7 +95,7 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void windowResized();
-  void render();
+  void render(higanbana::vector<InstanceDraw>& instances);
   std::optional<higanbana::SubmitTiming> timings();
 
   int loadMesh(MeshData& data);

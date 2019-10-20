@@ -21,6 +21,7 @@
 #include "world/world.hpp"
 #include "world/components.hpp"
 #include "world/entity_viewer.hpp"
+#include "world/visual_data_structures.hpp"
 
 using namespace higanbana;
 using namespace higanbana::math;
@@ -416,8 +417,65 @@ void mainWindow(ProgramParams& params)
             entityViewer.render(ecs);
 
             ImGui::Render();
+
+            // collect all model instances and their matrices for drawing...
+            vector<InstanceDraw> allMeshesToDraw;
+            {
+
+              struct ActiveScene
+              {
+                components::SceneInstance target;
+                float3 wp;
+              };
+              higanbana::vector<ActiveScene> scenes;
+              query(pack(ecs.get<components::SceneInstance>(), ecs.get<components::WorldPosition>()), [&](higanbana::Id id, components::SceneInstance scene, components::WorldPosition wp)
+              {
+                scenes.push_back(ActiveScene{scene, wp.pos});
+              });
+
+              auto& children = ecs.get<components::Childs>();
+
+              auto findMeshes = [&](higanbana::Id id) -> std::optional<components::Childs>
+              {
+                // check if has meshes -> 
+                if (auto hasMesh = ecs.get<components::Mesh>().tryGet(id))
+                {
+                  for (auto&& childMesh : children.get(hasMesh.value().target).childs)
+                  {
+                    auto meshTarget = ecs.get<components::MeshInstance>().tryGet(childMesh);
+
+                    if (meshTarget)
+                      allMeshesToDraw.push_back({{}, {}, meshTarget.value().id});
+                  }
+                }
+                return children.tryGet(id);
+              };
+              vector<vector<higanbana::Id>> stack;
+              if (auto c0 = children.tryGet(scenes.back().target.target))
+              {
+                stack.push_back(c0.value().childs);
+              }
+              
+              if (auto base = scenes.back().target.target)
+              while(!stack.empty())
+              {
+                
+                if (stack.back().empty())
+                {
+                  stack.pop_back();
+                  continue;
+                }
+                auto& workingSet = stack.back();
+                auto val = workingSet.back();
+                workingSet.pop_back();
+                if (auto new_chlds = findMeshes(val))
+                {
+                  stack.push_back(new_chlds.value().childs);
+                }
+              }
+            }
             
-            rend.render();
+            rend.render(allMeshesToDraw);
           }
         });
         while (!window.simpleReadMessages(frame++))

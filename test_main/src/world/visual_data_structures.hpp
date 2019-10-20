@@ -3,6 +3,13 @@
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 
+struct InstanceDraw
+{
+  float3 wp;
+  float4x4 mat;
+  int meshId;
+};
+
 struct MeshData
 {
   higanbana::FormatType indiceFormat;

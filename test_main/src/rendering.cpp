@@ -270,12 +270,15 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::render()
+  void Renderer::render(higanbana::vector<InstanceDraw>& instances)
   {
     if (swapchain.outOfDate()) // swapchain can end up being outOfDate
     {
       windowResized();
     }
+
+    if (!instances.empty())
+      HIGAN_LOGi("got %zu instances to draw!\n", instances.size());
 
     // If you acquire, you must submit it.
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);

@@ -271,7 +271,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
           auto& table = database.get<components::RawMeshData>();
           table.insert(ent, {id});
 
-          childs.childs.push_back(id);
+          childs.childs.push_back(ent);
         }
 
         auto ent = database.createEntity();

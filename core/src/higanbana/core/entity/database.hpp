@@ -111,7 +111,7 @@ namespace higanbana
     }
 
     template<typename T>
-    SparseTable<T>& get() {
+    [[nodiscard]] SparseTable<T>& get() {
       std::string hash = typehash<T>();
       typedef SparseTable<T> TYPETORETURN;
       if (seen(hash))
