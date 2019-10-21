@@ -301,6 +301,7 @@ namespace higanbana
     Unknown,
     ReadOnly,
     ReadWrite,
+    IndexBuffer,
     RenderTarget,
     DepthStencil
   };

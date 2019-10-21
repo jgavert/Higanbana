@@ -1771,7 +1771,7 @@ namespace higanbana
         }
       }
       if (handle.type == ViewResourceType::BufferIBV) {
-        m_allRes.bufIBV[handle] = VulkanBufferView(info, type);
+        m_allRes.bufIBV[handle] = VulkanBufferView(native.native(), 0, vk::IndexType::eUint16);
       }
     }
 

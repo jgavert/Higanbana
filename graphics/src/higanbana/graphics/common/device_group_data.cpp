@@ -479,6 +479,16 @@ namespace higanbana
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));
     }
 
+    BufferIBV DeviceGroupData::createBufferIBV(Buffer buffer, ShaderViewDescriptor viewDesc)
+    {
+      auto handle = m_handles.allocateViewResource(ViewResourceType::BufferIBV, buffer.handle());
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::IndexBuffer));
+      }
+      return BufferIBV(buffer, sharedViewHandle(handle));
+    }
+
     BufferSRV DeviceGroupData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
       auto handle = m_handles.allocateViewResource(ViewResourceType::BufferSRV, buffer.handle());

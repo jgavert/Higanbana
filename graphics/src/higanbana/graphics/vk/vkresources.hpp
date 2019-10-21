@@ -413,16 +413,22 @@ namespace higanbana
         vk::BufferView view;
         vk::DescriptorBufferInfo bufferInfo;
         vk::DescriptorType type;
+        vk::Buffer indexBuffer;
+        vk::DeviceSize offset;
+        vk::IndexType indexType;
       } m;
 
     public:
       VulkanBufferView()
       {}
       VulkanBufferView(vk::BufferView view, vk::DescriptorType type)
-        : m{ view , {}, type}
+        : m{ view , {}, type, {}, {}, {}}
       {}
       VulkanBufferView(vk::DescriptorBufferInfo view, vk::DescriptorType type)
-        : m{ {} , view, type}
+        : m{ {} , view, type, {}, {}, {}}
+      {}
+      VulkanBufferView(vk::Buffer buffer, vk::DeviceSize offset, vk::IndexType type)
+        : m{ {} , {}, {}, buffer, offset, type}
       {}
       Info& native()
       {

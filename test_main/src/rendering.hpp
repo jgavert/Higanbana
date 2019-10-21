@@ -15,7 +15,8 @@ namespace app
 {
 struct MeshViews
 {
-  higanbana::BufferSRV indices;
+  higanbana::BufferIBV indices;
+  higanbana::ShaderArguments args;
   higanbana::BufferSRV vertices;
 };
 class MeshSystem
@@ -24,8 +25,8 @@ class MeshSystem
   higanbana::vector<MeshViews> views;
 
 public:
-  int allocate(higanbana::GpuGroup& gpu, MeshData& data);
-  MeshViews operator[](int index) { return views[index]; }
+  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data);
+  MeshViews& operator[](int index) { return views[index]; }
   void free(int index);
 };
 
@@ -38,13 +39,6 @@ class Renderer
   higanbana::SwapchainDescriptor scdesc;
   higanbana::Swapchain swapchain;
   // resources
-  higanbana::Buffer buffer;
-  higanbana::Buffer buffer2;
-  higanbana::Buffer buffer3;
-  higanbana::BufferSRV testSRV;
-  higanbana::BufferSRV test2SRV;
-  higanbana::BufferUAV testOut;
-
   higanbana::ShaderArgumentsLayout triangleLayout;
   higanbana::GraphicsPipeline triangle;
 
@@ -81,6 +75,11 @@ class Renderer
 
   // meshes
   MeshSystem meshes;
+  WorldRenderer worldRend;
+  higanbana::Buffer cameras;
+  higanbana::BufferSRV cameraSRV;
+  higanbana::BufferUAV cameraUAV;
+  higanbana::ShaderArguments staticDataArgs;
 
   // camera
   float3 position;
@@ -90,6 +89,9 @@ class Renderer
   quaternion direction;
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
+
+  void oldOpaquePass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer);
+  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);

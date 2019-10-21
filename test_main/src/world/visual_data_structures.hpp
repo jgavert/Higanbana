@@ -1,5 +1,6 @@
 #pragma once
 
+#include <higanbana/core/math/math.hpp>
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 

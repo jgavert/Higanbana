@@ -1121,7 +1121,11 @@ namespace higanbana
         sizeElements = sizeElements * bufferDesc.desc.stride / formatSizeInfo(viewDesc.m_format).pixelSize;
       }
 
-      if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
+      if (viewDesc.m_viewType == ResourceShaderType::IndexBuffer)
+      {
+        m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native());
+      }
+      else if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
         D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
         natDesc.Format = formatTodxFormat(format).view;

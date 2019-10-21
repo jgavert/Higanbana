@@ -65,26 +65,6 @@ namespace higanbana
       size_t m_descriptorSetsInUse;
       size_t m_maxDescriptorSets;
 
-/*
-      struct Garbage
-      {
-        vector<VkUploadBlock> dynamicBuffers;
-        vector<vk::Image> textures;
-        vector<vk::Buffer> buffers;
-        vector<vk::ImageView> textureviews;
-        vector<vk::BufferView> bufferviews;
-        vector<vk::Pipeline> pipelines;
-        vector<vk::DescriptorSetLayout> descriptorSetLayouts;
-        vector<vk::PipelineLayout>      pipelineLayouts;
-        vector<vk::DeviceMemory> heaps;
-      };
-
-      std::shared_ptr<Garbage> m_trash;
-      deque<std::pair<SeqNum, Garbage>> m_collectableTrash;
-      */
-
-      // new new stuff
-      // HandleVector<VulkanTexture>
       Resources m_allRes;
     public:
       VulkanDevice(

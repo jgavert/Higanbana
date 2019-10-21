@@ -47,6 +47,7 @@ namespace higanbana
     Unorm10RGB2A,
     Raw32,
     Depth32,
+    Depth24,
     Depth32_Stencil8,
     Int8,
     Uint8,

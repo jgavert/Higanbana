@@ -59,6 +59,16 @@ namespace higanbana
       return tex;
     }
 
+    BufferIBV createBufferIBV(Buffer texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return S().createBufferIBV(texture, viewDesc);
+    }
+
+    BufferIBV createBufferIBV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
+    {
+      return createBufferIBV(createBuffer(descriptor), viewDesc);
+    }
+
     BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())
     {
       return S().createBufferSRV(texture, viewDesc);

@@ -191,6 +191,7 @@ namespace higanbana
       Buffer createBuffer(ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
 
+      BufferIBV createBufferIBV(Buffer texture, ShaderViewDescriptor viewDesc);
       BufferSRV createBufferSRV(Buffer texture, ShaderViewDescriptor viewDesc);
       BufferUAV createBufferUAV(Buffer texture, ShaderViewDescriptor viewDesc);
       TextureSRV createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc);

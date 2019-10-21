@@ -679,14 +679,8 @@ namespace higanbana
           auto params = header->data<gfxpacket::DrawIndexed>();
           if (params.indexbuffer.type == ViewResourceType::BufferIBV)
           {
-            HIGAN_ASSERT(false, "unimplemented");
-            /*
             auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-            auto& buf = device->allResources().buf[params.indexbuffer.resource];
-            ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
-            ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-            ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
-            */
+            buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType);
           }
           else
           {
