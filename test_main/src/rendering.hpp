@@ -7,6 +7,7 @@
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
 #include "renderer/imgui.hpp"
+#include "renderer/world_renderer.hpp"
 #include "world/visual_data_structures.hpp"
 
 
