@@ -12,7 +12,9 @@ WorldRenderer::WorldRenderer(higanbana::GpuGroup& device)
   ShaderArgumentsLayoutDescriptor staticDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras");
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
-    .readOnly(ShaderResourceType::Buffer, "float3", "vertices");
+    .readOnly(ShaderResourceType::Buffer, "float3", "vertices")
+    .readOnly(ShaderResourceType::Buffer, "float2", "uvs")
+    .readOnly(ShaderResourceType::Buffer, "float3", "normals");
   m_staticArgumentsLayout = device.createShaderArgumentsLayout(staticDataLayout);
   m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
@@ -26,7 +28,7 @@ WorldRenderer::WorldRenderer(higanbana::GpuGroup& device)
     .setVertexShader("world")
     .setPixelShader("world")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    .setRasterizer(RasterizerDescriptor())
+    .setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(false))
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)
     .setRenderTargetCount(1)

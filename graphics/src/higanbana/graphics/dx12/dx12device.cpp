@@ -160,6 +160,33 @@ namespace higanbana
           &nulldesc,
           m_nullBufferSRV.cpu);
       }
+      {
+        m_nullTextureUAV = m_generics.allocate();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC nulldesc = {};
+        nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        nulldesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        nulldesc.Texture2D.MipSlice = 0;
+        nulldesc.Texture2D.PlaneSlice = 0;
+        m_device->CreateUnorderedAccessView(
+          nullptr, nullptr,
+          &nulldesc,
+          m_nullTextureUAV.cpu);
+      }
+      {
+        m_nullTextureSRV = m_generics.allocate();
+        D3D12_SHADER_RESOURCE_VIEW_DESC nulldesc = {};
+        nulldesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        nulldesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        nulldesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        nulldesc.Texture2D.MipLevels = 1;
+        nulldesc.Texture2D.MostDetailedMip = 0;
+        nulldesc.Texture2D.PlaneSlice = 0;
+        nulldesc.Texture2D.ResourceMinLODClamp = 0.f;
+        m_device->CreateShaderResourceView(
+          nullptr,
+          &nulldesc,
+          m_nullTextureSRV.cpu);
+      }
     }
 
     DX12Device::~DX12Device()
@@ -1428,27 +1455,78 @@ namespace higanbana
         {
           case ViewResourceType::BufferSRV:
           {
-            cpudescriptors.push_back(ar.bufSRV[handle].native().cpu);
+            if (handle.id != ViewResourceHandle::InvalidViewId)
+              cpudescriptors.push_back(ar.bufSRV[handle].native().cpu);
+            else
+              cpudescriptors.push_back(m_nullBufferSRV.cpu);
             break;
           }
           case ViewResourceType::BufferUAV:
           {
-            cpudescriptors.push_back(ar.bufUAV[handle].native().cpu);
+            if (handle.id != ViewResourceHandle::InvalidViewId)
+              cpudescriptors.push_back(ar.bufUAV[handle].native().cpu);
+            else
+              cpudescriptors.push_back(m_nullBufferUAV.cpu);
             break;
           }
           case ViewResourceType::DynamicBufferSRV:
           {
-            cpudescriptors.push_back(ar.dynSRV[handle].native().cpu);
+            if (handle.id != ViewResourceHandle::InvalidViewId)
+              cpudescriptors.push_back(ar.dynSRV[handle].native().cpu);
+            else
+              cpudescriptors.push_back(m_nullBufferSRV.cpu);
             break;
           }
           case ViewResourceType::TextureSRV:
           {
-            cpudescriptors.push_back(ar.texSRV[handle].native().cpu);
+            if (handle.id != ViewResourceHandle::InvalidViewId)
+              cpudescriptors.push_back(ar.texSRV[handle].native().cpu);
+            else
+              cpudescriptors.push_back(m_nullTextureSRV.cpu);
             break;
           }
           case ViewResourceType::TextureUAV:
           {
-            cpudescriptors.push_back(ar.texUAV[handle].native().cpu);
+            if (handle.id != ViewResourceHandle::InvalidViewId)
+              cpudescriptors.push_back(ar.texUAV[handle].native().cpu);
+            else
+              cpudescriptors.push_back(m_nullTextureSRV.cpu);
+            break;
+          }
+          case ViewResourceType::Unknown:
+          {
+            //?? invalid resource seen
+            auto nextIndex = cpudescriptors.size();
+            auto& slotInfo = binding.bDescriptors()[nextIndex];
+            switch (slotInfo.type)
+            {
+              case ShaderResourceType::Buffer:
+              case ShaderResourceType::ByteAddressBuffer:
+              case ShaderResourceType::StructuredBuffer:
+              {
+                if (slotInfo.readonly)
+                  cpudescriptors.push_back(m_nullBufferSRV.cpu);
+                else
+                  cpudescriptors.push_back(m_nullBufferUAV.cpu);
+                break; 
+              }
+              case ShaderResourceType::Texture1D:
+              case ShaderResourceType::Texture1DArray:
+              case ShaderResourceType::Texture2D:
+              case ShaderResourceType::Texture2DArray:
+              case ShaderResourceType::Texture3D:
+              case ShaderResourceType::TextureCube:
+              case ShaderResourceType::TextureCubeArray:
+              {
+                if (slotInfo.readonly)
+                  cpudescriptors.push_back(m_nullTextureSRV.cpu);
+                else
+                  cpudescriptors.push_back(m_nullTextureUAV.cpu);
+                break; 
+              }
+              default:
+                break;
+            }
             break;
           }
           default:

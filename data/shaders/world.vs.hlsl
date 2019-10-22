@@ -3,6 +3,7 @@
 struct VertexOut
 {
   float2 uv : TEXCOORD0;
+  float3 normal : NORMAL;
   float4 pos : SV_Position;
 };
 
@@ -11,11 +12,13 @@ struct VertexOut
 VertexOut main(uint id: SV_VertexID)
 { 
   VertexOut vtxOut;
-  vtxOut.pos.x = (id % 3 == 2) ?  1 : 0;
-  vtxOut.pos.y = (id % 3 == 1) ?  1 : 0;
-  vtxOut.pos.z = 0;
+  vtxOut.pos.xyz = vertices.Load(id);
   vtxOut.pos.w = 1.f;
-  vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
-  vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
+  CameraSettings settings = cameras.Load(0);
+  vtxOut.pos = mul(vtxOut.pos, settings.perspective);
+  vtxOut.normal = normals.Load(id);
+  vtxOut.uv = uvs.Load(id);
+  //vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
+  //vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
   return vtxOut;
 }

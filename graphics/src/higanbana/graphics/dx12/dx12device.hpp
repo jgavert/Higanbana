@@ -50,6 +50,8 @@ namespace higanbana
 
       DX12CPUDescriptor m_nullBufferUAV;
       DX12CPUDescriptor m_nullBufferSRV;
+      DX12CPUDescriptor m_nullTextureUAV;
+      DX12CPUDescriptor m_nullTextureSRV;
 
       // new stuff
       DX12Resources m_allRes;

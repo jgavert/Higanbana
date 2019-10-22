@@ -44,12 +44,35 @@ namespace app
 
     sizeInfo = higanbana::formatSizeInfo(data.vertexFormat);
     view.vertices = gpu.createBufferSRV(ResourceDescriptor()
+    .setName("vertices")
     .setFormat(data.vertexFormat)
     .setCount(data.vertices.size() / sizeInfo.pixelSize)
     .setUsage(ResourceUsage::GpuReadOnly));
 
-    view.args = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout",meshLayout)
-      .bind("vertices", view.vertices));
+    if (data.texCoordFormat != FormatType::Unknown)
+    {
+      sizeInfo = higanbana::formatSizeInfo(data.texCoordFormat);
+      view.uvs = gpu.createBufferSRV(ResourceDescriptor()
+      .setName("UVs")
+      .setFormat(data.texCoordFormat)
+      .setCount(data.texCoords.size() / sizeInfo.pixelSize)
+      .setUsage(ResourceUsage::GpuReadOnly));
+    }
+
+    if (data.normalFormat != FormatType::Unknown)
+    {
+      sizeInfo = higanbana::formatSizeInfo(data.normalFormat);
+      view.normals = gpu.createBufferSRV(ResourceDescriptor()
+      .setName("normals")
+      .setFormat(data.normalFormat)
+      .setCount(data.normals.size() / sizeInfo.pixelSize)
+      .setUsage(ResourceUsage::GpuReadOnly));
+    }
+
+    view.args = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout", meshLayout)
+      .bind("vertices", view.vertices)
+      .bind("uvs", view.uvs)
+      .bind("normals", view.normals));
 
     auto graph = gpu.createGraph();
     auto node = graph.createPass("Update mesh data");
@@ -57,6 +80,16 @@ namespace app
     node.copy(view.indices.buffer(), indData);
     auto vertData = gpu.dynamicBuffer(makeMemView(data.vertices), data.vertexFormat);
     node.copy(view.vertices.buffer(), vertData);
+    if (data.texCoordFormat != FormatType::Unknown)
+    {
+      auto uvData = gpu.dynamicBuffer(makeMemView(data.texCoords), data.texCoordFormat); 
+      node.copy(view.uvs.buffer(), uvData);
+    }
+    if (data.normalFormat != FormatType::Unknown)
+    {
+      auto normalData = gpu.dynamicBuffer(makeMemView(data.normals), data.normalFormat); 
+      node.copy(view.normals.buffer(), normalData);
+    }
     graph.addPass(std::move(node));
     gpu.submit(graph);
     return val;

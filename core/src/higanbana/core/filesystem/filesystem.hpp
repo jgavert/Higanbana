@@ -48,6 +48,12 @@ namespace higanbana
     }
   };
 
+  struct FileInfo
+  {
+    std::string nativePath;
+    std::string withoutNative;
+  };
+
   class MemoryBlob
   {
   private:
@@ -70,8 +76,8 @@ namespace higanbana
       vector<uint8_t> data;
     };
     std::string m_resolvedFullPath;
-    higanbana::unordered_map<std::string, FileObj> m_files;
-    higanbana::unordered_set<std::string> m_dirs;
+    std::unordered_map<std::string, FileObj> m_files;
+    std::unordered_set<std::string> m_dirs;
 
     // watch
     std::unordered_map<std::string, vector<WatchFile>> m_watchedFiles;
@@ -100,7 +106,7 @@ namespace higanbana
     WatchFile watchFile(std::string path);
     void updateWatchedFiles();
   private:
-    bool loadFileFromHDD(std::string path, size_t& size);
+    bool loadFileFromHDD(FileInfo& path, size_t& size);
   };
 
 }

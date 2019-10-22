@@ -1,4 +1,4 @@
-// INTERFACE_HASH:16835787381154542779:13955798723184865990
+// INTERFACE_HASH:13455395524801707306:12878369784151620979
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -11,7 +11,7 @@
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=0 )),\
   DescriptorTable(\
-     SRV(t0, numDescriptors = 1, space=1 )),\
+     SRV(t0, numDescriptors = 3, space=1 )),\
   StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
   StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT), \
   StaticSampler(s2, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP), \
@@ -32,6 +32,8 @@ VK_BINDING(0, 0) StructuredBuffer<CameraSettings> cameras : register( t0, space0
 
 // Read Only resources
 VK_BINDING(0, 1) Buffer<float3> vertices : register( t0, space1 );
+VK_BINDING(1, 1) Buffer<float2> uvs : register( t1, space1 );
+VK_BINDING(2, 1) Buffer<float3> normals : register( t2, space1 );
 
 // Read Write resources
 

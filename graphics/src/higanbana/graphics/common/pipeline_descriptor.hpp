@@ -217,57 +217,57 @@ namespace higanbana
 
     RasterizerDescriptor()
     {}
-    RasterizerDescriptor& setFillMode(FillMode value)
+    RasterizerDescriptor& setFillMode(FillMode value = FillMode::Solid)
     {
       desc.fill = value;
       return *this;
     }
-    RasterizerDescriptor& setCullMode(CullMode value)
+    RasterizerDescriptor& setCullMode(CullMode value = CullMode::Back)
     {
       desc.cull = value;
       return *this;
     }
-    RasterizerDescriptor& setFrontCounterClockwise(bool value)
+    RasterizerDescriptor& setFrontCounterClockwise(bool value = false)
     {
       desc.frontCounterClockwise = value;
       return *this;
     }
-    RasterizerDescriptor& setDepthBias(int value)
+    RasterizerDescriptor& setDepthBias(int value = 0)
     {
       desc.depthBias = value;
       return *this;
     }
-    RasterizerDescriptor& setDepthBiasClamp(float value)
+    RasterizerDescriptor& setDepthBiasClamp(float value = 0.f)
     {
       desc.depthBiasClamp = value;
       return *this;
     }
-    RasterizerDescriptor& setSlopeScaledDepthBias(float value)
+    RasterizerDescriptor& setSlopeScaledDepthBias(float value = 0.f)
     {
       desc.slopeScaledDepthBias = value;
       return *this;
     }
-    RasterizerDescriptor& setDepthClipEnable(bool value)
+    RasterizerDescriptor& setDepthClipEnable(bool value = true)
     {
       desc.depthClipEnable = value;
       return *this;
     }
-    RasterizerDescriptor& setMultisampleEnable(bool value)
+    RasterizerDescriptor& setMultisampleEnable(bool value = false)
     {
       desc.multisampleEnable = value;
       return *this;
     }
-    RasterizerDescriptor& setAntialiasedLineEnable(bool value)
+    RasterizerDescriptor& setAntialiasedLineEnable(bool value = false)
     {
       desc.antialiasedLineEnable = value;
       return *this;
     }
-    RasterizerDescriptor& setForcedSampleCount(unsigned int value)
+    RasterizerDescriptor& setForcedSampleCount(unsigned int value = 0)
     {
       desc.forcedSampleCount = value;
       return *this;
     }
-    RasterizerDescriptor& setConservativeRaster(ConservativeRasterization value)
+    RasterizerDescriptor& setConservativeRaster(ConservativeRasterization value = ConservativeRasterization::Off)
     {
       desc.conservativeRaster = value;
       return *this;

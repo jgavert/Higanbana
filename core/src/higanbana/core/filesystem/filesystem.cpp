@@ -5,7 +5,7 @@
 
 #include <filesystem>
 
-#define HIGANBANA_FS_EXTRA_INFO 0
+#define HIGANBANA_FS_EXTRA_INFO 1
 
 #if HIGANBANA_FS_EXTRA_INFO
 #define FS_ILOG(msg, ...) HIGAN_ILOG("Filesystem", msg, ##__VA_ARGS__)
@@ -15,7 +15,7 @@
 #define FS_LOG(msg, ...)
 #endif
 
-namespace system_fs = std::experimental::filesystem;
+namespace system_fs = std::filesystem;
 using namespace higanbana;
 
 void getDirs(std::string path, std::deque<std::string>& ret)
@@ -48,31 +48,34 @@ void getDirsRecursive(std::string path, std::deque<std::string>& ret)
   }
 }
 
-void getFiles(std::string path, std::vector<std::string>& ret)
+
+void getFiles(std::string path, std::vector<FileInfo>& ret)
 {
   if (system_fs::is_directory(path))
   {
+    auto pathSize = path.size();
     auto folder = system_fs::directory_iterator(path);
     for (auto& file : folder)
     {
       if (system_fs::is_regular_file(file.path()))
       {
-        ret.push_back(file.path().string());
+        ret.push_back({file.path().string(), file.path().string().substr(pathSize)});
       }
     }
   }
 }
 
-void getFilesRecursive(std::string path, std::vector<std::string>& ret)
+void getFilesRecursive(std::string path, std::vector<FileInfo>& ret)
 {
   if (system_fs::is_directory(path))
   {
+    auto pathSize = path.size();
     auto folder = system_fs::recursive_directory_iterator(path);
     for (auto& file : folder)
     {
       if (system_fs::is_regular_file(file.path()))
       {
-        ret.push_back(file.path().string());
+        ret.push_back({file.path().string(), file.path().string().substr(pathSize)});
       }
     }
   }
@@ -132,17 +135,17 @@ bool FileSystem::fileExists(std::string path)
 #endif
   auto found = m_files.find(fullPath);
   auto end = m_files.end();
-  auto hasFile = found && found != end;
+  auto hasFile = found != end;
   return hasFile;
 }
 
-bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
+bool FileSystem::loadFileFromHDD(FileInfo& path, size_t& size)
 {
   // convert all \ to /
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-  std::replace(path.begin(), path.end(), '/', '\\');
+  std::replace(path.nativePath.begin(), path.nativePath.end(), '/', '\\');
 #endif
-  auto fp = fopen(path.c_str(), "rb");
+  auto fp = fopen(path.nativePath.c_str(), "rb");
   fseek(fp, 0L, SEEK_END);
   auto fsize = ftell(fp);
   fseek(fp, 0L, SEEK_SET);
@@ -158,9 +161,9 @@ bool FileSystem::loadFileFromHDD(std::string path, size_t& size)
   }
   fclose(fp);
   //contents.resize(size - leftToRead);
-  auto time = static_cast<size_t>(system_fs::last_write_time(path).time_since_epoch().count());
-  FS_ILOG("found file %s(%zu), loading %.2fMB(%ld)...", path.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
-  m_files[path] = FileObj{ time, contents };
+  auto time = static_cast<size_t>(system_fs::last_write_time(path.nativePath).time_since_epoch().count());
+  FS_ILOG("found file %s(%zu), loading %.2fMB(%ld)...", path.nativePath.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
+  m_files[path.withoutNative] = FileObj{ time, contents };
   size = fsize;
   return true;
 }
@@ -169,12 +172,13 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
 {
   std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = getBasePath() + path;
-  std::vector<std::string> files;
+  std::vector<FileInfo> files;
   getFilesRecursive(fullPath.c_str(), files);
   size_t allSize = 0;
   for (auto&& it : files)
   {
     size_t fileSize = 0;
+    FS_ILOG("wanting to load %s, converting path to \"%s\"", it.nativePath.c_str(), it.withoutNative.c_str());
     loadFileFromHDD(it, fileSize);
     allSize += fileSize;
   }
@@ -187,15 +191,14 @@ void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::str
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
-  std::vector<std::string> files;
+  std::vector<FileInfo> files;
   getFilesRecursive(fullPath.c_str(), files);
   for (auto&& it : files)
   {
-    auto f = m_files.find(it);
+    auto f = m_files.find(it.withoutNative);
     if (f != m_files.end())
     {
-      auto localPath = it.substr(fullPath.size());
-      func(localPath, higanbana::MemView<const uint8_t>(f->second.data));
+      func(it.withoutNative, higanbana::MemView<const uint8_t>(f->second.data));
     }
   }
 }
@@ -205,15 +208,16 @@ vector<std::string> FileSystem::getFilesWithinDir(std::string path)
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
+  std::vector<FileInfo> natfiles;
+  getFiles(fullPath.c_str(), natfiles);
   std::vector<std::string> files;
-  getFiles(fullPath.c_str(), files);
-  std::for_each(files.begin(), files.end(), [&](std::string& file){
-    auto newString = file.substr(currentPath.size());
+  std::for_each(natfiles.begin(), natfiles.end(), [&](FileInfo& file){
+    auto newString = file.withoutNative;
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
     std::replace(newString.begin(), newString.end(), '\\', '/');
 #endif
     newString = newString.substr(path.size()+1);
-    file = newString;
+    files.push_back(newString);
   });
   return files;
 }
@@ -224,7 +228,7 @@ vector<std::string> FileSystem::recursiveList(std::string path, std::string filt
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
-  std::vector<std::string> files;
+  std::vector<FileInfo> files;
   getFilesRecursive(fullPath.c_str(), files);
   std::vector<std::string> outFiles;
   std::for_each(files.begin(), files.end(), [&](std::string& file){

@@ -220,12 +220,12 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, accessor.byteOffset, accessor.count, accessor.ByteStride(bufferView));
             auto& data = model.buffers[bufferView.buffer];
 
+            auto offset = bufferView.byteOffset + accessor.byteOffset;
             if (attribute.first.compare("POSITION") == 0)
             {
               md.vertexFormat = higanbana::FormatType::Float32RGB;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto offset = bufferView.byteOffset + accessor.byteOffset;
               auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertexFormat).pixelSize;
               md.vertices.resize(dataSize);
               memcpy(md.vertices.data(), data.data.data()+offset, dataSize); 
@@ -235,7 +235,6 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
               md.normalFormat = higanbana::FormatType::Float32RGB;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto offset = bufferView.byteOffset + accessor.byteOffset;
               auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
               md.normals.resize(dataSize);
               memcpy(md.normals.data(), data.data.data()+offset, dataSize); 
@@ -245,8 +244,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
               md.texCoordFormat = higanbana::FormatType::Float32RG;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC2, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto offset = bufferView.byteOffset + accessor.byteOffset;
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.texCoordFormat).pixelSize;
               md.texCoords.resize(dataSize);
               memcpy(md.texCoords.data(), data.data.data()+offset, dataSize); 
             }
@@ -255,8 +253,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
               md.tangentFormat = higanbana::FormatType::Float32RGBA;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC4, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto offset = bufferView.byteOffset + accessor.byteOffset;
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.tangentFormat).pixelSize;
               md.tangents.resize(dataSize);
               memcpy(md.tangents.data(), data.data.data()+offset, dataSize); 
             }
