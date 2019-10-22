@@ -105,7 +105,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 {
   for (auto&& file : fs.recursiveList(dir, ".gltf"))
   {
-    if (!fs.fileExists(dir+"/"+file))
+    if (!fs.fileExists(dir+file))
       continue;
 
     using namespace tinygltf;
@@ -121,7 +121,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 
     loader.SetFsCallbacks(fscallbacks);
 
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, dir+"/"+file);
+    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, dir+file);
     //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
 
     if (!warn.empty()) {

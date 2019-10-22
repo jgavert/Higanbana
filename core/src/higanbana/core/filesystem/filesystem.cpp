@@ -5,7 +5,7 @@
 
 #include <filesystem>
 
-#define HIGANBANA_FS_EXTRA_INFO 1
+#define HIGANBANA_FS_EXTRA_INFO 0
 
 #if HIGANBANA_FS_EXTRA_INFO
 #define FS_ILOG(msg, ...) HIGAN_ILOG("Filesystem", msg, ##__VA_ARGS__)
@@ -59,23 +59,26 @@ void getFiles(std::string path, std::vector<FileInfo>& ret)
     {
       if (system_fs::is_regular_file(file.path()))
       {
-        ret.push_back({file.path().string(), file.path().string().substr(pathSize)});
+        auto withoutNative = file.path().string().substr(pathSize);
+        std::replace(withoutNative.begin(), withoutNative.end(), '\\', '/');
+        ret.push_back({file.path().string(), withoutNative});
       }
     }
   }
 }
 
-void getFilesRecursive(std::string path, std::vector<FileInfo>& ret)
+void getFilesRecursive(std::string path, size_t pathSize, std::vector<FileInfo>& ret)
 {
   if (system_fs::is_directory(path))
   {
-    auto pathSize = path.size();
     auto folder = system_fs::recursive_directory_iterator(path);
     for (auto& file : folder)
     {
       if (system_fs::is_regular_file(file.path()))
       {
-        ret.push_back({file.path().string(), file.path().string().substr(pathSize)});
+        auto withoutNative = file.path().string().substr(pathSize);
+        std::replace(withoutNative.begin(), withoutNative.end(), '\\', '/');
+        ret.push_back({file.path().string(), withoutNative});
       }
     }
   }
@@ -129,13 +132,14 @@ std::string FileSystem::getBasePath()
 bool FileSystem::fileExists(std::string path)
 {
   std::lock_guard<std::mutex> guard(m_lock);
-  auto fullPath = system_fs::path(getBasePath() + path).string();
+  //auto fullPath = system_fs::path(getBasePath() + path).string();
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-  std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
+  //std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
 #endif
-  auto found = m_files.find(fullPath);
+  auto found = m_files.find(path);
   auto end = m_files.end();
   auto hasFile = found != end;
+  FS_ILOG("checking %s... %s\n", path.c_str(), hasFile ? "found" : "error");
   return hasFile;
 }
 
@@ -173,7 +177,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
   std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = getBasePath() + path;
   std::vector<FileInfo> files;
-  getFilesRecursive(fullPath.c_str(), files);
+  getFilesRecursive(fullPath.c_str(), getBasePath().size(), files);
   size_t allSize = 0;
   for (auto&& it : files)
   {
@@ -192,7 +196,7 @@ void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::str
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
   std::vector<FileInfo> files;
-  getFilesRecursive(fullPath.c_str(), files);
+  getFilesRecursive(fullPath.c_str(), currentPath.size(), files);
   for (auto&& it : files)
   {
     auto f = m_files.find(it.withoutNative);
@@ -212,12 +216,7 @@ vector<std::string> FileSystem::getFilesWithinDir(std::string path)
   getFiles(fullPath.c_str(), natfiles);
   std::vector<std::string> files;
   std::for_each(natfiles.begin(), natfiles.end(), [&](FileInfo& file){
-    auto newString = file.withoutNative;
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
-    std::replace(newString.begin(), newString.end(), '\\', '/');
-#endif
-    newString = newString.substr(path.size()+1);
-    files.push_back(newString);
+    files.push_back(file.withoutNative.substr(path.size()));
   });
   return files;
 }
@@ -229,17 +228,12 @@ vector<std::string> FileSystem::recursiveList(std::string path, std::string filt
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
   std::vector<FileInfo> files;
-  getFilesRecursive(fullPath.c_str(), files);
+  getFilesRecursive(fullPath.c_str(), currentPath.size(), files);
   std::vector<std::string> outFiles;
-  std::for_each(files.begin(), files.end(), [&](std::string& file){
-    auto newString = file.substr(currentPath.size());
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
-    std::replace(newString.begin(), newString.end(), '\\', '/');
-#endif
-    newString = newString.substr(path.size()+1);
-    file = newString;
-    if (file.find(filter) != std::string::npos)
-      outFiles.emplace_back(file);
+  std::for_each(files.begin(), files.end(), [&](FileInfo& file){
+    auto outPath = file.withoutNative.substr(path.size());
+    if (outPath.find(filter) != std::string::npos)
+      outFiles.emplace_back(outPath);
   });
   return outFiles;
 }
@@ -249,9 +243,9 @@ MemoryBlob FileSystem::readFile(std::string path)
   MemoryBlob blob;
   if (fileExists(path))
   {
+    FS_ILOG("Reading... %s\n", path.c_str());
     std::lock_guard<std::mutex> guard(m_lock);
-    auto fullPath = system_fs::path(getBasePath() + path).string();
-    auto& file = m_files[fullPath];
+    auto& file = m_files[path];
     blob = MemoryBlob(file.data);
   }
   return blob;
@@ -263,8 +257,7 @@ higanbana::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
   if (fileExists(path))
   {
     std::lock_guard<std::mutex> guard(m_lock);
-    auto fullPath = system_fs::path(getBasePath() + path).string();
-    view = higanbana::MemView<const uint8_t>(m_files[fullPath].data);
+    view = higanbana::MemView<const uint8_t>(m_files[path].data);
   }
   return view;
 }
@@ -321,7 +314,7 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 
   fclose(file);
   system_fs::resize_file(fullPath, size);
-  m_files[fullPath.string()].data = std::move(fdata);
+  m_files[path].data = std::move(fdata);
   return true;
 }
 
@@ -331,9 +324,7 @@ WatchFile FileSystem::watchFile(std::string path)
   {
     std::lock_guard<std::mutex> guard(m_lock);
     WatchFile w = WatchFile(std::make_shared<std::atomic<bool>>());
-    auto fullPath = getBasePath() + path;
-    std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
-    m_watchedFiles[fullPath].push_back(w);
+    m_watchedFiles[path].push_back(w);
     return w;
   }
   return WatchFile{};
@@ -356,11 +347,14 @@ void FileSystem::updateWatchedFiles()
     current++;
   }
   auto oldTime = m_files[current->first].timeModified;
-  auto newTime = static_cast<size_t>(system_fs::last_write_time(current->first).time_since_epoch().count());
+  auto fullPath = getBasePath() + current->first;
+  std::replace(fullPath.begin(), fullPath.end(), '/', '\\');
+  auto newTime = static_cast<size_t>(system_fs::last_write_time(fullPath).time_since_epoch().count());
   if (newTime > oldTime)
   {
     size_t opt;
-    loadFileFromHDD(current->first, opt);
+    FileInfo info = {fullPath, current->first};
+    loadFileFromHDD(info, opt);
     for (auto&& it : current->second)
     {
       it.update();
