@@ -11,6 +11,15 @@ struct InstanceDraw
   int meshId;
 };
 
+struct ActiveCamera
+{
+  float3 position;
+  quaternion direction;
+  float fov;
+  float minZ;
+  float maxZ;
+};
+
 struct MeshData
 {
   higanbana::FormatType indiceFormat;

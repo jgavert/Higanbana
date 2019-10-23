@@ -9,6 +9,7 @@
 #include <higanbana/core/entity/bitfield.hpp>
 #include <higanbana/core/system/misc.hpp>
 #include <higanbana/core/system/time.hpp>
+#include <higanbana/core/input/gamepad.hpp>
 #include <higanbana/core/system/AtomicBuffered.hpp>
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <random>
@@ -54,6 +55,134 @@ vector<int> convertToInts(vector<std::string> data)
     }
   }
   return ints;
+}
+
+void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& mouse, InputBuffer& inputs, float delta, bool captureMouse)
+{
+  float3 rxyz{ 0 };
+  float2 xy{ 0 };
+
+  query(pack(ecs.get<components::WorldPosition>(), ecs.get<components::Rotation>()), pack(ecs.getTag<components::ActiveCamera>()),
+  [&](higanbana::Id, components::WorldPosition& pos, components::Rotation& rot)
+  {
+    quaternion& direction = rot.rot;
+    float3& position = pos.pos;
+
+    float3 dir = math::normalize(rotateVector({ 0.f, 0.f, 1.f }, direction));
+    float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, direction));
+    float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, direction));
+
+    //controllerConnected = false;
+    if (input.alive)
+    {
+      auto floatizeAxises = [](int16_t input, float& output)
+      {
+        constexpr int16_t deadzone = 4500;
+        if (std::abs(input) > deadzone)
+        {
+          constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
+          output = static_cast<float>(std::abs(input) - deadzone) / max;
+          output *= (input < 0) ? -1 : 1;
+        }
+      };
+
+      floatizeAxises(input.lstick[0].value, xy.x);
+      floatizeAxises(input.lstick[1].value, xy.y);
+
+      floatizeAxises(input.rstick[0].value, rxyz.x);
+      floatizeAxises(input.rstick[1].value, rxyz.y);
+
+      rxyz = mul(rxyz, float3(-1.f, 1.f, 0));
+
+      auto floatizeTriggers = [](uint16_t input, float& output)
+      {
+        constexpr int16_t deadzone = 4000;
+        if (std::abs(input) > deadzone)
+        {
+          constexpr float max = static_cast<float>(std::numeric_limits<uint16_t>::max() - deadzone);
+          output = static_cast<float>(std::abs(input) - deadzone) / max;
+        }
+      };
+      float l{}, r{};
+
+      floatizeTriggers(input.lTrigger.value, l);
+      floatizeTriggers(input.rTrigger.value, r);
+
+      rxyz.z = r - l;
+
+      rxyz = math::mul(rxyz, std::max(delta, 0.001f));
+      xy = math::mul(xy, std::max(delta, 0.001f));
+
+      quaternion yaw = math::rotateAxis(updir, rxyz.x);
+      quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+      quaternion roll = math::rotateAxis(dir, rxyz.z);
+      direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+    }
+    else if (captureMouse)
+    {
+      auto m = mouse;
+      //F_LOG("print mouse %d %d\n", m.m_pos.x, m.m_pos.y);
+      auto p = m.m_pos;
+      auto floatizeMouse = [](int input, float& output)
+      {
+        constexpr float max = static_cast<float>(100);
+        output = std::min(static_cast<float>(std::abs(input)) / max, max);
+        output *= (input < 0) ? 1 : -1;
+      };
+
+      floatizeMouse(p.x, rxyz.x);
+      floatizeMouse(p.y, rxyz.y);
+
+      if (inputs.isPressedThisFrame('Q', 2))
+      {
+        rxyz.z = 1.f;
+      }
+      if (inputs.isPressedThisFrame('E', 2))
+      {
+        rxyz.z = -1.f;
+      }
+
+      rxyz = math::mul(rxyz, std::max(delta, 0.001f));
+      rxyz.x *= 50.f;
+      rxyz.y *= 50.f;
+
+      quaternion yaw = math::rotateAxis(updir, rxyz.x);
+      quaternion pitch = math::rotateAxis(sideVec, rxyz.y);
+      quaternion roll = math::rotateAxis(dir, rxyz.z);
+      direction = math::normalize(math::mul(math::mul(math::mul(yaw, pitch), roll), direction));
+
+      float multiplier = 1.f;
+      if (inputs.isPressedThisFrame(VK_SHIFT, 2))
+      {
+        multiplier = 100.f;
+      }
+      if (inputs.isPressedThisFrame('W', 2))
+      {
+        xy.y = -1.f * multiplier;
+      }
+      if (inputs.isPressedThisFrame('S', 2))
+      {
+        xy.y = 1.f * multiplier;
+      }
+      if (inputs.isPressedThisFrame('D', 2))
+      {
+        xy.x = -1.f * multiplier;
+      }
+      if (inputs.isPressedThisFrame('A', 2))
+      {
+        xy.x = 1.f * multiplier;
+      }
+      xy = math::mul(xy, std::max(delta, 0.001f));
+    }
+
+    // use our current up and forward vectors and calculate our new up and forward vectors
+    // yaw, pitch, roll
+
+    direction = math::normalize(direction);
+
+    position = math::add(position, math::mul(sideVec, xy.x));
+    position = math::add(position, math::mul(dir, xy.y));
+  });
 }
 
 void mainWindow(ProgramParams& params)
@@ -138,6 +267,18 @@ void mainWindow(ProgramParams& params)
     app::World world;
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
+
+    {
+      auto& t_pos = ecs.get<components::WorldPosition>();
+      auto& t_rot = ecs.get<components::Rotation>();
+      auto& t_cameraSet = ecs.get<components::CameraSettings>();
+
+      auto cid = ecs.createEntity();
+      t_pos.insert(cid, {float3(3, 0 , 8)});
+      t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
+      t_cameraSet.insert(cid, {90.f, 0.01f, 100.f});
+      ecs.getTag<components::ActiveCamera>().insert(cid);
+    }
 
     bool quit = false;
     LBS lbs;
@@ -252,6 +393,7 @@ void mainWindow(ProgramParams& params)
               inputsRead.store(currentInput);
               auto mouse = amouse.readValue();
 
+
               if (mouse.captured)
               {
                 io.MousePos.x = static_cast<float>(mouse.m_pos.x);
@@ -337,6 +479,10 @@ void mainWindow(ProgramParams& params)
               {
                 renderActive = false;
               }
+
+              gamepad::X360LikePad pad;
+              pad.alive = false;
+              handleInputs(ecs, pad, mouse, inputs, time.getFrameTimeDelta(), captureMouse);
             }
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
@@ -412,6 +558,33 @@ void mainWindow(ProgramParams& params)
                   ImGui::Text("Descriptors                 %.2fk / %.2fk %.2f%%", unitsToK(stat.descriptorsAllocated), unitsToK(stat.maxDescriptors), unitsToK(stat.descriptorsAllocated) / unitsToK(stat.maxDescriptors) * 100.f);
               }
             }
+            {
+              auto& t_pos = ecs.get<components::WorldPosition>();
+              auto& t_rot = ecs.get<components::Rotation>();
+              auto& t_cameraSet = ecs.get<components::CameraSettings>();
+              query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
+              [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+              {
+                ImGui::Text("Camera");
+                ImGui::DragFloat3("position", pos.pos.data);
+                float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
+                float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
+                float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, rot.rot));
+                float3 xyz{};
+                ImGui::DragFloat3("xyz", xyz.data, 0.01f);
+                ImGui::DragFloat4("quaternion", rot.rot.data, 0.01f);
+                ImGui::DragFloat3("forward", dir.data);
+                ImGui::DragFloat3("side", sideVec.data);
+                ImGui::DragFloat3("up", updir.data);
+                ImGui::DragFloat("fov", &set.fov, 0.1f);
+                ImGui::DragFloat("minZ", &set.minZ, 0.1f);
+                ImGui::DragFloat("maxZ", &set.maxZ, 1.f);
+                quaternion yaw = math::rotateAxis(updir, xyz.x);
+                quaternion pitch = math::rotateAxis(sideVec, xyz.y);
+                quaternion roll = math::rotateAxis(dir, xyz.z);
+                rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
+              });
+            }
             ImGui::End();
             // render entities
             entityViewer.render(ecs);
@@ -474,8 +647,23 @@ void mainWindow(ProgramParams& params)
                 }
               }
             }
-            
-            rend.render(allMeshesToDraw);
+
+            auto& t_pos = ecs.get<components::WorldPosition>();
+            auto& t_rot = ecs.get<components::Rotation>();
+            auto& t_cameraSet = ecs.get<components::CameraSettings>();
+
+            ActiveCamera ac{};
+
+            query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
+            [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+            {
+              ac.position = pos.pos;
+              ac.direction = rot.rot;
+              ac.fov = set.fov;
+              ac.minZ = set.minZ;
+              ac.maxZ = set.maxZ;
+            });
+            rend.render(ac, allMeshesToDraw);
           }
         });
         while (!window.simpleReadMessages(frame++))

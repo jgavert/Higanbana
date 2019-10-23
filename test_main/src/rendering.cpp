@@ -237,9 +237,6 @@ namespace app
 
 
     position = { -10.f, 0.f, -10.f };
-    dir = { 1.f, 0.f, 0.f };
-    updir = { 0.f, 1.f, 0.f };
-    sideVec = { 0.f, 0.f, 1.f };
     direction = { 1.f, 0.f, 0.f, 0.f };
 
     time.startFrame();
@@ -292,7 +289,7 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer)
+  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer)
   {
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
@@ -337,9 +334,6 @@ namespace app
       direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
 
       auto rotationMatrix = math::rotationMatrixLH(direction);
-      auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
-      auto perspective = math::mul(math::translation(3, 0, 8), math::perspectivelh(90.f, aspect, 0.1f, 100.f));
-
       auto worldMat = math::mul(math::scale(0.2f), rotationMatrix);
 
       OpaqueConsts consts{};
@@ -347,7 +341,7 @@ namespace app
       consts.resx = backbuffer.desc().desc.width; 
       consts.resy = backbuffer.desc().desc.height;
       consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
-      consts.viewMat = perspective;
+      consts.viewMat = viewMat;
       binding.constants(consts);
 
       auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
@@ -374,21 +368,11 @@ namespace app
     node.endRenderpass();
   }
 
-  void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
+  void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
   {
-    // config matrices...
-    quaternion yaw = math::rotateAxis(updir, 0.001f);
-    quaternion pitch = math::rotateAxis(sideVec, 0.f);
-    quaternion roll = math::rotateAxis(dir, 0.f);
-    direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-    auto rotationMatrix = math::rotationMatrixLH(direction);
-    auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
-    auto perspective = math::mul(math::translation(3, 0, 8), math::perspectivelh(90.f, aspect, 0.1f, 100.f));
-
     // upload data to gpu :P
     vector<CameraSettings> sets;
-    sets.push_back(CameraSettings{perspective});
+    sets.push_back(CameraSettings{viewMat});
     auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
     node.copy(cameras, matUpdate);
 
@@ -404,7 +388,7 @@ namespace app
     worldRend.endRenderpass(node);
   }
 
-  void Renderer::render(higanbana::vector<InstanceDraw>& instances)
+  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances)
   {
     if (swapchain.outOfDate()) // swapchain can end up being outOfDate
     {
@@ -478,10 +462,18 @@ namespace app
 
     {
       auto node = tasks.createPass("opaquePass");
+
+      // camera forming...
+      auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
+      float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
+      float4x4 rot = math::rotationMatrixLH(camera.direction);
+      float4x4 pos = math::translation(camera.position);
+      auto perspective = math::mul(pos, math::mul(rot, pers));
+
       if (instances.empty())
-        oldOpaquePass(node, backbuffer);
+        oldOpaquePass(node, perspective, backbuffer);
       else
-        renderMeshes(node, backbuffer, instances);
+        renderMeshes(node, perspective, backbuffer, instances);
       
       tasks.addPass(std::move(node));
     }

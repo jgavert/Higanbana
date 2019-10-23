@@ -23,6 +23,13 @@ struct Matrix
   float4x4 mat;
 };
 
+struct CameraSettings
+{
+  float fov;
+  float minZ;
+  float maxZ;
+};
+
 struct Name
 {
   std::string str;
@@ -63,4 +70,5 @@ struct CameraNode;
 struct MeshNode;
 struct Scene;
 struct SceneNode;
+struct ActiveCamera;
 }

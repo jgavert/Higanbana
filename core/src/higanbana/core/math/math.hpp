@@ -906,8 +906,8 @@ namespace higanbana
       r(1, 0) = 2.f*q.x * q.y + 2.f*q.w * q.z;
       r(2, 0) = 2.f*q.x * q.z - 2.f*q.w * q.y;
       r(0, 2) = 2.f*q.x * q.z + 2.f*q.w * q.y;
-      r(2, 1) = 2.f*q.y * q.z - 2.f*q.w * q.x;
-      r(1, 2) = 2.f*q.y * q.z + 2.f*q.w * q.x;
+      r(1, 2) = 2.f*q.y * q.z - 2.f*q.w * q.x;
+      r(2, 1) = 2.f*q.y * q.z + 2.f*q.w * q.x;
       return r;
     }
 
@@ -917,15 +917,15 @@ namespace higanbana
       float xx = std::pow(q.x, 2.f);
       float yy = std::pow(q.y, 2.f);
       float zz = std::pow(q.z, 2.f);
-      r(0, 0) = 1.f - 2.f*yy - 2.f*xx;
+      r(0, 0) = 1.f - 2.f*yy - 2.f*zz;
       r(1, 1) = 1.f - 2.f*xx - 2.f*zz;
       r(2, 2) = 1.f - 2.f*xx - 2.f*yy;
       r(0, 1) = 2.f*q.x * q.y + 2.f*q.w * q.z;
       r(1, 0) = 2.f*q.x * q.y - 2.f*q.w * q.z;
       r(2, 0) = 2.f*q.x * q.z + 2.f*q.w * q.y;
       r(0, 2) = 2.f*q.x * q.z - 2.f*q.w * q.y;
-      r(2, 1) = 2.f*q.y * q.z + 2.f*q.w * q.x;
-      r(1, 2) = 2.f*q.y * q.z - 2.f*q.w * q.x;
+      r(1, 2) = 2.f*q.y * q.z + 2.f*q.w * q.x;
+      r(2, 1) = 2.f*q.y * q.z - 2.f*q.w * q.x;
       return r;
     }
   }
