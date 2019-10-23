@@ -76,7 +76,7 @@
             "name": "tests core single test win64 dbg",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/tests/test_core_experimental_threading.exe",
+            "program": "${workspaceFolder}/bazel-bin/tests/test_core_tlsf.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/tests",

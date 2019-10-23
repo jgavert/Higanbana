@@ -94,7 +94,8 @@
         "*.inc": "cpp",
         "multi_span": "cpp",
         "span": "cpp",
-        "string_span": "cpp"
+        "string_span": "cpp",
+        "concepts": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
