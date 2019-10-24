@@ -44,7 +44,7 @@ class TLSFAllocator {
   }
 
   void initialize() {
-    fli = ffs(m_size);
+    fli = fls(m_size);
     sli = 5;
     sli_count = 1 << sli;
     mbs = 16;
@@ -52,7 +52,7 @@ class TLSFAllocator {
     for (int i = 0; i <= fli; ++i) {
       size_t sizeClass = 1 << i;
       std::vector<std::vector<Block>> vectors;
-      for (int k = 0; k < sli; ++k) {
+      for (int k = 0; k < sli_count; ++k) {
         vectors.push_back(std::vector<Block>());
       }
       control.sizeclasses.push_back(TLSFSizeClass{sizeClass, 0, vectors});
@@ -270,4 +270,12 @@ TEST_CASE("some basic allocation tests") {
   if (block) {
     REQUIRE(block.value().size == 4);
   }
+}
+
+TEST_CASE("some basic allocation tests 2") {
+  TLSFAllocator tlsf(70000);
+  auto block = tlsf.allocate(50000);
+  auto block2 = tlsf.allocate(20000);
+  REQUIRE(block);
+  REQUIRE_FALSE(block2);
 }
