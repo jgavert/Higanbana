@@ -1030,7 +1030,7 @@ namespace higanbana
       }
       uint64_t offset()
       {
-        return static_cast<uint64_t>(block.block.offset);
+        return static_cast<uint64_t>(block.block.offset + block.alignOffset);
       }
     };
 

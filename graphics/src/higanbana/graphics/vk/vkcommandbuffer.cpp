@@ -747,7 +747,7 @@ namespace higanbana
           auto& src = device->allResources().dynBuf[params.src];
 
           vk::BufferCopy info = vk::BufferCopy()
-            .setSrcOffset(src.native().block.block.offset)
+            .setSrcOffset(src.indexOffset())
             .setDstOffset(params.dstOffset)
             .setSize(params.numBytes);
 

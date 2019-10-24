@@ -524,6 +524,11 @@ namespace higanbana
         return m;
       }
 
+      size_t indexOffset()
+      {
+        return m.block.offset();
+      }
+
       explicit operator bool()
       {
         return m.texelView;
