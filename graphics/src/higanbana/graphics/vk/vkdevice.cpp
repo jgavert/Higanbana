@@ -956,6 +956,7 @@ namespace higanbana
       m_device.destroySwapchainKHR(oldSwapchain);
       //HIGAN_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, presentModeVKToHigan(khrmode));
+      natSwapchain->setOutOfDate(false);
     }
 
     int VulkanDevice::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles)
