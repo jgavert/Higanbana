@@ -60,7 +60,7 @@ class TLSFAllocator {
   }
 
   void remove_bit(uint64_t& value, int index) {
-    value = value & (~(1 << index));
+    value = value ^ (1 << index);
   }
 
   void set_bit(uint64_t& value, int index) { value |= (1 << index); }
@@ -120,9 +120,23 @@ class TLSFAllocator {
     auto otf2 = block.offset + block.size;
     // oh no, nail in the coffin. BRUTEFORCE, we got not boundary tagging possible
     auto fl = 0;
-    for (auto&& secondLevel : control.sizeclasses) {
-      auto sl = 0;
-      for (auto&& freeBlocks : secondLevel.freeBlocks) {
+
+    auto flBM = control.flBitmap;
+    while (flBM != 0)
+    {
+      auto fl = fls(flBM);
+      remove_bit(flBM, fl);
+
+      auto& secondLevel = control.sizeclasses[fl];
+      auto slBM = secondLevel.slBitmap;
+
+      while(slBM != 0)
+      {
+        auto sl = fls(slBM);
+        remove_bit(slBM, sl);
+
+        auto& freeBlocks = secondLevel.freeBlocks[sl];
+
         auto iter = std::find_if(
             freeBlocks.begin(), freeBlocks.end(), [otf, otf2](Block b) {
               return (b.offset + b.size == otf) || (b.offset == otf2);
@@ -141,9 +155,7 @@ class TLSFAllocator {
             return block;
           }
         }
-        sl++;
       }
-      fl++;
     }
     return block;
   }
@@ -161,7 +173,7 @@ class TLSFAllocator {
     mapping(size, fl, sl);
     auto found_block = search_suitable_block(size, fl, sl);
     if (found_block) {
-      if (found_block.size > size) {  // oh no, while loop
+      if (found_block.size > size) {
         auto remaining_block = split(found_block, size);
         mapping(remaining_block.size, fl2, sl2);
         insert(remaining_block, fl2, sl2);
@@ -176,7 +188,7 @@ class TLSFAllocator {
     unsigned fl, sl;
     auto size = block.size;
     auto big_free_block = merge(block);
-    while (big_free_block.size != size)
+    while (big_free_block.size != size) // while loop here
     {
       size = big_free_block.size;
       big_free_block = merge(big_free_block);
