@@ -77,7 +77,7 @@ class TLSFAllocator {
     // first step, assume we got something at fl / sl location
     auto& secondLevel = control.sizeclasses[fl];
     auto& freeblocks = secondLevel.freeBlocks[sl];
-    if (!freeblocks.empty() && secondLevel.sizeClass >= size) {
+    if (!freeblocks.empty() && freeblocks.back().size >= size) {
       auto block = freeblocks.back();
       freeblocks.pop_back();
       // remove bitmap bit
@@ -92,8 +92,8 @@ class TLSFAllocator {
       if (fl2 >= 0) {
         auto& secondLevel2 = control.sizeclasses[fl2];
         auto sl2 = ffs(secondLevel2.slBitmap);
-        if (sl2 >= 0 && secondLevel2.sizeClass >= size) {
-          assert(!secondLevel2.freeBlocks[sl2].empty());
+        assert(!secondLevel2.freeBlocks[sl2].empty());
+        if (sl2 >= 0 && secondLevel2.freeBlocks[sl2].back().size >= size) {
           auto block = secondLevel2.freeBlocks[sl2].back();
           secondLevel2.freeBlocks[sl2].pop_back();
           // remove bitmap bit
@@ -108,10 +108,10 @@ class TLSFAllocator {
     return {};
   }
 
-  Block split(Block& block) {
-    auto new_size = block.size / 2;
-    Block new_block = {block.offset + new_size, new_size};
-    block.size = new_size;
+  Block split(Block& block, size_t size) {
+    auto new_size = block.size - size;
+    Block new_block = {block.offset + size, new_size};
+    block.size = size;
     return new_block;
   }
 
@@ -161,8 +161,8 @@ class TLSFAllocator {
     mapping(size, fl, sl);
     auto found_block = search_suitable_block(size, fl, sl);
     if (found_block) {
-      while (found_block.size >= size * 2) {  // oh no, while loop
-        auto remaining_block = split(found_block);
+      if (found_block.size > size) {  // oh no, while loop
+        auto remaining_block = split(found_block, size);
         mapping(remaining_block.size, fl2, sl2);
         insert(remaining_block, fl2, sl2);
       }
@@ -176,7 +176,8 @@ class TLSFAllocator {
     unsigned fl, sl;
     auto size = block.size;
     auto big_free_block = merge(block);
-    while (big_free_block.size != size) {  // Oh no, another while loop
+    while (big_free_block.size != size)
+    {
       size = big_free_block.size;
       big_free_block = merge(big_free_block);
     }
@@ -205,7 +206,7 @@ TEST_CASE("some basic allocation tests") {
   block = tlsf.allocate(3);
   REQUIRE(block);
   if (block) {
-    REQUIRE(block.value().size == 4);
+    REQUIRE(block.value().size == 3);
   }
 
   tlsf.free(block.value());
@@ -277,5 +278,5 @@ TEST_CASE("some basic allocation tests 2") {
   auto block = tlsf.allocate(50000);
   auto block2 = tlsf.allocate(20000);
   REQUIRE(block);
-  REQUIRE_FALSE(block2);
+  REQUIRE(block2);
 }
