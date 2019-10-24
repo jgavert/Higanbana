@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <optional>
 #include <vector>
+#include <algorithm>
 
 struct Block {
   size_t offset;
@@ -24,6 +25,7 @@ class TLSFAllocator {
   unsigned sli;        // second level index, typically 5
   unsigned sli_count;  // second level index, typically 5
   unsigned mbs;        // minimum block size
+  unsigned min_fli;
   TLSFControl control;
   size_t m_size;
 
@@ -40,16 +42,25 @@ class TLSFAllocator {
   void mapping(size_t size, unsigned& fl, unsigned& sl) {
     fl = fls(size);
     sl = ((size ^ (1 << fl)) >> (fl - sli));
+    fl = first_level_index(fl);
     // printf("%zu -> fl %u sl %u\n", size, fl, sl);
+  }
+
+  int first_level_index(unsigned fli)
+  {
+    if (fli < min_fli)
+      return 0;
+    return fli - min_fli;
   }
 
   void initialize() {
     fli = fls(m_size);
     sli = 5;
     sli_count = 1 << sli;
-    mbs = 16;
+    mbs = std::min(int(m_size), 16);
+    min_fli = fls(mbs);
     control.flBitmap = 0;
-    for (int i = 0; i <= fli; ++i) {
+    for (int i = min_fli; i <= fli; ++i) {
       size_t sizeClass = 1 << i;
       std::vector<std::vector<Block>> vectors;
       for (int k = 0; k < sli_count; ++k) {
