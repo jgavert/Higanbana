@@ -75,31 +75,31 @@ class TLSFAllocator {
 
   Block search_suitable_block(size_t size, unsigned fl, unsigned sl) {
     // first step, assume we got something at fl / sl location
-    auto& sizeClass = control.sizeclasses[fl];
-    auto& secondLv = sizeClass.freeBlocks[sl];
-    if (!secondLv.empty() && sizeClass.sizeClass >= size) {
-      auto block = secondLv.back();
-      secondLv.pop_back();
+    auto& secondLevel = control.sizeclasses[fl];
+    auto& freeblocks = secondLevel.freeBlocks[sl];
+    if (!freeblocks.empty() && secondLevel.sizeClass >= size) {
+      auto block = freeblocks.back();
+      freeblocks.pop_back();
       // remove bitmap bit
-      if (secondLv.empty()) remove_bit(sizeClass.slBitmap, sl);
-      if (sizeClass.slBitmap == 0) remove_bit(control.flBitmap, fl);
+      if (freeblocks.empty()) remove_bit(secondLevel.slBitmap, sl);
+      if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
       return block;
     } else {
       // second step, scan bitmaps for empty slots
-      auto mask = ~((1 << (fl + 1)) -
-                    1);  // create mask to ignore first bits, could be wrong
+      // create mask to ignore first bits, could be wrong
+      auto mask = ~((1 << (fl + 1)) - 1);
       auto fl2 = ffs(control.flBitmap & mask);
       if (fl2 >= 0) {
-        auto& sizeClass2 = control.sizeclasses[fl2];
-        auto sl2 = ffs(sizeClass2.slBitmap);
-        if (sl2 >= 0 && sizeClass2.sizeClass >= size) {
-          assert(!sizeClass2.freeBlocks[sl2].empty());
-          auto block = sizeClass2.freeBlocks[sl2].back();
-          sizeClass2.freeBlocks[sl2].pop_back();
+        auto& secondLevel2 = control.sizeclasses[fl2];
+        auto sl2 = ffs(secondLevel2.slBitmap);
+        if (sl2 >= 0 && secondLevel2.sizeClass >= size) {
+          assert(!secondLevel2.freeBlocks[sl2].empty());
+          auto block = secondLevel2.freeBlocks[sl2].back();
+          secondLevel2.freeBlocks[sl2].pop_back();
           // remove bitmap bit
-          if (sizeClass2.freeBlocks[sl2].empty())
-            remove_bit(sizeClass2.slBitmap, sl2);
-          if (sizeClass2.slBitmap == 0) remove_bit(control.flBitmap, fl2);
+          if (secondLevel2.freeBlocks[sl2].empty())
+            remove_bit(secondLevel2.slBitmap, sl2);
+          if (secondLevel2.slBitmap == 0) remove_bit(control.flBitmap, fl2);
           return block;
         }
       }
@@ -116,23 +116,22 @@ class TLSFAllocator {
   }
 
   Block merge(Block block) {
-    // try to merge with some existing block???????????????
     auto otf = block.offset;
     auto otf2 = block.offset + block.size;
-    // BRUTEFORCE, we got not boundary tagging possible
+    // oh no, nail in the coffin. BRUTEFORCE, we got not boundary tagging possible
     auto fl = 0;
-    for (auto&& firstLevel : control.sizeclasses) {
+    for (auto&& secondLevel : control.sizeclasses) {
       auto sl = 0;
-      for (auto&& secondLevel : firstLevel.freeBlocks) {
+      for (auto&& freeBlocks : secondLevel.freeBlocks) {
         auto iter = std::find_if(
-            secondLevel.begin(), secondLevel.end(), [otf, otf2](Block b) {
+            freeBlocks.begin(), freeBlocks.end(), [otf, otf2](Block b) {
               return (b.offset + b.size == otf) || (b.offset == otf2);
             });
-        if (iter != secondLevel.end()) {
+        if (iter != freeBlocks.end()) {
           auto rb = *iter;
-          secondLevel.erase(iter);
-          if (secondLevel.empty()) remove_bit(firstLevel.slBitmap, sl);
-          if (firstLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
+          freeBlocks.erase(iter);
+          if (freeBlocks.empty()) remove_bit(secondLevel.slBitmap, sl);
+          if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
 
           if (rb.offset + rb.size == otf) {
             rb.size += block.size;
@@ -162,10 +161,10 @@ class TLSFAllocator {
     mapping(size, fl, sl);
     auto found_block = search_suitable_block(size, fl, sl);
     if (found_block) {
-      while (found_block.size >= size * 2) {  // oh no
+      while (found_block.size >= size * 2) {  // oh no, while loop
         auto remaining_block = split(found_block);
         mapping(remaining_block.size, fl2, sl2);
-        insert(remaining_block, fl2, sl2);  // O(1)
+        insert(remaining_block, fl2, sl2);
       }
       return found_block;
     }
@@ -177,7 +176,7 @@ class TLSFAllocator {
     unsigned fl, sl;
     auto size = block.size;
     auto big_free_block = merge(block);
-    while (big_free_block.size != size) {  // Oh no, shitty thing
+    while (big_free_block.size != size) {  // Oh no, another while loop
       size = big_free_block.size;
       big_free_block = merge(big_free_block);
     }
