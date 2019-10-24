@@ -119,20 +119,22 @@ class TLSFAllocator {
     auto otf = block.offset;
     auto otf2 = block.offset + block.size;
     // oh no, nail in the coffin. BRUTEFORCE, we got not boundary tagging possible
+    // sped up by using bitmaps to avoid checking empty vectors
     auto fl = 0;
 
+    // scan through only the memory where blocks reside using bitfields
     auto flBM = control.flBitmap;
     while (flBM != 0)
     {
-      auto fl = fls(flBM);
+      auto fl = ffs(flBM);
       remove_bit(flBM, fl);
 
       auto& secondLevel = control.sizeclasses[fl];
+      // use the bitmap to only check relevant vectors
       auto slBM = secondLevel.slBitmap;
-
       while(slBM != 0)
       {
-        auto sl = fls(slBM);
+        auto sl = ffs(slBM);
         remove_bit(slBM, sl);
 
         auto& freeBlocks = secondLevel.freeBlocks[sl];
@@ -291,4 +293,23 @@ TEST_CASE("some basic allocation tests 2") {
   auto block2 = tlsf.allocate(20000);
   REQUIRE(block);
   REQUIRE(block2);
+}
+
+TEST_CASE("stranger tests") {
+
+  auto count = 100;
+  auto sum = (count * (count + 1)) / 2;
+  TLSFAllocator tlsf(sum);
+  std::vector<Block> blocks;
+  for (int i = 1; i <= count; ++i)
+  {
+    auto block = tlsf.allocate(i);
+    REQUIRE(block);
+    blocks.push_back(block.value());
+  }
+  auto block = tlsf.allocate(1);
+  REQUIRE_FALSE(block);
+  tlsf.free(blocks.back());
+  block = tlsf.allocate(1);
+  REQUIRE(block);
 }
