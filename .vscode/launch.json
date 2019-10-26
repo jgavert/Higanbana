@@ -63,7 +63,7 @@
             "name": "tests graphics single test win64 dbg",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/tests/test_graphics_basics.exe",
+            "program": "${workspaceFolder}/bazel-bin/tests/test_graphics_shader_matrix_math.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/tests",

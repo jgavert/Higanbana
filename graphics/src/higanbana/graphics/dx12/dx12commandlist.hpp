@@ -12,7 +12,6 @@ namespace higanbana
       QueueType m_type;
       std::shared_ptr<DX12CommandBuffer> m_buffer;
       std::shared_ptr<DX12UploadHeap> m_constants;
-      std::shared_ptr<DX12UploadHeap> m_upload;
       std::shared_ptr<DX12ReadbackHeap> m_readback;
       std::shared_ptr<DX12QueryHeap> m_queryheap;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
@@ -38,7 +37,6 @@ namespace higanbana
         QueueType type,
         std::shared_ptr<DX12CommandBuffer> buffer,
         std::shared_ptr<DX12UploadHeap> constants,
-        std::shared_ptr<DX12UploadHeap> dynamicUpload,
         std::shared_ptr<DX12ReadbackHeap> readback,
         std::shared_ptr<DX12QueryHeap> queryheap,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,

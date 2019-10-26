@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
-#include <optional>
-#include <vector>
-#include <algorithm>
+
+#include <higanbana/core/system/heap_allocator.hpp>
 
 struct Block {
   uint64_t offset;
@@ -249,7 +248,7 @@ class TLSFAllocator {
 };
 
 TEST_CASE("some basic allocation tests") {
-  TLSFAllocator tlsf(4, 1);
+  higanbana::HeapAllocator tlsf(4, 1);
   auto block = tlsf.allocate(5);
   REQUIRE_FALSE(block);
   block = tlsf.allocate(2);
@@ -336,7 +335,7 @@ TEST_CASE("some basic allocation tests") {
 }
 
 TEST_CASE("some basic allocation tests 2") {
-  TLSFAllocator tlsf(70000);
+  higanbana::HeapAllocator tlsf(70000);
   auto block = tlsf.allocate(50000);
   auto block2 = tlsf.allocate(20000);
   REQUIRE(block);
@@ -346,8 +345,8 @@ TEST_CASE("some basic allocation tests 2") {
 TEST_CASE("stranger tests") {
   auto count = 100;
   auto sum = (count * (count + 1)) / 2;
-  TLSFAllocator tlsf(sum, 1);
-  std::vector<Block> blocks;
+  higanbana::HeapAllocator tlsf(sum, 1);
+  higanbana::vector<higanbana::RangeBlock> blocks;
   for (int i = 1; i <= count; ++i) {
     auto block = tlsf.allocate(i);
     REQUIRE(block);
@@ -361,7 +360,7 @@ TEST_CASE("stranger tests") {
 }
 
 TEST_CASE("alignment tests") {
-  TLSFAllocator tlsf(50, 1);
+  higanbana::HeapAllocator tlsf(50, 1);
   auto block = tlsf.allocate(3, 1);
   auto block2 = tlsf.allocate(3*3*3, 9);
   REQUIRE(block);
@@ -389,7 +388,7 @@ TEST_CASE("alignment tests") {
 }
 
 TEST_CASE("alignment tests with minimum block size") {
-  TLSFAllocator tlsf(100, 16);
+  higanbana::HeapAllocator tlsf(100, 16);
   auto block = tlsf.allocate(3, 1);
   auto block2 = tlsf.allocate(3*3*3, 9);
   REQUIRE(block);

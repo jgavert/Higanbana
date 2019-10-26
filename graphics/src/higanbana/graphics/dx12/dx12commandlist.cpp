@@ -22,7 +22,6 @@ namespace higanbana
       QueueType type,
       std::shared_ptr<DX12CommandBuffer> buffer,
       std::shared_ptr<DX12UploadHeap> constants,
-      std::shared_ptr<DX12UploadHeap> dynamicUpload,
       std::shared_ptr<DX12ReadbackHeap> readback,
       std::shared_ptr<DX12QueryHeap> queryheap,
       std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
@@ -31,7 +30,6 @@ namespace higanbana
       : m_type(type)
       , m_buffer(buffer)
       , m_constants(constants)
-      , m_upload(dynamicUpload)
       , m_readback(readback)
       , m_queryheap(queryheap)
       , m_descriptors(descriptors)
@@ -390,8 +388,8 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       if (!block)
       {
-        auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 16);
-        HIGAN_ASSERT(newBlock, "What!");
+        auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 2, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
         m_freeResources->uploadBlocks.push_back(newBlock);
         m_constantsAllocator = UploadLinearAllocator(newBlock);
         block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
@@ -1104,7 +1102,7 @@ namespace higanbana
           auto dynamic = device->allResources().dynSRV[params.dynamic];
 
           D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.allMips, params.mip, params.slice);
-          D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(m_upload->native(), dynamic, params.width, params.height, texture.desc().desc.format);
+          D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
           buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
           break;
         }

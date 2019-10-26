@@ -187,3 +187,89 @@ TEST_CASE_METHOD(GraphicsFixture, "test that gpu multiplication is same as cpu")
   REQUIRE(rbdata[14] == 3602.f);
   REQUIRE(rbdata[15] == 3656.f);
 }
+
+SHADER_STRUCT(TestConsts3,
+  float3 vec1;
+  uint u1;
+  float3 vec2;
+  uint u2;
+);
+
+TEST_CASE_METHOD(GraphicsFixture, "test vec3 passing to gpu.") {
+
+  higanbana::ShaderArgumentsLayout argsLayout = gpu().createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
+    .readOnly(ShaderResourceType::Buffer, "float3", "input")
+    .readWrite(ShaderResourceType::Buffer, "float", "result"));
+
+  auto comp = gpu().createComputePipeline(ComputePipelineDescriptor()
+    .setInterface(PipelineInterfaceDescriptor()
+      .constants<TestConsts3>()
+      .shaderArguments(0, argsLayout))
+    .setShader("vec3 copy")
+    .setThreadGroups(uint3(1, 1, 1)));
+
+  auto buffer = gpu().createBuffer(ResourceDescriptor()
+    .setFormat(FormatType::Float32)
+    .setUsage(ResourceUsage::GpuRW)
+    .setCount(4*3)); // 1:1 copy of input, 1x 4x4 float matrix and 4x float4 vectors
+
+  auto bufferUAV = gpu().createBufferUAV(buffer);
+
+  auto refVec = float3({16, 1, 2});
+  auto refVec2 = float3({116, 11, 12});
+
+  auto graph = gpu().createGraph();
+
+  auto node = graph.createPass("computeCopy");
+  {
+    vector<float3> lol{refVec, refVec2};
+    
+    auto dyn = gpu().dynamicBuffer(makeMemView(lol), FormatType::Float32RGB);
+    auto dyn1 = gpu().dynamicBuffer(makeMemView(lol), FormatType::Float32RGB);
+    auto dyn2 = gpu().dynamicBuffer(makeMemView(lol), FormatType::Float32RGB);
+
+    auto argsDesc = ShaderArgumentsDescriptor("computeCopyArgs", argsLayout);
+    argsDesc.bind("result", bufferUAV);
+    argsDesc.bind("input", dyn);
+
+    auto args = gpu().createShaderArguments(argsDesc);
+
+    auto binding = node.bind(comp);
+    binding.arguments(0, args);
+    TestConsts3 consts{};
+    consts.vec1 = refVec;
+    consts.vec2 = refVec2;
+    binding.constants(consts);
+    node.dispatch(binding, uint3(1, 1, 1));
+  }
+  auto asyncReadback = node.readback(buffer);
+  graph.addPass(std::move(node));
+  gpu().submit(graph);
+  gpu().waitGpuIdle();
+
+  REQUIRE(asyncReadback.ready()); // result should be ready at some point after gpu idle
+
+  auto rb = asyncReadback.get();
+  auto rbdata = rb.view<float>();
+
+  auto refResult = math::mul(refVec, refVec2);
+
+  REQUIRE(refResult(0) == 1856.f);
+  REQUIRE(refResult(1) == 11.f);
+  REQUIRE(refResult(2) == 24.f);
+
+  REQUIRE(rbdata[0] == 1891.f);
+  REQUIRE(rbdata[1] == 1891.f);
+  REQUIRE(rbdata[2] == 1891.f);
+  REQUIRE(rbdata[3] == 1891.f);
+  REQUIRE(rbdata[4] == 1891.f);
+  REQUIRE(rbdata[5] == 1891.f);
+
+  REQUIRE(rbdata[6] == refVec.x);
+  REQUIRE(rbdata[7] == refVec.y);
+  REQUIRE(rbdata[8] == refVec.z);
+
+  REQUIRE(rbdata[9] == refVec2.x);
+  REQUIRE(rbdata[10] == refVec2.y);
+  REQUIRE(rbdata[11] == refVec2.z);
+}

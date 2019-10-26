@@ -8,7 +8,7 @@
 
 namespace higanbana
 {
-  struct RangeBlock
+  struct FixedRangeBlock
   {
     int64_t offset;
     int64_t size;
@@ -34,11 +34,11 @@ namespace higanbana
       , m_size(blockSize * amountOfBlocks)
     {}
 
-    RangeBlock allocate(size_t amount)
+    FixedRangeBlock allocate(size_t amount)
     {
       if (static_cast<size_t>(m_size) < amount)
       {
-        return RangeBlock{ -1, -1 };
+        return FixedRangeBlock{ -1, -1 };
       }
       std::lock_guard<std::mutex> guard(m_mutex);
       auto blocks = amountInBlocks(amount);
@@ -46,12 +46,12 @@ namespace higanbana
       if (startIndex != -1 && startIndex + blocks < amountInBlocks(m_size))
       {
         markUsedPages(startIndex, blocks);
-        return RangeBlock{ startIndex * m_blockSize, blocks * m_blockSize };
+        return FixedRangeBlock{ startIndex * m_blockSize, blocks * m_blockSize };
       }
-      return RangeBlock{ -1, -1 };
+      return FixedRangeBlock{ -1, -1 };
     }
 
-    void release(RangeBlock range)
+    void release(FixedRangeBlock range)
     {
       auto startBlock = amountInBlocks(range.offset);
       auto size = amountInBlocks(range.size);
@@ -131,24 +131,24 @@ namespace higanbana
       m_blocks.initFull();
     }
 
-    RangeBlock allocate(size_t blocks)
+    FixedRangeBlock allocate(size_t blocks)
     {
       int64_t inputBlocks = static_cast<int64_t>(blocks);
       if (m_size< inputBlocks)
       {
-        return RangeBlock{ -1, -1 };
+        return FixedRangeBlock{ -1, -1 };
       }
       auto startIndex = checkIfFreeContiguousMemory(inputBlocks);
       if (startIndex != -1 && startIndex + static_cast<int64_t>(inputBlocks) <= m_size)
       {
         m_freespace -= inputBlocks;
         markUsedPages(startIndex, inputBlocks);
-        return RangeBlock{ startIndex , inputBlocks };
+        return FixedRangeBlock{ startIndex , inputBlocks };
       }
-      return RangeBlock{ -1, -1 };
+      return FixedRangeBlock{ -1, -1 };
     }
 
-    void release(RangeBlock range)
+    void release(FixedRangeBlock range)
     {
       HIGAN_ASSERT(range.offset + range.size <= m_size, "not enough pages available");
       for (int64_t i = range.offset; i < range.offset + range.size; ++i)

@@ -12,6 +12,7 @@
 #include <higanbana/core/global_debug.hpp>
 
 #include <DXGIDebug.h>
+#include <numeric>
 
 namespace higanbana
 {
@@ -29,9 +30,9 @@ namespace higanbana
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
-      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64, 1024)) // we have room for 64*1024 drawcalls worth of constants.
-      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256, 1024)) // we have room 64 / 4megs of dynamic buffers
-      , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64, 2048))
+      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 64 * 1024)) // we have room for 64*1024 drawcalls worth of constants.
+      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256 * 1024)) // we have room 64 / 4megs of dynamic buffers
+      , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64 * 2048))
       //, m_trash(std::make_shared<Garbage>())
       //, m_seqTracker(std::make_shared<SequenceTracker>())
     {
@@ -204,11 +205,11 @@ namespace higanbana
       // descriptors (static + shaderArguments)
       DeviceStatistics stats = {};
       stats.maxConstantsUploadMemory = m_constantsUpload->max_size();
-      stats.constantsUploadMemoryInUse = m_constantsUpload->size();
+      stats.constantsUploadMemoryInUse = m_constantsUpload->size_allocated();
       stats.maxGenericUploadMemory = m_dynamicUpload->max_size();
-      stats.genericUploadMemoryInUse = m_dynamicUpload->size();
+      stats.genericUploadMemoryInUse = m_dynamicUpload->size_allocated();
       stats.descriptorsInShaderArguments = false;
-      stats.descriptorsAllocated = m_dynamicGpuDescriptors->size();
+      stats.descriptorsAllocated = m_dynamicGpuDescriptors->size_allocated();
       stats.maxDescriptors = m_dynamicGpuDescriptors->max_size();
       return stats;
     }
@@ -676,6 +677,8 @@ namespace higanbana
         {
           auto& dynBuf = m_allRes.dynSRV[handle];
           m_dynamicUpload->release(dynBuf.block);
+          //HIGAN_LOGi("free dynamic %zu %zu\n", dynBuf.block.block.offset, dynBuf.block.block.offset + dynBuf.block.block.size);
+          dynBuf.block = {};
           if (dynBuf.hasDescriptor()) {
             m_generics.release(dynBuf.resource);
           }
@@ -1550,28 +1553,34 @@ namespace higanbana
     {
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
+      auto stride = formatSizeInfo(type).pixelSize;
+      auto align = stride;
+      if (type == FormatType::Raw32)
+        align = 16;
+      auto sizeBytes = view.size_bytes();
+      auto upload = m_dynamicUpload->allocate(sizeBytes, align);
+      HIGAN_ASSERT(upload && upload.block.size >= sizeBytes, "Halp");
+      HIGAN_ASSERT(upload.block.offset % stride == 0, "oh no");
 
-      auto algn = formatSizeInfo(type).pixelSize;
-      auto upload = m_dynamicUpload->allocate(view.size(), algn);
-      HIGAN_ASSERT(upload, "Halp");
-
-      memcpy(upload.data(), view.data(), view.size());
+      memcpy(upload.data(), view.data(), sizeBytes);
 
       auto format = formatTodxFormat(type).view;
-      auto stride = formatSizeInfo(type).pixelSize;
-
       D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
       desc.Format = format;
       desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-      desc.Buffer.NumElements = static_cast<unsigned>(view.size() / stride);
+      desc.Buffer.NumElements = static_cast<unsigned>(sizeBytes / stride);
       desc.Buffer.FirstElement = upload.block.offset / stride;
       desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-      if (type == FormatType::Raw32)
+      if (type == FormatType::Raw32){
         desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+      }
       desc.Buffer.StructureByteStride = format == DXGI_FORMAT_UNKNOWN ? stride : 0;
       desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-      HIGAN_ASSERT((upload.block.offset + upload.alignOffset) % stride == 0, "oh no");
+      //HIGAN_LOGi("allocate dynamic %zu  %zu", upload.block.offset, upload.block.offset + upload.block.size);
+      //HIGAN_LOGi(" rawPtr %zu - %zu ", reinterpret_cast<size_t>(upload.data()), reinterpret_cast<size_t>(upload.data()+viewSizeWut));
+      //HIGAN_LOGi(" shader view %u elems %u \n", upload.block.offset / 2, sizeBytes / 2);
+
       m_device->CreateShaderResourceView(m_dynamicUpload->native(), &desc, descriptor.cpu);
 
       m_allRes.dynSRV[handle] = DX12DynamicBufferView(upload, descriptor, format, stride);
@@ -1581,7 +1590,7 @@ namespace higanbana
     {
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
-      auto upload = m_dynamicUpload->allocate(view.size());
+      auto upload = m_dynamicUpload->allocate(view.size(), stride);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), view.data(), view.size());
       D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
@@ -1611,7 +1620,7 @@ namespace higanbana
       HIGAN_LOG("rowPitch %zu\n", requiredRowPitch);
       const auto requiredTotalSize = rows * requiredRowPitch;
 
-      auto upload = m_dynamicUpload->allocate(requiredTotalSize);
+      auto upload = m_dynamicUpload->allocate(requiredTotalSize, APIRowPitchAlignmentRequirement);
       HIGAN_ASSERT(upload, "Halp");
       for (size_t row = 0; row < rows; ++row)
       {
@@ -1710,7 +1719,6 @@ namespace higanbana
         QueueType::Dma,
         m_copyListPool.allocate(),
         m_constantsUpload,
-        m_dynamicUpload,
         m_readbackPool.allocate(),
         m_dmaQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
@@ -1737,7 +1745,6 @@ namespace higanbana
         QueueType::Compute,
         m_computeListPool.allocate(),
         m_constantsUpload,
-        m_dynamicUpload,
         m_readbackPool.allocate(),
         m_computeQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
@@ -1763,7 +1770,6 @@ namespace higanbana
         QueueType::Graphics,
         m_graphicsListPool.allocate(),
         m_constantsUpload,
-        m_dynamicUpload,
         m_readbackPool.allocate(),
         m_queryHeapPool.allocate(),
         m_dynamicGpuDescriptors,

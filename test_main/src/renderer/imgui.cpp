@@ -110,8 +110,8 @@ namespace app
       {
         auto list = drawData->CmdLists[i];
         // 5x 32bit thing...
-        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size() * sizeof(list->VtxBuffer[0])), FormatType::Raw32);
-        auto ibv = device.dynamicBuffer(makeByteView(list->IdxBuffer.Data, list->IdxBuffer.size() * sizeof(list->IdxBuffer[0])), FormatType::Uint16);
+        auto vbv = device.dynamicBuffer(makeByteView(list->VtxBuffer.Data, list->VtxBuffer.size_in_bytes()), FormatType::Raw32);
+        auto ibv = device.dynamicBuffer(makeByteView(list->IdxBuffer.Data, list->IdxBuffer.size_in_bytes()), FormatType::Uint16);
 
         bindArgs.bind("vertices", vbv);
         auto args = device.createShaderArguments(bindArgs);
