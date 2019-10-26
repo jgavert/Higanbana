@@ -289,7 +289,7 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer)
+  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, int cubeCount)
   {
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
@@ -349,7 +349,7 @@ namespace app
 
       binding.arguments(0, args);
 
-      int gridSize = 8;
+      int gridSize = cubeCount;
       for (int x = 0; x < gridSize; ++x)
       {
         for (int y = 0; y < gridSize; ++y)
@@ -388,7 +388,7 @@ namespace app
     worldRend.endRenderpass(node);
   }
 
-  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances)
+  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int cubeCount)
   {
     if (swapchain.outOfDate()) // swapchain can end up being outOfDate
     {
@@ -471,7 +471,7 @@ namespace app
       auto perspective = math::mul(pos, math::mul(rot, pers));
 
       if (instances.empty())
-        oldOpaquePass(node, perspective, backbuffer);
+        oldOpaquePass(node, perspective, backbuffer, cubeCount);
       else
         renderMeshes(node, perspective, backbuffer, instances);
       

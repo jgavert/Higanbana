@@ -15,5 +15,6 @@ namespace higanbana
     uint64_t maxDescriptors;
     uint64_t commandlistsOnGpu;
     uint64_t gpuMemoryAllocated;
+    uint64_t gpuTotalMemory;
   };
 }

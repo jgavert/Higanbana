@@ -253,6 +253,7 @@ namespace higanbana
       {
         auto stat = dev.device->statsOfResourcesInUse();
         stat.gpuMemoryAllocated = dev.heaps.memoryInUse();
+        stat.gpuTotalMemory = dev.heaps.totalMemory();
         stat.commandlistsOnGpu = dev.m_gfxBuffers.size() + dev.m_computeBuffers.size() + dev.m_dmaBuffers.size();
         allMemoryUsed.push_back(stat);
       }

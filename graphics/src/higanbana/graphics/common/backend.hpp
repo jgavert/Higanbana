@@ -1,7 +1,7 @@
 #pragma once
 
 #include "higanbana/graphics/common/resource_descriptor.hpp"
-#include <higanbana/core/system/PageAllocator.hpp>
+#include <higanbana/core/system/heap_allocator.hpp>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -17,7 +17,7 @@ namespace higanbana
     uint64_t index;
     int alignment;
     int64_t heapType;
-    PageBlock block;
+    RangeBlock block;
 
     bool valid() { return alignment != -1 && index != static_cast<uint64_t>(-1); }
   };

@@ -5,6 +5,7 @@
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/entity/bitfield.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
+#include <higanbana/core/system/heap_allocator.hpp>
 #include <memory>
 
 
@@ -165,7 +166,7 @@ namespace higanbana
       struct HeapBlock
       {
         uint64_t index;
-        FixedSizeAllocator allocator;
+        HeapAllocator allocator;
         GpuHeap heap;
       };
 
@@ -180,27 +181,16 @@ namespace higanbana
       const int64_t m_minimumHeapSize = 16 * 1024 * 1024; // todo: move this configuration elsewhere
       uint64_t m_heapIndex = 0;
 
+      uint64_t m_memoryAllocated = 0;
       uint64_t m_totalMemory = 0;
     public:
 
       HeapAllocation allocate(MemoryRequirements requirements, std::function<GpuHeap(HeapDescriptor)> allocator);
       void release(GpuHeapAllocation allocation);
-
       vector<GpuHeap> emptyHeaps();
-
       uint64_t memoryInUse();
+      uint64_t totalMemory();
     };
-/*
-    struct LiveCommandBuffer
-    {
-      vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
-      vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
-      vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
-      std::shared_ptr<backend::FenceImpl> fence;
-      std::shared_ptr<vector<IntermediateList>> intermediateLists;
-    };*/
-
-
 
     struct QueueStates
     {

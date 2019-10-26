@@ -267,6 +267,8 @@ void mainWindow(ProgramParams& params)
     app::World world;
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
+    bool renderECS = false;
+    int cubeCount = 4;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -549,7 +551,7 @@ void mainWindow(ProgramParams& params)
               for (auto& stat : stats)
               {
                 ImGui::Text("Commandbuffers on gpu       %zu", stat.commandlistsOnGpu);
-                ImGui::Text("GPU Memory allocated        %.2fmb", bytesToMb(stat.gpuMemoryAllocated));
+                ImGui::Text("GPU Memory allocated        %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.gpuMemoryAllocated), bytesToMb(stat.gpuTotalMemory), bytesToMb(stat.gpuMemoryAllocated) / bytesToMb(stat.gpuTotalMemory) * 100.f);
                 ImGui::Text("Memory used by constants    %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.constantsUploadMemoryInUse), bytesToMb(stat.maxConstantsUploadMemory), bytesToMb(stat.constantsUploadMemoryInUse) / bytesToMb(stat.maxConstantsUploadMemory) * 100.f);
                 ImGui::Text("Generic upload memory used  %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.genericUploadMemoryInUse), bytesToMb(stat.maxGenericUploadMemory), bytesToMb(stat.genericUploadMemoryInUse) / bytesToMb(stat.maxGenericUploadMemory) * 100.f);
                 if (stat.descriptorsInShaderArguments)
@@ -585,6 +587,12 @@ void mainWindow(ProgramParams& params)
                 rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
               });
             }
+            {
+              ImGui::Checkbox("render ECS", &renderECS);
+              ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
+              ImGui::SameLine();
+              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
+            }
             ImGui::End();
             // render entities
             entityViewer.render(ecs);
@@ -593,6 +601,7 @@ void mainWindow(ProgramParams& params)
 
             // collect all model instances and their matrices for drawing...
             vector<InstanceDraw> allMeshesToDraw;
+            if (renderECS)
             {
 
               struct ActiveScene
@@ -663,7 +672,7 @@ void mainWindow(ProgramParams& params)
               ac.minZ = set.minZ;
               ac.maxZ = set.maxZ;
             });
-            rend.render(ac, allMeshesToDraw);
+            rend.render(ac, allMeshesToDraw, cubeCount);
           }
         });
         while (!window.simpleReadMessages(frame++))

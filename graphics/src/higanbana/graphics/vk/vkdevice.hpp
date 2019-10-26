@@ -9,7 +9,8 @@ namespace higanbana
     {
     private:
       vk::Device                  m_device;
-      vk::PhysicalDevice		      m_physDevice;
+      vk::PhysicalDevice          m_physDevice;
+      vk::PhysicalDeviceLimits    m_limits;
       vk::DispatchLoaderDynamic   m_dynamicDispatch;
       bool                        m_debugLayer;
       std::vector<vk::QueueFamilyProperties> m_queues;

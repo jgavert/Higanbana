@@ -47,7 +47,7 @@ namespace higanbana
           .setHeapAlignment(requirements.alignment)
           .setName(name);
         GFX_LOG("Created heap \"%s\" size %.2fMB (%zu). Total memory in heaps %.2fMB\n", name.c_str(), float(sizeToCreate) / 1024.f / 1024.f, sizeToCreate, float(m_totalMemory) / 1024.f / 1024.f);
-        return HeapBlock{ index, FixedSizeAllocator(requirements.alignment, sizeToCreate / requirements.alignment), heapAllocator(desc) };
+        return HeapBlock{ index, HeapAllocator(sizeToCreate, requirements.alignment), heapAllocator(desc) };
       };
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
@@ -57,25 +57,27 @@ namespace higanbana
       });
       if (vectorPtr != m_heaps.end()) // found alignment
       {
-        PageBlock block{ -1, -1 };
+        std::optional<RangeBlock> block;
         for (auto& heap : vectorPtr->heaps)
         {
-          if (heap.allocator.freesize() >= requirements.bytes) // this will find falsepositives if memory is fragmented.
+          if (heap.allocator.size() >= requirements.bytes) // this will find falsepositives if memory is fragmented.
           {
             block = heap.allocator.allocate(requirements.bytes); // should be cheap anyway
-            if (block.valid())
+            if (block)
             {
-              alloc.block = block;
+              alloc.block = block.value();
               alloc.index = heap.index;
+              m_memoryAllocated += alloc.block.size;
               return HeapAllocation{ alloc, heap.heap };
             }
           }
         }
-        if (!block.valid())
+        if (!block.has_value())
         {
           // create correct sized heap and allocate from it.
           auto newHeap = createHeapBlock(m_heapIndex++, requirements);
-          alloc.block = newHeap.allocator.allocate(requirements.bytes);
+          alloc.block = newHeap.allocator.allocate(requirements.bytes).value();
+          m_memoryAllocated += alloc.block.size;
           alloc.index = newHeap.index;
           auto heap = newHeap.heap;
           vectorPtr->heaps.emplace_back(std::move(newHeap));
@@ -84,7 +86,8 @@ namespace higanbana
       }
       HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>() };
       auto newHeap = createHeapBlock(m_heapIndex++, requirements);
-      alloc.block = newHeap.allocator.allocate(requirements.bytes);
+      alloc.block = newHeap.allocator.allocate(requirements.bytes).value();
+      m_memoryAllocated += alloc.block.size;
       alloc.index = newHeap.index;
       auto heap = newHeap.heap;
       vec.heaps.emplace_back(std::move(newHeap));
@@ -106,10 +109,16 @@ namespace higanbana
         {
           return vec.index == object.index;
         });
-        heapPtr->allocator.release(object.block);
+        m_memoryAllocated -= object.block.size;
+        heapPtr->allocator.free(object.block);
       }
     }
     uint64_t HeapManager::memoryInUse()
+    {
+      return m_memoryAllocated;
+    }
+    
+    uint64_t HeapManager::totalMemory()
     {
       return m_totalMemory;
     }
@@ -121,7 +130,7 @@ namespace higanbana
       {
         for (auto iter = it.heaps.begin(); iter != it.heaps.end(); ++iter)
         {
-          if (iter->allocator.empty())
+          if (iter->allocator.size_allocated() == 0)
           {
             emptyHeaps.emplace_back(iter->heap);
             m_totalMemory -= iter->allocator.size();
@@ -132,7 +141,7 @@ namespace higanbana
         {
           auto removables = std::find_if(it.heaps.begin(), it.heaps.end(), [&](HeapBlock& vec)
           {
-            return vec.allocator.empty();
+            return vec.allocator.size_allocated() == 0;
           });
           if (removables != it.heaps.end())
           {

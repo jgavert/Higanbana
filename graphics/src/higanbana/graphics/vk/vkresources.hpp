@@ -11,6 +11,7 @@
 #include "higanbana/graphics/common/allocators.hpp"
 #include <higanbana/core/system/MemoryPools.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
+#include <higanbana/core/system/heap_allocator.hpp>
 
 #include <algorithm>
 
@@ -444,7 +445,7 @@ namespace higanbana
     {
       uint8_t* m_data;
       vk::Buffer m_buffer;
-      PageBlock block;
+      RangeBlock block;
       int alignOffset;
 
       uint8_t* data()
@@ -720,7 +721,7 @@ namespace higanbana
       {
         auto offset = allocator.allocate(bytes, alignment);
         if (offset < 0)
-          return VkUploadBlock{ nullptr, nullptr, PageBlock{} };
+          return VkUploadBlock{ nullptr, nullptr, RangeBlock{} };
 
         VkUploadBlock b = block;
         b.block.offset += offset;
@@ -731,9 +732,7 @@ namespace higanbana
 
     class VulkanUploadHeap
     {
-      FixedSizeAllocator allocator;
-      unsigned fixedSize = 1;
-      unsigned m_size = 1;
+      HeapAllocator allocator;
       vk::Buffer m_buffer;
       vk::DeviceMemory m_memory;
       vk::Device m_device;
@@ -743,15 +742,12 @@ namespace higanbana
       VulkanUploadHeap() : allocator(1, 1) {}
       VulkanUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
-                     , unsigned allocationSize
-                     , unsigned allocationCount)
-        : allocator(allocationSize, allocationCount)
-        , fixedSize(allocationSize)
-        , m_size(allocationSize*allocationCount)
+                     , unsigned memorySize)
+        : allocator(memorySize)
         , m_device(device)
       {
         auto bufDesc = ResourceDescriptor()
-          .setWidth(allocationSize*allocationCount)
+          .setWidth(memorySize)
           .setFormat(FormatType::Uint8)
           .setUsage(ResourceUsage::Upload)
           .setIndexBuffer()
@@ -783,7 +779,7 @@ namespace higanbana
         device.bindBufferMemory(m_buffer, m_memory, 0);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
-        auto mapResult = device.mapMemory(m_memory, 0, allocationSize*allocationCount);
+        auto mapResult = device.mapMemory(m_memory, 0, memorySize);
         VK_CHECK_RESULT(mapResult);
 
         data = reinterpret_cast<uint8_t*>(mapResult.value);
@@ -797,19 +793,14 @@ namespace higanbana
 
       VkUploadBlock allocate(size_t bytes, size_t alignment = 1)
       {
-        auto dip = allocator.allocate(bytes + alignment);
-        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", m_size);
-        int offBy = dip.offset % alignment;
-        if (offBy != 0)
-        {
-          offBy = alignment - offBy;
-        }
-        return VkUploadBlock{ data, m_buffer,  dip, offBy };
+        auto dip = allocator.allocate(bytes, alignment);
+        HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
+        return VkUploadBlock{ data, m_buffer,  dip.value()};
       }
 
       void release(VkUploadBlock desc)
       {
-        allocator.release(desc.block);
+        allocator.free(desc.block);
       }
 
       size_t size() const noexcept
@@ -821,13 +812,16 @@ namespace higanbana
       {
         return allocator.max_size();
       }
+
+      size_t size_allocated() const noexcept
+      {
+        return allocator.size_allocated();
+      }
     };
 
     class VulkanConstantUploadHeap
     {
-      FixedSizeAllocator allocator;
-      unsigned fixedSize = 1;
-      unsigned m_size = 1;
+      HeapAllocator allocator;
       vk::Buffer m_buffer;
       vk::DeviceMemory m_memory;
       vk::Device m_device;
@@ -837,15 +831,12 @@ namespace higanbana
       VulkanConstantUploadHeap() : allocator(1, 1) {}
       VulkanConstantUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
-                     , unsigned allocationSize
-                     , unsigned allocationCount)
-        : allocator(allocationSize, allocationCount)
-        , fixedSize(allocationSize)
-        , m_size(allocationSize*allocationCount)
+                     , unsigned memorySize)
+        : allocator(memorySize)
         , m_device(device)
       {
         auto bufDesc = ResourceDescriptor()
-          .setWidth(allocationSize*allocationCount)
+          .setWidth(memorySize)
           .setFormat(FormatType::Uint8)
           .setUsage(ResourceUsage::Upload)
           .setName("DynUpload");
@@ -877,7 +868,7 @@ namespace higanbana
         device.bindBufferMemory(m_buffer, m_memory, 0);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
-        auto mapResult = device.mapMemory(m_memory, 0, allocationSize*allocationCount);
+        auto mapResult = device.mapMemory(m_memory, 0, memorySize);
         VK_CHECK_RESULT(mapResult);
 
         data = reinterpret_cast<uint8_t*>(mapResult.value);
@@ -892,13 +883,13 @@ namespace higanbana
       VkUploadBlock allocate(size_t bytes)
       {
         auto dip = allocator.allocate(bytes);
-        HIGAN_ASSERT(dip.offset != -1, "No space left, make bigger VulkanUploadHeap :) %d", m_size);
-        return VkUploadBlock{ data, m_buffer,  dip };
+        HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
+        return VkUploadBlock{ data, m_buffer,  dip.value() };
       }
 
       void release(VkUploadBlock desc)
       {
-        allocator.release(desc.block);
+        allocator.free(desc.block);
       }
 
       vk::Buffer buffer()
@@ -914,6 +905,11 @@ namespace higanbana
       size_t max_size() const noexcept
       {
         return allocator.max_size();
+      }
+
+      size_t size_allocated() const noexcept
+      {
+        return allocator.size_allocated();
       }
     };
 
@@ -934,7 +930,7 @@ namespace higanbana
       {
         auto offset = allocator.allocate(bytes, alignment);
         if (offset < 0)
-          return VkUploadBlock{ nullptr, vk::Buffer{}, PageBlock{} };
+          return VkUploadBlock{ nullptr, vk::Buffer{}, RangeBlock{} };
 
         VkUploadBlock b = block;
         b.block.offset += offset;

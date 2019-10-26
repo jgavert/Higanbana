@@ -286,6 +286,7 @@ namespace higanbana
       bool debugLayer)
       : m_device(device)
       , m_physDevice(physDev)
+      , m_limits(physDev.getProperties().limits)
       , m_dynamicDispatch(dynamicDispatch)
       , m_debugLayer(debugLayer)
       , m_queues(queues)
@@ -297,8 +298,8 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256*64, 2024)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256*64, 1024)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 128 * 1024)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256 * 3 * 64 * 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
@@ -662,9 +663,9 @@ namespace higanbana
     {
       DeviceStatistics stats = {};
       stats.maxConstantsUploadMemory = m_constantAllocators->max_size();
-      stats.constantsUploadMemoryInUse = m_constantAllocators->size();
+      stats.constantsUploadMemoryInUse = m_constantAllocators->size_allocated();
       stats.maxGenericUploadMemory = m_dynamicUpload->max_size();
-      stats.genericUploadMemoryInUse = m_dynamicUpload->size();
+      stats.genericUploadMemoryInUse = m_dynamicUpload->size_allocated();
       stats.descriptorsInShaderArguments = true;
       stats.descriptorsAllocated = m_descriptorSetsInUse;
       stats.maxDescriptors = m_maxDescriptorSets;
@@ -1599,10 +1600,12 @@ namespace higanbana
       reqs.alignment = requirements.alignment;
       reqs.bytes = requirements.size;
 
+      /*
       if (reqs.alignment < 128)
       {
         reqs.alignment = ((128 + reqs.alignment - 1) / reqs.alignment) * reqs.alignment;
       }
+      */
 
       return reqs;
     }
@@ -2105,9 +2108,10 @@ namespace higanbana
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
-      auto alignment = formatSizeInfo(desiredFormat).pixelSize * 16;
+      auto alignment = formatSizeInfo(desiredFormat).pixelSize * m_limits.minTexelBufferOffsetAlignment;
       auto upload = m_dynamicUpload->allocate(dataRange.size(), alignment);
       HIGAN_ASSERT(upload, "Halp");
+      HIGAN_ASSERT(upload.block.offset % m_limits.minTexelBufferOffsetAlignment == 0, "fail, mintexelbufferoffsetalignment is %d", m_limits.minTexelBufferOffsetAlignment);
       memcpy(upload.data(), dataRange.data(), dataRange.size());
 
       auto format = formatToVkFormat(desiredFormat).view;

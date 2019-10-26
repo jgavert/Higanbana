@@ -92,7 +92,7 @@ class Renderer
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
 
-  void oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer);
+  void oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, int cubeCount);
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
 public:
@@ -100,7 +100,7 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void windowResized();
-  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances);
+  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount);
   std::optional<higanbana::SubmitTiming> timings();
 
   int loadMesh(MeshData& data);
