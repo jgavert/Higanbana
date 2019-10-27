@@ -742,8 +742,9 @@ namespace higanbana
       VulkanUploadHeap() : allocator(1, 1) {}
       VulkanUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
-                     , unsigned memorySize)
-        : allocator(memorySize)
+                     , unsigned memorySize
+                     , unsigned unaccessibleMemoryAtEnd = 0)
+        : allocator(memorySize-unaccessibleMemoryAtEnd)
         , m_device(device)
       {
         auto bufDesc = ResourceDescriptor()
@@ -825,6 +826,7 @@ namespace higanbana
       vk::Buffer m_buffer;
       vk::DeviceMemory m_memory;
       vk::Device m_device;
+      unsigned minUniformBufferAlignment;
 
       uint8_t* data = nullptr;
     public:
@@ -834,6 +836,7 @@ namespace higanbana
                      , unsigned memorySize)
         : allocator(memorySize)
         , m_device(device)
+        , minUniformBufferAlignment(physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
       {
         auto bufDesc = ResourceDescriptor()
           .setWidth(memorySize)
@@ -882,7 +885,7 @@ namespace higanbana
 
       VkUploadBlock allocate(size_t bytes)
       {
-        auto dip = allocator.allocate(bytes);
+        auto dip = allocator.allocate(bytes, minUniformBufferAlignment);
         HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
         return VkUploadBlock{ data, m_buffer,  dip.value() };
       }
@@ -895,6 +898,11 @@ namespace higanbana
       vk::Buffer buffer()
       {
         return m_buffer;
+      }
+
+      unsigned allocationAlignment() const noexcept
+      {
+        return minUniformBufferAlignment;
       }
 
       size_t size() const noexcept
@@ -1054,12 +1062,13 @@ namespace higanbana
       vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
       vector<vk::DescriptorSet> m_tempSets;
+      unsigned m_constantAlignment;
 
       VkUploadLinearAllocator m_constantsAllocator;
 
     public:
       VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators)
-        : m_list(list), m_descriptors(descriptors), m_constants(constantAllocators)
+        : m_list(list), m_descriptors(descriptors), m_constants(constantAllocators), m_constantAlignment(m_constants->allocationAlignment())
       {}
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);

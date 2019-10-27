@@ -298,7 +298,7 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 128 * 1024)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 128 * 1024, 1024)) // TODO: implement dynamically adjusted
       , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256 * 3 * 64 * 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
@@ -2148,7 +2148,7 @@ namespace higanbana
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)
     {
-      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      auto upload = m_dynamicUpload->allocate(dataRange.size(), stride);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
 
@@ -2165,7 +2165,7 @@ namespace higanbana
 
     void VulkanDevice::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned rowPitch)
     {
-      auto upload = m_dynamicUpload->allocate(dataRange.size());
+      auto upload = m_dynamicUpload->allocate(dataRange.size(), rowPitch);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
 

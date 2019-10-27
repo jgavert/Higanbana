@@ -326,7 +326,7 @@ namespace higanbana
 
     VkUploadBlock VulkanCommandBuffer::allocateConstants(size_t size)
     {
-      constexpr const size_t VulkanConstantAlignment = 256;
+      const size_t VulkanConstantAlignment = m_constantAlignment;
       auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
       if (!block)
       {
