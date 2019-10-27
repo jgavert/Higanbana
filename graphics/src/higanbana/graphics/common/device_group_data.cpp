@@ -1187,7 +1187,6 @@ namespace higanbana
           buffer.deviceID = list.device;
           buffer.started = m_seqTracker.next();
           buffer.lists.emplace_back(nativeList);
-          //buffer.cmdMemory = list.list.list;
           buffer.readbacks = std::move(list.readbacks);
 
           // patch readbacks
