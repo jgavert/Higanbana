@@ -1,42 +1,78 @@
 #pragma once
 
+#include "higanbana/core/system/bitpacking.hpp"
 #include <atomic>
 
 namespace higanbana
 {
-  template <typename T>
-  class AtomicDoubleBuffered
+  template <typename T, int ObjCount = 3>
+  class AtomicBuffered
   {
   private:
-    std::atomic<int> m_writer = 2;
-    std::atomic<int> m_reader = 0;
-    T objects[3] = {};
+    std::atomic<int> m_state = 0;
+    T objects[ObjCount] = {};
 
-  public:
-    T readValue()
+    struct State
     {
-      int readerIndex = m_reader;
-      auto val = objects[readerIndex];
-      readerIndex = (readerIndex + 1) % 3;
-      int writerIndex = m_writer;
-      if (readerIndex != writerIndex)
-      {
-        m_reader = readerIndex;
-      }
-      return val;
+      int originalValue;
+      int writer;
+      int reader;
+    };
+
+    State readState()
+    {
+      auto val = m_state.load();
+      State res{};
+      res.originalValue = val;
+      res.reader = higanbana::unpackValue<int>(val, 0, 16);
+      res.writer = higanbana::unpackValue<int>(val, 16, 16);
+      return res;
     }
 
-    void writeValue(T value)
+    bool tryWriteState(State state)
     {
-      int writeIndex = m_writer;
-      objects[writeIndex] = value;
+      int valueWithReader, valueWithWriter;
+      valueWithReader = packValue<int>(state.reader, 0, 16);
+      valueWithWriter = packValue<int>(state.writer, 16, 16);
+      int nextValue = valueWithReader | valueWithWriter;
+      return m_state.compare_exchange_strong(state.originalValue, nextValue);
+    }
 
-      writeIndex = (writeIndex + 1) % 3;
-      int readerIndex = m_reader;
-      if (readerIndex != writeIndex)
+  public:
+    T read()
+    {
+      // change read value to new one
+      // get a view of atomic and try to exchange it
+      State val = readState();
+      int oldRead = val.reader;
+      do
       {
-        m_writer = writeIndex;
-      }
+        val = readState();
+        val.reader = (val.reader +1) % ObjCount;
+        if (val.reader == val.writer || val.reader == oldRead)
+        {
+          val.reader = (val.reader +1) % ObjCount;
+        }
+      } while(!tryWriteState(val));
+
+      return objects[val.reader];
+    }
+
+    void write(T value)
+    {
+      State val = readState();
+      int oldWrite = val.writer;
+      objects[val.writer] = value;
+
+      do
+      {
+        val = readState();
+        val.writer = (val.writer +1) % ObjCount;
+        if (val.reader == val.writer || oldWrite == val.writer)
+        {
+          val.writer = (val.writer +1) % ObjCount;
+        }
+      } while(!tryWriteState(val));
     }
   };
 }

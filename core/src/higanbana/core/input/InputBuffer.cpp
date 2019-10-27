@@ -65,57 +65,50 @@ bool InputBuffer::findAndDisableThisFrame(int key, int action)
   return false;
 }
 
-void InputBuffer::goThroughNFrames(int frames, std::function<void(Input)> func)
+
+InputBuffer::OldestIndex InputBuffer::findOldestIndex(int frames)
 {
   int oldestFrame = m_inputs[m_tail].time;
   if (frames > m_frame - oldestFrame)
     frames = m_frame - oldestFrame;
   int stopAt = m_frame - frames;
 
-  int foundOldestIndex = 0;
   int indexes = 0;
   for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
   {
     indexes++;
     if (m_inputs[m_tail - i].time <= stopAt)
     {
-      foundOldestIndex = m_tail-i;
-      break;
+      return {indexes, m_tail-i};
     }
   }
+  return {0, m_tail};
+}
 
-  for (int i = 1; i < indexes; ++i)
+void InputBuffer::goThroughNFrames(int frames, std::function<void(Input)> func)
+{
+  auto oldest = findOldestIndex(frames);
+
+  for (int i = 1; i < oldest.indexes; ++i)
   {
-    func(m_inputs[foundOldestIndex+i]);
+    func(m_inputs[oldest.oldestIndex+i]);
   }
 }
 
 bool InputBuffer::isPressedWithinNFrames(int frames, int key, int action)
 {
-  int oldestFrame = m_inputs[m_tail].time;
-  if (frames > m_frame - oldestFrame)
-    frames = m_frame - oldestFrame;
-  int stopAt = m_frame - frames;
+  auto oldest = findOldestIndex(frames);
 
-  int foundOldestIndex = 0;
-  int indexes = 0;
-  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 1; i < oldest.indexes; ++i)
   {
-    indexes++;
-    if (m_inputs[m_tail - i].time <= stopAt)
-    {
-      foundOldestIndex = m_tail-i;
-      break;
-    }
-  }
-
-  for (int i = 1; i < indexes; ++i)
-  {
-    auto index = foundOldestIndex + i;
+    auto index = oldest.oldestIndex + i;
     auto val = m_inputs[index];
-    if (val.key == key && val.action == action)
+    if (val.key == key)
     {
-      return true;
+      if (val.action == action)
+      {
+        return true;
+      }
     }
   }
   return false;

@@ -2394,11 +2394,13 @@ namespace higanbana
           // TODO: is this ok to do always?
           m_device.resetFences({native->native()});
         }
-        queue.submit({info}, native->native());
+        auto res = queue.submit({info}, native->native());
+        VK_CHECK_RESULT_RAW(res);
       }
       else
       {
-        queue.submit({info}, nullptr);
+        auto res = queue.submit({info}, nullptr);
+        VK_CHECK_RESULT_RAW(res);
       }
     }
 

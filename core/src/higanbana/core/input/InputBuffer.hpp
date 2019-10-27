@@ -44,6 +44,12 @@ namespace higanbana
     }
 
   private:
+    struct OldestIndex
+    {
+      int indexes;
+      int oldestIndex;
+    };
+    OldestIndex findOldestIndex(int frames);
     RingBuffer<Input, BUFFERSIZE> m_inputs;
     int m_tail;
     int m_head;

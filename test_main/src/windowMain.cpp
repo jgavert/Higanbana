@@ -368,12 +368,12 @@ void mainWindow(ProgramParams& params)
         bool captureMouse = false;
         bool controllerConnected = false;
 
-        AtomicDoubleBuffered<InputBuffer> ainputs;
-        ainputs.writeValue(window.inputs());
-        AtomicDoubleBuffered<MouseState> amouse;
-        amouse.writeValue(window.mouse());
+        AtomicBuffered<InputBuffer> ainputs;
+        ainputs.write(window.inputs());
+        AtomicBuffered<MouseState> amouse;
+        amouse.write(window.mouse());
         std::atomic<int> inputsUpdated = 0;
-        std::atomic<int> inputsRead = 0;
+        int inputsRead = 0;
 
         lbs.addTask("logic&render loop", [&](size_t) {
           while (renderActive)
@@ -386,14 +386,15 @@ void mainWindow(ProgramParams& params)
             if (io.DeltaTime < 0.f)
               io.DeltaTime = 0.00001f;
             
-            auto lastRead = inputsRead.load();
-            auto inputs = ainputs.readValue();
+            auto lastRead = inputsRead;
+            auto inputs = ainputs.read();
             auto currentInput = inputs.frame();
-            auto diff = currentInput - lastRead;
-            if (diff > 0)
+            auto diffSinceLastInput = currentInput - lastRead;
+            auto diffWithWriter = inputsUpdated.load() - currentInput;
+            if (diffSinceLastInput > 0)
             {
-              inputsRead.store(currentInput);
-              auto mouse = amouse.readValue();
+              inputsRead = currentInput;
+              auto mouse = amouse.read();
 
 
               if (mouse.captured)
@@ -404,7 +405,7 @@ void mainWindow(ProgramParams& params)
                 io.MouseWheel = static_cast<float>(mouse.mouseWheel)*0.1f;
               }
 
-              inputs.goThroughNFrames(diff, [&](Input i)
+              inputs.goThroughNFrames(diffSinceLastInput, [&](Input i)
               {
                 if (i.key >= 0)
                 {
@@ -436,28 +437,28 @@ void mainWindow(ProgramParams& params)
               for (auto ch : window.charInputs())
                 io.AddInputCharacter(static_cast<ImWchar>(ch));
 
-              io.KeyCtrl = inputs.isPressedWithinNFrames(diff, VK_CONTROL, 2);
-              io.KeyShift = inputs.isPressedWithinNFrames(diff, VK_SHIFT, 2);
-              io.KeyAlt = inputs.isPressedWithinNFrames(diff, VK_MENU, 2);
+              io.KeyCtrl = inputs.isPressedWithinNFrames(diffSinceLastInput, VK_CONTROL, 2);
+              io.KeyShift = inputs.isPressedWithinNFrames(diffSinceLastInput, VK_SHIFT, 2);
+              io.KeyAlt = inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2);
               io.KeySuper = false;
 
-              if (inputs.isPressedWithinNFrames(diff, VK_F1, 1))
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_F1, 1))
               {
                 window.captureMouse(true);
                 captureMouse = true;
               }
-              if (inputs.isPressedWithinNFrames(diff, VK_F2, 1))
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_F2, 1))
               {
                 window.captureMouse(false);
                 captureMouse = false;
               }
 
-              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '1', 1))
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '1', 1))
               {
                 window.toggleBorderlessFullscreen();
               }
 
-              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '2', 1))
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '2', 1))
               {
                 reInit = true;
                 if (api == GraphicsApi::DX12)
@@ -467,7 +468,7 @@ void mainWindow(ProgramParams& params)
                 renderActive = false;
               }
 
-              if (inputs.isPressedWithinNFrames(diff, VK_MENU, 2) && inputs.isPressedWithinNFrames(diff, '3', 1))
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '3', 1))
               {
                 reInit = true;
                 if (preferredVendor == VendorID::Amd)
@@ -477,7 +478,7 @@ void mainWindow(ProgramParams& params)
                 renderActive = false;
               }
 
-              if (frame > 10 && (closeAnyway || inputs.isPressedWithinNFrames(diff, VK_ESCAPE, 1)))
+              if (frame > 10 && (closeAnyway || inputs.isPressedWithinNFrames(diffSinceLastInput, VK_ESCAPE, 1)))
               {
                 renderActive = false;
               }
@@ -489,7 +490,7 @@ void mainWindow(ProgramParams& params)
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
             ImGui::Begin("main");
-            ImGui::Text("Missed %zd frames of inputs. current: %zd read %d", diff, currentInput, lastRead);
+            ImGui::Text("%zd frames since last inputs. %zd diff to Writer, current: %zd read %d", diffSinceLastInput, diffWithWriter, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
@@ -686,8 +687,8 @@ void mainWindow(ProgramParams& params)
           }
 
           auto inputs = window.inputs();
-          ainputs.writeValue(inputs);
-          amouse.writeValue(window.mouse());
+          ainputs.write(inputs);
+          amouse.write(window.mouse());
           inputsUpdated = inputs.frame();
           if (!renderActive)
             break;
