@@ -268,7 +268,7 @@ void mainWindow(ProgramParams& params)
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 4;
+    int cubeCount = 27;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -524,6 +524,7 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("GPU execution %.3fms", gpuTotal);
               ImGui::Text("CPU execution %.3fms", cpuTotal);
               ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
+              ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());
               ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());
               ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
               ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());

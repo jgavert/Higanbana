@@ -1022,7 +1022,7 @@ namespace higanbana
       timing.listsCount = 0;
       timing.timeBeforeSubmit.stop();
       timing.submitCpuTime.start();
-      timing.graphSolve.start();
+      timing.addNodes.start();
       auto& nodes = *graph.m_nodes;
 
       if (!nodes.empty())
@@ -1049,7 +1049,7 @@ namespace higanbana
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
-            if (nodes[i].type != plist.type)// || nodes[i].list.list.sizeBytes() > 1024)
+            if (nodes[i].type != plist.type) // || nodes[i].list->list.sizeBytes() > 1024)
               break;
             plist.list.list.append(nodes[i].list->list);
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
@@ -1070,6 +1070,9 @@ namespace higanbana
         }
         int lsize = lists.size();
         lists[lsize - 1].isLastList = true;
+        timing.addNodes.stop();
+        timing.graphSolve.start();
+
 
         auto firstUsageSeen = checkQueueDependencies(lists);
 
@@ -1184,14 +1187,14 @@ namespace higanbana
           buffer.deviceID = list.device;
           buffer.started = m_seqTracker.next();
           buffer.lists.emplace_back(nativeList);
-          buffer.cmdMemory = list.list.list;
+          //buffer.cmdMemory = list.list.list;
           buffer.readbacks = std::move(list.readbacks);
 
           // patch readbacks
-          generateReadbackCommands(vdev, buffer.cmdMemory, list.type, buffer.readbacks);
+          generateReadbackCommands(vdev, list.list.list, list.type, buffer.readbacks);
 
           // barriers&commands
-          fillCommandBuffer(nativeList, vdev, buffer.cmdMemory, list.type, list.acquire, list.release, buffer.listTiming);
+          fillCommandBuffer(nativeList, vdev, list.list.list, list.type, list.acquire, list.release, buffer.listTiming);
 
           buffer.listTiming.cpuBackendTime.stop();
           readyLists.emplace_back(std::move(buffer));

@@ -44,6 +44,7 @@ namespace higanbana
     Timestamp timeBeforeSubmit;
     Timestamp submitCpuTime;
     Timestamp fillCommandLists;
+    Timestamp addNodes;
     Timestamp graphSolve;
     Timestamp submitSolve;
     vector<CommandListTiming> lists;

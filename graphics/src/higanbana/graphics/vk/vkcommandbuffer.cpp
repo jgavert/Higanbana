@@ -350,8 +350,6 @@ namespace higanbana
       auto layout = device->allResources().pipelines[pipeline].m_pipelineLayout;
       auto set = device->allResources().pipelines[pipeline].m_staticSet;
 
-      vector<vk::WriteDescriptorSet> writeDescriptors;
-
       auto pconstants = packet.constants.convertToMemView();
       auto block = allocateConstants(pconstants.size());
       HIGAN_ASSERT(block.block.size <= 1024, "Constants larger than 1024bytes not supported...");
@@ -362,11 +360,10 @@ namespace higanbana
       {
         bindpoint = vk::PipelineBindPoint::eCompute;
       }
-      if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing)
+      else if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing)
       {
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
-      //vk::ArrayProxy<const vk::DescriptorSet> sets(1, &set);
       m_tempSets.clear();
       for (auto&& shaderArguments : packet.resources.convertToMemView())
       {

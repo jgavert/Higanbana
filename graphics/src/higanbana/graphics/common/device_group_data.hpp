@@ -80,7 +80,7 @@ namespace higanbana
       int deviceID;
       QueueType queue;
       SeqNum started;
-      CommandBuffer cmdMemory; // for debug markers on DX12 for now.
+      //CommandBuffer cmdMemory; // for debug markers on DX12 for now.
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
