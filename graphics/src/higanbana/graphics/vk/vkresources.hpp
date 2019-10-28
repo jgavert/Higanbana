@@ -1072,12 +1072,12 @@ namespace higanbana
       {}
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);
-      void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, backend::CommandBuffer& list, BarrierSolver& solver);
+      void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
-      void preprocess(VulkanDevice* device, backend::CommandBuffer& list);
+      void preprocess(VulkanDevice* device, MemView<backend::CommandBuffer>& list);
       VkUploadBlock allocateConstants(size_t size);
     public:
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver) override;
       void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       vk::CommandBuffer list()

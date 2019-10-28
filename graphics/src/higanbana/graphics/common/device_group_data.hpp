@@ -101,7 +101,7 @@ namespace higanbana
     {
       int device = 0;
       QueueType type;
-      CommandList list;
+      vector<backend::CommandBuffer> buffers;
       vector<QueueTransfer> acquire;
       vector<QueueTransfer> release;
       DynamicBitfield requirementsBuf;
@@ -215,8 +215,8 @@ namespace higanbana
       void present(Swapchain& swapchain);
 
       // test
-      void generateReadbackCommands(VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<ReadbackPromise>& readbacks);
-      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, CommandBuffer& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing);
+      void generateReadbackCommands(VirtualDevice& vdev, MemView<CommandBuffer>& buffers, QueueType queue, vector<ReadbackPromise>& readbacks);
+      void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing);
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
   }

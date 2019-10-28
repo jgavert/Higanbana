@@ -105,17 +105,6 @@ namespace higanbana
         return &m_data.at(current);
       }
 
-      /*
-      uint8_t* allocate(size_t size)
-      {
-        auto current = m_usedSize;
-        m_usedSize += size;
-        if (m_usedSize > m_totalSize)
-          return nullptr;
-        //printf("allocated %zu size %zu\n", current, size);
-        return &m_data[current];
-      }*/
-
       void beginNewPacket(PacketType type)
       {
         // patch current EOP to be actual packet header.
@@ -213,6 +202,7 @@ namespace higanbana
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
       }
 
+  /*
       CommandBuffer(const CommandBuffer& other)
         : m_data(other.m_data)
         , m_totalSize(other.m_totalSize)
@@ -222,6 +212,7 @@ namespace higanbana
       {
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
       }
+      */
 
       CommandBuffer(CommandBuffer&& other)
         : m_data(std::move(other.m_data))
@@ -238,7 +229,8 @@ namespace higanbana
         other.m_packets = 0;
       }
 
-      CommandBuffer& operator=(const CommandBuffer& other)
+      /*
+      CommandBuffer& operator=(const CommandBuffer& other) noexcept
       {
         m_data = other.m_data;
         m_totalSize = other.m_totalSize;
@@ -247,9 +239,9 @@ namespace higanbana
         m_packets = other.m_packets;
         HIGAN_ASSERT(packetBeingCreated()->type == PacketType::EndOfPackets, "sanity check");
         return *this;
-      }
+      }*/
 
-      CommandBuffer& operator=(CommandBuffer&& other)
+      CommandBuffer& operator=(CommandBuffer&& other) noexcept
       {
         m_data = std::move(other.m_data);
         m_totalSize = std::move(other.m_totalSize);

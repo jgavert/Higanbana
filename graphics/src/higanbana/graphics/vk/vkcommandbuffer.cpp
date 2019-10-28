@@ -579,7 +579,7 @@ namespace higanbana
       }
     }
 
-    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, CommandBuffer& list, BarrierSolver& solver)
+    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<CommandBuffer>& buffers, BarrierSolver& solver)
     {
       int drawIndex = 0;
       int framebuffer = 0;
@@ -589,184 +589,187 @@ namespace higanbana
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
       auto barrierInfosSize = barrierInfos.size();
-      for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
+      for (auto&& list : buffers)
       {
-        auto* header = *iter;
-        //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
-        if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
-          addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
-          barrierInfoIndex++;
-        }
-        switch (header->type)
-        {
-          //        case CommandPacket::PacketType::BufferCopy:
-          //        case CommandPacket::PacketType::Dispatch:
-        case PacketType::RenderBlock:
-        {
-          if (device->dispatcher().vkCmdBeginDebugUtilsLabelEXT)
+          auto* header = *iter;
+          //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
+          if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
           {
-            gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
-            auto view = packet.name.convertToMemView();
-            currentBlock = std::string(view.data());
-            if (beganLabel)
+            addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
+            barrierInfoIndex++;
+          }
+          switch (header->type)
+          {
+            //        case CommandPacket::PacketType::BufferCopy:
+            //        case CommandPacket::PacketType::Dispatch:
+          case PacketType::RenderBlock:
+          {
+            if (device->dispatcher().vkCmdBeginDebugUtilsLabelEXT)
             {
-              buffer.endDebugUtilsLabelEXT(device->dispatcher());
+              gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
+              auto view = packet.name.convertToMemView();
+              currentBlock = std::string(view.data());
+              if (beganLabel)
+              {
+                buffer.endDebugUtilsLabelEXT(device->dispatcher());
+              }
+              else
+              {
+                beganLabel = true;
+              }
+              vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
+              buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+            }
+            break;
+          }
+          case PacketType::PrepareForPresent:
+          {
+            break;
+          }
+          case PacketType::RenderpassBegin:
+          {
+            handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+            framebuffer++;
+            break;
+          }
+          case PacketType::ScissorRect:
+          {
+            gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
+            auto extent = math::sub(packet.bottomright, packet.topleft);
+            auto scissorRect = vk::Rect2D(vk::Offset2D(packet.topleft.x, packet.topleft.y), vk::Extent2D(extent.x, extent.y));
+            buffer.setScissor(0, {scissorRect});
+            break;
+          }
+          case PacketType::GraphicsPipelineBind:
+          {
+            gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
+            if (boundPipeline.id != packet.pipeline.id) {
+              buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
+              boundPipeline = packet.pipeline;
+            }
+            break;
+          }
+          case PacketType::ComputePipelineBind:
+          {
+            gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
+            if (boundPipeline.id != packet.pipeline.id) {
+              buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
+              boundPipeline = packet.pipeline;
+            }
+
+            break;
+          }
+          case PacketType::ResourceBinding:
+          {
+            gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
+            handleBinding(device, buffer, packet, boundPipeline);
+            break;
+          }
+          case PacketType::Draw:
+          {
+            auto params = header->data<gfxpacket::Draw>();
+            buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+            break;
+          }
+          case PacketType::DrawIndexed:
+          {
+            auto params = header->data<gfxpacket::DrawIndexed>();
+            if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+            {
+              auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+              buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType);
             }
             else
             {
-              beganLabel = true;
+              auto& ibv = device->allResources().dynBuf[params.indexbuffer];
+              buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index);
             }
-            vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
-            buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+            buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
+            break;
           }
-          break;
-        }
-        case PacketType::PrepareForPresent:
-        {
-          break;
-        }
-        case PacketType::RenderpassBegin:
-        {
-          handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
-          framebuffer++;
-          break;
-        }
-        case PacketType::ScissorRect:
-        {
-          gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
-          auto extent = math::sub(packet.bottomright, packet.topleft);
-          auto scissorRect = vk::Rect2D(vk::Offset2D(packet.topleft.x, packet.topleft.y), vk::Extent2D(extent.x, extent.y));
-          buffer.setScissor(0, {scissorRect});
-          break;
-        }
-        case PacketType::GraphicsPipelineBind:
-        {
-          gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
-          if (boundPipeline.id != packet.pipeline.id) {
-            buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
-            boundPipeline = packet.pipeline;
-          }
-          break;
-        }
-        case PacketType::ComputePipelineBind:
-        {
-          gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
-          if (boundPipeline.id != packet.pipeline.id) {
-            buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
-            boundPipeline = packet.pipeline;
-          }
-
-          break;
-        }
-        case PacketType::ResourceBinding:
-        {
-          gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
-          handleBinding(device, buffer, packet, boundPipeline);
-          break;
-        }
-        case PacketType::Draw:
-        {
-          auto params = header->data<gfxpacket::Draw>();
-          buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
-          break;
-        }
-        case PacketType::DrawIndexed:
-        {
-          auto params = header->data<gfxpacket::DrawIndexed>();
-          if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+          case PacketType::Dispatch:
           {
-            auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-            buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType);
+            auto params = header->data<gfxpacket::Dispatch>();
+            buffer.dispatch(params.groups.x, params.groups.y, params.groups.z);
+            break;
           }
-          else
+          case PacketType::BufferCopy:
           {
-            auto& ibv = device->allResources().dynBuf[params.indexbuffer];
-            buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index);
+            auto params = header->data<gfxpacket::BufferCopy>();
+            auto dst = device->allResources().buf[params.dst].native();
+            auto src = device->allResources().buf[params.src].native();
+
+            vk::BufferCopy info = vk::BufferCopy()
+              .setSrcOffset(params.srcOffset)
+              .setDstOffset(params.dstOffset)
+              .setSize(params.numBytes);
+
+            buffer.copyBuffer(src, dst, {info});
+            break;
           }
-          buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
-          break;
-        }
-        case PacketType::Dispatch:
-        {
-          auto params = header->data<gfxpacket::Dispatch>();
-          buffer.dispatch(params.groups.x, params.groups.y, params.groups.z);
-          break;
-        }
-        case PacketType::BufferCopy:
-        {
-          auto params = header->data<gfxpacket::BufferCopy>();
-          auto dst = device->allResources().buf[params.dst].native();
-          auto src = device->allResources().buf[params.src].native();
+          case PacketType::UpdateTexture:
+          {
+            auto params = header->data<gfxpacket::UpdateTexture>();
+            auto texture = device->allResources().tex[params.tex];
+            auto dynamic = device->allResources().dynBuf[params.dynamic].native();
 
-          vk::BufferCopy info = vk::BufferCopy()
-            .setSrcOffset(params.srcOffset)
-            .setDstOffset(params.dstOffset)
-            .setSize(params.numBytes);
+            auto rows = dynamic.block.size() / dynamic.rowPitch;
 
-          buffer.copyBuffer(src, dst, {info});
-          break;
+            vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
+              .setMipLevel(params.mip)
+              .setLayerCount(params.slice)
+              .setLayerCount(1)
+              .setAspectMask(texture.aspectFlags());
+
+            vk::BufferImageCopy info = vk::BufferImageCopy()
+              .setBufferOffset(dynamic.block.block.offset)
+              .setBufferRowLength(dynamic.rowPitch)
+              .setBufferImageHeight(params.height)
+              .setImageOffset(vk::Offset3D(0, 0, 0))
+              .setImageExtent(vk::Extent3D(params.width, params.height, 1))
+              .setImageSubresource(layers);
+
+            buffer.copyBufferToImage(dynamic.buffer, texture.native(), vk::ImageLayout::eTransferDstOptimal, {info});
+            break;
+          }
+          case PacketType::RenderpassEnd:
+          {
+            buffer.endRenderPass();
+            break;
+          }
+          case PacketType::DynamicBufferCopy:
+          {
+            auto params = header->data<gfxpacket::DynamicBufferCopy>();
+            auto dst = device->allResources().buf[params.dst].native();
+            auto& src = device->allResources().dynBuf[params.src];
+
+            vk::BufferCopy info = vk::BufferCopy()
+              .setSrcOffset(src.indexOffset())
+              .setDstOffset(params.dstOffset)
+              .setSize(params.numBytes);
+
+            buffer.copyBuffer(src.native().buffer, dst, info);
+            break;
+          }
+          case PacketType::ReadbackBuffer:
+          {
+            auto params = header->data<gfxpacket::ReadbackBuffer>();
+            auto src = device->allResources().buf[params.src];
+            auto dst = device->allResources().rbBuf[params.dst];
+            vk::BufferCopy region = vk::BufferCopy()
+              .setSrcOffset(params.srcOffset)
+              .setDstOffset(dst.offset())
+              .setSize(params.numBytes);
+            buffer.copyBuffer(src.native(), dst.native(), region);
+            break;
+          }
+          default:
+            break;
+          }
+          drawIndex++;
         }
-        case PacketType::UpdateTexture:
-        {
-          auto params = header->data<gfxpacket::UpdateTexture>();
-          auto texture = device->allResources().tex[params.tex];
-          auto dynamic = device->allResources().dynBuf[params.dynamic].native();
-
-          auto rows = dynamic.block.size() / dynamic.rowPitch;
-
-          vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
-            .setMipLevel(params.mip)
-            .setLayerCount(params.slice)
-            .setLayerCount(1)
-            .setAspectMask(texture.aspectFlags());
-
-          vk::BufferImageCopy info = vk::BufferImageCopy()
-            .setBufferOffset(dynamic.block.block.offset)
-            .setBufferRowLength(dynamic.rowPitch)
-            .setBufferImageHeight(params.height)
-            .setImageOffset(vk::Offset3D(0, 0, 0))
-            .setImageExtent(vk::Extent3D(params.width, params.height, 1))
-            .setImageSubresource(layers);
-
-          buffer.copyBufferToImage(dynamic.buffer, texture.native(), vk::ImageLayout::eTransferDstOptimal, {info});
-          break;
-        }
-        case PacketType::RenderpassEnd:
-        {
-          buffer.endRenderPass();
-          break;
-        }
-        case PacketType::DynamicBufferCopy:
-        {
-          auto params = header->data<gfxpacket::DynamicBufferCopy>();
-          auto dst = device->allResources().buf[params.dst].native();
-          auto& src = device->allResources().dynBuf[params.src];
-
-          vk::BufferCopy info = vk::BufferCopy()
-            .setSrcOffset(src.indexOffset())
-            .setDstOffset(params.dstOffset)
-            .setSize(params.numBytes);
-
-          buffer.copyBuffer(src.native().buffer, dst, info);
-          break;
-        }
-        case PacketType::ReadbackBuffer:
-        {
-          auto params = header->data<gfxpacket::ReadbackBuffer>();
-          auto src = device->allResources().buf[params.src];
-          auto dst = device->allResources().rbBuf[params.dst];
-          vk::BufferCopy region = vk::BufferCopy()
-            .setSrcOffset(params.srcOffset)
-            .setDstOffset(dst.offset())
-            .setSize(params.numBytes);
-          buffer.copyBuffer(src.native(), dst.native(), region);
-          break;
-        }
-        default:
-          break;
-        }
-        drawIndex++;
       }
       if (beganLabel)
       {
@@ -774,66 +777,69 @@ namespace higanbana
       }
     }
 
-    void VulkanCommandBuffer::preprocess(VulkanDevice* device, backend::CommandBuffer& list)
+    void VulkanCommandBuffer::preprocess(VulkanDevice* device, MemView<backend::CommandBuffer>& buffers)
     {
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       // find all renderpasses & compile all missing graphics pipelines
-      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
+      for (auto&& list : buffers)
       {
-        switch ((*iter)->type)
+        for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
         {
-          case PacketType::RenderpassBegin:
+          switch ((*iter)->type)
           {
-            rpbegin = (*iter);
-            gfxpacket::RenderPassBegin& packet = (*iter)->data<gfxpacket::RenderPassBegin>();
-            handleRenderpass(device, packet);
-            break;
-          }
-          case PacketType::GraphicsPipelineBind:
-          {
-            gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
-            auto oldPipe = device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
-            if (oldPipe)
+            case PacketType::RenderpassBegin:
             {
-              m_oldPipelines.push_back(oldPipe.value());
+              rpbegin = (*iter);
+              gfxpacket::RenderPassBegin& packet = (*iter)->data<gfxpacket::RenderPassBegin>();
+              handleRenderpass(device, packet);
+              break;
             }
-            break;
-          }
-          case PacketType::ComputePipelineBind:
-          {
-            gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
-            auto oldPipe = device->updatePipeline(packet.pipeline);
-            if (oldPipe)
+            case PacketType::GraphicsPipelineBind:
             {
-              m_oldPipelines.push_back(oldPipe.value());
+              gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
+              auto oldPipe = device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+              if (oldPipe)
+              {
+                m_oldPipelines.push_back(oldPipe.value());
+              }
+              break;
             }
+            case PacketType::ComputePipelineBind:
+            {
+              gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
+              auto oldPipe = device->updatePipeline(packet.pipeline);
+              if (oldPipe)
+              {
+                m_oldPipelines.push_back(oldPipe.value());
+              }
+              break;
+            }
+            case PacketType::RenderpassEnd:
+            {
+              rpbegin = nullptr;
+              break;
+            }
+            default:
             break;
           }
-          case PacketType::RenderpassEnd:
-          {
-            rpbegin = nullptr;
-            break;
-          }
-          default:
-          break;
         }
       }
     }
 
     // implementations
-    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& list, BarrierSolver& solver)
+    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 
       // preprocess to compile renderpasses/pipelines
-      preprocess(nat.get(), list);
+      preprocess(nat.get(), buffers);
       
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr));
 
       // add commands to list while also adding barriers
-      addCommands(nat.get(), m_list->list(), list, solver);
+      addCommands(nat.get(), m_list->list(), buffers, solver);
 
       m_list->list().end();
     }

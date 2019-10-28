@@ -945,7 +945,7 @@ namespace higanbana
 #endif
       }
     }
-    void DX12CommandList::addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, backend::CommandBuffer& list, BarrierSolver& solver)
+    void DX12CommandList::addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
       int drawIndex = 0;
       int framebuffer = 0;
@@ -966,164 +966,167 @@ namespace higanbana
         buffer->SetDescriptorHeaps(1, heaps);
       }
 
-      for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
+      for (auto&& list : buffers)
       {
-        auto* header = *iter;
-        //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
-        if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
+        for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
-          addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
-          barrierInfoIndex++;
-        }
-        switch (header->type)
-        {
-        case PacketType::RenderBlock:
-        {
-          auto block = header->data<gfxpacket::RenderBlock>().name.convertToMemView();
-          currentBlock = std::string(block.data());
-          if (pixevent)
+          auto* header = *iter;
+          //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
+          if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
           {
-            PIXEndEvent(buffer);
-            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.endIndex);
-            queries.emplace_back(timestamp);
+            addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
+            barrierInfoIndex++;
           }
-          PIXBeginEvent(buffer, PIX_COLOR_INDEX(drawIndex), block.data());
-          pixevent = true;
-          
-          timestamp = m_queryheap->allocate();
-          buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.beginIndex);
-          break;
-        }
-        case PacketType::PrepareForPresent:
-        {
-          break;
-        }
-        case PacketType::RenderpassBegin:
-        {
-          handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
-          framebuffer++;
-          break;
-        }
-        case PacketType::ScissorRect:
-        {
-          gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
-          D3D12_RECT rect{};
-          rect.bottom = packet.bottomright.y;
-          rect.right = packet.bottomright.x;
-          rect.top = packet.topleft.y;
-          rect.left = packet.topleft.x;
-          buffer->RSSetScissorRects(1, &rect);
-          break;
-        }
-        case PacketType::GraphicsPipelineBind:
-        {
-          gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
-          if (boundPipeline.id != packet.pipeline.id) {
-            auto& pipe = device->allResources().pipelines[packet.pipeline];
-            buffer->SetGraphicsRootSignature(pipe.root.Get());
-            buffer->SetPipelineState(pipe.pipeline.Get());
-            buffer->IASetPrimitiveTopology(pipe.primitive);
-            boundPipeline = packet.pipeline;
-          }
-          break;
-        }
-        case PacketType::ComputePipelineBind:
-        {
-          gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
-          if (boundPipeline.id != packet.pipeline.id) {
-            auto& pipe = device->allResources().pipelines[packet.pipeline];
-            buffer->SetComputeRootSignature(pipe.root.Get());
-            buffer->SetPipelineState(pipe.pipeline.Get());
-            boundPipeline = packet.pipeline;
-          }
-          break;
-        }
-        case PacketType::ResourceBinding:
-        {
-          gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
-          handleBindings(device, buffer, packet);
-          break;
-        }
-        case PacketType::Draw:
-        {
-          auto params = header->data<gfxpacket::Draw>();
-          buffer->DrawInstanced(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
-          break;
-        }
-        case PacketType::DrawIndexed:
-        {
-          auto params = header->data<gfxpacket::DrawIndexed>();
-          D3D12_INDEX_BUFFER_VIEW ib{};
-          if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+          switch (header->type)
           {
-            auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-            auto& buf = device->allResources().buf[params.indexbuffer.resource];
-            ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
-            ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-            ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
-          }
-          else
+          case PacketType::RenderBlock:
           {
-            auto& ibv = device->allResources().dynSRV[params.indexbuffer];
-            ib = ibv.indexBufferView();
+            auto block = header->data<gfxpacket::RenderBlock>().name.convertToMemView();
+            currentBlock = std::string(block.data());
+            if (pixevent)
+            {
+              PIXEndEvent(buffer);
+              buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.endIndex);
+              queries.emplace_back(timestamp);
+            }
+            PIXBeginEvent(buffer, PIX_COLOR_INDEX(drawIndex), block.data());
+            pixevent = true;
+            
+            timestamp = m_queryheap->allocate();
+            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.beginIndex);
+            break;
           }
-          buffer->IASetIndexBuffer(&ib);
+          case PacketType::PrepareForPresent:
+          {
+            break;
+          }
+          case PacketType::RenderpassBegin:
+          {
+            handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
+            framebuffer++;
+            break;
+          }
+          case PacketType::ScissorRect:
+          {
+            gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
+            D3D12_RECT rect{};
+            rect.bottom = packet.bottomright.y;
+            rect.right = packet.bottomright.x;
+            rect.top = packet.topleft.y;
+            rect.left = packet.topleft.x;
+            buffer->RSSetScissorRects(1, &rect);
+            break;
+          }
+          case PacketType::GraphicsPipelineBind:
+          {
+            gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
+            if (boundPipeline.id != packet.pipeline.id) {
+              auto& pipe = device->allResources().pipelines[packet.pipeline];
+              buffer->SetGraphicsRootSignature(pipe.root.Get());
+              buffer->SetPipelineState(pipe.pipeline.Get());
+              buffer->IASetPrimitiveTopology(pipe.primitive);
+              boundPipeline = packet.pipeline;
+            }
+            break;
+          }
+          case PacketType::ComputePipelineBind:
+          {
+            gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
+            if (boundPipeline.id != packet.pipeline.id) {
+              auto& pipe = device->allResources().pipelines[packet.pipeline];
+              buffer->SetComputeRootSignature(pipe.root.Get());
+              buffer->SetPipelineState(pipe.pipeline.Get());
+              boundPipeline = packet.pipeline;
+            }
+            break;
+          }
+          case PacketType::ResourceBinding:
+          {
+            gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
+            handleBindings(device, buffer, packet);
+            break;
+          }
+          case PacketType::Draw:
+          {
+            auto params = header->data<gfxpacket::Draw>();
+            buffer->DrawInstanced(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+            break;
+          }
+          case PacketType::DrawIndexed:
+          {
+            auto params = header->data<gfxpacket::DrawIndexed>();
+            D3D12_INDEX_BUFFER_VIEW ib{};
+            if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+            {
+              auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+              auto& buf = device->allResources().buf[params.indexbuffer.resource];
+              ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
+              ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+              ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+            }
+            else
+            {
+              auto& ibv = device->allResources().dynSRV[params.indexbuffer];
+              ib = ibv.indexBufferView();
+            }
+            buffer->IASetIndexBuffer(&ib);
 
-          buffer->DrawIndexedInstanced(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
-          break;
-        }
-        case PacketType::Dispatch:
-        {
-          auto params = header->data<gfxpacket::Dispatch>();
-          buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
-          break;
-        }
-        case PacketType::DynamicBufferCopy:
-        {
-          auto params = header->data<gfxpacket::DynamicBufferCopy>();
-          auto dst = device->allResources().buf[params.dst].native();
-          auto src = device->allResources().dynSRV[params.src];
-          auto srcOffset = src.offset();
-          buffer->CopyBufferRegion(dst, params.dstOffset, src.nativePtr(), srcOffset, params.numBytes);
-          break;
-        }
-        case PacketType::BufferCopy:
-        {
-          auto params = header->data<gfxpacket::BufferCopy>();
-          auto dst = device->allResources().buf[params.dst].native();
-          auto src = device->allResources().buf[params.src].native();
-          buffer->CopyBufferRegion(dst, params.dstOffset, src, params.srcOffset, params.numBytes);
-          break;
-        }
-        case PacketType::UpdateTexture:
-        {
-          auto params = header->data<gfxpacket::UpdateTexture>();
-          auto texture = device->allResources().tex[params.tex];
-          auto dynamic = device->allResources().dynSRV[params.dynamic];
+            buffer->DrawIndexedInstanced(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
+            break;
+          }
+          case PacketType::Dispatch:
+          {
+            auto params = header->data<gfxpacket::Dispatch>();
+            buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
+            break;
+          }
+          case PacketType::DynamicBufferCopy:
+          {
+            auto params = header->data<gfxpacket::DynamicBufferCopy>();
+            auto dst = device->allResources().buf[params.dst].native();
+            auto src = device->allResources().dynSRV[params.src];
+            auto srcOffset = src.offset();
+            buffer->CopyBufferRegion(dst, params.dstOffset, src.nativePtr(), srcOffset, params.numBytes);
+            break;
+          }
+          case PacketType::BufferCopy:
+          {
+            auto params = header->data<gfxpacket::BufferCopy>();
+            auto dst = device->allResources().buf[params.dst].native();
+            auto src = device->allResources().buf[params.src].native();
+            buffer->CopyBufferRegion(dst, params.dstOffset, src, params.srcOffset, params.numBytes);
+            break;
+          }
+          case PacketType::UpdateTexture:
+          {
+            auto params = header->data<gfxpacket::UpdateTexture>();
+            auto texture = device->allResources().tex[params.tex];
+            auto dynamic = device->allResources().dynSRV[params.dynamic];
 
-          D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.allMips, params.mip, params.slice);
-          D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
-          buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
-          break;
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.allMips, params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
+            buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            break;
+          }
+          case PacketType::RenderpassEnd:
+          {
+            buffer->EndRenderPass();
+            break;
+          }
+          case PacketType::ReadbackBuffer:
+          {
+            // TODO: dst offset for not buffers
+            auto params = header->data<gfxpacket::ReadbackBuffer>();
+            auto& dst = device->allResources().rbbuf[params.dst];
+            auto src = device->allResources().buf[params.src].native();
+            buffer->CopyBufferRegion(dst.native(), dst.offset(), src, params.srcOffset, params.numBytes);
+            break;
+          }
+          default:
+            break;
+          }
+          drawIndex++;
         }
-        case PacketType::RenderpassEnd:
-        {
-          buffer->EndRenderPass();
-          break;
-        }
-        case PacketType::ReadbackBuffer:
-        {
-          // TODO: dst offset for not buffers
-          auto params = header->data<gfxpacket::ReadbackBuffer>();
-          auto& dst = device->allResources().rbbuf[params.dst];
-          auto src = device->allResources().buf[params.src].native();
-          buffer->CopyBufferRegion(dst.native(), dst.offset(), src, params.srcOffset, params.numBytes);
-          break;
-        }
-        default:
-          break;
-        }
-        drawIndex++;
       }
       if (pixevent)
       {
@@ -1136,50 +1139,53 @@ namespace higanbana
       }
     }
 
-    void DX12CommandList::processRenderpasses(DX12Device* dev, backend::CommandBuffer& list)
+    void DX12CommandList::processRenderpasses(DX12Device* dev, MemView<backend::CommandBuffer>& buffers)
     {
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       // find all renderpasses & compile all missing graphics pipelines
-      for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
+      for (auto&& list : buffers)
       {
-        switch ((*iter)->type)
+        for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
         {
-          case PacketType::RenderpassBegin:
+          switch ((*iter)->type)
           {
-            rpbegin = (*iter);
-            break;
-          }
-          case PacketType::ComputePipelineBind:
-          {
-            gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
-            auto oldPipe = dev->updatePipeline(packet.pipeline);
-            if (oldPipe)
+            case PacketType::RenderpassBegin:
             {
-              m_freeResources->pipelines.push_back(oldPipe.value());
+              rpbegin = (*iter);
+              break;
             }
-            break;
-          }
-          case PacketType::GraphicsPipelineBind:
-          {
-            gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
-            auto oldPipe = dev->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
-            if (oldPipe)
+            case PacketType::ComputePipelineBind:
             {
-              m_freeResources->pipelines.push_back(oldPipe.value());
+              gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
+              auto oldPipe = dev->updatePipeline(packet.pipeline);
+              if (oldPipe)
+              {
+                m_freeResources->pipelines.push_back(oldPipe.value());
+              }
+              break;
             }
-            break;
+            case PacketType::GraphicsPipelineBind:
+            {
+              gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
+              auto oldPipe = dev->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+              if (oldPipe)
+              {
+                m_freeResources->pipelines.push_back(oldPipe.value());
+              }
+              break;
+            }
+            default:
+              break;
           }
-          default:
-            break;
         }
       }
     }
     // implementations
-    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, backend::CommandBuffer& buffer, BarrierSolver& solver)
+    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
       DX12Device* dev = static_cast<DX12Device*>(device.get());
-      processRenderpasses(dev, buffer);
-      addCommands(dev, m_buffer->list(), buffer, solver);
+      processRenderpasses(dev, buffers);
+      addCommands(dev, m_buffer->list(), buffers, solver);
       m_buffer->closeList();
     }
 

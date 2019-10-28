@@ -28,9 +28,9 @@ namespace higanbana
       UploadBlock allocateConstants(size_t size);
       DynamicDescriptorBlock allocateDescriptors(size_t size);
       void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
-      void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
-      void addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, backend::CommandBuffer& list, BarrierSolver& solver);
-      void processRenderpasses(DX12Device* dev, backend::CommandBuffer& list);
+      //void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
+      void addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver);
+      void processRenderpasses(DX12Device* dev, MemView<backend::CommandBuffer>& buffers);
 
     public:
       DX12CommandList(
@@ -43,7 +43,7 @@ namespace higanbana
         DX12CPUDescriptor nullBufferUAV,
         DX12CPUDescriptor nullBufferSRV);
 
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, backend::CommandBuffer&, BarrierSolver& solver) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver) override;
       void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       bool closed() const
