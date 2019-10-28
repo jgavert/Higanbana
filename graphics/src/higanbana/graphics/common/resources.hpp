@@ -172,7 +172,6 @@ namespace higanbana
 
       struct HeapVector
       {
-        int alignment;
         int64_t type;
         vector<HeapBlock> heaps;
       };

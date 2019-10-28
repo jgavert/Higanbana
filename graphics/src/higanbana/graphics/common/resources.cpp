@@ -52,8 +52,7 @@ namespace higanbana
 
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
-        return vec.alignment == static_cast<int>(requirements.alignment)
-          && vec.type == requirements.heapType;
+        return vec.type == requirements.heapType;
       });
       if (vectorPtr != m_heaps.end()) // found alignment
       {
@@ -84,7 +83,7 @@ namespace higanbana
           return HeapAllocation{ alloc, heap };
         }
       }
-      HeapVector vec{ static_cast<int>(requirements.alignment), requirements.heapType, vector<HeapBlock>() };
+      HeapVector vec{ requirements.heapType, vector<HeapBlock>() };
       auto newHeap = createHeapBlock(m_heapIndex++, requirements);
       alloc.block = newHeap.allocator.allocate(requirements.bytes).value();
       m_memoryAllocated += alloc.block.size;
@@ -100,8 +99,7 @@ namespace higanbana
       HIGAN_ASSERT(object.valid(), "invalid object was released");
       auto vectorPtr = std::find_if(m_heaps.begin(), m_heaps.end(), [&](HeapVector& vec)
       {
-        return vec.alignment == object.alignment
-          && vec.type == object.heapType;
+        return vec.type == object.heapType;
       });
       if (vectorPtr != m_heaps.end())
       {

@@ -39,6 +39,22 @@ namespace higanbana
         DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
         //m_debug->EnableLeakTrackingForThread();
       }
+      // figure out our device restrictions
+      D3D12_FEATURE_DATA_ARCHITECTURE1 archi = {};
+      if (SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &archi, sizeof(archi))))
+      {
+        info.type = archi.UMA ? DeviceType::IntegratedGpu : DeviceType::DiscreteGpu;
+      }
+
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS,  &m_features.opt0, sizeof(m_features.opt0));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &m_features.opt1, sizeof(m_features.opt1));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &m_features.opt2, sizeof(m_features.opt2));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &m_features.opt3, sizeof(m_features.opt3));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &m_features.opt4, sizeof(m_features.opt4));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &m_features.opt5, sizeof(m_features.opt5));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &m_features.opt6, sizeof(m_features.opt6));
+
+
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
       desc.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -748,7 +764,14 @@ namespace higanbana
       else if (desc.desc.usage == ResourceUsage::Readback)
         type = HeapType::Readback;
 
-      reqs.heapType = packInt64(static_cast<int32_t>(flags), static_cast<int32_t>(type));
+      if (m_features.opt0.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_2)
+      {
+        reqs.heapType = packInt64(0, static_cast<int32_t>(type));
+      }
+      else
+      {
+        reqs.heapType = packInt64(static_cast<int32_t>(flags), static_cast<int32_t>(type));
+      }
 
       return reqs;
     }

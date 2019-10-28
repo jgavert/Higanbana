@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <vector>
+#include <type_traits>
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -317,6 +318,8 @@ namespace higanbana
       template <typename Packet, typename... Args>
       void insert(Args&&... args)
       {
+        static_assert(std::is_standard_layout<Packet>::value, "Packets have to be in standard layout...");
+        //static_assert(std::is_trivially_copyable<Packet>::value, "Packets have to be trivially copyable..."); 
         beginNewPacket(Packet::type);
         auto ptr = allocate(sizeof(Packet));
         Packet* packet = reinterpret_cast<Packet*>(ptr);

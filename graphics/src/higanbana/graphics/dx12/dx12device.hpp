@@ -56,6 +56,18 @@ namespace higanbana
       // new stuff
       DX12Resources m_allRes;
 
+      // restrictions&info
+      struct FeatureData
+      {
+        D3D12_FEATURE_DATA_D3D12_OPTIONS  opt0 = {}; 
+        D3D12_FEATURE_DATA_D3D12_OPTIONS1 opt1 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS2 opt2 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS3 opt3 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS4 opt4 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 opt5 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
+      } m_features;
+
       friend class DX12CommandList;
 
       D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
