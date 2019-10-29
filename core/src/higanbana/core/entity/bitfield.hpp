@@ -8,9 +8,6 @@
 #include <nmmintrin.h>
 #ifdef _MSC_VER
 #include <intrin.h>
-#ifndef __clang__
-//inline unsigned long long __builtin_ctzll(unsigned long long x) { unsigned long r; _BitScanForward64(&r, x); return r; }
-#endif
 #endif
 
 namespace higanbana

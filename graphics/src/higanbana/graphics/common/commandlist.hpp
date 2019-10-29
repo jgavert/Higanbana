@@ -185,6 +185,11 @@ namespace higanbana
     {
       list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
     }
+
+    size_t sizeBytesUsed() const noexcept
+    {
+      return list.sizeBytes();
+    }
   };
 
   class CommandBufferPool

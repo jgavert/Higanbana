@@ -84,6 +84,7 @@ namespace higanbana
       , name(name)
       , type(type)
       , gpuId(gpuId)
+      , timing({})
     {
       list->renderTask(name);
       timing.nodeName = name;
@@ -166,6 +167,7 @@ namespace higanbana
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
       list->draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
+      timing.draws++;
     }
 
     void drawIndexed(
@@ -181,6 +183,7 @@ namespace higanbana
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      timing.draws++;
     }
 
     void drawIndexed(
@@ -196,6 +199,7 @@ namespace higanbana
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+      timing.draws++;
     }
 
     void dispatchThreads(
@@ -208,6 +212,7 @@ namespace higanbana
       unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(m_currentBaseGroups.z)));
       HIGAN_ASSERT(x*y*z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", x, y, z);
       list->dispatch(uint3(x,y,z));
+      timing.dispatches++;
     }
 
     void dispatch(
@@ -217,6 +222,7 @@ namespace higanbana
       list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       list->dispatch(groups);
+      timing.dispatches++;
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
@@ -356,6 +362,7 @@ namespace higanbana
     void addPass(CommandGraphNode&& node)
     {
       node.timing.cpuTime.stop();
+      node.timing.cpuSizeBytes = node.list->sizeBytesUsed();
       m_nodes->emplace_back(std::move(node));
     }
   };

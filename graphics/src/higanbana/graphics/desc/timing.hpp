@@ -24,6 +24,9 @@ namespace higanbana
     std::string nodeName;
     Timestamp cpuTime;
     Timestamp gpuTime;
+    int dispatches;
+    int draws;
+    size_t cpuSizeBytes;
   };
 
   struct CommandListTiming

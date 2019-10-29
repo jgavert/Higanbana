@@ -1857,6 +1857,7 @@ namespace higanbana
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
       m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      HIGAN_ASSERT(size%allocation.allocation.alignment == 0, "hmm, wtf?");
       m_device.bindImageMemory(image.value, native.native(), size);
 
       m_allRes.tex[handle] = VulkanTexture(image.value, desc);

@@ -516,13 +516,31 @@ void mainWindow(ProgramParams& params)
               {
                 gpuTotal += list.gpuTime.milliseconds();
               }
+
+              uint64_t draws = 0, dispatches = 0;
+              uint64_t bytesInCommandBuffersTotal = 0;
+              for (auto&& cmdlist : rsi.lists)
+              {
+                for (auto&& node : cmdlist.nodes)
+                {
+                  draws += node.draws;
+                  dispatches += node.dispatches;
+                  bytesInCommandBuffersTotal += node.cpuSizeBytes;
+                }
+              }
+
               float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
               if (gpuTotal > cpuTotal)
                 ImGui::Text("Bottleneck: GPU");
               else
                 ImGui::Text("Bottleneck: CPU");
+              auto multiplier = 1000.f / time.getCurrentFps();
+              auto allDraws = float(draws) * multiplier;
+              int dps = static_cast<int>(allDraws);
+              ImGui::Text("Drawcalls per second %zu", dps);
               ImGui::Text("GPU execution %.3fms", gpuTotal);
               ImGui::Text("CPU execution %.3fms", cpuTotal);
+              ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal/1024.f/1024.f);
               ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
               ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());
               ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());

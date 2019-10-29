@@ -61,7 +61,7 @@ namespace higanbana
         {
           if (heap.allocator.size() >= requirements.bytes) // this will find falsepositives if memory is fragmented.
           {
-            block = heap.allocator.allocate(requirements.bytes); // should be cheap anyway
+            block = heap.allocator.allocate(requirements.bytes, requirements.alignment); // should be cheap anyway
             if (block)
             {
               alloc.block = block.value();
@@ -75,7 +75,7 @@ namespace higanbana
         {
           // create correct sized heap and allocate from it.
           auto newHeap = createHeapBlock(m_heapIndex++, requirements);
-          alloc.block = newHeap.allocator.allocate(requirements.bytes).value();
+          alloc.block = newHeap.allocator.allocate(requirements.bytes, requirements.alignment).value();
           m_memoryAllocated += alloc.block.size;
           alloc.index = newHeap.index;
           auto heap = newHeap.heap;
@@ -85,7 +85,7 @@ namespace higanbana
       }
       HeapVector vec{ requirements.heapType, vector<HeapBlock>() };
       auto newHeap = createHeapBlock(m_heapIndex++, requirements);
-      alloc.block = newHeap.allocator.allocate(requirements.bytes).value();
+      alloc.block = newHeap.allocator.allocate(requirements.bytes, requirements.alignment).value();
       m_memoryAllocated += alloc.block.size;
       alloc.index = newHeap.index;
       auto heap = newHeap.heap;
