@@ -146,7 +146,7 @@ namespace higanbana
         deque<LiveCommandBuffer2> m_dmaBuffers;
       };
       vector<VirtualDevice> m_devices;
-
+      CommandBufferPool m_commandBuffers;
       SequenceTracker m_seqTracker; // used to track only commandlists
       std::unique_ptr<DelayedRelease> m_delayer;
       HandleManager m_handles;

@@ -132,6 +132,7 @@ namespace higanbana
         {
           spn2[i] = views[i].handle();
         }
+        static_assert(sizeof(ResourceBinding) <= sizeof(uint8_t)*10);
       }
     };
 
@@ -161,6 +162,7 @@ namespace higanbana
         packet->instanceCount = instanceCount;
         packet->startVertex = startVertex;
         packet->startInstance = startInstance;
+        static_assert(sizeof(Draw) <= sizeof(uint8_t)*16);
       }
     };
 
@@ -182,6 +184,7 @@ namespace higanbana
         packet->StartIndexLocation = startIndexLoc;
         packet->BaseVertexLocation = baseVertexLoc;
         packet->StartInstanceLocation = startInstance;
+        static_assert(sizeof(DrawIndexed) <= sizeof(uint8_t)*40);
       }
     };
 

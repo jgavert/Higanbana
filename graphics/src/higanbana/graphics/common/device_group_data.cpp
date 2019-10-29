@@ -36,7 +36,7 @@ namespace higanbana
         {
           if (!buffers.empty())
           {
-            if (m_seqNumRequirements.size() > 3) // throttle so that we don't go too far ahead.
+            if (m_seqNumRequirements.size() > 1) // throttle so that we don't go too far ahead.
             {
               // force wait oldest
               int deviceID = buffers.front().deviceID;
@@ -629,7 +629,7 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
-      auto graph = CommandGraph(InvalidSeqNum);
+      auto graph = CommandGraph(InvalidSeqNum, m_commandBuffers);
 
       vector<DynamicBufferView> allBufferToImages;
       auto arraySize = image.desc().desc.arraySize;
@@ -666,7 +666,7 @@ namespace higanbana
 
     CommandGraph DeviceGroupData::startCommandGraph()
     {
-      return CommandGraph(++m_currentSeqNum); 
+      return CommandGraph(++m_currentSeqNum, m_commandBuffers); 
     }
 
     // we have given promises of readbacks to user, we need backing memory for those readbacks and patch commandbuffer with valid resources.
@@ -1037,6 +1037,7 @@ namespace higanbana
 
         vector<PreparedCommandlist> lists;
 
+        //HIGAN_LOGi("\nbuffer sizes\n");
         while (i < static_cast<int>(nodes.size()))
         {
           auto* firstList = &nodes[i];
@@ -1044,6 +1045,7 @@ namespace higanbana
           PreparedCommandlist plist{};
           plist.type = firstList->type;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));
+          //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
           plist.readbacks = nodes[i].m_readbackPromises;
@@ -1055,9 +1057,10 @@ namespace higanbana
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
-            if (nodes[i].type != plist.type) // || nodes[i].list->list.sizeBytes() > 1024)
+            if (nodes[i].type != plist.type)
               break;
             plist.buffers.emplace_back(std::move(nodes[i].list->list));
+            //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
             plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
             plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
@@ -1280,11 +1283,13 @@ namespace higanbana
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          //m_buffers.emplace_back(buffer);
+          for (auto&& buffer : list.buffers)
+          {
+            m_commandBuffers.free(std::move(buffer));
+          }
         }
         timing.submitSolve.stop();
       }
-      //m_buffers.back().started = graph.m_sequence;
       timing.submitCpuTime.stop();
       timeOnFlightSubmits.push_back(timing);
       if (graph.m_sequence != InvalidSeqNum)

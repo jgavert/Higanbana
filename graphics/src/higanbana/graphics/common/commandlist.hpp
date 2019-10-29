@@ -20,6 +20,12 @@ namespace higanbana
 
     }
 
+    CommandList(backend::CommandBuffer&& buffer)
+      : list{std::move(buffer)}
+    {
+      list.reset();
+    }
+
     void renderTask(std::string name)
     {
       list.insert<gfxpacket::RenderBlock>(name);
@@ -178,6 +184,24 @@ namespace higanbana
     void readback(Buffer& buffer, uint startElement, uint size)
     {
       list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
+    }
+  };
+
+  class CommandBufferPool
+  {
+    vector<backend::CommandBuffer> buffers;
+    public:
+    CommandList allocate()
+    {
+      if (buffers.empty())
+        return backend::CommandBuffer();
+      backend::CommandBuffer buffer = std::move(buffers.back());
+      buffers.pop_back();
+      return buffer;
+    }
+    void free(backend::CommandBuffer&& buffer)
+    {
+      buffers.emplace_back(std::move(buffer));
     }
   };
 }

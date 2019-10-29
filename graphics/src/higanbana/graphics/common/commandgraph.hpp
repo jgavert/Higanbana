@@ -79,8 +79,8 @@ namespace higanbana
 
   public:
     CommandGraphNode() {}
-    CommandGraphNode(std::string name, QueueType type, int gpuId)
-      : list(std::make_shared<CommandList>())
+    CommandGraphNode(std::string name, QueueType type, int gpuId, CommandList&& buffer)
+      : list(std::make_shared<CommandList>(std::move(buffer)))
       , name(name)
       , type(type)
       , gpuId(gpuId)
@@ -336,11 +336,13 @@ namespace higanbana
   {
     SeqNum m_sequence;
     SubmitTiming m_timing;
+    CommandBufferPool& m_buffers;
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
     friend struct backend::DeviceGroupData;
   public:
-    CommandGraph(SeqNum seq)
+    CommandGraph(SeqNum seq, CommandBufferPool& buffers)
       : m_sequence(seq)
+      , m_buffers(buffers)
       , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
     {
       m_timing.timeBeforeSubmit.start();
@@ -348,7 +350,7 @@ namespace higanbana
 
     CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
-      return CommandGraphNode(name, type, gpu);
+      return CommandGraphNode(name, type, gpu, m_buffers.allocate());
     }
 
     void addPass(CommandGraphNode&& node)
