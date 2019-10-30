@@ -31,6 +31,7 @@ src_graphics_test("resource_creation")
 src_graphics_test_with_header("readback_future")
 src_graphics_test("shader_matrix_math")
 src_graphics_test("basics")
+src_graphics_test("raytracing_basics")
 
 test_suite(
     name = "all-graphics-tests",
@@ -40,7 +41,8 @@ test_suite(
         "test_graphics_device_creation",
         "test_graphics_readback_future",
         "test_graphics_resource_creation",
-        "test_graphics_shader_matrix_math"
+        "test_graphics_shader_matrix_math",
+        "test_graphics_raytracing_basics"
     ]
 )
 
