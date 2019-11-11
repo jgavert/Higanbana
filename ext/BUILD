@@ -28,9 +28,9 @@ cc_library(
 )
 
 cc_library(
-    name = "rapidjson",
-    hdrs = glob(["rapidjson/include/**/*.cpp"]),
-    includes = ["rapidjson/include"],
+    name = "nlohmann_json",
+    hdrs = ["nlohmann_json/single_include/nlohmann/json.hpp"],
+    includes = ["nlohmann_json/single_include/"],
     visibility = ["//visibility:public"], 
 )
 

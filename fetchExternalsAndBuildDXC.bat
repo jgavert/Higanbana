@@ -1,22 +1,29 @@
 @echo off
+REM tests tests tests, not sure if maintained in the long run
 rd /Q /S ext\Catch2
 git clone https://github.com/catchorg/Catch2.git ext/Catch2
 
+REM commandline options, something for it
 rd /Q /S ext\cxxopts
 git clone https://github.com/jarro2783/cxxopts.git ext/cxxopts
 
+REM For gsl::span
 rd /Q /S ext\GSL
 git clone https://github.com/microsoft/GSL.git ext/GSL
 
+REM for easy image loading headers
 rd /s /Q ext\stb
 git clone https://github.com/nothings/stb.git ext/stb
 
+REM Not going to even explain
 rd /s /Q ext\IMGui
 git clone https://github.com/ocornut/imgui.git ext/imgui
 
-rd /s /Q ext\rapidjson
-git clone https://github.com/Tencent/rapidjson.git ext/rapidjson
+REM For all json needs, api looks clean and usable
+rd /s /Q ext\nlohmann_json
+git clone https://github.com/nlohmann/json.git ext/nlohmann_json
 
+REM gltf loader, could be more efficient if it skipped few copies.
 rd /s /Q ext\tinygltf
 git clone https://github.com/syoyo/tinygltf.git ext/tinygltf
 
@@ -26,6 +33,7 @@ powershell -Command "Invoke-WebRequest https://www.nuget.org/api/v2/package/WinP
 powershell -Command "Expand-Archive ext\wper.zip -DestinationPath ext\winpixeventruntime"
 del /Q ext\wper.zip
 
+REM shader compiler for DX12&vulkan dxil&spirv
 rd /s /Q ext\DirectXShaderCompiler
 git clone https://github.com/microsoft/DirectXShaderCompiler ext/DirectXShaderCompiler
 
