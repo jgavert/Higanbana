@@ -289,13 +289,11 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, int cubeCount)
+  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, int cubeCount, int xBegin, int xEnd)
   {
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
     //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    backbuffer.setOp(LoadOp::Load);
-    depthDSV.clearOp({});
     node.renderpass(opaqueRP, backbuffer, depthDSV);
     {
       auto binding = node.bind(opaque);
@@ -350,7 +348,7 @@ namespace app
       binding.arguments(0, args);
 
       int gridSize = cubeCount;
-      for (int x = 0; x < gridSize; ++x)
+      for (int x = xBegin; x < xEnd; ++x)
       {
         for (int y = 0; y < gridSize; ++y)
         {
@@ -471,7 +469,26 @@ namespace app
       auto perspective = math::mul(pos, math::mul(rot, pers));
 
       if (instances.empty())
-        oldOpaquePass(node, perspective, backbuffer, cubeCount);
+      {
+        backbuffer.setOp(LoadOp::Load);
+        depthDSV.clearOp({});
+        int stepSize = 5;
+        int oldStepSize = stepSize;
+        do
+        {
+          oldStepSize = stepSize;
+          if (cubeCount % stepSize != 0)
+          {
+            stepSize = stepSize - 1;
+          }
+       } while(stepSize != oldStepSize);
+
+        for (int i = 0; i < cubeCount; i+=stepSize)
+        {
+          oldOpaquePass(node, perspective, backbuffer, cubeCount, i, i+stepSize);
+          depthDSV.setOp(LoadOp::Load);
+        }
+      }
       else
         renderMeshes(node, perspective, backbuffer, instances);
       
