@@ -2,7 +2,7 @@
 
 #ifndef HIGANBANA_DEFINED
   #define HIGANBANA_DEFINED
-  #if defined(WIN32) || defined(_WIN32)
+  #if defined(WIN32) || defined(_WIN32) || defined(WIN64)
     #define HIGANBANA_PLATFORM_WINDOWS
     #define WIN32_LEAN_AND_MEAN
     #define _UNICODE

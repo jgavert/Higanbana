@@ -6,7 +6,7 @@ cc_library(
   strip_include_prefix = "src",
   deps = ["//ext:GSL", "//ext:nlohmann_json"],
   copts = select({
-          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "-ftime-trace"],
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
   defines = [],
