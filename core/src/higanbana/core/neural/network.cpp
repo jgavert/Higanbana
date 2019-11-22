@@ -42,9 +42,9 @@ namespace higanbana
 
 		NeuralNetwork<100, 2, 1, 1> ann;
 		auto result = ann.forward(input);
-    HIGAN_LOG("%s\n", toString(result).c_str());
+    //HIGAN_LOG("%s\n", toString(result).c_str());
 		Matrix<1, 1, double> expected { 2.0};
-    HIGAN_LOG("%s\n", toString(expected).c_str());
+    //HIGAN_LOG("%s\n", toString(expected).c_str());
 		auto oo = ann.costFunction(expected);
 		HIGAN_LOG("costFunction: %f\n", oo);
 		//ann.costFunctionPrime(input, expected);
@@ -79,10 +79,10 @@ namespace higanbana
 
 		HIGAN_LOG("Overall %zu iterations to train the network.\n", totalIterations);
 
-		printMat(ann.forward(Matrix<1, 2, double>{ 5, 12}));
-		printMat(ann.forward(Matrix<1, 2, double>{ 100, 50}));
-		printMat(ann.forward(Matrix<1, 2, double>{ 1, 2}));
-		printMat(ann.forward(Matrix<1, 2, double>{ 123456, 234567}));
+		//printMat(ann.forward(Matrix<1, 2, double>{ 5, 12}));
+		//printMat(ann.forward(Matrix<1, 2, double>{ 100, 50}));
+		//printMat(ann.forward(Matrix<1, 2, double>{ 1, 2}));
+		//printMat(ann.forward(Matrix<1, 2, double>{ 123456, 234567}));
 		// close perfect answers above.
 
 		// this doesnt really work.
@@ -100,9 +100,9 @@ namespace higanbana
 		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 4.0, 2.0}, Matrix<1, 1, double>{8.0});
 		totalIterations += trainNetwork(ann2, Matrix<1, 2, double>{ 4.0, 4.0}, Matrix<1, 1, double>{16.0});
 
-		printMat(ann2.forward(Matrix<1, 2, double>{ 4.0, 1.0}));
-		printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 2.0}));
-		printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 9.0}));
+		//printMat(ann2.forward(Matrix<1, 2, double>{ 4.0, 1.0}));
+		//printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 2.0}));
+		//printMat(ann2.forward(Matrix<1, 2, double>{ 9.0, 9.0}));
 
 		auto val = b.stop();
 

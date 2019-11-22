@@ -3,11 +3,6 @@
 #include "higanbana/core/system/fazmesg.hpp"
 #include "higanbana/core/platform/definitions.hpp"
 
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
-#include <Windows.h>
-#include <comdef.h>
-#endif
-
 #include <string.h>
 #include <cstdio>
 #include <cstdarg>
@@ -32,8 +27,7 @@
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #define HIGAN_ERROR(msg, ...) \
   log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
-  if (IsDebuggerPresent()) \
-    __debugbreak(); \
+  debugBreak(); \
   abort();
 
 #define HIGAN_ASSERT(cond, msg, ...)\
@@ -42,23 +36,17 @@
           if (!(cond)) \
           { \
             log_immideateAssert(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
-            if (IsDebuggerPresent()) \
-              __debugbreak(); \
-            abort();\
+            debugBreak(); \
+            abort(); \
           } \
       } while (0)
 
 #define HIGANBANA_CHECK_HR(hr) \
         do \
         { \
-        if (FAILED(hr)) \
+        if (checkHRError(hr)) \
           { \
-            _com_error err(hr); \
-            LPCTSTR errMsg = err.ErrorMessage(); \
-            std::string _msg = ws2s(errMsg); \
-            log_immideateAssert(__FILE__, __LINE__, "[SYSTEM/fail]: HRESULT: \"%s\"", _msg.c_str()); \
-            if (IsDebuggerPresent()) \
-              __debugbreak(); \
+            debugBreak(); \
             abort();\
           } \
       } while (0)
@@ -89,7 +77,12 @@
 #endif
 #endif
 
+void debugBreak();
+
 #ifdef _MSC_VER
+
+bool checkHRError(long hr);
+
 #define _snprintf c99_snprintf
 #define _vsnprintf c99_vsnprintf
 inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap);

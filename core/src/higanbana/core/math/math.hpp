@@ -2,8 +2,6 @@
 
 #include <cstring>
 #include <cstdint>
-#include <string>
-#include <algorithm>
 #include <cmath>
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -17,7 +15,6 @@ namespace higanbana
   {
     /*  operations available
     *  Vector:
-    *    string  toString(vec)
     *    scalar  length(vec)
     *    vec     normalize(vec)
     *    scalar  dot(vec, vec)
@@ -35,7 +32,6 @@ namespace higanbana
     *  Matrix:
     *    Matrix<n, m, type>::identity()
     *
-    *    string    toString(mat)
     *    mat       mul(mat, mat), mul(mat, scalar)
     *    vec       mul(mat, vec)
     *    mat       div(mat, scalar)
@@ -179,17 +175,6 @@ namespace higanbana
     using uint2 = Vector<2, unsigned>;
     using uint3 = Vector<3, unsigned>;
     using uint4 = Vector<4, unsigned>;*/
-
-    template<int ELEMENT_COUNT, typename vType>
-    std::string toString(Vector<ELEMENT_COUNT, vType> a)
-    {
-      std::string fnl = "(";
-      for (int i = 0; i < ELEMENT_COUNT - 1; ++i)
-      {
-        fnl += std::to_string(a(i)) + std::string(", ");
-      }
-      return fnl + std::to_string(a(ELEMENT_COUNT - 1)) + std::string(")");
-    }
 
     template<int ELEMENT_COUNT, typename vType>
     inline vType length(Vector<ELEMENT_COUNT, vType> a)
@@ -414,7 +399,7 @@ namespace higanbana
       static Matrix identity()
       {
         Matrix m{};
-        const auto max = std::max(rowCount, columnCount);
+        constexpr auto max = rowCount > columnCount ? rowCount : columnCount;
         for (int i = 0; i < max; ++i)
         {
           m(i, i) = static_cast<vType>(1);
@@ -444,7 +429,7 @@ namespace higanbana
       }
     };
 
-    std::string toString(Quaternion a);
+    //std::string toString(Quaternion a);
 
     // RotateAxis(1,0,0,amount) -> this would rotate x axis... someway :D?
     // constexpr inline
@@ -541,26 +526,6 @@ namespace higanbana
 
     typedef Matrix<3, 3, float> float3x3;
     typedef Matrix<4, 4, float> float4x4;
-
-    template <int rowCount, int columnCount, typename vType>
-    std::string toString(Matrix<rowCount, columnCount, vType> m)
-    {
-      std::string r = "[";
-      for (int y = 0; y < rowCount - 1; ++y)
-      {
-        for (int x = 0; x < columnCount - 1; ++x)
-        {
-          r += std::to_string(m(x, y)) + std::string(", ");
-        }
-        r += std::to_string(m(columnCount - 1, y)) + std::string("]\n[");
-      }
-      for (int x = 0; x < columnCount - 1; ++x)
-      {
-        r += std::to_string(m(x, rowCount - 1)) + std::string(", ");
-      }
-      r += std::to_string(m(columnCount - 1, rowCount - 1)) + std::string("]");
-      return r;
-    }
 
     template <typename vType, int rows, int cols>
     inline Matrix<cols, rows, vType> transpose(Matrix<rows, cols, vType> value)
@@ -732,8 +697,8 @@ namespace higanbana
     template <typename vType, int rows, int cols, int rows2, int cols2>
     constexpr inline void extractMatrices(Matrix<1, rows*cols + rows2 * cols2, vType> input, Matrix<rows, cols, vType>& out1, Matrix<rows2, cols2, vType> out2)
     {
-      std::copy_n(std::begin(input.data), rows*cols, std::begin(out1.data));
-      std::copy_n(std::begin(input.data) + rows * cols, rows2*cols2, std::begin(out2.data));
+      memcpy(input.data, out1.data, rows*cols*sizeof(vType));
+      memcpy(input.data + rows*cols, out2.data, rows2*cols2*sizeof(vType));
     }
 
     template <typename vType, int rows, int cols>

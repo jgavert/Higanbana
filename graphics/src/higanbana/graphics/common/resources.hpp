@@ -137,7 +137,7 @@ namespace higanbana
     struct SharedHandle
     {
       GraphicsApi api;
-      HANDLE handle;
+      void* handle;
       size_t heapsize;
     };
 #else

@@ -4,6 +4,7 @@ namespace higanbana
 {
   namespace math
   {
+    /*
     std::string toString(Quaternion a)
     {
       std::string fnl = "(";
@@ -13,5 +14,6 @@ namespace higanbana
       }
       return fnl + std::to_string(a(3)) + std::string(")");
     }
+    */
   }
 }

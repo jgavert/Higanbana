@@ -6,9 +6,6 @@
 #include <smmintrin.h>
 #include <tmmintrin.h>
 #include <nmmintrin.h>
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
 
 namespace higanbana
 {

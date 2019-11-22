@@ -11,7 +11,7 @@ namespace higanbana
   namespace math
   {
 
-#define printMat(mat) HIGAN_LOG("%s\n", higanbana::math::toString(mat).c_str())
+//#define printMat(mat) HIGAN_LOG("%s\n", higanbana::math::toString(mat).c_str())
 
 
     template<int hiddenSize, int inputSize, int outputSize, int sampleCount>
