@@ -711,6 +711,7 @@ void mainWindow(ProgramParams& params)
           inputsUpdated = inputs.frame();
           if (!renderActive)
             break;
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         renderActive = false;
         lbs.sleepTillKeywords({"logic&render loop"});
