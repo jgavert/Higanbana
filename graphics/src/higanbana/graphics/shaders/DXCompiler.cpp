@@ -46,7 +46,7 @@ public:
       HIGAN_LOG("Shader include wanted RootSignature!!\n");
 
       ComPtr<IDxcBlobEncoding> asd;
-      auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(m_rootSignatureFile.data(), static_cast<UINT32>(m_rootSignatureFile.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
+      auto hr = m_lib->CreateBlobWithEncodingFromPinned(m_rootSignatureFile.data(), static_cast<UINT32>(m_rootSignatureFile.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
 
       if (SUCCEEDED(hr))
       {
@@ -66,7 +66,7 @@ public:
 
     auto shader = m_fs.viewToFile(finalPath);
     ComPtr<IDxcBlobEncoding> asd;
-    auto hr = m_lib->CreateBlobWithEncodingOnHeapCopy(shader.data(), static_cast<uint32_t>(shader.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
+    auto hr = m_lib->CreateBlobWithEncodingFromPinned(shader.data(), static_cast<uint32_t>(shader.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
 
     if (SUCCEEDED(hr))
     {
@@ -138,7 +138,7 @@ namespace higanbana
       ComPtr<IDxcLibrary> pLibrary;
       ComPtr<IDxcBlobEncoding> pSource;
       DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
-      pLibrary->CreateBlobWithEncodingOnHeapCopy(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
+      pLibrary->CreateBlobWithEncodingFromPinned(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
       ComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler2(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
 
