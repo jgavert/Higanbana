@@ -433,20 +433,29 @@ namespace higanbana
       }
       auto tables = ding.resources.convertToMemView();
       UINT rootIndex = 1;
+      int tableIndex = 0;
       if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
       {
         for (auto& table : tables)
         {
-          buffer->SetGraphicsRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-          rootIndex++;
+          if (m_boundGfxSets[tableIndex] != table)
+          {
+            buffer->SetGraphicsRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
+            m_boundGfxSets[tableIndex] = table; 
+          }
+          rootIndex++; tableIndex++;
         }
       }
       else
       {
         for (auto& table : tables)
         {
-          buffer->SetComputeRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-          rootIndex++;
+          if (m_boundCompSets[tableIndex] != table)
+          {
+            buffer->SetComputeRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
+            m_boundCompSets[tableIndex] = table; 
+          }
+          rootIndex++; tableIndex++;
         }
       }
     }

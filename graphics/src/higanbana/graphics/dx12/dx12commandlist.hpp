@@ -23,6 +23,9 @@ namespace higanbana
       UploadLinearAllocator m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
 
+      ResourceHandle  m_boundGfxSets[4] = {};
+      ResourceHandle  m_boundCompSets[4] = {};
+
       std::shared_ptr<FreeableResources> m_freeResources;
 
       UploadBlock allocateConstants(size_t size);
