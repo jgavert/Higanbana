@@ -30,6 +30,7 @@ namespace higanbana
         "VK_KHR_external_fence_win32",
         "VK_KHR_external_memory_win32",
         "VK_KHR_external_semaphore_win32",
+        "VK_KHR_pipeline_executable_properties",
         "VK_KHR_image_format_list",
         "VK_KHR_push_descriptor",
         "VK_KHR_sampler_mirror_clamp_to_edge",

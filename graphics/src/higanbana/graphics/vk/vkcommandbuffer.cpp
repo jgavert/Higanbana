@@ -365,12 +365,23 @@ namespace higanbana
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
       m_tempSets.clear();
+      auto firstSet = 0;
+      auto i = 0;
+      bool canSkip = true;
       for (auto&& shaderArguments : packet.resources.convertToMemView())
       {
+        if (canSkip && m_boundDescriptorSets[i] == shaderArguments)
+        {
+          firstSet++; i++;
+          continue;
+        }
+        canSkip = false;
         m_tempSets.push_back(device->allResources().shaArgs[shaderArguments].native());
+        m_boundDescriptorSets[i] = shaderArguments;
+        i++;
       }
       m_tempSets.push_back(set);
-      buffer.bindDescriptorSets(bindpoint, layout, 0, m_tempSets, {static_cast<uint32_t>(block.offset())});
+      buffer.bindDescriptorSets(bindpoint, layout, firstSet, m_tempSets, {static_cast<uint32_t>(block.offset())});
     }
 
     std::string buildStageString(int stage)

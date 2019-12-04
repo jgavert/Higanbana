@@ -307,21 +307,12 @@ void mainWindow(ProgramParams& params)
       }
       else
       {
-        gpus = graphics.availableGpus();
-        
-        //HIGAN_LOG("\t%s: %d. %s (memory: %zdMB, api: %s)\n", toString(it.api), it.id, it.name.c_str(), it.memory/1024/1024, it.apiVersionStr.c_str());
         auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
-        auto api2 = GraphicsApi::Vulkan;
-        if (api == GraphicsApi::Vulkan)
-        {
-          api2 = GraphicsApi::DX12;
-        }
-        auto gpuInfo2 = graphics.getVendorDevice(api2, preferredVendor);
         allGpus.emplace_back(gpuInfo);
       }
       //allGpus.emplace_back(gpuInfo2);
       if (updateLog) log.update();
-      if (gpus.empty())
+      if (allGpus.empty())
         return;
 
 	    std::string windowTitle = "";

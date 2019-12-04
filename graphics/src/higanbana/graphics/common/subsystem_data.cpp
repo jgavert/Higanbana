@@ -56,17 +56,19 @@ namespace higanbana
 #endif
       if (allowedApi == GraphicsApi::Vulkan || allowedApi == GraphicsApi::All)
       {
-        implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
       }
+        implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
     }
     vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api, VendorID id)
     {
       vector<GpuInfo> infos;
-      if (implVulkan && api == GraphicsApi::All || api == GraphicsApi::Vulkan)
+      HIGAN_ASSERT(api == GraphicsApi::All || (implVulkan && api == GraphicsApi::Vulkan), "Subsystem wasn't created with Vulkan enabled! check --rgp switch!");
+      if (implVulkan && (api == GraphicsApi::All || api == GraphicsApi::Vulkan))
       {
         infos = implVulkan->availableGpus(id);
         for (auto&& it : infos) it.api = GraphicsApi::Vulkan;
       }
+      HIGAN_ASSERT(api == GraphicsApi::All || (implDX12 && api == GraphicsApi::DX12), "Subsystem wasn't created with DX12 enabled! check --rgp switch!");
       if (implDX12 && (api == GraphicsApi::All || api == GraphicsApi::DX12))
       {
         vector<GpuInfo> dx12Gpus = implDX12->availableGpus(id);

@@ -1163,6 +1163,7 @@ namespace higanbana
       auto rp = m_allRes.renderpasses[rpbegin.renderpass].native();
       vk::GraphicsPipelineCreateInfo pipelineInfo = vk::GraphicsPipelineCreateInfo()
         .setLayout(vp.m_pipelineLayout)
+        .setFlags(vk::PipelineCreateFlagBits::eCaptureStatisticsKHR)
         .setStageCount(shaderInfos.size())
         .setPStages(shaderInfos.data())
         .setPVertexInputState(&vertexInput)
@@ -1193,6 +1194,47 @@ namespace higanbana
       vp.m_pipeline = compiled.value;
       vp.m_hasPipeline = true;
       HIGAN_ILOG("Vulkan", "Pipeline compiled...");
+
+      auto execProp = m_device.getPipelineExecutablePropertiesKHR(vk::PipelineInfoKHR().setPipeline(vp.m_pipeline), m_dynamicDispatch);
+      VK_CHECK_RESULT(execProp);
+      vector<vk::PipelineExecutableInfoKHR> execInfos;
+      int execIndex = 0;
+      for (auto&& prop : execProp.value)
+      {
+        //HIGAN_LOGi("Pipeline Prop \"%s\": \"%s\" %s\n", prop.name, prop.description, vk::to_string(prop.stages).c_str());
+        execInfos.emplace_back(vk::PipelineExecutableInfoKHR()
+          .setPipeline(vp.m_pipeline)
+          .setExecutableIndex(execIndex++));
+      }
+
+      execIndex = 0;
+      for (auto&& einfo : execInfos)
+      {
+        auto exeresult = m_device.getPipelineExecutableStatisticsKHR(einfo, m_dynamicDispatch);
+        VK_CHECK_RESULT(exeresult);
+        auto curIndex = execIndex++;
+        HIGAN_LOGi("Shader \"%s\" stats: %s\n", d.shaders[curIndex].second.c_str(), execProp.value[curIndex].description);
+        for (auto&& exeStats : exeresult.value)
+        {
+          HIGAN_LOGi("\t \"%s\": \"%s\" value: ", exeStats.name, exeStats.description);
+          switch (exeStats.format)
+          {
+            case vk::PipelineExecutableStatisticFormatKHR::eBool32:
+              HIGAN_LOGi("%s\n", exeStats.value.b32 ? "true" : "false");
+              break;
+            case vk::PipelineExecutableStatisticFormatKHR::eInt64:
+              HIGAN_LOGi("%zd\n", exeStats.value.i64);
+              break;
+            case vk::PipelineExecutableStatisticFormatKHR::eUint64:
+              HIGAN_LOGi("%zu\n", exeStats.value.u64);
+              break;
+            case vk::PipelineExecutableStatisticFormatKHR::eFloat64:
+            default:
+              HIGAN_LOGi("%.3f\n", exeStats.value.f64);
+          }
+        }
+      }
+
       return ret;
     }
 

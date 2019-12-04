@@ -1062,6 +1062,8 @@ namespace higanbana
       vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
       vector<vk::DescriptorSet> m_tempSets;
+
+      ResourceHandle m_boundDescriptorSets[4]; // yeah, lets keep it at 4 for now...
       unsigned m_constantAlignment;
 
       VkUploadLinearAllocator m_constantsAllocator;
