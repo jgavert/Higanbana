@@ -232,7 +232,7 @@ namespace higanbana
             fbWidth = static_cast<int>(desc.desc.width);
             fbHeight = static_cast<int>(desc.desc.height);
           }
-          HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be correct.");
+          HIGAN_ASSERT(fbWidth <= static_cast<int>(desc.desc.width) && fbHeight <= static_cast<int>(desc.desc.height), "Width and height must be correct.");
           auto attachmentId = static_cast<int>(attachments.size());
           uidToAttachmendId[subpass.dsv.resource.id] = attachmentId;
           attachments.emplace_back(view.native().view);
@@ -605,7 +605,7 @@ namespace higanbana
         for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
           auto* header = *iter;
-          //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
+          HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
           if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
           {
             addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
@@ -632,6 +632,7 @@ namespace higanbana
               }
               vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
               buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+              HIGAN_LOGi("renderblock: %s\n", currentBlock.c_str());
             }
             break;
           }

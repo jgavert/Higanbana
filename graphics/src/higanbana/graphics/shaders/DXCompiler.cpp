@@ -172,8 +172,8 @@ namespace higanbana
       */
       ppArgs.push_back(L"/Zpr"); // row-major matrices.
 
-      ComPtr<IDxcCompiler> pCompiler;
-      DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&pCompiler);
+      ComPtr<IDxcCompiler2> pCompiler;
+      DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler2), (void **)&pCompiler);
 
       std::vector<DxcDefine> defs;
 

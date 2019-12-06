@@ -28,6 +28,14 @@ namespace higanbana
         return "Draw";
       case backend::PacketType::RenderBlock:
         return "RenderBlock";
+      case backend::PacketType::DrawIndexed:
+        return "DrawIndexed";
+      case backend::PacketType::DynamicBufferCopy:
+        return "DynamicBufferCopy";
+      case backend::PacketType::ScissorRect:
+        return "ScissorRect";
+      case backend::PacketType::ReleaseFromQueue:
+        return "ReleaseFromQueue";
       default:
         return "Unknown";
       }

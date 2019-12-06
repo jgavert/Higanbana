@@ -403,6 +403,7 @@ namespace app
     TextureRTV backbuffer = obackbuffer.value();
     CommandGraph tasks = dev.createGraph();
 
+    /*
     {
       auto node = tasks.createPass("generate Texture");
 
@@ -421,7 +422,7 @@ namespace app
 
 
       tasks.addPass(std::move(node));
-    }
+    }*/
 
     {
       auto node = tasks.createPass("composite");

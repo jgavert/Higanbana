@@ -268,7 +268,7 @@ void mainWindow(ProgramParams& params)
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 8;
+    int cubeCount = 2;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();

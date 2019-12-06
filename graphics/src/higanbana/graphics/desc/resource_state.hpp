@@ -53,6 +53,7 @@ namespace higanbana
       FragmentDensityMap
     };
 
+    const char* toString(AccessUsage stage);
     const char* toString(AccessStage stage);
     const char* toString(TextureLayout stage);
   }

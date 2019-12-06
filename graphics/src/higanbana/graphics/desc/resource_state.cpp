@@ -4,6 +4,17 @@ namespace higanbana
 {
   namespace backend
   {
+    const char* toString(AccessUsage usage)
+    {
+      switch (usage)
+      {
+        case AccessUsage::Unknown: return "Unknown";
+        case AccessUsage::Read: return "Read";
+        case AccessUsage::ReadWrite: return "ReadWrite";
+        case AccessUsage::Write:
+        default:  return "Write";
+      }
+    }
     const char* toString(TextureLayout layout)
     {
       switch (layout)
