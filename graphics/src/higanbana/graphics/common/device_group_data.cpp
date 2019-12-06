@@ -711,11 +711,14 @@ namespace higanbana
       vector<QueueTransfer>& releases,
       CommandListTiming& timing)
     {
-      timing.barrierSolve.start();
+      timing.barrierAdd.start();
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
       bool insideRenderpass = false;
       int drawIndexBeginRenderpass = 0;
+
+      gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
+      ResourceHandle boundSets[4] = {};
 
       for (auto&& buffer : buffers)
       {
@@ -773,34 +776,48 @@ namespace higanbana
               auto& packet = header->data<gfxpacket::ResourceBinding>();
               auto stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics ? backend::AccessStage::Graphics : backend::AccessStage::Compute;
               stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing ? backend::AccessStage::Raytrace : stage;
+              if (packet.graphicsBinding != currentBoundType)
+              {
+                boundSets[0] = {};
+                boundSets[1] = {};
+                boundSets[2] = {};
+                boundSets[3] = {};
+                currentBoundType = packet.graphicsBinding;
+              }
 
               auto usedDrawIndex = drawIndex;
               if (insideRenderpass)
               {
                 usedDrawIndex = drawIndexBeginRenderpass;
               }
+              int i = 0;
               for (auto&& handle : packet.resources.convertToMemView())
               {
-                const auto& views = vdev.shaderArguments[handle];
-                for (auto&& resource : views)
+                if (boundSets[i] != handle)
                 {
-                  if (resource.type == ViewResourceType::BufferSRV)
+                  boundSets[i] = handle;
+                  const auto& views = vdev.shaderArguments[handle];
+                  for (auto&& resource : views)
                   {
-                    solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
-                  }
-                  else if (resource.type == ViewResourceType::BufferUAV)
-                  {
-                    solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
-                  }
-                  else if (resource.type == ViewResourceType::TextureSRV)
-                  {
-                    solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
-                  }
-                  else if (resource.type == ViewResourceType::TextureUAV)
-                  {
-                    solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                    if (resource.type == ViewResourceType::BufferSRV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::BufferUAV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureSRV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureUAV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                    }
                   }
                 }
+                ++i;
               }
               break;
             }
@@ -879,6 +896,8 @@ namespace higanbana
         }
       }
 
+      timing.barrierAdd.stop();
+      timing.barrierSolve.start();
       solver.makeAllBarriers();
       timing.barrierSolve.stop();
       timing.fillNativeList.start();

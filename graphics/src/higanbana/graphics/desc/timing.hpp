@@ -33,6 +33,7 @@ namespace higanbana
   {
     QueueType type;
     Timestamp cpuBackendTime;
+    Timestamp barrierAdd;
     Timestamp barrierSolve;
     Timestamp fillNativeList;
     Timestamp gpuTime;

@@ -605,7 +605,7 @@ namespace higanbana
         for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
           auto* header = *iter;
-          HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
+          //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
           if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
           {
             addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
@@ -632,7 +632,7 @@ namespace higanbana
               }
               vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
               buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
-              HIGAN_LOGi("renderblock: %s\n", currentBlock.c_str());
+              //HIGAN_LOGi("renderblock: %s\n", currentBlock.c_str());
             }
             break;
           }

@@ -265,10 +265,10 @@ void mainWindow(ProgramParams& params)
     Database<2048> ecs;
 
     app::World world;
-    world.loadGLTFScene(ecs, fs, "/scenes");
+    //world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 2;
+    int cubeCount = 8;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -544,6 +544,7 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
                 ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
                 ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
                 ImGui::Text("\t- barrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
                 ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
                 ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());

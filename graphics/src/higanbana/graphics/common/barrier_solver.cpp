@@ -250,6 +250,7 @@ namespace higanbana
         {
           auto& ginfo = m_textureStates[image.handle];
           auto refState = ginfo.states[image.startArr * ginfo.mips + image.startMip];
+          refState.queue_index = QueueType::Unknown;
           for (int slice = image.startArr; slice < image.startArr + image.arrSize; ++slice)
           {
             for (int mip = image.startMip; mip < image.startMip + image.mipSize; ++mip)
@@ -293,6 +294,7 @@ namespace higanbana
       barrier.buffers = MemView<BufferBarrier>(bufferBarriers.data()+drawCall.bufferOffset, drawCall.bufferCount);
       barrier.textures = MemView<ImageBarrier>(imageBarriers.data()+drawCall.imageOffset, drawCall.imageCount);
 
+      /*
       if (!barrier.textures.empty())
       {
         HIGAN_LOGi("%d Barrier with textures\n", drawCall.drawcall);
@@ -300,9 +302,10 @@ namespace higanbana
       for (auto&& tex : barrier.textures)
       {
         HIGAN_LOGi("\ttex %d barrier slice %d -> %d mip %d -> %d\n", tex.handle.id, tex.startArr, tex.startArr+tex.arrSize, tex.startMip, tex.startMip+tex.mipSize);
-        HIGAN_LOGi("\t\tbefore usage %10s stage %10s layout %s\n", toString(tex.before.usage), toString(tex.before.stage), toString(tex.before.layout));
-        HIGAN_LOGi("\t\tafter  usage %10s stage %10s layout %s\n", toString(tex.after.usage), toString(tex.after.stage), toString(tex.after.layout));
+        HIGAN_LOGi("\t\tbefore usage %10s stage %14s layout %16s queue %s\n", toString(tex.before.usage), toString(tex.before.stage), toString(tex.before.layout), toString(tex.before.queue_index));
+        HIGAN_LOGi("\t\tafter  usage %10s stage %14s layout %16s queue %s\n", toString(tex.after.usage), toString(tex.after.stage), toString(tex.after.layout), toString(tex.after.queue_index));
       }
+      */
 
       return barrier;
     }
