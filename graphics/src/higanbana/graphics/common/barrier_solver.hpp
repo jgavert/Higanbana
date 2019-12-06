@@ -35,13 +35,13 @@ namespace higanbana
       };
 
       // general info needed
-      unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
+      //unordered_map<DrawCallIndex, int> m_drawCallJobOffsets;
 
       int drawCallsAdded = 0;
 
       // global state tables
-      HandleVector<ResourceState>& m_bufferStates;
-      HandleVector<TextureResourceState>& m_textureStates;
+      HandleVector<ResourceState>* m_bufferStates;
+      HandleVector<TextureResourceState>* m_textureStates;
 
       unordered_set<ResourceHandle> m_uniqueBuffers;
       unordered_set<ResourceHandle> m_uniqueTextures;
@@ -83,10 +83,14 @@ namespace higanbana
       HandleVector<SmallBuffer> m_bufferCache;
       HandleVector<SmallTexture> m_imageCache;
     public:
+      BarrierSolver()
+        : m_bufferStates(nullptr)
+        , m_textureStates(nullptr)
+       {}
       BarrierSolver(HandleVector<ResourceState>& buffers
-      , HandleVector<TextureResourceState>& textures)
-        : m_bufferStates(buffers)
-        , m_textureStates(textures)
+                  , HandleVector<TextureResourceState>& textures)
+        : m_bufferStates(&buffers)
+        , m_textureStates(&textures)
        {}
 
       int addDrawCall();

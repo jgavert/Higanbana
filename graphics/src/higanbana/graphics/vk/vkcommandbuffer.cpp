@@ -36,7 +36,7 @@ namespace higanbana
         // 1. find all the resources
         for (auto&& it : subpass.rtvs.convertToMemView())
         {
-          auto* found = uidToAttachmendId.find(it.resource.id);
+          auto found = uidToAttachmendId.find(it.resource.id);
           if (found != uidToAttachmendId.end())
           {
             colors.emplace_back(vk::AttachmentReference()
@@ -86,7 +86,7 @@ namespace higanbana
         if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
         {
           auto& it = subpass.dsv;
-          auto* found = uidToAttachmendId.find(it.resource.id);
+          auto found = uidToAttachmendId.find(it.resource.id);
           if (found != uidToAttachmendId.end())
           {
             depthStencil.emplace_back(vk::AttachmentReference()
@@ -203,7 +203,7 @@ namespace higanbana
 
       for (auto&& it : subpass.rtvs.convertToMemView())
       {
-        auto* found = uidToAttachmendId.find(it.resource.id);
+        auto found = uidToAttachmendId.find(it.resource.id);
         if (found == uidToAttachmendId.end())
         {
           auto& view = device->allResources().texRTV[it];
@@ -222,7 +222,7 @@ namespace higanbana
       if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
       {
         // have dsv
-        auto* found = uidToAttachmendId.find(subpass.dsv.resource.id);
+        auto found = uidToAttachmendId.find(subpass.dsv.resource.id);
         if (found == uidToAttachmendId.end())
         {
           auto& view = device->allResources().texDSV[subpass.dsv];

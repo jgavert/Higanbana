@@ -289,6 +289,7 @@ namespace higanbana
 
       uint8_t* data = nullptr;
       D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
+      std::mutex m_allocatorLock;
     public:
       DX12UploadHeap() : allocator(1, 1) {}
       DX12UploadHeap(ID3D12Device* device, unsigned memoryAmount)
@@ -324,6 +325,7 @@ namespace higanbana
 
       UploadBlock allocate(size_t bytes, size_t alignment)
       {
+        std::lock_guard guard(m_allocatorLock);
         auto dip = allocator.allocate(bytes, alignment);
         HIGAN_ASSERT(dip.has_value(), "No space left, make bigger DX12UploadHeap :) %d", max_size());
         HIGAN_ASSERT(dip.value().offset % alignment == 0, "oh no");
@@ -332,6 +334,7 @@ namespace higanbana
 
       void release(UploadBlock desc)
       {
+        std::lock_guard guard(m_allocatorLock);
         allocator.free(desc.block);
       }
 

@@ -545,7 +545,8 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
                 ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
                 ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
-                ImGui::Text("\t- barrierSolve %.3fms", cmdlist.barrierSolve.milliseconds());
+                ImGui::Text("\t- barrierSolveLocal %.3fms", cmdlist.barrierSolveLocal.milliseconds());
+                ImGui::Text("\t- barrierSolveGlobal %.3fms", cmdlist.barrierSolveGlobal.milliseconds());
                 ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
                 ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
                 ImGui::Text("\tGPU nodes:");

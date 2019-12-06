@@ -34,7 +34,8 @@ namespace higanbana
     QueueType type;
     Timestamp cpuBackendTime;
     Timestamp barrierAdd;
-    Timestamp barrierSolve;
+    Timestamp barrierSolveLocal;
+    Timestamp barrierSolveGlobal;
     Timestamp fillNativeList;
     Timestamp gpuTime;
     Timestamp fromSubmitToFence;

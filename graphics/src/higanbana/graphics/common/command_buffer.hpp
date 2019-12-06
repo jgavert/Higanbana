@@ -214,7 +214,7 @@ namespace higanbana
       }
       */
 
-      CommandBuffer(CommandBuffer&& other)
+      CommandBuffer(CommandBuffer&& other) noexcept
         : m_data(std::move(other.m_data))
         , m_totalSize(std::move(other.m_totalSize))
         , m_usedSize(std::move(other.m_usedSize))

@@ -17,7 +17,7 @@ namespace higanbana
     void BarrierSolver::addTexture(int drawCallIndex, ViewResourceHandle texture, ResourceState access)
     {
       const ResourceState exampleState = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
-      m_imageCache[texture.resource].states.resize(m_textureStates[texture.resource].states.size(), exampleState);
+      m_imageCache[texture.resource].states.resize((*m_textureStates)[texture.resource].states.size(), exampleState);
       //m_imageCache[texture.resource].states = m_textureStates[texture.resource].states;
       m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access});
       m_uniqueTextures.insert(texture.resource);
@@ -245,14 +245,14 @@ namespace higanbana
       {
         if (buffer.before.usage == AccessUsage::Unknown)
         {
-          buffer.before = m_bufferStates[buffer.handle];
+          buffer.before = (*m_bufferStates)[buffer.handle];
         }
       }
       for (auto&& image : imageBarriers)
       {
         if (image.before.usage == AccessUsage::Unknown)
         {
-          auto& ginfo = m_textureStates[image.handle];
+          auto& ginfo = (*m_textureStates)[image.handle];
           auto refState = ginfo.states[image.startArr * ginfo.mips + image.startMip];
           refState.queue_index = QueueType::Unknown;
           for (int slice = image.startArr; slice < image.startArr + image.arrSize; ++slice)
@@ -275,12 +275,12 @@ namespace higanbana
       // update global state
       for (auto&& obj : m_uniqueBuffers)
       {
-        m_bufferStates[obj] = m_bufferCache[obj].state;
+        (*m_bufferStates)[obj] = m_bufferCache[obj].state;
       }
 
       for (auto&& obj : m_uniqueTextures)
       {
-        auto& globalState = m_textureStates[obj].states;
+        auto& globalState = (*m_textureStates)[obj].states;
         auto& localState = m_imageCache[obj].states;
         int globalSize = static_cast<int>(globalState.size());
         for (int i = 0; i < globalSize; ++i)

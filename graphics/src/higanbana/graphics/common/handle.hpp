@@ -125,6 +125,10 @@ namespace higanbana
     {
       return id == other.id;
     }
+    bool operator!=(const ResourceHandle& other) const
+    {
+      return id != other.id;
+    }
   };
 
   // Saving some space by making specific type for views

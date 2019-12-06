@@ -460,7 +460,7 @@ namespace app
     }
 
     {
-      auto node = tasks.createPass("opaquePass");
+      //auto node = tasks.createPass("opaquePass");
 
       // camera forming...
       auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
@@ -486,14 +486,19 @@ namespace app
 
         for (int i = 0; i < cubeCount; i+=stepSize)
         {
+          auto node = tasks.createPass("opaquePass - cubes");
           oldOpaquePass(node, perspective, backbuffer, cubeCount, i, i+stepSize);
           depthDSV.setOp(LoadOp::Load);
+          tasks.addPass(std::move(node));
         }
       }
       else
+      {
+        auto node = tasks.createPass("opaquePass - ecs");
         renderMeshes(node, perspective, backbuffer, instances);
+        tasks.addPass(std::move(node));
+      }
       
-      tasks.addPass(std::move(node));
     }
 
     // IMGUI

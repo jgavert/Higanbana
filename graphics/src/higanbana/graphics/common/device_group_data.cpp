@@ -13,6 +13,8 @@
 
 #include <higanbana/core/math/utils.hpp>
 
+#include <execution>
+
 namespace higanbana
 {
   namespace backend
@@ -897,10 +899,229 @@ namespace higanbana
       }
 
       timing.barrierAdd.stop();
-      timing.barrierSolve.start();
+
+      timing.barrierSolveLocal.start();
       solver.localBarrierPass1();
+      timing.barrierSolveLocal.stop();
+
+      timing.barrierSolveGlobal.start();
       solver.globalBarrierPass2();
-      timing.barrierSolve.stop();
+      timing.barrierSolveGlobal.stop();
+
+      timing.fillNativeList.start();
+      nativeList->fillWith(vdev.device, buffers, solver);
+      timing.fillNativeList.stop();
+    }
+
+    void DeviceGroupData::firstPassBarrierSolve(
+      VirtualDevice& vdev,
+      MemView<CommandBuffer>& buffers,
+      QueueType queue,
+      vector<QueueTransfer>& acquires,
+      vector<QueueTransfer>& releases,
+      CommandListTiming& timing,
+      BarrierSolver& solver)
+    {
+      timing.barrierAdd.start();
+
+      bool insideRenderpass = false;
+      int drawIndexBeginRenderpass = 0;
+
+      gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
+      ResourceHandle boundSets[4] = {};
+
+      for (auto&& buffer : buffers)
+      {
+        auto iter = buffer.begin();
+        while((*iter)->type != PacketType::EndOfPackets)
+        {
+          CommandBuffer::PacketHeader* header = *iter;
+          auto drawIndex = solver.addDrawCall();
+          HIGAN_ASSERT(drawIndex >= 0, "ups, infinite");
+          if (drawIndex == 0)
+          {
+            for (auto&& acq : acquires)
+            {
+              ResourceHandle h;
+              h.id = acq.id;
+              h.type = acq.type;
+              ViewResourceHandle view;
+              view.resource = h;
+              view.subresourceRange(1, 0, 1, 0, 1);
+              if (h.type == ResourceType::Buffer)
+              {
+                solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, acq.fromOrTo));
+              }
+              else
+              {
+                solver.addTexture(drawIndex, view, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, acq.fromOrTo));
+              }
+            }
+          }
+          //HIGAN_LOGi( "packet: %s", gfxpacket::packetTypeToString(header->type));
+          switch (header->type)
+          {
+            case PacketType::RenderpassEnd:
+            {
+              insideRenderpass = false;
+              break;
+            }
+            case PacketType::RenderpassBegin:
+            {
+              insideRenderpass = true;
+              drawIndexBeginRenderpass = drawIndex;
+              auto& packet = header->data<gfxpacket::RenderPassBegin>();
+              for (auto&& rtv : packet.rtvs.convertToMemView())
+              {
+                solver.addTexture(drawIndex, rtv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::Rendertarget, backend::TextureLayout::Rendertarget,  queue));
+              }
+              if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
+              {
+                solver.addTexture(drawIndex, packet.dsv, ResourceState(backend::AccessUsage::ReadWrite, backend::AccessStage::DepthStencil, backend::TextureLayout::DepthStencil,  queue));
+              }
+              break;
+            }
+            case PacketType::ResourceBinding:
+            {
+              auto& packet = header->data<gfxpacket::ResourceBinding>();
+              auto stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics ? backend::AccessStage::Graphics : backend::AccessStage::Compute;
+              stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing ? backend::AccessStage::Raytrace : stage;
+              if (packet.graphicsBinding != currentBoundType)
+              {
+                boundSets[0] = {};
+                boundSets[1] = {};
+                boundSets[2] = {};
+                boundSets[3] = {};
+                currentBoundType = packet.graphicsBinding;
+              }
+
+              auto usedDrawIndex = drawIndex;
+              if (insideRenderpass)
+              {
+                usedDrawIndex = drawIndexBeginRenderpass;
+              }
+              int i = 0;
+              for (auto&& handle : packet.resources.convertToMemView())
+              {
+                if (boundSets[i] != handle)
+                {
+                  boundSets[i] = handle;
+                  const auto& views = vdev.shaderArguments[handle];
+                  for (auto&& resource : views)
+                  {
+                    if (resource.type == ViewResourceType::BufferSRV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::BufferUAV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureSRV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureUAV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                    }
+                  }
+                }
+                ++i;
+              }
+              break;
+            }
+            case PacketType::BufferCopy:
+            {
+              auto& packet = header->data<gfxpacket::BufferCopy>();
+              ViewResourceHandle src;
+              src.resource = packet.src;
+              ViewResourceHandle dst;
+              dst.resource = packet.dst;
+              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              break;
+            }
+            case PacketType::DynamicBufferCopy:
+            {
+              auto& packet = header->data<gfxpacket::DynamicBufferCopy>();
+              ViewResourceHandle dst;
+              dst.resource = packet.dst;
+              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              break;
+            }
+            case PacketType::ReadbackBuffer:
+            {
+              auto& packet = header->data<gfxpacket::ReadbackBuffer>();
+              ViewResourceHandle src;
+              src.resource = packet.src;
+              solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              break;
+            }
+            case PacketType::UpdateTexture:
+            {
+              auto& packet = header->data<gfxpacket::UpdateTexture>();
+              ViewResourceHandle viewhandle{};
+              viewhandle.resource = packet.tex;
+              viewhandle.subresourceRange(packet.allMips, packet.mip, 1, packet.slice, 1);
+              solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
+              break;
+            }
+            case PacketType::PrepareForPresent:
+            {
+              auto& packet = header->data<gfxpacket::PrepareForPresent>();
+              ViewResourceHandle viewhandle{};
+              viewhandle.resource = packet.texture;
+              viewhandle.subresourceRange(1, 0, 1, 0, 1);
+              solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, queue));
+              break;
+            }
+            default:
+              break;
+          }
+
+          iter++;
+        }
+      }
+      if (!releases.empty())
+      {
+        buffers[buffers.size()-1].insert<gfxpacket::ReleaseFromQueue>();
+        auto drawIndex = solver.addDrawCall();
+        for (auto&& rel : releases)
+        {
+          ResourceHandle h;
+          h.id = rel.id;
+          h.type = rel.type;
+          ViewResourceHandle view;
+          view.resource = h;
+          view.subresourceRange(1, 0, 1, 0, 1);
+          if (h.type == ResourceType::Buffer)
+          {
+            solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Common, backend::TextureLayout::Undefined, rel.fromOrTo));
+          }
+          else
+          {
+            solver.addTexture(drawIndex, view, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Common, backend::TextureLayout::Undefined, rel.fromOrTo));
+          }
+        }
+      }
+
+      timing.barrierAdd.stop();
+
+      timing.barrierSolveLocal.start();
+      solver.localBarrierPass1();
+      timing.barrierSolveLocal.stop();
+    }
+
+    void DeviceGroupData::globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver)
+    {
+      timing.barrierSolveGlobal.start();
+      solver.globalBarrierPass2();
+      timing.barrierSolveGlobal.stop();
+    }
+
+    void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing)
+    {
       timing.fillNativeList.start();
       nativeList->fillWith(vdev.device, buffers, solver);
       timing.fillNativeList.stop();
@@ -1329,7 +1550,8 @@ namespace higanbana
 
           PreparedCommandlist plist{};
           plist.type = firstList->type;
-          plist.buffers.emplace_back(std::move(nodes[i].list->list));
+          auto list = std::move(nodes[i].list->list);
+          plist.buffers.emplace_back(std::move(list));
           //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
@@ -1343,6 +1565,8 @@ namespace higanbana
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
             if (nodes[i].type != plist.type)
+              break;
+            if (nodes[i].list->list.sizeBytes() > 500)
               break;
             plist.buffers.emplace_back(std::move(nodes[i].list->list));
             //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
@@ -1528,15 +1752,38 @@ namespace higanbana
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
         timing.listsCount = readyLists.size();
 
+        vector<BarrierSolver> solvers;
+        solvers.resize(readyLists.size());
+
         // technically possible to multithread this easily
         for (auto&& list : readyLists)
         {
           auto& buffer = lists[list.listID];
           auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+          auto& vdev = m_devices[list.deviceID];
+          solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
+          auto& solver = solvers[list.listID];
           // fillcommandbuffer should be split into different passes
-          fillCommandBuffer(list.lists[0], m_devices[list.deviceID], buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming);
-          list.listTiming.cpuBackendTime.stop();
+          //solvers[list.deviceID] = std::move(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
+          //auto& solver = solvers[list.deviceID];
+          //BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
+          // this part can be done in parallel
+          firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming, solver);
+          // this is order dependant
+          globalPassBarrierSolve(list.listTiming, solver);
+          // also parallel
         }
+
+        std::for_each(std::execution::par, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
+        {
+          auto& buffer = lists[list.listID];
+          auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+          auto& vdev = m_devices[list.deviceID];
+          auto& solver = solvers[list.listID];
+          fillNativeList(list.lists[0], vdev, buffersView, solver, list.listTiming);
+          list.listTiming.cpuBackendTime.stop();
+        });
+
         timing.fillCommandLists.stop();
 
         timing.submitSolve.start();
