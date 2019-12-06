@@ -898,7 +898,8 @@ namespace higanbana
 
       timing.barrierAdd.stop();
       timing.barrierSolve.start();
-      solver.makeAllBarriers();
+      solver.localBarrierPass1();
+      solver.globalBarrierPass2();
       timing.barrierSolve.stop();
       timing.fillNativeList.start();
       nativeList->fillWith(vdev.device, buffers, solver);
@@ -1230,6 +1231,316 @@ namespace higanbana
         }
         timing.fillCommandLists.stop();
         timing.submitSolve.start();
+        for (auto&& list : lists)
+        {
+          LiveCommandBuffer2 buffer = std::move(readyLists.front());
+          readyLists.pop_front();
+
+          auto& vdev = m_devices[list.device];
+          if (list.signal && list.type == QueueType::Graphics)
+          {
+            vdev.graphicsQSema = vdev.device->createSemaphore();
+            buffer.signal.push_back(vdev.graphicsQSema);
+          }
+          if (list.signal && list.type == QueueType::Compute)
+          {
+            vdev.computeQSema = vdev.device->createSemaphore();
+            buffer.signal.push_back(vdev.computeQSema);
+          }
+          if (list.signal && list.type == QueueType::Dma)
+          {
+            vdev.dmaQSema = vdev.device->createSemaphore();
+            buffer.signal.push_back(vdev.dmaQSema);
+          }
+
+          if (list.waitGraphics && vdev.graphicsQSema)
+            buffer.wait.push_back(vdev.graphicsQSema);
+          if (list.waitCompute && vdev.computeQSema)
+            buffer.wait.push_back(vdev.computeQSema);
+          if (list.waitDMA && vdev.dmaQSema)
+            buffer.wait.push_back(vdev.dmaQSema);
+
+          if (list.acquireSema)
+          {
+            buffer.wait.push_back(list.acquireSema);
+          }
+
+          if (list.presents && swapchain)
+          {
+            auto sc = swapchain.value();
+            auto presenene = sc.impl()->renderSemaphore();
+            if (presenene)
+            {
+              buffer.signal.push_back(presenene);
+            }
+          }
+
+          if (list.isLastList || !buffer.readbacks.empty())
+          {
+            buffer.fence = vdev.device->createFence();
+          }
+
+          std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+
+          if (buffer.fence)
+          {
+            viewToFence = buffer.fence;
+          }
+
+          buffer.listTiming.fromSubmitToFence.start();
+          switch (list.type)
+          {
+          case QueueType::Dma:
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.m_dmaBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Compute:
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.m_computeBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Graphics:
+          default:
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.m_gfxBuffers.emplace_back(buffer);
+          }
+          for (auto&& buffer : list.buffers)
+          {
+            m_commandBuffers.free(std::move(buffer));
+          }
+        }
+        timing.submitSolve.stop();
+      }
+      timing.submitCpuTime.stop();
+      timeOnFlightSubmits.push_back(timing);
+      if (graph.m_sequence != InvalidSeqNum)
+      {
+        m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
+        gc();
+      }
+    }
+    // submit function breakdown
+    vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes)
+    {
+        vector<PreparedCommandlist> lists;
+        int i = 0;
+        while (i < static_cast<int>(nodes.size()))
+        {
+          auto* firstList = &nodes[i];
+
+          PreparedCommandlist plist{};
+          plist.type = firstList->type;
+          plist.buffers.emplace_back(std::move(nodes[i].list->list));
+          //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
+          plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
+          plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
+          plist.readbacks = nodes[i].m_readbackPromises;
+          plist.acquireSema = nodes[i].acquireSemaphore;
+          plist.presents = nodes[i].preparesPresent;
+          plist.timing.nodes.emplace_back(nodes[i].timing);
+          plist.timing.type = firstList->type;
+
+          i += 1;
+          for (; i < static_cast<int>(nodes.size()); ++i)
+          {
+            if (nodes[i].type != plist.type)
+              break;
+            plist.buffers.emplace_back(std::move(nodes[i].list->list));
+            //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
+            plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
+            plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
+            plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
+            plist.timing.nodes.emplace_back(nodes[i].timing);
+            if (!plist.acquireSema)
+            {
+              plist.acquireSema = nodes[i].acquireSemaphore;
+            }
+            if (!plist.presents)
+            {
+              plist.presents = nodes[i].preparesPresent;
+            }
+          }
+
+          lists.emplace_back(std::move(plist));
+        }
+        int lsize = lists.size();
+        lists[lsize - 1].isLastList = true;
+        return lists;
+    }
+
+    void DeviceGroupData::returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen)
+    {
+      for (auto&& resource : firstUsageSeen)
+      {
+        for (int index = static_cast<int>(lists.size()) - 1; index >= 0; --index )
+        {
+          bool found = false;
+          auto queType = lists[index].type;
+          for (auto&& acquire : lists[index].acquire)
+          {
+            if (acquire.type == resource.type && acquire.id == resource.id && queType != resource.queue)
+            {
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found last acquire that needs releasing, explicit queue transfer! %d %s -> %s\n", resource.id, toString(queType), toString(resource.queue));
+              auto release = acquire;
+              release.fromOrTo = resource.queue;
+              lists[index].release.push_back(release);
+              found = true;
+              break;
+            }
+          }
+          if (found)
+            break;
+        }
+      }
+    }
+
+    void DeviceGroupData::handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen)
+    {
+      vector<QueueTransfer> uhOhGfx;
+      vector<QueueTransfer> uhOhCompute;
+      vector<QueueTransfer> uhOhDma;
+
+      // check states of first use resources
+      for (auto&& resource : firstUsageSeen)
+      {
+        auto& dev = m_devices[resource.deviceID];
+        if (resource.type == ResourceType::Buffer)
+        {
+          auto state = dev.m_bufferStates.at(resource.id);
+          if (state.queue_index != QueueType::Unknown)
+          {
+            if (state.queue_index != resource.queue)
+            {
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found buffer that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(state.queue_index), toString(resource.queue));
+              QueueTransfer info{};
+              info.fromOrTo = resource.queue;
+              info.id = resource.id;
+              info.type = resource.type;
+              if (state.queue_index == QueueType::Graphics)
+                uhOhGfx.push_back(info);
+              if (state.queue_index == QueueType::Compute)
+                uhOhCompute.push_back(info);
+              if (state.queue_index == QueueType::Dma)
+                uhOhDma.push_back(info);
+            }
+          }
+        }
+        else if (resource.type == ResourceType::Texture)
+        {
+          auto state = dev.m_textureStates.at(resource.id);
+          auto firstStateIsEnough = state.states[0]; // because all subresource are required to be in right queue, just decided.
+          if (firstStateIsEnough.queue_index != QueueType::Unknown)
+          {
+            if (firstStateIsEnough.queue_index != resource.queue)
+            {
+              IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "Found texture that needs handling, explicit queue transfer! %d %s -> %s\n", resource.id, toString(firstStateIsEnough.queue_index), toString(resource.queue));
+              QueueTransfer info{};
+              info.fromOrTo = resource.queue;
+              info.id = resource.id;
+              info.type = resource.type;
+              if (firstStateIsEnough.queue_index == QueueType::Graphics)
+                uhOhGfx.push_back(info);
+              if (firstStateIsEnough.queue_index == QueueType::Compute)
+                uhOhCompute.push_back(info);
+              if (firstStateIsEnough.queue_index == QueueType::Dma)
+                uhOhDma.push_back(info);
+            }
+          }
+        }
+      }
+
+      HIGAN_ASSERT(uhOhGfx.empty(), "Need to make lists to fix these resources...");
+      HIGAN_ASSERT(uhOhCompute.empty(), "Need to make lists to fix these resources...");
+      HIGAN_ASSERT(uhOhDma.empty(), "Need to make lists to fix these resources...");
+    }
+
+    deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID)
+    {
+      deque<LiveCommandBuffer2> readyLists;
+      int listID = 0;
+      for (auto&& list : lists)
+      {
+        std::shared_ptr<CommandBufferImpl> nativeList;
+        LiveCommandBuffer2 buffer{};
+        buffer.submitID = submitID;
+        buffer.listTiming = list.timing;
+        buffer.queue = list.type;
+        buffer.listTiming.cpuBackendTime.start();
+
+        auto& vdev = m_devices[list.device];
+
+        switch (list.type)
+        {
+        case QueueType::Dma:
+          nativeList = vdev.device->createDMAList();
+          break;
+        case QueueType::Compute:
+          nativeList = vdev.device->createComputeList();
+          break;
+        case QueueType::Graphics:
+        default:
+          nativeList = vdev.device->createGraphicsList();
+        }
+
+        buffer.deviceID = list.device;
+        buffer.started = m_seqTracker.next();
+        buffer.lists.emplace_back(nativeList);
+        buffer.readbacks = std::move(list.readbacks);
+
+        auto buffersView = makeMemView(list.buffers.data(), list.buffers.size());
+        buffer.listID = listID;
+        // patch readbacks
+        generateReadbackCommands(vdev, buffersView, list.type, buffer.readbacks);
+
+        // barriers&commands
+        readyLists.emplace_back(std::move(buffer));
+
+        listID++;
+      }
+      return readyLists;
+    }
+
+    void DeviceGroupData::submitMT(std::optional<Swapchain> swapchain, CommandGraph& graph)
+    {
+      SubmitTiming timing = graph.m_timing;
+      timing.id = m_submitIDs++;
+      timing.listsCount = 0;
+      timing.timeBeforeSubmit.stop();
+      timing.submitCpuTime.start();
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        timing.addNodes.start();
+        vector<PreparedCommandlist> lists = prepareNodes(nodes);
+        timing.addNodes.stop();
+
+        {
+          timing.graphSolve.start();
+          auto firstUsageSeen = checkQueueDependencies(lists);
+          returnResouresToOriginalQueues(lists, firstUsageSeen);
+          handleQueueTransfersWithinRendergraph(lists, firstUsageSeen);
+          timing.graphSolve.stop();
+        }
+
+
+        timing.fillCommandLists.start();
+
+        auto readyLists = makeLiveCommandBuffers(lists, timing.id);
+        timing.listsCount = readyLists.size();
+
+        // technically possible to multithread this easily
+        for (auto&& list : readyLists)
+        {
+          auto& buffer = lists[list.listID];
+          auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+          // fillcommandbuffer should be split into different passes
+          fillCommandBuffer(list.lists[0], m_devices[list.deviceID], buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming);
+          list.listTiming.cpuBackendTime.stop();
+        }
+        timing.fillCommandLists.stop();
+
+        timing.submitSolve.start();
+        // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         for (auto&& list : lists)
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());

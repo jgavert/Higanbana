@@ -201,12 +201,12 @@ namespace higanbana
 
     void submit(Swapchain& swapchain, CommandGraph graph)
     {
-      S().submit(swapchain, graph);
+      S().submitMT(swapchain, graph);
     }
 
     void submit(CommandGraph graph)
     {
-      S().submit(std::optional<Swapchain>(), graph);
+      S().submitMT(std::optional<Swapchain>(), graph);
     }
 
     void present(Swapchain& swapchain)

@@ -30,7 +30,7 @@ namespace higanbana
       m_drawBarries.clear();
     }
 
-    void BarrierSolver::makeAllBarriers()
+    void BarrierSolver::localBarrierPass1()
     {
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -236,6 +236,10 @@ namespace higanbana
         currentInfo.drawcall = drawIndex;
         m_drawBarries.push_back(currentInfo);
       }
+    }
+
+    void BarrierSolver::globalBarrierPass2()
+    {
       // patch list
       for (auto&& buffer : bufferBarriers)
       {

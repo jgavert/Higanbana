@@ -78,6 +78,7 @@ namespace higanbana
     struct LiveCommandBuffer2
     {
       int deviceID;
+      int listID;
       QueueType queue;
       SeqNum started;
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
@@ -209,9 +210,16 @@ namespace higanbana
       // streaming
       bool uploadInitialTexture(Texture& tex, CpuImage& image);
 
+      // submit breakdown
+      vector<PreparedCommandlist> prepareNodes(vector<CommandGraphNode>& nodes);
+      void returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
+      void handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
+      deque<LiveCommandBuffer2> makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID);
+
       // commandgraph
       CommandGraph startCommandGraph();
       void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
+      void submitMT(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain);
 
       // test
