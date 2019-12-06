@@ -338,6 +338,13 @@ namespace higanbana
         allocator.free(desc.block);
       }
 
+      void releaseVector(const vector<UploadBlock>& descs)
+      {
+        std::lock_guard guard(m_allocatorLock);
+        for (auto&& desc : descs)
+          allocator.free(desc.block);
+      }
+
       ID3D12Resource* native()
       {
         return resource.Get();

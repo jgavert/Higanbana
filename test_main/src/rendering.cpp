@@ -1,6 +1,8 @@
 #include "rendering.hpp"
 
 #include <imgui.h>
+#include <execution>
+#include <algorithm>
 
 using namespace higanbana;
 
@@ -482,7 +484,21 @@ namespace app
           {
             stepSize = stepSize - 1;
           }
-       } while(stepSize != oldStepSize);
+        } while(stepSize != oldStepSize);
+
+        //auto node = tasks.createPass("opaquePass - cubes");
+        /*
+        vector<std::pair<CommandGraphNode, int>> nodes;
+        for (int i = 0; i < cubeCount; i+=stepSize)
+        {
+          nodes.push_back(std::make_pair(tasks.createPass("opaquePass - cubes"), i));
+        }
+        std::for_each(std::execution::par, std::begin(nodes), std::end(nodes), [&](CommandGraphNode& node)
+        {
+          oldOpaquePass(node, perspective, backbuffer, cubeCount, i, i+stepSize);
+          depthDSV.setOp(LoadOp::Load);
+        });
+        */
 
         for (int i = 0; i < cubeCount; i+=stepSize)
         {

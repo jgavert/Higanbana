@@ -38,7 +38,7 @@ namespace higanbana
         {
           if (!buffers.empty())
           {
-            if (m_seqNumRequirements.size() > 3) // throttle so that we don't go too far ahead.
+            if (m_seqNumRequirements.size() > 20) // throttle so that we don't go too far ahead.
             {
               // force wait oldest
               int deviceID = buffers.front().deviceID;
