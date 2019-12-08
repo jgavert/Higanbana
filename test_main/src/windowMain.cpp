@@ -23,6 +23,7 @@
 #include "world/components.hpp"
 #include "world/entity_viewer.hpp"
 #include "world/visual_data_structures.hpp"
+#include "world/map_data_extractor.hpp"
 
 using namespace higanbana;
 using namespace higanbana::math;
@@ -262,6 +263,7 @@ void mainWindow(ProgramParams& params)
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
+    app::readInfoFromOpenMapDataASC(fs);
     Database<2048> ecs;
 
     app::World world;
