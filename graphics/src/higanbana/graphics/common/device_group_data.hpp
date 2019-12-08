@@ -79,9 +79,9 @@ namespace higanbana
     struct LiveCommandBuffer2
     {
       int deviceID;
-      int listID;
+      vector<int> listIDs;
       QueueType queue;
-      SeqNum started;
+      vector<SeqNum> started;
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
@@ -89,7 +89,7 @@ namespace higanbana
       vector<ReadbackPromise> readbacks;
       // timings
       uint64_t submitID;
-      CommandListTiming listTiming;
+      vector<CommandListTiming> listTiming;
     };
 
     struct QueueTransfer 

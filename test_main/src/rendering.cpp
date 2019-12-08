@@ -483,7 +483,7 @@ namespace app
         //auto node = tasks.createPass("opaquePass - cubes");
         
         vector<std::tuple<CommandGraphNode, int, int>> nodes;
-        int stepSize = std::max(1, cubeCount / cubeCommandLists);
+        int stepSize = std::max(1, int((float(cubeCount+1) / float(cubeCommandLists))+0.5f));
         for (int i = 0; i < cubeCount; i+=stepSize)
         {
           if (i+stepSize > cubeCount)

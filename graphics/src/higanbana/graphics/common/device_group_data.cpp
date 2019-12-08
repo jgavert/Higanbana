@@ -81,10 +81,13 @@ namespace higanbana
             while (buffersToFree > 0)
             {
               auto& buffer = buffers.front();
-              if (buffer.started != -1 && buffer.started != currentSeqNum)
+              for (auto&& start : buffer.started)
               {
-                m_seqTracker.complete(buffer.started);
-                currentSeqNum = buffer.started;
+                if (start != -1 && start != currentSeqNum)
+                {
+                  m_seqTracker.complete(start);
+                  currentSeqNum = start;
+                }
               }
               if (!buffer.readbacks.empty())
               {
@@ -101,17 +104,24 @@ namespace higanbana
               {
                 if (submit.id == queueId)
                 {
-                  buffer.listTiming.fromSubmitToFence.stop();
-                  buffer.lists.front()->readbackTimestamps(m_devices[buffer.deviceID].device, buffer.listTiming.nodes);
-                  buffer.listTiming.gpuTime.begin = buffer.listTiming.nodes.front().gpuTime.begin;
-                  buffer.listTiming.gpuTime.end = buffer.listTiming.nodes.back().gpuTime.end;
-                  submit.lists.push_back(buffer.listTiming);
-                  foundTiming = true;
+                  int offset = buffer.listIDs.front();
+                  for (auto&& id : buffer.listIDs)
+                  {
+                    auto& timing = buffer.listTiming[id - offset];
+                    auto& list = buffer.lists[id - offset];
+                    timing.fromSubmitToFence.stop();
+                    list->readbackTimestamps(m_devices[buffer.deviceID].device, timing.nodes);
+                    timing.gpuTime.begin = timing.nodes.front().gpuTime.begin;
+                    timing.gpuTime.end = timing.nodes.back().gpuTime.end;
+                    submit.lists.push_back(timing);
+                    foundTiming = true;
+                  }
                   break;
                 }
               }
               HIGAN_ASSERT(foundTiming, "Err, didn't find timing, error");
-              HIGAN_ASSERT(timeOnFlightSubmits.size() < 10, "wtf!"); 
+              HIGAN_ASSERT(timeOnFlightSubmits.size() < 20, "wtf!");
+              //HIGAN_LOGi("problem %zu?\n",timeOnFlightSubmits.size());
               while(!timeOnFlightSubmits.empty())
               {
                 auto& first = timeOnFlightSubmits.front();
@@ -1387,14 +1397,22 @@ namespace higanbana
     {
       deque<LiveCommandBuffer2> readyLists;
       int listID = 0;
+      
+      LiveCommandBuffer2 buffer{};
+      buffer.queue = lists[0].type;
+
       for (auto&& list : lists)
       {
+        if (list.type != buffer.queue)
+        {
+          readyLists.emplace_back(std::move(buffer));
+          buffer = LiveCommandBuffer2{};
+        }
         std::shared_ptr<CommandBufferImpl> nativeList;
-        LiveCommandBuffer2 buffer{};
         buffer.submitID = submitID;
-        buffer.listTiming = list.timing;
+        buffer.listTiming.push_back(list.timing);
         buffer.queue = list.type;
-        buffer.listTiming.cpuBackendTime.start();
+        buffer.listTiming.back().cpuBackendTime.start();
         buffer.fence = nullptr;
 
         auto& vdev = m_devices[list.device];
@@ -1413,20 +1431,20 @@ namespace higanbana
         }
 
         buffer.deviceID = list.device;
-        buffer.started = m_seqTracker.next();
+        buffer.started.push_back(m_seqTracker.next());
         buffer.lists.emplace_back(nativeList);
-        buffer.readbacks = std::move(list.readbacks);
 
         auto buffersView = makeMemView(list.buffers.data(), list.buffers.size());
-        buffer.listID = listID;
+        buffer.listIDs.push_back(listID);
         // patch readbacks
-        generateReadbackCommands(vdev, buffersView, list.type, buffer.readbacks);
-
-        // barriers&commands
-        readyLists.emplace_back(std::move(buffer));
+        generateReadbackCommands(vdev, buffersView, list.type, list.readbacks);
+        buffer.readbacks.insert(buffer.readbacks.end(), list.readbacks.begin(), list.readbacks.end());
+        //buffer.readbacks = std::move(list.readbacks);
 
         listID++;
       }
+      // barriers&commands
+      readyLists.emplace_back(std::move(buffer));
       return readyLists;
     }
 
@@ -1457,107 +1475,126 @@ namespace higanbana
         timing.fillCommandLists.start();
 
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
-        timing.listsCount = readyLists.size();
+        timing.listsCount = lists.size();
 
         vector<BarrierSolver> solvers;
-        solvers.resize(readyLists.size());
+        //solvers.resize(readyLists.size());
 
-        // technically possible to multithread this easily
         for (auto&& list : readyLists)
         {
           auto& vdev = m_devices[list.deviceID];
-          solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
+          for (auto&& id : list.listIDs)
+          {
+            solvers.push_back(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
+            //solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
+          }
         }
 
-        std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
-        {
-          auto& solver = solvers[list.listID];
-          auto& buffer = lists[list.listID];
-          auto& vdev = m_devices[list.deviceID];
-          auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
-          firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming, solver);
+        std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
+          int offset = list.listIDs[0];
+          std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            auto& solver = solvers[id];
+            auto& buffer = lists[id];
+            auto& vdev = m_devices[list.deviceID];
+            auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver);
+          });
         });
         
         for (auto&& list : readyLists)
         {
-          auto& solver = solvers[list.listID];
-          // this is order dependant
-          globalPassBarrierSolve(list.listTiming, solver);
-          // also parallel
+          int offset = list.listIDs[0];
+          for (auto&& id : list.listIDs)
+          {
+            auto& solver = solvers[id];
+            // this is order dependant
+            globalPassBarrierSolve(list.listTiming[id - offset], solver);
+            // also parallel
+          }
         }
 
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
         {
-          auto& buffer = lists[list.listID];
-          auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
-          auto& vdev = m_devices[list.deviceID];
-          auto& solver = solvers[list.listID];
-          fillNativeList(list.lists[0], vdev, buffersView, solver, list.listTiming);
-          list.listTiming.cpuBackendTime.stop();
+          int offset = list.listIDs[0];
+          std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            auto& buffer = lists[id];
+            auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+            auto& vdev = m_devices[list.deviceID];
+            auto& solver = solvers[id];
+            fillNativeList(list.lists[id-offset], vdev, buffersView, solver, list.listTiming[id - offset]);
+            list.listTiming[id - offset].cpuBackendTime.stop();
+          });
         });
 
         timing.fillCommandLists.stop();
 
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
-        for (auto&& list : lists)
+        //for (auto&& list : lists)
+        while(!readyLists.empty())
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());
           readyLists.pop_front();
 
-          auto& vdev = m_devices[list.device];
-          if (list.signal && list.type == QueueType::Graphics)
+          auto& vdev = m_devices[buffer.deviceID];
+          std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+          for (auto&& id : buffer.listIDs)
           {
-            vdev.graphicsQSema = vdev.device->createSemaphore();
-            buffer.signal.push_back(vdev.graphicsQSema);
-          }
-          if (list.signal && list.type == QueueType::Compute)
-          {
-            vdev.computeQSema = vdev.device->createSemaphore();
-            buffer.signal.push_back(vdev.computeQSema);
-          }
-          if (list.signal && list.type == QueueType::Dma)
-          {
-            vdev.dmaQSema = vdev.device->createSemaphore();
-            buffer.signal.push_back(vdev.dmaQSema);
-          }
-
-          if (list.waitGraphics && vdev.graphicsQSema)
-            buffer.wait.push_back(vdev.graphicsQSema);
-          if (list.waitCompute && vdev.computeQSema)
-            buffer.wait.push_back(vdev.computeQSema);
-          if (list.waitDMA && vdev.dmaQSema)
-            buffer.wait.push_back(vdev.dmaQSema);
-
-          if (list.acquireSema)
-          {
-            buffer.wait.push_back(list.acquireSema);
-          }
-
-          if (list.presents && swapchain)
-          {
-            auto sc = swapchain.value();
-            auto presenene = sc.impl()->renderSemaphore();
-            if (presenene)
+            auto& list = lists[id];
+            if (list.signal && list.type == QueueType::Graphics)
             {
-              buffer.signal.push_back(presenene);
+              vdev.graphicsQSema = vdev.device->createSemaphore();
+              buffer.signal.push_back(vdev.graphicsQSema);
+            }
+            if (list.signal && list.type == QueueType::Compute)
+            {
+              vdev.computeQSema = vdev.device->createSemaphore();
+              buffer.signal.push_back(vdev.computeQSema);
+            }
+            if (list.signal && list.type == QueueType::Dma)
+            {
+              vdev.dmaQSema = vdev.device->createSemaphore();
+              buffer.signal.push_back(vdev.dmaQSema);
+            }
+
+            if (list.waitGraphics && vdev.graphicsQSema)
+              buffer.wait.push_back(vdev.graphicsQSema);
+            if (list.waitCompute && vdev.computeQSema)
+              buffer.wait.push_back(vdev.computeQSema);
+            if (list.waitDMA && vdev.dmaQSema)
+              buffer.wait.push_back(vdev.dmaQSema);
+
+            if (list.acquireSema)
+            {
+              buffer.wait.push_back(list.acquireSema);
+            }
+
+            if (list.presents && swapchain)
+            {
+              auto sc = swapchain.value();
+              auto presenene = sc.impl()->renderSemaphore();
+              if (presenene)
+              {
+                buffer.signal.push_back(presenene);
+              }
+            }
+
+            if (list.isLastList || !buffer.readbacks.empty())
+            {
+              buffer.fence = vdev.device->createFence();
+            }
+
+            if (buffer.fence)
+            {
+              viewToFence = buffer.fence;
+            }
+
+            for (auto&& timing : buffer.listTiming)
+            {
+              timing.fromSubmitToFence.start();
             }
           }
-
-          if (list.isLastList || !buffer.readbacks.empty())
-          {
-            buffer.fence = vdev.device->createFence();
-          }
-
-          std::optional<std::shared_ptr<FenceImpl>> viewToFence;
-
-          if (buffer.fence)
-          {
-            viewToFence = buffer.fence;
-          }
-
-          buffer.listTiming.fromSubmitToFence.start();
-          switch (list.type)
+          switch (buffer.queue)
           {
           case QueueType::Dma:
             vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFence);
@@ -1572,9 +1609,13 @@ namespace higanbana
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          for (auto&& buffer : list.buffers)
+          for (auto&& id : buffer.listIDs)
           {
-            m_commandBuffers.free(std::move(buffer));
+            auto& list = lists[id];
+            for (auto&& buffer : list.buffers)
+            {
+              m_commandBuffers.free(std::move(buffer));
+            }
           }
         }
         timing.submitSolve.stop();
