@@ -388,7 +388,7 @@ namespace app
     worldRend.endRenderpass(node);
   }
 
-  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int cubeCount)
+  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists)
   {
     if (swapchain.outOfDate()) // swapchain can end up being outOfDate
     {
@@ -475,17 +475,6 @@ namespace app
       {
         backbuffer.setOp(LoadOp::Load);
         depthDSV.clearOp({});
-        int stepSize = 5;
-        int oldStepSize = stepSize;
-        do
-        {
-          oldStepSize = stepSize;
-          if (cubeCount % stepSize != 0)
-          {
-            stepSize = stepSize - 1;
-          }
-        } while(stepSize != oldStepSize);
-
         //auto node = tasks.createPass("opaquePass - cubes");
         /*
         vector<std::pair<CommandGraphNode, int>> nodes;
@@ -499,9 +488,14 @@ namespace app
           depthDSV.setOp(LoadOp::Load);
         });
         */
+        int stepSize = std::max(1, cubeCount / cubeCommandLists);
 
         for (int i = 0; i < cubeCount; i+=stepSize)
         {
+          if (i+stepSize > cubeCount)
+          {
+            stepSize = stepSize - (i+stepSize - cubeCount);
+          }
           auto node = tasks.createPass("opaquePass - cubes");
           oldOpaquePass(node, perspective, backbuffer, cubeCount, i, i+stepSize);
           depthDSV.setOp(LoadOp::Load);

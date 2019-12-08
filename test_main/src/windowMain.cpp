@@ -269,6 +269,7 @@ void mainWindow(ProgramParams& params)
     app::EntityView entityViewer;
     bool renderECS = false;
     int cubeCount = 20;
+    int cubeCommandLists = 4;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -605,6 +606,7 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
               ImGui::SameLine();
               ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
+              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 64);
             }
             ImGui::End();
             // render entities
@@ -685,7 +687,7 @@ void mainWindow(ProgramParams& params)
               ac.minZ = set.minZ;
               ac.maxZ = set.maxZ;
             });
-            rend.render(ac, allMeshesToDraw, cubeCount);
+            rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists);
           }
         });
         while (!window.simpleReadMessages(frame++))

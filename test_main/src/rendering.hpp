@@ -100,7 +100,7 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void windowResized();
-  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount);
+  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
 
   int loadMesh(MeshData& data);
