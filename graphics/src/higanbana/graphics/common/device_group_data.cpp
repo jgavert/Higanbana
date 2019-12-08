@@ -159,22 +159,6 @@ namespace higanbana
       for (auto&& vdev : m_devices)
       {
         vdev.device->waitGpuIdle();
-        auto waitBuffers = [&](deque<LiveCommandBuffer2>& buffer)
-        {
-          if (!buffer.empty())
-          {
-            for (auto&& liveBuffer : buffer)
-            {
-              if (liveBuffer.fence)
-              {
-                vdev.device->waitFence(liveBuffer.fence);
-              }
-            }
-          }
-        };
-        waitBuffers(vdev.m_gfxBuffers);
-        waitBuffers(vdev.m_computeBuffers);
-        waitBuffers(vdev.m_dmaBuffers);
       }
       checkCompletedLists();
     }
@@ -1411,6 +1395,7 @@ namespace higanbana
         buffer.listTiming = list.timing;
         buffer.queue = list.type;
         buffer.listTiming.cpuBackendTime.start();
+        buffer.fence = nullptr;
 
         auto& vdev = m_devices[list.device];
 

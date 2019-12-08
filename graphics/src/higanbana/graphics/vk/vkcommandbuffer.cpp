@@ -332,7 +332,7 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
       if (!block)
       {
-        auto newBlock = m_constants->allocate(VulkanConstantAlignment * 256);
+        auto newBlock = m_constants->allocate(256 * 256);
         HIGAN_ASSERT(newBlock, "What!");
         m_allocatedConstants.push_back(newBlock);
         m_constantsAllocator = VkUploadLinearAllocator(newBlock);
@@ -345,13 +345,9 @@ namespace higanbana
 
     void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline)
     {
-      // get dynamicbuffer for constants
-      // collect otherviews and indexes
-      // build... DescriptorSet... I need the pipeline
-      auto defaultDescLayout = device->defaultDescLayout();
-      auto layout = device->allResources().pipelines[pipeline].m_pipelineLayout;
-      auto set = device->allResources().pipelines[pipeline].m_staticSet;
-
+      auto& pipe = device->allResources().pipelines[pipeline];
+      auto staticSet = pipe.m_staticSet;
+      auto pipeLayout = pipe.m_pipelineLayout;
       auto pconstants = packet.constants.convertToMemView();
       auto block = allocateConstants(pconstants.size());
       HIGAN_ASSERT(block.block.size <= 1024, "Constants larger than 1024bytes not supported...");
@@ -366,7 +362,6 @@ namespace higanbana
       {
         bindpoint = vk::PipelineBindPoint::eRayTracingNV;
       }
-      m_tempSets.clear();
       auto firstSet = 0;
       auto i = 0;
       bool canSkip = true;
@@ -378,12 +373,13 @@ namespace higanbana
           continue;
         }
         canSkip = false;
-        m_tempSets.push_back(device->allResources().shaArgs[shaderArguments].native());
+        m_tempSets[i] = device->allResources().shaArgs[shaderArguments].native();
         m_boundDescriptorSets[i] = shaderArguments;
         i++;
       }
-      m_tempSets.push_back(set);
-      buffer.bindDescriptorSets(bindpoint, layout, firstSet, m_tempSets, {static_cast<uint32_t>(block.offset())});
+      m_tempSets[i] = pipe.m_staticSet;
+      vk::ArrayProxy<const vk::DescriptorSet> sets(i+1 - firstSet, m_tempSets.data() + firstSet);
+      buffer.bindDescriptorSets(bindpoint, pipeLayout, firstSet, sets, {static_cast<uint32_t>(block.offset())});
     }
 
     std::string buildStageString(int stage)
@@ -843,6 +839,7 @@ namespace higanbana
     // implementations
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
+      m_tempSets.resize(5);
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
 
       // preprocess to compile renderpasses/pipelines

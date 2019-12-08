@@ -299,7 +299,7 @@ namespace higanbana
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 128 * 1024, 1024)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256 * 3 * 64 * 1024)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256 * 5 * 64 * 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
@@ -2496,6 +2496,7 @@ namespace higanbana
     void VulkanDevice::waitFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<VulkanFence>(fence);
+      HIGAN_ASSERT(native->native() != VK_NULL_HANDLE, "expected non null handle");
       vk::ArrayProxy<const vk::Fence> proxy(native->native());
       auto res = m_device.waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
       HIGAN_ASSERT(res == vk::Result::eSuccess, "uups");
