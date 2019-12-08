@@ -195,9 +195,11 @@ namespace higanbana
   class CommandBufferPool
   {
     vector<backend::CommandBuffer> buffers;
+    std::mutex m_bufferLock;
     public:
     CommandList allocate()
     {
+      std::lock_guard<std::mutex> lock(m_bufferLock);
       if (buffers.empty())
         return backend::CommandBuffer();
       backend::CommandBuffer buffer = std::move(buffers.back());
@@ -206,6 +208,7 @@ namespace higanbana
     }
     void free(backend::CommandBuffer&& buffer)
     {
+      std::lock_guard<std::mutex> lock(m_bufferLock);
       buffers.emplace_back(std::move(buffer));
     }
   };
