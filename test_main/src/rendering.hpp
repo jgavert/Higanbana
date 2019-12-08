@@ -93,6 +93,7 @@ class Renderer
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
 
+  void drawHeightMapInVeryStupidWay(higanbana::CommandGraphNode& node, float3 pos, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::CpuImage& image, int pixels, int xBegin, int xEnd);
   void oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd);
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
@@ -101,7 +102,7 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void windowResized();
-  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
+  void render(ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
 
   int loadMesh(MeshData& data);

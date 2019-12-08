@@ -263,7 +263,7 @@ void mainWindow(ProgramParams& params)
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
-    app::readInfoFromOpenMapDataASC(fs);
+    auto coolHeightmap = app::readInfoFromOpenMapDataASC(fs);
     Database<2048> ecs;
 
     app::World world;
@@ -698,7 +698,7 @@ void mainWindow(ProgramParams& params)
               ac.minZ = set.minZ;
               ac.maxZ = set.maxZ;
             });
-            rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists);
+            rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
           }
         });
         while (!window.simpleReadMessages(frame++))
