@@ -1,5 +1,4 @@
 #include "higanbana/graphics/common/resources.hpp"
-#include "higanbana/graphics/common/gpudevice.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/common/implementation.hpp"
 #include "higanbana/graphics/common/semaphore.hpp"

@@ -1,6 +1,8 @@
 #pragma once
 #include "higanbana/graphics/vk/vkresources.hpp"
 #include <optional>
+#include <mutex>
+
 namespace higanbana
 {
   namespace backend
@@ -67,6 +69,9 @@ namespace higanbana
       size_t m_maxDescriptorSets;
 
       Resources m_allRes;
+
+      // thread lock stuff
+      std::mutex m_deviceLock;
     public:
       VulkanDevice(
         vk::Device device,
@@ -100,6 +105,7 @@ namespace higanbana
 
       DeviceStatistics statsOfResourcesInUse() override;
       Resources& allResources() { return m_allRes; }
+      std::lock_guard<std::mutex> deviceLock() { return std::lock_guard<std::mutex>(m_deviceLock); }
 
       QueueIndexes queueIndexes() const { return QueueIndexes{m_mainQueueIndex, m_computeQueueIndex, m_copyQueueIndex}; }
 

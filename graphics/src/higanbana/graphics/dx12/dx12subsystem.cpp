@@ -1,6 +1,5 @@
 #include "higanbana/graphics/dx12/dx12subsystem.hpp"
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-#include "higanbana/graphics/common/gpudevice.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/definitions.hpp"
 #include <higanbana/core/Platform/Window.hpp>

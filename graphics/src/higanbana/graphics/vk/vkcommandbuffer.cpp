@@ -14,10 +14,11 @@ namespace higanbana
     {
       // step1. check if renderpass is done, otherwise create renderpass
       auto& renderpassbegin = packet;
-      auto& rp = device->allResources().renderpasses[packet.renderpass];
 
-      if (!rp.valid())
+      if (!device->allResources().renderpasses[packet.renderpass].valid())
       {
+        auto& rp = device->allResources().renderpasses[packet.renderpass];
+        auto guard = device->deviceLock();
         int subpassIndex = 0;
 
         unordered_map<int64_t, int> uidToAttachmendId;
@@ -192,6 +193,7 @@ namespace higanbana
         rp.setValid();
       }
 
+      auto& rp = device->allResources().renderpasses[packet.renderpass];
       // step2. collect and register framebuffer to renderpass
       unordered_map<int64_t, int> uidToAttachmendId;
       vector<vk::ImageView> attachments;
@@ -330,7 +332,7 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
       if (!block)
       {
-        auto newBlock = m_constants->allocate(VulkanConstantAlignment * 32);
+        auto newBlock = m_constants->allocate(VulkanConstantAlignment * 256);
         HIGAN_ASSERT(newBlock, "What!");
         m_allocatedConstants.push_back(newBlock);
         m_constantsAllocator = VkUploadLinearAllocator(newBlock);

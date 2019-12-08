@@ -75,6 +75,7 @@ namespace higanbana
         return garb;
       }
     };
+
     struct LiveCommandBuffer2
     {
       int deviceID;
@@ -222,8 +223,8 @@ namespace higanbana
 
       // commandgraph
       CommandGraph startCommandGraph();
-      void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
-      void submitMT(std::optional<Swapchain> swapchain, CommandGraph& graph);
+      //void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
+      void submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void present(Swapchain& swapchain);
 
       // test

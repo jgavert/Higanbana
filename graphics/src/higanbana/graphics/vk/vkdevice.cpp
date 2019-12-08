@@ -1080,10 +1080,13 @@ namespace higanbana
 
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
     {
-      auto& vp = m_allRes.pipelines[pipeline];
-      if (vp.m_hasPipeline && !vp.needsUpdating())
+      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
         return {};
 
+      std::lock_guard<std::mutex> pipelineUpdateLock(m_deviceLock);
+      auto& vp = m_allRes.pipelines[pipeline];
+      if (vp.m_hasPipeline->load() && !vp.needsUpdating())
+        return {};
       GFX_LOG("Updating Graphics Pipeline %s", vp.m_gfxDesc.desc.vertexShaderPath.c_str());
       //if (!ptr->needsUpdating())
       //  return;
@@ -1199,7 +1202,7 @@ namespace higanbana
         ret = vp.m_pipeline;
       }
       vp.m_pipeline = compiled.value;
-      vp.m_hasPipeline = true;
+      vp.m_hasPipeline->store(true);
       HIGAN_ILOG("Vulkan", "Pipeline compiled...");
 
       if (m_dynamicDispatch.vkGetPipelineExecutablePropertiesKHR)
@@ -1250,9 +1253,12 @@ namespace higanbana
 
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline)
     {
-      auto& pipe = m_allRes.pipelines[pipeline];
+      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].cs.updated())
+        return {};
 
-      if (pipe.m_hasPipeline && !pipe.cs.updated())
+      std::lock_guard<std::mutex> pipelineUpdateLock(m_deviceLock);
+      auto& pipe = m_allRes.pipelines[pipeline];
+      if (pipe.m_hasPipeline->load() && !pipe.cs.updated())
         return {};
 
       GFX_LOG("Updating Compute Pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
@@ -1290,7 +1296,7 @@ namespace higanbana
           oldPipe = pipe.m_pipeline;
         }
         pipe.m_pipeline = result.value;
-        pipe.m_hasPipeline = true;
+        pipe.m_hasPipeline->store(true);
       }
       return oldPipe;
     }
@@ -1664,6 +1670,7 @@ namespace higanbana
 
     void VulkanDevice::createRenderpass(ResourceHandle handle)
     {
+      m_allRes.renderpasses[handle] = VulkanRenderpass();
     }
 
 

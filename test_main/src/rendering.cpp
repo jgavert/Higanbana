@@ -165,6 +165,7 @@ namespace app
     opaque = dev.createGraphicsPipeline(opaqueDescriptor);
 
     opaqueRP = dev.createRenderpass();
+    opaqueRPWithLoad = dev.createRenderpass();
 
     depth = dev.createTexture(higanbana::ResourceDescriptor()
       .setSize(uint2(1280, 720))
@@ -296,7 +297,12 @@ namespace app
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
     //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    node.renderpass(opaqueRP, backbuffer, depthDSV);
+    auto rp = opaqueRP;
+    if (depthDSV.loadOp() == LoadOp::Load)
+    {
+      rp = opaqueRPWithLoad;
+    }
+    node.renderpass(rp, backbuffer, depthDSV);
     {
       auto binding = node.bind(opaque);
 
@@ -405,7 +411,6 @@ namespace app
     TextureRTV backbuffer = obackbuffer.value();
     CommandGraph tasks = dev.createGraph();
 
-    /*
     {
       auto node = tasks.createPass("generate Texture");
 
@@ -424,7 +429,7 @@ namespace app
 
 
       tasks.addPass(std::move(node));
-    }*/
+    }
 
     {
       auto node = tasks.createPass("composite");

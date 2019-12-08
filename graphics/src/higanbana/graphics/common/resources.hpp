@@ -63,6 +63,14 @@ namespace higanbana
     std::string apiVersionStr;
   };
 
+  enum class ThreadedSubmission
+  {
+    Sequenced,
+    Parallel,
+    ParallelUnsequenced,
+    Unsequenced
+  };
+
   struct MemoryRequirements
   {
     size_t alignment;

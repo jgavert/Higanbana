@@ -14,6 +14,7 @@
 #include <higanbana/core/system/heap_allocator.hpp>
 
 #include <algorithm>
+#include <mutex>
 
 #define VK_CHECK_RESULT(value) HIGAN_ASSERT(value.result == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value.result).c_str())
 #define VK_CHECK_RESULT_RAW(value) HIGAN_ASSERT(value == vk::Result::eSuccess, "Result was not success: \"%s\"", vk::to_string(value).c_str())
@@ -623,7 +624,7 @@ namespace higanbana
     {
     public:
       vk::Pipeline            m_pipeline;
-      bool                    m_hasPipeline;
+      std::shared_ptr<std::atomic<bool>> m_hasPipeline;
       vk::PipelineLayout      m_pipelineLayout;
       vk::DescriptorSet       m_staticSet;
       GraphicsPipelineDescriptor m_gfxDesc;
@@ -645,14 +646,14 @@ namespace higanbana
       VulkanPipeline() {}
 
       VulkanPipeline(vk::PipelineLayout pipelineLayout, GraphicsPipelineDescriptor gfxDesc, vk::DescriptorSet set)
-        : m_hasPipeline(false)
+        : m_hasPipeline(std::make_shared<std::atomic<bool>>(false))
         , m_pipelineLayout(pipelineLayout)
         , m_staticSet(set)
         , m_gfxDesc(gfxDesc)
       {}
 
       VulkanPipeline(vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc, vk::DescriptorSet set)
-        : m_hasPipeline(false)
+        : m_hasPipeline(std::make_shared<std::atomic<bool>>(false))
         , m_pipelineLayout(pipelineLayout)
         , m_staticSet(set)
         , m_computeDesc(computeDesc)
@@ -660,7 +661,7 @@ namespace higanbana
 
       VulkanPipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout, ComputePipelineDescriptor computeDesc, vk::DescriptorSet set)
         : m_pipeline(pipeline)
-        , m_hasPipeline(true)
+        , m_hasPipeline(std::make_shared<std::atomic<bool>>(true))
         , m_pipelineLayout(pipelineLayout)
         , m_staticSet(set)
         , m_computeDesc(computeDesc)
@@ -676,21 +677,22 @@ namespace higanbana
     {
     private:
       vk::RenderPass m_renderpass = nullptr;
-      bool is_valid = false;
+      std::shared_ptr<std::atomic<bool>> is_valid = nullptr;
       size_t m_activeHash = 0;
     public:
 
       VulkanRenderpass()
+        : is_valid(std::make_shared<std::atomic<bool>>(false))
        {}
 
       bool valid() const
       {
-        return is_valid;
+        return is_valid->load();
       }
 
       void setValid()
       {
-        is_valid = true;
+        is_valid->store(true);
       }
 
       vk::RenderPass& native()
@@ -829,6 +831,7 @@ namespace higanbana
       unsigned minUniformBufferAlignment;
 
       uint8_t* data = nullptr;
+      std::mutex m_allocatorBlocker;
     public:
       VulkanConstantUploadHeap() : allocator(1, 1) {}
       VulkanConstantUploadHeap(vk::Device device
@@ -885,6 +888,7 @@ namespace higanbana
 
       VkUploadBlock allocate(size_t bytes)
       {
+        std::lock_guard<std::mutex> guard(m_allocatorBlocker);
         auto dip = allocator.allocate(bytes, minUniformBufferAlignment);
         HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
         return VkUploadBlock{ data, m_buffer,  dip.value() };
@@ -892,7 +896,15 @@ namespace higanbana
 
       void release(VkUploadBlock desc)
       {
+        std::lock_guard<std::mutex> guard(m_allocatorBlocker);
         allocator.free(desc.block);
+      }
+
+      void releaseRange(vector<VkUploadBlock>& descs)
+      {
+        std::lock_guard<std::mutex> guard(m_allocatorBlocker);
+        for (auto&& desc : descs)
+          allocator.free(desc.block);
       }
 
       vk::Buffer buffer()

@@ -268,7 +268,7 @@ void mainWindow(ProgramParams& params)
     //world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 20;
+    int cubeCount = 10;
     int cubeCommandLists = 4;
 
     {
@@ -488,16 +488,14 @@ void mainWindow(ProgramParams& params)
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
 
             ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
-            if (ImGui::CollapsingHeader("Keys"))
-            {
-              ImGui::Text(" Exit:                         ESC");
-              ImGui::Text(" Capture Mouse:                F1");
-              ImGui::Text(" Release Mouse:                F2");
-              ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
-              ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
-              ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
-            }
 
+            {
+              ImGui::Checkbox("render ECS", &renderECS);
+              ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
+              ImGui::SameLine();
+              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
+              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 64);
+            }
             auto si = rend.timings();
             if (si && ImGui::CollapsingHeader("Renderpass"))
             {
@@ -540,20 +538,26 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
               ImGui::Text("- Submit total %.2fms", rsi.submitCpuTime.milliseconds());
 
+              int listIndex = 0;
               for (auto& cmdlist : rsi.lists)
               {
-                ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
-                ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
-                ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
-                ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
-                ImGui::Text("\t- barrierSolveLocal %.3fms", cmdlist.barrierSolveLocal.milliseconds());
-                ImGui::Text("\t- barrierSolveGlobal %.3fms", cmdlist.barrierSolveGlobal.milliseconds());
-                ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
-                ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
-                ImGui::Text("\tGPU nodes:");
-                for (auto& graphNode : cmdlist.nodes)
+                std::string listName = listName += toString(cmdlist.type) + std::to_string(listIndex++);
+                if (ImGui::TreeNode(listName.c_str()))
                 {
-                  ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                  //ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
+                  ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
+                  ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                  ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
+                  ImGui::Text("\t- barrierSolveLocal %.3fms", cmdlist.barrierSolveLocal.milliseconds());
+                  ImGui::Text("\t- barrierSolveGlobal %.3fms", cmdlist.barrierSolveGlobal.milliseconds());
+                  ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
+                  ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
+                  ImGui::Text("\tGPU nodes:");
+                  for (auto& graphNode : cmdlist.nodes)
+                  {
+                    ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                  }
+                  ImGui::TreePop();
                 }
               }
             }
@@ -575,38 +579,42 @@ void mainWindow(ProgramParams& params)
               }
             }
             {
-              auto& t_pos = ecs.get<components::WorldPosition>();
-              auto& t_rot = ecs.get<components::Rotation>();
-              auto& t_cameraSet = ecs.get<components::CameraSettings>();
-              query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
-              [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+              if (ImGui::CollapsingHeader("Camera"))
               {
-                ImGui::Text("Camera");
-                ImGui::DragFloat3("position", pos.pos.data);
-                float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
-                float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
-                float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, rot.rot));
-                float3 xyz{};
-                ImGui::DragFloat3("xyz", xyz.data, 0.01f);
-                ImGui::DragFloat4("quaternion", rot.rot.data, 0.01f);
-                ImGui::DragFloat3("forward", dir.data);
-                ImGui::DragFloat3("side", sideVec.data);
-                ImGui::DragFloat3("up", updir.data);
-                ImGui::DragFloat("fov", &set.fov, 0.1f);
-                ImGui::DragFloat("minZ", &set.minZ, 0.1f);
-                ImGui::DragFloat("maxZ", &set.maxZ, 1.f);
-                quaternion yaw = math::rotateAxis(updir, xyz.x);
-                quaternion pitch = math::rotateAxis(sideVec, xyz.y);
-                quaternion roll = math::rotateAxis(dir, xyz.z);
-                rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
-              });
+                auto& t_pos = ecs.get<components::WorldPosition>();
+                auto& t_rot = ecs.get<components::Rotation>();
+                auto& t_cameraSet = ecs.get<components::CameraSettings>();
+                query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
+                [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+                {
+                  ImGui::DragFloat3("position", pos.pos.data);
+                  float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
+                  float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
+                  float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, rot.rot));
+                  float3 xyz{};
+                  ImGui::DragFloat3("xyz", xyz.data, 0.01f);
+                  ImGui::DragFloat4("quaternion", rot.rot.data, 0.01f);
+                  ImGui::DragFloat3("forward", dir.data);
+                  ImGui::DragFloat3("side", sideVec.data);
+                  ImGui::DragFloat3("up", updir.data);
+                  ImGui::DragFloat("fov", &set.fov, 0.1f);
+                  ImGui::DragFloat("minZ", &set.minZ, 0.1f);
+                  ImGui::DragFloat("maxZ", &set.maxZ, 1.f);
+                  quaternion yaw = math::rotateAxis(updir, xyz.x);
+                  quaternion pitch = math::rotateAxis(sideVec, xyz.y);
+                  quaternion roll = math::rotateAxis(dir, xyz.z);
+                  rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
+                });
+              }
             }
+            if (ImGui::CollapsingHeader("Keys"))
             {
-              ImGui::Checkbox("render ECS", &renderECS);
-              ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
-              ImGui::SameLine();
-              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
-              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 64);
+              ImGui::Text(" Exit:                         ESC");
+              ImGui::Text(" Capture Mouse:                F1");
+              ImGui::Text(" Release Mouse:                F2");
+              ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+              ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
+              ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
             }
             ImGui::End();
             // render entities

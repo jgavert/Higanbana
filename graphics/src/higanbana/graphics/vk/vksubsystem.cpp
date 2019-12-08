@@ -1,6 +1,5 @@
 #include "higanbana/graphics/vk/vksubsystem.hpp"
 #include "higanbana/graphics/vk/vkdevice.hpp"
-#include "higanbana/graphics/common/gpudevice.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/vk/vkresources.hpp"
 #include <higanbana/core/Platform/Window.hpp>

@@ -48,6 +48,7 @@ class Renderer
 
   higanbana::GraphicsPipeline opaque;
   higanbana::Renderpass opaqueRP;
+  higanbana::Renderpass opaqueRPWithLoad;
 
   higanbana::PingPongTexture proxyTex;
   higanbana::ShaderArgumentsLayout compLayout;
