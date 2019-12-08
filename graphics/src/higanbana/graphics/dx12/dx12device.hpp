@@ -68,12 +68,17 @@ namespace higanbana
         D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
       } m_features;
 
+      // locks and stuff
+      std::mutex m_deviceMutex;
+
       friend class DX12CommandList;
 
       D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);
       ~DX12Device();
+
+      std::lock_guard<std::mutex> deviceLock() { return std::lock_guard<std::mutex>(m_deviceMutex);}
 
       DeviceStatistics statsOfResourcesInUse() override;
 

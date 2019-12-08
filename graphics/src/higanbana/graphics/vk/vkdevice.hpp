@@ -33,7 +33,7 @@ namespace higanbana
 
       StaticSamplers              m_samplers;
 
-      VulkanDescriptorPool        m_descriptors;
+      std::shared_ptr<VulkanDescriptorPool> m_descriptors;
 
       Rabbitpool2<VulkanSemaphore>    m_semaphores;
       Rabbitpool2<VulkanFence>        m_fences;

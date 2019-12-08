@@ -537,7 +537,7 @@ namespace higanbana
 
       VK_CHECK_RESULT(poolRes);
 
-      m_descriptors = VulkanDescriptorPool(poolRes.value);
+      m_descriptors = std::make_shared<VulkanDescriptorPool>(poolRes.value);
 
       // constant+static samplers descriptorlayout
       {
@@ -560,7 +560,7 @@ namespace higanbana
       for (auto&& arg : m_allRes.shaArgs.view()) {
         if (arg) {
           auto set = arg.native();
-          m_descriptors.freeSets(m_device, makeMemView(set));
+          m_descriptors->freeSets(m_device, makeMemView(set));
         }
       }
       // descriptors
@@ -626,7 +626,7 @@ namespace higanbana
         if (pipe) {
           m_device.destroyPipeline(pipe.m_pipeline);
           m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
-          m_descriptors.freeSets(m_device, makeMemView(pipe.m_staticSet));
+          m_descriptors->freeSets(m_device, makeMemView(pipe.m_staticSet));
         }
       }
       for (auto&& memory : m_allRes.heaps.view()) {
@@ -654,7 +654,7 @@ namespace higanbana
       m_device.destroySampler(m_samplers.m_pointSampler);
       m_device.destroySampler(m_samplers.m_bilinearSamplerWrap);
       m_device.destroySampler(m_samplers.m_pointSamplerWrap);
-      m_device.destroyDescriptorPool(m_descriptors.native());
+      m_device.destroyDescriptorPool(m_descriptors->native());
 
       m_device.destroy();
     }
@@ -1317,7 +1317,7 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.shaders.front().second.c_str());
 
-      auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
+      auto set = m_descriptors->allocate(m_device, defaultDescLayout(), 1);
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(m_constantAllocators->buffer())
@@ -1353,7 +1353,7 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.shader());
 
-      auto set = m_descriptors.allocate(m_device, defaultDescLayout(), 1);
+      auto set = m_descriptors->allocate(m_device, defaultDescLayout(), 1);
       m_descriptorSetsInUse++;
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
@@ -1485,7 +1485,7 @@ namespace higanbana
         {
           m_device.destroyPipeline(m_allRes.pipelines[handle].m_pipeline);
           m_device.destroyPipelineLayout(m_allRes.pipelines[handle].m_pipelineLayout);
-          m_descriptors.freeSets(m_device, makeMemView(m_allRes.pipelines[handle].m_staticSet));
+          m_descriptors->freeSets(m_device, makeMemView(m_allRes.pipelines[handle].m_staticSet));
           m_allRes.pipelines[handle] = VulkanPipeline();
           break;
         }
@@ -1531,7 +1531,7 @@ namespace higanbana
           auto& dyn = m_allRes.shaArgs[handle];
           auto set = dyn.native();
           m_descriptorSetsInUse--;
-          m_descriptors.freeSets(m_device, makeMemView(set));
+          m_descriptors->freeSets(m_device, makeMemView(set));
           dyn = VulkanShaderArguments();
           break;
         }
@@ -1658,13 +1658,6 @@ namespace higanbana
       reqs.alignment = requirements.alignment;
       reqs.bytes = requirements.size;
 
-      /*
-      if (reqs.alignment < 128)
-      {
-        reqs.alignment = ((128 + reqs.alignment - 1) / reqs.alignment) * reqs.alignment;
-      }
-      */
-
       return reqs;
     }
 
@@ -1672,7 +1665,6 @@ namespace higanbana
     {
       m_allRes.renderpasses[handle] = VulkanRenderpass();
     }
-
 
     void VulkanDevice::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
     {
@@ -2053,7 +2045,7 @@ namespace higanbana
     void VulkanDevice::createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding)
     {
       auto desclayout = allResources().shaArgsLayouts[binding.layout()].native();
-      auto set = m_descriptors.allocate(native(), desclayout, 1)[0];
+      auto set = m_descriptors->allocate(native(), desclayout, 1)[0];
       setDebugUtilsObjectNameEXT(set, binding.name().c_str());
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);

@@ -292,17 +292,17 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, int cubeCount, int xBegin, int xEnd)
+  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd)
   {
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
     //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
     auto rp = opaqueRP;
-    if (depthDSV.loadOp() == LoadOp::Load)
+    if (depth.loadOp() == LoadOp::Load)
     {
       rp = opaqueRPWithLoad;
     }
-    node.renderpass(rp, backbuffer, depthDSV);
+    node.renderpass(rp, backbuffer, depth);
     {
       auto binding = node.bind(opaque);
 
@@ -481,18 +481,34 @@ namespace app
         backbuffer.setOp(LoadOp::Load);
         depthDSV.clearOp({});
         //auto node = tasks.createPass("opaquePass - cubes");
-        /*
-        vector<std::pair<CommandGraphNode, int>> nodes;
+        
+        vector<std::tuple<CommandGraphNode, int, int>> nodes;
+        int stepSize = std::max(1, cubeCount / cubeCommandLists);
         for (int i = 0; i < cubeCount; i+=stepSize)
         {
-          nodes.push_back(std::make_pair(tasks.createPass("opaquePass - cubes"), i));
+          if (i+stepSize > cubeCount)
+          {
+            stepSize = stepSize - (i+stepSize - cubeCount);
+          }
+          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
         }
-        std::for_each(std::execution::par, std::begin(nodes), std::end(nodes), [&](CommandGraphNode& node)
+        std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
         {
-          oldOpaquePass(node, perspective, backbuffer, cubeCount, i, i+stepSize);
-          depthDSV.setOp(LoadOp::Load);
+          auto depth = depthDSV;
+          if (std::get<1>(node) == 0)
+            depth.setOp(LoadOp::Clear);
+          else
+            depth.setOp(LoadOp::Load);
+          
+          oldOpaquePass(std::get<0>(node), perspective, backbuffer, depth, cubeCount, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
         });
-        */
+
+        for (auto& node : nodes)
+        {
+          tasks.addPass(std::move(std::get<0>(node)));
+        }
+        
+        /*
         int stepSize = std::max(1, cubeCount / cubeCommandLists);
 
         for (int i = 0; i < cubeCount; i+=stepSize)
@@ -506,6 +522,7 @@ namespace app
           depthDSV.setOp(LoadOp::Load);
           tasks.addPass(std::move(node));
         }
+        */
       }
       else
       {

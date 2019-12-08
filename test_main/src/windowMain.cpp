@@ -541,7 +541,8 @@ void mainWindow(ProgramParams& params)
               int listIndex = 0;
               for (auto& cmdlist : rsi.lists)
               {
-                std::string listName = listName += toString(cmdlist.type) + std::to_string(listIndex++);
+                std::string listName = toString(cmdlist.type);
+                listName += " list " + std::to_string(listIndex++);
                 if (ImGui::TreeNode(listName.c_str()))
                 {
                   //ImGui::Text("\n%s Commandlist", toString(cmdlist.type));

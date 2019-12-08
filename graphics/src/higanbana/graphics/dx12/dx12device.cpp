@@ -885,8 +885,12 @@ namespace higanbana
     {
       std::optional<DX12OldPipeline> oldPipe;
 
+      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
+        return oldPipe;
+
+      auto lock = deviceLock();
       auto& vp = m_allRes.pipelines[pipeline];
-      if (vp.m_hasPipeline && !vp.needsUpdating())
+      if (vp.m_hasPipeline->load() && !vp.needsUpdating())
         return oldPipe;
 
       auto desc = getDesc(vp.m_gfxDesc.desc, renderpass);
@@ -974,7 +978,7 @@ namespace higanbana
       vp.pipeline = pipe;
       vp.root = root;
       vp.primitive = primitive;
-      vp.m_hasPipeline = true;
+      vp.m_hasPipeline->store(true);
       return oldPipe;
     }
   
@@ -982,9 +986,13 @@ namespace higanbana
     {
       std::optional<DX12OldPipeline> oldPipe;
 
+      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
+        return {};
+
+      auto lock = deviceLock();
       auto& pipe = m_allRes.pipelines[pipeline];
 
-      if (pipe.m_hasPipeline && !pipe.cs.updated())
+      if (pipe.m_hasPipeline->load() && !pipe.cs.updated())
         return {};
       oldPipe = {pipe.pipeline, pipe.root};
       if (pipe.cs.updated())
@@ -1018,7 +1026,7 @@ namespace higanbana
       computeDesc.NodeMask = 0;
       //computeDesc.pRootSignature = ptr->root.Get();
       computeDesc.pRootSignature = nullptr;
-      pipe.m_hasPipeline = true;
+      pipe.m_hasPipeline->store(true);
 
       HIGANBANA_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&pipe.pipeline)));
       return oldPipe;

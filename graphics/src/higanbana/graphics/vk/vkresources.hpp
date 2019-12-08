@@ -740,6 +740,7 @@ namespace higanbana
       vk::Device m_device;
 
       uint8_t* data = nullptr;
+      std::mutex uploadLock;
     public:
       VulkanUploadHeap() : allocator(1, 1) {}
       VulkanUploadHeap(vk::Device device
@@ -796,6 +797,7 @@ namespace higanbana
 
       VkUploadBlock allocate(size_t bytes, size_t alignment = 1)
       {
+        std::lock_guard<std::mutex> lock(uploadLock);
         auto dip = allocator.allocate(bytes, alignment);
         HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
         return VkUploadBlock{ data, m_buffer,  dip.value()};
@@ -803,6 +805,7 @@ namespace higanbana
 
       void release(VkUploadBlock desc)
       {
+        std::lock_guard<std::mutex> lock(uploadLock);
         allocator.free(desc.block);
       }
 
@@ -962,6 +965,7 @@ namespace higanbana
     class VulkanDescriptorPool
     {
       vk::DescriptorPool pool;
+      std::mutex descriptorLock;
       public:
       VulkanDescriptorPool()
       {
@@ -972,6 +976,7 @@ namespace higanbana
       }
       std::vector<vk::DescriptorSet> allocate(vk::Device device, vk::DescriptorSetLayout layout, int count)
       {
+        std::lock_guard<std::mutex> poolLock(descriptorLock);
         auto res = device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
           .setDescriptorPool(pool)
           .setDescriptorSetCount(count)
@@ -983,6 +988,7 @@ namespace higanbana
       {
         if (!sets.empty())
         {
+          std::lock_guard<std::mutex> poolLock(descriptorLock);
           vk::ArrayProxy<const vk::DescriptorSet> csets(sets.size(), sets.data());
           device.freeDescriptorSets(pool, csets);
         }
@@ -1069,7 +1075,7 @@ namespace higanbana
     {
       std::shared_ptr<VulkanCommandList> m_list;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
-      VulkanDescriptorPool m_descriptors;
+      //VulkanDescriptorPool m_descriptors;
       std::shared_ptr<VulkanConstantUploadHeap> m_constants;
       vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
@@ -1081,8 +1087,8 @@ namespace higanbana
       VkUploadLinearAllocator m_constantsAllocator;
 
     public:
-      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, VulkanDescriptorPool descriptors, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators)
-        : m_list(list), m_descriptors(descriptors), m_constants(constantAllocators), m_constantAlignment(m_constants->allocationAlignment())
+      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, std::shared_ptr<VulkanDescriptorPool> descriptors, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators)
+        : m_list(list), /*m_descriptors(descriptors),*/ m_constants(constantAllocators), m_constantAlignment(m_constants->allocationAlignment())
       {}
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);

@@ -110,6 +110,7 @@ namespace higanbana
       D3D12_DESCRIPTOR_HEAP_TYPE type;
       DynamicDescriptorBlock baseRange;
       int m_size = -1;
+      std::mutex m_descriptorMutex;
     public:
       DX12DynamicDescriptorHeap()
         : allocator(0, 0)
@@ -134,6 +135,7 @@ namespace higanbana
 
       DynamicDescriptorBlock allocate(int value)
       {
+        std::lock_guard<std::mutex> lock(m_descriptorMutex);
         auto offset = allocator.allocate(value);
         HIGAN_ASSERT(offset && offset.value().size > 0, "No descriptors left, make bigger Staging :) %d type: %d", max_size(), static_cast<int>(type));
         DynamicDescriptorBlock desc = baseRange;
@@ -143,6 +145,7 @@ namespace higanbana
 
       void release(DynamicDescriptorBlock range)
       {
+        std::lock_guard<std::mutex> lock(m_descriptorMutex);
         HIGAN_ASSERT(range.block.offset != -1, "halp");
         allocator.free(range.block);
       }
@@ -175,6 +178,7 @@ namespace higanbana
       UINT increment;
 
       int m_size = -1;
+      std::mutex descriptorMutex;
     public:
       StagingDescriptorHeap() {}
       StagingDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int count)
@@ -196,6 +200,7 @@ namespace higanbana
 
       DX12CPUDescriptor allocate()
       {
+        std::lock_guard<std::mutex> descriptorLock(descriptorMutex);
         auto dip = allocator.allocate(1);
         HIGAN_ASSERT(dip && dip.value().size > 0, "No descriptors left, make bigger Staging :) %d type: %d", max_size(), static_cast<int>(type));
         DX12CPUDescriptor desc{};
@@ -207,6 +212,7 @@ namespace higanbana
 
       void release(DX12CPUDescriptor desc)
       {
+        std::lock_guard<std::mutex> descriptorLock(descriptorMutex);
         allocator.free(desc.block);
       }
 
@@ -1077,13 +1083,13 @@ namespace higanbana
       ComPtr<ID3D12PipelineState> pipeline;
       ComPtr<ID3D12RootSignature> root;
       D3D12_PRIMITIVE_TOPOLOGY primitive;
-      bool m_hasPipeline;
+      std::shared_ptr<std::atomic<bool>> m_hasPipeline;
 
       DX12Pipeline()
         : pipeline(nullptr)
         , root(nullptr)
         , primitive(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
-        , m_hasPipeline(false)
+        , m_hasPipeline(std::make_shared<std::atomic<bool>>(false))
       {
       }
 
@@ -1091,7 +1097,7 @@ namespace higanbana
         : pipeline(pipeline)
         , root(root)
         , primitive(primitive)
-        , m_hasPipeline(true)
+        , m_hasPipeline(std::make_shared<std::atomic<bool>>(true))
       {
       }
 

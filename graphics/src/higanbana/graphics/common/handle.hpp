@@ -6,6 +6,7 @@
 #include <higanbana/core/system/memview.hpp>
 #include <stdint.h>
 #include <type_traits>
+#include <mutex>
 
 namespace higanbana
 {
@@ -350,8 +351,10 @@ namespace higanbana
   {
     vector<HandlePool> m_pools;
     vector<ViewHandlePool> m_views;
+    std::shared_ptr<std::mutex> m_handleMutex;
   public:
     HandleManager(int poolSizes = 1024*64)
+      : m_handleMutex(std::make_shared<std::mutex>())
     {
       for (int i = 0; i < static_cast<int>(ResourceType::Count); ++i)
       {
@@ -371,6 +374,7 @@ namespace higanbana
 
     ResourceHandle allocateResource(ResourceType type)
     {
+      std::lock_guard<std::mutex> lock(*m_handleMutex);
       HIGAN_ASSERT(type != ResourceType::Unknown, "please valide type.");
       int index = static_cast<int>(type) - 1;
       auto& pool = m_pools[index];
@@ -379,6 +383,7 @@ namespace higanbana
 
     ViewResourceHandle allocateViewResource(ViewResourceType type, ResourceHandle resource)
     {
+      std::lock_guard<std::mutex> lock(*m_handleMutex);
       HIGAN_ASSERT(type != ViewResourceType::Unknown, "please valide type.");
       int index = static_cast<int>(type) - 1;
       auto& pool = m_views[index];
@@ -389,6 +394,7 @@ namespace higanbana
 
     void release(ResourceHandle handle)
     {
+      std::lock_guard<std::mutex> lock(*m_handleMutex);
       HIGAN_ASSERT(handle.type != ResourceType::Unknown, "please valied type");
       int typeIndex = static_cast<int>(handle.type) - 1;
       auto& pool = m_pools[typeIndex];
@@ -407,6 +413,7 @@ namespace higanbana
     }
     void release(ViewResourceHandle handle)
     {
+      std::lock_guard<std::mutex> lock(*m_handleMutex);
       HIGAN_ASSERT(handle.type != ViewResourceType::Unknown, "please valied type");
       int typeIndex = static_cast<int>(handle.type) - 1;
       auto& pool = m_views[typeIndex];
@@ -430,7 +437,9 @@ namespace higanbana
   {
     vector<Type> objects;
     public:
-    HandleVector(){}
+    HandleVector(){
+      objects.resize(1024);
+    }
 
     Type& operator[](ResourceHandle handle)
     {
