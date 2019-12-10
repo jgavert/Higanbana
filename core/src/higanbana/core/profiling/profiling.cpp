@@ -10,7 +10,7 @@ static std::atomic<int> s_myIndex;
 thread_local ThreadProfileData* my_profile_data = nullptr;
 thread_local int my_thread_id = 0;
 
-ProfilingBracket::ProfilingBracket(const char* name)
+ProfilingScope::ProfilingScope(const char* name)
   : name(name)
   , begin(HighPrecisionClock::now())
 {
@@ -23,14 +23,14 @@ ProfilingBracket::ProfilingBracket(const char* name)
   }
   // start
 }
-  ProfilingBracket::~ProfilingBracket(){
+  ProfilingScope::~ProfilingScope(){
   // end
   int64_t now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
   timepoint new_tp = HighPrecisionClock::now();
   int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(new_tp - begin).count();
   my_profile_data->allBrackets.push_back({name, now_ns, duration});
 }
-nlohmann::json writeEvent(std::string_view view, int time, int dur, int tid)
+nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid)
 {
   nlohmann::json j;
   // "name": "myFunction", "cat": "foo", "ph": "B", "ts": 123, "pid": 2343, "tid": 2347
