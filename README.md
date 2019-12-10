@@ -1,16 +1,17 @@
 # Higanbana
 as the flower depicts, is a library which grows in the lands of Vulkan and DirectX12. Lands which are not very kind to mortals...
+(This name can change at anytime, but used for now. Doesn't flow so easily from tongue so might change in future...)
 
 Aim is to provide simplified, but efficient Graphics API, helping with using the latest and greatest gpu features...
 
-Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also proof of concept on understanding the api's.
+Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also my proof of concept on understanding the api's... Maybe I know something, I hope.
 
 ## Building
 You will need the following additional software to build.
 * Windows 10 build 1809 or higher
 * Bazel
 * Visual Studio 2019
-* Windows SDK 10.0.18368.0
+* Windows SDK 10.0.18368.0 or newer
 * Latest Vulkan SDK
 * Latest GPU Drivers
 
@@ -53,24 +54,30 @@ These are partly current features and features I'm aiming for and might have got
     * DX12 <-> Vulkan is within one device only
 * Easy to make use of graphics/Compute/Dma queue
     * all semaphores/synchronization/everything handled for you.
+* WIP Multithreaded using std::for_each(std::execution:par_unseq ! Can use all cores non-optimally!
+    * Not all of api is hardened against multithreading so good luck :D
+* Tight cpu perf with simple drawcalls!
+    * Warning: Using many resources in shaders is untested perfwise.
 * Homebrew implementations to many problems :D
 * CPU and GPU timings can be fetched for easy profiling or integrate it to other platforms like chrome://tracing
 
 ## What's next?
+* Profiling support(HighPrio) using chrome://tracing
+    * Good profiling is the backbone of any app also I need it for optimizing multithreading timings.
 * Write a forward(+) renderer using my api
     * To get out of this backend writing...
     * Proof that the api can handle the problem.
 * Write lots of tests
 * Clean unnecessary comments and code
-* Support Raytracing
+* Support Raytracing (Started)
 * Sharing buffer/image between DX12 and Vulkan for debuggability
     * Use one code to render on both and show the results in one swapchain buffer
-* Mesh Shaders
-    * Waiting for support from DX12 and DXC
+* Mesh Shaders (Started)
+    * Waiting for support from DX12 and DXC... Waiting my implementation now.
 * Optimise the cpu code
-    * Architecture was designed with multithreading in mind, just didn't bother to write it yet.
-    * Many low hanging fruits
-    * Optimising as I see necessary
+    * Architecture was designed with multithreading in mind, just didn't bother to write it yet. (DONE)
+    * Many low hanging fruits (Most done)
+    * Optimising as I see necessary (Some parts have unknown impact, yet to optimize)
 * Write benchmarks for cpu and maybe for gpu also
     * So that I can have good reference for when I optimise    
 * Make many current features as optional
