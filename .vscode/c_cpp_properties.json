@@ -14,7 +14,7 @@
                 "${workspaceFolder}/ext/stb",
                 "${workspaceFolder}/ext/tinygltf",
                 "${workspaceFolder}/ext/cxxopts/include",
-                "${workspaceFolder}/ext/rapidjson/include",
+                "${workspaceFolder}/ext/nlohmann_json/include",
                 "${workspaceFolder}/ext/GSL/include",
                 "C:/VulkanSDK/1.1.121.2/Include",
                 "${workspaceFolder}/ext/Catch2/single_include"

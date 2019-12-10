@@ -24,6 +24,9 @@
 #include "world/entity_viewer.hpp"
 #include "world/visual_data_structures.hpp"
 #include "world/map_data_extractor.hpp"
+#include "test_profiling.hpp"
+
+#include <higanbana/core/profiling/profiling.hpp>
 
 using namespace higanbana;
 using namespace higanbana::math;
@@ -263,6 +266,8 @@ void mainWindow(ProgramParams& params)
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
+    //app::writeJson(fs);
+    //return;
     auto coolHeightmap = app::readInfoFromOpenMapDataASC(fs);
     Database<2048> ecs;
 
@@ -297,6 +302,7 @@ void mainWindow(ProgramParams& params)
 
     while (true)
     {
+      auto whileOmg = HIGAN_CPU_BRACKET("omg!");
       vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
       vector<GpuInfo> gpus;
@@ -372,6 +378,7 @@ void mainWindow(ProgramParams& params)
         lbs.addTask("logic&render loop", [&](size_t) {
           while (renderActive)
           {
+            auto logicRender = HIGAN_CPU_BRACKET("Logic&Render loop begin!");
             ImGuiIO &io = ::ImGui::GetIO();
             auto windowSize = rend.windowSize();
             io.DisplaySize = { float(windowSize.x), float(windowSize.y) };
@@ -698,11 +705,13 @@ void mainWindow(ProgramParams& params)
               ac.minZ = set.minZ;
               ac.maxZ = set.maxZ;
             });
+            auto renderFunc = HIGAN_CPU_BRACKET("Render");
             rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
           }
         });
         while (!window.simpleReadMessages(frame++))
         {
+          auto inputUpdateLoop = HIGAN_CPU_BRACKET("update Inputs");
           log.update();
           fs.updateWatchedFiles();
           if (window.hasResized())
@@ -731,6 +740,7 @@ void mainWindow(ProgramParams& params)
       }
     }
     quit = true;
+    higanbana::profiling::writeProfilingData(fs);
   };
 #if 0
   main(GraphicsApi::DX12, VendorID::Amd, true);

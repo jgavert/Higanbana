@@ -11,6 +11,7 @@
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 
 #include <higanbana/core/math/utils.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 
 #include <execution>
 
@@ -154,6 +155,7 @@ namespace higanbana
 
     void DeviceGroupData::gc()
     {
+      auto _gc = HIGAN_CPU_BRACKET("DeviceGroupData::GarbageCollection");
       checkCompletedLists();
       garbageCollection();
     }
@@ -1450,6 +1452,7 @@ namespace higanbana
 
     void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded)
     {
+      auto funcProfile = HIGAN_CPU_BRACKET("DeviceGroupData::submit");
       SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;
@@ -1459,11 +1462,16 @@ namespace higanbana
 
       if (!nodes.empty())
       {
-        timing.addNodes.start();
-        vector<PreparedCommandlist> lists = prepareNodes(nodes);
-        timing.addNodes.stop();
+        vector<PreparedCommandlist> lists;
+        {
+          auto _nodeAdd = HIGAN_CPU_BRACKET("addNodes");
+          timing.addNodes.start();
+          lists = prepareNodes(nodes);
+          timing.addNodes.stop();
+        }
 
         {
+          auto _graphSolve = HIGAN_CPU_BRACKET("GraphSolve");
           timing.graphSolve.start();
           auto firstUsageSeen = checkQueueDependencies(lists);
           returnResouresToOriginalQueues(lists, firstUsageSeen);
@@ -1492,7 +1500,9 @@ namespace higanbana
 
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
           int offset = list.listIDs[0];
+          auto _OuterLoopFirstPass = HIGAN_CPU_BRACKET("OuterLoopFirstPass");
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            auto _innerLoopFirstPass = HIGAN_CPU_BRACKET("InnerLoopFirstPass");
             auto& solver = solvers[id];
             auto& buffer = lists[id];
             auto& vdev = m_devices[list.deviceID];
@@ -1501,22 +1511,27 @@ namespace higanbana
           });
         });
         
-        for (auto&& list : readyLists)
         {
-          int offset = list.listIDs[0];
-          for (auto&& id : list.listIDs)
+          auto _globalPass = HIGAN_CPU_BRACKET("globalPass");
+          for (auto&& list : readyLists)
           {
-            auto& solver = solvers[id];
-            // this is order dependant
-            globalPassBarrierSolve(list.listTiming[id - offset], solver);
-            // also parallel
+            int offset = list.listIDs[0];
+            for (auto&& id : list.listIDs)
+            {
+              auto& solver = solvers[id];
+              // this is order dependant
+              globalPassBarrierSolve(list.listTiming[id - offset], solver);
+              // also parallel
+            }
           }
         }
 
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
         {
           int offset = list.listIDs[0];
+          auto _OuterLoopFirstPass = HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            auto _innerLoopFirstPass = HIGAN_CPU_BRACKET("InnerLoopFillNativeList");
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
@@ -1531,6 +1546,7 @@ namespace higanbana
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         //for (auto&& list : lists)
+        auto _submitLists = HIGAN_CPU_BRACKET("Submit Lists");
         while(!readyLists.empty())
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());

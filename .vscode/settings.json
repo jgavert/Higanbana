@@ -96,7 +96,8 @@
         "span": "cpp",
         "string_span": "cpp",
         "concepts": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "execution": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
