@@ -155,7 +155,7 @@ namespace higanbana
 
     void DeviceGroupData::gc()
     {
-      auto _gc = HIGAN_CPU_BRACKET("DeviceGroupData::GarbageCollection");
+      HIGAN_CPU_BRACKET("DeviceGroupData::GarbageCollection");
       checkCompletedLists();
       garbageCollection();
     }
@@ -669,7 +669,7 @@ namespace higanbana
     // we have given promises of readbacks to user, we need backing memory for those readbacks and patch commandbuffer with valid resources.
     void DeviceGroupData::generateReadbackCommands(VirtualDevice& vdev, MemView<backend::CommandBuffer>& buffers, QueueType queue, vector<ReadbackPromise>& readbacks)
     {
-      auto _gr = HIGAN_CPU_BRACKET("generateReadbackCommands");
+      HIGAN_CPU_BRACKET("generateReadbackCommands");
       int currentReadback = 0;
       for (auto&& buffer : buffers)
       {
@@ -1398,7 +1398,7 @@ namespace higanbana
 
     deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID)
     {
-      auto _makeBuffers = HIGAN_CPU_BRACKET("makeLiveCommandBuffers");
+      HIGAN_CPU_BRACKET("makeLiveCommandBuffers");
       deque<LiveCommandBuffer2> readyLists;
       int listID = 0;
       
@@ -1407,10 +1407,10 @@ namespace higanbana
 
       for (auto&& list : lists)
       {
-        auto _list = HIGAN_CPU_BRACKET("list in lists");
+        HIGAN_CPU_BRACKET("list in lists");
         if (list.type != buffer.queue)
         {
-          auto _readyListsAdd = HIGAN_CPU_BRACKET("readyLists.emplace_back");
+          HIGAN_CPU_BRACKET("readyLists.emplace_back");
           readyLists.emplace_back(std::move(buffer));
           buffer = LiveCommandBuffer2{};
         }
@@ -1424,7 +1424,7 @@ namespace higanbana
         auto& vdev = m_devices[list.device];
 
         {
-          auto _natList = HIGAN_CPU_BRACKET("createNativeList");
+          HIGAN_CPU_BRACKET("createNativeList");
           switch (list.type)
           {
           case QueueType::Dma:
@@ -1443,26 +1443,28 @@ namespace higanbana
         buffer.started.push_back(m_seqTracker.next());
         buffer.lists.emplace_back(nativeList);
 
-        auto buffersView = makeMemView(list.buffers.data(), list.buffers.size());
+        //auto buffersView = makeMemView(list.buffers.data(), list.buffers.size());
         buffer.listIDs.push_back(listID);
         // patch readbacks
+        /*
         generateReadbackCommands(vdev, buffersView, list.type, list.readbacks);
         {
-          auto _addReadbacks = HIGAN_CPU_BRACKET("addReadbacks");
+          HIGAN_CPU_BRACKET("addReadbacks");
           buffer.readbacks.insert(buffer.readbacks.end(), list.readbacks.begin(), list.readbacks.end());
         }
+        */
         //buffer.readbacks = std::move(list.readbacks);
 
         listID++;
       }
-      auto _finalEmplace = HIGAN_CPU_BRACKET("readyLists.emplace_back");
+      HIGAN_CPU_BRACKET("readyLists.emplace_back");
       readyLists.emplace_back(std::move(buffer));
       return readyLists;
     }
 
     void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded)
     {
-      auto funcProfile = HIGAN_CPU_BRACKET("DeviceGroupData::submit");
+      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
       SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;
@@ -1474,14 +1476,14 @@ namespace higanbana
       {
         vector<PreparedCommandlist> lists;
         {
-          auto _nodeAdd = HIGAN_CPU_BRACKET("addNodes");
+          HIGAN_CPU_BRACKET("addNodes");
           timing.addNodes.start();
           lists = prepareNodes(nodes);
           timing.addNodes.stop();
         }
 
         {
-          auto _graphSolve = HIGAN_CPU_BRACKET("GraphSolve");
+          HIGAN_CPU_BRACKET("GraphSolve");
           timing.graphSolve.start();
           auto firstUsageSeen = checkQueueDependencies(lists);
           returnResouresToOriginalQueues(lists, firstUsageSeen);
@@ -1493,20 +1495,39 @@ namespace higanbana
         timing.fillCommandLists.start();
 
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
+
+        {
+          HIGAN_CPU_BRACKET("Generate GPUReadback Commands");
+          std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
+            int offset = list.listIDs[0];
+            higanbana::vector<higanbana::vector<higanbana::ReadbackPromise>> promises;
+            promises.resize(list.listIDs.size());
+            HIGAN_CPU_BRACKET("OuterLoopFirstPass");
+            std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+              HIGAN_CPU_BRACKET("InnerLoopFirstPass");
+              auto& buffer = lists[id].buffers;
+              auto& vdev = m_devices[list.deviceID];
+              auto buffersView = makeMemView(buffer.data(), buffer.size());
+              generateReadbackCommands(vdev, buffersView, list.queue, promises[id - offset]);
+            });
+            for (auto&& promise : promises)
+              list.readbacks.insert(list.readbacks.end(), promise.begin(), promise.end());
+          });
+        }
         timing.listsCount = lists.size();
 
         vector<BarrierSolver> solvers;
         //solvers.resize(readyLists.size());
 
         {
-          auto _barriers = HIGAN_CPU_BRACKET("create BarrierSolvers...");
+          HIGAN_CPU_BRACKET("create BarrierSolvers...");
           for (auto&& list : readyLists)
           {
-            auto _list = HIGAN_CPU_BRACKET("list");
+            HIGAN_CPU_BRACKET("list");
             auto& vdev = m_devices[list.deviceID];
             for (auto&& id : list.listIDs)
             {
-              auto _list = HIGAN_CPU_BRACKET("id in listIds");
+              HIGAN_CPU_BRACKET("id in listIds");
               solvers.push_back(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
               //solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
             }
@@ -1515,9 +1536,9 @@ namespace higanbana
 
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
           int offset = list.listIDs[0];
-          auto _OuterLoopFirstPass = HIGAN_CPU_BRACKET("OuterLoopFirstPass");
+          HIGAN_CPU_BRACKET("OuterLoopFirstPass");
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
-            auto _innerLoopFirstPass = HIGAN_CPU_BRACKET("InnerLoopFirstPass");
+            HIGAN_CPU_BRACKET("InnerLoopFirstPass");
             auto& solver = solvers[id];
             auto& buffer = lists[id];
             auto& vdev = m_devices[list.deviceID];
@@ -1527,7 +1548,7 @@ namespace higanbana
         });
         
         {
-          auto _globalPass = HIGAN_CPU_BRACKET("globalPass");
+          HIGAN_CPU_BRACKET("globalPass");
           for (auto&& list : readyLists)
           {
             int offset = list.listIDs[0];
@@ -1544,9 +1565,9 @@ namespace higanbana
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
         {
           int offset = list.listIDs[0];
-          auto _OuterLoopFirstPass = HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
+          HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
-            auto _innerLoopFirstPass = HIGAN_CPU_BRACKET("InnerLoopFillNativeList");
+            HIGAN_CPU_BRACKET("InnerLoopFillNativeList");
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
@@ -1561,7 +1582,7 @@ namespace higanbana
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         //for (auto&& list : lists)
-        auto _submitLists = HIGAN_CPU_BRACKET("Submit Lists");
+        HIGAN_CPU_BRACKET("Submit Lists");
         while(!readyLists.empty())
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());

@@ -272,8 +272,8 @@ void mainWindow(ProgramParams& params)
     //world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 40;
-    int cubeCommandLists = 6;
+    int cubeCount = 20;
+    int cubeCommandLists = 1;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -299,7 +299,7 @@ void mainWindow(ProgramParams& params)
 
     while (true)
     {
-      auto whileOmg = HIGAN_CPU_BRACKET("omg!");
+      HIGAN_CPU_BRACKET("omg!");
       vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
       vector<GpuInfo> gpus;
@@ -375,7 +375,7 @@ void mainWindow(ProgramParams& params)
         lbs.addTask("logic&render loop", [&](size_t) {
           while (renderActive)
           {
-            auto logicRender = HIGAN_CPU_BRACKET("Logic&Render loop begin!");
+            HIGAN_CPU_BRACKET("Logic&Render loop begin!");
             ImGuiIO &io = ::ImGui::GetIO();
             auto windowSize = rend.windowSize();
             io.DisplaySize = { float(windowSize.x), float(windowSize.y) };
@@ -702,13 +702,13 @@ void mainWindow(ProgramParams& params)
               ac.minZ = set.minZ;
               ac.maxZ = set.maxZ;
             });
-            auto renderFunc = HIGAN_CPU_BRACKET("Render");
+            HIGAN_CPU_BRACKET("Render");
             rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
           }
         });
         while (!window.simpleReadMessages(frame++))
         {
-          auto inputUpdateLoop = HIGAN_CPU_BRACKET("update Inputs");
+          HIGAN_CPU_BRACKET("update Inputs");
           log.update();
           fs.updateWatchedFiles();
           if (window.hasResized())
