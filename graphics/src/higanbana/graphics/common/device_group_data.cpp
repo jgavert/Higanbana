@@ -92,11 +92,14 @@ namespace higanbana
               }
               if (!buffer.readbacks.empty())
               {
-                for (auto&& rb : buffer.readbacks)
+                for (auto&& rbs : buffer.readbacks)
                 {
-                  auto handle = *rb.promiseId;
-                  auto view = m_devices[buffer.deviceID].device->mapReadback(handle);
-                  rb.promise->set_value(ReadbackData(rb.promiseId, view)); // TODO: SET READBACK HERE FOR USER
+                  for (auto&& rb : rbs)
+                  {
+                    auto handle = *rb.promiseId;
+                    auto view = m_devices[buffer.deviceID].device->mapReadback(handle);
+                    rb.promise->set_value(ReadbackData(rb.promiseId, view)); // TODO: SET READBACK HERE FOR USER
+                  }
                 }
               }
               auto queueId = buffer.submitID;
@@ -666,40 +669,6 @@ namespace higanbana
       return CommandGraph(++m_currentSeqNum, m_commandBuffers); 
     }
 
-    // we have given promises of readbacks to user, we need backing memory for those readbacks and patch commandbuffer with valid resources.
-    void DeviceGroupData::generateReadbackCommands(VirtualDevice& vdev, MemView<backend::CommandBuffer>& buffers, QueueType queue, vector<ReadbackPromise>& readbacks)
-    {
-      HIGAN_CPU_BRACKET("generateReadbackCommands");
-      int currentReadback = 0;
-      for (auto&& buffer : buffers)
-      {
-        auto iter = buffer.begin();
-        while((*iter)->type != PacketType::EndOfPackets)
-        {
-          CommandBuffer::PacketHeader* header = *iter;
-          switch(header->type)
-          {
-            case PacketType::ReadbackBuffer:
-            {
-              auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
-              handle.setGpuId(vdev.id);
-              readbacks[currentReadback].promiseId = sharedHandle(handle);
-              auto& packet = header->data<gfxpacket::ReadbackBuffer>();
-              vdev.device->readbackBuffer(handle, packet.numBytes);
-              packet.dst = handle;
-              currentReadback++;
-              break;
-            }
-            default:
-            {
-              break;
-            }
-          }
-          iter++;
-        }
-      }
-    }
-
     void DeviceGroupData::fillCommandBuffer(
       std::shared_ptr<CommandBufferImpl> nativeList,
       VirtualDevice& vdev,
@@ -916,12 +885,14 @@ namespace higanbana
       vector<QueueTransfer>& acquires,
       vector<QueueTransfer>& releases,
       CommandListTiming& timing,
-      BarrierSolver& solver)
+      BarrierSolver& solver,
+      vector<ReadbackPromise>& readbacks)
     {
       timing.barrierAdd.start();
 
       bool insideRenderpass = false;
       int drawIndexBeginRenderpass = 0;
+      int currentReadback = 0;
 
       gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
       ResourceHandle boundSets[4] = {};
@@ -1052,6 +1023,15 @@ namespace higanbana
               ViewResourceHandle src;
               src.resource = packet.src;
               solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              {
+                // READBACKS HANDLED HERE, sneakily put here.
+                auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
+                handle.setGpuId(vdev.id);
+                readbacks[currentReadback].promiseId = sharedHandle(handle);
+                vdev.device->readbackBuffer(handle, packet.numBytes);
+                packet.dst = handle;
+                currentReadback++;
+              }
               break;
             }
             case PacketType::UpdateTexture:
@@ -1442,18 +1422,8 @@ namespace higanbana
         buffer.deviceID = list.device;
         buffer.started.push_back(m_seqTracker.next());
         buffer.lists.emplace_back(nativeList);
-
-        //auto buffersView = makeMemView(list.buffers.data(), list.buffers.size());
         buffer.listIDs.push_back(listID);
-        // patch readbacks
-        /*
-        generateReadbackCommands(vdev, buffersView, list.type, list.readbacks);
-        {
-          HIGAN_CPU_BRACKET("addReadbacks");
-          buffer.readbacks.insert(buffer.readbacks.end(), list.readbacks.begin(), list.readbacks.end());
-        }
-        */
-        //buffer.readbacks = std::move(list.readbacks);
+        buffer.readbacks.emplace_back(std::move(list.readbacks));
 
         listID++;
       }
@@ -1491,59 +1461,28 @@ namespace higanbana
           timing.graphSolve.stop();
         }
 
-
         timing.fillCommandLists.start();
 
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
-
-        {
-          HIGAN_CPU_BRACKET("Generate GPUReadback Commands");
-          std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
-            int offset = list.listIDs[0];
-            higanbana::vector<higanbana::vector<higanbana::ReadbackPromise>> promises;
-            promises.resize(list.listIDs.size());
-            HIGAN_CPU_BRACKET("OuterLoopFirstPass");
-            std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
-              HIGAN_CPU_BRACKET("InnerLoopFirstPass");
-              auto& buffer = lists[id].buffers;
-              auto& vdev = m_devices[list.deviceID];
-              auto buffersView = makeMemView(buffer.data(), buffer.size());
-              generateReadbackCommands(vdev, buffersView, list.queue, promises[id - offset]);
-            });
-            for (auto&& promise : promises)
-              list.readbacks.insert(list.readbacks.end(), promise.begin(), promise.end());
-          });
-        }
         timing.listsCount = lists.size();
 
-        vector<BarrierSolver> solvers;
-        //solvers.resize(readyLists.size());
-
-        {
-          HIGAN_CPU_BRACKET("create BarrierSolvers...");
-          for (auto&& list : readyLists)
-          {
-            HIGAN_CPU_BRACKET("list");
-            auto& vdev = m_devices[list.deviceID];
-            for (auto&& id : list.listIDs)
-            {
-              HIGAN_CPU_BRACKET("id in listIds");
-              solvers.push_back(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
-              //solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
-            }
-          }
-        }
+        vector<std::shared_ptr<BarrierSolver>> solvers;
+        solvers.resize(lists.size());
 
         std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
-          int offset = list.listIDs[0];
           HIGAN_CPU_BRACKET("OuterLoopFirstPass");
+          int offset = list.listIDs[0];
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
             HIGAN_CPU_BRACKET("InnerLoopFirstPass");
-            auto& solver = solvers[id];
-            auto& buffer = lists[id];
             auto& vdev = m_devices[list.deviceID];
+            {
+              HIGAN_CPU_BRACKET("BarrierSolver creation");
+              solvers[id - offset] = std::make_shared<BarrierSolver>(vdev.m_bufferStates, vdev.m_textureStates);
+            }
+            auto& solver = *solvers[id];
+            auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
-            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver);
+            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver, list.readbacks[id - offset]);
           });
         });
         
@@ -1554,7 +1493,7 @@ namespace higanbana
             int offset = list.listIDs[0];
             for (auto&& id : list.listIDs)
             {
-              auto& solver = solvers[id];
+              auto& solver = *solvers[id];
               // this is order dependant
               globalPassBarrierSolve(list.listTiming[id - offset], solver);
               // also parallel
@@ -1571,7 +1510,7 @@ namespace higanbana
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
-            auto& solver = solvers[id];
+            auto& solver = *solvers[id];
             fillNativeList(list.lists[id-offset], vdev, buffersView, solver, list.listTiming[id - offset]);
             list.listTiming[id - offset].cpuBackendTime.stop();
           });

@@ -1,5 +1,16 @@
 #include "higanbana/core/profiling/profiling.hpp"
+#include "higanbana/core/platform/definitions.hpp"
 
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+#include <windows.h>
+#if ! defined(USE_PIX)
+#define USE_PIX
+#endif
+#if ! defined(USE_PIX_SUPPORTED_ARCHITECTURE)
+#define USE_PIX_SUPPORTED_ARCHITECTURE
+#endif
+#include <WinPixEventRuntime/pix3.h>
+#endif
 
 namespace higanbana
 {
@@ -10,10 +21,13 @@ static std::atomic<int> s_myIndex;
 thread_local ThreadProfileData* my_profile_data = nullptr;
 thread_local int my_thread_id = 0;
 
-ProfilingScope::ProfilingScope(const char* name)
-  : name(name)
+ProfilingScope::ProfilingScope(const char* str)
+  : name(str)
   , begin(HighPrecisionClock::now())
 {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+  PIXBeginEvent(0ull, str);
+#endif
   if (!my_profile_data)
   {
     int newIdx = s_myIndex.fetch_add(1);
@@ -25,6 +39,9 @@ ProfilingScope::ProfilingScope(const char* name)
 }
   ProfilingScope::~ProfilingScope(){
   // end
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+  PIXEndEvent();
+#endif
   int64_t now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
   timepoint new_tp = HighPrecisionClock::now();
   int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(new_tp - begin).count();

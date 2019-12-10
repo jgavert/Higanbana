@@ -86,7 +86,7 @@ namespace higanbana
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
       std::shared_ptr<backend::FenceImpl> fence;
-      vector<ReadbackPromise> readbacks;
+      vector<vector<ReadbackPromise>> readbacks;
       // timings
       uint64_t submitID;
       vector<CommandListTiming> listTiming;
@@ -216,7 +216,7 @@ namespace higanbana
       void returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       void handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       deque<LiveCommandBuffer2> makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID);
-      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver);
+      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks);
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
       void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing);
 
@@ -228,7 +228,6 @@ namespace higanbana
       void present(Swapchain& swapchain);
 
       // test
-      void generateReadbackCommands(VirtualDevice& vdev, MemView<CommandBuffer>& buffers, QueueType queue, vector<ReadbackPromise>& readbacks);
       void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing);
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
     };
