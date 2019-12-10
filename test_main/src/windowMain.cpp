@@ -24,7 +24,6 @@
 #include "world/entity_viewer.hpp"
 #include "world/visual_data_structures.hpp"
 #include "world/map_data_extractor.hpp"
-#include "test_profiling.hpp"
 
 #include <higanbana/core/profiling/profiling.hpp>
 
@@ -266,8 +265,6 @@ void mainWindow(ProgramParams& params)
     bool reInit = false;
     int64_t frame = 1;
     FileSystem fs("/../../data");
-    //app::writeJson(fs);
-    //return;
     auto coolHeightmap = app::readInfoFromOpenMapDataASC(fs);
     Database<2048> ecs;
 
@@ -275,8 +272,8 @@ void mainWindow(ProgramParams& params)
     //world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 10;
-    int cubeCommandLists = 4;
+    int cubeCount = 40;
+    int cubeCommandLists = 6;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();

@@ -1,5 +1,7 @@
 #include "rendering.hpp"
 
+#include <higanbana/core/profiling/profiling.hpp>
+
 #include <imgui.h>
 #include <execution>
 #include <algorithm>
@@ -563,7 +565,7 @@ namespace app
       float4x4 rot = math::rotationMatrixLH(camera.direction);
       float4x4 pos = math::translation(camera.position);
       auto perspective = math::mul(pos, math::mul(rot, pers));
-
+      auto _userCode = HIGAN_CPU_BRACKET("user - outerloop");
       if (heightmap)
       {
         int pixelsToDraw = cubeCount;
@@ -583,6 +585,7 @@ namespace app
         }
         std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
         {
+          auto _userCode2 = HIGAN_CPU_BRACKET("user - innerloop");
           auto depth = depthDSV;
           if (std::get<1>(node) == 0)
             depth.setOp(LoadOp::Clear);
@@ -615,6 +618,7 @@ namespace app
         }
         std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
         {
+          auto _userCode2 = HIGAN_CPU_BRACKET("user - innerloop");
           auto depth = depthDSV;
           if (std::get<1>(node) == 0)
             depth.setOp(LoadOp::Clear);
@@ -669,7 +673,10 @@ namespace app
     }
 
     dev.submit(swapchain, tasks);
-    dev.present(swapchain);
+    {
+      auto _userCode2 = HIGAN_CPU_BRACKET("Present");
+      dev.present(swapchain);
+    }
     time.tick();
   }
 }

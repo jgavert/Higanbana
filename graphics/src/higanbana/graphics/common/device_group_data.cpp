@@ -669,6 +669,7 @@ namespace higanbana
     // we have given promises of readbacks to user, we need backing memory for those readbacks and patch commandbuffer with valid resources.
     void DeviceGroupData::generateReadbackCommands(VirtualDevice& vdev, MemView<backend::CommandBuffer>& buffers, QueueType queue, vector<ReadbackPromise>& readbacks)
     {
+      auto _gr = HIGAN_CPU_BRACKET("generateReadbackCommands");
       int currentReadback = 0;
       for (auto&& buffer : buffers)
       {
@@ -1397,6 +1398,7 @@ namespace higanbana
 
     deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID)
     {
+      auto _makeBuffers = HIGAN_CPU_BRACKET("makeLiveCommandBuffers");
       deque<LiveCommandBuffer2> readyLists;
       int listID = 0;
       
@@ -1405,8 +1407,10 @@ namespace higanbana
 
       for (auto&& list : lists)
       {
+        auto _list = HIGAN_CPU_BRACKET("list in lists");
         if (list.type != buffer.queue)
         {
+          auto _readyListsAdd = HIGAN_CPU_BRACKET("readyLists.emplace_back");
           readyLists.emplace_back(std::move(buffer));
           buffer = LiveCommandBuffer2{};
         }
@@ -1419,17 +1423,20 @@ namespace higanbana
 
         auto& vdev = m_devices[list.device];
 
-        switch (list.type)
         {
-        case QueueType::Dma:
-          nativeList = vdev.device->createDMAList();
-          break;
-        case QueueType::Compute:
-          nativeList = vdev.device->createComputeList();
-          break;
-        case QueueType::Graphics:
-        default:
-          nativeList = vdev.device->createGraphicsList();
+          auto _natList = HIGAN_CPU_BRACKET("createNativeList");
+          switch (list.type)
+          {
+          case QueueType::Dma:
+            nativeList = vdev.device->createDMAList();
+            break;
+          case QueueType::Compute:
+            nativeList = vdev.device->createComputeList();
+            break;
+          case QueueType::Graphics:
+          default:
+            nativeList = vdev.device->createGraphicsList();
+          }
         }
 
         buffer.deviceID = list.device;
@@ -1440,12 +1447,15 @@ namespace higanbana
         buffer.listIDs.push_back(listID);
         // patch readbacks
         generateReadbackCommands(vdev, buffersView, list.type, list.readbacks);
-        buffer.readbacks.insert(buffer.readbacks.end(), list.readbacks.begin(), list.readbacks.end());
+        {
+          auto _addReadbacks = HIGAN_CPU_BRACKET("addReadbacks");
+          buffer.readbacks.insert(buffer.readbacks.end(), list.readbacks.begin(), list.readbacks.end());
+        }
         //buffer.readbacks = std::move(list.readbacks);
 
         listID++;
       }
-      // barriers&commands
+      auto _finalEmplace = HIGAN_CPU_BRACKET("readyLists.emplace_back");
       readyLists.emplace_back(std::move(buffer));
       return readyLists;
     }
@@ -1488,13 +1498,18 @@ namespace higanbana
         vector<BarrierSolver> solvers;
         //solvers.resize(readyLists.size());
 
-        for (auto&& list : readyLists)
         {
-          auto& vdev = m_devices[list.deviceID];
-          for (auto&& id : list.listIDs)
+          auto _barriers = HIGAN_CPU_BRACKET("create BarrierSolvers...");
+          for (auto&& list : readyLists)
           {
-            solvers.push_back(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
-            //solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
+            auto _list = HIGAN_CPU_BRACKET("list");
+            auto& vdev = m_devices[list.deviceID];
+            for (auto&& id : list.listIDs)
+            {
+              auto _list = HIGAN_CPU_BRACKET("id in listIds");
+              solvers.push_back(BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates));
+              //solvers[list.listID] = BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
+            }
           }
         }
 
