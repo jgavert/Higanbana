@@ -225,6 +225,15 @@ namespace higanbana
     {
       return static_cast<StoreOp>(m_storeop);
     }
+
+    bool operator==(const ViewResourceHandle& other)
+    {
+      return rawView == other.rawView && rawResource == other.rawResource;
+    }
+    bool operator!=(const ViewResourceHandle& other)
+    {
+      return rawView != other.rawView || rawResource != other.rawResource;
+    }
   };
 
   /*

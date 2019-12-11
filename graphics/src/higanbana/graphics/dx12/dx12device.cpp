@@ -9,6 +9,7 @@
 #include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/global_debug.hpp>
 
 #include <DXGIDebug.h>
@@ -34,6 +35,7 @@ namespace higanbana
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256 * 1024)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32 * 1024))
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (m_debugLayer)
       {
         DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
@@ -235,6 +237,7 @@ namespace higanbana
 
     D3D12_RESOURCE_DESC DX12Device::fillPlacedBufferInfo(ResourceDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
 
@@ -275,6 +278,7 @@ namespace higanbana
 
     D3D12_RESOURCE_DESC DX12Device::fillPlacedTextureInfo(ResourceDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
 
@@ -364,6 +368,7 @@ namespace higanbana
 
     std::shared_ptr<prototypes::SwapchainImpl> DX12Device::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto natSurface = std::static_pointer_cast<DX12GraphicsSurface>(surface.native());
       RECT rect{};
       BOOL lol = GetClientRect(natSurface->native(), &rect);
@@ -414,6 +419,7 @@ namespace higanbana
 
     void DX12Device::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, SwapchainDescriptor d)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto natSwapchain = std::static_pointer_cast<DX12Swapchain>(swapchain);
       auto& natSurface = natSwapchain->surface();
 
@@ -468,6 +474,7 @@ namespace higanbana
 
     void DX12Device::ensureSwapchainColorspace(std::shared_ptr<DX12Swapchain> sc, SwapchainDescriptor& descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (!m_factory->IsCurrent())
       {
         HIGANBANA_CHECK_HR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&m_factory)));
@@ -522,6 +529,7 @@ namespace higanbana
 
     int DX12Device::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> swapchain, vector<ResourceHandle>& handles)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
 
       vector<std::shared_ptr<prototypes::TextureImpl>> textures;
@@ -554,6 +562,7 @@ namespace higanbana
 
     int DX12Device::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       RECT rect{};
       if (!GetClientRect(native->surface().native(), &rect))
@@ -568,6 +577,7 @@ namespace higanbana
 
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       RECT rect{};
       if (!GetClientRect(native->surface().native(), &rect))
@@ -582,6 +592,7 @@ namespace higanbana
     // should be about ready
     void DX12Device::releaseHandle(ResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       switch(handle.type)
       {
         case ResourceType::Buffer:
@@ -643,6 +654,7 @@ namespace higanbana
 
     void DX12Device::releaseViewHandle(ViewResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       switch(handle.type)
       {
         case ViewResourceType::BufferIBV:
@@ -709,6 +721,7 @@ namespace higanbana
 
     void DX12Device::waitGpuIdle()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_graphicsQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
       m_deviceFence.waitTillReady();
       m_computeQueue->Signal(m_deviceFence.fence.Get(), m_deviceFence.start());
@@ -719,6 +732,7 @@ namespace higanbana
 
     MemoryRequirements DX12Device::getReqs(ResourceDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       MemoryRequirements reqs{};
       D3D12_RESOURCE_ALLOCATION_INFO requirements;
       D3D12_RESOURCE_DESC resDesc;
@@ -795,6 +809,7 @@ namespace higanbana
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC DX12Device::getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
       {
         // BlendState
@@ -883,6 +898,7 @@ namespace higanbana
 
     std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       std::optional<DX12OldPipeline> oldPipe;
 
       if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
@@ -984,6 +1000,7 @@ namespace higanbana
   
     std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       std::optional<DX12OldPipeline> oldPipe;
 
       if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
@@ -1034,6 +1051,7 @@ namespace higanbana
 
     void DX12Device::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = heapDesc.desc;
       D3D12_HEAP_DESC dxdesc{};
       bool smallResource = false;
@@ -1104,6 +1122,7 @@ namespace higanbana
 
     void DX12Device::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto dxDesc = fillPlacedBufferInfo(desc);
 
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
@@ -1125,6 +1144,7 @@ namespace higanbana
 
     void DX12Device::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ResourceType::Buffer, "handle should be correct");
       auto& native = m_allRes.heaps[allocation.heap.handle];
       auto dxDesc = fillPlacedBufferInfo(desc);
@@ -1159,6 +1179,7 @@ namespace higanbana
 
     void DX12Device::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& bufferDesc, ShaderViewDescriptor& viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.buf[buffer];
 
       auto desc = bufferDesc.desc;
@@ -1286,6 +1307,7 @@ namespace higanbana
 
     void DX12Device::createTexture(ResourceHandle handle, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ResourceType::Texture, "handle should be correct");
       auto dxDesc = fillPlacedTextureInfo(desc);
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
@@ -1356,6 +1378,7 @@ namespace higanbana
 
     void DX12Device::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ResourceType::Texture, "handle should be correct");
       auto& native = m_allRes.heaps[allocation.heap.handle];
       auto dxDesc = fillPlacedTextureInfo(desc);
@@ -1420,6 +1443,7 @@ namespace higanbana
 
     void DX12Device::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       //auto native = std::static_pointer_cast<DX12Texture>(texture);
       auto& native = m_allRes.tex[texture];
 
@@ -1479,6 +1503,7 @@ namespace higanbana
 
     void DX12Device::createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<D3D12_CPU_DESCRIPTOR_HANDLE> cpudescriptors;
       auto& ar = allResources();
       for (auto&& handle : binding.bResources())
@@ -1580,6 +1605,7 @@ namespace higanbana
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
       auto stride = formatSizeInfo(type).pixelSize;
@@ -1617,6 +1643,7 @@ namespace higanbana
 
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, unsigned stride)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto descriptor = m_generics.allocate();
       auto upload = m_dynamicUpload->allocate(view.size(), stride);
@@ -1640,6 +1667,7 @@ namespace higanbana
 
     void DX12Device::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HIGAN_ASSERT(handle.type == ViewResourceType::DynamicBufferSRV, "handle should be correct");
       auto rows = bytes.size() / rowPitch;
 
@@ -1662,6 +1690,7 @@ namespace higanbana
 
     void DX12Device::readbackBuffer(ResourceHandle readback, size_t bytes)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // get description of source and allocate readback memory based on the bytes required
       ResourceDescriptor desc = ResourceDescriptor()
         .setCount(bytes)
@@ -1684,6 +1713,7 @@ namespace higanbana
 
     MemView<uint8_t> DX12Device::mapReadback(ResourceHandle readback)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& res = m_allRes.rbbuf[readback];
       uint8_t* data = res.map();
       return MemView<uint8_t>(data, res.size());
@@ -1691,6 +1721,7 @@ namespace higanbana
 
     void DX12Device::unmapReadback(ResourceHandle readback)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& res = m_allRes.rbbuf[readback];
       res.unmap();
     }
@@ -1717,6 +1748,7 @@ namespace higanbana
 
     DX12CommandBuffer DX12Device::createList(D3D12_COMMAND_LIST_TYPE type)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       HIGANBANA_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
@@ -1727,6 +1759,7 @@ namespace higanbana
 
     DX12Fence DX12Device::createNativeFence()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
       HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
       return DX12Fence(fence);
@@ -1734,6 +1767,7 @@ namespace higanbana
 
     DX12Semaphore DX12Device::createNativeSemaphore()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
       HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
       return DX12Semaphore(fence);
@@ -1742,9 +1776,8 @@ namespace higanbana
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
-      //auto seqNumber = m_seqTracker->next();
-      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+      HIGAN_CPU_FUNCTION_SCOPE();
+      auto list = std::make_shared<DX12CommandList>(
         QueueType::Dma,
         m_copyListPool.allocate(),
         m_constantsUpload,
@@ -1752,25 +1785,14 @@ namespace higanbana
         m_dmaQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV),
-        [](DX12CommandList* ptr)
-      {
-        /*
-        if (auto seqTracker = tracker)
-        {
-          seqTracker->complete(seqNumber);
-        }
-        */
-        delete ptr;
-      });
+        m_nullBufferSRV);
 
       return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createComputeList()
     {
-      //auto seqNumber = m_seqTracker->next();
-      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+      HIGAN_CPU_FUNCTION_SCOPE();
+      auto list = std::make_shared<DX12CommandList>(
         QueueType::Compute,
         m_computeListPool.allocate(),
         m_constantsUpload,
@@ -1778,24 +1800,13 @@ namespace higanbana
         m_computeQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV),
-        [](DX12CommandList* ptr)
-      {
-        /*
-        if (auto seqTracker = tracker)
-        {
-          seqTracker->complete(seqNumber);
-        }
-        */
-        delete ptr;
-      });
+        m_nullBufferSRV);
       return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
     {
-      //auto seqNumber = m_seqTracker->next();
-      //std::shared_ptr<SequenceTracker> tracker = m_seqTracker;
-      auto list = std::shared_ptr<DX12CommandList>(new DX12CommandList(
+      HIGAN_CPU_FUNCTION_SCOPE();
+      auto list = std::make_shared<DX12CommandList>(
         QueueType::Graphics,
         m_graphicsListPool.allocate(),
         m_constantsUpload,
@@ -1803,16 +1814,7 @@ namespace higanbana
         m_queryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV),
-        [](DX12CommandList* ptr)
-      {
-        /*
-        if (auto seqTracker = tracker)
-        {
-          seqTracker->complete(seqNumber);
-        }*/
-        delete ptr;
-      });
+        m_nullBufferSRV);
       return list;
     }
 
@@ -1877,6 +1879,7 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       submit(m_dmaQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
@@ -1886,6 +1889,7 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
@@ -1895,11 +1899,13 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       submit(m_graphicsQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::waitFence(std::shared_ptr<FenceImpl> fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       native->waitTillReady();
     }
@@ -1912,6 +1918,7 @@ namespace higanbana
 
     void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (renderingFinished)
       {
         auto native = std::static_pointer_cast<DX12Semaphore>(renderingFinished);
@@ -1931,6 +1938,7 @@ namespace higanbana
 
     std::shared_ptr<SemaphoreImpl> DX12Device::createSharedSemaphore()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
       HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER | D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
       return std::make_shared<DX12Semaphore>(fence);
@@ -1938,6 +1946,7 @@ namespace higanbana
 
     std::shared_ptr<backend::SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> sema)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<DX12Semaphore>(sema);
 
       HANDLE h;
@@ -1953,6 +1962,7 @@ namespace higanbana
 
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(HeapAllocation heapAllocation)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
 
       HANDLE h;
@@ -1968,6 +1978,7 @@ namespace higanbana
 
     std::shared_ptr<SharedHandle> DX12Device::openSharedHandle(ResourceHandle resource)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HANDLE h;
       size_t size;
 
@@ -1986,6 +1997,7 @@ namespace higanbana
 
     std::shared_ptr<backend::SharedHandle> DX12Device::openForInteropt(ResourceHandle resource)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       HANDLE h;
 
       if (resource.type == ResourceType::Texture)
@@ -2003,6 +2015,7 @@ namespace higanbana
 
     std::shared_ptr<backend::SemaphoreImpl> DX12Device::createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
       m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(fence.GetAddressOf()));
       return std::make_shared<DX12Semaphore>(fence);
@@ -2010,6 +2023,7 @@ namespace higanbana
 
     void DX12Device::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Heap* heap;
       m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap));
       m_allRes.heaps[handle] = DX12Heap(heap);
@@ -2017,6 +2031,7 @@ namespace higanbana
       
     void DX12Device::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Heap* heap;
       m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap));
 
@@ -2037,6 +2052,7 @@ namespace higanbana
     
     void DX12Device::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Resource* texture;
       m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&texture));
 

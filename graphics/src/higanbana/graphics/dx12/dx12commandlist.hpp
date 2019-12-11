@@ -25,6 +25,8 @@ namespace higanbana
 
       ResourceHandle  m_boundGfxSets[4] = {};
       ResourceHandle  m_boundCompSets[4] = {};
+      ViewResourceHandle m_boundIndexBufferHandle = {};
+      D3D12_INDEX_BUFFER_VIEW m_ib = {};
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
@@ -33,7 +35,6 @@ namespace higanbana
       void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
       //void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver);
-      void processRenderpasses(DX12Device* dev, MemView<backend::CommandBuffer>& buffers);
 
     public:
       DX12CommandList(

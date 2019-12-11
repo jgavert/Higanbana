@@ -4,6 +4,7 @@
 #include "higanbana/graphics/vk/vkresources.hpp"
 #include <higanbana/core/Platform/Window.hpp>
 #include <higanbana/core/global_debug.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
@@ -83,6 +84,7 @@ namespace higanbana
         })
       , m_debug(debug)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
 #ifdef HIGANBANA_GRAPHICS_VALIDATION_LAYER
       m_debug = true;
 #endif
@@ -247,6 +249,7 @@ namespace higanbana
 
     vector<GpuInfo> VulkanSubsystem::availableGpus(VendorID vendor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto canPresent = [](vk::PhysicalDevice dev)
       {
         auto queueProperties = dev.getQueueFamilyProperties();
@@ -339,6 +342,7 @@ namespace higanbana
 
     std::shared_ptr<backend::prototypes::DeviceImpl> VulkanSubsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto&& physDev = m_devices[gpu.id];
 
       auto physExtRes = physDev.enumerateDeviceExtensionProperties();
@@ -478,6 +482,7 @@ namespace higanbana
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
     GraphicsSurface VulkanSubsystem::createSurface(Window& window)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::Win32SurfaceCreateInfoKHR createInfo = vk::Win32SurfaceCreateInfoKHR()
         .setHwnd(window.getInternalWindow().getHWND())
         .setHinstance(window.getInternalWindow().getHInstance());

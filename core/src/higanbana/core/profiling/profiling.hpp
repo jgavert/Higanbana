@@ -45,6 +45,8 @@ void writeProfilingData(higanbana::FileSystem& fs);
 #define HIGAN_CONCAT(a, b) a ## b
 #define HIGAN_CONCAT_HELPER(a, b) HIGAN_CONCAT(a, b)
 #define HIGAN_CPU_BRACKET(name) auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(name)
+#define HIGAN_CPU_FUNCTION_SCOPE() auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(__FUNCTION__)
 #else
 #define HIGAN_CPU_BRACKET(name)
+#define HIGAN_CPU_FUNCTION_SCOPE()
 #endif

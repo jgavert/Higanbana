@@ -4,6 +4,7 @@
 #include "higanbana/graphics/common/barrier_solver.hpp"
 #include "higanbana/graphics/desc/resource_state.hpp"
 
+#include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 
 namespace higanbana
@@ -12,6 +13,7 @@ namespace higanbana
   {
     void VulkanCommandBuffer::handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& packet)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // step1. check if renderpass is done, otherwise create renderpass
       auto& renderpassbegin = packet;
 
@@ -379,7 +381,7 @@ namespace higanbana
       }
       m_tempSets[i] = pipe.m_staticSet;
       vk::ArrayProxy<const vk::DescriptorSet> sets(i+1 - firstSet, m_tempSets.data() + firstSet);
-      buffer.bindDescriptorSets(bindpoint, pipeLayout, firstSet, sets, {static_cast<uint32_t>(block.offset())});
+      buffer.bindDescriptorSets(bindpoint, pipeLayout, firstSet, sets, {static_cast<uint32_t>(block.offset())}, m_dispatch);
     }
 
     std::string buildStageString(int stage)
@@ -522,6 +524,7 @@ namespace higanbana
 
     void addBarrier(VulkanDevice* device, vk::CommandBuffer buffer, MemoryBarriers barriers)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto idx = device->queueIndexes();
       if (!barriers.buffers.empty() || !barriers.textures.empty())
       {
@@ -590,6 +593,7 @@ namespace higanbana
 
     void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<CommandBuffer>& buffers, BarrierSolver& solver)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       int drawIndex = 0;
       int framebuffer = 0;
       ResourceHandle boundPipeline;
@@ -598,6 +602,7 @@ namespace higanbana
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
       auto barrierInfosSize = barrierInfos.size();
+      backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       for (auto&& list : buffers)
       {
         for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
@@ -615,21 +620,21 @@ namespace higanbana
             //        case CommandPacket::PacketType::Dispatch:
           case PacketType::RenderBlock:
           {
-            if (device->dispatcher().vkCmdBeginDebugUtilsLabelEXT)
+            if (m_dispatch.vkCmdBeginDebugUtilsLabelEXT)
             {
               gfxpacket::RenderBlock& packet = header->data<gfxpacket::RenderBlock>();
               auto view = packet.name.convertToMemView();
               currentBlock = std::string(view.data());
               if (beganLabel)
               {
-                buffer.endDebugUtilsLabelEXT(device->dispatcher());
+                buffer.endDebugUtilsLabelEXT(m_dispatch);
               }
               else
               {
                 beganLabel = true;
               }
               vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
-              buffer.beginDebugUtilsLabelEXT(label, device->dispatcher());
+              buffer.beginDebugUtilsLabelEXT(label, m_dispatch);
               //HIGAN_LOGi("renderblock: %s\n", currentBlock.c_str());
             }
             break;
@@ -640,7 +645,9 @@ namespace higanbana
           }
           case PacketType::RenderpassBegin:
           {
+            handleRenderpass(device, header->data<gfxpacket::RenderPassBegin>());
             handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+            rpbegin = header;
             framebuffer++;
             break;
           }
@@ -649,14 +656,19 @@ namespace higanbana
             gfxpacket::ScissorRect& packet = header->data<gfxpacket::ScissorRect>();
             auto extent = math::sub(packet.bottomright, packet.topleft);
             auto scissorRect = vk::Rect2D(vk::Offset2D(packet.topleft.x, packet.topleft.y), vk::Extent2D(extent.x, extent.y));
-            buffer.setScissor(0, {scissorRect});
+            buffer.setScissor(0, {scissorRect}, m_dispatch);
             break;
           }
           case PacketType::GraphicsPipelineBind:
           {
             gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
             if (boundPipeline.id != packet.pipeline.id) {
-              buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline);
+              auto oldPipe = device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+              if (oldPipe)
+              {
+                m_oldPipelines.push_back(oldPipe.value());
+              }
+              buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, device->allResources().pipelines[packet.pipeline].m_pipeline, m_dispatch);
               boundPipeline = packet.pipeline;
             }
             break;
@@ -665,7 +677,12 @@ namespace higanbana
           {
             gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
             if (boundPipeline.id != packet.pipeline.id) {
-              buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline);
+              auto oldPipe = device->updatePipeline(packet.pipeline);
+              if (oldPipe)
+              {
+                m_oldPipelines.push_back(oldPipe.value());
+              }
+              buffer.bindPipeline(vk::PipelineBindPoint::eCompute, device->allResources().pipelines[packet.pipeline].m_pipeline, m_dispatch);
               boundPipeline = packet.pipeline;
             }
 
@@ -680,29 +697,31 @@ namespace higanbana
           case PacketType::Draw:
           {
             auto params = header->data<gfxpacket::Draw>();
-            buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance);
+            buffer.draw(params.vertexCountPerInstance, params.instanceCount, params.startVertex, params.startInstance, m_dispatch);
             break;
           }
           case PacketType::DrawIndexed:
           {
             auto params = header->data<gfxpacket::DrawIndexed>();
-            if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+            if (params.indexbuffer.type == ViewResourceType::BufferIBV && params.indexbuffer != m_boundIndexBuffer)
             {
               auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-              buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType);
+              buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType, m_dispatch);
+              m_boundIndexBuffer = params.indexbuffer;
             }
-            else
+            else if (params.indexbuffer != m_boundIndexBuffer)
             {
               auto& ibv = device->allResources().dynBuf[params.indexbuffer];
-              buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index);
+              buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index, m_dispatch);
+              m_boundIndexBuffer = params.indexbuffer;
             }
-            buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
+            buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation, m_dispatch);
             break;
           }
           case PacketType::Dispatch:
           {
             auto params = header->data<gfxpacket::Dispatch>();
-            buffer.dispatch(params.groups.x, params.groups.y, params.groups.z);
+            buffer.dispatch(params.groups.x, params.groups.y, params.groups.z, m_dispatch);
             break;
           }
           case PacketType::BufferCopy:
@@ -789,6 +808,7 @@ namespace higanbana
 
     void VulkanCommandBuffer::preprocess(VulkanDevice* device, MemView<backend::CommandBuffer>& buffers)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       // find all renderpasses & compile all missing graphics pipelines
       for (auto&& list : buffers)
@@ -839,11 +859,13 @@ namespace higanbana
     // implementations
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_tempSets.resize(5);
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
+      nat->native().resetCommandPool(m_list->pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
 
       // preprocess to compile renderpasses/pipelines
-      preprocess(nat.get(), buffers);
+      //preprocess(nat.get(), buffers);
       
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
@@ -857,6 +879,7 @@ namespace higanbana
 
     void VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
 
     }
   }

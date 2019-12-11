@@ -4,6 +4,7 @@
 #include "higanbana/graphics/definitions.hpp"
 #include <higanbana/core/Platform/Window.hpp>
 #include <higanbana/core/global_debug.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 
 namespace higanbana
 {
@@ -42,6 +43,7 @@ namespace higanbana
 
     vector<GpuInfo> DX12Subsystem::availableGpus(VendorID vendor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vAdapters.clear();
       UINT i = 0;
       ComPtr<IDXGIAdapter1> pAdapter;
@@ -158,6 +160,7 @@ namespace higanbana
 
     std::shared_ptr<prototypes::DeviceImpl> DX12Subsystem::createGpuDevice(FileSystem& fs, GpuInfo gpu)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (m_debug)
       {
         ComPtr<ID3D12Debug> debugController;

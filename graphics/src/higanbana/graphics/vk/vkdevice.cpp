@@ -8,6 +8,7 @@
 #include "higanbana/graphics/vk/util/pipeline_helpers.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 
 #include <optional>
 
@@ -28,6 +29,7 @@ namespace higanbana
 
     vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = descriptor.desc;
       auto bufSize = desc.stride*desc.width;
       HIGAN_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
@@ -75,6 +77,7 @@ namespace higanbana
 
     vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = descriptor.desc;
 
       vk::ImageType ivt;
@@ -209,6 +212,7 @@ namespace higanbana
 
     MemoryPropertySearch getMemoryProperties(ResourceUsage usage)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       MemoryPropertySearch ret{};
       switch (usage)
       {
@@ -242,6 +246,7 @@ namespace higanbana
 
     void printMemoryTypeInfos(vk::PhysicalDeviceMemoryProperties prop)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto checkFlagSet = [](vk::MemoryType& type, vk::MemoryPropertyFlagBits flag)
       {
         return (type.propertyFlags & flag) == flag;
@@ -303,6 +308,7 @@ namespace higanbana
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // try to figure out unique queues, abort or something when finding unsupported count.
       // universal
       // graphics+compute
@@ -554,6 +560,7 @@ namespace higanbana
 
     VulkanDevice::~VulkanDevice()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_device.waitIdle();
       // Clear all user resources nicely
       // descriptorSets
@@ -719,6 +726,7 @@ namespace higanbana
     template <typename Dispatch>
     vk::PresentModeKHR getValidPresentMode(vk::PhysicalDevice dev, vk::SurfaceKHR surface, Dispatch dyncamic, PresentMode mode)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto asd = dev.getSurfacePresentModesKHR(surface, dyncamic);
       VK_CHECK_RESULT(asd);
       auto presentModes = asd.value;
@@ -776,6 +784,7 @@ namespace higanbana
 
     std::shared_ptr<prototypes::SwapchainImpl> VulkanDevice::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto format = descriptor.desc.format;
       auto buffers = descriptor.desc.bufferCount;
 
@@ -872,6 +881,7 @@ namespace higanbana
 
     void VulkanDevice::adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> swapchain, SwapchainDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto format = descriptor.desc.format;
       auto mode = descriptor.desc.mode;
       auto bufferCount = descriptor.desc.bufferCount;
@@ -962,6 +972,7 @@ namespace higanbana
 
     int VulkanDevice::fetchSwapchainTextures(std::shared_ptr<prototypes::SwapchainImpl> sc, vector<ResourceHandle>& handles)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
       auto imagesRes = m_device.getSwapchainImagesKHR(native->native());
       VK_CHECK_RESULT(imagesRes);
@@ -980,6 +991,7 @@ namespace higanbana
 
     int VulkanDevice::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
 
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
@@ -1003,6 +1015,7 @@ namespace higanbana
     // TODO: add fence here, so that we can detect that "we cannot render yet, do something else". Bonus thing honestly.
     int VulkanDevice::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> sc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
 
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
@@ -1027,6 +1040,7 @@ namespace higanbana
 
     vk::RenderPass VulkanDevice::createRenderpass(const vk::RenderPassCreateInfo& info)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto attachmentHash = HashMemory(info.pAttachments, info.attachmentCount * sizeof(vk::AttachmentDescription));
       auto dependencyHash = HashMemory(info.pDependencies, info.dependencyCount * sizeof(vk::SubpassDependency));
       auto subpassHash = HashMemory(info.pSubpasses, info.subpassCount * sizeof(vk::SubpassDescription));
@@ -1080,6 +1094,7 @@ namespace higanbana
 
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
         return {};
 
@@ -1253,6 +1268,7 @@ namespace higanbana
 
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].cs.updated())
         return {};
 
@@ -1303,6 +1319,7 @@ namespace higanbana
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<vk::DescriptorSetLayout> layouts;
       for (auto&& layout : desc.desc.layout.m_sets)
       {
@@ -1339,6 +1356,7 @@ namespace higanbana
 
     void VulkanDevice::createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<vk::DescriptorSetLayout> layouts;
       for (auto&& layout : desc.layout.m_sets)
       {
@@ -1376,6 +1394,7 @@ namespace higanbana
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::defaultSetLayoutBindings(vk::ShaderStageFlags flags)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<vk::DescriptorSetLayoutBinding> bindings;
 
       int slot = 0;
@@ -1409,6 +1428,7 @@ namespace higanbana
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::gatherSetLayoutBindings(ShaderArgumentsLayoutDescriptor desc, vk::ShaderStageFlags flags)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto layout = desc;
       vector<vk::DescriptorSetLayoutBinding> bindings;
 
@@ -1462,6 +1482,7 @@ namespace higanbana
 
     void VulkanDevice::releaseHandle(ResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       switch(handle.type)
       {
         case ResourceType::Buffer:
@@ -1545,6 +1566,7 @@ namespace higanbana
 
     void VulkanDevice::releaseViewHandle(ViewResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       switch(handle.type)
       {
         case ViewResourceType::BufferIBV:
@@ -1618,11 +1640,13 @@ namespace higanbana
 
     void VulkanDevice::waitGpuIdle()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_device.waitIdle();
     }
 
     MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       MemoryRequirements reqs{};
       vk::MemoryRequirements requirements;
       if (desc.desc.dimension == FormatDimension::Buffer)
@@ -1663,11 +1687,13 @@ namespace higanbana
 
     void VulkanDevice::createRenderpass(ResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_allRes.renderpasses[handle] = VulkanRenderpass();
     }
 
     void VulkanDevice::createHeap(ResourceHandle handle, HeapDescriptor heapDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto&& desc = heapDesc.desc;
 
       int32_t index, bits;
@@ -1746,6 +1772,7 @@ namespace higanbana
 
     void VulkanDevice::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto vkdesc = fillBufferInfo(desc);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
@@ -1761,6 +1788,7 @@ namespace higanbana
 
     void VulkanDevice::createBufferView(ViewResourceHandle handle, ResourceHandle buffer, ResourceDescriptor& resDesc, ShaderViewDescriptor& viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.buf[buffer];
 
       auto& desc = resDesc.desc;
@@ -1902,6 +1930,7 @@ namespace higanbana
 
     void VulkanDevice::createTexture(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto vkdesc = fillImageInfo(desc);
       auto image = m_device.createImage(vkdesc);
       VK_CHECK_RESULT(image);
@@ -1916,6 +1945,7 @@ namespace higanbana
 
     void VulkanDevice::createTextureView(ViewResourceHandle handle, ResourceHandle texture, ResourceDescriptor& texDesc, ShaderViewDescriptor& viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.tex[texture];
       auto desc = texDesc.desc;
 
@@ -2031,6 +2061,7 @@ namespace higanbana
     
     void VulkanDevice::createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAll);
       vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
         .setBindingCount(static_cast<uint32_t>(bindings.size()))
@@ -2044,6 +2075,7 @@ namespace higanbana
 
     void VulkanDevice::createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto desclayout = allResources().shaArgsLayouts[binding.layout()].native();
       auto set = m_descriptors->allocate(native(), desclayout, 1)[0];
       setDebugUtilsObjectNameEXT(set, binding.name().c_str());
@@ -2145,6 +2177,7 @@ namespace higanbana
 
     VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto upload = m_constantAllocators->allocate(bytes.size());
       HIGAN_ASSERT(upload, "Halp");
 
@@ -2160,6 +2193,7 @@ namespace higanbana
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto alignment = formatSizeInfo(desiredFormat).pixelSize * m_limits.minTexelBufferOffsetAlignment;
       auto upload = m_dynamicUpload->allocate(dataRange.size(), alignment);
       HIGAN_ASSERT(upload, "Halp");
@@ -2200,6 +2234,7 @@ namespace higanbana
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto upload = m_dynamicUpload->allocate(dataRange.size(), stride);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
@@ -2217,6 +2252,7 @@ namespace higanbana
 
     void VulkanDevice::dynamicImage(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned rowPitch)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto upload = m_dynamicUpload->allocate(dataRange.size(), rowPitch);
       HIGAN_ASSERT(upload, "Halp");
       memcpy(upload.data(), dataRange.data(), dataRange.size());
@@ -2233,6 +2269,7 @@ namespace higanbana
 
     void VulkanDevice::readbackBuffer(ResourceHandle readback, size_t bytes)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       ResourceDescriptor desc = ResourceDescriptor()
         .setCount(bytes)
         .setFormat(FormatType::Unorm8)
@@ -2273,6 +2310,7 @@ namespace higanbana
 
     MemView<uint8_t> VulkanDevice::mapReadback(ResourceHandle readback)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& vrb = m_allRes.rbBuf[readback];
       auto res = m_device.mapMemory(vrb.memory(), vrb.offset(), vrb.size());
       VK_CHECK_RESULT(res);
@@ -2282,12 +2320,14 @@ namespace higanbana
 
     void VulkanDevice::unmapReadback(ResourceHandle readback)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& vrb = m_allRes.rbBuf[readback];
       m_device.unmapMemory(vrb.memory());
     }
 
     VulkanCommandList VulkanDevice::createCommandBuffer(int queueIndex)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()
         .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
         .setQueueFamilyIndex(queueIndex);
@@ -2310,12 +2350,13 @@ namespace higanbana
 
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_copyListPool.allocate();
-      resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
+      //resetListNative(*list);
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2331,12 +2372,13 @@ namespace higanbana
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2352,12 +2394,13 @@ namespace higanbana
     }
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto seqNumber = m_seqTracker->next();
       std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_graphicsListPool.allocate();
-      resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_descriptors, m_constantAllocators),
+      //resetListNative(*list);
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2462,6 +2505,7 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::Queue target = m_copyQueue;
       if (m_singleQueue)
       {
@@ -2476,6 +2520,7 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::Queue target = m_computeQueue;
       if (m_singleQueue)
       {
@@ -2490,11 +2535,13 @@ namespace higanbana
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       submitToQueue(m_mainQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::waitFence(std::shared_ptr<FenceImpl> fence)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanFence>(fence);
       HIGAN_ASSERT(native->native() != VK_NULL_HANDLE, "expected non null handle");
       vk::ArrayProxy<const vk::Fence> proxy(native->native());
@@ -2512,6 +2559,7 @@ namespace higanbana
 
     void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
       uint32_t index = static_cast<uint32_t>(native->getCurrentPresentableImageIndex());
       vk::Semaphore renderFinish = nullptr;
@@ -2539,6 +2587,7 @@ namespace higanbana
     
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR();
 
       vk::ExportSemaphoreCreateInfo exportSema = vk::ExportSemaphoreCreateInfo()
@@ -2556,11 +2605,13 @@ namespace higanbana
 
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl> shared)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
 
       return nullptr;
     };
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
 
       auto handle = m_device.getMemoryWin32HandleKHR(vk::MemoryGetWin32HandleInfoKHR()
@@ -2577,6 +2628,7 @@ namespace higanbana
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle> shared)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::Semaphore sema;
       auto importInfo = vk::ImportSemaphoreWin32HandleInfoKHR()
       .setHandle(shared->handle)
@@ -2594,6 +2646,7 @@ namespace higanbana
     
     void VulkanDevice::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
       if (shared->api == GraphicsApi::DX12) // DX12 resource
@@ -2616,6 +2669,7 @@ namespace higanbana
 
     void VulkanDevice::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation allocation, ResourceDescriptor& descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
       if (shared->api == GraphicsApi::DX12) // DX12 resource
@@ -2639,6 +2693,7 @@ namespace higanbana
     }
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vk::ExternalMemoryImageCreateInfo extInfo;
       extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
       auto vkdesc = fillImageInfo(descriptor);

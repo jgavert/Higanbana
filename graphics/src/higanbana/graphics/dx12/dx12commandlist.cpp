@@ -7,6 +7,7 @@
 #include "higanbana/graphics/common/command_packets.hpp"
 #include "higanbana/graphics/desc/resource_state.hpp"
 #include "higanbana/graphics/common/barrier_solver.hpp"
+#include <higanbana/core/profiling/profiling.hpp>
 
 #if !USE_PIX
 #define USE_PIX 1
@@ -36,7 +37,6 @@ namespace higanbana
       , m_nullBufferUAV(nullBufferUAV)
       , m_nullBufferSRV(nullBufferSRV)
     {
-      m_buffer->resetList();
       m_readback->reset();
       m_queryheap->reset();
 
@@ -60,27 +60,12 @@ namespace higanbana
           }
         }
 
-        // handle readbacks
-        /*
-        if (auto readback = read.lock())
-        {
-          if (!ptr->readbacks.empty())
-          {
-            readback->map();
-            for (auto&& it : ptr->readbacks)
-            {
-              it.func(readback->getView(it.dataLocation));
-            }
-            readback->unmap();
-          }
-        }
-        */
-
         delete ptr;
       });
     }
     void handle(DX12Device* ptr, D3D12GraphicsCommandList* buffer, gfxpacket::RenderPassBegin& packet)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // set viewport and rendertargets
       uint2 size;
 
@@ -893,6 +878,7 @@ namespace higanbana
 
     void addBarrier(DX12Device* device, D3D12GraphicsCommandList* buffer, MemoryBarriers mbarriers)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (!mbarriers.buffers.empty() || !mbarriers.textures.empty())
       {
         vector<D3D12_RESOURCE_BARRIER> barriers;
@@ -954,6 +940,7 @@ namespace higanbana
     }
     void DX12CommandList::addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       int drawIndex = 0;
       int framebuffer = 0;
       int renderBlockTimeIndex = 0;
@@ -964,6 +951,7 @@ namespace higanbana
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
       auto barrierInfosSize = barrierInfos.size();
+      backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
 
       DX12Query timestamp;
 
@@ -1010,6 +998,7 @@ namespace higanbana
           case PacketType::RenderpassBegin:
           {
             handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
+            rpbegin = header;
             framebuffer++;
             break;
           }
@@ -1028,6 +1017,11 @@ namespace higanbana
           {
             gfxpacket::GraphicsPipelineBind& packet = header->data<gfxpacket::GraphicsPipelineBind>();
             if (boundPipeline.id != packet.pipeline.id) {
+              auto oldPipe = device->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
+              if (oldPipe)
+              {
+                m_freeResources->pipelines.push_back(oldPipe.value());
+              }
               auto& pipe = device->allResources().pipelines[packet.pipeline];
               buffer->SetGraphicsRootSignature(pipe.root.Get());
               buffer->SetPipelineState(pipe.pipeline.Get());
@@ -1040,6 +1034,11 @@ namespace higanbana
           {
             gfxpacket::ComputePipelineBind& packet = header->data<gfxpacket::ComputePipelineBind>();
             if (boundPipeline.id != packet.pipeline.id) {
+              auto oldPipe = device->updatePipeline(packet.pipeline);
+              if (oldPipe)
+              {
+                m_freeResources->pipelines.push_back(oldPipe.value());
+              }
               auto& pipe = device->allResources().pipelines[packet.pipeline];
               buffer->SetComputeRootSignature(pipe.root.Get());
               buffer->SetPipelineState(pipe.pipeline.Get());
@@ -1062,21 +1061,23 @@ namespace higanbana
           case PacketType::DrawIndexed:
           {
             auto params = header->data<gfxpacket::DrawIndexed>();
-            D3D12_INDEX_BUFFER_VIEW ib{};
-            if (params.indexbuffer.type == ViewResourceType::BufferIBV)
+            if (params.indexbuffer.type == ViewResourceType::BufferIBV && m_boundIndexBufferHandle != params.indexbuffer)
             {
               auto& ibv = device->allResources().bufIBV[params.indexbuffer];
               auto& buf = device->allResources().buf[params.indexbuffer.resource];
-              ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
-              ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-              ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+              m_ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
+              m_ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+              m_ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+              buffer->IASetIndexBuffer(&m_ib);
+              m_boundIndexBufferHandle = params.indexbuffer;
             }
-            else
+            else if (m_boundIndexBufferHandle != params.indexbuffer)
             {
               auto& ibv = device->allResources().dynSRV[params.indexbuffer];
-              ib = ibv.indexBufferView();
+              m_ib = ibv.indexBufferView();
+              buffer->IASetIndexBuffer(&m_ib);
+              m_boundIndexBufferHandle = params.indexbuffer;
             }
-            buffer->IASetIndexBuffer(&ib);
 
             buffer->DrawIndexedInstanced(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation);
             break;
@@ -1145,59 +1146,19 @@ namespace higanbana
         buffer->ResolveQueryData(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, 0, UINT(m_queryheap->size()), m_readback->native(), readback.offset);
       }
     }
-
-    void DX12CommandList::processRenderpasses(DX12Device* dev, MemView<backend::CommandBuffer>& buffers)
-    {
-      backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
-      // find all renderpasses & compile all missing graphics pipelines
-      for (auto&& list : buffers)
-      {
-        for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
-        {
-          switch ((*iter)->type)
-          {
-            case PacketType::RenderpassBegin:
-            {
-              rpbegin = (*iter);
-              break;
-            }
-            case PacketType::ComputePipelineBind:
-            {
-              gfxpacket::ComputePipelineBind& packet = (*iter)->data<gfxpacket::ComputePipelineBind>();
-              auto oldPipe = dev->updatePipeline(packet.pipeline);
-              if (oldPipe)
-              {
-                m_freeResources->pipelines.push_back(oldPipe.value());
-              }
-              break;
-            }
-            case PacketType::GraphicsPipelineBind:
-            {
-              gfxpacket::GraphicsPipelineBind& packet = (*iter)->data<gfxpacket::GraphicsPipelineBind>();
-              auto oldPipe = dev->updatePipeline(packet.pipeline, rpbegin->data<gfxpacket::RenderPassBegin>());
-              if (oldPipe)
-              {
-                m_freeResources->pipelines.push_back(oldPipe.value());
-              }
-              break;
-            }
-            default:
-              break;
-          }
-        }
-      }
-    }
     // implementations
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      m_buffer->resetList();
       DX12Device* dev = static_cast<DX12Device*>(device.get());
-      processRenderpasses(dev, buffers);
       addCommands(dev, m_buffer->list(), buffers, solver);
       m_buffer->closeList();
     }
 
     void DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_readback->map();
       auto view = m_readback->getView(readback);
       auto ticksPerSecond = m_queryheap->getGpuTicksPerSecond();

@@ -22,6 +22,7 @@ namespace higanbana
     // device
     DeviceGroupData::DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impls, vector<GpuInfo> infos)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_delayer = std::make_unique<DelayedRelease>();
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
@@ -32,6 +33,7 @@ namespace higanbana
 
     void DeviceGroupData::checkCompletedLists()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       for (auto& dev : m_devices)
       {
         auto checkQueue = [&](deque<LiveCommandBuffer2>& buffers)
@@ -165,12 +167,14 @@ namespace higanbana
 
     DeviceGroupData::~DeviceGroupData()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       waitGpuIdle();
       gc();
     }
 
     void DeviceGroupData::waitGpuIdle()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       for (auto&& vdev : m_devices)
       {
         vdev.device->waitGpuIdle();
@@ -210,6 +214,7 @@ namespace higanbana
 
     void DeviceGroupData::configureBackbufferViews(Swapchain& sc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<ResourceHandle> handles;
       // overcommitting with handles, 8 is max anyway...
       for (int i = 0; i < 8; i++)
@@ -262,6 +267,7 @@ namespace higanbana
 
     Swapchain DeviceGroupData::createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // assume that first device is the one in charge of presenting. TODO: swapchain is created always on device 0
       auto sc = m_devices[SwapchainDeviceID].device->createSwapchain(surface, descriptor);
       auto swapchain = Swapchain(sc);
@@ -272,6 +278,7 @@ namespace higanbana
 
     void DeviceGroupData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
       auto fenceForSwapchain = m_devices[SwapchainDeviceID].device->createFence();
       // assuming that only graphics queue accesses swapchain resources.
@@ -293,6 +300,7 @@ namespace higanbana
 
     std::optional<TextureRTV> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
         return {};
@@ -301,6 +309,7 @@ namespace higanbana
 
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       int index = m_devices[SwapchainDeviceID].device->tryAcquirePresentableImage(swapchain.impl());
       if (index == -1)
         return nullptr;
@@ -309,6 +318,7 @@ namespace higanbana
 
     Renderpass DeviceGroupData::createRenderpass()
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::Renderpass);
       for (auto&& device : m_devices)
       {
@@ -319,6 +329,7 @@ namespace higanbana
 
     ComputePipeline DeviceGroupData::createComputePipeline(ComputePipelineDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::Pipeline);
       for(auto&& device : m_devices)
       {
@@ -329,6 +340,7 @@ namespace higanbana
 
     GraphicsPipeline DeviceGroupData::createGraphicsPipeline(GraphicsPipelineDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::Pipeline);
       for(auto&& device : m_devices)
       {
@@ -339,6 +351,7 @@ namespace higanbana
 
     std::shared_ptr<ResourceHandle> DeviceGroupData::sharedHandle(ResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       return std::shared_ptr<ResourceHandle>(new ResourceHandle(handle),
       [weakDev = weak_from_this()](ResourceHandle* ptr)
       {
@@ -352,6 +365,7 @@ namespace higanbana
 
     std::shared_ptr<ViewResourceHandle> DeviceGroupData::sharedViewHandle(ViewResourceHandle handle)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       return std::shared_ptr<ViewResourceHandle>(new ViewResourceHandle(handle),
       [weakDev = weak_from_this()](ViewResourceHandle* ptr)
       {
@@ -365,6 +379,7 @@ namespace higanbana
 
     Buffer DeviceGroupData::createBuffer(ResourceDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       desc = desc.setDimension(FormatDimension::Buffer);
       auto handle = m_handles.allocateResource(ResourceType::Buffer);
       // TODO: sharedbuffers
@@ -428,6 +443,7 @@ namespace higanbana
 
     Texture DeviceGroupData::createTexture(ResourceDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::Texture);
 
       if (desc.desc.allowCrossAdapter) // only interopt supported for now
@@ -481,6 +497,7 @@ namespace higanbana
 
     BufferIBV DeviceGroupData::createBufferIBV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::BufferIBV, buffer.handle());
       for (auto& vdev : m_devices)
       {
@@ -491,6 +508,7 @@ namespace higanbana
 
     BufferSRV DeviceGroupData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::BufferSRV, buffer.handle());
       for (auto& vdev : m_devices)
       {
@@ -501,6 +519,7 @@ namespace higanbana
 
     BufferUAV DeviceGroupData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::BufferUAV, buffer.handle());
       for (auto& vdev : m_devices)
       {
@@ -511,6 +530,7 @@ namespace higanbana
 
     TextureSRV DeviceGroupData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (viewDesc.m_format == FormatType::Unknown)
       {
         viewDesc.m_format = texture.desc().desc.format;
@@ -527,6 +547,7 @@ namespace higanbana
 
     TextureUAV DeviceGroupData::createTextureUAV(Texture texture, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (viewDesc.m_format == FormatType::Unknown)
       {
         viewDesc.m_format = texture.desc().desc.format;
@@ -543,6 +564,7 @@ namespace higanbana
 
     TextureRTV DeviceGroupData::createTextureRTV(Texture texture, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (viewDesc.m_format == FormatType::Unknown)
       {
         viewDesc.m_format = texture.desc().desc.format;
@@ -559,6 +581,7 @@ namespace higanbana
 
     TextureDSV DeviceGroupData::createTextureDSV(Texture texture, ShaderViewDescriptor viewDesc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       if (viewDesc.m_format == FormatType::Unknown)
       {
         viewDesc.m_format = texture.desc().desc.format;
@@ -575,6 +598,7 @@ namespace higanbana
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
       m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
@@ -586,6 +610,7 @@ namespace higanbana
 
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
       m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
@@ -597,6 +622,7 @@ namespace higanbana
 
     DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
       m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
@@ -608,6 +634,7 @@ namespace higanbana
 
     ShaderArgumentsLayout DeviceGroupData::createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor desc)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::ShaderArgumentsLayout);
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
@@ -618,6 +645,7 @@ namespace higanbana
 
     ShaderArguments DeviceGroupData::createShaderArguments(ShaderArgumentsDescriptor& binding)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::ShaderArguments);
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
@@ -629,6 +657,7 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto graph = CommandGraph(InvalidSeqNum, m_commandBuffers);
 
       vector<DynamicBufferView> allBufferToImages;
@@ -678,6 +707,7 @@ namespace higanbana
       vector<QueueTransfer>& releases,
       CommandListTiming& timing)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       timing.barrierAdd.start();
       BarrierSolver solver(vdev.m_bufferStates, vdev.m_textureStates);
 
@@ -888,6 +918,7 @@ namespace higanbana
       BarrierSolver& solver,
       vector<ReadbackPromise>& readbacks)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       timing.barrierAdd.start();
 
       bool insideRenderpass = false;
@@ -1091,6 +1122,7 @@ namespace higanbana
 
     void DeviceGroupData::globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       timing.barrierSolveGlobal.start();
       solver.globalBarrierPass2();
       timing.barrierSolveGlobal.stop();
@@ -1098,6 +1130,7 @@ namespace higanbana
 
     void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       timing.fillNativeList.start();
       nativeList->fillWith(vdev.device, buffers, solver);
       timing.fillNativeList.stop();
@@ -1106,6 +1139,7 @@ namespace higanbana
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
     vector<FirstUseResource> DeviceGroupData::checkQueueDependencies(vector<PreparedCommandlist>& lists) {
+      HIGAN_CPU_FUNCTION_SCOPE();
       IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "\nRenderGraph %d\n", m_currentSeqNum);
       DynamicBitfield seenB;
       DynamicBitfield seenT;
@@ -1241,6 +1275,7 @@ namespace higanbana
     // submit function breakdown
     vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
         vector<PreparedCommandlist> lists;
         int i = 0;
         while (i < static_cast<int>(nodes.size()))
@@ -1260,13 +1295,17 @@ namespace higanbana
           plist.timing.nodes.emplace_back(nodes[i].timing);
           plist.timing.type = firstList->type;
 
+          auto currentSizeBytes = plist.buffers.back().sizeBytes();
+
           i += 1;
           for (; i < static_cast<int>(nodes.size()); ++i)
           {
             if (nodes[i].type != plist.type)
               break;
-            if (nodes[i].list->list.sizeBytes() > 500)
+            auto addedNodeSize = nodes[i].list->list.sizeBytes();
+            if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
               break;
+            currentSizeBytes += addedNodeSize;
             plist.buffers.emplace_back(std::move(nodes[i].list->list));
             //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
             plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
@@ -1292,6 +1331,7 @@ namespace higanbana
 
     void DeviceGroupData::returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       for (auto&& resource : firstUsageSeen)
       {
         for (int index = static_cast<int>(lists.size()) - 1; index >= 0; --index )
@@ -1318,6 +1358,7 @@ namespace higanbana
 
     void DeviceGroupData::handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen)
     {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<QueueTransfer> uhOhGfx;
       vector<QueueTransfer> uhOhCompute;
       vector<QueueTransfer> uhOhDma;
@@ -1378,7 +1419,7 @@ namespace higanbana
 
     deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID)
     {
-      HIGAN_CPU_BRACKET("makeLiveCommandBuffers");
+      HIGAN_CPU_FUNCTION_SCOPE();
       deque<LiveCommandBuffer2> readyLists;
       int listID = 0;
       
@@ -1434,7 +1475,7 @@ namespace higanbana
 
     void DeviceGroupData::submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded)
     {
-      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
+      HIGAN_CPU_FUNCTION_SCOPE();
       SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;
@@ -1506,7 +1547,6 @@ namespace higanbana
           int offset = list.listIDs[0];
           HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
           std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
-            HIGAN_CPU_BRACKET("InnerLoopFillNativeList");
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
@@ -1622,6 +1662,7 @@ namespace higanbana
 
     void DeviceGroupData::garbageCollection()
     {
+      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
       auto completedListsTill = m_seqTracker.completedTill();
       while(!m_seqNumRequirements.empty() && m_seqNumRequirements.front() <= completedListsTill)
       {
@@ -1679,6 +1720,7 @@ namespace higanbana
 
     void DeviceGroupData::present(Swapchain & swapchain)
     {
+      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
       m_devices[SwapchainDeviceID].device->present(swapchain.impl(), swapchain.impl()->renderSemaphore());
     }
   }

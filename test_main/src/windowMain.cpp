@@ -272,8 +272,8 @@ void mainWindow(ProgramParams& params)
     //world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 30;
-    int cubeCommandLists = 6;
+    int cubeCount = 52;
+    int cubeCommandLists = 16;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -723,7 +723,7 @@ void mainWindow(ProgramParams& params)
           inputsUpdated = inputs.frame();
           if (!renderActive)
             break;
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
         renderActive = false;
         lbs.sleepTillKeywords({"logic&render loop"});
