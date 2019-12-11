@@ -269,11 +269,11 @@ void mainWindow(ProgramParams& params)
     Database<2048> ecs;
 
     app::World world;
-    //world.loadGLTFScene(ecs, fs, "/scenes");
+    world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 52;
-    int cubeCommandLists = 16;
+    int cubeCount = 20;
+    int cubeCommandLists = 8;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
