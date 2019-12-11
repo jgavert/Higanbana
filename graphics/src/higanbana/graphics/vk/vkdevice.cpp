@@ -2496,7 +2496,7 @@ namespace higanbana
     void VulkanDevice::waitFence(std::shared_ptr<FenceImpl> fence)
     {
       auto native = std::static_pointer_cast<VulkanFence>(fence);
-      HIGAN_ASSERT(native->native() != VK_NULL_HANDLE, "expected non null handle");
+      HIGAN_ASSERT(native->native(), "expected non null handle");
       vk::ArrayProxy<const vk::Fence> proxy(native->native());
       auto res = m_device.waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
       HIGAN_ASSERT(res == vk::Result::eSuccess, "uups");

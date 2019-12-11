@@ -18,6 +18,10 @@ VertexOut main(uint id: SV_VertexID)
   i1 = asfloat(vertexInput.Load3(loadID*multiplier));
   vtxOut.pos.xyz = i1;
   vtxOut.pos.w = 1.f;
+  if (id % 2 == 1)
+  {
+    vtxOut.pos.z += 100.f;
+  }
   vtxOut.pos = mul(vtxOut.pos, constants.worldMat);
   vtxOut.pos = mul(vtxOut.pos, constants.viewMat);
   vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
