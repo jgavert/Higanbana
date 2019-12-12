@@ -71,6 +71,11 @@ namespace higanbana
       // locks and stuff
       std::mutex m_deviceMutex;
 
+      // shader debug gpu buffer
+      DX12Buffer m_shaderDebugBuffer;
+      DX12GPUDescriptor m_shaderDebugTable;
+      DX12CPUDescriptor m_shaderDebugTableCPU;
+
       friend class DX12CommandList;
 
       D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);

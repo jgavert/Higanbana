@@ -204,6 +204,44 @@ namespace higanbana
           &nulldesc,
           m_nullTextureSRV.cpu);
       }
+
+      // buffer for shader debugging
+      {
+        auto bdesc = ResourceDescriptor()
+          .setName("Shader debug print buffer")
+          .setFormat(FormatType::Raw32)
+          .setWidth(1024*10)
+          .setUsage(ResourceUsage::GpuRW)
+          .allowSimultaneousAccess();
+        auto dxDesc = fillPlacedBufferInfo(bdesc);
+
+        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
+        ID3D12Resource* bufferS;
+        D3D12_HEAP_PROPERTIES prop{};
+        prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        HIGANBANA_CHECK_HR(m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &dxDesc, startState, nullptr, IID_PPV_ARGS(&bufferS)));
+
+        auto wstr = s2ws("Shader debug print buffer");
+        bufferS->SetName(wstr.c_str());
+
+        m_shaderDebugBuffer = DX12Buffer(bufferS, bdesc);
+        // table for UAV
+        auto descriptors = m_dynamicGpuDescriptors->allocate(1);
+        DX12GPUDescriptor start = descriptors.offset(0);
+        D3D12_UNORDERED_ACCESS_VIEW_DESC natDesc{};
+        natDesc.Format = formatTodxFormat(bdesc.desc.format).view;
+        natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        natDesc.Buffer.FirstElement = 0;
+        natDesc.Buffer.NumElements = bdesc.desc.width;
+        natDesc.Buffer.StructureByteStride = 0;
+        natDesc.Buffer.CounterOffsetInBytes = 0;
+        natDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+        m_device->CreateUnorderedAccessView(bufferS, nullptr, &natDesc, start.cpu);
+        m_shaderDebugTable = start;
+        m_shaderDebugTableCPU = m_generics.allocate();
+        m_device->CreateUnorderedAccessView(bufferS, nullptr, &natDesc, m_shaderDebugTableCPU.cpu);
+      }
     }
 
     DX12Device::~DX12Device()
@@ -1785,7 +1823,8 @@ namespace higanbana
         m_dmaQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV);
+        m_nullBufferSRV,
+        m_shaderDebugTable);
 
       return list;
     }
@@ -1800,7 +1839,8 @@ namespace higanbana
         m_computeQueryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV);
+        m_nullBufferSRV,
+        m_shaderDebugTable);
       return list;
     }
     std::shared_ptr<CommandBufferImpl> DX12Device::createGraphicsList()
@@ -1814,7 +1854,8 @@ namespace higanbana
         m_queryHeapPool.allocate(),
         m_dynamicGpuDescriptors,
         m_nullBufferUAV,
-        m_nullBufferSRV);
+        m_nullBufferSRV,
+        m_shaderDebugTable);
       return list;
     }
 

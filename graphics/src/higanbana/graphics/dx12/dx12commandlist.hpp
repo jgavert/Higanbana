@@ -22,6 +22,7 @@ namespace higanbana
 
       UploadLinearAllocator m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
+      DX12GPUDescriptor m_shaderDebugTable;
 
       ResourceHandle  m_boundGfxSets[4] = {};
       ResourceHandle  m_boundCompSets[4] = {};
@@ -45,7 +46,8 @@ namespace higanbana
         std::shared_ptr<DX12QueryHeap> queryheap,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
         DX12CPUDescriptor nullBufferUAV,
-        DX12CPUDescriptor nullBufferSRV);
+        DX12CPUDescriptor nullBufferSRV,
+        DX12GPUDescriptor shaderDebugTable);
 
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver) override;
       void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;

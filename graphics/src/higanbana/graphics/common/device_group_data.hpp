@@ -152,6 +152,7 @@ namespace higanbana
       SequenceTracker m_seqTracker; // used to track only commandlists
       std::unique_ptr<DelayedRelease> m_delayer;
       HandleManager m_handles;
+      deque<higanbana::ReadbackFuture> m_shaderDebugReadbacks;
 
       // used to free resources
       deque<SeqNum> m_seqNumRequirements;

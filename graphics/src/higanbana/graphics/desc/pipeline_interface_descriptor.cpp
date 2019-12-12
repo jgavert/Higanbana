@@ -137,6 +137,7 @@ namespace higanbana
     lol += "\n";
 
     lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  "; // , DescriptorTable()";
+    lol += "  DescriptorTable(UAV(u99, numDescriptors = 1, space=99 )),\\\n"; 
 
     int set = 0;
     for (auto&& arg : m_sets)
@@ -147,7 +148,6 @@ namespace higanbana
       }
       set++;
     }
-    lol += "  DescriptorTable(\\\n     UAV(u99, numDescriptors = 1, space=99 )),\\\n"; 
 
     // ??
     lol += "StaticSampler(s0, "                   \
@@ -172,7 +172,7 @@ namespace higanbana
       lol += "struct Constants\n{" + constantStructBody + " };\n";
       lol += "VK_BINDING(0, " + std::to_string(m_sets.size()) + ") ConstantBuffer<Constants> constants : register( b0 );\n";
       gi++;
-      lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer debugPrint : register( u99 );\n";
+      lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer debugPrint : register( u99, space99 );\n";
     }
     set = 0;
     for (auto&& arg : m_sets)

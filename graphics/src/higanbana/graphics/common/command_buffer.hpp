@@ -35,6 +35,7 @@ namespace higanbana
       Draw,
       DrawIndexed,
       ScissorRect,
+      ReadbackShaderDebug,
       EndOfPackets,
     };
 

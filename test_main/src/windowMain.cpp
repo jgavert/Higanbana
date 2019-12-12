@@ -499,8 +499,8 @@ void mainWindow(ProgramParams& params)
               ImGui::Checkbox("render ECS", &renderECS);
               ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
               ImGui::SameLine();
-              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 56);
-              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 56);
+              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
+              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 64);
             }
             auto si = rend.timings();
             if (si && ImGui::CollapsingHeader("Renderpass"))

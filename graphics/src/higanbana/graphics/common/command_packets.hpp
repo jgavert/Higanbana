@@ -276,6 +276,17 @@ namespace higanbana
         packet->dst = ResourceHandle(); // invalid handle for now
       }
     };
+
+    struct ReadbackShaderDebug
+    {
+      ResourceHandle dst;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ReadbackShaderDebug;
+      static void constructor(backend::CommandBuffer& , ReadbackShaderDebug* packet, ResourceHandle dst)
+      {
+        packet->dst = dst;
+      }
+    };
     /*
     // helpers
 

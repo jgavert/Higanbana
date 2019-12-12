@@ -163,6 +163,16 @@ namespace higanbana
       HIGAN_CPU_BRACKET("DeviceGroupData::GarbageCollection");
       checkCompletedLists();
       garbageCollection();
+      while(!m_shaderDebugReadbacks.empty() && m_shaderDebugReadbacks.front().ready())
+      {
+        auto data = m_shaderDebugReadbacks.front().get();
+        auto view = data.view<uint32_t>();
+        if (view[0] != 0)
+        {
+          HIGAN_LOGi("Omg, had shader readbacks! %d amount of debug\n", view[0]);
+        }
+        m_shaderDebugReadbacks.pop_front();
+      }
     }
 
     DeviceGroupData::~DeviceGroupData()
@@ -1276,57 +1286,69 @@ namespace higanbana
     vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-        vector<PreparedCommandlist> lists;
-        int i = 0;
-        while (i < static_cast<int>(nodes.size()))
+      vector<PreparedCommandlist> lists;
+      {
+        if (m_shaderDebugReadbacks.size() < 10)
         {
-          auto* firstList = &nodes[i];
+          auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
+          handle.setGpuId(nodes.back().gpuId);
+          auto promise = ReadbackPromise({sharedHandle(handle), std::make_shared<std::promise<ReadbackData>>()});
+          m_devices[nodes.back().gpuId].device->readbackBuffer(handle, 1024*10);
+          nodes.back().list->list.insert<gfxpacket::ReadbackShaderDebug>(handle);
+          m_shaderDebugReadbacks.emplace_back(promise.future());
+          nodes.back().m_readbackPromises.emplace_back(promise);
+        }
+      }
+      int i = 0;
+      while (i < static_cast<int>(nodes.size()))
+      {
+        auto* firstList = &nodes[i];
 
-          PreparedCommandlist plist{};
-          plist.type = firstList->type;
-          auto list = std::move(nodes[i].list->list);
-          plist.buffers.emplace_back(std::move(list));
+        PreparedCommandlist plist{};
+        plist.type = firstList->type;
+        auto list = std::move(nodes[i].list->list);
+        plist.buffers.emplace_back(std::move(list));
+        //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
+        plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
+        plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
+        plist.readbacks = nodes[i].m_readbackPromises;
+        plist.acquireSema = nodes[i].acquireSemaphore;
+        plist.presents = nodes[i].preparesPresent;
+        plist.timing.nodes.emplace_back(nodes[i].timing);
+        plist.timing.type = firstList->type;
+
+        auto currentSizeBytes = plist.buffers.back().sizeBytes();
+
+        i += 1;
+        for (; i < static_cast<int>(nodes.size()); ++i)
+        {
+          if (nodes[i].type != plist.type)
+            break;
+          auto addedNodeSize = nodes[i].list->list.sizeBytes();
+          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
+            break;
+          currentSizeBytes += addedNodeSize;
+          plist.buffers.emplace_back(std::move(nodes[i].list->list));
           //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
           plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-          plist.readbacks = nodes[i].m_readbackPromises;
-          plist.acquireSema = nodes[i].acquireSemaphore;
-          plist.presents = nodes[i].preparesPresent;
+          plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
           plist.timing.nodes.emplace_back(nodes[i].timing);
-          plist.timing.type = firstList->type;
-
-          auto currentSizeBytes = plist.buffers.back().sizeBytes();
-
-          i += 1;
-          for (; i < static_cast<int>(nodes.size()); ++i)
+          if (!plist.acquireSema)
           {
-            if (nodes[i].type != plist.type)
-              break;
-            auto addedNodeSize = nodes[i].list->list.sizeBytes();
-            if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
-              break;
-            currentSizeBytes += addedNodeSize;
-            plist.buffers.emplace_back(std::move(nodes[i].list->list));
-            //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
-            plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
-            plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-            plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
-            plist.timing.nodes.emplace_back(nodes[i].timing);
-            if (!plist.acquireSema)
-            {
-              plist.acquireSema = nodes[i].acquireSemaphore;
-            }
-            if (!plist.presents)
-            {
-              plist.presents = nodes[i].preparesPresent;
-            }
+            plist.acquireSema = nodes[i].acquireSemaphore;
           }
-
-          lists.emplace_back(std::move(plist));
+          if (!plist.presents)
+          {
+            plist.presents = nodes[i].preparesPresent;
+          }
         }
-        int lsize = lists.size();
-        lists[lsize - 1].isLastList = true;
-        return lists;
+
+        lists.emplace_back(std::move(plist));
+      }
+      int lsize = lists.size();
+      lists[lsize - 1].isLastList = true;
+      return lists;
     }
 
     void DeviceGroupData::returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen)

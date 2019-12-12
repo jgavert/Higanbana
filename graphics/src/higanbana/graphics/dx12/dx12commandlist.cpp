@@ -27,7 +27,8 @@ namespace higanbana
       std::shared_ptr<DX12QueryHeap> queryheap,
       std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
       DX12CPUDescriptor nullBufferUAV,
-      DX12CPUDescriptor nullBufferSRV)
+      DX12CPUDescriptor nullBufferSRV,
+      DX12GPUDescriptor shaderDebugTable)
       : m_type(type)
       , m_buffer(buffer)
       , m_constants(constants)
@@ -36,6 +37,7 @@ namespace higanbana
       , m_descriptors(descriptors)
       , m_nullBufferUAV(nullBufferUAV)
       , m_nullBufferSRV(nullBufferSRV)
+      , m_shaderDebugTable(shaderDebugTable)
     {
       m_readback->reset();
       m_queryheap->reset();
@@ -415,7 +417,12 @@ namespace higanbana
         }
       }
       auto tables = ding.resources.convertToMemView();
-      UINT rootIndex = 1;
+      UINT rootIndex = 2; // 0 is constants, 1 is shader debug uav table, starting from 2 is normal tables
+      // just bind shader debug always to root slot 1 ...?
+      if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+        buffer->SetGraphicsRootDescriptorTable(1, m_shaderDebugTable.gpu);
+      else
+        buffer->SetComputeRootDescriptorTable(1, m_shaderDebugTable.gpu);
       int tableIndex = 0;
       if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
       {
@@ -961,6 +968,7 @@ namespace higanbana
         buffer->SetDescriptorHeaps(1, heaps);
       }
 
+
       for (auto&& list : buffers)
       {
         for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
@@ -1128,6 +1136,17 @@ namespace higanbana
             auto& dst = device->allResources().rbbuf[params.dst];
             auto src = device->allResources().buf[params.src].native();
             buffer->CopyBufferRegion(dst.native(), dst.offset(), src, params.srcOffset, params.numBytes);
+            break;
+          }
+          case PacketType::ReadbackShaderDebug:
+          {
+            auto params = header->data<gfxpacket::ReadbackShaderDebug>();
+            auto& dst = device->allResources().rbbuf[params.dst];
+            buffer->CopyBufferRegion(dst.native(), dst.offset(), device->m_shaderDebugBuffer.native(), 0, 1024*10);
+            uint clearVals[4] = {};
+            D3D12_RESOURCE_BARRIER barrier{D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_TRANSITION_BARRIER{device->m_shaderDebugBuffer.native(), 0, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS}};
+            buffer->ResourceBarrier(1, &barrier);
+            buffer->ClearUnorderedAccessViewUint(m_shaderDebugTable.gpu, device->m_shaderDebugTableCPU.cpu, device->m_shaderDebugBuffer.native(), clearVals, 0, nullptr);
             break;
           }
           default:

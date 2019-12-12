@@ -23,6 +23,7 @@
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #if 0
+#include "higanbana/core/profiling/profiling.hpp"
 #undef PROFILE
 #define PROFILE
 #include <WinPixEventRuntime/pix3.h>
@@ -651,16 +652,19 @@ namespace higanbana
       {
         name = it->second.m_name.c_str();
         //PIXBeginEvent()
+
       }
+      bool rdy = false;
 #if defined(PROFILING)
-      PIXBeginEvent(PIX_COLOR_INDEX(static_cast<BYTE>(p.m_task.m_id)), name);
+      {
+      HIGAN_CPU_BRACKET(name);
 #endif
 #endif
-      bool rdy = p.m_task.doWork();
+      rdy = p.m_task.doWork();
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 
 #if defined(PROFILING)
-      PIXEndEvent();
+      }
 #endif
 #endif
       ThreadStatus[p.m_ID].first = RUNNINGLOGIC;
