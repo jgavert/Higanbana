@@ -147,6 +147,7 @@ namespace higanbana
       }
       set++;
     }
+    lol += "  DescriptorTable(\\\n     UAV(u99, numDescriptors = 1, space=99 )),\\\n"; 
 
     // ??
     lol += "StaticSampler(s0, "                   \
@@ -170,6 +171,8 @@ namespace higanbana
       gi++;
       lol += "struct Constants\n{" + constantStructBody + " };\n";
       lol += "VK_BINDING(0, " + std::to_string(m_sets.size()) + ") ConstantBuffer<Constants> constants : register( b0 );\n";
+      gi++;
+      lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer debugPrint : register( u99 );\n";
     }
     set = 0;
     for (auto&& arg : m_sets)

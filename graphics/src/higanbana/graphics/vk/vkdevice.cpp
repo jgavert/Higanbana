@@ -1404,6 +1404,10 @@ namespace higanbana
         .setStageFlags(flags));
       bindings.push_back(vk::DescriptorSetLayoutBinding()
         .setBinding(slot++).setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+        .setStageFlags(flags));
+      bindings.push_back(vk::DescriptorSetLayoutBinding()
+        .setBinding(slot++).setDescriptorCount(1)
         .setDescriptorType(vk::DescriptorType::eSampler)
         .setPImmutableSamplers(&m_samplers.m_bilinearSampler)
         .setStageFlags(flags));
