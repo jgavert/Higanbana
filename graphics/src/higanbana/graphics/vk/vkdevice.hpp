@@ -63,6 +63,8 @@ namespace higanbana
 
       // descriptor stuff
       VulkanShaderArgumentsLayout m_defaultDescriptorLayout;
+      // shader debug
+      VulkanBuffer m_shaderDebugBuffer;
 
       // descriptor stats
       size_t m_descriptorSetsInUse;

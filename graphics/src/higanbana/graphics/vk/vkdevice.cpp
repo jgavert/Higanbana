@@ -545,6 +545,39 @@ namespace higanbana
 
       m_descriptors = std::make_shared<VulkanDescriptorPool>(poolRes.value);
 
+
+      {
+        auto bdesc = ResourceDescriptor()
+          .setName("Shader debug print buffer")
+          .setFormat(FormatType::Raw32)
+          .setWidth(1024*10)
+          .setUsage(ResourceUsage::GpuRW)
+          .allowSimultaneousAccess();
+        
+        auto vkdesc = fillBufferInfo(bdesc);
+        auto buffer = m_device.createBuffer(vkdesc);
+        VK_CHECK_RESULT(buffer);
+        
+        vk::MemoryDedicatedAllocateInfoKHR dediInfo;
+        dediInfo.setBuffer(buffer.value);
+        auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
+
+        auto dedReq = chain.get<vk::MemoryDedicatedRequirementsKHR>();
+
+        auto bufMemReq = chain.get<vk::MemoryRequirements2>();
+
+        auto memProp = m_physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(bdesc.desc.usage);
+        auto index = FindProperties(memProp, bufMemReq.memoryRequirements.memoryTypeBits, searchProperties.optimal);
+
+        auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
+        VK_CHECK_RESULT(res);
+
+        m_device.bindBufferMemory(buffer.value, res.value, 0);
+
+        m_shaderDebugBuffer = VulkanBuffer(buffer.value, res.value);
+      }
+
       // constant+static samplers descriptorlayout
       {
         auto bindings = defaultSetLayoutBindings(vk::ShaderStageFlagBits::eAll);
@@ -1349,7 +1382,19 @@ namespace higanbana
         .setPBufferInfo(&info)
         .setDstBinding(0);
 
-      m_device.updateDescriptorSets({wds}, {});
+      vk::DescriptorBufferInfo shDebug = vk::DescriptorBufferInfo()
+        .setBuffer(m_shaderDebugBuffer)
+        .setOffset(0)
+        .setRange(1024*10);
+
+      vk::WriteDescriptorSet shaderDebug = vk::WriteDescriptorSet()
+        .setDstSet(set[0])
+        .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+        .setDescriptorCount(1)
+        .setPBufferInfo(&shDebug)
+        .setDstBinding(1);
+
+      m_device.updateDescriptorSets({wds, shaderDebug}, {});
 
       m_allRes.pipelines[handle] = VulkanPipeline(pipelineLayout.value, desc, set[0]);
     }
