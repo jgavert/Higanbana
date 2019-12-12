@@ -595,6 +595,9 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_device.waitIdle();
+
+      m_device.destroyBuffer(m_shaderDebugBuffer.native());
+      m_device.freeMemory(m_shaderDebugBuffer.sharedMem());
       // Clear all user resources nicely
       // descriptorSets
       for (auto&& arg : m_allRes.shaArgs.view()) {
@@ -1383,7 +1386,7 @@ namespace higanbana
         .setDstBinding(0);
 
       vk::DescriptorBufferInfo shDebug = vk::DescriptorBufferInfo()
-        .setBuffer(m_shaderDebugBuffer)
+        .setBuffer(m_shaderDebugBuffer.native())
         .setOffset(0)
         .setRange(1024*10);
 
@@ -1431,8 +1434,19 @@ namespace higanbana
         .setDescriptorCount(1)
         .setPBufferInfo(&info)
         .setDstBinding(0);
+      vk::DescriptorBufferInfo shDebug = vk::DescriptorBufferInfo()
+        .setBuffer(m_shaderDebugBuffer.native())
+        .setOffset(0)
+        .setRange(1024*10);
 
-      m_device.updateDescriptorSets({wds}, {});
+      vk::WriteDescriptorSet shaderDebug = vk::WriteDescriptorSet()
+        .setDstSet(set[0])
+        .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+        .setDescriptorCount(1)
+        .setPBufferInfo(&shDebug)
+        .setDstBinding(1);
+
+      m_device.updateDescriptorSets({wds, shaderDebug}, {});
 
       m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc, set[0]);
     }
@@ -2405,7 +2419,7 @@ namespace higanbana
 
       auto list = m_copyListPool.allocate();
       //resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2427,7 +2441,7 @@ namespace higanbana
 
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())
@@ -2449,7 +2463,7 @@ namespace higanbana
 
       auto list = m_graphicsListPool.allocate();
       //resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         if (auto seqTracker = tracker.lock())

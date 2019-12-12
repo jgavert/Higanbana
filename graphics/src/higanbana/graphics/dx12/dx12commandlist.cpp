@@ -968,7 +968,6 @@ namespace higanbana
         buffer->SetDescriptorHeaps(1, heaps);
       }
 
-
       for (auto&& list : buffers)
       {
         for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
@@ -1142,9 +1141,12 @@ namespace higanbana
           {
             auto params = header->data<gfxpacket::ReadbackShaderDebug>();
             auto& dst = device->allResources().rbbuf[params.dst];
+            D3D12_RESOURCE_BARRIER barrier{D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_TRANSITION_BARRIER{device->m_shaderDebugBuffer.native(), 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE}};
+            buffer->ResourceBarrier(1, &barrier);
             buffer->CopyBufferRegion(dst.native(), dst.offset(), device->m_shaderDebugBuffer.native(), 0, 1024*10);
             uint clearVals[4] = {};
-            D3D12_RESOURCE_BARRIER barrier{D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_TRANSITION_BARRIER{device->m_shaderDebugBuffer.native(), 0, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS}};
+            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
             buffer->ResourceBarrier(1, &barrier);
             buffer->ClearUnorderedAccessViewUint(m_shaderDebugTable.gpu, device->m_shaderDebugTableCPU.cpu, device->m_shaderDebugBuffer.native(), clearVals, 0, nullptr);
             break;

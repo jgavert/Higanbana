@@ -1076,11 +1076,11 @@ namespace higanbana
       std::shared_ptr<VulkanCommandList> m_list;
       vk::DispatchLoaderDynamic m_dispatch;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
-      //VulkanDescriptorPool m_descriptors;
       std::shared_ptr<VulkanConstantUploadHeap> m_constants;
       vector<VkUploadBlock> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
       vector<vk::DescriptorSet> m_tempSets;
+      vk::Buffer m_shaderDebugBuffer;
 
       ResourceHandle m_boundDescriptorSets[4]; // yeah, lets keep it at 4 for now...
       ViewResourceHandle m_boundIndexBuffer;
@@ -1089,8 +1089,8 @@ namespace higanbana
       VkUploadLinearAllocator m_constantsAllocator;
 
     public:
-      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators, vk::DispatchLoaderDynamic dispatch)
-        : m_list(list), m_dispatch(dispatch), m_constants(constantAllocators), m_constantAlignment(m_constants->allocationAlignment())
+      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators, vk::Buffer shaderDebug, vk::DispatchLoaderDynamic dispatch)
+        : m_list(list), m_dispatch(dispatch), m_constants(constantAllocators), m_shaderDebugBuffer(shaderDebug), m_constantAlignment(m_constants->allocationAlignment())
       {}
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);

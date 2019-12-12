@@ -215,12 +215,11 @@ namespace higanbana
           .allowSimultaneousAccess();
         auto dxDesc = fillPlacedBufferInfo(bdesc);
 
-        D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
         ID3D12Resource* bufferS;
         D3D12_HEAP_PROPERTIES prop{};
         prop.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-        HIGANBANA_CHECK_HR(m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &dxDesc, startState, nullptr, IID_PPV_ARGS(&bufferS)));
+        HIGANBANA_CHECK_HR(m_device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &dxDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&bufferS)));
 
         auto wstr = s2ws("Shader debug print buffer");
         bufferS->SetName(wstr.c_str());
@@ -247,6 +246,7 @@ namespace higanbana
     DX12Device::~DX12Device()
     {
       waitGpuIdle();
+      m_shaderDebugBuffer.native()->Release();
       /*
       if (m_debugLayer)
       {

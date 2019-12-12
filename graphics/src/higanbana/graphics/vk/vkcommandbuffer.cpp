@@ -794,6 +794,31 @@ namespace higanbana
             buffer.copyBuffer(src.native(), dst.native(), region);
             break;
           }
+          case PacketType::ReadbackShaderDebug:
+          {
+            auto params = (*iter)->data<gfxpacket::ReadbackShaderDebug>();
+            auto& dst = device->allResources().rbBuf[params.dst];
+            vk::BufferCopy region = vk::BufferCopy()
+              .setSrcOffset(0)
+              .setDstOffset(0)
+              .setSize(1024*10);
+
+            auto barrier = vk::BufferMemoryBarrier()
+            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
+            .setDstAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Read))
+            .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+            .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+            .setBuffer(m_shaderDebugBuffer)
+            .setOffset(0)
+            .setSize(VK_WHOLE_SIZE);
+            buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {barrier}, {});
+            buffer.copyBuffer(m_shaderDebugBuffer, dst.native(), region);
+            barrier = barrier.setSrcAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Read))
+                              .setDstAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Write));
+            buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {barrier}, {});
+            buffer.fillBuffer(m_shaderDebugBuffer, 0, 1024*10, 0);
+            break;
+          }
           default:
             break;
           }
