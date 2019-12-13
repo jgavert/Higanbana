@@ -247,6 +247,15 @@ namespace higanbana
     {
       waitGpuIdle();
       m_shaderDebugBuffer.native()->Release();
+      for (auto&& rb : m_allRes.rbbuf.view())
+      {
+        if (rb.native())
+        {
+          rb.native()->Release();
+          rb.reset();
+        }
+      }
+      
       /*
       if (m_debugLayer)
       {

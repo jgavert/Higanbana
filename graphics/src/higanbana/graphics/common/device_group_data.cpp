@@ -1385,6 +1385,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       vector<PreparedCommandlist> lists;
       {
+#if defined(HIGANBANA_ENABLE_SHADER_DEBUG)
         if (m_shaderDebugReadbacks.size() < 10)
         {
           auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
@@ -1395,6 +1396,7 @@ namespace higanbana
           m_shaderDebugReadbacks.emplace_back(promise.future());
           nodes.back().m_readbackPromises.emplace_back(promise);
         }
+#endif
       }
       int i = 0;
       while (i < static_cast<int>(nodes.size()))

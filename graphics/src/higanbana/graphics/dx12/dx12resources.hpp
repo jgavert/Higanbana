@@ -935,6 +935,10 @@ namespace higanbana
       {
         return buffer;
       }
+      void reset()
+      {
+        buffer = nullptr;
+      }
       size_t offset() const
       {
         return m_offset;
