@@ -14,7 +14,10 @@
 // Could probably convert above to be global booleans instead, so I could toggle them runtime.
 // Though many of them require to create all resources from scratch.
 
-#define HIGANBANA_USABLE_SHADER_ARGUMENT_SETS 3
+#define HIGANBANA_USABLE_SHADER_ARGUMENT_SETS 4
+#define HIGANBANA_SHADER_DEBUG_WIDTH 1024
+#define HIGANBANA_CONSTANT_BUFFER_AMOUNT 256 * 12 * 64 * 1024
+#define HIGANBANA_UPLOAD_MEMORY_AMOUNT 256 * 128 * 1024
 
 namespace higanbana
 {

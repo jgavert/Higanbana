@@ -303,8 +303,8 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, 256 * 128 * 1024, 1024)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, 256 * 5 * 64 * 1024)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, HIGANBANA_CONSTANT_BUFFER_AMOUNT, 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
@@ -550,7 +550,7 @@ namespace higanbana
         auto bdesc = ResourceDescriptor()
           .setName("Shader debug print buffer")
           .setFormat(FormatType::Raw32)
-          .setWidth(1024*10)
+          .setWidth(HIGANBANA_SHADER_DEBUG_WIDTH)
           .setUsage(ResourceUsage::GpuRW)
           .allowSimultaneousAccess();
         
@@ -1388,7 +1388,7 @@ namespace higanbana
       vk::DescriptorBufferInfo shDebug = vk::DescriptorBufferInfo()
         .setBuffer(m_shaderDebugBuffer.native())
         .setOffset(0)
-        .setRange(1024*10);
+        .setRange(HIGANBANA_SHADER_DEBUG_WIDTH);
 
       vk::WriteDescriptorSet shaderDebug = vk::WriteDescriptorSet()
         .setDstSet(set[0])
@@ -1437,7 +1437,7 @@ namespace higanbana
       vk::DescriptorBufferInfo shDebug = vk::DescriptorBufferInfo()
         .setBuffer(m_shaderDebugBuffer.native())
         .setOffset(0)
-        .setRange(1024*10);
+        .setRange(HIGANBANA_SHADER_DEBUG_WIDTH);
 
       vk::WriteDescriptorSet shaderDebug = vk::WriteDescriptorSet()
         .setDstSet(set[0])

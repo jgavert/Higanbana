@@ -31,8 +31,8 @@ namespace higanbana
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
-      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 12 * 64 * 1024)) // we have room for 64*1024 drawcalls worth of constants.
-      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), 256 * 256 * 1024)) // we have room 64 / 4megs of dynamic buffers
+      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_CONSTANT_BUFFER_AMOUNT))
+      , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32 * 1024))
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -210,7 +210,7 @@ namespace higanbana
         auto bdesc = ResourceDescriptor()
           .setName("Shader debug print buffer")
           .setFormat(FormatType::Raw32)
-          .setWidth(1024*10)
+          .setWidth(HIGANBANA_SHADER_DEBUG_WIDTH)
           .setUsage(ResourceUsage::GpuRW)
           .allowSimultaneousAccess();
         auto dxDesc = fillPlacedBufferInfo(bdesc);

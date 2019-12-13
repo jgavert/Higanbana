@@ -162,7 +162,7 @@ namespace higanbana
     {
       auto offset = 1;
       auto type = rb[offset];
-      while(type != 0 && offset < 1024 - 8)
+      while(type != 0 && offset < HIGANBANA_SHADER_DEBUG_WIDTH - 8)
       {
         switch (type)
         {
@@ -822,7 +822,7 @@ namespace higanbana
       int drawIndexBeginRenderpass = 0;
 
       gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
-      ResourceHandle boundSets[4] = {};
+      ResourceHandle boundSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
 
       for (auto&& buffer : buffers)
       {
@@ -1033,7 +1033,7 @@ namespace higanbana
       int currentReadback = 0;
 
       gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
-      ResourceHandle boundSets[4] = {};
+      ResourceHandle boundSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
 
       for (auto&& buffer : buffers)
       {
@@ -1390,7 +1390,7 @@ namespace higanbana
           auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
           handle.setGpuId(nodes.back().gpuId);
           auto promise = ReadbackPromise({sharedHandle(handle), std::make_shared<std::promise<ReadbackData>>()});
-          m_devices[nodes.back().gpuId].device->readbackBuffer(handle, 1024*10);
+          m_devices[nodes.back().gpuId].device->readbackBuffer(handle, HIGANBANA_SHADER_DEBUG_WIDTH);
           nodes.back().list->list.insert<gfxpacket::ReadbackShaderDebug>(handle);
           m_shaderDebugReadbacks.emplace_back(promise.future());
           nodes.back().m_readbackPromises.emplace_back(promise);

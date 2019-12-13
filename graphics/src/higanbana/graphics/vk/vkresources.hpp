@@ -839,8 +839,8 @@ namespace higanbana
       VulkanConstantUploadHeap() : allocator(1, 1) {}
       VulkanConstantUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
-                     , unsigned memorySize)
-        : allocator(memorySize)
+                     , unsigned memorySize, unsigned unaccessibleMemoryAtEnd = 0)
+        : allocator(memorySize, unaccessibleMemoryAtEnd)
         , m_device(device)
         , minUniformBufferAlignment(physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
       {
@@ -1082,7 +1082,7 @@ namespace higanbana
       vector<vk::DescriptorSet> m_tempSets;
       vk::Buffer m_shaderDebugBuffer;
 
-      ResourceHandle m_boundDescriptorSets[4]; // yeah, lets keep it at 4 for now...
+      ResourceHandle m_boundDescriptorSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS]; // yeah, lets keep it at 4 for now...
       ViewResourceHandle m_boundIndexBuffer;
       unsigned m_constantAlignment;
 

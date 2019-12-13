@@ -1143,7 +1143,7 @@ namespace higanbana
             auto& dst = device->allResources().rbbuf[params.dst];
             D3D12_RESOURCE_BARRIER barrier{D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_TRANSITION_BARRIER{device->m_shaderDebugBuffer.native(), 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE}};
             buffer->ResourceBarrier(1, &barrier);
-            buffer->CopyBufferRegion(dst.native(), dst.offset(), device->m_shaderDebugBuffer.native(), 0, 1024*10);
+            buffer->CopyBufferRegion(dst.native(), dst.offset(), device->m_shaderDebugBuffer.native(), 0, HIGANBANA_SHADER_DEBUG_WIDTH);
             uint clearVals[4] = {};
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;

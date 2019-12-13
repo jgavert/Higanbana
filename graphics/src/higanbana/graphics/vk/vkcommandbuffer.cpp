@@ -801,7 +801,7 @@ namespace higanbana
             vk::BufferCopy region = vk::BufferCopy()
               .setSrcOffset(0)
               .setDstOffset(0)
-              .setSize(1024*10);
+              .setSize(HIGANBANA_SHADER_DEBUG_WIDTH);
 
             auto barrier = vk::BufferMemoryBarrier()
             .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
@@ -816,7 +816,7 @@ namespace higanbana
             barrier = barrier.setSrcAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Read))
                               .setDstAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Write));
             buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {barrier}, {});
-            buffer.fillBuffer(m_shaderDebugBuffer, 0, 1024*10, 0);
+            buffer.fillBuffer(m_shaderDebugBuffer, 0, HIGANBANA_SHADER_DEBUG_WIDTH, 0);
             break;
           }
           default:
