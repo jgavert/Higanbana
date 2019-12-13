@@ -158,6 +158,103 @@ namespace higanbana
       }
     }
 
+    void extractShaderDebug(MemView<uint32_t> rb)
+    {
+      auto offset = 1;
+      auto type = rb[offset];
+      while(type != 0 && offset < 1024 - 8)
+      {
+        switch (type)
+        {
+          // uint types
+          case 1:
+          {
+            HIGAN_SLOG("Shader Debug", "uint  %u\n", rb[offset+1]);
+            break;
+          }
+          case 2:
+          {
+            HIGAN_SLOG("Shader Debug", "uint2 %u %u\n", rb[offset+1], rb[offset+2]);
+            break;
+          }
+          case 3:
+          {
+            HIGAN_SLOG("Shader Debug", "uint3 %u %u %u\n", rb[offset+1], rb[offset+2], rb[offset+3]);
+            break;
+          }
+          case 4:
+          {
+            HIGAN_SLOG("Shader Debug", "uint4 %u %u %u %u\n", rb[offset+1], rb[offset+2], rb[offset+3], rb[offset+4]);
+            break;
+          }
+          // int types
+          case 5:
+          {
+            int val;
+            memcpy(&val, &rb[offset+1], sizeof(int));
+            HIGAN_SLOG("Shader Debug", "int  %d\n", val);
+            break;
+          }
+          case 6:
+          {
+            int val[2];
+            memcpy(&val, &rb[offset+1], sizeof(int)*2);
+            HIGAN_SLOG("Shader Debug", "int2 %d %d\n", val[0], val[1]);
+            break;
+          }
+          case 7:
+          {
+            int val[3];
+            memcpy(&val, &rb[offset+1], sizeof(int)*3);
+            HIGAN_SLOG("Shader Debug", "int3 %d %d %d\n", val[0], val[1], val[2]);
+            break;
+          }
+          case 8:
+          {
+            int val[4];
+            memcpy(&val, &rb[offset+1], sizeof(int)*4);
+            HIGAN_SLOG("Shader Debug", "int4 %d %d %d %d\n", val[0], val[1], val[2], val[3]);
+            break;
+          }
+          // float types
+          case 9:
+          {
+            float val;
+            memcpy(&val, &rb[offset+1], sizeof(float));
+            HIGAN_SLOG("Shader Debug", "float  %f\n", val);
+            break;
+          }
+          case 10:
+          {
+            float val[2];
+            memcpy(&val, &rb[offset+1], sizeof(float)*2);
+            HIGAN_SLOG("Shader Debug", "float2 %f %f\n", val[0], val[1]);
+            break;
+          }
+          case 11:
+          {
+            float val[3];
+            memcpy(&val, &rb[offset+1], sizeof(float)*3);
+            HIGAN_SLOG("Shader Debug", "float3 %f %f %f\n", val[0], val[1], val[2]);
+            break;
+          }
+          case 12:
+          {
+            float val[4];
+            memcpy(&val, &rb[offset+1], sizeof(float)*4);
+            HIGAN_SLOG("Shader Debug", "float4 %f %f %f %f\n", val[0], val[1], val[2], val[3]);
+            break;
+          }
+          default:
+          //HIGAN_ASSERT(false, "wut, what type %d", type);
+            HIGAN_LOGi("unknown type %d\n", type);
+            return;
+        }
+        offset += (type-1)%4+2;
+        type = rb[offset];
+      }
+    }
+
     void DeviceGroupData::gc()
     {
       HIGAN_CPU_BRACKET("DeviceGroupData::GarbageCollection");
@@ -169,7 +266,7 @@ namespace higanbana
         auto view = data.view<uint32_t>();
         if (view[0] != 0)
         {
-          HIGAN_LOGi("Omg, had shader readbacks! %d amount of debug\n", view[0]);
+          extractShaderDebug(view);
         }
         m_shaderDebugReadbacks.pop_front();
       }

@@ -48,7 +48,9 @@ void Logger::update()
 #ifdef HIGANBANA_PLATFORM_WINDOWS
     OutputDebugStringA(buffer[m_readerIndex].m_array.data());
 #endif
-    std::cout.write(buffer[m_readerIndex].m_array.data(), buffer[m_readerIndex].m_size);
-    unhandled_buffer_size--; m_readerIndex++;
+    if (buffer[m_readerIndex].m_size < 300)
+      std::cout.write(buffer[m_readerIndex].m_array.data(), buffer[m_readerIndex].m_size);
+    unhandled_buffer_size--;
+    m_readerIndex++;
   }
 }

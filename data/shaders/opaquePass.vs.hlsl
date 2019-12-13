@@ -18,9 +18,9 @@ VertexOut main(uint id: SV_VertexID)
   i1 = asfloat(vertexInput.Load3(loadID*multiplier));
   vtxOut.pos.xyz = i1;
   vtxOut.pos.w = 1.f;
-  int outputVal;
-  debugPrint.InterlockedAdd(0, 1337, outputVal);
-  if ( id % 2 == 1)
+  //int outputVal;
+  //debugPrint.InterlockedAdd(0, 1337, outputVal);
+  if ( 0 && id % 2 == 1)
   {
     vtxOut.pos.z += 100.f;
   }

@@ -1041,7 +1041,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       std::optional<DX12OldPipeline> oldPipe;
 
-      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].needsUpdating())
+      if (m_allRes.pipelines[pipeline].m_hasPipeline->load() && !m_allRes.pipelines[pipeline].cs.updated())
         return {};
 
       auto lock = deviceLock();

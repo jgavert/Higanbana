@@ -1,4 +1,5 @@
 #include "higanbana/core/filesystem/filesystem.hpp"
+#include "higanbana/core/profiling/profiling.hpp"
 #include "higanbana/core/global_debug.hpp"
 
 #include <deque>
@@ -20,6 +21,7 @@ using namespace higanbana;
 
 void getDirs(std::string path, std::deque<std::string>& ret)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (system_fs::is_directory(path))
   {
     auto folder = system_fs::directory_iterator(path);
@@ -35,6 +37,7 @@ void getDirs(std::string path, std::deque<std::string>& ret)
 
 void getDirsRecursive(std::string path, std::deque<std::string>& ret)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (system_fs::is_directory(path))
   {
     auto folder = system_fs::recursive_directory_iterator(path);
@@ -51,6 +54,7 @@ void getDirsRecursive(std::string path, std::deque<std::string>& ret)
 
 void getFiles(std::string path, std::vector<FileInfo>& ret)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (system_fs::is_directory(path))
   {
     auto pathSize = path.size();
@@ -69,6 +73,7 @@ void getFiles(std::string path, std::vector<FileInfo>& ret)
 
 void getFilesRecursive(std::string path, size_t pathSize, std::vector<FileInfo>& ret)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (system_fs::is_directory(path))
   {
     auto folder = system_fs::recursive_directory_iterator(path);
@@ -131,6 +136,7 @@ std::string FileSystem::getBasePath()
 
 bool FileSystem::fileExists(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   //auto fullPath = system_fs::path(getBasePath() + path).string();
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -145,6 +151,7 @@ bool FileSystem::fileExists(std::string path)
 
 bool FileSystem::loadFileFromHDD(FileInfo& path, size_t& size)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   // convert all \ to /
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   std::replace(path.nativePath.begin(), path.nativePath.end(), '/', '\\');
@@ -174,6 +181,7 @@ bool FileSystem::loadFileFromHDD(FileInfo& path, size_t& size)
 
 void FileSystem::loadDirectoryContentsRecursive(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = getBasePath() + path;
   std::vector<FileInfo> files;
@@ -192,6 +200,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
 // SLOW
 void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::string&, MemView<const uint8_t>)> func)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
@@ -209,6 +218,7 @@ void FileSystem::getFilesWithinDir(std::string path, std::function<void(std::str
 
 vector<std::string> FileSystem::getFilesWithinDir(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
@@ -224,6 +234,7 @@ vector<std::string> FileSystem::getFilesWithinDir(std::string path)
 
 vector<std::string> FileSystem::recursiveList(std::string path, std::string filter)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   const auto currentPath = getBasePath();
   auto fullPath = currentPath + path;
@@ -240,6 +251,7 @@ vector<std::string> FileSystem::recursiveList(std::string path, std::string filt
 
 MemoryBlob FileSystem::readFile(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   MemoryBlob blob;
   if (fileExists(path))
   {
@@ -253,6 +265,7 @@ MemoryBlob FileSystem::readFile(std::string path)
 
 higanbana::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   higanbana::MemView<const uint8_t> view;
   if (fileExists(path))
   {
@@ -270,11 +283,13 @@ size_t FileSystem::timeModified(std::string path)
 
 bool FileSystem::writeFile(std::string path, higanbana::MemView<const uint8_t> view)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   return writeFile(path, view.data(), view.size());
 }
 
 bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   auto fullPath = system_fs::path(getBasePath() + path);
 
@@ -320,6 +335,7 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
 
 WatchFile FileSystem::watchFile(std::string path)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (fileExists(path))
   {
     std::lock_guard<std::mutex> guard(m_lock);
@@ -332,6 +348,7 @@ WatchFile FileSystem::watchFile(std::string path)
 
 void FileSystem::updateWatchedFiles()
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
   if (m_watchedFiles.empty())
   {

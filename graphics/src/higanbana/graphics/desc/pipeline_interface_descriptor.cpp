@@ -136,8 +136,8 @@ namespace higanbana
     lol += "#endif\n";
     lol += "\n";
 
-    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n  "; // , DescriptorTable()";
-    lol += "  DescriptorTable(UAV(u99, numDescriptors = 1, space=99 )),\\\n"; 
+    lol += "#define ROOTSIG \"RootFlags(0), \\\n  CBV(b0), \\\n"; // , DescriptorTable()";
+    lol += "  DescriptorTable( UAV(u99, numDescriptors = 1, space=99 )), \\\n  "; 
 
     int set = 0;
     for (auto&& arg : m_sets)
@@ -152,18 +152,18 @@ namespace higanbana
     // ??
     lol += "StaticSampler(s0, "                   \
     "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
-    "\\\n  StaticSampler(s1, " 									        \
-    "filter = FILTER_MIN_MAG_MIP_POINT), " 				\
-    "\\\n  StaticSampler(s2, " 									        \
-    "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, " 	\
-    "addressU = TEXTURE_ADDRESS_WRAP, " 					\
-    "addressV = TEXTURE_ADDRESS_WRAP, " 					\
-    "addressW = TEXTURE_ADDRESS_WRAP), " 					\
-    "\\\n  StaticSampler(s3, " 									        \
-    "filter = FILTER_MIN_MAG_MIP_POINT, " 				\
-    "addressU = TEXTURE_ADDRESS_WRAP, " 					\
-    "addressV = TEXTURE_ADDRESS_WRAP, " 					\
-    "addressW = TEXTURE_ADDRESS_WRAP)\"\n\n"; 			\
+    "\\\n  StaticSampler(s1, "                    \
+    "filter = FILTER_MIN_MAG_MIP_POINT), "        \
+    "\\\n  StaticSampler(s2, "                    \
+    "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, "  \
+    "addressU = TEXTURE_ADDRESS_WRAP, "           \
+    "addressV = TEXTURE_ADDRESS_WRAP, "           \
+    "addressW = TEXTURE_ADDRESS_WRAP), "          \
+    "\\\n  StaticSampler(s3, "                    \
+    "filter = FILTER_MIN_MAG_MIP_POINT, "         \
+    "addressU = TEXTURE_ADDRESS_WRAP, "           \
+    "addressV = TEXTURE_ADDRESS_WRAP, "           \
+    "addressW = TEXTURE_ADDRESS_WRAP)\"\n\n";     \
 
     int gi = 0;
     if (!constantStructBody.empty())
@@ -172,7 +172,7 @@ namespace higanbana
       lol += "struct Constants\n{" + constantStructBody + " };\n";
       lol += "VK_BINDING(0, " + std::to_string(m_sets.size()) + ") ConstantBuffer<Constants> constants : register( b0 );\n";
       gi++;
-      lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer debugPrint : register( u99, space99 );\n";
+      lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer _debugOut : register( u99, space99 );\n";
     }
     set = 0;
     for (auto&& arg : m_sets)
@@ -190,7 +190,27 @@ namespace higanbana
     lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState bilinearSampler : register( s0 );\n";
     lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState pointSampler : register( s1 );\n";
     lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState bilinearSamplerWarp : register( s2 );\n";
-    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState pointSamplerWrap : register( s3 );\n";
+    lol += "VK_BINDING(" + std::to_string(gi++) + ", " + std::to_string(set) + ") SamplerState pointSamplerWrap : register( s3 );\n\n";
+    lol += R"(uint getIndex(uint count, uint type)
+{
+	uint myIndex;
+	_debugOut.InterlockedAdd(0, count+1, myIndex);
+	_debugOut.Store(myIndex*4+4, type);
+	return myIndex*4+4+4;
+}
+void print(uint val)   { _debugOut.Store( getIndex(1, 1), val); }
+void print(uint2 val)  { _debugOut.Store2(getIndex(2, 2), val); }
+void print(uint3 val)  { _debugOut.Store3(getIndex(3, 3), val); }
+void print(uint4 val)  { _debugOut.Store4(getIndex(4, 4), val); }
+void print(int val)    { _debugOut.Store( getIndex(1, 5), asuint(val)); }
+void print(int2 val)   { _debugOut.Store2(getIndex(2, 6), asuint(val)); }
+void print(int3 val)   { _debugOut.Store3(getIndex(3, 7), asuint(val)); }
+void print(int4 val)   { _debugOut.Store4(getIndex(4, 8), asuint(val)); }
+void print(float val)  { _debugOut.Store( getIndex(1, 9), asuint(val)); }
+void print(float2 val) { _debugOut.Store2(getIndex(2, 10), asuint(val)); }
+void print(float3 val) { _debugOut.Store3(getIndex(3, 11), asuint(val)); }
+void print(float4 val) { _debugOut.Store4(getIndex(4, 12), asuint(val)); }
+)";
     
     return lol;
   }
