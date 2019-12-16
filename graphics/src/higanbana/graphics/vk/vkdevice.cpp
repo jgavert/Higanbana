@@ -930,9 +930,13 @@ namespace higanbana
       bufferCount = (bufferCount == -1) ? natSwapchain->getDesc().buffers : bufferCount;
       mode = (mode == PresentMode::Unknown) ? natSwapchain->getDesc().mode : mode;
 
-      auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface.native());
-      VK_CHECK_RESULT(formatsRes);
-      auto formats = formatsRes.value;
+      vector<vk::SurfaceFormatKHR> formats;
+      {
+        HIGAN_CPU_BRACKET("vkGetSurfaceFormatsKHR");
+        auto formatsRes = m_physDevice.getSurfaceFormatsKHR(natSurface.native());
+        VK_CHECK_RESULT(formatsRes);
+        formats = formatsRes.value;
+      }
 
       auto wantedFormat = formatToVkFormat(format).storage;
       auto backupFormat = vk::Format::eB8G8R8A8Unorm;
@@ -958,9 +962,13 @@ namespace higanbana
         format = FormatType::Unorm8BGRA;
       }
 
-      auto surfaceCapRes = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
-      VK_CHECK_RESULT(surfaceCapRes);
-      auto surfaceCap = surfaceCapRes.value;
+      vk::SurfaceCapabilitiesKHR surfaceCap;
+      {
+        HIGAN_CPU_BRACKET("vkGetSurfaceCapabilitiesKHR");
+        auto surfaceCapRes = m_physDevice.getSurfaceCapabilitiesKHR(natSurface.native());
+        VK_CHECK_RESULT(surfaceCapRes);
+        surfaceCap = surfaceCapRes.value;
+      }
 
       auto& extent = surfaceCap.currentExtent;
       if (extent.height < 8)
@@ -974,11 +982,18 @@ namespace higanbana
 
       int minImageCount = std::max(static_cast<int>(surfaceCap.minImageCount), bufferCount);
 
-      if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()).result != vk::Result::eSuccess)
       {
-        HIGAN_ASSERT(false, "Was not supported.");
+        HIGAN_CPU_BRACKET("vkGetSurfaceSupportKHR");
+        if (m_physDevice.getSurfaceSupportKHR(m_mainQueueIndex, natSurface.native()).result != vk::Result::eSuccess)
+        {
+          HIGAN_ASSERT(false, "Was not supported.");
+        }
       }
-      vk::PresentModeKHR khrmode = getValidPresentMode(m_physDevice, natSurface.native(), m_dynamicDispatch, mode);
+      vk::PresentModeKHR khrmode;
+      {
+        HIGAN_CPU_BRACKET("vkGetSurfaceSupportKHR");
+        khrmode = getValidPresentMode(m_physDevice, natSurface.native(), m_dynamicDispatch, mode);
+      }
 
       vk::SwapchainCreateInfoKHR info = vk::SwapchainCreateInfoKHR()
         .setSurface(natSurface.native())
@@ -995,12 +1010,17 @@ namespace higanbana
         .setClipped(false)
         .setOldSwapchain(oldSwapchain);
 
-      auto scRes = m_device.createSwapchainKHR(info);
-      VK_CHECK_RESULT(scRes);
+      {
+        HIGAN_CPU_BRACKET("vkCreateSwapchainKHR");
+        auto scRes = m_device.createSwapchainKHR(info);
+        VK_CHECK_RESULT(scRes);
+        natSwapchain->setSwapchain(scRes.value);
+      }
 
-      natSwapchain->setSwapchain(scRes.value);
-
-      m_device.destroySwapchainKHR(oldSwapchain);
+      {
+        HIGAN_CPU_BRACKET("vkDeviceDestroySwapchainKHR");
+        m_device.destroySwapchainKHR(oldSwapchain);
+      }
       //HIGAN_SLOG("Vulkan", "adjusting swapchain to %ux%u\n", surfaceCap.currentExtent.width, surfaceCap.currentExtent.height);
       natSwapchain->setBufferMetadata(surfaceCap.currentExtent.width, surfaceCap.currentExtent.height, minImageCount, format, presentModeVKToHigan(khrmode));
       natSwapchain->setOutOfDate(false);

@@ -389,12 +389,24 @@ namespace higanbana
       // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
       auto fenceForSwapchain = m_devices[SwapchainDeviceID].device->createFence();
       // assuming that only graphics queue accesses swapchain resources.
-      m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, fenceForSwapchain);
-      m_devices[SwapchainDeviceID].device->waitFence(fenceForSwapchain);
-      waitGpuIdle();
+      {
+        HIGAN_CPU_BRACKET("submit fence");
+        m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, fenceForSwapchain);
+      }
+      {
+        HIGAN_CPU_BRACKET("wait the fence");
+        m_devices[SwapchainDeviceID].device->waitFence(fenceForSwapchain);
+      }
+      {
+        HIGAN_CPU_BRACKET("waitGpuIdle");
+        waitGpuIdle();
+      }
       // wait all idle work.
       // release current swapchain backbuffers
-      swapchain.setBackbuffers({}); // technically this frees the textures if they are not used anywhere.
+      {
+        HIGAN_CPU_BRACKET("releaseSwapchainBackbuffers");
+        swapchain.setBackbuffers({}); // technically this frees the textures if they are not used anywhere.
+      }
       // go collect the trash.
       gc();
 
@@ -402,7 +414,10 @@ namespace higanbana
       m_devices[SwapchainDeviceID].device->adjustSwapchain(swapchain.impl(), descriptor);
       // get new backbuffers... seems like we do it here.
 
-      configureBackbufferViews(swapchain);
+      {
+        HIGAN_CPU_BRACKET("configureBackbufferViews");
+        configureBackbufferViews(swapchain);
+      }
     }
 
     std::optional<TextureRTV> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
