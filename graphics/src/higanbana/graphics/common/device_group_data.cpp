@@ -423,6 +423,12 @@ namespace higanbana
     std::optional<TextureRTV> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
+      while (m_asyncRunning > 0 && !m_asyns.empty())
+      {
+        m_asyns.back().wait();
+        m_asyns.pop_back();
+        --m_asyncRunning;
+      }
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
         return {};
@@ -432,6 +438,12 @@ namespace higanbana
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
+      while (m_asyncRunning > 0 && !m_asyns.empty())
+      {
+        m_asyns.back().wait();
+        m_asyns.pop_back();
+        --m_asyncRunning;
+      }
       int index = m_devices[SwapchainDeviceID].device->tryAcquirePresentableImage(swapchain.impl());
       if (index == -1)
         return nullptr;
@@ -479,7 +491,7 @@ namespace higanbana
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer->insert(dev->m_currentSeqNum, *ptr);
+          dev->m_delayer->insert(dev->m_currentSeqNum+1, *ptr);
         }
         delete ptr;
       });
@@ -493,7 +505,7 @@ namespace higanbana
       {
         if (auto dev = weakDev.lock())
         {
-          dev->m_delayer->insert(dev->m_currentSeqNum, *ptr);
+          dev->m_delayer->insert(dev->m_currentSeqNum+1, *ptr);
         }
         delete ptr;
       });
@@ -722,7 +734,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, format);
@@ -734,7 +746,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, stride);
@@ -746,7 +758,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamicImage(handle, range, rowPitch);
@@ -789,7 +801,7 @@ namespace higanbana
         for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
         {
           auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-          m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+          m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
           auto sr = image.subresource(mip, slice);
           for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
           {
@@ -1439,7 +1451,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
+          if (1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));
@@ -1642,6 +1654,10 @@ namespace higanbana
 
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
         timing.listsCount = lists.size();
+        std::future<void> gcComplete = std::async(std::launch::async, [&]
+        {
+          gc();
+        });
 
         vector<std::shared_ptr<BarrierSolver>> solvers;
         solvers.resize(lists.size());
@@ -1697,6 +1713,7 @@ namespace higanbana
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         //for (auto&& list : lists)
+        gcComplete.wait();
         HIGAN_CPU_BRACKET("Submit Lists");
         while(!readyLists.empty())
         {
@@ -1792,7 +1809,6 @@ namespace higanbana
       if (graph.m_sequence != InvalidSeqNum)
       {
         m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
-        gc();
       }
     }
 
@@ -1857,7 +1873,10 @@ namespace higanbana
     void DeviceGroupData::present(Swapchain & swapchain)
     {
       HIGAN_CPU_BRACKET("DeviceGroupData::submit");
-      m_devices[SwapchainDeviceID].device->present(swapchain.impl(), swapchain.impl()->renderSemaphore());
+      m_asyncRunning++;
+      m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl()]{
+        m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore());
+      }));
     }
   }
 }

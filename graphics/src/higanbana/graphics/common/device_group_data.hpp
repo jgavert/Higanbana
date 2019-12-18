@@ -164,6 +164,10 @@ namespace higanbana
       deque<SubmitTiming> timeOnFlightSubmits;
       deque<SubmitTiming> timeSubmitsFinished;
 
+      //
+      std::atomic<int> m_asyncRunning;
+      vector<std::future<void>> m_asyns;
+
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
       DeviceGroupData(DeviceGroupData&& data) = default;
       DeviceGroupData(const DeviceGroupData& data) = delete;
