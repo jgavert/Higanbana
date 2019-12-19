@@ -1451,7 +1451,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if (1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*1024)
+          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));
@@ -1654,10 +1654,15 @@ namespace higanbana
 
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
         timing.listsCount = lists.size();
-        std::future<void> gcComplete = std::async(std::launch::async, [&]
+
+        std::future<void> gcComplete;
+        {
+          HIGAN_CPU_BRACKET("launch gc task");
+        gcComplete = std::async(std::launch::async, [&]
         {
           gc();
         });
+        }
 
         vector<std::shared_ptr<BarrierSolver>> solvers;
         solvers.resize(lists.size());
@@ -1814,7 +1819,7 @@ namespace higanbana
 
     void DeviceGroupData::garbageCollection()
     {
-      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
+      HIGAN_CPU_FUNCTION_SCOPE();
       auto completedListsTill = m_seqTracker.completedTill();
       while(!m_seqNumRequirements.empty() && m_seqNumRequirements.front() <= completedListsTill)
       {
@@ -1872,7 +1877,7 @@ namespace higanbana
 
     void DeviceGroupData::present(Swapchain & swapchain)
     {
-      HIGAN_CPU_BRACKET("DeviceGroupData::submit");
+      HIGAN_CPU_FUNCTION_SCOPE();
       m_asyncRunning++;
       m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl()]{
         m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore());

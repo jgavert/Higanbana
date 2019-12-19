@@ -1,4 +1,4 @@
-// INTERFACE_HASH:9523674154270967211:18406620017008072197
+// INTERFACE_HASH:18280279872724764197:6669471120039394381
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -8,8 +8,8 @@
 
 #define ROOTSIG "RootFlags(0), \
   CBV(b0), \
-    DescriptorTable(UAV(u99, numDescriptors = 1, space=99 )),\
-DescriptorTable(\
+  DescriptorTable( UAV(u99, numDescriptors = 1, space=99 )), \
+  DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=0 )),\
   DescriptorTable(\
      SRV(t0, numDescriptors = 3, space=1 )),\
@@ -21,7 +21,7 @@ DescriptorTable(\
 struct Constants
 {float3 pos; };
 VK_BINDING(0, 2) ConstantBuffer<Constants> constants : register( b0 );
-VK_BINDING(1, 2) RWByteAddressBuffer debugPrint : register( u99, space99 );
+VK_BINDING(1, 2) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0
 // Struct declarations
 struct CameraSettings { float4x4 perspective; };
@@ -44,3 +44,23 @@ VK_BINDING(2, 2) SamplerState bilinearSampler : register( s0 );
 VK_BINDING(3, 2) SamplerState pointSampler : register( s1 );
 VK_BINDING(4, 2) SamplerState bilinearSamplerWarp : register( s2 );
 VK_BINDING(5, 2) SamplerState pointSamplerWrap : register( s3 );
+
+uint getIndex(uint count, uint type)
+{
+	uint myIndex;
+	_debugOut.InterlockedAdd(0, count+1, myIndex);
+	_debugOut.Store(myIndex*4+4, type);
+	return myIndex*4+4+4;
+}
+void print(uint val)   { _debugOut.Store( getIndex(1, 1), val); }
+void print(uint2 val)  { _debugOut.Store2(getIndex(2, 2), val); }
+void print(uint3 val)  { _debugOut.Store3(getIndex(3, 3), val); }
+void print(uint4 val)  { _debugOut.Store4(getIndex(4, 4), val); }
+void print(int val)    { _debugOut.Store( getIndex(1, 5), asuint(val)); }
+void print(int2 val)   { _debugOut.Store2(getIndex(2, 6), asuint(val)); }
+void print(int3 val)   { _debugOut.Store3(getIndex(3, 7), asuint(val)); }
+void print(int4 val)   { _debugOut.Store4(getIndex(4, 8), asuint(val)); }
+void print(float val)  { _debugOut.Store( getIndex(1, 9), asuint(val)); }
+void print(float2 val) { _debugOut.Store2(getIndex(2, 10), asuint(val)); }
+void print(float3 val) { _debugOut.Store3(getIndex(3, 11), asuint(val)); }
+void print(float4 val) { _debugOut.Store4(getIndex(4, 12), asuint(val)); }
