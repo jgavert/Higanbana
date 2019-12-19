@@ -1,4 +1,4 @@
-// INTERFACE_HASH:15463329007795442106:10737968808798644132
+// INTERFACE_HASH:11857850865533874330:10178716174780201249
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -17,7 +17,7 @@
   StaticSampler(s3, filter = FILTER_MIN_MAG_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP)"
 
 struct Constants
-{float resx; float resy; float time; int unused; float4x4 worldMat; float4x4 viewMat; };
+{float resx; float resy; float time; int stretchBoxes; float4x4 worldMat; float4x4 viewMat; };
 VK_BINDING(0, 1) ConstantBuffer<Constants> constants : register( b0 );
 VK_BINDING(1, 1) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0

@@ -3,6 +3,7 @@
 struct VertexOut
 {
   float2 uv : TEXCOORD0;
+  float4 normal : NORMAL;
   float4 pos : SV_Position;
 };
 
@@ -18,15 +19,21 @@ VertexOut main(uint id: SV_VertexID)
   i1 = asfloat(vertexInput.Load3(loadID*multiplier));
   vtxOut.pos.xyz = i1;
   vtxOut.pos.w = 1.f;
-  //int outputVal;
-  //debugPrint.InterlockedAdd(0, 1337, outputVal);
-  if ( 0 && id % 2 == 1)
+
+  if (constants.stretchBoxes && id % 2 == 1)
   {
     vtxOut.pos.z += 100.f;
   }
   vtxOut.pos = mul(vtxOut.pos, constants.worldMat);
   vtxOut.pos = mul(vtxOut.pos, constants.viewMat);
-  vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
-  vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
+  //vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
+  //vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
+  vtxOut.uv = i1.xy;
+  vtxOut.normal = normalize(float4(i1.xyz, 1.f));
+
+  if (id == 0)
+  {
+    //print(vtxOut.uv);
+  }
   return vtxOut;
 }

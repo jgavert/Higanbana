@@ -26,7 +26,7 @@ SHADER_STRUCT(OpaqueConsts,
   float resx;
   float resy;
   float time;
-  int unused;
+  int stretchBoxes;
   float4x4 worldMat;
   float4x4 viewMat;
 );
@@ -350,6 +350,7 @@ namespace app
       consts.resy = backbuffer.desc().desc.height;
       consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
       consts.viewMat = viewMat;
+      consts.stretchBoxes = 1;
       binding.constants(consts);
 
       auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
@@ -419,6 +420,7 @@ namespace app
       consts.resy = backbuffer.desc().desc.height;
       consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
       consts.viewMat = viewMat;
+      consts.stretchBoxes = 1;
       binding.constants(consts);
 
       auto args = verts;
