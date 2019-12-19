@@ -108,7 +108,7 @@ namespace higanbana
       std::vector<std::string> layerOrder = {
       };
       if (m_debug)
-        layerOrder.emplace_back("VK_LAYER_LUNARG_standard_validation");
+        layerOrder.emplace_back("VK_LAYER_KHRONOS_validation");
 
       std::vector<const char*> layers;
       {
