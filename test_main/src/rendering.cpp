@@ -382,6 +382,74 @@ namespace app
     }
     node.endRenderpass();
   }
+  
+    void Renderer::drawHeightMapInVeryStupidWay2(
+      higanbana::CommandGraphNode& node,
+        float3 pos, float4x4 viewMat,
+        higanbana::TextureRTV& backbuffer,
+        higanbana::TextureDSV& depth,
+        higanbana::CpuImage& image,
+        higanbana::DynamicBufferView ind,
+        higanbana::ShaderArguments& verts,
+        int pixels, int xBegin, int xEnd)
+  {
+    float redcolor = std::sin(time.getFTime())*.5f + .5f;
+
+    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
+    auto rp = opaqueRP;
+    if (depth.loadOp() == LoadOp::Load)
+    {
+      rp = opaqueRPWithLoad;
+    }
+    node.renderpass(rp, backbuffer, depth);
+    {
+      auto binding = node.bind(opaque);
+
+      quaternion yaw = math::rotateAxis(updir, 0.f);
+      quaternion pitch = math::rotateAxis(sideVec, 0.f);
+      quaternion roll = math::rotateAxis(dir, 0.f);
+      auto dir = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+
+      auto rotationMatrix = math::rotationMatrixLH(dir);
+      auto worldMat = math::mul(math::scale(0.5f), rotationMatrix);
+
+      OpaqueConsts consts{};
+      consts.time = time.getFTime();
+      consts.resx = backbuffer.desc().desc.width; 
+      consts.resy = backbuffer.desc().desc.height;
+      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
+      consts.viewMat = viewMat;
+      binding.constants(consts);
+
+      auto args = verts;
+
+      binding.arguments(0, args);
+
+      int gridSize = image.desc().desc.width;
+      auto subr = image.subresource(0,0);
+      float* data = reinterpret_cast<float*>(subr.data());
+
+      float offset = 0.2f;
+      xBegin *= pixels;
+      xEnd *= pixels;
+
+      auto yPixels = (xEnd - xBegin);
+      for (int x = xBegin; x < xEnd; ++x)
+      {
+        for (int y = 0; y < yPixels; ++y)
+        {
+          auto pX = std::min(gridSize, std::max(0, static_cast<int>(x - (pos.x+(yPixels/2)))));
+          auto pY = std::min(gridSize, std::max(0, static_cast<int>(y - (pos.y+(yPixels/2)))));
+          int dataOffset = pY*gridSize + pX;
+          float3 pos = float3(pX, pY, data[dataOffset]);
+          consts.worldMat = math::mul2(worldMat, math::translation(pos));
+          binding.constants(consts);
+          node.drawIndexed(binding, ind, 36);
+        }
+      }
+    }
+    node.endRenderpass();
+  }
 
   void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd)
   {
@@ -443,6 +511,58 @@ namespace app
 
       auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
         .bind("vertexInput", vert));
+
+      binding.arguments(0, args);
+
+      int gridSize = cubeCount;
+      for (int x = xBegin; x < xEnd; ++x)
+      {
+        for (int y = 0; y < gridSize; ++y)
+        {
+          for (int z = 0; z < gridSize; ++z)
+          {
+            float offset = gridSize*1.5f/2.f;
+            float3 pos = float3(x*1.5f-offset, y*1.5f-offset, z*1.5f-offset);
+            consts.worldMat = math::mul2(worldMat, math::translation(pos));
+            binding.constants(consts);
+            node.drawIndexed(binding, ind, 36);
+          }
+        }
+      }
+    }
+    node.endRenderpass();
+  }
+
+  void Renderer::oldOpaquePass2(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::DynamicBufferView ind,
+        higanbana::ShaderArguments& args, int cubeCount, int xBegin, int xEnd)
+  {
+    float redcolor = std::sin(time.getFTime())*.5f + .5f;
+
+    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
+    auto rp = opaqueRP;
+    if (depth.loadOp() == LoadOp::Load)
+    {
+      rp = opaqueRPWithLoad;
+    }
+    node.renderpass(rp, backbuffer, depth);
+    {
+      auto binding = node.bind(opaque);
+
+      quaternion yaw = math::rotateAxis(updir, 0.001f);
+      quaternion pitch = math::rotateAxis(sideVec, 0.f);
+      quaternion roll = math::rotateAxis(dir, 0.f);
+      direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
+
+      auto rotationMatrix = math::rotationMatrixLH(direction);
+      auto worldMat = math::mul(math::scale(0.2f), rotationMatrix);
+
+      OpaqueConsts consts{};
+      consts.time = time.getFTime();
+      consts.resx = backbuffer.desc().desc.width; 
+      consts.resy = backbuffer.desc().desc.height;
+      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
+      consts.viewMat = viewMat;
+      binding.constants(consts);
 
       binding.arguments(0, args);
 
@@ -566,6 +686,36 @@ namespace app
       float4x4 pos = math::translation(camera.position);
       auto perspective = math::mul(pos, math::mul(rot, pers));
       HIGAN_CPU_BRACKET("user - outerloop");
+      vector<float> vertexData = {
+        1.0f, -1.f, -1.f,
+        1.0f, -1.f, 1.f, 
+        1.0f, 1.f, -1.f,
+        1.0f, 1.f, 1.f,
+        -1.0f, -1.f, -1.f,
+        -1.0f, -1.f, 1.f, 
+        -1.0f, 1.f, -1.f,
+        -1.0f, 1.f, 1.f,
+      };
+
+      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+      vector<uint16_t> indexData = {
+        1, 0, 2,
+        1, 2, 3,
+        5, 4, 0,
+        5, 0, 1,
+        7, 2, 6,
+        7, 3, 2,
+        5, 6, 4,
+        5, 7, 6,
+        6, 0, 4,
+        6, 2, 0,
+        7, 5, 1,
+        7, 1, 3,
+      };
+      auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
+
+      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
+        .bind("vertexInput", vert));
       if (heightmap)
       {
         int pixelsToDraw = cubeCount;
@@ -583,6 +733,8 @@ namespace app
           }
           nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
         }
+
+
         std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
         {
           HIGAN_CPU_BRACKET("user - innerloop");
@@ -592,7 +744,7 @@ namespace app
           else
             depth.setOp(LoadOp::Load);
           
-          drawHeightMapInVeryStupidWay(std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+          drawHeightMapInVeryStupidWay2(std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
         });
 
         for (auto& node : nodes)
@@ -625,7 +777,7 @@ namespace app
           else
             depth.setOp(LoadOp::Load);
           
-          oldOpaquePass(std::get<0>(node), perspective, backbuffer, depth, cubeCount, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+          oldOpaquePass2(std::get<0>(node), perspective, backbuffer, depth,ind, args,  cubeCount, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
         });
 
         for (auto& node : nodes)

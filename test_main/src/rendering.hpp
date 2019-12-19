@@ -94,7 +94,17 @@ class Renderer
   std::optional<higanbana::SubmitTiming> m_previousInfo;
 
   void drawHeightMapInVeryStupidWay(higanbana::CommandGraphNode& node, float3 pos, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::CpuImage& image, int pixels, int xBegin, int xEnd);
+  void drawHeightMapInVeryStupidWay2(
+      higanbana::CommandGraphNode& node,
+        float3 pos, float4x4 viewMat,
+        higanbana::TextureRTV& backbuffer,
+        higanbana::TextureDSV& depth,
+        higanbana::CpuImage& image,
+        higanbana::DynamicBufferView ind,
+        higanbana::ShaderArguments& verts,
+        int pixels, int xBegin, int xEnd);
   void oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd);
+  void oldOpaquePass2(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::DynamicBufferView ind,higanbana::ShaderArguments& verts, int cubeCount, int xBegin, int xEnd);
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
 public:
