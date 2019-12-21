@@ -272,8 +272,8 @@ void mainWindow(ProgramParams& params)
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 20;
-    int cubeCommandLists = 8;
+    int cubeCount = 1000;
+    int cubeCommandLists = 128;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -497,10 +497,10 @@ void mainWindow(ProgramParams& params)
 
             {
               ImGui::Checkbox("render ECS", &renderECS);
-              ImGui::Text("%d cubes/draw calls", cubeCount*cubeCount*cubeCount);
+              ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
-              ImGui::DragInt("cube multiple", &cubeCount, 1, 0, 64);
-              ImGui::DragInt("cube commandlists", &cubeCommandLists, 1, 1, 64);
+              ImGui::DragInt("drawcalls/cubes", &cubeCount, 1000, 0, 500000);
+              ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
             }
             auto si = rend.timings();
             if (si && ImGui::CollapsingHeader("Renderpass"))
