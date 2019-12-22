@@ -272,8 +272,9 @@ void mainWindow(ProgramParams& params)
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
-    int cubeCount = 1000;
-    int cubeCommandLists = 128;
+    int cubeCount = 3;
+    int cubeCommandLists = 4;
+    int limitFPS = 30;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -296,6 +297,7 @@ void mainWindow(ProgramParams& params)
     //GpuInfo gpuinfo{};
 
     WTime time;
+    WTime logicAndRenderTime;
 
     while (true)
     {
@@ -380,10 +382,10 @@ void mainWindow(ProgramParams& params)
             auto windowSize = rend.windowSize();
             io.DisplaySize = { float(windowSize.x), float(windowSize.y) };
             time.tick();
+            logicAndRenderTime.startFrame();
             io.DeltaTime = time.getFrameTimeDelta();
             if (io.DeltaTime < 0.f)
               io.DeltaTime = 0.00001f;
-            
             auto lastRead = inputsRead;
             auto inputs = ainputs.read();
             auto currentInput = inputs.frame();
@@ -492,6 +494,7 @@ void mainWindow(ProgramParams& params)
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+            ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
 
             ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
 
@@ -499,7 +502,7 @@ void mainWindow(ProgramParams& params)
               ImGui::Checkbox("render ECS", &renderECS);
               ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
-              ImGui::DragInt("drawcalls/cubes", &cubeCount, 1000, 0, 500000);
+              ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
               ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
             }
             auto si = rend.timings();
@@ -704,6 +707,17 @@ void mainWindow(ProgramParams& params)
             });
             HIGAN_CPU_BRACKET("Render");
             rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
+            logicAndRenderTime.tick();
+            auto totalTime = logicAndRenderTime.getFrameTimeDelta();
+            if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))
+            {
+              auto targetTime = (1000000.f / float(limitFPS));
+              auto ourTime = time.getFrameTimeDelta()*1000000.f;
+              auto howFarAreWe = std::min(0.f, targetTime - ourTime);
+              auto overTime = (1000000.f / float(limitFPS)) - totalTime*1000000.f;
+              std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int64_t>(overTime+howFarAreWe*1.8f)));
+              //HIGAN_LOGi("delta to fps limit %.4f %.4f %.4f %.4f %.4f\n", howFarAreWe, totalTime*1000000.f, overTime, targetTime, ourTime);
+            }
           }
         });
         while (!window.simpleReadMessages(frame++))
