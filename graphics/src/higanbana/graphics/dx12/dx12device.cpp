@@ -91,12 +91,12 @@ namespace higanbana
 
       m_queryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createGraphicsQueryHeap(128);
+        return createGraphicsQueryHeap(256);
       });
 
       m_computeQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createComputeQueryHeap(128);
+        return createComputeQueryHeap(256);
       });
 
       m_dmaQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
