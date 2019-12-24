@@ -1177,13 +1177,16 @@ namespace higanbana
       m_buffer->closeList();
     }
 
-    void DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes)
+    void DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_readback->map();
       auto view = m_readback->getView(readback);
       auto ticksPerSecond = m_queryheap->getGpuTicksPerSecond();
       auto properView = reinterpret_memView<uint64_t>(view);
+      DX12Device* dev = static_cast<DX12Device*>(device.get());
+      auto queueTimeOffset = dev->m_graphicsTimeOffset;
+
       if (nodes.size() >= queries.size())
       {
         for (int i = 0; i < queries.size(); ++i)
@@ -1194,8 +1197,8 @@ namespace higanbana
           auto end = properView[query.endIndex] * 1000000000ull;
           end = end / ticksPerSecond;
           auto& node = nodes[i];
-          node.gpuTime.begin = begin;
-          node.gpuTime.end = end;
+          node.gpuTime.begin = begin + queueTimeOffset;
+          node.gpuTime.end = end + queueTimeOffset;
         }
       }
       m_readback->unmap();

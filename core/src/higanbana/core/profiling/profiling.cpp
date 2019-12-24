@@ -47,6 +47,19 @@ ProfilingScope::ProfilingScope(const char* str)
   int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(new_tp - begin).count();
   my_profile_data->allBrackets.push_back({name, now_ns, duration});
 }
+
+void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t time, int64_t dur)
+{
+  if (!my_profile_data)
+  {
+    int newIdx = s_myIndex.fetch_add(1);
+    my_thread_id = newIdx;
+    s_allThreadsProfilingData[newIdx] = ThreadProfileData();
+    my_profile_data = &s_allThreadsProfilingData[newIdx];
+  }
+  my_profile_data->gpuBrackets.push_back({gpuid, queue, std::string(view), time, dur});
+}
+
 nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid)
 {
   nlohmann::json j;
@@ -57,7 +70,21 @@ nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int 
   j["ts"] = double(time) / 1000.0;
   j["pid"] = "higanbana";
   j["dur"] = double(dur) / 1000.0;
-  j["tid"] = tid;
+  j["tid"] = "Thread " + std::to_string(tid);
+
+  return j;
+}
+nlohmann::json writeEventGPU(std::string_view view, int64_t time, int64_t dur, int tid, int queue)
+{
+  nlohmann::json j;
+  // "name": "myFunction", "cat": "foo", "ph": "B", "ts": 123, "pid": 2343, "tid": 2347
+  j["name"] = view;
+  j["cat"] = "GPU Event";
+  j["ph"] = "X";
+  j["ts"] = double(time) / 1000.0;
+  j["pid"] = "higanbana";
+  j["dur"] = double(dur) / 1000.0;
+  j["tid"] = "GPU " + std::to_string(tid) + " Queue " + std::to_string(queue);
 
   return j;
 }
@@ -71,6 +98,10 @@ void writeProfilingData(higanbana::FileSystem& fs)
     for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
     {
       events.push_back(writeEvent(event.name, event.begin, event.duration, i));
+    }
+    for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
+    {
+      events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
     }
   }
   j["traceEvents"] = events;

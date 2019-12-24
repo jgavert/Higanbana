@@ -125,6 +125,11 @@ namespace higanbana
                     list->readbackTimestamps(m_devices[buffer.deviceID].device, timing.nodes);
                     timing.gpuTime.begin = timing.nodes.front().gpuTime.begin;
                     timing.gpuTime.end = timing.nodes.back().gpuTime.end;
+                    HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, "Commandlist", timing.gpuTime.begin, timing.gpuTime.nanoseconds());
+                    for (auto&& block : timing.nodes)
+                    {
+                    HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, block.nodeName, block.gpuTime.begin, block.gpuTime.nanoseconds());
+                    }
                     submit.lists.push_back(timing);
                     foundTiming = true;
                   }

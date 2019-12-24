@@ -18,10 +18,20 @@ struct ProfileData
   int64_t duration;
 };
 
+struct GPUProfileData
+{
+  int gpuID;
+  int queue;
+  std::string name;
+  int64_t begin;
+  int64_t duration;
+};
+
 class ThreadProfileData
 {
   public:
   vector<ProfileData> allBrackets;
+  vector<GPUProfileData> gpuBrackets;
 };
 extern std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
 extern std::atomic<int> s_myIndex;
@@ -37,16 +47,19 @@ class ProfilingScope
   ProfilingScope(const char* name);
   ~ProfilingScope();
 };
+void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t time, int64_t dur);
 nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid);
 void writeProfilingData(higanbana::FileSystem& fs);
 }
 }
-#if 0
+#if 1
 #define HIGAN_CONCAT(a, b) a ## b
 #define HIGAN_CONCAT_HELPER(a, b) HIGAN_CONCAT(a, b)
 #define HIGAN_CPU_BRACKET(name) auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(name)
 #define HIGAN_CPU_FUNCTION_SCOPE() auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(__FUNCTION__)
+#define HIGAN_GPU_BRACKET_FULL(gpuid, queue, view, time, dur) higanbana::profiling::writeGpuBracketData(gpuid, queue, view, time, dur)
 #else
 #define HIGAN_CPU_BRACKET(name)
 #define HIGAN_CPU_FUNCTION_SCOPE()
+#define HIGAN_GPU_BRACKET_FULL(gpuid, queue, view, time, dur) 
 #endif

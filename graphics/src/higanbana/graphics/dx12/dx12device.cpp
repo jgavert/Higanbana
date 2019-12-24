@@ -241,6 +241,23 @@ namespace higanbana
         m_shaderDebugTableCPU = m_generics.allocate();
         m_device->CreateUnorderedAccessView(bufferS, nullptr, &natDesc, m_shaderDebugTableCPU.cpu);
       }
+
+      // get queue to cpu calibrations...
+      LARGE_INTEGER li;
+      QueryPerformanceFrequency(&li);
+      auto PCFreq = li.QuadPart;
+
+      UINT64 gpuTimestamp;
+      UINT64 cpuTimestamp;
+      UINT64 timestampFrequency;
+      m_graphicsQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
+      m_graphicsQueue->GetTimestampFrequency(&timestampFrequency);
+      m_graphicsTimeOffset = static_cast<int64_t>(cpuTimestamp*1000000000ull/PCFreq) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
+      m_computeQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
+      m_computeTimeOffset = static_cast<int64_t>(cpuTimestamp) - static_cast<int64_t>(gpuTimestamp);
+      m_dmaQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
+      m_dmaTimeOffset = static_cast<int64_t>(cpuTimestamp) - static_cast<int64_t>(gpuTimestamp);
+
     }
 
     DX12Device::~DX12Device()

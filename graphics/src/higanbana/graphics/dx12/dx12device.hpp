@@ -76,6 +76,11 @@ namespace higanbana
       DX12GPUDescriptor m_shaderDebugTable;
       DX12CPUDescriptor m_shaderDebugTableCPU;
 
+      // timings
+      int64_t m_graphicsTimeOffset;
+      int64_t m_computeTimeOffset;
+      int64_t m_dmaTimeOffset;
+
       friend class DX12CommandList;
 
       D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
