@@ -264,20 +264,44 @@ namespace higanbana
     {
       waitGpuIdle();
       m_shaderDebugBuffer.native()->Release();
-      for (auto&& rb : m_allRes.rbbuf.view())
-      {
-        if (rb.native())
-        {
+      for (auto&& rb : m_allRes.rbbuf.view()) {
+        if (rb.native()) {
           rb.native()->Release();
           rb.reset();
         }
       }
+      m_queryHeapPool.clear();
       
+      m_computeQueryHeapPool.clear();
+      m_dmaQueryHeapPool.clear();
+      m_copyListPool.clear();
+      m_computeListPool.clear();
+      m_graphicsListPool.clear();
+      m_fencePool.clear();
+      m_semaPool.clear();
+
+      m_constantsUpload.reset();
+      m_dynamicUpload.reset();
+
+      m_dynamicGpuDescriptors.reset();
+      for (auto&& r : m_allRes.buf.view()) {
+        if (r.native())
+          r.native()->Release();
+      }
+      for (auto&& r : m_allRes.tex.view()) {
+        if (r.native())
+          r.native()->Release();
+      }
       /*
+      for (auto&& r : m_allRes.heaps.view()) {
+        if (r.native())
+          r.native()->Release();
+      }*/
+      
       if (m_debugLayer)
       {
-        m_debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-      }*/
+        //m_debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+      }
     }
 
     DeviceStatistics DX12Device::statsOfResourcesInUse()

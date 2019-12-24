@@ -3,6 +3,7 @@
 #include "higanbana/core/datastructures/proxy.hpp"
 #include "higanbana/core/system/HighResClock.hpp"
 #include "higanbana/core/filesystem/filesystem.hpp"
+#include "higanbana/core/system/ringbuffer.hpp"
 #include <atomic>
 #include <nlohmann/json.hpp>
 
@@ -30,6 +31,8 @@ struct GPUProfileData
 class ThreadProfileData
 {
   public:
+  //RingBuffer<ProfileData, 10240> allBrackets;
+  //RingBuffer<GPUProfileData, 10240> gpuBrackets;
   vector<ProfileData> allBrackets;
   vector<GPUProfileData> gpuBrackets;
 };

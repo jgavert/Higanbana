@@ -96,13 +96,15 @@ void writeProfilingData(higanbana::FileSystem& fs)
   for (int i = 0; i < s_myIndex; ++i)
   {
     for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
+    //s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
     {
       events.push_back(writeEvent(event.name, event.begin, event.duration, i));
-    }
+    }//);
     for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
+    //s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
     {
       events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
-    }
+    }//);
   }
   j["traceEvents"] = events;
   std::string output = j.dump();

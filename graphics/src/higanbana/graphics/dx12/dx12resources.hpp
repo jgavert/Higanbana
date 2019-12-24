@@ -888,7 +888,7 @@ namespace higanbana
     class DX12Buffer 
     {
     private:
-      ID3D12Resource* resource;
+      ID3D12Resource* resource = nullptr;
       ResourceDescriptor descriptor;
 
     public:

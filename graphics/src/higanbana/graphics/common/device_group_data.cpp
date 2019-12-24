@@ -128,7 +128,7 @@ namespace higanbana
                     HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, "Commandlist", timing.gpuTime.begin, timing.gpuTime.nanoseconds());
                     for (auto&& block : timing.nodes)
                     {
-                    HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, block.nodeName, block.gpuTime.begin, block.gpuTime.nanoseconds());
+                      HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, block.nodeName, block.gpuTime.begin, block.gpuTime.nanoseconds());
                     }
                     submit.lists.push_back(timing);
                     foundTiming = true;

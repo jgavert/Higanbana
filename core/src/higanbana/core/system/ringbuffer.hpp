@@ -12,22 +12,27 @@ namespace higanbana
   class RingBuffer
   {
   public:
-    RingBuffer() : m_ptr(0) {}
+    RingBuffer() : m_buffer(ArraySize), m_ptr(0), m_filledSize(0) {}
     ~RingBuffer() {}
 
     void push_back(T value)
     {
-      moveptr();
       m_buffer[m_ptr] = std::move(value);
+      moveptr();
+      m_filledSize++;
+      if (m_filledSize >= ArraySize)
+      {
+        m_filledSize = ArraySize - 1;
+      }
     }
 
     T& get() { return m_buffer[m_ptr]; }
     T* data() const { return m_buffer; }
-    size_t size() const { return m_buffer.size(); }
+    size_t size() const { return ArraySize; }
     T& operator[](int index) { return m_buffer[getIndex(index)]; }
     const T& operator[](int index) const { return m_buffer[getIndex(index)]; }
-    int start_ind() { return m_ptr; }
-    int end_ind() { return m_ptr + static_cast<int>(m_buffer.size()); }
+    int start_ind() { return m_ptr - m_filledSize; }
+    int end_ind() { return m_ptr - 1; }
     void forEach(std::function< void(T&) > apply)
     {
       for (int i = start_ind(); i < end_ind(); i++)
@@ -37,9 +42,10 @@ namespace higanbana
     }
   private:
     void moveptr() { m_ptr = getIndex(m_ptr + 1); }
-    int getIndex(int ind) { return ind % m_buffer.size(); }
+    int getIndex(int ind) { return ind % ArraySize; }
 
-    std::array<T, ArraySize> m_buffer;
+    std::vector<T> m_buffer;
     int m_ptr;
+    int m_filledSize;
   };
 }
