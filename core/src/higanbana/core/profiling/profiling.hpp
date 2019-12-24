@@ -31,10 +31,10 @@ struct GPUProfileData
 class ThreadProfileData
 {
   public:
-  //RingBuffer<ProfileData, 10240> allBrackets;
-  //RingBuffer<GPUProfileData, 10240> gpuBrackets;
-  vector<ProfileData> allBrackets;
-  vector<GPUProfileData> gpuBrackets;
+  RingBuffer<ProfileData, 10240> allBrackets;
+  RingBuffer<GPUProfileData, 10240> gpuBrackets;
+  //vector<ProfileData> allBrackets;
+  //vector<GPUProfileData> gpuBrackets;
 };
 extern std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
 extern std::atomic<int> s_myIndex;

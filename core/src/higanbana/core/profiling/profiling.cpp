@@ -45,7 +45,7 @@ ProfilingScope::ProfilingScope(const char* str)
   int64_t now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
   timepoint new_tp = HighPrecisionClock::now();
   int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(new_tp - begin).count();
-  my_profile_data->allBrackets.push_back({name, now_ns, duration});
+  my_profile_data->allBrackets.push_back(ProfileData{name, now_ns, duration});
 }
 
 void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t time, int64_t dur)
@@ -57,7 +57,7 @@ void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t ti
     s_allThreadsProfilingData[newIdx] = ThreadProfileData();
     my_profile_data = &s_allThreadsProfilingData[newIdx];
   }
-  my_profile_data->gpuBrackets.push_back({gpuid, queue, std::string(view), time, dur});
+  my_profile_data->gpuBrackets.push_back(GPUProfileData{gpuid, queue, std::string(view), time, dur});
 }
 
 nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid)
@@ -79,7 +79,7 @@ nlohmann::json writeEventGPU(std::string_view view, int64_t time, int64_t dur, i
   nlohmann::json j;
   // "name": "myFunction", "cat": "foo", "ph": "B", "ts": 123, "pid": 2343, "tid": 2347
   j["name"] = view;
-  j["cat"] = "GPU Event";
+  j["cat"] = "foo";
   j["ph"] = "X";
   j["ts"] = double(time) / 1000.0;
   j["pid"] = "higanbana";
@@ -93,18 +93,24 @@ void writeProfilingData(higanbana::FileSystem& fs)
 {
   nlohmann::json j;
   higanbana::vector<nlohmann::json> events;
+  // last 5 seconds
+  auto lastEvent = s_allThreadsProfilingData[0].allBrackets[s_allThreadsProfilingData[0].allBrackets.end_ind()];
+  //auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
+  auto lastSeconds = lastEvent.begin + lastEvent.duration - 5*1000*1000*1000;
   for (int i = 0; i < s_myIndex; ++i)
   {
-    for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
-    //s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
+    //for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
+    s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
     {
-      events.push_back(writeEvent(event.name, event.begin, event.duration, i));
-    }//);
-    for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
-    //s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
+      if (event.begin > lastSeconds)
+        events.push_back(writeEvent(event.name, event.begin, event.duration, i));
+    });
+    //for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
+    s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
     {
-      events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
-    }//);
+      if (event.begin > lastSeconds)
+        events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
+    });
   }
   j["traceEvents"] = events;
   std::string output = j.dump();

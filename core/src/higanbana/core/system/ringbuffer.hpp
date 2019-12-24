@@ -17,7 +17,7 @@ namespace higanbana
 
     void push_back(T value)
     {
-      m_buffer[m_ptr] = std::move(value);
+      m_buffer[m_ptr] = value;
       moveptr();
       m_filledSize++;
       if (m_filledSize >= ArraySize)
@@ -31,8 +31,8 @@ namespace higanbana
     size_t size() const { return ArraySize; }
     T& operator[](int index) { return m_buffer[getIndex(index)]; }
     const T& operator[](int index) const { return m_buffer[getIndex(index)]; }
-    int start_ind() { return m_ptr - m_filledSize; }
-    int end_ind() { return m_ptr - 1; }
+    int start_ind() { return ArraySize + m_ptr - m_filledSize; }
+    int end_ind() { return ArraySize + m_ptr - 1; }
     void forEach(std::function< void(T&) > apply)
     {
       for (int i = start_ind(); i < end_ind(); i++)
