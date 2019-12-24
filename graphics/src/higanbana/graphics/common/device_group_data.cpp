@@ -1417,7 +1417,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
+          if (1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));
@@ -1757,7 +1757,21 @@ namespace higanbana
             break;
           case QueueType::Graphics:
           default:
+#if 0
+            {
+              for (int i = 0; i < buffer.lists.size(); i++)
+              {
+                if (i == 0)
+                  vdev.device->submitGraphics(buffer.lists[i], buffer.wait, {}, {});
+                else if (i == buffer.lists.size()-1)
+                  vdev.device->submitGraphics(buffer.lists[i], {}, buffer.signal, viewToFence);
+                else
+                  vdev.device->submitGraphics(buffer.lists[i], {}, {}, {});
+              }
+            }
+#else
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+#endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
           for (auto&& id : buffer.listIDs)
