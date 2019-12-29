@@ -94,23 +94,23 @@ void writeProfilingData(higanbana::FileSystem& fs)
   nlohmann::json j;
   higanbana::vector<nlohmann::json> events;
   // last 5 seconds
-  auto lastEvent = s_allThreadsProfilingData[0].allBrackets[s_allThreadsProfilingData[0].allBrackets.end_ind()];
-  //auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
+  //auto lastEvent = s_allThreadsProfilingData[0].allBrackets[s_allThreadsProfilingData[0].allBrackets.end_ind()];
+  auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
   auto lastSeconds = lastEvent.begin + lastEvent.duration - 5*1000*1000*1000;
   for (int i = 0; i < s_myIndex; ++i)
   {
-    //for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
-    s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
+    for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
+    //s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
     {
       if (event.begin > lastSeconds)
         events.push_back(writeEvent(event.name, event.begin, event.duration, i));
-    });
-    //for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
-    s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
+    }//);
+    for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
+    //s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
     {
       if (event.begin > lastSeconds)
         events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
-    });
+    }//);
   }
   j["traceEvents"] = events;
   std::string output = j.dump();
