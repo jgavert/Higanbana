@@ -230,11 +230,11 @@ namespace higanbana
         auto allocInfo = m_alloc_info;
         m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo](vk::DebugUtilsMessengerEXT * ist)
           {
-            vk::DispatchLoaderDynamic loader(*lol);
+            vk::DispatchLoaderDynamic loader(*lol, vk::Device());
             lol->destroyDebugUtilsMessengerEXT(*ist, allocInfo, loader);
           });
           
-        vk::DispatchLoaderDynamic loader(*m_instance);
+        vk::DispatchLoaderDynamic loader(*m_instance, vk::Device());
         auto rduc = m_instance->createDebugUtilsMessengerEXT(info, m_alloc_info, loader);
         VK_CHECK_RESULT(rduc);
         

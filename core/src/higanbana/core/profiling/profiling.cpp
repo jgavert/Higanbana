@@ -95,6 +95,8 @@ void writeProfilingData(higanbana::FileSystem& fs)
   higanbana::vector<nlohmann::json> events;
   // last 5 seconds
   //auto lastEvent = s_allThreadsProfilingData[0].allBrackets[s_allThreadsProfilingData[0].allBrackets.end_ind()];
+  if (s_allThreadsProfilingData[0].allBrackets.empty())
+    return;
   auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
   auto lastSeconds = lastEvent.begin + lastEvent.duration - 5*1000*1000*1000;
   for (int i = 0; i < s_myIndex; ++i)
