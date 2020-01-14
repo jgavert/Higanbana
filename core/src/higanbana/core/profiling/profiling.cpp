@@ -98,7 +98,7 @@ void writeProfilingData(higanbana::FileSystem& fs)
   if (s_allThreadsProfilingData[0].allBrackets.empty())
     return;
   auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
-  auto lastSeconds = lastEvent.begin + lastEvent.duration - 5*1000*1000*1000;
+  auto lastSeconds = lastEvent.begin + lastEvent.duration - 1000000000ll;
   for (int i = 0; i < s_myIndex; ++i)
   {
     for (auto&& event : s_allThreadsProfilingData[i].allBrackets)

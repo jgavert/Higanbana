@@ -251,12 +251,24 @@ namespace higanbana
       UINT64 cpuTimestamp;
       UINT64 timestampFrequency;
       m_graphicsQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
+
+      auto timepoint = higanbana::HighResClock::now();
+      auto countFromBeginning = std::chrono::time_point_cast<std::chrono::nanoseconds>(timepoint).time_since_epoch().count();
+      auto convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
+      auto timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
+      HIGAN_LOGi("%zd vs %zu = %zd\n", timeNow, countFromBeginning, timeNow - countFromBeginning);
       m_graphicsQueue->GetTimestampFrequency(&timestampFrequency);
-      m_graphicsTimeOffset = static_cast<int64_t>(cpuTimestamp*1000000000ull/PCFreq) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
+      m_graphicsTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
       m_computeQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
-      m_computeTimeOffset = static_cast<int64_t>(cpuTimestamp) - static_cast<int64_t>(gpuTimestamp);
+      convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
+      timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
+      m_computeQueue->GetTimestampFrequency(&timestampFrequency);
+      m_computeTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
       m_dmaQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
-      m_dmaTimeOffset = static_cast<int64_t>(cpuTimestamp) - static_cast<int64_t>(gpuTimestamp);
+      convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
+      timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
+      m_dmaQueue->GetTimestampFrequency(&timestampFrequency);
+      m_dmaTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
 
     }
 

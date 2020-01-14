@@ -432,7 +432,7 @@ namespace higanbana
       //vk::PhysicalDeviceFragmentShaderBarycentricFeaturesNV,
       //vk::PhysicalDeviceShaderImageFootprintFeaturesNV,
       //vk::PhysicalDeviceShadingRateImageFeaturesNV,
-      vk::PhysicalDeviceFragmentDensityMapFeaturesEXT, 
+      //vk::PhysicalDeviceFragmentDensityMapFeaturesEXT,  renderdoc doesn't support
       vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT,
       vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,

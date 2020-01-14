@@ -14,6 +14,7 @@ namespace higanbana
     static const bool is_steady = true;
 
     static time_point now();
+    static time_point fromPerfCounter(uint64_t count);
   };
 };
 using HighPrecisionClock = higanbana::HighResClock;
