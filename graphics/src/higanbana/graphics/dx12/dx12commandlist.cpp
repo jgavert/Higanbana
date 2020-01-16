@@ -1192,10 +1192,11 @@ namespace higanbana
         for (int i = 0; i < queries.size(); ++i)
         {
           auto query = queries[i];
-          auto begin = properView[query.beginIndex] * 1000000000ull;
-          begin = begin / ticksPerSecond;
-          auto end = properView[query.endIndex] * 1000000000ull;
-          end = end / ticksPerSecond;
+          auto countParts = [ticksPerSecond](uint64_t timestamp){
+            return uint64_t((double(timestamp)/double(ticksPerSecond))*1000000000ull);
+          };
+          uint64_t begin = countParts(properView[query.beginIndex]);
+          uint64_t end = countParts(properView[query.endIndex]);
           auto& node = nodes[i];
           node.gpuTime.begin = begin + queueTimeOffset;
           node.gpuTime.end = end + queueTimeOffset;

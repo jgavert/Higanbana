@@ -258,18 +258,20 @@ namespace higanbana
       auto timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
       HIGAN_LOGi("%zd vs %zu = %zd\n", timeNow, countFromBeginning, timeNow - countFromBeginning);
       m_graphicsQueue->GetTimestampFrequency(&timestampFrequency);
-      m_graphicsTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
+      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
+      m_graphicsTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
       m_computeQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
       convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
       timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
       m_computeQueue->GetTimestampFrequency(&timestampFrequency);
-      m_computeTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
+      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
+      m_computeTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
       m_dmaQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
       convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
       timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
       m_dmaQueue->GetTimestampFrequency(&timestampFrequency);
-      m_dmaTimeOffset = static_cast<int64_t>(timeNow) - static_cast<int64_t>(gpuTimestamp*1000000000ull/timestampFrequency);
-
+      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
+      m_dmaTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
     }
 
     DX12Device::~DX12Device()
