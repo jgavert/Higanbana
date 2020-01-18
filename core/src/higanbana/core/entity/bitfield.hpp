@@ -470,7 +470,7 @@ namespace higanbana
     {
       auto maxSize = std::max(m_pages, other.m_pages);
       auto interSize = std::min(m_pages, other.m_pages);
-      DynamicBitfield result(maxSize);
+      //DynamicBitfield result(maxSize * BitCount);
       const __m128i* vec0 = data();
       const __m128i* vec1 = other.data();
       __m128i* p = data();
@@ -491,7 +491,7 @@ namespace higanbana
     {
       auto maxSize = std::max(m_pages, other.m_pages);
       auto interSize = std::min(m_pages, other.m_pages);
-      DynamicBitfield result(maxSize);
+      DynamicBitfield result(maxSize * BitCount);
       const __m128i* vec0 = data();
       const __m128i* vec1 = other.data();
       __m128i* p = reinterpret_cast<__m128i*>(result.data());
@@ -518,7 +518,7 @@ namespace higanbana
     {
       auto maxSize = std::max(m_pages, other.m_pages);
       auto interSize = std::min(m_pages, other.m_pages);
-      DynamicBitfield result(maxSize);
+      DynamicBitfield result(maxSize*BitCount);
       if (interSize == 0)
         return result; 
       const __m128i* vec1 = data();
@@ -593,7 +593,7 @@ namespace higanbana
         if (_mm_test_all_zeros(m_data[dataIndex], _mm_setzero_si128()) != 0)
         {
           // found some bits
-          int offset = index - dataIndex * BitCount;
+          int offset = std::max(0, index - dataIndex * BitCount);
           int offset_tmp = 0;
           uint64_t a = _mm_extract_epi64(m_data[dataIndex], 0);
           uint64_t b = _mm_extract_epi64(m_data[dataIndex], 1);
