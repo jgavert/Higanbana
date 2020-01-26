@@ -8,6 +8,7 @@
 #include <higanbana/core/system/FreelistAllocator.hpp>
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
+#include "renderer/mesh_test.hpp"
 #include "world/visual_data_structures.hpp"
 
 
@@ -79,6 +80,7 @@ class Renderer
   // meshes
   MeshSystem meshes;
   WorldRenderer worldRend;
+  MeshTest worldMeshRend;
   higanbana::Buffer cameras;
   higanbana::BufferSRV cameraSRV;
   higanbana::BufferUAV cameraUAV;

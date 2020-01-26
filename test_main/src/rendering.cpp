@@ -119,6 +119,7 @@ namespace app
    , dev(dev)
    , imgui(dev)
    , worldRend(dev)
+   , worldMeshRend(dev, worldRend.meshArgLayout())
   {
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)
@@ -621,6 +622,14 @@ namespace app
       worldRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
     }
     worldRend.endRenderpass(node);
+    
+    worldMeshRend.beginRenderpass(node, backbuffer, depthDSV);
+    for (auto&& instance : instances)
+    {
+      auto& mesh = meshes[instance.meshId];
+      worldMeshRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
+    }
+    node.endRenderpass();
   }
 
   void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap)

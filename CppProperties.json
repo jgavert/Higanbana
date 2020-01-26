@@ -7,7 +7,7 @@
       "name": "x64-Release",
       "includePath": [
         "${env.INCLUDE}",
-        "C:/VulkanSDK/1.1.121.2/Include",
+        "C:/VulkanSDK/1.1.130.0/Include",
         "${workspaceRoot}/ext/dxc-bin/include",
         "${workspaceRoot}/ext/stb",
         "${workspaceRoot}/ext/tinygltf",

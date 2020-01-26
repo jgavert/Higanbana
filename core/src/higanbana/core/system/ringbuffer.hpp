@@ -33,6 +33,7 @@ namespace higanbana
     const T& operator[](int index) const { return m_buffer[getIndex(index)]; }
     int start_ind() { return ArraySize + m_ptr - m_filledSize; }
     int end_ind() { return ArraySize + m_ptr - 1; }
+    T& back() { return m_buffer[getIndex(ArraySize + m_ptr - 1)]; }
     void forEach(std::function< void(T&) > apply)
     {
       for (int i = start_ind(); i < end_ind(); i++)

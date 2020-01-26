@@ -37,7 +37,7 @@ public:
     //ppIncludeSource = nullptr;
     std::string filename = ws2s(pFilename);
     if (!filename.empty())
-      filename = filename.substr(2);
+      filename = filename.substr(4);
 
     std::string finalPath;
     finalPath = m_sourcePath + filename;
@@ -108,6 +108,10 @@ namespace higanbana
         return "tc";
       case ShaderType::Domain: // domain?
         return "te";
+      case ShaderType::Amplification: // domain?
+        return "as";
+      case ShaderType::Mesh: // domain?
+        return "ms";
       default:
         HIGAN_ASSERT(false, "Unknown ShaderType");
       }
