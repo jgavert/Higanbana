@@ -6,7 +6,7 @@ cc_library(
   strip_include_prefix = "src",
   deps = ["//ext:GSL", "//ext:nlohmann_json"] + select({
           "@bazel_tools//src/conditions:windows": 
-              ["//ext:WinPixEventRuntime"],
+              ["//ext:WinPixEventRuntime", "@DirectInput8//:DirectInput8", "@XInput//:XInput"],
           "//conditions:default": [],
   }),
   copts = select({

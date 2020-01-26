@@ -40,6 +40,31 @@ cc_library(
 )
 
 new_local_repository(
+  name = "DirectInput8",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  build_file_content = """
+cc_import(
+    name = "DirectInput8",
+    interface_library = "dinput8.lib",
+    system_provided = 1,
+    visibility = ["//visibility:public"], 
+)
+    """
+)
+new_local_repository(
+  name = "XInput",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  build_file_content = """
+cc_import(
+    name = "XInput",
+    interface_library = "Xinput.lib",
+    system_provided = 1,
+    visibility = ["//visibility:public"], 
+)
+    """
+)
+
+new_local_repository(
   name = "DX12",
   path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
   build_file_content = """

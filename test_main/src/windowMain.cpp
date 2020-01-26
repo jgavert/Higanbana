@@ -95,7 +95,8 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       floatizeAxises(input.rstick[0].value, rxyz.x);
       floatizeAxises(input.rstick[1].value, rxyz.y);
 
-      rxyz = mul(rxyz, float3(-1.f, 1.f, 0));
+      rxyz = mul(rxyz, float3(1.f, -1.f, 0));
+      xy = mul(xy, float2(-1, -1));
 
       auto floatizeTriggers = [](uint16_t input, float& output)
       {
@@ -269,6 +270,7 @@ void mainWindow(ProgramParams& params)
     Database<2048> ecs;
 
     app::World world;
+    higanbana::gamepad::Controllers inputs;
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
     bool renderECS = false;
@@ -368,6 +370,7 @@ void mainWindow(ProgramParams& params)
         bool controllerConnected = false;
 
         AtomicBuffered<InputBuffer> ainputs;
+        AtomicBuffered<gamepad::X360LikePad> agamepad;
         ainputs.write(window.inputs());
         AtomicBuffered<MouseState> amouse;
         amouse.write(window.mouse());
@@ -388,6 +391,7 @@ void mainWindow(ProgramParams& params)
               io.DeltaTime = 0.00001f;
             auto lastRead = inputsRead;
             auto inputs = ainputs.read();
+            gamepad::X360LikePad pad = agamepad.read();
             auto currentInput = inputs.frame();
             auto diffSinceLastInput = currentInput - lastRead;
             auto diffWithWriter = inputsUpdated.load() - currentInput;
@@ -483,8 +487,6 @@ void mainWindow(ProgramParams& params)
                 renderActive = false;
               }
 
-              gamepad::X360LikePad pad;
-              pad.alive = false;
               handleInputs(ecs, pad, mouse, inputs, time.getFrameTimeDelta(), captureMouse);
             }
             ::ImGui::NewFrame();
@@ -730,11 +732,12 @@ void mainWindow(ProgramParams& params)
             renderResize = true;
             window.resizeHandled();
           }
-
-          auto inputs = window.inputs();
-          ainputs.write(inputs);
+          inputs.pollDevices(gamepad::Controllers::PollOptions::OnlyPoll);
+          agamepad.write(inputs.getFirstActiveGamepad());
+          auto kinputs = window.inputs();
+          ainputs.write(kinputs);
           amouse.write(window.mouse());
-          inputsUpdated = inputs.frame();
+          inputsUpdated = kinputs.frame();
           if (!renderActive)
             break;
           std::this_thread::sleep_for(std::chrono::milliseconds(16));

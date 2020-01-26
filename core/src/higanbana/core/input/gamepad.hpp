@@ -120,11 +120,11 @@ namespace higanbana
       uint64_t data[2];
     };
 
-	struct Gamepad
-	{
-		X360LikePad current = {};
-		X360LikePad before = {};
-	};
+    struct Gamepad
+    {
+      X360LikePad current = {};
+      X360LikePad before = {};
+    };
 
     class InputDevice
     {
@@ -151,7 +151,7 @@ namespace higanbana
     const char* toString(InputDevice::Type type);
 
     // minimal includes for Compile friendliness, especially leaking windows.h is not nice.
-    class Fic // higanbana input controllers, directinput
+    class Controllers // higanbana input controllers, directinput
     {
     public:
       enum class PollOptions
@@ -167,13 +167,13 @@ namespace higanbana
       std::unordered_set<std::string> m_ignoreList;
       std::unordered_map<std::string, InputDevice> m_devices;
 
-	  Gamepad xinput[4];
+      Gamepad xinput[4];
 
       bool m_seeminglyNoConnectedControllers = true;
     public:
 
-      Fic();
-      ~Fic();
+      Controllers();
+      ~Controllers();
       explicit operator bool() const;
       void enumerateDevices();
       void pollDevices(PollOptions option);

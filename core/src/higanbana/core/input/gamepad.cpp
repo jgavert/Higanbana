@@ -1,10 +1,12 @@
 #include "higanbana/core/input/gamepad.hpp"
+#include "higanbana/core/platform/definitions.hpp"
+#include "higanbana/core/input/input_plat_tools.hpp"
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-#define DIRECTINPUT_VERSION 0x0800
-#define _CRT_SECURE_NO_DEPRECATE
-#ifndef _WIN32_DCOM
-#define _WIN32_DCOM
-#endif
+//#define DIRECTINPUT_VERSION 0x0800
+//#define _CRT_SECURE_NO_DEPRECATE
+//#ifndef _WIN32_DCOM
+//#define _WIN32_DCOM
+//#endif
 
 #include <windows.h>
 
@@ -17,13 +19,11 @@
 
 #include <XInput.h>
 
-#include "input_plat_tools.hpp"
-
 #include <mutex>
 #include <algorithm>
 
-#include "higanbana/core/src/global_debug.hpp"
-#include "higanbana/core/src/datastructures/proxy.hpp"
+#include "higanbana/core/global_debug.hpp"
+#include "higanbana/core/datastructures/proxy.hpp"
 
 #define INPUT_DEBUG 0
 
@@ -169,27 +169,27 @@ namespace higanbana
       //printf(" instance: \"%s\"", instanceName.c_str());
       //printf("\n");
 
-	
-	  InputDevice dev;
-	  dev.sguid = sg;
-	  memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
-	  dev.name = ws2s(inst);
-	  dev.type = idevType(lpddi->dwDevType);
+    
+      InputDevice dev;
+      dev.sguid = sg;
+      memcpy(&dev.guid, &lpddi->guidInstance, sizeof(uint64_t) * 2);
+      dev.name = ws2s(inst);
+      dev.type = idevType(lpddi->dwDevType);
 
-	  // just save the xinput result if we see the device again.
-	  static higanbana::unordered_map<std::string, bool> seenGuids;
-	  auto guid = seenGuids.find(sg);
-	  if (guid != seenGuids.end())
-	  {
-		  dev.xinputDevice = guid->second;
-	  }
-	  else
-	  {
-		  dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
-		  seenGuids[sg] = dev.xinputDevice;
-	  }
+      // just save the xinput result if we see the device again.
+      static higanbana::unordered_map<std::string, bool> seenGuids;
+      auto guid = seenGuids.find(sg);
+      if (guid != seenGuids.end())
+      {
+        dev.xinputDevice = guid->second;
+      }
+      else
+      {
+        dev.xinputDevice = IsXInputDevice(&lpddi->guidProduct);
+        seenGuids[sg] = dev.xinputDevice;
+      }
 
-	  g_deviceList.emplace_back(dev);
+      g_deviceList.emplace_back(dev);
 
       return DIENUM_CONTINUE;
     }
@@ -343,7 +343,7 @@ namespace higanbana
       return reinterpret_cast<LPDIRECTINPUTDEVICE8>(ptr);
     }
 
-    Fic::Fic()
+    Controllers::Controllers()
     {
       HRESULT hr = DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&m_DI), nullptr);
       if (FAILED(hr))
@@ -360,7 +360,7 @@ namespace higanbana
 
     // first call might be super slow, like 10 seconds
     // thanks to microsoft's "is this a xinput?" function
-    void Fic::enumerateDevices()
+    void Controllers::enumerateDevices()
     {
       if (m_DI == 0)
         return;
@@ -440,7 +440,7 @@ namespace higanbana
       }
     }
 
-    void Fic::pollDevices(PollOptions option)
+    void Controllers::pollDevices(PollOptions option)
     {
       if (m_seeminglyNoConnectedControllers && option == PollOptions::AllowDeviceEnumeration)
       {
@@ -461,9 +461,9 @@ namespace higanbana
             hr = getDevPtr(dev.second.devPtr)->GetDeviceState(sizeof(DIJOYSTATE2), &js);
             if (SUCCEEDED(hr))
             {
-			  dev.second.pad.before = dev.second.pad.current;
+              dev.second.pad.before = dev.second.pad.current;
               updatePadState(dev.second.pad.current, js);
-			  dev.second.pad.current.alive = dev.second.pad.current.isBeingUsed();
+              dev.second.pad.current.alive = dev.second.pad.current.isBeingUsed();
               dev.second.lost = false;
             }
           }
@@ -487,9 +487,9 @@ namespace higanbana
         auto res = XInputGetState(i, &state);
         if (ERROR_SUCCESS == res)
         {
-		  xinput[i].before = xinput[i].current;
+          xinput[i].before = xinput[i].current;
           auto& pad = xinput[i].current;
-		  pad.alive = false; //assume first so
+          pad.alive = false; //assume first so
           pad.lstick[0].value = state.Gamepad.sThumbLX;
           pad.lstick[1].value = state.Gamepad.sThumbLY;
           pad.rstick[0].value = state.Gamepad.sThumbRX;
@@ -523,9 +523,9 @@ namespace higanbana
           pad.dpad.left = isPressed(XINPUT_GAMEPAD_DPAD_LEFT);
           pad.dpad.right = isPressed(XINPUT_GAMEPAD_DPAD_RIGHT);
 
-		  // resolve if we have changes
-		  //if (xinput[i].current.isBeingUsed())
-		  xinput[i].current.alive = xinput[i].current.isBeingUsed();
+        // resolve if we have changes
+        //if (xinput[i].current.isBeingUsed())
+        xinput[i].current.alive = xinput[i].current.isBeingUsed();
         }
         else
         {
@@ -536,7 +536,7 @@ namespace higanbana
         CoUninitialize();
     }
 
-    Fic::~Fic()
+    Controllers::~Controllers()
     {
       for (auto&& dev : m_devices)
       {
@@ -554,12 +554,12 @@ namespace higanbana
       }
     }
 
-    Fic::operator bool() const
+    Controllers::operator bool() const
     {
       return m_usable;
     }
 
-    X360LikePad Fic::getFirstActiveGamepad()
+    X360LikePad Controllers::getFirstActiveGamepad()
     {
       m_seeminglyNoConnectedControllers = false;
       for (auto&& dev : m_devices)
@@ -571,12 +571,12 @@ namespace higanbana
       }
       for (int i = 0; i < 4; ++i)
       {
-		  if (xinput[i].current.alive)
-		  {
-			  return xinput[i].current;
-		  }
+        if (xinput[i].current.alive)
+        {
+          return xinput[i].current;
+        }
       }
-	  m_seeminglyNoConnectedControllers = true;
+      m_seeminglyNoConnectedControllers = true;
       return X360LikePad{};
     }
   }
@@ -587,28 +587,28 @@ namespace higanbana
 {
   namespace gamepad
   {
-    Fic::Fic()
+    Controllers::Controllers()
     {
     }
 
-    void Fic::enumerateDevices()
+    void Controllers::enumerateDevices()
     {
     }
 
-    void Fic::pollDevices(PollOptions)
+    void Controllers::pollDevices(PollOptions)
     {
     }
 
-    Fic::~Fic()
+    Controllers::~Controllers()
     {
     }
 
-    Fic::operator bool() const
+    Controllers::operator bool() const
     {
       return m_usable;
     }
 
-    X360LikePad Fic::getFirstActiveGamepad()
+    X360LikePad Controllers::getFirstActiveGamepad()
     {
       auto pad = X360LikePad{};
       pad.alive = false;
