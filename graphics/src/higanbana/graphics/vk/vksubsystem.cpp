@@ -418,7 +418,7 @@ namespace higanbana
       vk::PhysicalDeviceBlendOperationAdvancedFeaturesEXT,
       vk::PhysicalDeviceConditionalRenderingFeaturesEXT,
       vk::PhysicalDeviceShaderDrawParametersFeatures,
-      //vk::PhysicalDeviceMeshShaderFeaturesNV,
+      vk::PhysicalDeviceMeshShaderFeaturesNV,
       vk::PhysicalDeviceDescriptorIndexingFeaturesEXT,
       vk::PhysicalDeviceVertexAttributeDivisorFeaturesEXT,
       vk::PhysicalDeviceASTCDecodeFeaturesEXT,
