@@ -1875,6 +1875,15 @@ namespace higanbana
       return DX12Semaphore(fence);
     }
 
+    std::shared_ptr<TimelineSemaphoreImpl> DX12Device::createTimelineSemaphore()
+    {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      ComPtr<ID3D12Fence> fence;
+      HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
+
+      return std::make_shared<DX12TimelineSemaphore>(fence);
+    }
+
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
     std::shared_ptr<CommandBufferImpl> DX12Device::createDMAList()
     {
@@ -2019,6 +2028,12 @@ namespace higanbana
     {
       auto native = std::static_pointer_cast<DX12Fence>(fence);
       return native->hasCompleted();
+    }
+
+    uint64_t DX12Device::completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema)
+    {
+      auto native = std::static_pointer_cast<DX12TimelineSemaphore>(tlSema);
+      return native->fence->GetCompletedValue();
     }
 
     void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)

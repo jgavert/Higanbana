@@ -44,6 +44,12 @@ namespace higanbana
       virtual ~SemaphoreImpl() = default;
     };
 
+    class TimelineSemaphoreImpl
+    {
+    public:
+      virtual ~TimelineSemaphoreImpl() = default;
+    };
+
     class FenceImpl
     {
     public:
@@ -144,11 +150,12 @@ namespace higanbana
         virtual void unmapReadback(ResourceHandle readback) = 0;
 
         // commandlist things and gpu-cpu/gpu-gpu synchronization primitives
-        virtual std::shared_ptr<backend::CommandBufferImpl> createDMAList() = 0;
-        virtual std::shared_ptr<backend::CommandBufferImpl> createComputeList() = 0;
-        virtual std::shared_ptr<backend::CommandBufferImpl> createGraphicsList() = 0;
-        virtual std::shared_ptr<backend::SemaphoreImpl>     createSemaphore() = 0;
-        virtual std::shared_ptr<backend::FenceImpl>         createFence() = 0;
+        virtual std::shared_ptr<backend::CommandBufferImpl>     createDMAList() = 0;
+        virtual std::shared_ptr<backend::CommandBufferImpl>     createComputeList() = 0;
+        virtual std::shared_ptr<backend::CommandBufferImpl>     createGraphicsList() = 0;
+        virtual std::shared_ptr<backend::SemaphoreImpl>         createSemaphore() = 0;
+        virtual std::shared_ptr<backend::FenceImpl>             createFence() = 0;
+        virtual std::shared_ptr<backend::TimelineSemaphoreImpl> createTimelineSemaphore() = 0;
 
         virtual void submitDMA(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
@@ -170,6 +177,7 @@ namespace higanbana
 
         virtual void waitFence(std::shared_ptr<backend::FenceImpl> fence) = 0;
         virtual bool checkFence(std::shared_ptr<backend::FenceImpl> fence) = 0;
+        virtual uint64_t completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema) = 0;
 
         virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<backend::SemaphoreImpl> renderingFinished) = 0;
       };

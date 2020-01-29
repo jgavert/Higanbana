@@ -603,7 +603,6 @@ namespace app
     }
     node.endRenderpass();
   }
-
   void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
   {
     // upload data to gpu :P
@@ -622,6 +621,18 @@ namespace app
       worldRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
     }
     worldRend.endRenderpass(node);
+  }
+
+  void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
+  {
+    // upload data to gpu :P
+    vector<CameraSettings> sets;
+    sets.push_back(CameraSettings{viewMat});
+    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+    node.copy(cameras, matUpdate);
+
+    backbuffer.setOp(LoadOp::Load);
+    depthDSV.clearOp({});
     
     worldMeshRend.beginRenderpass(node, backbuffer, depthDSV);
     for (auto&& instance : instances)
@@ -632,7 +643,7 @@ namespace app
     node.endRenderpass();
   }
 
-  void Renderer::render(ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap)
+  void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap)
   {
     if (swapchain.outOfDate()) // swapchain can end up being outOfDate
     {
@@ -815,7 +826,10 @@ namespace app
       else
       {
         auto node = tasks.createPass("opaquePass - ecs");
-        renderMeshes(node, perspective, backbuffer, instances);
+        if (options.allowMeshShaders)
+          renderMeshesWithMeshShaders(node, perspective, backbuffer, instances);
+        else
+          renderMeshes(node, perspective, backbuffer, instances);
         tasks.addPass(std::move(node));
       }
       

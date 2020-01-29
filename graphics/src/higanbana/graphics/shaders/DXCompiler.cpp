@@ -37,7 +37,7 @@ public:
     //ppIncludeSource = nullptr;
     std::string filename = ws2s(pFilename);
     if (!filename.empty())
-      filename = filename.substr(4);
+      filename = filename.substr(2);
 
     std::string finalPath;
     finalPath = m_sourcePath + filename;

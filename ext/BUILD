@@ -66,7 +66,7 @@ cc_library(
     hdrs = ["winpixeventruntime/Include/WinPixEventRuntime/pix3.h",
      "winpixeventruntime/Include/WinPixEventRuntime/pix3_win.h",
      "winpixeventruntime/Include/WinPixEventRuntime/PIXEventsCommon.h",
-     "winpixeventruntime/Include/WinPixEventRuntime/PIXEventsGenerated.h"],
+     "winpixeventruntime/Include/WinPixEventRuntime/PIXEvents.h"],
     includes = ["winpixeventruntime/Include"],
     linkstatic = False,
     visibility = ["//visibility:public"], 

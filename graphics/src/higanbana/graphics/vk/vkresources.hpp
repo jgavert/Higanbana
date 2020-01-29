@@ -73,6 +73,20 @@ namespace higanbana
       }
     };
 
+    class VulkanTimelineSemaphore : public TimelineSemaphoreImpl
+    {
+      std::shared_ptr<vk::Semaphore> timelineSemaphore;
+    public:
+      VulkanTimelineSemaphore(std::shared_ptr<vk::Semaphore> tlsema)
+        : timelineSemaphore(tlsema)
+      {}
+
+      vk::Semaphore native()
+      {
+        return *timelineSemaphore;
+      }
+    };
+
     class VulkanFence : public FenceImpl
     {
       std::shared_ptr<vk::Fence> fence;

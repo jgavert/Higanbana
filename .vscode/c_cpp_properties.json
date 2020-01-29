@@ -16,7 +16,7 @@
                 "${workspaceFolder}/ext/cxxopts/include",
                 "${workspaceFolder}/ext/nlohmann_json/include",
                 "${workspaceFolder}/ext/GSL/include",
-                "C:/VulkanSDK/1.1.130.0/Include",
+                "C:/VulkanSDK/1.2.131.1/Include",
                 "${workspaceFolder}/ext/Catch2/single_include"
             ],
             "defines": [

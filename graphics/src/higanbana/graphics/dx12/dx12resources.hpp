@@ -612,6 +612,27 @@ namespace higanbana
       }
     };
 
+    class DX12TimelineSemaphore : public TimelineSemaphoreImpl // aka fence
+    {
+    public:
+      ComPtr<ID3D12Fence> fence = nullptr;
+      std::shared_ptr<uint64_t> value = nullptr;
+
+      DX12TimelineSemaphore()
+      {}
+
+      DX12TimelineSemaphore(ComPtr<ID3D12Fence> fence)
+        : fence(fence)
+        , value(std::make_shared<uint64_t>(0))
+      {
+      }
+
+      uint64_t start()
+      {
+        return ++(*value);
+      }
+    };
+
     class DX12CommandBuffer
     {
       ComPtr<D3D12GraphicsCommandList> commandList;

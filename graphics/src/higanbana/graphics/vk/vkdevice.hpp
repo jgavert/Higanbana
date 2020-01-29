@@ -175,6 +175,7 @@ namespace higanbana
       std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
       std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<FenceImpl>         createFence() override;
+      std::shared_ptr<TimelineSemaphoreImpl>     createTimelineSemaphore() override;
 
       void submitToQueue(
         vk::Queue queue,
@@ -203,6 +204,7 @@ namespace higanbana
 
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;
       bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
+      uint64_t completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema) override;
 
       void present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished) override;
     };

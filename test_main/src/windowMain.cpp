@@ -277,6 +277,7 @@ void mainWindow(ProgramParams& params)
     int cubeCount = 30;
     int cubeCommandLists = 4;
     int limitFPS = 0;
+    app::RendererOptions rendererOptions{};
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -502,6 +503,8 @@ void mainWindow(ProgramParams& params)
 
             {
               ImGui::Checkbox("render ECS", &renderECS);
+              ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
+              ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
               ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
               ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
@@ -708,7 +711,7 @@ void mainWindow(ProgramParams& params)
               ac.maxZ = set.maxZ;
             });
             HIGAN_CPU_BRACKET("Render");
-            rend.render(ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
+            rend.render(rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
             logicAndRenderTime.tick();
             auto totalTime = logicAndRenderTime.getFrameTimeDelta();
             if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))

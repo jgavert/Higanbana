@@ -2511,6 +2511,26 @@ namespace higanbana
     {
       return m_semaphores.allocate();
     }
+
+    std::shared_ptr<TimelineSemaphoreImpl> VulkanDevice::createTimelineSemaphore()
+    {
+      vk::SemaphoreTypeCreateInfo timelineCreateInfo{};
+      timelineCreateInfo.semaphoreType = vk::SemaphoreType::eTimeline;
+      timelineCreateInfo.initialValue = 0;
+
+      vk::SemaphoreCreateInfo createInfo{};
+      createInfo.pNext = &timelineCreateInfo;
+      //createInfo.flags = 0;
+
+      auto result = m_device.createSemaphore(createInfo);
+      VK_CHECK_RESULT(result);
+      return std::make_shared<VulkanTimelineSemaphore>(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(result.value), [device = m_device](vk::Semaphore* ptr)
+      {
+        device.destroySemaphore(*ptr);
+        delete ptr;
+      }));
+    }
+
     std::shared_ptr<FenceImpl> VulkanDevice::createFence()
     {
       return m_fences.allocate();
@@ -2638,6 +2658,14 @@ namespace higanbana
       auto status = m_device.getFenceStatus(native->native());
 
       return status == vk::Result::eSuccess;
+    }
+
+    uint64_t VulkanDevice::completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema)
+    {
+      auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(tlSema);
+      uint64_t value;
+      m_device.getSemaphoreCounterValue(native->native(), &value, m_dynamicDispatch);
+      return value;
     }
 
     void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
