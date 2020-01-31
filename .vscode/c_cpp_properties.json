@@ -3,7 +3,6 @@
         {
             "name": "Windows",
             "includePath": [
-                "${workspaceFolder}",
                 "${workspaceFolder}/test_main/src",
                 "${workspaceFolder}/core/src",
                 "${workspaceFolder}/graphics/src",
@@ -30,7 +29,6 @@
                 "CATCH_CONFIG_ENABLE_BENCHMARKING"
             ],
             "windowsSdkVersion": "10.0.18368.0",
-            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",
             "cppStandard": "c++20",
             "intelliSenseMode": "msvc-x64"
         }

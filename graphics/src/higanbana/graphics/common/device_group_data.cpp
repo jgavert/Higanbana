@@ -14,6 +14,7 @@
 #include <higanbana/core/profiling/profiling.hpp>
 
 #include <execution>
+#include <algorithm>
 
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
@@ -34,7 +35,7 @@ namespace higanbana
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
       {
-        auto timelineSema = impls[i].createTimelineSemaphore();
+        auto timelineSema = impls[i]->createTimelineSemaphore();
         m_devices.push_back({i, impls[i], HeapManager(), infos[i], timelineSema, 0, 0, 0, 0});
       }
     }
@@ -395,7 +396,7 @@ namespace higanbana
       // assuming that only graphics queue accesses swapchain resources.
       {
         HIGAN_CPU_BRACKET("submit fence");
-        m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, fenceForSwapchain);
+        m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, 0, 0, nullptr, fenceForSwapchain);
       }
       {
         HIGAN_CPU_BRACKET("wait the fence");
@@ -1728,26 +1729,26 @@ namespace higanbana
               ++vdev.nextSemaValue;
               switch (list.type) {
                 case QueueType::Dma: {
-                  vdev.dmaIndex = vdev.nextSemaValue;
+                  vdev.dmaQueue = vdev.nextSemaValue;
                   break;
                 }
                 case QueueType::Compute: {
-                  vdev.cptIndex = vdev.nextSemaValue;
+                  vdev.cptQueue = vdev.nextSemaValue;
                   break;
                 }
                 case QueueType::Graphics:
                 default: {
-                  vdev.gfxIndex = vdev.nextSemaValue;
+                  vdev.gfxQueue = vdev.nextSemaValue;
                   break;
                 }
               }
             }
             if (list.waitGraphics)
-              valueToWait = std::max(valueToWait, vdev.gfxIndex);
+              valueToWait = std::max(valueToWait, vdev.gfxQueue);
             if (list.waitCompute)
-              valueToWait = std::max(valueToWait, vdev.cptIndex);
+              valueToWait = std::max(valueToWait, vdev.cptQueue);
             if (list.waitDMA)
-              valueToWait = std::max(valueToWait, vdev.dmaIndex);
+              valueToWait = std::max(valueToWait, vdev.dmaQueue);
 
             if (list.acquireSema)
             {
