@@ -2540,11 +2540,24 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      uint64_t valueToWait,
-      uint64_t valueToSignal,
-      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+      MemView<TimelineSemaphoreInfo> timelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
+      for (auto&& sema : timelines)
+      {
+        vk::TimelineSemaphoreSubmitInfo info = vk::TimelineSemaphoreSubmitInfo()
+          .setPWaitSemaphoreValues(&sema.wait)
+          .setWaitSemaphoreValueCount(1);
+        
+        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
+        vk::SubmitInfo sinfo = vk::SubmitInfo()
+          .setPNext(&info)
+          .setWaitSemaphoreCount(1)
+          .setPWaitSemaphores(&native->native());
+        auto res = queue.submit({sinfo}, nullptr);
+        VK_CHECK_RESULT_RAW(res);
+      }
+
       vector<vk::Semaphore> waitList;
       vector<vk::CommandBuffer> bufferList;
       vector<vk::Semaphore> signalList;
@@ -2603,15 +2616,28 @@ namespace higanbana
         auto res = queue.submit({info}, nullptr);
         VK_CHECK_RESULT_RAW(res);
       }
+
+      for (auto&& sema : timelines)
+      {
+        vk::TimelineSemaphoreSubmitInfo info = vk::TimelineSemaphoreSubmitInfo()
+          .setPSignalSemaphoreValues(&sema.signal)
+          .setSignalSemaphoreValueCount(1);
+        
+        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
+        vk::SubmitInfo sinfo = vk::SubmitInfo()
+          .setPNext(&info)
+          .setWaitSemaphoreCount(1)
+          .setPWaitSemaphores(&native->native());
+        auto res = queue.submit({sinfo}, nullptr);
+        VK_CHECK_RESULT_RAW(res);
+      }
     }
 
     void VulkanDevice::submitDMA(
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      uint64_t valueToWait,
-      uint64_t valueToSignal,
-      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+      MemView<TimelineSemaphoreInfo> timelines,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2624,7 +2650,7 @@ namespace higanbana
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(timelines)>(timelines),
         std::forward<decltype(fence)>(fence));
     }
 
@@ -2632,9 +2658,7 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      uint64_t valueToWait,
-      uint64_t valueToSignal,
-      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+      MemView<TimelineSemaphoreInfo> timelines,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2647,7 +2671,7 @@ namespace higanbana
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(timelines)>(timelines),
         std::forward<decltype(fence)>(fence));
     }
 
@@ -2655,17 +2679,15 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      uint64_t valueToWait,
-      uint64_t valueToSignal,
-      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
-      std::optional<std::shared_ptr<FenceImpl>>         fence)
+      MemView<TimelineSemaphoreInfo>              timelines,
+      std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       submitToQueue(m_mainQueue,
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(timelines)>(timelines),
         std::forward<decltype(fence)>(fence));
     }
 

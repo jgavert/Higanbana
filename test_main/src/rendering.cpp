@@ -754,7 +754,7 @@ namespace app
 
       auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
         .bind("vertexInput", vert));
-      if (heightmap)
+      if (heightmap && instances.empty())
       {
         int pixelsToDraw = drawcalls;
         backbuffer.setOp(LoadOp::Load);

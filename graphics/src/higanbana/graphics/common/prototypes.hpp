@@ -50,6 +50,13 @@ namespace higanbana
       virtual ~TimelineSemaphoreImpl() = default;
     };
 
+    struct TimelineSemaphoreInfo
+    {
+      uint64_t wait;
+      uint64_t signal;
+      TimelineSemaphoreImpl* semaphore;
+    };
+
     class FenceImpl
     {
     public:
@@ -161,27 +168,21 @@ namespace higanbana
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          uint64_t valueToWait,
-          uint64_t valueToSignal,
-          std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+          MemView<TimelineSemaphoreInfo> timelines,
           std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void submitCompute(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          uint64_t valueToWait,
-          uint64_t valueToSignal,
-          std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+          MemView<TimelineSemaphoreInfo> timelines,
           std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void submitGraphics(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> wait,
           MemView<std::shared_ptr<backend::SemaphoreImpl>> signal,
-          uint64_t valueToWait,
-          uint64_t valueToSignal,
-          std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
+          MemView<TimelineSemaphoreInfo> timelines,
           std::optional<std::shared_ptr<FenceImpl>> fence) = 0;
 
         virtual void waitFence(std::shared_ptr<backend::FenceImpl> fence) = 0;

@@ -147,9 +147,9 @@ namespace higanbana
         HandleVector<TextureResourceState> m_textureStates;
         HandleVector<vector<ViewResourceHandle>> shaderArguments;
         QueueStates qStates;
-        std::shared_ptr<SemaphoreImpl> graphicsQSema;
-        std::shared_ptr<SemaphoreImpl> computeQSema;
-        std::shared_ptr<SemaphoreImpl> dmaQSema;
+        //std::shared_ptr<SemaphoreImpl> graphicsQSema;
+        //std::shared_ptr<SemaphoreImpl> computeQSema;
+        //std::shared_ptr<SemaphoreImpl> dmaQSema;
         deque<LiveCommandBuffer2> m_gfxBuffers;
         deque<LiveCommandBuffer2> m_computeBuffers;
         deque<LiveCommandBuffer2> m_dmaBuffers;
