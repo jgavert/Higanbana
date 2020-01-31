@@ -182,24 +182,36 @@ namespace higanbana
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        uint64_t valueToWait,
+        uint64_t valueToSignal,
+        std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
         std::optional<std::shared_ptr<FenceImpl>>         fence);
 
       void submitDMA(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        uint64_t valueToWait,
+        uint64_t valueToSignal,
+        std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
         std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void submitCompute(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        uint64_t valueToWait,
+        uint64_t valueToSignal,
+        std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
         std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void submitGraphics(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+        uint64_t valueToWait,
+        uint64_t valueToSignal,
+        std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
         std::optional<std::shared_ptr<FenceImpl>>   fence) override;
 
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;

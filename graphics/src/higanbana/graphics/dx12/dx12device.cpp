@@ -1946,8 +1946,16 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
+      if (timelineSema)
+      {
+        auto native = std::static_pointer_cast<DX12TimelineSemaphore>(timelineSema);
+        queue->Wait(native->fence.Get(), valueToWait);
+      }
       if (!wait.empty())
       {
         for (auto&& sema : wait)
@@ -1962,14 +1970,18 @@ namespace higanbana
         for (auto&& buffer : lists)
         {
           auto native = std::static_pointer_cast<DX12CommandList>(buffer);
-          if (native->closed())
-            natList.emplace_back(native->list());
-          else
-            HIGAN_ASSERT(false, "Remove when you feel like it.");
+          HIGAN_ASSERT(native->closed(), "Remove when you feel like it.");
+          natList.emplace_back(native->list());
         }
       }
       if (!natList.empty())
         queue->ExecuteCommandLists(static_cast<UINT>(natList.size()), natList.data());
+
+      if (timelineSema)
+      {
+        auto native = std::static_pointer_cast<DX12TimelineSemaphore>(timelineSema);
+        queue->Signal(native->fence.Get(), valueToSignal);
+      }
 
       if (!signal.empty())
       {
@@ -1991,30 +2003,54 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      submit(m_dmaQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submit(m_dmaQueue,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitCompute(
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      submit(m_computeQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submit(m_computeQueue,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::submitGraphics(
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      submit(m_graphicsQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submit(m_graphicsQueue,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void DX12Device::waitFence(std::shared_ptr<FenceImpl> fence)

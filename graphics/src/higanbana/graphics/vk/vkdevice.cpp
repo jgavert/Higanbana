@@ -2540,6 +2540,9 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       vector<vk::Semaphore> waitList;
@@ -2606,6 +2609,9 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2614,13 +2620,21 @@ namespace higanbana
       {
         target = m_mainQueue;
       }
-      submitToQueue(target, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submitToQueue(target,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::submitCompute(
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2629,17 +2643,30 @@ namespace higanbana
       {
         target = m_mainQueue;
       }
-      submitToQueue(target, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submitToQueue(target,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::submitGraphics(
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
+      uint64_t valueToWait,
+      uint64_t valueToSignal,
+      std::shared_ptr<backend::TimelineSemaphoreImpl> timelineSema,
       std::optional<std::shared_ptr<FenceImpl>>         fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      submitToQueue(m_mainQueue, std::forward<decltype(lists)>(lists), std::forward<decltype(wait)>(wait), std::forward<decltype(signal)>(signal), std::forward<decltype(fence)>(fence));
+      submitToQueue(m_mainQueue,
+        std::forward<decltype(lists)>(lists),
+        std::forward<decltype(wait)>(wait),
+        std::forward<decltype(signal)>(signal),
+        valueToWait, valueToSignal, std::forward<decltype(timelineSema)>(timelineSema),
+        std::forward<decltype(fence)>(fence));
     }
 
     void VulkanDevice::waitFence(std::shared_ptr<FenceImpl> fence)

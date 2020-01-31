@@ -34,7 +34,8 @@ namespace higanbana
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
       {
-        m_devices.push_back({i, impls[i], HeapManager(), infos[i]});
+        auto timelineSema = impls[i].createTimelineSemaphore();
+        m_devices.push_back({i, impls[i], HeapManager(), infos[i], timelineSema, 0, 0, 0, 0});
       }
     }
 
@@ -1694,9 +1695,11 @@ namespace higanbana
 
           auto& vdev = m_devices[buffer.deviceID];
           std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+          uint64_t valueToWait = 0;
           for (auto&& id : buffer.listIDs)
           {
             auto& list = lists[id];
+            // old queue semaphores
             if (list.signal && list.type == QueueType::Graphics)
             {
               vdev.graphicsQSema = vdev.device->createSemaphore();
@@ -1719,6 +1722,32 @@ namespace higanbana
               buffer.wait.push_back(vdev.computeQSema);
             if (list.waitDMA && vdev.dmaQSema)
               buffer.wait.push_back(vdev.dmaQSema);
+
+            // new queue timeline semaphore
+            if (list.signal) {
+              ++vdev.nextSemaValue;
+              switch (list.type) {
+                case QueueType::Dma: {
+                  vdev.dmaIndex = vdev.nextSemaValue;
+                  break;
+                }
+                case QueueType::Compute: {
+                  vdev.cptIndex = vdev.nextSemaValue;
+                  break;
+                }
+                case QueueType::Graphics:
+                default: {
+                  vdev.gfxIndex = vdev.nextSemaValue;
+                  break;
+                }
+              }
+            }
+            if (list.waitGraphics)
+              valueToWait = std::max(valueToWait, vdev.gfxIndex);
+            if (list.waitCompute)
+              valueToWait = std::max(valueToWait, vdev.cptIndex);
+            if (list.waitDMA)
+              valueToWait = std::max(valueToWait, vdev.dmaIndex);
 
             if (list.acquireSema)
             {
@@ -1753,11 +1782,11 @@ namespace higanbana
           switch (buffer.queue)
           {
           case QueueType::Dma:
-            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, valueToWait, vdev.nextSemaValue, vdev.timelineSema, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
-            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, valueToWait, vdev.nextSemaValue, vdev.timelineSema, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
@@ -1775,7 +1804,7 @@ namespace higanbana
               }
             }
 #else
-            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, viewToFence);
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, valueToWait, vdev.nextSemaValue, vdev.timelineSema, viewToFence);
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
