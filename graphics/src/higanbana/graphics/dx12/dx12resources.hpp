@@ -616,20 +616,34 @@ namespace higanbana
     {
     public:
       ComPtr<ID3D12Fence> fence = nullptr;
-      std::shared_ptr<uint64_t> value = nullptr;
+      std::shared_ptr<HANDLE> handle = nullptr;
 
       DX12TimelineSemaphore()
       {}
 
       DX12TimelineSemaphore(ComPtr<ID3D12Fence> fence)
         : fence(fence)
-        , value(std::make_shared<uint64_t>(0))
+        , handle(std::shared_ptr<HANDLE>(new HANDLE(CreateEventExA(nullptr, nullptr, 0, EVENT_ALL_ACCESS)), [](HANDLE* ptr)
+      {
+        CloseHandle(*ptr);
+        delete ptr;
+      }))
       {
       }
 
-      uint64_t start()
+      bool hasCompleted(uint64_t value)
       {
-        return ++(*value);
+        auto val = fence->GetCompletedValue();
+        return val == value;
+      }
+
+      void waitTillReady(uint64_t value, DWORD dwMilliseconds = INFINITE)
+      {
+        if (hasCompleted(value))
+          return;
+        fence->SetEventOnCompletion(value, *handle);
+        DWORD result = WaitForSingleObject(*handle, dwMilliseconds);
+        HIGAN_ASSERT(WAIT_OBJECT_0 == result, "Fence wait failed.");
       }
     };
 

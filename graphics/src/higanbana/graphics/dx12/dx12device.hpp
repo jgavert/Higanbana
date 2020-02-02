@@ -203,6 +203,7 @@ namespace higanbana
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;
       bool checkFence(std::shared_ptr<FenceImpl>    fence) override;
       uint64_t completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema) override;
+      void waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value) override;
       void present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished) override;
     };
   }

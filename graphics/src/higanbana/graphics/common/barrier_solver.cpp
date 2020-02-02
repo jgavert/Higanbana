@@ -128,12 +128,15 @@ namespace higanbana
                   else
                   {
                     auto transitionToCommon = src;
+                    transitionToCommon.usage = AccessUsage::Read;
                     transitionToCommon.stage = AccessStage::Common;
                     dst.stage = AccessStage::Common;
+                    dst.usage = AccessUsage::Read;
 
                     imageBarriers.emplace_back(ImageBarrier{src, transitionToCommon, job.resource.resource, 0, mips, 0, arrSize});
                     ++imageBarrierOffsets;
                     src.stage = AccessStage::Common;
+                    src.usage = AccessUsage::Read;
                   }
 
                   imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, 0, mips, 0, arrSize});

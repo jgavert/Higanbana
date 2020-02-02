@@ -56,42 +56,38 @@ namespace higanbana
           {
             if (m_seqNumRequirements.size() > 20) // throttle so that we don't go too far ahead.
             {
-              // force wait oldest
-              int deviceID = buffers.front().deviceID;
-              auto fence = buffers.front().fence;
-              int i = 1;
-              while (!fence && i < buffers.size())
-              {
-                if (buffers[i].fence)
-                {
-                  deviceID = buffers[i].deviceID;
-                  fence = buffers[i].fence;
+              // force wait oldest list
+              switch(buffers.front().queue) {
+                case QueueType::Dma:
+                  dev.device->waitTimeline(dev.timelineDma, buffers.front().dmaValue);
                   break;
-                }
-                ++i;
+                case QueueType::Compute:
+                  dev.device->waitTimeline(dev.timelineCompute, buffers.front().cptValue);
+                  break;
+                case QueueType::Graphics:
+                default:
+                  dev.device->waitTimeline(dev.timelineGfx, buffers.front().gfxValue);
               }
-              if (fence)
-                dev.device->waitFence(fence);
             }
             int buffersToFree = 0;
             int buffersWithoutFence = 0;
             int bufferCount = static_cast<int>(buffers.size());
             for (int i = 0; i < bufferCount; ++i)
             {
-              if (buffers[i].fence)
-              {
-                if (!dev.device->checkFence(buffers[i].fence))
-                  break;
-                if (buffers[i].gfxValue > gfxQueueReached
-                 || buffers[i].cptValue > cptQueueReached
-                 || buffers[i].dmaValue > dmaQueueReached)
-                  break;
-                buffersToFree += buffersWithoutFence + 1;
-                buffersWithoutFence = 0;
+              auto& buffer = buffers[i];
+              if (buffer.gfxValue > gfxQueueReached
+                || buffer.cptValue > cptQueueReached
+                || buffer.dmaValue > dmaQueueReached) {
+                break;
               }
               else
               {
-                buffersWithoutFence++;
+                if (buffer.fence && !dev.device->checkFence(buffer.fence))
+                {
+                  //HIGAN_ASSERT(false, "failed, we thought everything was ready... %d > %d, %d > %d, %d > %d", buffer.gfxValue, gfxQueueReached, buffer.cptValue, cptQueueReached, buffer.dmaValue, dmaQueueReached);
+                  break;
+                }
+                buffersToFree++;
               }
             }
 
@@ -147,7 +143,7 @@ namespace higanbana
                 }
               }
               HIGAN_ASSERT(foundTiming, "Err, didn't find timing, error");
-              HIGAN_ASSERT(timeOnFlightSubmits.size() < 20, "wtf!");
+              HIGAN_ASSERT(timeOnFlightSubmits.size() < 40, "wtf!");
               //HIGAN_LOGi("problem %zu?\n",timeOnFlightSubmits.size());
               while(!timeOnFlightSubmits.empty())
               {
@@ -1279,6 +1275,8 @@ namespace higanbana
       int dmaList = -1;
       int listIndex = 0;
 
+
+
       for (auto&& list : lists)
       {
         auto& queue = m_devices[list.device].qStates;
@@ -1294,13 +1292,13 @@ namespace higanbana
 
         auto fSeen = list.requirementsBuf.exceptFields(seenB);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Buffer %d\n", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Buffer %d %s\n", id, toString(list.type));
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Buffer, id, list.type});
         });
         seenB.add(fSeen);
         fSeen = list.requirementsTex.exceptFields(seenT);
         fSeen.foreach([&](int id){
-          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Texture %d\n", id);
+          IF_QUEUE_DEPENDENCY_DEBUG HIGAN_LOGi( "first seen Texture %d %s\n", id, toString(list.type));
           fur.emplace_back(FirstUseResource{list.device, ResourceType::Texture, id, list.type});
         });
         seenT.add(fSeen);
@@ -1539,9 +1537,9 @@ namespace higanbana
         }
       }
 
-      HIGAN_ASSERT(uhOhGfx.empty(), "Need to make lists to fix these resources...");
-      HIGAN_ASSERT(uhOhCompute.empty(), "Need to make lists to fix these resources...");
-      HIGAN_ASSERT(uhOhDma.empty(), "Need to make lists to fix these resources...");
+      //HIGAN_ASSERT(uhOhGfx.empty(), "Need to make lists to fix these resources...");
+      //HIGAN_ASSERT(uhOhCompute.empty(), "Need to make lists to fix these resources...");
+      //HIGAN_ASSERT(uhOhDma.empty(), "Need to make lists to fix these resources...");
     }
 
     deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID) {
@@ -1652,7 +1650,7 @@ namespace higanbana
             auto& vdev = m_devices[list.deviceID];
             {
               HIGAN_CPU_BRACKET("BarrierSolver creation");
-              solvers[id - offset] = std::make_shared<BarrierSolver>(vdev.m_bufferStates, vdev.m_textureStates);
+              solvers[id] = std::make_shared<BarrierSolver>(vdev.m_bufferStates, vdev.m_textureStates);
             }
             auto& solver = *solvers[id];
             auto& buffer = lists[id];
@@ -1741,7 +1739,8 @@ namespace higanbana
                 buffer.signal.push_back(presenene);
               }
             }
-
+            
+            // this could be removed when vulkan debug layers work
             if (list.isLastList || !buffer.readbacks.empty())
             {
               buffer.fence = vdev.device->createFence();
@@ -1751,6 +1750,7 @@ namespace higanbana
             {
               viewToFence = buffer.fence;
             }
+            // as fences arent needed with timelines semaphores
 
             for (auto&& timing : buffer.listTiming)
             {
@@ -1767,13 +1767,15 @@ namespace higanbana
           switch (buffer.queue)
           {
           case QueueType::Dma:
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), ++vdev.dmaQueue};
+            ++vdev.dmaQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
             buffer.dmaValue = vdev.dmaQueue;
             vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), ++vdev.cptQueue};
+            ++vdev.cptQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
             buffer.cptValue = vdev.cptQueue;
             vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
@@ -1793,7 +1795,8 @@ namespace higanbana
               }
             }
 #else
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), ++vdev.gfxQueue};
+            ++vdev.gfxQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
             buffer.gfxValue = vdev.gfxQueue;
             vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
 #endif

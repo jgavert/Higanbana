@@ -2071,6 +2071,13 @@ namespace higanbana
       return native->fence->GetCompletedValue();
     }
 
+    void DX12Device::waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value)
+    {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      auto native = std::static_pointer_cast<DX12TimelineSemaphore>(tlSema);
+      native->waitTillReady(value);
+    }
+
     void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
     {
       HIGAN_CPU_FUNCTION_SCOPE();

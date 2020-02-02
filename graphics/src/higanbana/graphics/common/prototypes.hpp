@@ -190,6 +190,7 @@ namespace higanbana
         virtual void waitFence(std::shared_ptr<backend::FenceImpl> fence) = 0;
         virtual bool checkFence(std::shared_ptr<backend::FenceImpl> fence) = 0;
         virtual uint64_t completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema) = 0;
+        virtual void waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value) = 0;
 
         virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<backend::SemaphoreImpl> renderingFinished) = 0;
       };

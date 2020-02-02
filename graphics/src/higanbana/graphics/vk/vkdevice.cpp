@@ -2726,6 +2726,17 @@ namespace higanbana
       return value;
     }
 
+    void VulkanDevice::waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value)
+    {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(tlSema);
+      vk::SemaphoreWaitInfoKHR wi = vk::SemaphoreWaitInfoKHR()
+        .setSemaphoreCount(1)
+        .setPSemaphores(&native->native())
+        .setPValues(&value);
+      m_device.waitSemaphoresKHR(wi, UINT64_MAX, m_dynamicDispatch);
+    }
+
     void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
     {
       HIGAN_CPU_FUNCTION_SCOPE();

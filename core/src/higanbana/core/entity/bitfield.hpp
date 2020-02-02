@@ -520,7 +520,7 @@ namespace higanbana
       auto interSize = std::min(m_pages, other.m_pages);
       DynamicBitfield result(maxSize*BitCount);
       if (interSize == 0)
-        return result; 
+        return *this; 
       const __m128i* vec1 = data();
       const __m128i* vec0 = other.data();
       __m128i* p = reinterpret_cast<__m128i*>(result.data());
@@ -528,7 +528,7 @@ namespace higanbana
       {
         _mm_store_si128(p+i,_mm_andnot_si128(vec0[i], vec1[i]));
       }
-      if (m_pages > other.m_pages)
+      if (m_pages >= other.m_pages)
       {
         for (size_t i = interSize; i < maxSize; ++i)
         {

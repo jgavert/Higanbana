@@ -654,7 +654,7 @@ namespace app
     std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
     if (!obackbuffer.has_value())
     {
-      HIGAN_LOGi( "No backbuffer available, Resizing\n");
+      HIGAN_LOGi( "No backbuffer available...\n");
       return;
     }
     TextureRTV backbuffer = obackbuffer.value();
