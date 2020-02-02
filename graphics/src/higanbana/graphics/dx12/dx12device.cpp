@@ -1946,13 +1946,14 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<TimelineSemaphoreInfo> timelines,
+      MemView<TimelineSemaphoreInfo> waitTimelines,
+      MemView<TimelineSemaphoreInfo> signalTimelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
-      for (auto&& sema : timelines)
+      for (auto&& sema : waitTimelines)
       {
         auto native = static_cast<DX12TimelineSemaphore*>(sema.semaphore);
-        queue->Wait(native->fence.Get(), sema.wait);
+        queue->Wait(native->fence.Get(), sema.value);
       }
       if (!wait.empty())
       {
@@ -1975,10 +1976,10 @@ namespace higanbana
       if (!natList.empty())
         queue->ExecuteCommandLists(static_cast<UINT>(natList.size()), natList.data());
 
-      for (auto&& sema : timelines)
+      for (auto&& sema : signalTimelines)
       {
         auto native = static_cast<DX12TimelineSemaphore*>(sema.semaphore);
-        queue->Signal(native->fence.Get(), sema.signal);
+        queue->Signal(native->fence.Get(), sema.value);
       }
 
       if (!signal.empty())
@@ -2001,7 +2002,8 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<TimelineSemaphoreInfo> timelines,
+      MemView<TimelineSemaphoreInfo> waitTimelines,
+      MemView<TimelineSemaphoreInfo> signalTimelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2009,7 +2011,8 @@ namespace higanbana
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        std::forward<decltype(timelines)>(timelines),
+        std::forward<decltype(waitTimelines)>(waitTimelines),
+        std::forward<decltype(signalTimelines)>(signalTimelines),
         std::forward<decltype(fence)>(fence));
     }
 
@@ -2017,7 +2020,8 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<TimelineSemaphoreInfo> timelines,
+      MemView<TimelineSemaphoreInfo> waitTimelines,
+      MemView<TimelineSemaphoreInfo> signalTimelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2025,7 +2029,8 @@ namespace higanbana
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        std::forward<decltype(timelines)>(timelines),
+        std::forward<decltype(waitTimelines)>(waitTimelines),
+        std::forward<decltype(signalTimelines)>(signalTimelines),
         std::forward<decltype(fence)>(fence));
     }
 
@@ -2033,7 +2038,8 @@ namespace higanbana
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,
       MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-      MemView<TimelineSemaphoreInfo> timelines,
+      MemView<TimelineSemaphoreInfo> waitTimelines,
+      MemView<TimelineSemaphoreInfo> signalTimelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2041,7 +2047,8 @@ namespace higanbana
         std::forward<decltype(lists)>(lists),
         std::forward<decltype(wait)>(wait),
         std::forward<decltype(signal)>(signal),
-        std::forward<decltype(timelines)>(timelines),
+        std::forward<decltype(waitTimelines)>(waitTimelines),
+        std::forward<decltype(signalTimelines)>(signalTimelines),
         std::forward<decltype(fence)>(fence));
     }
 

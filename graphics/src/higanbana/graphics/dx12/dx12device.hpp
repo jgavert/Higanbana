@@ -172,28 +172,32 @@ namespace higanbana
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<TimelineSemaphoreInfo> timelines,
+        MemView<TimelineSemaphoreInfo> waitTimelines,
+        MemView<TimelineSemaphoreInfo> signaltimelines,
         std::optional<std::shared_ptr<FenceImpl>>         fence);
 
       void submitDMA(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<TimelineSemaphoreInfo> timelines,
+        MemView<TimelineSemaphoreInfo> waitTimelines,
+        MemView<TimelineSemaphoreInfo> signaltimelines,
         std::optional<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitCompute(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<TimelineSemaphoreInfo> timelines,
+        MemView<TimelineSemaphoreInfo> waitTimelines,
+        MemView<TimelineSemaphoreInfo> signaltimelines,
         std::optional<std::shared_ptr<FenceImpl>>         fence) override;
 
       void submitGraphics(
         MemView<std::shared_ptr<CommandBufferImpl>> lists,
         MemView<std::shared_ptr<SemaphoreImpl>>     wait,
         MemView<std::shared_ptr<SemaphoreImpl>>     signal,
-        MemView<TimelineSemaphoreInfo> timelines,
+        MemView<TimelineSemaphoreInfo> waitTimelines,
+        MemView<TimelineSemaphoreInfo> signaltimelines,
         std::optional<std::shared_ptr<FenceImpl>>         fence) override;
 
       void waitFence(std::shared_ptr<FenceImpl>     fence) override;

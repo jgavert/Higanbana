@@ -35,8 +35,10 @@ namespace higanbana
       // all devices have their own heap managers
       for (int i = 0; i < impls.size(); ++i)
       {
-        auto timelineSema = impls[i]->createTimelineSemaphore();
-        m_devices.push_back({i, impls[i], HeapManager(), infos[i], timelineSema, 0, 0, 0, 0});
+        auto t1 = impls[i]->createTimelineSemaphore();
+        auto t2 = impls[i]->createTimelineSemaphore();
+        auto t3 = impls[i]->createTimelineSemaphore();
+        m_devices.push_back({i, impls[i], HeapManager(), infos[i], t1, t2, t3, 0, 0, 0});
       }
     }
 
@@ -44,6 +46,10 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       for (auto& dev : m_devices)
       {
+        auto gfxQueueReached = dev.device->completedValue(dev.timelineGfx);
+        auto cptQueueReached = dev.device->completedValue(dev.timelineCompute);
+        auto dmaQueueReached = dev.device->completedValue(dev.timelineDma);
+
         auto checkQueue = [&](deque<LiveCommandBuffer2>& buffers)
         {
           if (!buffers.empty())
@@ -75,9 +81,11 @@ namespace higanbana
               if (buffers[i].fence)
               {
                 if (!dev.device->checkFence(buffers[i].fence))
-                {
                   break;
-                }
+                if (buffers[i].gfxValue > gfxQueueReached
+                 || buffers[i].cptValue > cptQueueReached
+                 || buffers[i].dmaValue > dmaQueueReached)
+                  break;
                 buffersToFree += buffersWithoutFence + 1;
                 buffersWithoutFence = 0;
               }
@@ -396,7 +404,7 @@ namespace higanbana
       // assuming that only graphics queue accesses swapchain resources.
       {
         HIGAN_CPU_BRACKET("submit fence");
-        m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, {}, fenceForSwapchain);
+        m_devices[SwapchainDeviceID].device->submitGraphics({}, {}, {}, {}, {}, fenceForSwapchain);
       }
       {
         HIGAN_CPU_BRACKET("wait the fence");
@@ -1627,10 +1635,10 @@ namespace higanbana
         std::future<void> gcComplete;
         {
           HIGAN_CPU_BRACKET("launch gc task");
-        gcComplete = std::async(std::launch::async, [&]
-        {
-          gc();
-        });
+          gcComplete = std::async(std::launch::async, [&]
+          {
+            gc();
+          });
         }
 
         vector<std::shared_ptr<BarrierSolver>> solvers;
@@ -1693,66 +1701,31 @@ namespace higanbana
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());
           readyLists.pop_front();
+          buffer.dmaValue = 0;
+          buffer.gfxValue = 0;
+          buffer.cptValue = 0;
 
           auto& vdev = m_devices[buffer.deviceID];
           std::optional<std::shared_ptr<FenceImpl>> viewToFence;
-          TimelineSemaphoreInfo timeline;
-          uint64_t valueToWait = 0;
+          std::optional<TimelineSemaphoreInfo> timelineGfx;
+          std::optional<TimelineSemaphoreInfo> timelineCompute;
+          std::optional<TimelineSemaphoreInfo> timelineDma;
           for (auto&& id : buffer.listIDs)
           {
             auto& list = lists[id];
-            // old queue semaphores
 
-            /*
-            if (list.signal && list.type == QueueType::Graphics)
-            {
-              vdev.graphicsQSema = vdev.device->createSemaphore();
-              buffer.signal.push_back(vdev.graphicsQSema);
-            }
-            if (list.signal && list.type == QueueType::Compute)
-            {
-              vdev.computeQSema = vdev.device->createSemaphore();
-              buffer.signal.push_back(vdev.computeQSema);
-            }
-            if (list.signal && list.type == QueueType::Dma)
-            {
-              vdev.dmaQSema = vdev.device->createSemaphore();
-              buffer.signal.push_back(vdev.dmaQSema);
-            }
-
-            if (list.waitGraphics && vdev.graphicsQSema)
-              buffer.wait.push_back(vdev.graphicsQSema);
-            if (list.waitCompute && vdev.computeQSema)
-              buffer.wait.push_back(vdev.computeQSema);
-            if (list.waitDMA && vdev.dmaQSema)
-              buffer.wait.push_back(vdev.dmaQSema);
-            */
-
-            // new queue timeline semaphore
-            if (list.signal) {
-              ++vdev.nextSemaValue;
-              switch (list.type) {
-                case QueueType::Dma: {
-                  vdev.dmaQueue = vdev.nextSemaValue;
-                  break;
-                }
-                case QueueType::Compute: {
-                  vdev.cptQueue = vdev.nextSemaValue;
-                  break;
-                }
-                case QueueType::Graphics:
-                default: {
-                  vdev.gfxQueue = vdev.nextSemaValue;
-                  break;
-                }
-              }
-            }
             if (list.waitGraphics)
-              valueToWait = std::max(valueToWait, vdev.gfxQueue);
+            {
+              timelineGfx = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+            }
             if (list.waitCompute)
-              valueToWait = std::max(valueToWait, vdev.cptQueue);
+            {
+              timelineCompute = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+            }
             if (list.waitDMA)
-              valueToWait = std::max(valueToWait, vdev.dmaQueue);
+            {
+              timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            }
 
             if (list.acquireSema)
             {
@@ -1785,17 +1758,24 @@ namespace higanbana
             }
           }
 
-          timeline.signal = vdev.nextSemaValue;
-          timeline.wait = valueToWait;
-          timeline.semaphore = vdev.timelineSema.get();
+          vector<TimelineSemaphoreInfo> waitInfos;
+          if (timelineGfx) waitInfos.push_back(timelineGfx.value());
+          if (timelineCompute) waitInfos.push_back(timelineCompute.value());
+          if (timelineDma) waitInfos.push_back(timelineDma.value());
+
+          TimelineSemaphoreInfo signalTimeline;
           switch (buffer.queue)
           {
           case QueueType::Dma:
-            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, timeline, viewToFence);
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), ++vdev.dmaQueue};
+            buffer.dmaValue = vdev.dmaQueue;
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
-            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, timeline, viewToFence);
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), ++vdev.cptQueue};
+            buffer.cptValue = vdev.cptQueue;
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
@@ -1813,7 +1793,9 @@ namespace higanbana
               }
             }
 #else
-            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, timeline, viewToFence);
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), ++vdev.gfxQueue};
+            buffer.gfxValue = vdev.gfxQueue;
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }

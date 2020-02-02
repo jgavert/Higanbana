@@ -82,8 +82,9 @@ namespace higanbana
       vector<int> listIDs;
       QueueType queue;
       vector<SeqNum> started;
-      uint64_t waitValue;
-      uint64_t signalValue;
+      uint64_t gfxValue;
+      uint64_t cptValue;
+      uint64_t dmaValue;
       vector<std::shared_ptr<backend::SemaphoreImpl>> wait;
       vector<std::shared_ptr<backend::CommandBufferImpl>> lists;
       vector<std::shared_ptr<backend::SemaphoreImpl>> signal;
@@ -136,8 +137,9 @@ namespace higanbana
         std::shared_ptr<prototypes::DeviceImpl> device;
         HeapManager heaps;
         GpuInfo info;
-        std::shared_ptr<TimelineSemaphoreImpl> timelineSema;
-        uint64_t nextSemaValue;
+        std::shared_ptr<TimelineSemaphoreImpl> timelineGfx;
+        std::shared_ptr<TimelineSemaphoreImpl> timelineCompute;
+        std::shared_ptr<TimelineSemaphoreImpl> timelineDma;
         uint64_t gfxQueue;
         uint64_t cptQueue;
         uint64_t dmaQueue;

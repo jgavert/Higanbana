@@ -193,7 +193,7 @@ namespace higanbana
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_API_VERSION_1_1);
+        .setApiVersion(VK_API_VERSION_1_2);
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)
@@ -445,7 +445,7 @@ namespace higanbana
       //vk::PhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR,
       vk::PhysicalDeviceHostQueryResetFeaturesEXT,
       //vk::PhysicalDeviceCoverageReductionModeFeaturesNV,
-      //vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR,
+      vk::PhysicalDeviceTimelineSemaphoreFeatures,
       vk::PhysicalDeviceIndexTypeUint8FeaturesEXT,
       //vk::PhysicalDeviceShaderSMBuiltinsFeaturesNV,
       //vk::PhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR,
