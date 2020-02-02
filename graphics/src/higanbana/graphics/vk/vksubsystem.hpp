@@ -65,7 +65,8 @@ namespace higanbana
         "VK_EXT_shader_viewport_index_layer",
         "VK_EXT_transform_feedback",
         "VK_EXT_vertex_attribute_divisor",
-        "VK_KHR_timeline_semaphore"
+        "VK_KHR_timeline_semaphore",
+        "VK_NV_mesh_shader"
       };
 
       std::vector<const char*> dev1_1Exts = {
