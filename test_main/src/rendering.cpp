@@ -31,8 +31,58 @@ SHADER_STRUCT(OpaqueConsts,
   float4x4 viewMat;
 );
 
+struct MeshletPrepare
+{
+  higanbana::vector<uint16_t> uniqueIndexes;
+  higanbana::vector<uint8_t> packedIndexes;
+  higanbana::vector<WorldMeshlet> meshlets;
+};
+
 namespace app
 {
+  template <typename T>
+  MeshletPrepare createMeshlets(const higanbana::MemView<T>& indices)
+  {
+    MeshletPrepare meshlets{};
+    constexpr const int meshletMaxSize = 96; // max indice count per meshlet
+    size_t i = 0;
+    size_t max_size = indices.size();
+    WorldMeshlet currentMeshlet{};
+    while (i < max_size) {
+      if (currentMeshlet.indices + 3 >= meshletMaxSize)
+      {
+        meshlets.meshlets.push_back(currentMeshlet);
+        currentMeshlet = WorldMeshlet{0, static_cast<uint>(meshlets.uniqueIndexes.size()), static_cast<uint>(meshlets.packedIndexes.size()), 0};
+      }
+      uint i1 = indices[i];
+      uint i2 = indices[i+1];
+      uint i3 = indices[i+2];
+      i = i+3;
+      currentMeshlet.indices = currentMeshlet.indices + 3;
+
+      auto getPackedIndex = [](higanbana::vector<uint16_t>& ui, uint uOffset, uint value) -> uint8_t {
+        for (size_t i = uOffset; i < ui.size(); i++)
+        {
+          if (ui[i] == value)
+            return i;
+        }
+        ui.push_back(value);
+        size_t packedIndex = ui.size() - uOffset;
+        HIGAN_ASSERT(packedIndex < 256, "uh oh");
+        return static_cast<uint8_t>(packedIndex);
+      };
+      auto v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.offsetUnique, i1);
+      meshlets.packedIndexes.push_back(v);
+      v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.offsetUnique, i2);
+      meshlets.packedIndexes.push_back(v);
+      v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.offsetUnique, i3);
+      meshlets.packedIndexes.push_back(v);
+    }
+    meshlets.meshlets.push_back(currentMeshlet);
+
+    return meshlets;
+  }
+
   int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data)
   {
     auto val = freelist.allocate();
@@ -41,37 +91,63 @@ namespace app
     auto sizeInfo = higanbana::formatSizeInfo(data.indiceFormat);
     auto& view = views[val];
     view.indices = gpu.createBufferIBV(ResourceDescriptor()
-    .setFormat(data.indiceFormat)
-    .setCount(data.indices.size() / sizeInfo.pixelSize)
-    .setUsage(ResourceUsage::GpuReadOnly)
-    .setIndexBuffer());
+      .setFormat(data.indiceFormat)
+      .setCount(data.indices.size() / sizeInfo.pixelSize)
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .setIndexBuffer());
+    // mesh shader required
+
+    MeshletPrepare meshlets;
+    if (data.indiceFormat == FormatType::Uint16)
+    {
+      meshlets = createMeshlets(makeMemView(reinterpret_cast<uint16_t*>(data.indices.data()), data.indices.size()/2));
+    }
+    else
+    {
+      meshlets = createMeshlets(makeMemView(data.indices));
+    }
+
+    view.uniqueIndices = gpu.createBufferSRV(ResourceDescriptor()
+      .setFormat(FormatType::Uint16)
+      .setCount(meshlets.uniqueIndexes.size())
+      .setUsage(ResourceUsage::GpuReadOnly));
+    view.packedIndices = gpu.createBufferSRV(ResourceDescriptor()
+      .setFormat(FormatType::Uint8)
+      .setCount(meshlets.packedIndexes.size())
+      .setUsage(ResourceUsage::GpuReadOnly));
+    view.meshlets = gpu.createBufferSRV(ResourceDescriptor()
+      .setCount(meshlets.meshlets.size())
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .setStructured<WorldMeshlet>());
+    // end mesh shader things
 
     sizeInfo = higanbana::formatSizeInfo(data.vertexFormat);
     view.vertices = gpu.createBufferSRV(ResourceDescriptor()
-    .setName("vertices")
-    .setFormat(data.vertexFormat)
-    .setCount(data.vertices.size() / sizeInfo.pixelSize)
-    .setUsage(ResourceUsage::GpuReadOnly));
+      .setName("vertices")
+      .setFormat(data.vertexFormat)
+      .setCount(data.vertices.size() / sizeInfo.pixelSize)
+      .setUsage(ResourceUsage::GpuReadOnly));
 
     if (data.texCoordFormat != FormatType::Unknown)
     {
       sizeInfo = higanbana::formatSizeInfo(data.texCoordFormat);
       view.uvs = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("UVs")
-      .setFormat(data.texCoordFormat)
-      .setCount(data.texCoords.size() / sizeInfo.pixelSize)
-      .setUsage(ResourceUsage::GpuReadOnly));
+        .setName("UVs")
+        .setFormat(data.texCoordFormat)
+        .setCount(data.texCoords.size() / sizeInfo.pixelSize)
+        .setUsage(ResourceUsage::GpuReadOnly));
     }
 
     if (data.normalFormat != FormatType::Unknown)
     {
       sizeInfo = higanbana::formatSizeInfo(data.normalFormat);
       view.normals = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("normals")
-      .setFormat(data.normalFormat)
-      .setCount(data.normals.size() / sizeInfo.pixelSize)
-      .setUsage(ResourceUsage::GpuReadOnly));
+        .setName("normals")
+        .setFormat(data.normalFormat)
+        .setCount(data.normals.size() / sizeInfo.pixelSize)
+        .setUsage(ResourceUsage::GpuReadOnly));
     }
+
 
     view.args = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout", meshLayout)
       .bind("vertices", view.vertices)
@@ -94,6 +170,16 @@ namespace app
       auto normalData = gpu.dynamicBuffer(makeMemView(data.normals), data.normalFormat); 
       node.copy(view.normals.buffer(), normalData);
     }
+
+    {
+      auto uniqueIndex = gpu.dynamicBuffer(makeByteView(meshlets.uniqueIndexes));
+      node.copy(view.uniqueIndices.buffer(), uniqueIndex);
+      auto packedData = gpu.dynamicBuffer(makeByteView(meshlets.packedIndexes));
+      node.copy(view.packedIndices.buffer(), packedData);
+      auto meshletData = gpu.dynamicBuffer(makeByteView(meshlets.meshlets));
+      node.copy(view.meshlets.buffer(), meshletData);
+    }
+
     graph.addPass(std::move(node));
     gpu.submit(graph);
     return val;

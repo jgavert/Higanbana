@@ -21,6 +21,10 @@ struct MeshViews
   higanbana::BufferSRV vertices;
   higanbana::BufferSRV uvs;
   higanbana::BufferSRV normals;
+  // mesh shader required
+  higanbana::BufferSRV uniqueIndices;
+  higanbana::BufferSRV packedIndices;
+  higanbana::BufferSRV meshlets;
 };
 class MeshSystem
 {

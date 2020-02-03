@@ -1050,8 +1050,11 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
 
+      if (native->outOfDate())
+        return -1;
+
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
-      auto res = m_device.acquireNextImageKHR(native->native(), 0, freeSemaphore->native(), nullptr);
+      auto res = m_device.acquireNextImageKHR(native->native(), 1000, freeSemaphore->native(), nullptr);
 
       if (res.result != vk::Result::eSuccess)
       {
@@ -1073,6 +1076,8 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
+      if (native->outOfDate())
+        return -1;
 
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
       auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), freeSemaphore->native(), nullptr);

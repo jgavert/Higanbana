@@ -2,7 +2,7 @@
 
 struct payloadStruct
 { 
-    uint myArbitraryData; 
+  uint myArbitraryData; 
 }; 
  
 groupshared payloadStruct p; 

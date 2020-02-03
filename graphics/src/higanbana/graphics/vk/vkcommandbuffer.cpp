@@ -718,6 +718,12 @@ namespace higanbana
             buffer.drawIndexed(params.IndexCountPerInstance, params.instanceCount, params.StartIndexLocation, params.BaseVertexLocation, params.StartInstanceLocation, m_dispatch);
             break;
           }
+          case PacketType::DispatchMesh:
+          {
+            auto params = header->data<gfxpacket::DispatchMesh>();
+            buffer.drawMeshTasksNV(params.xDim, 0, m_dispatch);
+            break;
+          }
           case PacketType::Dispatch:
           {
             auto params = header->data<gfxpacket::Dispatch>();

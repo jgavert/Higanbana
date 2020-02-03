@@ -34,6 +34,7 @@ namespace higanbana
       ResourceBinding,
       Draw,
       DrawIndexed,
+      DispatchMesh,
       ScissorRect,
       ReadbackShaderDebug,
       EndOfPackets,

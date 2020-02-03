@@ -6,13 +6,20 @@ SHADER_STRUCT(DebugConstants,
 
 namespace app
 {
-MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout meshArgumentsLayout)
-  : m_meshArgumentsLayout(meshArgumentsLayout)
+MeshTest::MeshTest(higanbana::GpuGroup& device)
 {
   using namespace higanbana;
   ShaderArgumentsLayoutDescriptor staticDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras");
+  ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
+    .readOnly<WorldMeshlet>(ShaderResourceType::StructuredBuffer, "meshlets")
+    .readOnly(ShaderResourceType::Buffer, "uint", "uniqueIndices")
+    .readOnly(ShaderResourceType::Buffer, "uint", "packedIndices")
+    .readOnly(ShaderResourceType::Buffer, "float3", "vertices")
+    .readOnly(ShaderResourceType::Buffer, "float2", "uvs")
+    .readOnly(ShaderResourceType::Buffer, "float3", "normals");
   m_staticArgumentsLayout = device.createShaderArgumentsLayout(staticDataLayout);
+  m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
     .constants<DebugConstants>()
@@ -24,7 +31,6 @@ MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout
     .setAmplificationShader("testMeshShaders")
     .setMeshShader("testMeshShaders")
     .setPixelShader("testMeshShaders")
-    .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(false))
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)
@@ -45,10 +51,9 @@ void MeshTest::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Tex
 void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers)
 {
   auto binding = node.bind(m_pipeline);
-  //binding.arguments(0, cameras);
-  //binding.arguments(1, meshBuffers);
-  //binding.constants(DebugConstants{float3(0,0,0)});
-  //node.drawIndexed(binding, ibv, ibv.desc().desc.width);
-
+  binding.arguments(0, cameras);
+  binding.arguments(1, meshBuffers);
+  binding.constants(DebugConstants{float3(0,0,0)});
+  node.dispatchMesh(binding, uint3(1,1,1));
 }
 }
