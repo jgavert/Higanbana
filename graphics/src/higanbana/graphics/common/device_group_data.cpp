@@ -84,7 +84,7 @@ namespace higanbana
               {
                 if (buffer.fence && !dev.device->checkFence(buffer.fence))
                 {
-                  //HIGAN_ASSERT(false, "failed, we thought everything was ready... %d > %d, %d > %d, %d > %d", buffer.gfxValue, gfxQueueReached, buffer.cptValue, cptQueueReached, buffer.dmaValue, dmaQueueReached);
+                  HIGAN_ASSERT(false, "failed, we thought everything was ready... %d > %d, %d > %d, %d > %d", buffer.gfxValue, gfxQueueReached, buffer.cptValue, cptQueueReached, buffer.dmaValue, dmaQueueReached);
                   break;
                 }
                 buffersToFree++;
@@ -1699,11 +1699,11 @@ namespace higanbana
         {
           LiveCommandBuffer2 buffer = std::move(readyLists.front());
           readyLists.pop_front();
+
+          auto& vdev = m_devices[buffer.deviceID];
           buffer.dmaValue = 0;
           buffer.gfxValue = 0;
           buffer.cptValue = 0;
-
-          auto& vdev = m_devices[buffer.deviceID];
           std::optional<std::shared_ptr<FenceImpl>> viewToFence;
           std::optional<TimelineSemaphoreInfo> timelineGfx;
           std::optional<TimelineSemaphoreInfo> timelineCompute;

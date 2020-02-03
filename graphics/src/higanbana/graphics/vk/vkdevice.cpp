@@ -2544,59 +2544,57 @@ namespace higanbana
       MemView<TimelineSemaphoreInfo> signalTimelines,
       std::optional<std::shared_ptr<FenceImpl>>   fence)
     {
-      for (auto&& sema : waitTimelines)
-      {
-        vk::TimelineSemaphoreSubmitInfo info = vk::TimelineSemaphoreSubmitInfo()
-          .setPWaitSemaphoreValues(&sema.value)
-          .setWaitSemaphoreValueCount(1);
-        
-        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
-        vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands;
-        vk::SubmitInfo sinfo = vk::SubmitInfo()
-          .setPNext(&info)
-          .setPWaitDstStageMask(&waitMask)
-          .setWaitSemaphoreCount(1)
-          .setPWaitSemaphores(&native->native());
-        auto res = queue.submit({sinfo}, nullptr);
-        VK_CHECK_RESULT_RAW(res);
-      }
-
       vector<vk::Semaphore> waitList;
+      vector<uint64_t> waitValues;
       vector<vk::CommandBuffer> bufferList;
       vector<vk::Semaphore> signalList;
-      if (!wait.empty())
+      vector<uint64_t> signalValues;
+      for (auto&& sema : wait)
       {
-        for (auto&& sema : wait)
-        {
-          auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
-          waitList.emplace_back(native->native());
-        }
+        auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
+        waitList.emplace_back(native->native());
+        waitValues.emplace_back(1);
       }
-      if (!lists.empty())
+      for (auto&& sema : waitTimelines)
       {
-        for (auto&& buffer : lists)
-        {
-          auto native = std::static_pointer_cast<VulkanCommandBuffer>(buffer);
-          bufferList.emplace_back(native->list());
-        }
+        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
+        waitList.emplace_back(native->native());
+        waitValues.emplace_back(sema.value);
       }
-
-      if (!signal.empty())
+      for (auto&& buffer : lists)
       {
-        for (auto&& sema : signal)
-        {
-          auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
-          signalList.emplace_back(native->native());
-        }
+        auto native = std::static_pointer_cast<VulkanCommandBuffer>(buffer);
+        bufferList.emplace_back(native->list());
       }
 
-      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eAllCommands;
+      for (auto&& sema : signal)
+      {
+        auto native = std::static_pointer_cast<VulkanSemaphore>(sema);
+        signalList.emplace_back(native->native());
+        signalValues.emplace_back(1);
+      }
+
+      for (auto&& sema : signalTimelines)
+      {
+        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
+        signalList.emplace_back(native->native());
+        signalValues.emplace_back(sema.value);
+      }
+
+      vk::TimelineSemaphoreSubmitInfo tsinfo = vk::TimelineSemaphoreSubmitInfo()
+          .setPWaitSemaphoreValues(waitValues.data())
+          .setWaitSemaphoreValueCount(waitValues.size())
+          .setPSignalSemaphoreValues(signalValues.data())
+          .setSignalSemaphoreValueCount(signalValues.size());
+
+      vk::PipelineStageFlags waitMask = vk::PipelineStageFlagBits::eBottomOfPipe;
 
       vector<vk::PipelineStageFlags> semaphoreWaitStages;
       for (int i = 0; i < waitList.size(); ++i)
         semaphoreWaitStages.push_back(waitMask);
 
       auto info = vk::SubmitInfo()
+        .setPNext(&tsinfo)
         .setPWaitDstStageMask(semaphoreWaitStages.data())
         .setCommandBufferCount(static_cast<uint32_t>(bufferList.size()))
         .setPCommandBuffers(bufferList.data())
@@ -2617,21 +2615,6 @@ namespace higanbana
       else
       {
         auto res = queue.submit({info}, nullptr);
-        VK_CHECK_RESULT_RAW(res);
-      }
-
-      for (auto&& sema : signalTimelines)
-      {
-        vk::TimelineSemaphoreSubmitInfo info = vk::TimelineSemaphoreSubmitInfo()
-          .setPSignalSemaphoreValues(&sema.value)
-          .setSignalSemaphoreValueCount(1);
-        
-        auto native = static_cast<VulkanTimelineSemaphore*>(sema.semaphore);
-        vk::SubmitInfo sinfo = vk::SubmitInfo()
-          .setPNext(&info)
-          .setSignalSemaphoreCount(1)
-          .setPSignalSemaphores(&native->native());
-        auto res = queue.submit({sinfo}, nullptr);
         VK_CHECK_RESULT_RAW(res);
       }
     }

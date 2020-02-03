@@ -1976,12 +1976,6 @@ namespace higanbana
       if (!natList.empty())
         queue->ExecuteCommandLists(static_cast<UINT>(natList.size()), natList.data());
 
-      for (auto&& sema : signalTimelines)
-      {
-        auto native = static_cast<DX12TimelineSemaphore*>(sema.semaphore);
-        queue->Signal(native->fence.Get(), sema.value);
-      }
-
       if (!signal.empty())
       {
         for (auto&& sema : signal)
@@ -1995,6 +1989,12 @@ namespace higanbana
         auto native = std::static_pointer_cast<DX12Fence>(*fence);
         auto value = native->start();
         queue->Signal(native->fence.Get(), value);
+      }
+
+      for (auto&& sema : signalTimelines)
+      {
+        auto native = static_cast<DX12TimelineSemaphore*>(sema.semaphore);
+        queue->Signal(native->fence.Get(), sema.value);
       }
     }
 
