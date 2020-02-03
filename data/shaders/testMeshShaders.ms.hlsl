@@ -9,7 +9,7 @@ struct VertexOut
 
 struct payloadStruct
 { 
-  uint myArbitraryData; 
+  float4x4 perspective; 
 }; 
 
 [RootSignature(ROOTSIG)]
@@ -19,28 +19,31 @@ void main(
   uint gtid : SV_GroupThreadID, 
   uint gid : SV_GroupID, 
   in payload payloadStruct MeshPayload,
-  out indices uint3 tris[1], 
-  out vertices VertexOut verts[3] 
+  out indices uint3 tris[12], 
+  out vertices VertexOut verts[32] 
 ) 
 {
-  SetMeshOutputCounts(3, 1); 
-  if (gtid < 1) 
+  WorldMeshlet m = meshlets[gid];
+  SetMeshOutputCounts(m.vertices, m.primitives); 
+  if (gtid < m.primitives) 
   { 
-    tris[gtid] = uint3(0,1,2); 
+    uint offset = gtid * 3;
+    uint i0 = packedIndices.Load(m.offsetPacked + offset);
+    uint i1 = packedIndices.Load(m.offsetPacked + offset + 1);
+    uint i2 = packedIndices.Load(m.offsetPacked + offset + 2);
+    tris[gtid] = uint3(i0, i1, i2);
   } 
 
-  if (gtid < 3) 
+  if (gtid < m.vertices) 
   {
+    uint index = uniqueIndices.Load(m.offsetUnique + gtid);
+
+    float3 vert = vertices.Load(index);
+
     VertexOut vout;
-    vout.uv = float2(0,0);
-    vout.normal = float3(0,0,0);
-    vout.pos = float4(0,0,0.4,1);
-
-    vout.pos.x = (gtid % 3 == 2) ?  1 : 0;
-    vout.pos.y = (gtid % 3 == 1) ?  1 : 0;
-
-    vout.normal.x = (gtid % 3 == 2) ?  1 : 0;
-    vout.normal.y = (gtid % 3 == 1) ?  1 : 0;
+    vout.uv = uvs.Load(index);
+    vout.normal = normals.Load(index);
+    vout.pos = mul(float4(vert,1), MeshPayload.perspective);
 
     verts[gtid] = vout;
   } 

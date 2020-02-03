@@ -1,6 +1,7 @@
 #include "mesh_test.hpp"
 
 SHADER_STRUCT(DebugConstants,
+  uint meshletCount;
   float3 pos;
 );
 
@@ -48,12 +49,12 @@ void MeshTest::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Tex
   node.renderpass(m_renderpass, target, depth);
 }
 
-void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers)
+void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
-  binding.constants(DebugConstants{float3(0,0,0)});
+  binding.constants(DebugConstants{meshlets, float3(0,0,0)});
   node.dispatchMesh(binding, uint3(1,1,1));
 }
 }

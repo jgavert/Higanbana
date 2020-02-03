@@ -5,10 +5,10 @@
 #include <higanbana/graphics/GraphicsCore.hpp>
 
 SHADER_STRUCT(WorldMeshlet,
-  uint indices;
+  uint primitives;
+  uint vertices;
   uint offsetUnique;
   uint offsetPacked;
-  uint unused;
 );
 
 namespace app
@@ -24,6 +24,6 @@ public:
   higanbana::ShaderArgumentsLayout& staticDataLayout() {return m_staticArgumentsLayout;}
   higanbana::ShaderArgumentsLayout& meshArgLayout() {return m_meshArgumentsLayout;}
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
-  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers);
+  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets);
 };
 }

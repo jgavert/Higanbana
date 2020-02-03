@@ -1,4 +1,4 @@
-// INTERFACE_HASH:18280279872724764197:6669471120039394381
+// INTERFACE_HASH:9798228579996315514:168673047597101566
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -12,14 +12,14 @@
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=0 )),\
   DescriptorTable(\
-     SRV(t0, numDescriptors = 3, space=1 )),\
+     SRV(t0, numDescriptors = 6, space=1 )),\
   StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
   StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT), \
   StaticSampler(s2, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP), \
   StaticSampler(s3, filter = FILTER_MIN_MAG_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP)"
 
 struct Constants
-{float3 pos; };
+{uint meshletCount; float3 pos; };
 VK_BINDING(0, 2) ConstantBuffer<Constants> constants : register( b0 );
 VK_BINDING(1, 2) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0
@@ -31,11 +31,16 @@ VK_BINDING(0, 0) StructuredBuffer<CameraSettings> cameras : register( t0, space0
 
 // Read Write resources
 // Shader Arguments 1
+// Struct declarations
+struct WorldMeshlet { uint primitives; uint vertices; uint offsetUnique; uint offsetPacked; };
 
 // Read Only resources
-VK_BINDING(0, 1) Buffer<float3> vertices : register( t0, space1 );
-VK_BINDING(1, 1) Buffer<float2> uvs : register( t1, space1 );
-VK_BINDING(2, 1) Buffer<float3> normals : register( t2, space1 );
+VK_BINDING(0, 1) StructuredBuffer<WorldMeshlet> meshlets : register( t0, space1 );
+VK_BINDING(1, 1) Buffer<uint> uniqueIndices : register( t1, space1 );
+VK_BINDING(2, 1) Buffer<uint> packedIndices : register( t2, space1 );
+VK_BINDING(3, 1) Buffer<float3> vertices : register( t3, space1 );
+VK_BINDING(4, 1) Buffer<float2> uvs : register( t4, space1 );
+VK_BINDING(5, 1) Buffer<float3> normals : register( t5, space1 );
 
 // Read Write resources
 

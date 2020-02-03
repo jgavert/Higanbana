@@ -2258,7 +2258,7 @@ namespace higanbana
 
         writeDescriptors.emplace_back(writeSet);
       }
-
+      HIGAN_ASSERT(!writeDescriptors.empty(), "wtf!");
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
       m_device.updateDescriptorSets(writes, {});
     }
