@@ -42,7 +42,7 @@ namespace higanbana
         "VK_KHR_vulkan_memory_model",
         "VK_KHR_win32_keyed_mutex",
         "VK_EXT_blend_operation_advanced",
-        "VK_EXT_buffer_device_address",
+        //"VK_EXT_buffer_device_address",
         "VK_EXT_conditional_rendering",
         "VK_EXT_conservative_rasterization",
         "VK_EXT_depth_clip_enable",
