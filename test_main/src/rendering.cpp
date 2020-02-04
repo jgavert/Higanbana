@@ -44,13 +44,13 @@ namespace app
   MeshletPrepare createMeshlets(const higanbana::MemView<T>& indices)
   {
     MeshletPrepare meshlets{};
-    constexpr const int maxUniqueVertices = 32; // max indice count per meshlet
-    constexpr const int maxPrimitives = 12; // max indice count per meshlet
+    constexpr const int maxUniqueVertices = 64; // max indice count per meshlet
+    constexpr const int maxPrimitives = 126; // max indice count per meshlet
     size_t i = 0;
     size_t max_size = indices.size();
     WorldMeshlet currentMeshlet{};
     while (i < max_size) {
-      if (currentMeshlet.primitives + 1 > maxPrimitives || currentMeshlet.vertices + 1 > maxUniqueVertices)
+      if (currentMeshlet.primitives + 1 > maxPrimitives || currentMeshlet.vertices + 3 > maxUniqueVertices)
       {
         meshlets.meshlets.push_back(currentMeshlet);
         currentMeshlet = WorldMeshlet{0, 0, static_cast<uint>(meshlets.uniqueIndexes.size()), static_cast<uint>(meshlets.packedIndexes.size())};
