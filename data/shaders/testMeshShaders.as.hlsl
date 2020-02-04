@@ -1,18 +1,18 @@
 #include "testMeshShaders.if.hlsl"
-
-struct payloadStruct
-{ 
-  float4x4 perspective; 
-}; 
+#include "testMesh_payload.hlsl"
  
 groupshared payloadStruct p; 
 
 [RootSignature(ROOTSIG)]
 [numthreads(1,1,1)] 
-void main(in uint3 groupID : SV_GroupID)    
+void main(
+  uint gtid : SV_GroupThreadID,
+  in uint3 groupID : SV_GroupID)    
 { 
   CameraSettings settings = cameras.Load(0);
   p.perspective = settings.perspective;
 
-  DispatchMesh(constants.meshletCount,1,1,p);
+  uint survivingMeshlets = constants.meshletCount;
+
+  DispatchMesh(survivingMeshlets,1,1,p);
 }

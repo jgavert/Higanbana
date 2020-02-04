@@ -1,4 +1,5 @@
 #include "testMeshShaders.if.hlsl"
+#include "testMesh_payload.hlsl"
 
 struct VertexOut
 {
@@ -7,11 +8,6 @@ struct VertexOut
   float3 normal : NORMAL;
   float4 pos : SV_Position;
 };
-
-struct payloadStruct
-{ 
-  float4x4 perspective; 
-}; 
 
 [RootSignature(ROOTSIG)]
 [NumThreads(32, 1, 1)] 
@@ -24,7 +20,8 @@ void main(
   out vertices VertexOut verts[64] 
 ) 
 {
-  WorldMeshlet m = meshlets[gid];
+  uint meshletId = gid;
+  WorldMeshlet m = meshlets[meshletId];
   SetMeshOutputCounts(m.vertices, m.primitives); 
   for (int i = 0; i < 2; ++i)
   {
@@ -34,7 +31,7 @@ void main(
     float3 vert = vertices.Load(index);
 
     VertexOut vout;
-    vout.id = gid;
+    vout.id = meshletId;
     vout.uv = uvs.Load(index);
     vout.normal = normals.Load(index);
     vout.pos = mul(float4(vert,1), MeshPayload.perspective);
