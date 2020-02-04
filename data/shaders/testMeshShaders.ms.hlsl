@@ -2,6 +2,7 @@
 
 struct VertexOut
 {
+  uint id : COLOR0;
   float2 uv : TEXCOORD0;
   float3 normal : NORMAL;
   float4 pos : SV_Position;
@@ -27,12 +28,13 @@ void main(
   SetMeshOutputCounts(m.vertices, m.primitives); 
   for (int i = 0; i < 2; ++i)
   {
-    uint ti = gtid * 2 + i;
+    uint ti = gtid + i * 32;
     uint index = uniqueIndices.Load(m.offsetUnique + ti);
 
     float3 vert = vertices.Load(index);
 
     VertexOut vout;
+    vout.id = gid;
     vout.uv = uvs.Load(index);
     vout.normal = normals.Load(index);
     vout.pos = mul(float4(vert,1), MeshPayload.perspective);
@@ -42,7 +44,7 @@ void main(
 
   for (int k = 0; k < 4; ++k)
   {
-    uint ti = gtid * 4 + k;
+    uint ti = gtid + k * 32;
     uint offset = ti * 3;
     uint i0 = packedIndices.Load(m.offsetPacked + offset);
     uint i1 = packedIndices.Load(m.offsetPacked + offset + 1);
