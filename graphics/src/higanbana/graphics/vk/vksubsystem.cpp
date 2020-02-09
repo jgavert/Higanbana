@@ -193,7 +193,7 @@ namespace higanbana
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_API_VERSION_1_2);
+        .setApiVersion(VK_API_VERSION_1_1);
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)

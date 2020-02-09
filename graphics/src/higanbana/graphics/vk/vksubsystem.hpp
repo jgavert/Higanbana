@@ -49,7 +49,7 @@ namespace higanbana
         "VK_EXT_depth_range_unrestricted",
         "VK_EXT_descriptor_indexing",
         "VK_EXT_discard_rectangles",
-        "VK_EXT_external_memory_host",
+        //"VK_EXT_external_memory_host",
         "VK_EXT_hdr_metadata",
         "VK_EXT_host_query_reset",
         "VK_EXT_inline_uniform_block",

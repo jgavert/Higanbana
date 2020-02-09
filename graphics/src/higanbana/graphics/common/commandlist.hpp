@@ -145,6 +145,11 @@ namespace higanbana
       list.insert<gfxpacket::Dispatch>(groups);
     }
 
+    void dispatchMesh(uint xGroups)
+    {
+      list.insert<gfxpacket::DispatchMesh>(xGroups);
+    }
+
     void copy(Buffer& target, int64_t targetOffset, Texture& source, Subresource subresource, Box srcbox)
     {
       //list.insert<gfxpacket::TextureToBufferCopy>(target.dependency(), targetOffset, source.dependency(), subresource, srcbox);

@@ -18,9 +18,14 @@ struct MeshViews
 {
   higanbana::BufferIBV indices;
   higanbana::ShaderArguments args;
+  higanbana::ShaderArguments meshArgs;
   higanbana::BufferSRV vertices;
   higanbana::BufferSRV uvs;
   higanbana::BufferSRV normals;
+  // mesh shader required
+  higanbana::BufferSRV uniqueIndices;
+  higanbana::BufferSRV packedIndices;
+  higanbana::BufferSRV meshlets;
 };
 
 class MeshSystem
@@ -29,7 +34,7 @@ class MeshSystem
   higanbana::vector<MeshViews> views;
 
 public:
-  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data);
+  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& normalLayout,higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data);
   MeshViews& operator[](int index) { return views[index]; }
   void free(int index);
 };

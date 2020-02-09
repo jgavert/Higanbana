@@ -1,16 +1,18 @@
 #include "testMeshShaders.if.hlsl"
-
-struct payloadStruct
-{ 
-    uint myArbitraryData; 
-}; 
+#include "testMesh_payload.hlsl"
  
 groupshared payloadStruct p; 
 
 [RootSignature(ROOTSIG)]
 [numthreads(1,1,1)] 
-void main(in uint3 groupID : SV_GroupID)    
+void main(
+  uint gtid : SV_GroupThreadID,
+  in uint3 groupID : SV_GroupID)    
 { 
-  p.myArbitraryData = groupID.z; 
-  DispatchMesh(1,1,1,p);
+  CameraSettings settings = cameras.Load(0);
+  p.perspective = settings.perspective;
+
+  uint survivingMeshlets = constants.meshletCount;
+
+  DispatchMesh(survivingMeshlets,1,1,p);
 }

@@ -84,7 +84,8 @@ namespace higanbana
               {
                 if (buffer.fence && !dev.device->checkFence(buffer.fence))
                 {
-                  HIGAN_ASSERT(false, "failed, we thought everything was ready... %d > %d, %d > %d, %d > %d", buffer.gfxValue, gfxQueueReached, buffer.cptValue, cptQueueReached, buffer.dmaValue, dmaQueueReached);
+                  dev.device->waitFence(buffer.fence);
+                  //HIGAN_ASSERT(false, "failed, we thought everything was ready... %d > %d, %d > %d, %d > %d", buffer.gfxValue, gfxQueueReached, buffer.cptValue, cptQueueReached, buffer.dmaValue, dmaQueueReached);
                   break;
                 }
                 buffersToFree++;

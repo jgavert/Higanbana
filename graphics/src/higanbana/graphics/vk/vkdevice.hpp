@@ -82,12 +82,19 @@ namespace higanbana
       vk::DescriptorBufferInfo nullStorageBuffer;
       vk::BufferView nullTexelView;
       vk::ImageView nullTex1d;
+      vk::DescriptorImageInfo nullTex1dd;
       vk::ImageView nullTex1da;
+      vk::DescriptorImageInfo nullTex1dad;
       vk::ImageView nullTex2d;
+      vk::DescriptorImageInfo nullTex2dd;
       vk::ImageView nullTex2da;
+      vk::DescriptorImageInfo nullTex1dad;
       vk::ImageView nullTex3d;
+      vk::DescriptorImageInfo nullTex3dd;
       vk::ImageView nullTexcube;
+      vk::DescriptorImageInfo nullTexcubed;
       vk::ImageView nullTexca;
+      vk::DescriptorImageInfo nullTexcad;
 
       // thread lock stuff
       std::mutex m_deviceLock;

@@ -29,6 +29,17 @@ public:
     return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
   }
 
+  int findFirstNonSpecialCharacter(const std::string& filename) noexcept
+  {
+    for (int i = 0; i < static_cast<int>(filename.size()); i++) {
+      char problem = filename[i];
+      if (problem == '/' || problem == '\\' || problem == '.')
+        continue;
+      return i;
+    }
+    return filename.size();
+  }
+
   HRESULT STDMETHODCALLTYPE LoadSource(
     _In_ LPCWSTR pFilename,                                   // Candidate filename.
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
@@ -37,7 +48,10 @@ public:
     //ppIncludeSource = nullptr;
     std::string filename = ws2s(pFilename);
     if (!filename.empty())
-      filename = filename.substr(2);
+    {
+      auto substrStart = findFirstNonSpecialCharacter(filename);
+      filename = filename.substr(substrStart);
+    }
 
     std::string finalPath;
     finalPath = m_sourcePath + filename;

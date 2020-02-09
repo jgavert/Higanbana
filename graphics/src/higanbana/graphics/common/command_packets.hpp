@@ -188,6 +188,18 @@ namespace higanbana
       }
     };
 
+    struct DispatchMesh
+    {
+      uint xDim;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DispatchMesh;
+      static void constructor(backend::CommandBuffer& , DispatchMesh* packet, uint xDim)
+      {
+        packet->xDim = xDim;
+        static_assert(std::is_standard_layout<DispatchMesh>::value, "this is trivial packet");
+      }
+    };
+
     struct DynamicBufferCopy
     {
       ResourceHandle dst;

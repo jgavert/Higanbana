@@ -4,6 +4,13 @@
 #include "camera.hpp"
 #include <higanbana/graphics/GraphicsCore.hpp>
 
+SHADER_STRUCT(WorldMeshlet,
+  uint primitives;
+  uint vertices;
+  uint offsetUnique;
+  uint offsetPacked;
+);
+
 namespace app
 {
 class MeshTest
@@ -13,10 +20,10 @@ class MeshTest
   higanbana::GraphicsPipeline m_pipeline;
   higanbana::Renderpass m_renderpass;
 public:
-  MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout meshArgumentsLayout);
+  MeshTest(higanbana::GpuGroup& device);
   higanbana::ShaderArgumentsLayout& staticDataLayout() {return m_staticArgumentsLayout;}
   higanbana::ShaderArgumentsLayout& meshArgLayout() {return m_meshArgumentsLayout;}
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
-  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers);
+  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets);
 };
 }

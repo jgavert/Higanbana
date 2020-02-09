@@ -225,6 +225,15 @@ namespace higanbana
       timing.dispatches++;
     }
 
+    void dispatchMesh(ShaderArgumentsBinding& binding, uint3 groups)
+    {
+      addRefArgs(binding.bShaderArguments());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
+      HIGAN_ASSERT(groups.y == 1 && groups.z == 1, "Only x group is read for now, because of vulkan limitations");
+      list->dispatchMesh(groups.x);
+    }
+
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)
     {
       m_referencedBuffers.setBit(target.handle().id);

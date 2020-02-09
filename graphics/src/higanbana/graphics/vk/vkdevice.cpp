@@ -680,12 +680,20 @@ namespace higanbana
         return view.value;
       };
       nullTex1d = makeView(vk::ImageViewType::e1D, nullImage1d);
+      vk::DescriptorImageInfo dii = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eGeneral).setImageView(nullTex1d);
+      nullTex1dd = dii;
       nullTex1da = makeView(vk::ImageViewType::e1DArray, nullImage1d);
+      nullTex1dad = dii.setImageView(nullTex1da);
       nullTex2d = makeView(vk::ImageViewType::e2D, nullImageCube);
+      nullTex2dd = dii.setImageView(nullTex2d);
       nullTex2da = makeView(vk::ImageViewType::e2DArray, nullImageCube);
+      nullTex2dad = dii.setImageView(nullTex2da):
       nullTex3d = makeView(vk::ImageViewType::e3D, nullImage3d);
+      nullTex3dd = dii.setImageView(nullTex3d);
       nullTexcube = makeView(vk::ImageViewType::eCube, nullImageCube);
+      nullTexcubed = dii.setImageView(nullTexcube);
       nullTexca = makeView(vk::ImageViewType::eCubeArray, nullImageCube);
+      nullTexcad = dii.setImageView(nullTexca);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -1162,8 +1170,11 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
 
+      if (native->outOfDate())
+        return -1;
+
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
-      auto res = m_device.acquireNextImageKHR(native->native(), 0, freeSemaphore->native(), nullptr);
+      auto res = m_device.acquireNextImageKHR(native->native(), 1000, freeSemaphore->native(), nullptr);
 
       if (res.result != vk::Result::eSuccess)
       {
@@ -1185,6 +1196,8 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
+      if (native->outOfDate())
+        return -1;
 
       std::shared_ptr<VulkanSemaphore> freeSemaphore = m_semaphores.allocate();
       auto res = m_device.acquireNextImageKHR(native->native(), (std::numeric_limits<uint64_t>::max)(), freeSemaphore->native(), nullptr);
@@ -2382,43 +2395,43 @@ namespace higanbana
               case ShaderResourceType::Texture1D:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTex1dd);
                 break;
               }
               case ShaderResourceType::Texture1DArray:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTex1dad);
                 break;
               }
               case ShaderResourceType::Texture2D:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTex2dd);
                 break;
               }
               case ShaderResourceType::Texture2DArray:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTex2dad);
                 break;
               }
               case ShaderResourceType::Texture3D:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTex3dd);
                 break;
               }
               case ShaderResourceType::TextureCube:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTexcubed);
                 break;
               }
               case ShaderResourceType::TextureCubeArray:
               {
                 writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
-                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                writeSet = writeSet.setPImageInfo(&nullTexcad);
                 break;
               }
               default:
@@ -2431,9 +2444,8 @@ namespace higanbana
 
         writeDescriptors.emplace_back(writeSet);
       }
-      
       HIGAN_ASSERT(descriptions.size() == writeDescriptors.size(), "size should match");
-
+      HIGAN_ASSERT(!writeDescriptors.empty(), "wtf!");
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
       m_device.updateDescriptorSets(writes, {});
     }
