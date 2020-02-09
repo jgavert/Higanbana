@@ -196,7 +196,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto indType = componentTypeToString(indiceAccessor.type);
 
             auto componentType = gltfComponentTypeToFormatType(indiceAccessor.componentType);
-            md.indiceFormat = higanbana::FormatType::Uint8;
+            md.indiceFormat = higanbana::FormatType::Uint32;
             if (componentType == higanbana::FormatType::Uint16)
             {
               md.indiceFormat = higanbana::FormatType::Uint16;

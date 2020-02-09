@@ -20,6 +20,10 @@ struct ActiveCamera
   float maxZ;
 };
 
+struct MaterialData
+{
+};
+
 struct MeshData
 {
   higanbana::FormatType indiceFormat;

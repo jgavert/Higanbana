@@ -545,7 +545,6 @@ namespace higanbana
 
       m_descriptors = std::make_shared<VulkanDescriptorPool>(poolRes.value);
 
-
       {
         auto bdesc = ResourceDescriptor()
           .setName("Shader debug print buffer")
@@ -589,6 +588,104 @@ namespace higanbana
         VK_CHECK_RESULT(setlayout);
         m_defaultDescriptorLayout = VulkanShaderArgumentsLayout(setlayout.value);
       }
+
+      // null resources
+      vk::MemoryRequirements requirements;
+      FormatType nullFormat = FormatType::Unorm8RGBA;
+      vk::Format nullFormat2 = formatToVkFormat(nullFormat).view;
+      auto buffer = m_device.createBuffer(fillBufferInfo(ResourceDescriptor()
+        .setFormat(nullFormat)
+        .setWidth(1)));
+      VK_CHECK_RESULT(buffer);
+      nullBuffer = buffer.value;
+      auto imDesc = ResourceDescriptor()
+        .setFormat(nullFormat)
+        .setSize(uint3(1,1,1))
+        .setDimension(FormatDimension::TextureCube);
+      auto image = m_device.createImage(fillImageInfo(imDesc));
+      VK_CHECK_RESULT(image);
+      nullImageCube = image.value;
+      requirements = m_device.getImageMemoryRequirements(image.value);
+      auto memProp = m_physDevice.getMemoryProperties();
+      auto searchProperties = getMemoryProperties(ResourceUsage::GpuRW);
+      auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+      HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.de
+
+      {
+        imDesc = imDesc.setDimension(FormatDimension::Texture1D);
+        image = m_device.createImage(fillImageInfo(imDesc));
+        VK_CHECK_RESULT(image);
+        nullImage1d = image.value;
+      }
+      {
+        imDesc = imDesc.setDimension(FormatDimension::Texture3D);
+        image = m_device.createImage(fillImageInfo(imDesc));
+        VK_CHECK_RESULT(image);
+        nullImage3d = image.value;
+      }
+
+      vk::MemoryAllocateInfo allocInfo;
+
+      allocInfo = vk::MemoryAllocateInfo()
+        .setAllocationSize(requirements.size)
+        .setMemoryTypeIndex(index);
+
+      auto memory = m_device.allocateMemory(allocInfo);
+      VK_CHECK_RESULT(memory);
+      nullHeap = memory.value;
+
+      m_device.bindBufferMemory(nullBuffer, nullHeap, 0);
+      m_device.bindImageMemory(nullImage1d, nullHeap, 0);
+      //m_device.bindImageMemory(nullImage2d, nullHeap, 0);
+      m_device.bindImageMemory(nullImage3d, nullHeap, 0);
+      m_device.bindImageMemory(nullImageCube, nullHeap, 0);
+
+      nullStorageBuffer = vk::DescriptorBufferInfo()
+        .setBuffer(nullBuffer)
+        .setOffset(0)
+        .setRange(VK_WHOLE_SIZE);
+
+      auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
+        .setBuffer(nullBuffer)
+        .setFormat(nullFormat2)
+        .setOffset(0)
+        .setRange(VK_WHOLE_SIZE));
+      VK_CHECK_RESULT(viewRes);
+      nullTexelView = viewRes.value;
+
+      // null texture views
+      auto makeView = [&](vk::ImageViewType ivt, vk::Image image){
+        vk::ImageAspectFlags imgFlags = vk::ImageAspectFlagBits::eColor;
+        vk::ImageSubresourceRange subResourceRange = vk::ImageSubresourceRange()
+          .setAspectMask(imgFlags)
+          .setBaseArrayLayer(0)
+          .setBaseMipLevel(0)
+          .setLevelCount(1)
+          .setLayerCount(1);
+        vk::ComponentMapping cm = vk::ComponentMapping()
+          .setA(vk::ComponentSwizzle::eIdentity)
+          .setR(vk::ComponentSwizzle::eIdentity)
+          .setG(vk::ComponentSwizzle::eIdentity)
+          .setB(vk::ComponentSwizzle::eIdentity);
+
+        vk::ImageViewCreateInfo vv = vk::ImageViewCreateInfo()
+          .setViewType(ivt)
+          .setFormat(nullFormat2)
+          .setImage(image)
+          .setComponents(cm)
+          .setSubresourceRange(subResourceRange);
+
+        auto view = m_device.createImageView(vv);
+        VK_CHECK_RESULT(view);
+        return view.value;
+      };
+      nullTex1d = makeView(vk::ImageViewType::e1D, nullImage1d);
+      nullTex1da = makeView(vk::ImageViewType::e1DArray, nullImage1d);
+      nullTex2d = makeView(vk::ImageViewType::e2D, nullImageCube);
+      nullTex2da = makeView(vk::ImageViewType::e2DArray, nullImageCube);
+      nullTex3d = makeView(vk::ImageViewType::e3D, nullImage3d);
+      nullTexcube = makeView(vk::ImageViewType::eCube, nullImageCube);
+      nullTexca = makeView(vk::ImageViewType::eCubeArray, nullImageCube);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -683,6 +780,21 @@ namespace higanbana
         }
       }
       // clear our system resources
+      // null resources
+      m_device.destroyBufferView(nullTexelView);
+      m_device.destroyBuffer(nullBuffer);
+      m_device.destroyImageView(nullTex1d);
+      m_device.destroyImageView(nullTex1da);
+      m_device.destroyImageView(nullTex2d);
+      m_device.destroyImageView(nullTex2da);
+      m_device.destroyImageView(nullTex3d);
+      m_device.destroyImageView(nullTexcube);
+      m_device.destroyImageView(nullTexca);
+      m_device.destroyImage(nullImage1d);
+      m_device.destroyImage(nullImageCube);
+      m_device.destroyImage(nullImage3d);
+      m_device.freeMemory(nullHeap);
+      // rest
       m_fences.clear();
       m_semaphores.clear();
       m_copyListPool.clear();
@@ -1883,6 +1995,7 @@ namespace higanbana
       auto elementSize = desc.stride; // TODO: actually 0 most of the time. FIX SIZE FROM FORMAT.
       auto sizeInElements = desc.width;
       auto firstElement = viewDesc.m_firstElement * elementSize;
+      HIGAN_ASSERT(viewDesc.m_firstElement == firstElement, "first element should be something else element %u vs byteoffset %u", viewDesc.m_firstElement, firstElement);
       auto maxRange = viewDesc.m_elementCount * elementSize;
       if (viewDesc.m_elementCount <= 0)
         maxRange = elementSize * sizeInElements; // VK_WHOLE_SIZE
@@ -1914,7 +2027,7 @@ namespace higanbana
             .setBuffer(native.native())
             .setFormat(formatToVkFormat(format).view)
             .setOffset(firstElement)
-          .setRange(maxRange));
+            .setRange(maxRange));
           VK_CHECK_RESULT(viewRes);
           m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value, type);
         }
@@ -1928,7 +2041,7 @@ namespace higanbana
             .setBuffer(native.native())
             .setFormat(formatToVkFormat(format).view)
             .setOffset(firstElement)
-          .setRange(maxRange));
+            .setRange(maxRange));
           VK_CHECK_RESULT(viewRes);
           m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value, type);
         }
@@ -1937,7 +2050,8 @@ namespace higanbana
         }
       }
       if (handle.type == ViewResourceType::BufferIBV) {
-        m_allRes.bufIBV[handle] = VulkanBufferView(native.native(), 0, vk::IndexType::eUint16);
+        vk::IndexType type = (format == FormatType::Uint16) ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
+        m_allRes.bufIBV[handle] = VulkanBufferView(native.native(), firstElement, type);
       }
     }
 
@@ -2248,11 +2362,77 @@ namespace higanbana
             break;
           }
           default:
-            continue;
+          {
+            // figure null resource here..
+            switch(binddesc.type)
+            {
+              case ShaderResourceType::Buffer:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setPTexelBufferView(&nullTexelView);
+                break;
+              }
+              case ShaderResourceType::ByteAddressBuffer:
+              case ShaderResourceType::StructuredBuffer:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                writeSet = writeSet.setPBufferInfo(&nullStorageBuffer);
+                break;
+              }
+              case ShaderResourceType::Texture1D:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::Texture1DArray:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::Texture2D:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::Texture2DArray:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::Texture3D:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::TextureCube:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              case ShaderResourceType::TextureCubeArray:
+              {
+                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                //writeSet = writeSet.setPTexelBufferView(&desc.view);
+                break;
+              }
+              default:
+              {
+                HIGAN_ERROR("unhandled null resource");
+              }
+            }
+          }
         }
 
         writeDescriptors.emplace_back(writeSet);
       }
+      
+      HIGAN_ASSERT(descriptions.size() == writeDescriptors.size(), "size should match");
 
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
       m_device.updateDescriptorSets(writes, {});

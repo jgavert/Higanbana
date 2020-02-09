@@ -318,6 +318,7 @@ void mainWindow(ProgramParams& params)
       }
       else
       {
+        gpus = graphics.availableGpus();
         auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
         allGpus.emplace_back(gpuInfo);
       }

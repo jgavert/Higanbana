@@ -104,6 +104,18 @@ namespace app
     views[index] = {};
   }
 
+  int MaterialDB::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MaterialData& data)
+  {
+    auto val = freelist.allocate();
+    if (views.size() < val+1) views.resize(val+1);
+    return val;
+  }
+
+  void MaterialDB::free(int index)
+  {
+    views[index] = {};
+  }
+
   int Renderer::loadMesh(MeshData& data)
   {
     return meshes.allocate(dev, worldRend.meshArgLayout(), data);

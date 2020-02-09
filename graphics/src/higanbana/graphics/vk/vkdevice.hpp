@@ -71,6 +71,23 @@ namespace higanbana
       size_t m_maxDescriptorSets;
 
       Resources m_allRes;
+    
+      // null views
+      vk::DeviceMemory nullHeap;
+      vk::Buffer nullBuffer;
+      vk::Image nullImage1d;
+      //vk::Image nullImage2d;
+      vk::Image nullImage3d;
+      vk::Image nullImageCube;
+      vk::DescriptorBufferInfo nullStorageBuffer;
+      vk::BufferView nullTexelView;
+      vk::ImageView nullTex1d;
+      vk::ImageView nullTex1da;
+      vk::ImageView nullTex2d;
+      vk::ImageView nullTex2da;
+      vk::ImageView nullTex3d;
+      vk::ImageView nullTexcube;
+      vk::ImageView nullTexca;
 
       // thread lock stuff
       std::mutex m_deviceLock;

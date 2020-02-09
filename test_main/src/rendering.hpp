@@ -22,6 +22,7 @@ struct MeshViews
   higanbana::BufferSRV uvs;
   higanbana::BufferSRV normals;
 };
+
 class MeshSystem
 {
   higanbana::FreelistAllocator freelist;
@@ -30,6 +31,22 @@ class MeshSystem
 public:
   int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data);
   MeshViews& operator[](int index) { return views[index]; }
+  void free(int index);
+};
+
+struct MaterialViews
+{
+  higanbana::TextureSRV albedo;
+};
+
+class MaterialDB
+{
+  higanbana::FreelistAllocator freelist;
+  higanbana::vector<MaterialViews> views;
+
+public:
+  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& materialLayout, MaterialData& data);
+  MaterialViews& operator[](int index) { return views[index]; }
   void free(int index);
 };
 
