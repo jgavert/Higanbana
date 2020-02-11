@@ -88,7 +88,7 @@ namespace higanbana
       vk::ImageView nullTex2d;
       vk::DescriptorImageInfo nullTex2dd;
       vk::ImageView nullTex2da;
-      vk::DescriptorImageInfo nullTex1dad;
+      vk::DescriptorImageInfo nullTex2dad;
       vk::ImageView nullTex3d;
       vk::DescriptorImageInfo nullTex3dd;
       vk::ImageView nullTexcube;

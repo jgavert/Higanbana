@@ -1,4 +1,5 @@
 #include "higanbana/graphics/desc/formats.hpp"
+#include <higanbana/core/global_debug.hpp>
 
 namespace higanbana
 {
@@ -13,38 +14,52 @@ namespace higanbana
 
   static constexpr FormatSizeInfo FormatToSizeTable[] =
   {
-    { FormatType::Unknown, 0, 0},
-    { FormatType::Uint32RGBA, 16, 4 },
-    { FormatType::Uint32RGB, 12, 3 },
-    { FormatType::Uint32RG, 8, 2 },
-    { FormatType::Uint32, 4, 1 },
-    { FormatType::Float32RGBA, 16, 4 },
-    { FormatType::Float32RGB, 12, 3 },
-    { FormatType::Float32RG, 8, 2 },
-    { FormatType::Float32, 4, 1 },
-    { FormatType::Float16RGBA, 8, 4 },
-    { FormatType::Float16RG, 4, 2 },
-    { FormatType::Float16, 2, 1 },
-    { FormatType::Unorm16RGBA, 8, 4 },
-    { FormatType::Unorm16RG, 4, 2 },
-    { FormatType::Unorm16, 2, 1 },
-    { FormatType::Uint16RGBA, 8, 4 },
-    { FormatType::Uint16RG, 4, 2 },
-    { FormatType::Uint16, 2, 1 },
-    { FormatType::Uint8RGBA, 4, 4 },
-    { FormatType::Uint8RG, 2, 2 },
-    { FormatType::Uint8, 1, 1 },
-    { FormatType::Unorm8, 1, 1 },
-    { FormatType::Int8RGBA, 4, 4 },
-    { FormatType::Unorm8RGBA, 4, 4 },
-    { FormatType::Unorm8SRGBA, 4, 4 },
-    { FormatType::Unorm8BGRA, 4, 4 },
-    { FormatType::Unorm8SBGRA, 4, 4 },
-    { FormatType::Unorm10RGB2A, 4, 4 },
-    { FormatType::Raw32, 4, 1 },
-    { FormatType::Depth32, 4, 1 },
-    { FormatType::Depth32_Stencil8, 8, 1 },
+    { FormatType::Unknown, 0, 0, FormatTypeIdentifier::Unknown},
+    { FormatType::Uint32RGBA, 16, 4, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint32RGB, 12, 3, FormatTypeIdentifier::Unsigned},
+    { FormatType::Uint32RG, 8, 2, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint32, 4, 1, FormatTypeIdentifier::Unsigned },
+    { FormatType::Float32RGBA, 16, 4, FormatTypeIdentifier::Float },
+    { FormatType::Float32RGB, 12, 3, FormatTypeIdentifier::Float },
+    { FormatType::Float32RG, 8, 2, FormatTypeIdentifier::Float },
+    { FormatType::Float32, 4, 1, FormatTypeIdentifier::Float },
+    { FormatType::Float16RGBA, 8, 4, FormatTypeIdentifier::Float },
+    { FormatType::Float16RG, 4, 2, FormatTypeIdentifier::Float },
+    { FormatType::Float16, 2, 1, FormatTypeIdentifier::Float },
+    { FormatType::Unorm16RGBA, 8, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm16RG, 4, 2, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm16, 2, 1, FormatTypeIdentifier::Unorm },
+    { FormatType::Uint16RGBA, 8, 4, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint16RG, 4, 2, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint16, 2, 1, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint8RGBA, 4, 4, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint8RG, 2, 2, FormatTypeIdentifier::Unsigned },
+    { FormatType::Uint8, 1, 1, FormatTypeIdentifier::Unsigned },
+    { FormatType::Unorm8, 1, 1, FormatTypeIdentifier::Unorm },
+    { FormatType::Int8RGBA, 4, 4, FormatTypeIdentifier::Signed },
+    { FormatType::Unorm8RGBA, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm8SRGBA, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm8BGRA, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm8SBGRA, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Unorm10RGB2A, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::Raw32, 4, 1, FormatTypeIdentifier::Unknown },
+    { FormatType::Depth32, 4, 1, FormatTypeIdentifier::Unknown },
+    { FormatType::Depth32_Stencil8, 8, 1, FormatTypeIdentifier::Unknown },
   };
+
+  FormatType findFormat(int components, int bits, FormatTypeIdentifier pixelType)
+  {
+    auto wantedPixelSize = (bits / 8) * components;
+    HIGAN_ASSERT(wantedPixelSize > 0, "Yes, please bigger than 0 pixel sizes thankyou, probably error");
+    for (auto&& format : FormatToSizeTable)
+    {
+      if (format.pixelSize == wantedPixelSize && pixelType == format.pixelType)
+      {
+        return format.fm;
+      }
+    }
+    return FormatType::Unknown;
+  }
 
   FormatSizeInfo formatSizeInfo(FormatType format)
   {

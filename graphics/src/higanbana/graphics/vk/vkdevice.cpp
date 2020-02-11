@@ -687,7 +687,7 @@ namespace higanbana
       nullTex2d = makeView(vk::ImageViewType::e2D, nullImageCube);
       nullTex2dd = dii.setImageView(nullTex2d);
       nullTex2da = makeView(vk::ImageViewType::e2DArray, nullImageCube);
-      nullTex2dad = dii.setImageView(nullTex2da):
+      nullTex2dad = dii.setImageView(nullTex2da);
       nullTex3d = makeView(vk::ImageViewType::e3D, nullImage3d);
       nullTex3dd = dii.setImageView(nullTex3d);
       nullTexcube = makeView(vk::ImageViewType::eCube, nullImageCube);

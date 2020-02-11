@@ -96,11 +96,47 @@ higanbana::FormatType gltfComponentTypeToFormatType(int value)
   return higanbana::FormatType::Unknown;
 }
 
+higanbana::FormatTypeIdentifier gltfComponentTypeToFormatTypeIdent(int value)
+{
+  switch (value)
+  {
+  case TINYGLTF_COMPONENT_TYPE_BYTE:
+    return higanbana::FormatTypeIdentifier::Signed;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+    return higanbana::FormatTypeIdentifier::Unsigned;
+  case TINYGLTF_COMPONENT_TYPE_SHORT:
+    return higanbana::FormatTypeIdentifier::Signed;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+    return higanbana::FormatTypeIdentifier::Unsigned;
+  case TINYGLTF_COMPONENT_TYPE_INT:
+    return higanbana::FormatTypeIdentifier::Signed;
+  case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+    return higanbana::FormatTypeIdentifier::Unsigned;
+  case TINYGLTF_COMPONENT_TYPE_FLOAT:
+    return higanbana::FormatTypeIdentifier::Float;
+  case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+    return higanbana::FormatTypeIdentifier::Double;
+  default:
+    HIGAN_ASSERT(false, "Unknown gltf component type %d", value);
+  }
+  return higanbana::FormatTypeIdentifier::Unknown;
+}
+
+higanbana::FormatType convertTinygltfFormat(int component, int bits, int pixel_type)
+{
+  auto format = higanbana::findFormat(component, bits, gltfComponentTypeToFormatTypeIdent(pixel_type));
+  HIGAN_ASSERT(format != higanbana::FormatType::Unknown, "Should find a valid format");
+  return format;
+}
+
 namespace app
 {
-  MeshData& World::getMesh(int index) {
-    return rawMeshData[index];
-  }
+MeshData& World::getMesh(int index) {
+  return rawMeshData[index];
+}
+TextureData& World::getTexture(int index) {
+  return rawTextureData[index];
+}
 void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
   for (auto&& file : fs.recursiveList(dir, ".gltf"))
@@ -163,6 +199,39 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         entityNodes.emplace_back(id);
       }
 
+      // collect all textures
+      higanbana::vector<int> indexToRawImages(model.textures.size(), 0);
+      for (auto&& tex : model.textures)
+      {
+        auto imageIdx = tex.source;
+        if (imageIdx >= 0)
+        {
+          auto& image = model.images[imageIdx];
+          HIGAN_LOGi("image: %s\n", image.uri.c_str());
+          HIGAN_ASSERT(image.bufferView == -1, "WTF!");
+
+          higanbana::ResourceDescriptor desc = higanbana::ResourceDescriptor()
+            .setName(image.uri)
+            .setSize(uint3(image.width, image.height, 1))
+            .setFormat(convertTinygltfFormat(image.component, image.bits, image.pixel_type));
+          higanbana::CpuImage himage(desc);
+          auto subres = himage.subresource(0,0);
+          auto ourSize = subres.size();
+          auto theirSize = image.image.size();
+          HIGAN_ASSERT(ourSize == theirSize, "sizes should match, about");
+          memcpy(subres.data(), image.image.data(), image.image.size());
+
+          auto id = freelistTexture.allocate();
+          if (rawTextureData.size() <= id) rawTextureData.resize(id+1);
+          rawTextureData[id].image = himage;
+          indexToRawImages[imageIdx] = id;
+
+          auto ent = database.createEntity();
+          auto& table = database.get<components::RawTextureData>();
+          table.insert(ent, {id});
+        }
+      }
+
       // create scene entities and link scenenodes as childs
       for (auto&& scene : model.scenes)
       {
@@ -179,12 +248,47 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         scenes.push_back(id);
       }
 
+
+      // find material
+      higanbana::vector<higanbana::Id> materials(model.materials.size(), -1);
+      for (int i = 0; i < model.materials.size(); ++i)
+      {
+        auto& material = model.materials[i];
+        MaterialData md{};
+        auto getTextureIndex = [&](int index){
+          if (index >= 0)
+          {
+            auto tex = model.textures[index];
+            return indexToRawImages.at(tex.source);
+          }
+          return -1;
+        };
+        HIGAN_LOGi("material: %s alphaMode : %s\n", material.name.c_str(), material.alphaMode.c_str());
+        md.baseColorTexIndex = getTextureIndex(material.pbrMetallicRoughness.baseColorTexture.index);
+        memcpy(md.emissiveFactor.data, material.emissiveFactor.data(), sizeof(double) * material.emissiveFactor.size());
+        md.alphaCutoff = material.alphaCutoff;
+        md.doubleSided = material.doubleSided;
+        memcpy(md.baseColorFactor.data, material.pbrMetallicRoughness.baseColorFactor.data(), sizeof(double)*material.pbrMetallicRoughness.baseColorFactor.size()); 
+        md.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+        md.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
+        md.metallicRoughnessTexIndex = getTextureIndex(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+        md.normalTexIndex = getTextureIndex(material.normalTexture.index);
+        md.occlusionTextureIndex = getTextureIndex(material.occlusionTexture.index);
+        md.emissiveTextureIndex = getTextureIndex(material.emissiveTexture.index);
+
+        auto id = database.createEntity();
+        materials[i] = id;
+        auto& materials = database.get<MaterialData>();
+        materials.insert(id, md);
+      }
+
       // create mesh entities
       higanbana::vector<higanbana::Id> meshes;
       for (auto&& mesh : model.meshes)
       {
         HIGAN_LOGi("mesh found: %s with %zu primitives\n", mesh.name.c_str(), mesh.primitives.size());
         components::Childs childs;
+
         for (auto&& primitive : mesh.primitives)
         {
           MeshData md{};
@@ -259,7 +363,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             }
           }
 
-          auto id = freelist.allocate();
+          auto id = freelistMesh.allocate();
           if (rawMeshData.size() <= id) rawMeshData.resize(id+1);
 
           rawMeshData[id] = md;
@@ -267,6 +371,11 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
           auto ent = database.createEntity();
           auto& table = database.get<components::RawMeshData>();
           table.insert(ent, {id});
+          auto& mattable = database.get<components::MaterialInstance>();
+          if (primitive.material >= 0)
+          {
+            mattable.insert(ent, {materials[primitive.material]});
+          }
 
           childs.childs.push_back(ent);
         }

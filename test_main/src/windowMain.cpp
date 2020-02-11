@@ -356,6 +356,25 @@ void mainWindow(ProgramParams& params)
           gpuMesh.insert(id, instance);
         });
       }
+      // load textures to gpu
+      {
+        auto& gpuTexture = ecs.get<components::TextureInstance>();
+        query(pack(ecs.get<components::RawTextureData>()), // pack(ecs.getTag<components::MeshNode>()),
+          [&](higanbana::Id id, components::RawTextureData index) {
+          components::TextureInstance instance{rend.loadTexture(world.getTexture(index.id))};
+          gpuTexture.insert(id, instance);
+        });
+      }
+      // make initial materials
+      {
+        auto& gpuMaterial = ecs.get<components::MaterialGPUInstance>();
+        query(pack(ecs.get<MaterialData>()), // pack(ecs.getTag<components::MeshNode>()),
+        [&](higanbana::Id id, MaterialData material) {
+          int gpuid = rend.loadMaterial(material);
+          components::MaterialGPUInstance instance{gpuid};
+          gpuMaterial.insert(id, instance);
+        });
+      }
       {
         auto toggleHDR = false;
         rend.initWindow(window, allGpus[0]);

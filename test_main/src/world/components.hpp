@@ -54,10 +54,27 @@ struct RawMeshData
 {
   int id;
 };
+struct RawTextureData
+{
+  int id;
+};
 
 struct MeshInstance
 {
   int id;
+};
+
+struct TextureInstance
+{
+  int id;
+};
+struct MaterialGPUInstance
+{
+  int id;
+};
+struct MaterialInstance
+{
+  higanbana::Id id;
 };
 
 struct SceneInstance

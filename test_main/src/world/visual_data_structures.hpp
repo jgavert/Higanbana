@@ -2,6 +2,7 @@
 
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/graphics/desc/formats.hpp>
+#include <higanbana/graphics/common/cpuimage.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 
 struct InstanceDraw
@@ -20,8 +21,54 @@ struct ActiveCamera
   float maxZ;
 };
 
+struct TextureData
+{
+  higanbana::CpuImage image;
+};
+
+/*
+struct PBRMetallicRoughness
+{
+  double baseColorFactor[4];
+  int baseColorTexIndex;
+  double metallicFactor;
+  double roughnessFactor;
+  int metallicRoughnessTexIndex;
+};
+
 struct MaterialData
 {
+  double emissiveFactor[3];
+  double alphaCutoff;
+  bool doubleSided;
+  PBRMetallicRoughness pbr;
+
+  bool hadNormalTex;
+  bool hadOcclusionTexture;
+  bool hadEmissiveTexture;
+};*/
+
+struct MaterialData
+{
+  double3 emissiveFactor;
+  double alphaCutoff;
+  bool doubleSided;
+  bool normalTexIndex;
+  bool occlusionTextureIndex;
+  bool emissiveTextureIndex;
+  // pbr
+  double4 baseColorFactor;
+  int baseColorTexIndex;
+  double metallicFactor;
+  double roughnessFactor;
+  int metallicRoughnessTexIndex;
+};
+
+struct BufferData
+{
+  std::string name;
+  higanbana::FormatType format;
+  higanbana::vector<unsigned char> data;
 };
 
 struct MeshData

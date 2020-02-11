@@ -39,6 +39,17 @@ public:
   void free(int index);
 };
 
+class TextureDB 
+{
+  higanbana::FreelistAllocator freelist;
+  higanbana::vector<higanbana::TextureSRV> views;
+
+public:
+  int allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& data);
+  higanbana::TextureSRV& operator[](int index) { return views[index]; }
+  void free(int index);
+};
+
 struct MaterialViews
 {
   higanbana::TextureSRV albedo;
@@ -114,6 +125,10 @@ class Renderer
   higanbana::BufferUAV cameraUAV;
   higanbana::ShaderArguments staticDataArgs;
 
+  // materials
+  TextureDB textures;
+  MaterialDB materials;
+
   // camera
   float3 position;
   float3 dir;
@@ -148,5 +163,11 @@ public:
 
   int loadMesh(MeshData& data);
   void unloadMesh(int index);
+
+  int loadTexture(TextureData& data);
+  void unloadTexture(int index);
+
+  int loadMaterial(MaterialData& data);
+  void unloadMaterial(int index);
 };
 }

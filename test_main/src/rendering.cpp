@@ -203,6 +203,20 @@ namespace app
     views[index] = {};
   }
 
+  int TextureDB::allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& image)
+  {
+    auto val = freelist.allocate();
+    if (views.size() < val+1) views.resize(val+1);
+    auto& view = views[val];
+    view = gpu.createTextureSRV(gpu.createTexture(image));
+    return val;
+  }
+
+  void TextureDB::free(int index)
+  {
+    views[index] = {};
+  }
+
   int MaterialDB::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MaterialData& data)
   {
     auto val = freelist.allocate();
@@ -222,7 +236,27 @@ namespace app
 
   void Renderer::unloadMesh(int index)
   {
-    return meshes.free(index);
+    meshes.free(index);
+  }
+
+  int Renderer::loadTexture(TextureData& data)
+  {
+    return textures.allocate(dev, data.image);
+  }
+  void Renderer::unloadTexture(int index)
+  {
+    textures.free(index);
+  }
+
+  int Renderer::loadMaterial(MaterialData& material)
+  {
+    //materials.allocate()
+    return 0;
+  }
+  void Renderer::unloadMaterial(int index)
+  {
+
+    //return materials.free(index);
   }
 
   Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)

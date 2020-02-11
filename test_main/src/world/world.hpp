@@ -14,10 +14,15 @@ namespace app
 class World 
 {
   higanbana::vector<higanbana::Id> entities;
-  higanbana::FreelistAllocator freelist;
+  higanbana::FreelistAllocator freelistMesh;
   higanbana::vector<MeshData> rawMeshData;
+  higanbana::FreelistAllocator freelistBuffer;
+  higanbana::vector<MeshData> rawBufferData;
+  higanbana::FreelistAllocator freelistTexture;
+  higanbana::vector<TextureData> rawTextureData;
   public:
   void loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   MeshData& getMesh(int index); 
+  TextureData& getTexture(int index); 
 };
 };

@@ -14,6 +14,18 @@ namespace higanbana
     Count
   };
 
+  enum class FormatTypeIdentifier
+  {
+    Unknown = 0,
+    Unsigned,
+    Signed,
+    Float,
+    SFloat,
+    Double,
+    Unorm,
+    Count
+  };
+
   enum class FormatType
   {
     Unknown = 0,
@@ -60,8 +72,10 @@ namespace higanbana
     FormatType fm;
     int pixelSize;
     int componentCount;
+    FormatTypeIdentifier pixelType;
   };
 
+  FormatType findFormat(int components, int bits, FormatTypeIdentifier pixelType);
   FormatSizeInfo formatSizeInfo(FormatType format);
   int formatBitDepth(FormatType format);
 
