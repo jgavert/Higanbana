@@ -2078,7 +2078,7 @@ namespace higanbana
       native->waitTillReady(value);
     }
 
-    void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
+    void DX12Device::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished, int index)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       if (renderingFinished)

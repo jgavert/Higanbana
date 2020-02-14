@@ -192,7 +192,7 @@ namespace higanbana
         virtual uint64_t completedValue(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema) = 0;
         virtual void waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value) = 0;
 
-        virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<backend::SemaphoreImpl> renderingFinished) = 0;
+        virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<backend::SemaphoreImpl> renderingFinished, int index) = 0;
       };
 
       class SubsystemImpl

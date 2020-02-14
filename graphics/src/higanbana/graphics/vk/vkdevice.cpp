@@ -2912,11 +2912,12 @@ namespace higanbana
       m_device.waitSemaphoresKHR(wi, UINT64_MAX, m_dynamicDispatch);
     }
 
-    void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished)
+    void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished, int indexb)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
       uint32_t index = static_cast<uint32_t>(native->getCurrentPresentableImageIndex());
+      HIGAN_ASSERT(index == static_cast<uint32_t>(indexb), "index should match");
       vk::Semaphore renderFinish = nullptr;
       uint32_t semaphoreCount = 0;
       vk::SwapchainKHR swap = native->native();

@@ -189,7 +189,7 @@ namespace higanbana
       S().adjustSwapchain(swapchain, descriptor);
     }
 
-    std::optional<TextureRTV> acquirePresentableImage(Swapchain& swapchain)
+    std::optional<std::pair<int, TextureRTV>> acquirePresentableImage(Swapchain& swapchain)
     {
       return S().acquirePresentableImage(swapchain);
     }
@@ -209,9 +209,9 @@ namespace higanbana
       S().submit(std::optional<Swapchain>(), graph, threading);
     }
 
-    void present(Swapchain& swapchain)
+    void present(Swapchain& swapchain, int backbufferIndex)
     {
-      S().present(swapchain);
+      S().present(swapchain, backbufferIndex);
     }
 
     void garbageCollection()

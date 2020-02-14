@@ -196,7 +196,7 @@ namespace higanbana
 
       Swapchain createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor);
       void adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor);
-      std::optional<TextureRTV> acquirePresentableImage(Swapchain& swapchain);
+      std::optional<std::pair<int, TextureRTV>> acquirePresentableImage(Swapchain& swapchain);
       TextureRTV* tryAcquirePresentableImage(Swapchain& swapchain);
 
       Renderpass createRenderpass();
@@ -239,7 +239,7 @@ namespace higanbana
       CommandGraph startCommandGraph();
       //void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
-      void present(Swapchain& swapchain);
+      void present(Swapchain& swapchain, int backbufferIndex);
 
       // test
       void fillCommandBuffer(std::shared_ptr<CommandBufferImpl> nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing);

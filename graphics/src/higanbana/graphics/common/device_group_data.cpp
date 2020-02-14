@@ -300,7 +300,7 @@ namespace higanbana
       {
         vdev.device->waitGpuIdle();
       }
-      checkCompletedLists();
+      gc();
     }
 
     constexpr const int SwapchainDeviceID = 0;
@@ -430,7 +430,7 @@ namespace higanbana
       }
     }
 
-    std::optional<TextureRTV> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain) {
+    std::optional<std::pair<int, TextureRTV>> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain) {
       HIGAN_CPU_FUNCTION_SCOPE();
       while (m_asyncRunning > 0 && !m_asyns.empty())
       {
@@ -441,7 +441,7 @@ namespace higanbana
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
         return {};
-      return swapchain.buffers()[index];
+      return std::make_pair(index, swapchain.buffers()[index]);
     }
 
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain) {
@@ -780,7 +780,7 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image) {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto graph = CommandGraph(InvalidSeqNum, m_commandBuffers);
+      auto graph = startCommandGraph();
 
       vector<DynamicBufferView> allBufferToImages;
       auto arraySize = image.desc().desc.arraySize;
@@ -812,6 +812,7 @@ namespace higanbana
         }
       }
       submit(std::optional<Swapchain>(), graph, ThreadedSubmission::ParallelUnsequenced);
+      waitGpuIdle(); 
       return true;
     }
 
@@ -1879,11 +1880,11 @@ namespace higanbana
       }
     }
 
-    void DeviceGroupData::present(Swapchain & swapchain) {
+    void DeviceGroupData::present(Swapchain & swapchain, int backbufferIndex) {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_asyncRunning++;
-      m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl()]{
-        m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore());
+      m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl(), index = backbufferIndex]{
+        m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
       }));
     }
   }

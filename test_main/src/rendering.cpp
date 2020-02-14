@@ -796,13 +796,13 @@ namespace app
     }
 
     // If you acquire, you must submit it.
-    std::optional<TextureRTV> obackbuffer = dev.acquirePresentableImage(swapchain);
+    std::optional<std::pair<int,TextureRTV>> obackbuffer = dev.acquirePresentableImage(swapchain);
     if (!obackbuffer.has_value())
     {
       HIGAN_LOGi( "No backbuffer available...\n");
       return;
     }
-    TextureRTV backbuffer = obackbuffer.value();
+    TextureRTV backbuffer = obackbuffer.value().second;
     CommandGraph tasks = dev.createGraph();
 
     {
@@ -997,7 +997,7 @@ namespace app
     dev.submit(swapchain, tasks);
     {
       HIGAN_CPU_BRACKET("Present");
-      dev.present(swapchain);
+      dev.present(swapchain, obackbuffer.value().first);
     }
     time.tick();
   }
