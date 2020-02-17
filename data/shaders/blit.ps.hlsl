@@ -1,13 +1,7 @@
 #include "blit.if.hlsl"
-// this is trying to be Pixel shader file.
-#ifdef HIGANBANA_VULKAN
-#define VK_LOCATION(index) [[vk::location(index)]]
-#else // HIGANBANA_DX12
-#define VK_LOCATION(index) 
-#endif
 
 struct VertexOut { 
- VK_LOCATION(0) float4 uv : TEXCOORD0; 
+ float4 uv : TEXCOORD0; 
 //float4 pos : SV_Position;
 };
 

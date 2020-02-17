@@ -13,11 +13,10 @@ struct TSAAArguments
 };
 class ShittyTSAA
 {
-  higanbana::ShaderArgumentsLayout m_staticArgumentsLayout;
+  higanbana::ShaderArgumentsLayout m_args;
   higanbana::ComputePipeline m_pipeline;
-  higanbana::Renderpass m_renderpass;
 public:
   ShittyTSAA(higanbana::GpuGroup& device);
-  void temporalUpsample(higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args);
+  void resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args);
 };
 }

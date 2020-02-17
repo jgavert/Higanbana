@@ -265,6 +265,8 @@ namespace app
    , imgui(dev)
    , worldRend(dev)
    , worldMeshRend(dev)
+   , tsaa(dev)
+   , blitter(dev)
   {
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)
@@ -315,12 +317,7 @@ namespace app
     opaqueRP = dev.createRenderpass();
     opaqueRPWithLoad = dev.createRenderpass();
 
-    depth = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(uint2(1280, 720))
-      .setFormat(FormatType::Depth32)
-      .setUsage(ResourceUsage::DepthStencil)
-      .setName("opaqueDepth"));
-    depthDSV = dev.createTextureDSV(depth);
+
 
     proxyTex.resize(dev, ResourceDescriptor()
       .setSize(uint2(1280, 720))
@@ -351,10 +348,11 @@ namespace app
         .shaderArguments(0, blitLayout)));
     compositeRP = dev.createRenderpass();
 
-    targetRT.resize(dev, ResourceDescriptor()
+    tsaaResolved.resize(dev, ResourceDescriptor()
       .setSize(uint2(1280, 720))
       .setFormat(FormatType::Unorm8RGBA)
-      .setUsage(ResourceUsage::RenderTarget));
+      .setUsage(ResourceUsage::RenderTarget)
+      .setName("tsaaResolved"));
 
     size_t textureSize = 1280 * 720;
 
@@ -390,6 +388,21 @@ namespace app
     position = { -10.f, 0.f, -10.f };
     direction = { 1.f, 0.f, 0.f, 0.f };
 
+    // GBuffer
+    gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
+      .setSize(uint2(1280, 720))
+      .setFormat(FormatType::Unorm16RGBA)
+      .setUsage(ResourceUsage::RenderTargetRW)
+      .setName("gbuffer"));
+    gbufferRTV = dev.createTextureRTV(gbuffer);
+    gbufferSRV = dev.createTextureSRV(gbuffer);
+    depth = dev.createTexture(higanbana::ResourceDescriptor()
+      .setSize(gbuffer.desc().desc.size3D())
+      .setFormat(FormatType::Depth32)
+      .setUsage(ResourceUsage::DepthStencil)
+      .setName("opaqueDepth"));
+    depthDSV = dev.createTextureDSV(depth);
+
     time.startFrame();
   }
 
@@ -416,12 +429,18 @@ namespace app
       .setUsage(ResourceUsage::RenderTargetRW)
       .setName("proxyTex"));
 
-    targetRT.resize(dev, ResourceDescriptor()
+    tsaaResolved.resize(dev, ResourceDescriptor()
       .setSize(desc.desc.size3D())
       .setFormat(desc.desc.format)
-      .setUsage(ResourceUsage::RenderTarget)
-      .setName("targetRT"));
-
+      .setUsage(ResourceUsage::GpuRW)
+      .setName("tsaa current/history"));
+    gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
+      .setSize(desc.desc.size3D())
+      .setFormat(FormatType::Unorm16RGBA)
+      .setUsage(ResourceUsage::RenderTargetRW)
+      .setName("gbuffer"));
+    gbufferRTV = dev.createTextureRTV(gbuffer);
+    gbufferSRV = dev.createTextureSRV(gbuffer);
     depth = dev.createTexture(higanbana::ResourceDescriptor()
       .setSize(desc.desc.size3D())
       .setFormat(FormatType::Depth32)

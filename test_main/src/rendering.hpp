@@ -9,6 +9,8 @@
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
 #include "renderer/mesh_test.hpp"
+#include "renderer/tsaa.hpp"
+#include "renderer/blitter.hpp"
 #include "world/visual_data_structures.hpp"
 
 
@@ -101,7 +103,6 @@ class Renderer
   higanbana::WTime time;
 
   // shared textures
-  higanbana::PingPongTexture targetRT;
   higanbana::Buffer sBuf;
   higanbana::BufferSRV sBufSRV;
   
@@ -113,6 +114,9 @@ class Renderer
   higanbana::Texture fontatlas;
 
   // gbuffer??
+  higanbana::Texture gbuffer;
+  higanbana::TextureRTV gbufferRTV;
+  higanbana::TextureSRV gbufferSRV;
   higanbana::Texture depth;
   higanbana::TextureDSV depthDSV;
 
@@ -135,6 +139,13 @@ class Renderer
   float3 updir;
   float3 sideVec;
   quaternion direction;
+
+  // postprocess
+  ShittyTSAA tsaa;
+  higanbana::PingPongTexture tsaaResolved;
+
+  Blitter blitter;
+
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
 

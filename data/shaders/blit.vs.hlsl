@@ -1,16 +1,10 @@
 #include "blit.if.hlsl"
 
-#ifdef HIGANBANA_VULKAN
-#define VK_LOCATION(index) [[vk::location(index)]]
-#else // HIGANBANA_DX12
-#define VK_LOCATION(index) 
-#endif
-
 // this is trying to be Vertex shader file.
 struct VertexOut
 {
-  VK_LOCATION(0) float4 uv : TEXCOORD0;
-  VK_LOCATION(1) float4 pos : SV_Position;
+  float4 uv : TEXCOORD0;
+  float4 pos : SV_Position;
 };
 
 [RootSignature(ROOTSIG)]
