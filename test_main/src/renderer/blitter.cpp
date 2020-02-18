@@ -5,6 +5,8 @@ SHADER_STRUCT(BlitConstants,
 );
 namespace app 
 {
+namespace renderer
+{
 Blitter::Blitter(higanbana::GpuGroup& device)
 {
   using namespace higanbana;
@@ -171,5 +173,6 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   auto binding = node.bind(pipeline);
   binding.arguments(0, args);
   node.draw(binding, 6, 1);
+}
 }
 }

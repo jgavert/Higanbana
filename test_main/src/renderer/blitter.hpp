@@ -3,6 +3,8 @@
 
 namespace app
 {
+namespace renderer
+{
 class Blitter
 {
   higanbana::ShaderArgumentsLayout m_input;
@@ -25,4 +27,5 @@ public:
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, int2 topleft, int2 size);
   void blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, FitMode mode);
 };
+}
 }

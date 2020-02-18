@@ -4,8 +4,9 @@ SHADER_STRUCT(DebugConstants,
   uint meshletCount;
   float3 pos;
 );
-
 namespace app
+{
+namespace renderer 
 {
 MeshTest::MeshTest(higanbana::GpuGroup& device)
 {
@@ -56,5 +57,6 @@ void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIB
   binding.arguments(1, meshBuffers);
   binding.constants(DebugConstants{meshlets, float3(0,0,0)});
   node.dispatchMesh(binding, uint3(1,1,1));
+}
 }
 }

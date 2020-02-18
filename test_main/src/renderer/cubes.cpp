@@ -13,6 +13,8 @@ SHADER_STRUCT(OpaqueConsts,
 
 namespace app
 {
+namespace renderer
+{
 Cubes::Cubes(higanbana::GpuGroup& device){
   using namespace higanbana;
   higanbana::ShaderArgumentsLayoutDescriptor triangleLayoutDesc = ShaderArgumentsLayoutDescriptor()
@@ -347,5 +349,6 @@ void Cubes::oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::Comm
     */
   }
   node.endRenderpass();
+}
 }
 }

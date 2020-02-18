@@ -6,7 +6,9 @@ SHADER_STRUCT(DebugConstants,
 
 namespace app
 {
-WorldRenderer::WorldRenderer(higanbana::GpuGroup& device)
+namespace renderer 
+{
+World::World(higanbana::GpuGroup& device)
 {
   using namespace higanbana;
   ShaderArgumentsLayoutDescriptor staticDataLayout = ShaderArgumentsLayoutDescriptor()
@@ -40,21 +42,22 @@ WorldRenderer::WorldRenderer(higanbana::GpuGroup& device)
   m_renderpass = device.createRenderpass();
 }
 
-void WorldRenderer::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth)
+void World::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth)
 {
   node.renderpass(m_renderpass, target, depth);
 }
-void WorldRenderer::endRenderpass(higanbana::CommandGraphNode& node)
+void World::endRenderpass(higanbana::CommandGraphNode& node)
 {
   node.endRenderpass();
 }
 
-void WorldRenderer::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
   binding.constants(DebugConstants{float3(0,0,0)});
   node.drawIndexed(binding, ibv, ibv.desc().desc.width);
+}
 }
 }

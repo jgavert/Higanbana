@@ -6,6 +6,8 @@
 
 namespace app
 {
+namespace renderer
+{
 struct TSAAArguments
 {
   higanbana::TextureSRV source;
@@ -19,4 +21,5 @@ public:
   ShittyTSAA(higanbana::GpuGroup& device);
   void resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args);
 };
+}
 }

@@ -5,6 +5,8 @@
 
 namespace app
 {
+namespace renderer
+{
 class Cubes 
 {
   higanbana::ShaderArgumentsLayout triangleLayout;
@@ -44,4 +46,5 @@ public:
   void oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::DynamicBufferView ind,
         higanbana::ShaderArguments& args, int cubeCount, int xBegin, int xEnd);
 };
+}
 }

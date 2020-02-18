@@ -12,63 +12,14 @@
 #include "renderer/tsaa.hpp"
 #include "renderer/blitter.hpp"
 #include "renderer/cubes.hpp"
+#include "renderer/meshes.hpp"
+#include "renderer/textures.hpp"
+#include "renderer/materials.hpp"
 #include "world/visual_data_structures.hpp"
 
 
 namespace app
 {
-struct MeshViews
-{
-  higanbana::BufferIBV indices;
-  higanbana::ShaderArguments args;
-  higanbana::ShaderArguments meshArgs;
-  higanbana::BufferSRV vertices;
-  higanbana::BufferSRV uvs;
-  higanbana::BufferSRV normals;
-  // mesh shader required
-  higanbana::BufferSRV uniqueIndices;
-  higanbana::BufferSRV packedIndices;
-  higanbana::BufferSRV meshlets;
-};
-
-class MeshSystem
-{
-  higanbana::FreelistAllocator freelist;
-  higanbana::vector<MeshViews> views;
-
-public:
-  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& normalLayout,higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data);
-  MeshViews& operator[](int index) { return views[index]; }
-  void free(int index);
-};
-
-class TextureDB 
-{
-  higanbana::FreelistAllocator freelist;
-  higanbana::vector<higanbana::TextureSRV> views;
-
-public:
-  int allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& data);
-  higanbana::TextureSRV& operator[](int index) { return views[index]; }
-  void free(int index);
-};
-
-struct MaterialViews
-{
-  higanbana::TextureSRV albedo;
-};
-
-class MaterialDB
-{
-  higanbana::FreelistAllocator freelist;
-  higanbana::vector<MaterialViews> views;
-
-public:
-  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& materialLayout, MaterialData& data);
-  MaterialViews& operator[](int index) { return views[index]; }
-  void free(int index);
-};
-
 struct RendererOptions
 {
   bool allowMeshShaders = false;
@@ -83,35 +34,9 @@ class Renderer
 
   higanbana::SwapchainDescriptor scdesc;
   higanbana::Swapchain swapchain;
-  // resources
-  app::Cubes cubes;
-
-  higanbana::PingPongTexture proxyTex;
-  higanbana::ShaderArgumentsLayout compLayout;
-  higanbana::ComputePipeline genTexCompute;
-
-  higanbana::ShaderArgumentsLayout blitLayout;
-  higanbana::GraphicsPipeline composite;
-  higanbana::Renderpass compositeRP;
-  // info
-  higanbana::WTime time;
-
-  renderer::IMGui imgui;
-
-  higanbana::CpuImage image;
-  higanbana::Texture fontatlas;
-
-  // gbuffer??
-  higanbana::Texture gbuffer;
-  higanbana::TextureRTV gbufferRTV;
-  higanbana::TextureSRV gbufferSRV;
-  higanbana::Texture depth;
-  higanbana::TextureDSV depthDSV;
 
   // meshes
   MeshSystem meshes;
-  WorldRenderer worldRend;
-  MeshTest worldMeshRend;
   higanbana::Buffer cameras;
   higanbana::BufferSRV cameraSRV;
   higanbana::BufferUAV cameraUAV;
@@ -121,12 +46,36 @@ class Renderer
   TextureDB textures;
   MaterialDB materials;
 
+  // renderers
+  renderer::Cubes cubes;
+  renderer::IMGui imgui;
+  renderer::World worldRend;
+  renderer::MeshTest worldMeshRend;
   // postprocess
-  ShittyTSAA tsaa;
-  higanbana::PingPongTexture tsaaResolved;
+  renderer::ShittyTSAA tsaa;
+  renderer::Blitter blitter;
 
-  Blitter blitter;
+  //resources
+  // gbuffer??
+  higanbana::Texture gbuffer;
+  higanbana::TextureRTV gbufferRTV;
+  higanbana::TextureSRV gbufferSRV;
+  higanbana::Texture depth;
+  higanbana::TextureDSV depthDSV;
+  // other
+  higanbana::PingPongTexture tsaaResolved; // tsaa history/current
 
+  higanbana::PingPongTexture proxyTex; // used for background color
+  higanbana::ShaderArgumentsLayout compLayout;
+  higanbana::ComputePipeline genTexCompute; // generate proxyTex
+
+  // could probably be replaced with blitter...
+  higanbana::ShaderArgumentsLayout blitLayout;
+  higanbana::GraphicsPipeline composite;
+  higanbana::Renderpass compositeRP;
+
+  // info
+  higanbana::WTime time;
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);

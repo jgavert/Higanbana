@@ -31,628 +31,418 @@ SHADER_STRUCT(OpaqueConsts,
   float4x4 viewMat;
 );
 
-struct MeshletPrepare
-{
-  higanbana::vector<uint32_t> uniqueIndexes;
-  higanbana::vector<uint8_t> packedIndexes;
-  higanbana::vector<WorldMeshlet> meshlets;
-};
-
 namespace app
 {
-  template <typename T>
-  MeshletPrepare createMeshlets(const higanbana::MemView<T>& indices)
+int Renderer::loadMesh(MeshData& data) {
+  return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data);
+}
+
+void Renderer::unloadMesh(int index) {
+  meshes.free(index);
+}
+
+int Renderer::loadTexture(TextureData& data) {
+  return textures.allocate(dev, data.image);
+}
+void Renderer::unloadTexture(int index) {
+  textures.free(index);
+}
+
+int Renderer::loadMaterial(MaterialData& material) {
+  //materials.allocate()
+  return 0;
+}
+void Renderer::unloadMaterial(int index) {
+  //return materials.free(index);
+}
+
+Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
+  : graphics(graphics)
+  , dev(dev)
+  , imgui(dev)
+  , worldRend(dev)
+  , worldMeshRend(dev)
+  , tsaa(dev)
+  , blitter(dev)
+  , cubes(dev) {
+  scdesc = SwapchainDescriptor()
+    .formatType(FormatType::Unorm8RGBA)
+    .colorspace(Colorspace::BT709)
+    .bufferCount(3).presentMode(PresentMode::Mailbox);
+
+  auto basicDescriptor = GraphicsPipelineDescriptor()
+    .setVertexShader("Triangle")
+    .setPixelShader("Triangle")
+    .setPrimitiveTopology(PrimitiveTopology::Triangle)
+    .setRTVFormat(0, FormatType::Unorm8BGRA)
+    .setRenderTargetCount(1)
+    .setDepthStencil(DepthStencilDescriptor()
+      .setDepthEnable(false));
+
+  proxyTex.resize(dev, ResourceDescriptor()
+    .setSize(uint2(1280, 720))
+    .setFormat(FormatType::Unorm8RGBA)
+    .setUsage(ResourceUsage::RenderTargetRW));
+
+  higanbana::ShaderArgumentsLayoutDescriptor layoutdesc = ShaderArgumentsLayoutDescriptor()
+    .readWrite(ShaderResourceType::Texture2D, "float4", "output");
+  compLayout = dev.createShaderArgumentsLayout(layoutdesc);
+  higanbana::PipelineInterfaceDescriptor babyInf2 = PipelineInterfaceDescriptor()
+    .constants<ComputeConstants>()
+    .shaderArguments(0, compLayout);
+
+  genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
+  .setInterface(babyInf2)
+  .setShader("simpleEffectAssyt")
+  .setThreadGroups(uint3(8, 4, 1)));
+
+  higanbana::ShaderArgumentsLayoutDescriptor layoutdesc2 = ShaderArgumentsLayoutDescriptor()
+    .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
+    .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
+  blitLayout = dev.createShaderArgumentsLayout(layoutdesc2);
+  composite = dev.createGraphicsPipeline(basicDescriptor
+    .setVertexShader("blit")
+    .setPixelShader("blit")
+    .setInterface(PipelineInterfaceDescriptor()
+      .constants<PixelConstants>()
+      .shaderArguments(0, blitLayout)));
+  compositeRP = dev.createRenderpass();
+
+  tsaaResolved.resize(dev, ResourceDescriptor()
+    .setSize(uint2(1280, 720))
+    .setFormat(FormatType::Unorm8RGBA)
+    .setUsage(ResourceUsage::RenderTarget)
+    .setName("tsaaResolved"));
+
+  size_t textureSize = 1280 * 720;
+
+  cameras = dev.createBuffer(ResourceDescriptor()
+  .setCount(10)
+  .setStructured<CameraSettings>()
+  .setName("Cameras")
+  .setUsage(ResourceUsage::GpuRW));
+  cameraSRV = dev.createBufferSRV(cameras);
+  cameraUAV = dev.createBufferUAV(cameras);
+
+
+  staticDataArgs = dev.createShaderArguments(ShaderArgumentsDescriptor("camera and other static data", worldRend.staticDataLayout())
+    .bind("cameras", cameraSRV));
+
+  // GBuffer
+  gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
+    .setSize(uint2(1280, 720))
+    .setFormat(FormatType::Unorm16RGBA)
+    .setUsage(ResourceUsage::RenderTargetRW)
+    .setName("gbuffer"));
+  gbufferRTV = dev.createTextureRTV(gbuffer);
+  gbufferSRV = dev.createTextureSRV(gbuffer);
+  depth = dev.createTexture(higanbana::ResourceDescriptor()
+    .setSize(gbuffer.desc().desc.size3D())
+    .setFormat(FormatType::Depth32)
+    .setUsage(ResourceUsage::DepthStencil)
+    .setName("opaqueDepth"));
+  depthDSV = dev.createTextureDSV(depth);
+
+  time.startFrame();
+}
+
+void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
+  surface = graphics.createSurface(window, info);
+  swapchain = dev.createSwapchain(surface, scdesc);
+}
+
+int2 Renderer::windowSize() {
+  if (swapchain.buffers().empty())
+    return int2(1,1);
+  return swapchain.buffers().front().desc().desc.size3D().xy();
+}
+
+void Renderer::windowResized() {
+  dev.adjustSwapchain(swapchain, scdesc);
+
+  auto& desc = swapchain.buffers().front().desc();
+  proxyTex.resize(dev, ResourceDescriptor()
+    .setSize(desc.desc.size3D())
+    .setFormat(desc.desc.format)
+    .setUsage(ResourceUsage::RenderTargetRW)
+    .setName("proxyTex"));
+
+  tsaaResolved.resize(dev, ResourceDescriptor()
+    .setSize(desc.desc.size3D())
+    .setFormat(desc.desc.format)
+    .setUsage(ResourceUsage::GpuRW)
+    .setName("tsaa current/history"));
+  gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
+    .setSize(desc.desc.size3D())
+    .setFormat(FormatType::Unorm16RGBA)
+    .setUsage(ResourceUsage::RenderTargetRW)
+    .setName("gbuffer"));
+  gbufferRTV = dev.createTextureRTV(gbuffer);
+  gbufferSRV = dev.createTextureSRV(gbuffer);
+  depth = dev.createTexture(higanbana::ResourceDescriptor()
+    .setSize(desc.desc.size3D())
+    .setFormat(FormatType::Depth32)
+    .setUsage(ResourceUsage::DepthStencil)
+    .setName("opaqueDepth"));
+
+  depthDSV = dev.createTextureDSV(depth);
+}
+
+std::optional<higanbana::SubmitTiming> Renderer::timings() {
+  auto info = dev.submitTimingInfo();
+  if (!info.empty())
+    m_previousInfo = info.front();
+  
+  return m_previousInfo;
+}
+
+void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
+  // upload data to gpu :P
+  vector<CameraSettings> sets;
+  sets.push_back(CameraSettings{viewMat});
+  auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+  node.copy(cameras, matUpdate);
+
+
+  backbuffer.setOp(LoadOp::Load);
+  depthDSV.clearOp({});
+  worldRend.beginRenderpass(node, backbuffer, depthDSV);
+  for (auto&& instance : instances)
   {
-    MeshletPrepare meshlets{};
-    constexpr const int maxUniqueVertices = 64; // max indice count per meshlet
-    constexpr const int maxPrimitives = 126; // max indice count per meshlet
-    size_t i = 0;
-    size_t max_size = indices.size();
-    WorldMeshlet currentMeshlet{};
-    while (i < max_size) {
-      if (currentMeshlet.primitives + 1 > maxPrimitives || currentMeshlet.vertices + 3 > maxUniqueVertices)
-      {
-        meshlets.meshlets.push_back(currentMeshlet);
-        currentMeshlet = WorldMeshlet{0, 0, static_cast<uint>(meshlets.uniqueIndexes.size()), static_cast<uint>(meshlets.packedIndexes.size())};
-      }
-      uint i1 = indices[i];
-      uint i2 = indices[i+1];
-      uint i3 = indices[i+2];
-      i = i+3;
-      currentMeshlet.primitives++;
+    auto& mesh = meshes[instance.meshId];
+    worldRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
+  }
+  worldRend.endRenderpass(node);
+}
 
-      auto getPackedIndex = [](higanbana::vector<uint32_t>& ui, uint& vertices, uint uOffset, uint value) -> uint8_t {
-        for (size_t i = uOffset; i < ui.size(); i++)
-        {
-          if (ui[i] == value)
-            return i - uOffset;
-        }
-        size_t packedIndex = ui.size() - uOffset;
-        ui.push_back(value);
-        vertices++;
-        HIGAN_ASSERT(packedIndex < 256, "uh oh");
-        return static_cast<uint8_t>(packedIndex);
-      };
-      auto v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.vertices, currentMeshlet.offsetUnique, i1);
-      meshlets.packedIndexes.push_back(v);
-      v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.vertices, currentMeshlet.offsetUnique, i2);
-      meshlets.packedIndexes.push_back(v);
-      v = getPackedIndex(meshlets.uniqueIndexes, currentMeshlet.vertices, currentMeshlet.offsetUnique, i3);
-      meshlets.packedIndexes.push_back(v);
-    }
-    meshlets.meshlets.push_back(currentMeshlet);
+void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
+  // upload data to gpu :P
+  vector<CameraSettings> sets;
+  sets.push_back(CameraSettings{viewMat});
+  auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+  node.copy(cameras, matUpdate);
 
-    return meshlets;
+  backbuffer.setOp(LoadOp::Load);
+  depthDSV.clearOp({});
+  
+  worldMeshRend.beginRenderpass(node, backbuffer, depthDSV);
+  for (auto&& instance : instances)
+  {
+    auto& mesh = meshes[instance.meshId];
+    worldMeshRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width);
+  }
+  node.endRenderpass();
+}
+
+void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+  if (swapchain.outOfDate()) // swapchain can end up being outOfDate
+  {
+    windowResized();
   }
 
-  int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& normalLayout,higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data)
+  // If you acquire, you must submit it.
+  std::optional<std::pair<int,TextureRTV>> obackbuffer = dev.acquirePresentableImage(swapchain);
+  if (!obackbuffer.has_value())
   {
-    auto val = freelist.allocate();
-    if (views.size() < val+1) views.resize(val+1);
+    HIGAN_LOGi( "No backbuffer available...\n");
+    return;
+  }
+  TextureRTV backbuffer = obackbuffer.value().second;
+  CommandGraph tasks = dev.createGraph();
 
-    auto sizeInfo = higanbana::formatSizeInfo(data.indiceFormat);
-    auto& view = views[val];
-    view.indices = gpu.createBufferIBV(ResourceDescriptor()
-      .setFormat(data.indiceFormat)
-      .setCount(data.indices.size() / sizeInfo.pixelSize)
-      .setUsage(ResourceUsage::GpuReadOnly)
-      .setIndexBuffer());
-    // mesh shader required
+  {
+    auto node = tasks.createPass("generate Texture");
 
-    MeshletPrepare meshlets;
-    if (data.indiceFormat == FormatType::Uint16)
+    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout)
+      .bind("output", proxyTex.uav()));
+
+    auto binding = node.bind(genTexCompute);
+    ComputeConstants consts{};
+    consts.time = time.getFTime();
+    consts.resx = proxyTex.desc().desc.width; 
+    consts.resy = proxyTex.desc().desc.height;
+    binding.constants(consts);
+    binding.arguments(0, args);
+
+    node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
+
+    tasks.addPass(std::move(node));
+  }
+
+  {
+    auto node = tasks.createPass("composite");
+    node.acquirePresentableImage(swapchain);
+    backbuffer.setOp(LoadOp::DontCare);
+    float redcolor = std::sin(time.getFTime())*.5f + .5f;
+
+    backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
+    node.renderpass(compositeRP, backbuffer);
     {
-      meshlets = createMeshlets(makeMemView(reinterpret_cast<uint16_t*>(data.indices.data()), data.indices.size()/2));
+      auto binding = node.bind(composite);
+
+      PixelConstants consts{};
+      consts.time = time.getFTime();
+      consts.resx = backbuffer.desc().desc.width; 
+      consts.resy = backbuffer.desc().desc.height;
+      binding.constants(consts);
+
+      vector<float> vertexData = {
+        -1.f, -1.f, 
+        -1.0f, 3.f,
+        3.0f, -1.0f};
+      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+
+      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("blit descriptors", blitLayout)
+        .bind("vertexInput", vert)
+        .bind("texInput", proxyTex.srv()));
+
+      binding.arguments(0, args);
+
+      node.draw(binding, 3);
+    }
+    node.endRenderpass();
+    tasks.addPass(std::move(node));
+  }
+
+  {
+    //auto node = tasks.createPass("opaquePass");
+
+    // camera forming...
+    auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
+    float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
+    float4x4 rot = math::rotationMatrixLH(camera.direction);
+    float4x4 pos = math::translation(camera.position);
+    auto perspective = math::mul(pos, math::mul(rot, pers));
+    HIGAN_CPU_BRACKET("user - outerloop");
+    vector<float> vertexData = {
+      1.0f, -1.f, -1.f,
+      1.0f, -1.f, 1.f, 
+      1.0f, 1.f, -1.f,
+      1.0f, 1.f, 1.f,
+      -1.0f, -1.f, -1.f,
+      -1.0f, -1.f, 1.f, 
+      -1.0f, 1.f, -1.f,
+      -1.0f, 1.f, 1.f,
+    };
+
+    auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
+    vector<uint16_t> indexData = {
+      1, 0, 2,
+      1, 2, 3,
+      5, 4, 0,
+      5, 0, 1,
+      7, 2, 6,
+      7, 3, 2,
+      5, 6, 4,
+      5, 7, 6,
+      6, 0, 4,
+      6, 2, 0,
+      7, 5, 1,
+      7, 1, 3,
+    };
+    auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
+
+    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
+      .bind("vertexInput", vert));
+    if (heightmap && instances.empty())
+    {
+      int pixelsToDraw = drawcalls;
+      backbuffer.setOp(LoadOp::Load);
+      depthDSV.clearOp({});
+      //auto node = tasks.createPass("opaquePass - cubes");
+      
+      vector<std::tuple<CommandGraphNode, int, int>> nodes;
+      int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(drawsSplitInto))+0.5f));
+      for (int i = 0; i < pixelsToDraw; i+=stepSize)
+      {
+        if (i+stepSize > pixelsToDraw)
+        {
+          stepSize = stepSize - (i+stepSize - pixelsToDraw);
+        }
+        nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
+      }
+
+
+      std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
+      {
+        HIGAN_CPU_BRACKET("user - innerloop");
+        auto depth = depthDSV;
+        if (std::get<1>(node) == 0)
+          depth.setOp(LoadOp::Clear);
+        else
+          depth.setOp(LoadOp::Load);
+        
+        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+      });
+
+      for (auto& node : nodes)
+      {
+        tasks.addPass(std::move(std::get<0>(node)));
+      }
+    }
+    else if (instances.empty())
+    {
+      backbuffer.setOp(LoadOp::Load);
+      depthDSV.clearOp({});
+      
+      vector<std::tuple<CommandGraphNode, int, int>> nodes;
+      int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
+      for (int i = 0; i < drawcalls; i+=stepSize)
+      {
+        if (i+stepSize > drawcalls)
+        {
+          stepSize = stepSize - (i+stepSize - drawcalls);
+        }
+        nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
+      }
+      std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
+      {
+        HIGAN_CPU_BRACKET("user - innerloop");
+        auto depth = depthDSV;
+        if (std::get<1>(node) == 0)
+          depth.setOp(LoadOp::Clear);
+        else
+          depth.setOp(LoadOp::Load);
+        
+        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, backbuffer, depth,ind, args,  drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
+      });
+
+      for (auto& node : nodes)
+      {
+        tasks.addPass(std::move(std::get<0>(node)));
+      }
     }
     else
     {
-      meshlets = createMeshlets(makeMemView(reinterpret_cast<uint32_t*>(data.indices.data()), data.indices.size()/4));
-    }
-
-    view.uniqueIndices = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("uniqueIndices")
-      .setFormat(FormatType::Uint32)
-      .setCount(meshlets.uniqueIndexes.size())
-      .setUsage(ResourceUsage::GpuReadOnly));
-    view.packedIndices = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("packedIndices")
-      .setFormat(FormatType::Uint8)
-      .setCount(meshlets.packedIndexes.size())
-      .setUsage(ResourceUsage::GpuReadOnly));
-    view.meshlets = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("meshlets")
-      .setCount(meshlets.meshlets.size())
-      .setUsage(ResourceUsage::GpuReadOnly)
-      .setStructured<WorldMeshlet>());
-    // end mesh shader things
-
-    sizeInfo = higanbana::formatSizeInfo(data.vertexFormat);
-    view.vertices = gpu.createBufferSRV(ResourceDescriptor()
-      .setName("vertices")
-      .setFormat(data.vertexFormat)
-      .setCount(data.vertices.size() / sizeInfo.pixelSize)
-      .setUsage(ResourceUsage::GpuReadOnly));
-
-    if (data.texCoordFormat != FormatType::Unknown)
-    {
-      sizeInfo = higanbana::formatSizeInfo(data.texCoordFormat);
-      view.uvs = gpu.createBufferSRV(ResourceDescriptor()
-        .setName("UVs")
-        .setFormat(data.texCoordFormat)
-        .setCount(data.texCoords.size() / sizeInfo.pixelSize)
-        .setUsage(ResourceUsage::GpuReadOnly));
-    }
-
-    if (data.normalFormat != FormatType::Unknown)
-    {
-      sizeInfo = higanbana::formatSizeInfo(data.normalFormat);
-      view.normals = gpu.createBufferSRV(ResourceDescriptor()
-        .setName("normals")
-        .setFormat(data.normalFormat)
-        .setCount(data.normals.size() / sizeInfo.pixelSize)
-        .setUsage(ResourceUsage::GpuReadOnly));
-    }
-
-
-    view.args = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout", normalLayout)
-      .bind("vertices", view.vertices)
-      .bind("uvs", view.uvs)
-      .bind("normals", view.normals));
-
-    view.meshArgs = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout(mesh version)", meshLayout)
-      .bind("meshlets", view.meshlets)
-      .bind("uniqueIndices", view.uniqueIndices)
-      .bind("packedIndices", view.packedIndices)
-      .bind("vertices", view.vertices)
-      .bind("uvs", view.uvs)
-      .bind("normals", view.normals));
-
-    auto graph = gpu.createGraph();
-    auto node = graph.createPass("Update mesh data");
-    auto indData = gpu.dynamicBuffer(makeMemView(data.indices), data.indiceFormat);
-    node.copy(view.indices.buffer(), indData);
-    auto vertData = gpu.dynamicBuffer(makeMemView(data.vertices), data.vertexFormat);
-    node.copy(view.vertices.buffer(), vertData);
-    if (data.texCoordFormat != FormatType::Unknown)
-    {
-      auto uvData = gpu.dynamicBuffer(makeMemView(data.texCoords), data.texCoordFormat); 
-      node.copy(view.uvs.buffer(), uvData);
-    }
-    if (data.normalFormat != FormatType::Unknown)
-    {
-      auto normalData = gpu.dynamicBuffer(makeMemView(data.normals), data.normalFormat); 
-      node.copy(view.normals.buffer(), normalData);
-    }
-
-    {
-      auto uniqueIndex = gpu.dynamicBuffer(makeMemView(meshlets.uniqueIndexes), FormatType::Uint32);
-      node.copy(view.uniqueIndices.buffer(), uniqueIndex);
-      auto packedData = gpu.dynamicBuffer(makeMemView(meshlets.packedIndexes), FormatType::Uint8);
-      node.copy(view.packedIndices.buffer(), packedData);
-      auto meshletData = gpu.dynamicBuffer(makeMemView(meshlets.meshlets));
-      node.copy(view.meshlets.buffer(), meshletData);
-    }
-
-    graph.addPass(std::move(node));
-    gpu.submit(graph);
-    return val;
-  }
-
-  void MeshSystem::free(int index)
-  {
-    views[index] = {};
-  }
-
-  int TextureDB::allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& image)
-  {
-    auto val = freelist.allocate();
-    if (views.size() < val+1) views.resize(val+1);
-    auto& view = views[val];
-    view = gpu.createTextureSRV(gpu.createTexture(image));
-    return val;
-  }
-
-  void TextureDB::free(int index)
-  {
-    views[index] = {};
-  }
-
-  int MaterialDB::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& meshLayout, MaterialData& data)
-  {
-    auto val = freelist.allocate();
-    if (views.size() < val+1) views.resize(val+1);
-    return val;
-  }
-
-  void MaterialDB::free(int index)
-  {
-    views[index] = {};
-  }
-
-  int Renderer::loadMesh(MeshData& data)
-  {
-    return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data);
-  }
-
-  void Renderer::unloadMesh(int index)
-  {
-    meshes.free(index);
-  }
-
-  int Renderer::loadTexture(TextureData& data)
-  {
-    return textures.allocate(dev, data.image);
-  }
-  void Renderer::unloadTexture(int index)
-  {
-    textures.free(index);
-  }
-
-  int Renderer::loadMaterial(MaterialData& material)
-  {
-    //materials.allocate()
-    return 0;
-  }
-  void Renderer::unloadMaterial(int index)
-  {
-
-    //return materials.free(index);
-  }
-
-  Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
-   : graphics(graphics)
-   , dev(dev)
-   , imgui(dev)
-   , worldRend(dev)
-   , worldMeshRend(dev)
-   , tsaa(dev)
-   , blitter(dev)
-   , cubes(dev)
-  {
-    scdesc = SwapchainDescriptor()
-      .formatType(FormatType::Unorm8RGBA)
-      .colorspace(Colorspace::BT709)
-      .bufferCount(3).presentMode(PresentMode::Mailbox);
-
-    auto basicDescriptor = GraphicsPipelineDescriptor()
-      .setVertexShader("Triangle")
-      .setPixelShader("Triangle")
-      .setPrimitiveTopology(PrimitiveTopology::Triangle)
-      .setRTVFormat(0, FormatType::Unorm8BGRA)
-      .setRenderTargetCount(1)
-      .setDepthStencil(DepthStencilDescriptor()
-        .setDepthEnable(false));
-
-    proxyTex.resize(dev, ResourceDescriptor()
-      .setSize(uint2(1280, 720))
-      .setFormat(FormatType::Unorm8RGBA)
-      .setUsage(ResourceUsage::RenderTargetRW));
-
-    higanbana::ShaderArgumentsLayoutDescriptor layoutdesc = ShaderArgumentsLayoutDescriptor()
-      .readWrite(ShaderResourceType::Texture2D, "float4", "output");
-    compLayout = dev.createShaderArgumentsLayout(layoutdesc);
-    higanbana::PipelineInterfaceDescriptor babyInf2 = PipelineInterfaceDescriptor()
-      .constants<ComputeConstants>()
-      .shaderArguments(0, compLayout);
-
-    genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
-    .setInterface(babyInf2)
-    .setShader("simpleEffectAssyt")
-    .setThreadGroups(uint3(8, 4, 1)));
-
-    higanbana::ShaderArgumentsLayoutDescriptor layoutdesc2 = ShaderArgumentsLayoutDescriptor()
-      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
-      .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
-    blitLayout = dev.createShaderArgumentsLayout(layoutdesc2);
-    composite = dev.createGraphicsPipeline(basicDescriptor
-      .setVertexShader("blit")
-      .setPixelShader("blit")
-      .setInterface(PipelineInterfaceDescriptor()
-        .constants<PixelConstants>()
-        .shaderArguments(0, blitLayout)));
-    compositeRP = dev.createRenderpass();
-
-    tsaaResolved.resize(dev, ResourceDescriptor()
-      .setSize(uint2(1280, 720))
-      .setFormat(FormatType::Unorm8RGBA)
-      .setUsage(ResourceUsage::RenderTarget)
-      .setName("tsaaResolved"));
-
-    size_t textureSize = 1280 * 720;
-
-    cameras = dev.createBuffer(ResourceDescriptor()
-    .setCount(10)
-    .setStructured<CameraSettings>()
-    .setName("Cameras")
-    .setUsage(ResourceUsage::GpuRW));
-    cameraSRV = dev.createBufferSRV(cameras);
-    cameraUAV = dev.createBufferUAV(cameras);
-
-
-    staticDataArgs = dev.createShaderArguments(ShaderArgumentsDescriptor("camera and other static data", worldRend.staticDataLayout())
-      .bind("cameras", cameraSRV));
-
-    // GBuffer
-    gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(uint2(1280, 720))
-      .setFormat(FormatType::Unorm16RGBA)
-      .setUsage(ResourceUsage::RenderTargetRW)
-      .setName("gbuffer"));
-    gbufferRTV = dev.createTextureRTV(gbuffer);
-    gbufferSRV = dev.createTextureSRV(gbuffer);
-    depth = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(gbuffer.desc().desc.size3D())
-      .setFormat(FormatType::Depth32)
-      .setUsage(ResourceUsage::DepthStencil)
-      .setName("opaqueDepth"));
-    depthDSV = dev.createTextureDSV(depth);
-
-    time.startFrame();
-  }
-
-  void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info)
-  {
-    surface = graphics.createSurface(window, info);
-    swapchain = dev.createSwapchain(surface, scdesc);
-  }
-
-  int2 Renderer::windowSize()  {
-    if (swapchain.buffers().empty())
-      return int2(1,1);
-    return swapchain.buffers().front().desc().desc.size3D().xy();
-  }
-
-  void Renderer::windowResized()
-  {
-    dev.adjustSwapchain(swapchain, scdesc);
-
-    auto& desc = swapchain.buffers().front().desc();
-    proxyTex.resize(dev, ResourceDescriptor()
-      .setSize(desc.desc.size3D())
-      .setFormat(desc.desc.format)
-      .setUsage(ResourceUsage::RenderTargetRW)
-      .setName("proxyTex"));
-
-    tsaaResolved.resize(dev, ResourceDescriptor()
-      .setSize(desc.desc.size3D())
-      .setFormat(desc.desc.format)
-      .setUsage(ResourceUsage::GpuRW)
-      .setName("tsaa current/history"));
-    gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(desc.desc.size3D())
-      .setFormat(FormatType::Unorm16RGBA)
-      .setUsage(ResourceUsage::RenderTargetRW)
-      .setName("gbuffer"));
-    gbufferRTV = dev.createTextureRTV(gbuffer);
-    gbufferSRV = dev.createTextureSRV(gbuffer);
-    depth = dev.createTexture(higanbana::ResourceDescriptor()
-      .setSize(desc.desc.size3D())
-      .setFormat(FormatType::Depth32)
-      .setUsage(ResourceUsage::DepthStencil)
-      .setName("opaqueDepth"));
-
-    depthDSV = dev.createTextureDSV(depth);
-  }
-
-  std::optional<higanbana::SubmitTiming> Renderer::timings()
-  {
-    auto info = dev.submitTimingInfo();
-    if (!info.empty())
-      m_previousInfo = info.front();
-    
-    return m_previousInfo;
-  }
-
-  void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
-  {
-    // upload data to gpu :P
-    vector<CameraSettings> sets;
-    sets.push_back(CameraSettings{viewMat});
-    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-    node.copy(cameras, matUpdate);
-
-
-    backbuffer.setOp(LoadOp::Load);
-    depthDSV.clearOp({});
-    worldRend.beginRenderpass(node, backbuffer, depthDSV);
-    for (auto&& instance : instances)
-    {
-      auto& mesh = meshes[instance.meshId];
-      worldRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
-    }
-    worldRend.endRenderpass(node);
-  }
-
-  void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
-  {
-    // upload data to gpu :P
-    vector<CameraSettings> sets;
-    sets.push_back(CameraSettings{viewMat});
-    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-    node.copy(cameras, matUpdate);
-
-    backbuffer.setOp(LoadOp::Load);
-    depthDSV.clearOp({});
-    
-    worldMeshRend.beginRenderpass(node, backbuffer, depthDSV);
-    for (auto&& instance : instances)
-    {
-      auto& mesh = meshes[instance.meshId];
-      worldMeshRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width);
-    }
-    node.endRenderpass();
-  }
-
-  void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap)
-  {
-    if (swapchain.outOfDate()) // swapchain can end up being outOfDate
-    {
-      windowResized();
-    }
-
-    // If you acquire, you must submit it.
-    std::optional<std::pair<int,TextureRTV>> obackbuffer = dev.acquirePresentableImage(swapchain);
-    if (!obackbuffer.has_value())
-    {
-      HIGAN_LOGi( "No backbuffer available...\n");
-      return;
-    }
-    TextureRTV backbuffer = obackbuffer.value().second;
-    CommandGraph tasks = dev.createGraph();
-
-    {
-      auto node = tasks.createPass("generate Texture");
-
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout)
-        .bind("output", proxyTex.uav()));
-
-      auto binding = node.bind(genTexCompute);
-      ComputeConstants consts{};
-      consts.time = time.getFTime();
-      consts.resx = proxyTex.desc().desc.width; 
-      consts.resy = proxyTex.desc().desc.height;
-      binding.constants(consts);
-      binding.arguments(0, args);
-
-      node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
-
-      tasks.addPass(std::move(node));
-    }
-
-    {
-      auto node = tasks.createPass("composite");
-      node.acquirePresentableImage(swapchain);
-      backbuffer.setOp(LoadOp::DontCare);
-      float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
-      backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
-      node.renderpass(compositeRP, backbuffer);
-      {
-        auto binding = node.bind(composite);
-
-        PixelConstants consts{};
-        consts.time = time.getFTime();
-        consts.resx = backbuffer.desc().desc.width; 
-        consts.resy = backbuffer.desc().desc.height;
-        binding.constants(consts);
-
-        vector<float> vertexData = {
-          -1.f, -1.f, 
-          -1.0f, 3.f,
-          3.0f, -1.0f};
-        auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
-
-        auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("blit descriptors", blitLayout)
-          .bind("vertexInput", vert)
-          .bind("texInput", proxyTex.srv()));
-
-        binding.arguments(0, args);
-
-        node.draw(binding, 3);
-      }
-      node.endRenderpass();
-      tasks.addPass(std::move(node));
-    }
-
-    {
-      //auto node = tasks.createPass("opaquePass");
-
-      // camera forming...
-      auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
-      float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
-      float4x4 rot = math::rotationMatrixLH(camera.direction);
-      float4x4 pos = math::translation(camera.position);
-      auto perspective = math::mul(pos, math::mul(rot, pers));
-      HIGAN_CPU_BRACKET("user - outerloop");
-      vector<float> vertexData = {
-        1.0f, -1.f, -1.f,
-        1.0f, -1.f, 1.f, 
-        1.0f, 1.f, -1.f,
-        1.0f, 1.f, 1.f,
-        -1.0f, -1.f, -1.f,
-        -1.0f, -1.f, 1.f, 
-        -1.0f, 1.f, -1.f,
-        -1.0f, 1.f, 1.f,
-      };
-
-      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
-      vector<uint16_t> indexData = {
-        1, 0, 2,
-        1, 2, 3,
-        5, 4, 0,
-        5, 0, 1,
-        7, 2, 6,
-        7, 3, 2,
-        5, 6, 4,
-        5, 7, 6,
-        6, 0, 4,
-        6, 2, 0,
-        7, 5, 1,
-        7, 1, 3,
-      };
-      auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
-
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
-        .bind("vertexInput", vert));
-      if (heightmap && instances.empty())
-      {
-        int pixelsToDraw = drawcalls;
-        backbuffer.setOp(LoadOp::Load);
-        depthDSV.clearOp({});
-        //auto node = tasks.createPass("opaquePass - cubes");
-        
-        vector<std::tuple<CommandGraphNode, int, int>> nodes;
-        int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(drawsSplitInto))+0.5f));
-        for (int i = 0; i < pixelsToDraw; i+=stepSize)
-        {
-          if (i+stepSize > pixelsToDraw)
-          {
-            stepSize = stepSize - (i+stepSize - pixelsToDraw);
-          }
-          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
-        }
-
-
-        std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
-        {
-          HIGAN_CPU_BRACKET("user - innerloop");
-          auto depth = depthDSV;
-          if (std::get<1>(node) == 0)
-            depth.setOp(LoadOp::Clear);
-          else
-            depth.setOp(LoadOp::Load);
-          
-          cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
-        });
-
-        for (auto& node : nodes)
-        {
-          tasks.addPass(std::move(std::get<0>(node)));
-        }
-      }
-      else if (instances.empty())
-      {
-        backbuffer.setOp(LoadOp::Load);
-        depthDSV.clearOp({});
-        
-        vector<std::tuple<CommandGraphNode, int, int>> nodes;
-        int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
-        for (int i = 0; i < drawcalls; i+=stepSize)
-        {
-          if (i+stepSize > drawcalls)
-          {
-            stepSize = stepSize - (i+stepSize - drawcalls);
-          }
-          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
-        }
-        std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
-        {
-          HIGAN_CPU_BRACKET("user - innerloop");
-          auto depth = depthDSV;
-          if (std::get<1>(node) == 0)
-            depth.setOp(LoadOp::Clear);
-          else
-            depth.setOp(LoadOp::Load);
-          
-          cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, backbuffer, depth,ind, args,  drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
-        });
-
-        for (auto& node : nodes)
-        {
-          tasks.addPass(std::move(std::get<0>(node)));
-        }
-      }
+      auto node = tasks.createPass("opaquePass - ecs");
+      if (options.allowMeshShaders)
+        renderMeshesWithMeshShaders(node, perspective, backbuffer, instances);
       else
-      {
-        auto node = tasks.createPass("opaquePass - ecs");
-        if (options.allowMeshShaders)
-          renderMeshesWithMeshShaders(node, perspective, backbuffer, instances);
-        else
-          renderMeshes(node, perspective, backbuffer, instances);
-        tasks.addPass(std::move(node));
-      }
-      
-    }
-
-    // IMGUI
-    {
-      auto node = tasks.createPass("IMGui");
-      imgui.render(dev, node, backbuffer);
+        renderMeshes(node, perspective, backbuffer, instances);
       tasks.addPass(std::move(node));
     }
     
-    {
-      auto node = tasks.createPass("preparePresent");
-
-      node.prepareForPresent(backbuffer);
-      tasks.addPass(std::move(node));
-    }
-
-    dev.submit(swapchain, tasks);
-    {
-      HIGAN_CPU_BRACKET("Present");
-      dev.present(swapchain, obackbuffer.value().first);
-    }
-    time.tick();
   }
+
+  // IMGUI
+  {
+    auto node = tasks.createPass("IMGui");
+    imgui.render(dev, node, backbuffer);
+    tasks.addPass(std::move(node));
+  }
+  
+  {
+    auto node = tasks.createPass("preparePresent");
+
+    node.prepareForPresent(backbuffer);
+    tasks.addPass(std::move(node));
+  }
+
+  dev.submit(swapchain, tasks);
+  {
+    HIGAN_CPU_BRACKET("Present");
+    dev.present(swapchain, obackbuffer.value().first);
+  }
+  time.tick();
+}
 }
