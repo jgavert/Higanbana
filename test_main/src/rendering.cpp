@@ -267,57 +267,21 @@ namespace app
    , worldMeshRend(dev)
    , tsaa(dev)
    , blitter(dev)
+   , cubes(dev)
   {
     scdesc = SwapchainDescriptor()
       .formatType(FormatType::Unorm8RGBA)
       .colorspace(Colorspace::BT709)
       .bufferCount(3).presentMode(PresentMode::Mailbox);
-      //.bufferCount(2).presentMode(PresentMode::FifoRelaxed);
-
-    higanbana::ShaderArgumentsLayoutDescriptor triangleLayoutDesc = ShaderArgumentsLayoutDescriptor()
-      .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput");
-    triangleLayout = dev.createShaderArgumentsLayout(triangleLayoutDesc);
-    higanbana::PipelineInterfaceDescriptor babyInf = PipelineInterfaceDescriptor()
-      .constants<PixelConstants>()
-      .shaderArguments(0, triangleLayout);
 
     auto basicDescriptor = GraphicsPipelineDescriptor()
       .setVertexShader("Triangle")
       .setPixelShader("Triangle")
-      .setInterface(babyInf)
       .setPrimitiveTopology(PrimitiveTopology::Triangle)
       .setRTVFormat(0, FormatType::Unorm8BGRA)
       .setRenderTargetCount(1)
       .setDepthStencil(DepthStencilDescriptor()
         .setDepthEnable(false));
-    
-    triangle = dev.createGraphicsPipeline(basicDescriptor);
-
-    triangleRP = dev.createRenderpass();
-
-    higanbana::PipelineInterfaceDescriptor opaquePassInterface = PipelineInterfaceDescriptor()
-      .constants<OpaqueConsts>()
-      .shaderArguments(0, triangleLayout);
-
-    auto opaqueDescriptor = GraphicsPipelineDescriptor()
-      .setVertexShader("opaquePass")
-      .setPixelShader("opaquePass")
-      .setInterface(opaquePassInterface)
-      .setPrimitiveTopology(PrimitiveTopology::Triangle)
-      .setRasterizer(RasterizerDescriptor())
-      .setRTVFormat(0, FormatType::Unorm8BGRA)
-      .setDSVFormat(FormatType::Depth32)
-      .setRenderTargetCount(1)
-      .setDepthStencil(DepthStencilDescriptor()
-        .setDepthEnable(true)
-        .setDepthFunc(ComparisonFunc::Greater));
-    
-    opaque = dev.createGraphicsPipeline(opaqueDescriptor);
-
-    opaqueRP = dev.createRenderpass();
-    opaqueRPWithLoad = dev.createRenderpass();
-
-
 
     proxyTex.resize(dev, ResourceDescriptor()
       .setSize(uint2(1280, 720))
@@ -356,22 +320,6 @@ namespace app
 
     size_t textureSize = 1280 * 720;
 
-    sBuf = dev.createBuffer(ResourceDescriptor()
-      .setCount(textureSize)
-      .setFormat(FormatType::Raw32)
-      .setUsage(ResourceUsage::GpuRW));
-      //.allowCrossAdapter(1));
-
-    sBufSRV = dev.createBufferSRV(sBuf);
-     
-     /*
-    sTex = dev.createTexture(ResourceDescriptor()
-      .setSize(uint2(1280, 720))
-      .setFormat(FormatType::Unorm8RGBA)
-      .setUsage(ResourceUsage::GpuReadOnly)
-      .allowCrossAdapter(1));
-      */
-    
     cameras = dev.createBuffer(ResourceDescriptor()
     .setCount(10)
     .setStructured<CameraSettings>()
@@ -383,10 +331,6 @@ namespace app
 
     staticDataArgs = dev.createShaderArguments(ShaderArgumentsDescriptor("camera and other static data", worldRend.staticDataLayout())
       .bind("cameras", cameraSRV));
-
-
-    position = { -10.f, 0.f, -10.f };
-    direction = { 1.f, 0.f, 0.f, 0.f };
 
     // GBuffer
     gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
@@ -459,314 +403,6 @@ namespace app
     return m_previousInfo;
   }
 
-  void Renderer::drawHeightMapInVeryStupidWay(higanbana::CommandGraphNode& node, float3 pos, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::CpuImage& image, int pixels, int xBegin, int xEnd)
-  {
-    float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
-    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    auto rp = opaqueRP;
-    if (depth.loadOp() == LoadOp::Load)
-    {
-      rp = opaqueRPWithLoad;
-    }
-    node.renderpass(rp, backbuffer, depth);
-    {
-      auto binding = node.bind(opaque);
-
-      vector<float> vertexData = {
-        1.0f, -1.f, -1.f,
-        1.0f, -1.f, 1.f, 
-        1.0f, 1.f, -1.f,
-        1.0f, 1.f, 1.f,
-        -1.0f, -1.f, -1.f,
-        -1.0f, -1.f, 1.f, 
-        -1.0f, 1.f, -1.f,
-        -1.0f, 1.f, 1.f,
-      };
-
-      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
-      vector<uint16_t> indexData = {
-        1, 0, 2,
-        1, 2, 3,
-        5, 4, 0,
-        5, 0, 1,
-        7, 2, 6,
-        7, 3, 2,
-        5, 6, 4,
-        5, 7, 6,
-        6, 0, 4,
-        6, 2, 0,
-        7, 5, 1,
-        7, 1, 3,
-      };
-      auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
-
-      quaternion yaw = math::rotateAxis(updir, 0.f);
-      quaternion pitch = math::rotateAxis(sideVec, 0.f);
-      quaternion roll = math::rotateAxis(dir, 0.f);
-      auto dir = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-      auto rotationMatrix = math::rotationMatrixLH(dir);
-      auto worldMat = math::mul(math::scale(0.5f), rotationMatrix);
-
-      OpaqueConsts consts{};
-      consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
-      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
-      consts.viewMat = viewMat;
-      consts.stretchBoxes = 1;
-      binding.constants(consts);
-
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
-        .bind("vertexInput", vert));
-
-      binding.arguments(0, args);
-
-      int gridSize = image.desc().desc.width;
-      auto subr = image.subresource(0,0);
-      float* data = reinterpret_cast<float*>(subr.data());
-
-      float offset = 0.2f;
-      xBegin *= pixels;
-      xEnd *= pixels;
-
-      auto yPixels = (xEnd - xBegin);
-      for (int x = xBegin; x < xEnd; ++x)
-      {
-        for (int y = 0; y < yPixels; ++y)
-        {
-          auto pX = std::min(gridSize, std::max(0, static_cast<int>(x - (pos.x+(yPixels/2)))));
-          auto pY = std::min(gridSize, std::max(0, static_cast<int>(y - (pos.y+(yPixels/2)))));
-          int dataOffset = pY*gridSize + pX;
-          float3 pos = float3(pX, pY, data[dataOffset]);
-          consts.worldMat = math::mul2(worldMat, math::translation(pos));
-          binding.constants(consts);
-          node.drawIndexed(binding, ind, 36);
-        }
-      }
-    }
-    node.endRenderpass();
-  }
-  
-    void Renderer::drawHeightMapInVeryStupidWay2(
-      higanbana::CommandGraphNode& node,
-        float3 pos, float4x4 viewMat,
-        higanbana::TextureRTV& backbuffer,
-        higanbana::TextureDSV& depth,
-        higanbana::CpuImage& image,
-        higanbana::DynamicBufferView ind,
-        higanbana::ShaderArguments& verts,
-        int pixels, int xBegin, int xEnd)
-  {
-    float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
-    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    auto rp = opaqueRP;
-    if (depth.loadOp() == LoadOp::Load)
-    {
-      rp = opaqueRPWithLoad;
-    }
-    node.renderpass(rp, backbuffer, depth);
-    {
-      auto binding = node.bind(opaque);
-
-      quaternion yaw = math::rotateAxis(updir, 0.f);
-      quaternion pitch = math::rotateAxis(sideVec, 0.f);
-      quaternion roll = math::rotateAxis(dir, 0.f);
-      auto dir = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-      auto rotationMatrix = math::rotationMatrixLH(dir);
-      auto worldMat = math::mul(math::scale(0.5f), rotationMatrix);
-
-      OpaqueConsts consts{};
-      consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
-      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
-      consts.viewMat = viewMat;
-      consts.stretchBoxes = 1;
-      binding.constants(consts);
-
-      auto args = verts;
-
-      binding.arguments(0, args);
-
-      int gridSize = image.desc().desc.width;
-      auto subr = image.subresource(0,0);
-      float* data = reinterpret_cast<float*>(subr.data());
-
-      float offset = 0.2f;
-      xBegin *= pixels;
-      xEnd *= pixels;
-
-      auto yPixels = (xEnd - xBegin);
-      for (int x = xBegin; x < xEnd; ++x)
-      {
-        for (int y = 0; y < yPixels; ++y)
-        {
-          auto pX = std::min(gridSize, std::max(0, static_cast<int>(x - (pos.x+(yPixels/2)))));
-          auto pY = std::min(gridSize, std::max(0, static_cast<int>(y - (pos.y+(yPixels/2)))));
-          int dataOffset = pY*gridSize + pX;
-          float3 pos = float3(pX, pY, data[dataOffset]);
-          consts.worldMat = math::mul2(worldMat, math::translation(pos));
-          binding.constants(consts);
-          node.drawIndexed(binding, ind, 36);
-        }
-      }
-    }
-    node.endRenderpass();
-  }
-
-  void Renderer::oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd)
-  {
-    float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
-    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    auto rp = opaqueRP;
-    if (depth.loadOp() == LoadOp::Load)
-    {
-      rp = opaqueRPWithLoad;
-    }
-    node.renderpass(rp, backbuffer, depth);
-    {
-      auto binding = node.bind(opaque);
-
-      vector<float> vertexData = {
-        1.0f, -1.f, -1.f,
-        1.0f, -1.f, 1.f, 
-        1.0f, 1.f, -1.f,
-        1.0f, 1.f, 1.f,
-        -1.0f, -1.f, -1.f,
-        -1.0f, -1.f, 1.f, 
-        -1.0f, 1.f, -1.f,
-        -1.0f, 1.f, 1.f,
-      };
-
-      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
-      vector<uint16_t> indexData = {
-        1, 0, 2,
-        1, 2, 3,
-        5, 4, 0,
-        5, 0, 1,
-        7, 2, 6,
-        7, 3, 2,
-        5, 6, 4,
-        5, 7, 6,
-        6, 0, 4,
-        6, 2, 0,
-        7, 5, 1,
-        7, 1, 3,
-      };
-      auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
-
-      quaternion yaw = math::rotateAxis(updir, 0.001f);
-      quaternion pitch = math::rotateAxis(sideVec, 0.f);
-      quaternion roll = math::rotateAxis(dir, 0.f);
-      direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-      auto rotationMatrix = math::rotationMatrixLH(direction);
-      auto worldMat = math::mul(math::scale(0.2f), rotationMatrix);
-
-      OpaqueConsts consts{};
-      consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
-      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
-      consts.viewMat = viewMat;
-      binding.constants(consts);
-
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
-        .bind("vertexInput", vert));
-
-      binding.arguments(0, args);
-
-      int gridSize = cubeCount;
-      for (int x = xBegin; x < xEnd; ++x)
-      {
-        for (int y = 0; y < gridSize; ++y)
-        {
-          for (int z = 0; z < gridSize; ++z)
-          {
-            float offset = gridSize*1.5f/2.f;
-            float3 pos = float3(x*1.5f-offset, y*1.5f-offset, z*1.5f-offset);
-            consts.worldMat = math::mul2(worldMat, math::translation(pos));
-            binding.constants(consts);
-            node.drawIndexed(binding, ind, 36);
-          }
-        }
-      }
-    }
-    node.endRenderpass();
-  }
-
-  void Renderer::oldOpaquePass2(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::DynamicBufferView ind,
-        higanbana::ShaderArguments& args, int cubeCount, int xBegin, int xEnd)
-  {
-    float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
-    //backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 1.f });
-    auto rp = opaqueRP;
-    if (depth.loadOp() == LoadOp::Load)
-    {
-      rp = opaqueRPWithLoad;
-    }
-    node.renderpass(rp, backbuffer, depth);
-    {
-      auto binding = node.bind(opaque);
-
-      quaternion yaw = math::rotateAxis(updir, 0.001f);
-      quaternion pitch = math::rotateAxis(sideVec, 0.f);
-      quaternion roll = math::rotateAxis(dir, 0.f);
-      direction = math::mul(math::mul(math::mul(yaw, pitch), roll), direction);
-
-      auto rotationMatrix = math::rotationMatrixLH(direction);
-      auto worldMat = math::mul(math::scale(0.2f), rotationMatrix);
-
-      OpaqueConsts consts{};
-      consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
-      consts.worldMat = math::mul(worldMat, math::translation(0,0,0));
-      consts.viewMat = viewMat;
-      binding.constants(consts);
-
-      binding.arguments(0, args);
-
-      int gridSize = 64;
-      for (int index = xBegin; index < xEnd; ++index)
-      {
-        int xDim = index / (gridSize*gridSize);
-        int indexWithin = index % (gridSize*gridSize);
-        int yDim = indexWithin / gridSize;
-        int zDim = indexWithin % gridSize;
-        
-        float offset = 0.5;
-        float3 pos = float3(xDim*offset, yDim*offset, zDim*offset);
-        pos = math::sub(pos, 7.f);
-        consts.worldMat = math::mul2(worldMat, math::translation(pos));
-        binding.constants(consts);
-        node.drawIndexed(binding, ind, 36);
-      }
-      /*
-      for (int x = xBegin; x < xEnd; ++x)
-      {
-        for (int y = 0; y < gridSize; ++y)
-        {
-          for (int z = 0; z < gridSize; ++z)
-          {
-            float offset = gridSize*1.5f/2.f;
-            float3 pos = float3(x*1.5f-offset, y*1.5f-offset, z*1.5f-offset);
-            consts.worldMat = math::mul2(worldMat, math::translation(pos));
-            binding.constants(consts);
-            node.drawIndexed(binding, ind, 36);
-          }
-        }
-      }
-      */
-    }
-    node.endRenderpass();
-  }
   void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances)
   {
     // upload data to gpu :P
@@ -916,7 +552,7 @@ namespace app
       };
       auto ind = dev.dynamicBuffer<uint16_t>(indexData, FormatType::Uint16);
 
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
+      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
         .bind("vertexInput", vert));
       if (heightmap && instances.empty())
       {
@@ -946,7 +582,7 @@ namespace app
           else
             depth.setOp(LoadOp::Load);
           
-          drawHeightMapInVeryStupidWay2(std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+          cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), camera.position, perspective, backbuffer, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
         });
 
         for (auto& node : nodes)
@@ -958,7 +594,6 @@ namespace app
       {
         backbuffer.setOp(LoadOp::Load);
         depthDSV.clearOp({});
-        //auto node = tasks.createPass("opaquePass - cubes");
         
         vector<std::tuple<CommandGraphNode, int, int>> nodes;
         int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
@@ -979,7 +614,7 @@ namespace app
           else
             depth.setOp(LoadOp::Load);
           
-          oldOpaquePass2(std::get<0>(node), perspective, backbuffer, depth,ind, args,  drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
+          cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, backbuffer, depth,ind, args,  drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
         });
 
         for (auto& node : nodes)

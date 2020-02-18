@@ -11,6 +11,7 @@
 #include "renderer/mesh_test.hpp"
 #include "renderer/tsaa.hpp"
 #include "renderer/blitter.hpp"
+#include "renderer/cubes.hpp"
 #include "world/visual_data_structures.hpp"
 
 
@@ -83,14 +84,7 @@ class Renderer
   higanbana::SwapchainDescriptor scdesc;
   higanbana::Swapchain swapchain;
   // resources
-  higanbana::ShaderArgumentsLayout triangleLayout;
-  higanbana::GraphicsPipeline triangle;
-
-  higanbana::Renderpass triangleRP;
-
-  higanbana::GraphicsPipeline opaque;
-  higanbana::Renderpass opaqueRP;
-  higanbana::Renderpass opaqueRPWithLoad;
+  app::Cubes cubes;
 
   higanbana::PingPongTexture proxyTex;
   higanbana::ShaderArgumentsLayout compLayout;
@@ -101,12 +95,6 @@ class Renderer
   higanbana::Renderpass compositeRP;
   // info
   higanbana::WTime time;
-
-  // shared textures
-  higanbana::Buffer sBuf;
-  higanbana::BufferSRV sBufSRV;
-  
-  higanbana::Texture sTex;
 
   renderer::IMGui imgui;
 
@@ -133,13 +121,6 @@ class Renderer
   TextureDB textures;
   MaterialDB materials;
 
-  // camera
-  float3 position;
-  float3 dir;
-  float3 updir;
-  float3 sideVec;
-  quaternion direction;
-
   // postprocess
   ShittyTSAA tsaa;
   higanbana::PingPongTexture tsaaResolved;
@@ -148,19 +129,6 @@ class Renderer
 
 
   std::optional<higanbana::SubmitTiming> m_previousInfo;
-
-  void drawHeightMapInVeryStupidWay(higanbana::CommandGraphNode& node, float3 pos, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::CpuImage& image, int pixels, int xBegin, int xEnd);
-  void drawHeightMapInVeryStupidWay2(
-      higanbana::CommandGraphNode& node,
-        float3 pos, float4x4 viewMat,
-        higanbana::TextureRTV& backbuffer,
-        higanbana::TextureDSV& depth,
-        higanbana::CpuImage& image,
-        higanbana::DynamicBufferView ind,
-        higanbana::ShaderArguments& verts,
-        int pixels, int xBegin, int xEnd);
-  void oldOpaquePass(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd);
-  void oldOpaquePass2(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::DynamicBufferView ind,higanbana::ShaderArguments& verts, int cubeCount, int xBegin, int xEnd);
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
   void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
