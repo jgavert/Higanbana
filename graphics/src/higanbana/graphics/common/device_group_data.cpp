@@ -396,11 +396,11 @@ namespace higanbana
 
     void DeviceGroupData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor) {
       HIGAN_CPU_FUNCTION_SCOPE();
-      while (m_asyncRunning > 0 && !m_asyns.empty())
+      std::lock_guard<std::mutex> guard(m_presentMutex);
+      while (!m_asyns.empty())
       {
         m_asyns.back().wait();
         m_asyns.pop_back();
-        --m_asyncRunning;
       }
       // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
       auto fenceForSwapchain = m_devices[SwapchainDeviceID].device->createFence();
@@ -438,11 +438,11 @@ namespace higanbana
 
     std::optional<std::pair<int, TextureRTV>> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain) {
       HIGAN_CPU_FUNCTION_SCOPE();
-      while (m_asyncRunning > 0 && !m_asyns.empty())
+      std::lock_guard<std::mutex> guard(m_presentMutex);
+      while (!m_asyns.empty())
       {
         m_asyns.back().wait();
         m_asyns.pop_back();
-        --m_asyncRunning;
       }
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
@@ -452,11 +452,11 @@ namespace higanbana
 
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain) {
       HIGAN_CPU_FUNCTION_SCOPE();
-      while (m_asyncRunning > 0 && !m_asyns.empty())
+      std::lock_guard<std::mutex> guard(m_presentMutex);
+      while (!m_asyns.empty())
       {
         m_asyns.back().wait();
         m_asyns.pop_back();
-        --m_asyncRunning;
       }
       int index = m_devices[SwapchainDeviceID].device->tryAcquirePresentableImage(swapchain.impl());
       if (index == -1)
@@ -1888,7 +1888,7 @@ namespace higanbana
 
     void DeviceGroupData::present(Swapchain & swapchain, int backbufferIndex) {
       HIGAN_CPU_FUNCTION_SCOPE();
-      m_asyncRunning++;
+      std::lock_guard<std::mutex> guard(m_presentMutex);
       m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl(), index = backbufferIndex]{
         m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
       }));

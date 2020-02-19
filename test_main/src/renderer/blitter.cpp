@@ -44,7 +44,7 @@ void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Text
     HIGAN_ASSERT(target2.desc().desc.format == FormatType::Unorm8RGBA, "");
     node.renderpass(renderpassRGBA, target2);
   }
-  target = target2;
+  target = target2.desc();
 }
 
 void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, float2 topleft, float2 size)
@@ -83,7 +83,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
     .bind("vertices", verts)
     .bind("source", source));
   ShaderArgumentsBinding binding;
-  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+  if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
   else
     binding = node.bind(pipelineRGBA);
@@ -95,13 +95,13 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, int2 itopleft, int2 isize)
 {
   using namespace higanbana;
-  float x = float(isize.x) / float(target.desc().desc.width);
-  float y = float(isize.y) / float(target.desc().desc.height);
+  float x = float(isize.x) / float(target.desc.width);
+  float y = float(isize.y) / float(target.desc.height);
 
   float2 size = { x, y };
 
-  x = float(itopleft.x) / float(target.desc().desc.width);
-  y = float(itopleft.y) / float(target.desc().desc.height);
+  x = float(itopleft.x) / float(target.desc.width);
+  y = float(itopleft.y) / float(target.desc.height);
 
   float2 topleft = { x, y };
 
@@ -125,7 +125,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
     .bind("vertices", verts)
     .bind("source", source));
   ShaderArgumentsBinding binding;
-  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+  if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
   else
     binding = node.bind(pipelineRGBA);
@@ -136,7 +136,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, FitMode mode)
 {
   using namespace higanbana;
-  float dstScale = float(target.desc().desc.width) / float(target.desc().desc.height);
+  float dstScale = float(target.desc.width) / float(target.desc.height);
   float srcScale = float(source.desc().desc.width) / float(source.desc().desc.height);
   //float scaleDiff = dstScale - srcScale;
 
@@ -191,7 +191,7 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
     .bind("vertices", verts)
     .bind("source", source));
   ShaderArgumentsBinding binding;
-  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+  if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
   else
     binding = node.bind(pipelineRGBA);

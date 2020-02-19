@@ -174,7 +174,7 @@ namespace higanbana
       deque<SubmitTiming> timeSubmitsFinished;
 
       //
-      std::atomic<int> m_asyncRunning;
+      std::mutex m_presentMutex;
       vector<std::future<void>> m_asyns;
 
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);

@@ -8,29 +8,6 @@
 
 using namespace higanbana;
 
-SHADER_STRUCT(PixelConstants,
-  float resx;
-  float resy;
-  float time;
-  int unused;
-);
-
-SHADER_STRUCT(ComputeConstants,
-  float resx;
-  float resy;
-  float time;
-  int unused;
-);
-
-SHADER_STRUCT(OpaqueConsts,
-  float resx;
-  float resy;
-  float time;
-  int stretchBoxes;
-  float4x4 worldMat;
-  float4x4 viewMat;
-);
-
 namespace app
 {
 int Renderer::loadMesh(MeshData& data) {

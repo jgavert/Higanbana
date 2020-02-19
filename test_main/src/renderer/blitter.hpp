@@ -10,7 +10,7 @@ class Blitter
   higanbana::GraphicsPipeline pipelineBGRA;
   higanbana::Renderpass renderpassRGBA;
   higanbana::Renderpass renderpassBGRA;
-  higanbana::TextureRTV target;
+  higanbana::ResourceDescriptor target;
 public:
   enum class FitMode
   {
