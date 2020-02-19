@@ -13,7 +13,7 @@ Particles::Particles(higanbana::GpuGroup& device) {
 
   m_particles.resize(device, ResourceDescriptor()
     .setStructured<Particles::Particle>()
-    .setCount(100)
+    .setCount(1000000)
     .setUsage(ResourceUsage::GpuRW)
     .setDimension(FormatDimension::Buffer));
 
