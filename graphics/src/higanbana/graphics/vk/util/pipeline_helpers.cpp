@@ -337,7 +337,7 @@ namespace higanbana
         // Rasterization
         auto& rd = desc.desc;
         HIGAN_ASSERT(rd.conservativeRaster != higanbana::ConservativeRasterization::On, "Conservative raster ext code not written.");
-        rasterState = rasterState.setDepthClampEnable(rd.depthBiasClamp)
+        rasterState = rasterState.setDepthClampEnable(!rd.depthClipEnable)
           .setRasterizerDiscardEnable(false) // apparently discards everything immediately
           .setPolygonMode(vk::PolygonMode::eLine)
           .setCullMode(convertCullMode(rd.cull))
@@ -358,22 +358,9 @@ namespace higanbana
       }
       return rasterState;
     }
-/*
-        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
-        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
-        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
-        desc.RasterizerState.DepthBias = rd.depthBias;
-        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
-        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
-        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
-        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
-        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
-        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
-        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
-      }
-      */
-     vk::PipelineDepthStencilStateCreateInfo getDepthStencilDesc(const DepthStencilDescriptor& desc)
-     {
+
+    vk::PipelineDepthStencilStateCreateInfo getDepthStencilDesc(const DepthStencilDescriptor& desc)
+    {
       vk::PipelineDepthStencilStateCreateInfo depthstencil;
       {
         // DepthStencil
@@ -408,7 +395,8 @@ namespace higanbana
         depthstencil = depthstencil.setBack(back);
       }
       return depthstencil;
-     }
+    }
+
     vk::PipelineInputAssemblyStateCreateInfo getInputAssemblyDesc(const GraphicsPipelineDescriptor& desc)
     {
       vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
@@ -416,6 +404,7 @@ namespace higanbana
       inputAssembly = inputAssembly.setTopology(convertPrimitiveTopology(desc.desc.primitiveTopology));
       return inputAssembly;
     }
+    
     vk::PipelineMultisampleStateCreateInfo getMultisampleDesc(const GraphicsPipelineDescriptor& desc)
     {
       return vk::PipelineMultisampleStateCreateInfo()

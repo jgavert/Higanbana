@@ -1,11 +1,11 @@
 #include "blitter.hpp"
 #include <higanbana/core/system/memview.hpp>
+#include <higanbana/core/global_debug.hpp>
+
 SHADER_STRUCT(BlitConstants,
   uint colorspace;
 );
-namespace app 
-{
-namespace renderer
+namespace app::renderer 
 {
 Blitter::Blitter(higanbana::GpuGroup& device)
 {
@@ -23,16 +23,27 @@ Blitter::Blitter(higanbana::GpuGroup& device)
     .setInterface(instancePipeline)
     .setVertexShader("blitter")
     .setPixelShader("blitter")
+    .setRTVFormat(0, FormatType::Unorm8BGRA)
+    .setRenderTargetCount(1)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  pipeline = device.createGraphicsPipeline(pipelineDescriptor);
-  renderpass = device.createRenderpass();
+  pipelineBGRA = device.createGraphicsPipeline(pipelineDescriptor);
+  pipelineRGBA = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, FormatType::Unorm8RGBA));
+  renderpassBGRA = device.createRenderpass();
+  renderpassRGBA = device.createRenderpass();
 }
 
 void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target2){
-  node.renderpass(renderpass, target2);
+  using namespace higanbana;
+  if (target2.texture().desc().desc.format == FormatType::Unorm8BGRA)
+    node.renderpass(renderpassBGRA, target2);
+  else
+  {
+    HIGAN_ASSERT(target2.desc().desc.format == FormatType::Unorm8RGBA, "");
+    node.renderpass(renderpassRGBA, target2);
+  }
   target = target2;
 }
 
@@ -71,7 +82,12 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
     .bind("vertices", verts)
     .bind("source", source));
-  auto binding = node.bind(pipeline);
+  ShaderArgumentsBinding binding;
+  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+    binding = node.bind(pipelineBGRA);
+  else
+    binding = node.bind(pipelineRGBA);
+
   binding.arguments(0, args);
   node.draw(binding, 6, 1);
 }
@@ -108,7 +124,11 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
     .bind("vertices", verts)
     .bind("source", source));
-  auto binding = node.bind(pipeline);
+  ShaderArgumentsBinding binding;
+  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+    binding = node.bind(pipelineBGRA);
+  else
+    binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);
   node.draw(binding, 6, 1);
 }
@@ -170,9 +190,12 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
     .bind("vertices", verts)
     .bind("source", source));
-  auto binding = node.bind(pipeline);
+  ShaderArgumentsBinding binding;
+  if (target.texture().desc().desc.format == FormatType::Unorm8BGRA)
+    binding = node.bind(pipelineBGRA);
+  else
+    binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);
   node.draw(binding, 6, 1);
-}
 }
 }

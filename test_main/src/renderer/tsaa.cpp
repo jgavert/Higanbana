@@ -3,9 +3,7 @@ SHADER_STRUCT(TSAAConstants,
   uint coolstuff;
 );
 
-namespace app
-{
-namespace renderer 
+namespace app::renderer
 {
 ShittyTSAA::ShittyTSAA(higanbana::GpuGroup& device) {
   using namespace higanbana;
@@ -36,6 +34,5 @@ void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, argument);
   node.dispatchThreads(binding, output.texture().desc().desc.size3D());
-}
 }
 }

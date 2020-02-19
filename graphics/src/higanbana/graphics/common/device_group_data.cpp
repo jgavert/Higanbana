@@ -396,6 +396,12 @@ namespace higanbana
 
     void DeviceGroupData::adjustSwapchain(Swapchain& swapchain, SwapchainDescriptor descriptor) {
       HIGAN_CPU_FUNCTION_SCOPE();
+      while (m_asyncRunning > 0 && !m_asyns.empty())
+      {
+        m_asyns.back().wait();
+        m_asyns.pop_back();
+        --m_asyncRunning;
+      }
       // stop gpu, possibly wait for last 'present' by inserting only fence to queue.
       auto fenceForSwapchain = m_devices[SwapchainDeviceID].device->createFence();
       // assuming that only graphics queue accesses swapchain resources.

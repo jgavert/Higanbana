@@ -1,6 +1,7 @@
 #pragma once
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
 #include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/external/SpookyV2.hpp>
 #include <string>
 
 namespace higanbana
@@ -9,11 +10,21 @@ namespace higanbana
   {
   public:
     std::string constantStructBody;
-    vector<std::string> structDecls;
+    vector<std::pair<size_t, std::string>> structDecls;
     vector<ShaderResource> sortedResources;
 
     ShaderArgumentsLayoutDescriptor()
     {
+    }
+
+    bool hasStruct(size_t key)
+    {
+      for (auto&& p : structDecls)
+      {
+        if (p.first == key)
+          return true;
+      }
+      return false;
     }
   private:
     void insertSort(const ShaderResource& res)
@@ -26,10 +37,12 @@ namespace higanbana
     ShaderArgumentsLayoutDescriptor& readOnly(ShaderResourceType type, std::string name)
     {
       auto sd = "struct " + std::string(Strct::structNameAsString) + " { " + std::string(Strct::structMembersAsString) + " };";
+      auto key = HashMemory(sd.data(), sd.size());
 
       auto res = ShaderResource(type, Strct::structNameAsString, name, true);
       insertSort(res);
-      structDecls.emplace_back(sd);
+      if (!hasStruct(key))
+        structDecls.emplace_back(std::make_pair(key, sd));
       return *this;
     }
 
@@ -49,11 +62,13 @@ namespace higanbana
     template <typename Strct>
     ShaderArgumentsLayoutDescriptor& readWrite(ShaderResourceType type, std::string name)
     {
-      auto sd = "struct " + Strct::structNameAsString + " { " + Strct::structMembersAsString + " };";
+      auto sd = "struct " + std::string(Strct::structNameAsString) + " { " + std::string(Strct::structMembersAsString) + " };";
+      auto key = HashMemory(sd.data(), sd.size());
 
       auto res = ShaderResource(type, Strct::structNameAsString, name, false);
       insertSort(res);
-      structDecls.emplace_back(sd);
+      if (!hasStruct(key))
+        structDecls.emplace_back(std::make_pair(key, sd));
       return *this;
     }
     ShaderArgumentsLayoutDescriptor& readWrite(ShaderResourceType type, std::string name)
@@ -69,6 +84,6 @@ namespace higanbana
       return *this;
     }
     vector<ShaderResource> getResources();
-    vector<std::string> structDeclarations();
+    vector<std::pair<size_t, std::string>> structDeclarations();
   };
 }

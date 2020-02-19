@@ -1,15 +1,15 @@
 #pragma once
 #include <higanbana/graphics/GraphicsCore.hpp>
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 class Blitter
 {
   higanbana::ShaderArgumentsLayout m_input;
-  higanbana::GraphicsPipeline pipeline;
-  higanbana::Renderpass renderpass;
+  higanbana::GraphicsPipeline pipelineRGBA;
+  higanbana::GraphicsPipeline pipelineBGRA;
+  higanbana::Renderpass renderpassRGBA;
+  higanbana::Renderpass renderpassBGRA;
   higanbana::TextureRTV target;
 public:
   enum class FitMode
@@ -27,5 +27,4 @@ public:
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, int2 topleft, int2 size);
   void blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, FitMode mode);
 };
-}
 }

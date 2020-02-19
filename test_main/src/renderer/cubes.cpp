@@ -11,9 +11,7 @@ SHADER_STRUCT(OpaqueConsts,
   float4x4 viewMat;
 );
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 Cubes::Cubes(higanbana::GpuGroup& device){
   using namespace higanbana;
@@ -349,6 +347,5 @@ void Cubes::oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::Comm
     */
   }
   node.endRenderpass();
-}
 }
 }

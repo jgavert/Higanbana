@@ -15,6 +15,7 @@ namespace higanbana
     vector<uint8_t> m_constants;
 
   public:
+    ShaderArgumentsBinding(){}
     ShaderArgumentsBinding(GraphicsPipeline pipeline)
       : m_layouts(pipeline.descriptor.desc.layout.m_sets)
       , m_arguments(m_layouts.size())

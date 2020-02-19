@@ -11,12 +11,12 @@ namespace higanbana
   class ShaderArgumentsLayout
   {
     std::shared_ptr<ResourceHandle> m_id;
-    std::shared_ptr<vector<std::string>> m_structs;
+    std::shared_ptr<vector<std::pair<size_t, std::string>>> m_structs;
     std::shared_ptr<vector<ShaderResource>> m_resources;
   public:
     ShaderArgumentsLayout()
       : m_id(std::make_shared<ResourceHandle>())
-      , m_structs(std::make_shared<vector<std::string>>())
+      , m_structs(std::make_shared<vector<std::pair<size_t, std::string>>>())
       , m_resources(std::make_shared<vector<ShaderResource>>())
     {
     }
@@ -30,14 +30,14 @@ namespace higanbana
     {
     }
 
-    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::string> structs, vector<ShaderResource> resources)
+    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::pair<size_t, std::string>> structs, vector<ShaderResource> resources)
       : m_id(id)
-      , m_structs(std::make_shared<vector<std::string>>(structs))
+      , m_structs(std::make_shared<vector<std::pair<size_t, std::string>>>(structs))
       , m_resources(std::make_shared<vector<ShaderResource>>(resources))
     {
     }
 
-    vector<std::string>& structs()
+    vector<std::pair<size_t, std::string>>& structs()
     {
       return *m_structs;
     }

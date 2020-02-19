@@ -15,6 +15,8 @@
 #include "renderer/meshes.hpp"
 #include "renderer/textures.hpp"
 #include "renderer/materials.hpp"
+#include "renderer/generate_image.hpp"
+#include "renderer/particles.hpp"
 #include "world/visual_data_structures.hpp"
 
 
@@ -54,8 +56,10 @@ class Renderer
   // postprocess
   renderer::ShittyTSAA tsaa;
   renderer::Blitter blitter;
+  renderer::GenerateImage genImage;
+  renderer::Particles particleSimulation;
 
-  //resources
+  // resources
   // gbuffer??
   higanbana::Texture gbuffer;
   higanbana::TextureRTV gbufferRTV;
@@ -66,8 +70,6 @@ class Renderer
   higanbana::PingPongTexture tsaaResolved; // tsaa history/current
 
   higanbana::PingPongTexture proxyTex; // used for background color
-  higanbana::ShaderArgumentsLayout compLayout;
-  higanbana::ComputePipeline genTexCompute; // generate proxyTex
 
   // could probably be replaced with blitter...
   higanbana::ShaderArgumentsLayout blitLayout;
@@ -76,7 +78,6 @@ class Renderer
 
   // info
   higanbana::WTime time;
-
   std::optional<higanbana::SubmitTiming> m_previousInfo;
   void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
   void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
@@ -88,13 +89,10 @@ public:
   void windowResized();
   void render(RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
-
   int loadMesh(MeshData& data);
   void unloadMesh(int index);
-
   int loadTexture(TextureData& data);
   void unloadTexture(int index);
-
   int loadMaterial(MaterialData& data);
   void unloadMaterial(int index);
 };

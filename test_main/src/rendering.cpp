@@ -59,12 +59,14 @@ void Renderer::unloadMaterial(int index) {
 Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
   : graphics(graphics)
   , dev(dev)
+  , cubes(dev)
   , imgui(dev)
   , worldRend(dev)
   , worldMeshRend(dev)
   , tsaa(dev)
   , blitter(dev)
-  , cubes(dev) {
+  , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
+  , particleSimulation(dev) {
   scdesc = SwapchainDescriptor()
     .formatType(FormatType::Unorm8RGBA)
     .colorspace(Colorspace::BT709)
@@ -83,30 +85,6 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setSize(uint2(1280, 720))
     .setFormat(FormatType::Unorm8RGBA)
     .setUsage(ResourceUsage::RenderTargetRW));
-
-  higanbana::ShaderArgumentsLayoutDescriptor layoutdesc = ShaderArgumentsLayoutDescriptor()
-    .readWrite(ShaderResourceType::Texture2D, "float4", "output");
-  compLayout = dev.createShaderArgumentsLayout(layoutdesc);
-  higanbana::PipelineInterfaceDescriptor babyInf2 = PipelineInterfaceDescriptor()
-    .constants<ComputeConstants>()
-    .shaderArguments(0, compLayout);
-
-  genTexCompute = dev.createComputePipeline(ComputePipelineDescriptor()
-  .setInterface(babyInf2)
-  .setShader("simpleEffectAssyt")
-  .setThreadGroups(uint3(8, 4, 1)));
-
-  higanbana::ShaderArgumentsLayoutDescriptor layoutdesc2 = ShaderArgumentsLayoutDescriptor()
-    .readOnly(ShaderResourceType::ByteAddressBuffer, "vertexInput")
-    .readOnly(ShaderResourceType::Texture2D, "float4", "texInput");
-  blitLayout = dev.createShaderArgumentsLayout(layoutdesc2);
-  composite = dev.createGraphicsPipeline(basicDescriptor
-    .setVertexShader("blit")
-    .setPixelShader("blit")
-    .setInterface(PipelineInterfaceDescriptor()
-      .constants<PixelConstants>()
-      .shaderArguments(0, blitLayout)));
-  compositeRP = dev.createRenderpass();
 
   tsaaResolved.resize(dev, ResourceDescriptor()
     .setSize(uint2(1280, 720))
@@ -216,7 +194,6 @@ void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat,
 }
 
 void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
-  // upload data to gpu :P
   vector<CameraSettings> sets;
   sets.push_back(CameraSettings{viewMat});
   auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
@@ -251,63 +228,30 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
   CommandGraph tasks = dev.createGraph();
 
   {
+    auto ndoe = tasks.createPass("simulate particles");
+    particleSimulation.simulate(dev, ndoe);
+    tasks.addPass(std::move(ndoe));
+  }
+
+  {
     auto node = tasks.createPass("generate Texture");
-
-    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Generate Texture Descriptors", compLayout)
-      .bind("output", proxyTex.uav()));
-
-    auto binding = node.bind(genTexCompute);
-    ComputeConstants consts{};
-    consts.time = time.getFTime();
-    consts.resx = proxyTex.desc().desc.width; 
-    consts.resy = proxyTex.desc().desc.height;
-    binding.constants(consts);
-    binding.arguments(0, args);
-
-    node.dispatchThreads(binding, proxyTex.desc().desc.size3D());
-
+    genImage.generate(dev, node, proxyTex.uav());
     tasks.addPass(std::move(node));
   }
 
   {
     auto node = tasks.createPass("composite");
     node.acquirePresentableImage(swapchain);
-    backbuffer.setOp(LoadOp::DontCare);
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
 
     backbuffer.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
-    node.renderpass(compositeRP, backbuffer);
-    {
-      auto binding = node.bind(composite);
-
-      PixelConstants consts{};
-      consts.time = time.getFTime();
-      consts.resx = backbuffer.desc().desc.width; 
-      consts.resy = backbuffer.desc().desc.height;
-      binding.constants(consts);
-
-      vector<float> vertexData = {
-        -1.f, -1.f, 
-        -1.0f, 3.f,
-        3.0f, -1.0f};
-      auto vert = dev.dynamicBuffer<float>(vertexData, FormatType::Raw32);
-
-      auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("blit descriptors", blitLayout)
-        .bind("vertexInput", vert)
-        .bind("texInput", proxyTex.srv()));
-
-      binding.arguments(0, args);
-
-      node.draw(binding, 3);
-    }
+    blitter.beginRenderpass(node, backbuffer);
+    blitter.blitImage(dev, node, proxyTex.srv(), renderer::Blitter::FitMode::Fill);
     node.endRenderpass();
     tasks.addPass(std::move(node));
   }
 
   {
-    //auto node = tasks.createPass("opaquePass");
-
-    // camera forming...
     auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
     float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
     float4x4 rot = math::rotationMatrixLH(camera.direction);
@@ -349,7 +293,6 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
       int pixelsToDraw = drawcalls;
       backbuffer.setOp(LoadOp::Load);
       depthDSV.clearOp({});
-      //auto node = tasks.createPass("opaquePass - cubes");
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
       int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(drawsSplitInto))+0.5f));

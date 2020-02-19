@@ -4,9 +4,7 @@
 #include "camera.hpp"
 #include <higanbana/graphics/GraphicsCore.hpp>
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 class World
 {
@@ -22,5 +20,4 @@ public:
   void endRenderpass(higanbana::CommandGraphNode& node);
   void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers);
 };
-}
 }

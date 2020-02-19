@@ -11,9 +11,7 @@ SHADER_STRUCT(WorldMeshlet,
   uint offsetPacked;
 );
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 class MeshTest
 {
@@ -28,5 +26,4 @@ public:
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
   void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets);
 };
-}
 }

@@ -4,9 +4,7 @@ SHADER_STRUCT(DebugConstants,
   float3 pos;
 );
 
-namespace app
-{
-namespace renderer 
+namespace app::renderer
 {
 World::World(higanbana::GpuGroup& device)
 {
@@ -58,6 +56,5 @@ void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV i
   binding.arguments(1, meshBuffers);
   binding.constants(DebugConstants{float3(0,0,0)});
   node.drawIndexed(binding, ibv, ibv.desc().desc.width);
-}
 }
 }

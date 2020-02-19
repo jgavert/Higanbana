@@ -6,9 +6,7 @@ SHADER_STRUCT(imguiConstants,
   float2 reciprocalResolution;
 );
 
-namespace app 
-{
-namespace renderer
+namespace app::renderer 
 {
 IMGui::IMGui(GpuGroup& device)
 {
@@ -135,6 +133,5 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
     }
   }
   node.endRenderpass();
-}
 }
 }

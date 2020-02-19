@@ -7,7 +7,7 @@ namespace higanbana
     return sortedResources;
   }
 
-  vector<std::string> ShaderArgumentsLayoutDescriptor::structDeclarations()
+  vector<std::pair<size_t, std::string>> ShaderArgumentsLayoutDescriptor::structDeclarations()
   {
     return structDecls;
   }

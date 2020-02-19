@@ -1,4 +1,4 @@
-#include "blitter.if.hpp"
+#include "blitter.if.hlsl"
 
 struct PSInput
 {

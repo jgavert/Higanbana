@@ -4,9 +4,7 @@
 #include "camera.hpp"
 #include <higanbana/graphics/GraphicsCore.hpp>
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 struct TSAAArguments
 {
@@ -21,5 +19,4 @@ public:
   ShittyTSAA(higanbana::GpuGroup& device);
   void resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args);
 };
-}
 }

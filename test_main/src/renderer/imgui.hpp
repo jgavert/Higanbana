@@ -3,9 +3,7 @@
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <imgui.h>
 
-namespace app
-{
-namespace renderer
+namespace app::renderer
 {
 class IMGui
 {
@@ -20,5 +18,4 @@ public:
   IMGui(higanbana::GpuGroup& device);
   void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target);
 };
-}
 }

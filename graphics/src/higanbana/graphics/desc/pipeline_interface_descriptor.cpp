@@ -98,9 +98,13 @@ namespace higanbana
     lol += "// Shader Arguments " + std::to_string(set) + "\n";
     
     if (!args.structs().empty()) lol += "// Struct declarations\n";
+    unordered_set<size_t> filterAddedStructs;
     for (auto&& strct : args.structs())
     {
-      lol += strct + "\n";
+      if (filterAddedStructs.find(strct.first) != filterAddedStructs.end())
+        continue;
+      lol += strct.second + "\n";
+      filterAddedStructs.insert(strct.first);
     }
     
     lol += "\n// Read Only resources\n";

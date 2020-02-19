@@ -2916,8 +2916,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
-      uint32_t index = static_cast<uint32_t>(native->getCurrentPresentableImageIndex());
-      HIGAN_ASSERT(index == static_cast<uint32_t>(indexb), "index should match");
+      uint32_t index = static_cast<uint32_t>(indexb); // turns out that index from swapchain isnt threadsafe, better be explicit.
       vk::Semaphore renderFinish = nullptr;
       uint32_t semaphoreCount = 0;
       vk::SwapchainKHR swap = native->native();
