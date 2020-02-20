@@ -1438,7 +1438,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if (1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
+          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));

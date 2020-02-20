@@ -36,14 +36,16 @@ void Renderer::unloadMaterial(int index) {
 Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
   : graphics(graphics)
   , dev(dev)
+  , m_camerasLayout(dev.createShaderArgumentsLayout(higanbana::ShaderArgumentsLayoutDescriptor()
+      .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras")))
   , cubes(dev)
   , imgui(dev)
-  , worldRend(dev)
-  , worldMeshRend(dev)
+  , worldRend(dev, m_camerasLayout)
+  , worldMeshRend(dev, m_camerasLayout)
   , tsaa(dev)
   , blitter(dev)
   , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
-  , particleSimulation(dev) {
+  , particleSimulation(dev, m_camerasLayout) {
   scdesc = SwapchainDescriptor()
     .formatType(FormatType::Unorm8RGBA)
     .colorspace(Colorspace::BT709)
@@ -80,7 +82,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   cameraUAV = dev.createBufferUAV(cameras);
 
 
-  staticDataArgs = dev.createShaderArguments(ShaderArgumentsDescriptor("camera and other static data", worldRend.staticDataLayout())
+  cameraArgs = dev.createShaderArguments(ShaderArgumentsDescriptor("camera and other static data", m_camerasLayout)
     .bind("cameras", cameraSRV));
 
   // GBuffer
@@ -151,31 +153,19 @@ std::optional<higanbana::SubmitTiming> Renderer::timings() {
   return m_previousInfo;
 }
 
-void Renderer::renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
-  // upload data to gpu :P
-  vector<CameraSettings> sets;
-  sets.push_back(CameraSettings{viewMat});
-  auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-  node.copy(cameras, matUpdate);
-
-
+void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
   depthDSV.clearOp({});
   worldRend.beginRenderpass(node, backbuffer, depthDSV);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.args);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args);
   }
   worldRend.endRenderpass(node);
 }
 
-void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
-  vector<CameraSettings> sets;
-  sets.push_back(CameraSettings{viewMat});
-  auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-  node.copy(cameras, matUpdate);
-
+void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
   depthDSV.clearOp({});
   
@@ -183,7 +173,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, fl
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldMeshRend.renderMesh(node, mesh.indices, staticDataArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width);
+    worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width);
   }
   node.endRenderpass();
 }
@@ -207,6 +197,19 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
   {
     auto ndoe = tasks.createPass("simulate particles");
     particleSimulation.simulate(dev, ndoe);
+    tasks.addPass(std::move(ndoe));
+  }
+  {
+    auto ndoe = tasks.createPass("copy cameras");
+    vector<CameraSettings> sets;
+    auto aspect = float(backbuffer.desc().desc.height)/float(backbuffer.desc().desc.width);
+    float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
+    float4x4 rot = math::rotationMatrixLH(camera.direction);
+    float4x4 pos = math::translation(camera.position);
+    auto perspective = math::mul(pos, math::mul(rot, pers));
+    sets.push_back(CameraSettings{perspective});
+    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+    ndoe.copy(cameras, matUpdate);
     tasks.addPass(std::move(ndoe));
   }
 
@@ -336,12 +339,18 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
     {
       auto node = tasks.createPass("opaquePass - ecs");
       if (options.allowMeshShaders)
-        renderMeshesWithMeshShaders(node, perspective, backbuffer, instances);
+        renderMeshesWithMeshShaders(node, backbuffer, instances);
       else
-        renderMeshes(node, perspective, backbuffer, instances);
+        renderMeshes(node, backbuffer, instances);
       tasks.addPass(std::move(node));
     }
-    
+  }
+
+  // particles draw
+  {
+    auto node = tasks.createPass("particles - draw");
+    particleSimulation.render(dev, node, backbuffer, depthDSV, cameraArgs);
+    tasks.addPass(std::move(node));
   }
 
   // IMGUI

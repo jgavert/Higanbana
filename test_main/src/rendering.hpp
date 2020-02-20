@@ -37,12 +37,15 @@ class Renderer
   higanbana::SwapchainDescriptor scdesc;
   higanbana::Swapchain swapchain;
 
-  // meshes
-  MeshSystem meshes;
+  // global layouts
+  higanbana::ShaderArgumentsLayout m_camerasLayout;
   higanbana::Buffer cameras;
   higanbana::BufferSRV cameraSRV;
   higanbana::BufferUAV cameraUAV;
-  higanbana::ShaderArguments staticDataArgs;
+  higanbana::ShaderArguments cameraArgs;
+
+  // meshes
+  MeshSystem meshes;
 
   // materials
   TextureDB textures;
@@ -79,8 +82,8 @@ class Renderer
   // info
   higanbana::WTime time;
   std::optional<higanbana::SubmitTiming> m_previousInfo;
-  void renderMeshes(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
-  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
 
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);

@@ -6,11 +6,9 @@ SHADER_STRUCT(DebugConstants,
 );
 namespace app::renderer
 {
-MeshTest::MeshTest(higanbana::GpuGroup& device)
+MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout)
 {
   using namespace higanbana;
-  ShaderArgumentsLayoutDescriptor staticDataLayout = ShaderArgumentsLayoutDescriptor()
-    .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras");
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly<WorldMeshlet>(ShaderResourceType::StructuredBuffer, "meshlets")
     .readOnly(ShaderResourceType::Buffer, "uint", "uniqueIndices")
@@ -18,12 +16,11 @@ MeshTest::MeshTest(higanbana::GpuGroup& device)
     .readOnly(ShaderResourceType::Buffer, "float3", "vertices")
     .readOnly(ShaderResourceType::Buffer, "float2", "uvs")
     .readOnly(ShaderResourceType::Buffer, "float3", "normals");
-  m_staticArgumentsLayout = device.createShaderArgumentsLayout(staticDataLayout);
   m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
     .constants<DebugConstants>()
-    .shaderArguments(0, m_staticArgumentsLayout)
+    .shaderArguments(0, camerasLayout)
     .shaderArguments(1, m_meshArgumentsLayout);
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()

@@ -6,21 +6,18 @@ SHADER_STRUCT(DebugConstants,
 
 namespace app::renderer
 {
-World::World(higanbana::GpuGroup& device)
+World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cameras)
 {
   using namespace higanbana;
-  ShaderArgumentsLayoutDescriptor staticDataLayout = ShaderArgumentsLayoutDescriptor()
-    .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras");
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly(ShaderResourceType::Buffer, "float3", "vertices")
     .readOnly(ShaderResourceType::Buffer, "float2", "uvs")
     .readOnly(ShaderResourceType::Buffer, "float3", "normals");
-  m_staticArgumentsLayout = device.createShaderArgumentsLayout(staticDataLayout);
   m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
     .constants<DebugConstants>()
-    .shaderArguments(0, m_staticArgumentsLayout)
+    .shaderArguments(0, cameras)
     .shaderArguments(1, m_meshArgumentsLayout);
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()

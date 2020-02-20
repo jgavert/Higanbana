@@ -15,13 +15,11 @@ namespace app::renderer
 {
 class MeshTest
 {
-  higanbana::ShaderArgumentsLayout m_staticArgumentsLayout;
   higanbana::ShaderArgumentsLayout m_meshArgumentsLayout;
   higanbana::GraphicsPipeline m_pipeline;
   higanbana::Renderpass m_renderpass;
 public:
-  MeshTest(higanbana::GpuGroup& device);
-  higanbana::ShaderArgumentsLayout& staticDataLayout() {return m_staticArgumentsLayout;}
+  MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout);
   higanbana::ShaderArgumentsLayout& meshArgLayout() {return m_meshArgumentsLayout;}
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
   void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets);
