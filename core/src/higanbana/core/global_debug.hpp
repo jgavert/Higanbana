@@ -44,7 +44,7 @@
 #define HIGANBANA_CHECK_HR(hr) \
         do \
         { \
-        if (checkHRError(hr)) \
+        if (checkHRError(__FILE__, __LINE__, hr)) \
           { \
             debugBreak(); \
             abort();\
@@ -81,7 +81,7 @@ void debugBreak();
 
 #ifdef _MSC_VER
 
-bool checkHRError(long hr);
+bool checkHRError(const char *fn, int ln, long hr);
 
 #define _snprintf c99_snprintf
 #define _vsnprintf c99_vsnprintf

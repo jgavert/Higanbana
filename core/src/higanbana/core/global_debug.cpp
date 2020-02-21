@@ -13,14 +13,14 @@ void debugBreak()
     __debugbreak();
 }
 
-bool checkHRError(long hr)
+bool checkHRError(const char *fn, int ln, long hr)
 {
   if (FAILED(hr))
   {
     _com_error err(hr);
     LPCTSTR errMsg = err.ErrorMessage();
     std::string _msg = ws2s(errMsg);
-    log_immideateAssert(__FILE__, __LINE__, "[SYSTEM/fail]: HRESULT: \"%s\"", _msg.c_str());
+    log_immideateAssert(fn, ln, "[SYSTEM/fail]: HRESULT: \"%s\"", _msg.c_str());
     return true;
   }
   return false;
