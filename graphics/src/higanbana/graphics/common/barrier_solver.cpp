@@ -30,7 +30,7 @@ namespace higanbana
       m_drawBarries.clear();
     }
 
-    void BarrierSolver::localBarrierPass1()
+    void BarrierSolver::localBarrierPass1(bool allowCommonOptimization)
     {
       int jobsSize = static_cast<int>(m_jobs.size());
       int jobIndex = 0;
@@ -63,6 +63,8 @@ namespace higanbana
           {
             auto& resource = m_bufferCache[job.resource.resource];
             auto lastAccess = resource.state;
+            auto isDifferentFromCommon = (lastAccess.usage != AccessUsage::Unknown && lastAccess.stage != AccessStage::Common) || !allowCommonOptimization;
+
             if (lastAccess.queue_index != jobResAccess.queue_index && jobResAccess.stage == AccessStage::Common)
             {
               if (lastAccess.queue_index != QueueType::Unknown )
@@ -87,7 +89,7 @@ namespace higanbana
                 ++bufferBarrierOffsets;
               }
             }
-            else if (lastAccess.usage != AccessUsage::Unknown && lastAccess.stage != AccessStage::Common && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
+            else if (isDifferentFromCommon && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage))
             {
               auto src = lastAccess;
               src.queue_index = QueueType::Unknown;

@@ -18,6 +18,7 @@
 
 namespace higanbana
 {
+  class LBS;
   class GpuGroup : private backend::SharedState<backend::DeviceGroupData>
   {
   public:
@@ -210,12 +211,27 @@ namespace higanbana
 
     void submitExperimental(Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
-      S().submitExperimental(swapchain, graph, threading);
+      if (threading == ThreadedSubmission::Sequenced)
+        S().submitST(swapchain, graph);
+      else
+        S().submitExperimental(swapchain, graph, threading);
     }
 
     void submitExperimental(CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
-      S().submitExperimental(std::optional<Swapchain>(), graph, threading);
+      if (threading == ThreadedSubmission::Sequenced)
+        S().submitST(std::optional<Swapchain>(), graph);
+      else
+        S().submitExperimental(std::optional<Swapchain>(), graph, threading);
+    }
+
+    void submitLBS(LBS& lbs,Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
+    {
+      S().submitLBS(lbs, swapchain, graph, threading);
+    }
+    void submitLBS(LBS lbs, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
+    {
+      S().submitLBS(lbs, std::optional<Swapchain>(), graph, threading);
     }
 
     void present(Swapchain& swapchain, int backbufferIndex)

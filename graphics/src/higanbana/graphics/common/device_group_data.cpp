@@ -298,6 +298,12 @@ namespace higanbana
 
     void DeviceGroupData::waitGpuIdle() {
       HIGAN_CPU_FUNCTION_SCOPE();
+      std::lock_guard<std::mutex> guard(m_presentMutex);
+      while (!m_asyns.empty())
+      {
+        m_asyns.back().wait();
+        m_asyns.pop_back();
+      }
       for (auto&& vdev : m_devices)
       {
         vdev.device->waitGpuIdle();
@@ -1025,7 +1031,7 @@ namespace higanbana
       timing.barrierAdd.stop();
 
       timing.barrierSolveLocal.start();
-      solver.localBarrierPass1();
+      solver.localBarrierPass1(true);
       timing.barrierSolveLocal.stop();
 
       timing.barrierSolveGlobal.start();
@@ -1045,7 +1051,8 @@ namespace higanbana
       vector<QueueTransfer>& releases,
       CommandListTiming& timing,
       BarrierSolver& solver,
-      vector<ReadbackPromise>& readbacks) {
+      vector<ReadbackPromise>& readbacks,
+      bool isFirstList) {
       HIGAN_CPU_FUNCTION_SCOPE();
       timing.barrierAdd.start();
 
@@ -1244,7 +1251,7 @@ namespace higanbana
       timing.barrierAdd.stop();
 
       timing.barrierSolveLocal.start();
-      solver.localBarrierPass1();
+      solver.localBarrierPass1(isFirstList);
       timing.barrierSolveLocal.stop();
     }
 
@@ -1399,7 +1406,7 @@ namespace higanbana
     }
 
     // submit function breakdown
-    vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes) {
+    vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes, bool singleThreaded) {
       HIGAN_CPU_FUNCTION_SCOPE();
       vector<PreparedCommandlist> lists;
       {
@@ -1440,7 +1447,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if ((currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128)
+          if (!singleThreaded && ( 1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128))
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));
@@ -1622,7 +1629,7 @@ namespace higanbana
         {
           HIGAN_CPU_BRACKET("addNodes");
           timing.addNodes.start();
-          lists = prepareNodes(nodes);
+          lists = prepareNodes(nodes, false);
           timing.addNodes.stop();
         }
 
@@ -1665,7 +1672,7 @@ namespace higanbana
             auto& solver = *solvers[id];
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
-            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver, list.readbacks[id - offset]);
+            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver, list.readbacks[id - offset], id == offset);
           });
         });
         
@@ -1897,6 +1904,9 @@ namespace higanbana
     }
     void DeviceGroupData::submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded) {
       HIGAN_CPU_FUNCTION_SCOPE();
+      std::launch policy = std::launch::async | std::launch::deferred;
+      if (multithreaded == ThreadedSubmission::Sequenced)
+        policy = std::launch::deferred;
       SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;
@@ -1910,7 +1920,290 @@ namespace higanbana
         {
           HIGAN_CPU_BRACKET("addNodes");
           timing.addNodes.start();
-          lists = prepareNodes(nodes);
+          lists = prepareNodes(nodes, false);
+          timing.addNodes.stop();
+        }
+
+        {
+          HIGAN_CPU_BRACKET("GraphSolve");
+          timing.graphSolve.start();
+          auto firstUsageSeen = checkQueueDependencies(lists);
+          returnResouresToOriginalQueues(lists, firstUsageSeen);
+          handleQueueTransfersWithinRendergraph(lists, firstUsageSeen);
+          timing.graphSolve.stop();
+        }
+
+        timing.fillCommandLists.start();
+
+        auto readyLists = makeLiveCommandBuffers(lists, timing.id);
+        timing.listsCount = lists.size();
+
+        std::shared_future<void> gcComplete;
+        {
+          HIGAN_CPU_BRACKET("launch gc task");
+          gcComplete = std::async(std::launch::async, [&]
+          {
+            gc();
+          });
+        }
+
+        vector<std::shared_ptr<BarrierSolver>> solvers;
+        solvers.resize(lists.size());
+
+        vector<vector<std::shared_future<void>>> listsFilled;
+        std::optional<std::shared_future<void>> lastGlobalPass;
+        std::optional<std::shared_future<void>> lastSubmitPass;
+
+        for (int liveListID = 0; liveListID < readyLists.size(); liveListID++)
+        //for (auto&& liveList : readyLists)
+        {
+          int listIdBegin = readyLists[liveListID].listIDs[0];
+          vector<std::shared_future<void>> listfills;
+          for (auto&& listID : readyLists[liveListID].listIDs)
+          {
+            std::shared_future<void> localpass = std::async(policy, [&, listIdBegin, liveListID, listID](){
+              HIGAN_CPU_BRACKET("localpass %d", listID);
+              auto& liveList = readyLists[liveListID];
+              auto& vdev = m_devices[liveList.deviceID];
+              {
+                HIGAN_CPU_BRACKET("BarrierSolver creation");
+                solvers[listID] = std::make_shared<BarrierSolver>(vdev.m_bufferStates, vdev.m_textureStates);
+              }
+              auto& solver = *solvers[listID];
+              auto& buffer = lists[listID];
+              auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+              firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, liveList.listTiming[listID - listIdBegin], solver, liveList.readbacks[listID - listIdBegin], listID == listIdBegin);
+            });
+            std::shared_future<void> globalpass = std::async(policy, [&, localpass, lastGlobalPass, listIdBegin, liveListID, listID](){
+              if (lastGlobalPass)
+              {
+                HIGAN_CPU_BRACKET("waiting previous globalpass");
+                lastGlobalPass->wait();
+              }
+              {
+                HIGAN_CPU_BRACKET("waiting own localpass %d", listID);
+                localpass.wait();
+              }
+              HIGAN_CPU_BRACKET("globalPass %d", listID);
+              std::lock_guard<std::mutex> guard(m_presentMutex);
+              auto& solver = *solvers[listID];
+              // this is order dependant
+              auto& liveList = readyLists[liveListID];
+              globalPassBarrierSolve(liveList.listTiming[listID - listIdBegin], solver);
+            });
+            lastGlobalPass = globalpass;
+            std::shared_future<void> listfill = std::async(policy, [&, globalpass, listIdBegin, liveListID, listID](){
+              {
+                HIGAN_CPU_BRACKET("waiting own global pass to finish");
+                globalpass.wait();
+              }
+
+              HIGAN_CPU_BRACKET("filling list %d", listID);
+              auto& buffer = lists[listID];
+              auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+              auto& liveList = readyLists[liveListID];
+              auto& vdev = m_devices[liveList.deviceID];
+              auto& solver = *solvers[listID];
+              fillNativeList(liveList.lists[listID - listIdBegin], vdev, buffersView, solver, liveList.listTiming[listID - listIdBegin]);
+              liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
+            });
+
+            /////////////////////////SUBMIT////////////////////////////////////////
+
+            std::shared_future<void> submitPass = std::async(policy, [&, listfill, lastSubmitPass, gcComplete, listIdBegin, liveListID, listID](){
+              if (lastSubmitPass)
+              {
+                HIGAN_CPU_BRACKET("waiting previous submit");
+                lastSubmitPass->wait();
+              }
+              {
+                HIGAN_CPU_BRACKET("waiting own list fill");
+                listfill.wait();
+              }
+              {
+                HIGAN_CPU_BRACKET("waiting gc completion");
+                gcComplete.wait();
+              }
+              HIGAN_CPU_BRACKET("submit");
+              std::lock_guard<std::mutex> guard(m_presentMutex);
+
+              auto& liveList = readyLists[liveListID];
+              auto isFirstList = listID == liveList.listIDs.front();
+              auto isLastList = listID == liveList.listIDs.back();
+
+              auto& vdev = m_devices[liveList.deviceID];
+              if (isFirstList)
+              {
+                liveList.dmaValue = 0;
+                liveList.gfxValue = 0;
+                liveList.cptValue = 0;
+              }
+              MemView<std::shared_ptr<SemaphoreImpl>> wait;
+              {
+                auto& list = lists[listID];
+
+                if (list.waitGraphics) {
+                  liveList.timelineGfx = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+                }
+                if (list.waitCompute) {
+                  liveList.timelineCompute = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+                }
+                if (list.waitDMA) {
+                  liveList.timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                }
+
+                if (list.acquireSema) {
+                  liveList.wait.push_back(list.acquireSema);
+                  wait = list.acquireSema;
+                }
+                if (list.presents && swapchain) {
+                  auto sc = swapchain.value();
+                  auto presenene = sc.impl()->renderSemaphore();
+                  if (presenene) {
+                    liveList.signal.push_back(presenene);
+                  }
+                }
+                // this could be removed when vulkan debug layers work, timeline semaphores
+                if (list.isLastList || !liveList.readbacks.empty()) {
+                  liveList.fence = vdev.device->createFence();
+                }
+                // as fences arent needed with timelines semaphores
+
+                for (auto&& timing : liveList.listTiming) {
+                  timing.fromSubmitToFence.start();
+                }
+              }
+
+              vector<TimelineSemaphoreInfo> waitInfos;
+              if (liveList.timelineGfx) {
+                waitInfos.push_back(liveList.timelineGfx.value());
+                liveList.timelineGfx.reset();
+              }
+              if (liveList.timelineCompute) {
+                waitInfos.push_back(liveList.timelineCompute.value());
+                liveList.timelineCompute.reset();
+              } 
+              if (liveList.timelineDma) {
+                waitInfos.push_back(liveList.timelineDma.value());
+                liveList.timelineDma.reset();
+              }
+
+              TimelineSemaphoreInfo signalTimeline;
+              MemView<std::shared_ptr<SemaphoreImpl>> signal;
+              std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+              if (isLastList)
+              {
+                signal = liveList.signal;
+                if (liveList.fence)
+                  viewToFence = liveList.fence;
+              }
+              switch (liveList.queue)
+              {
+              case QueueType::Dma:
+                ++vdev.dmaQueue;
+                signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                liveList.dmaValue = vdev.dmaQueue;
+                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                break;
+              case QueueType::Compute:
+                ++vdev.cptQueue;
+                signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+                liveList.cptValue = vdev.cptQueue;
+                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                break;
+              case QueueType::Graphics:
+              default:
+    #if 0
+                {
+                  for (int i = 0; i < buffer.lists.size(); i++)
+                  {
+                    if (i == 0)
+                      vdev.device->submitGraphics(buffer.lists[i], buffer.wait, {}, {});
+                    else if (i == buffer.lists.size()-1)
+                      vdev.device->submitGraphics(buffer.lists[i], {}, buffer.signal, viewToFence);
+                    else
+                      vdev.device->submitGraphics(buffer.lists[i], {}, {}, {});
+                  }
+                }
+    #else
+                ++vdev.gfxQueue;
+                signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+                liveList.gfxValue = vdev.gfxQueue;
+                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+    #endif
+              }
+            });
+            lastSubmitPass = submitPass;
+            listfills.emplace_back(submitPass);
+          }
+          listsFilled.emplace_back(std::move(listfills));
+        }
+
+        timing.fillCommandLists.stop();
+
+        timing.submitSolve.start();
+        // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
+        //for (auto&& list : lists)
+        HIGAN_CPU_BRACKET("waiting submit Lists");
+        for (auto&& buffer : readyLists)
+        {
+          {
+            HIGAN_CPU_BRACKET("waiting lists to be submitted");
+            for (auto&& listFill : listsFilled.back())
+            {
+              listFill.wait();
+            }
+            listsFilled.pop_back();
+          }
+          auto& vdev = m_devices[buffer.deviceID];
+
+          switch (buffer.queue)
+          {
+          case QueueType::Dma:
+            vdev.m_dmaBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Compute:
+            vdev.m_computeBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Graphics:
+          default:
+            vdev.m_gfxBuffers.emplace_back(buffer);
+          }
+          for (auto&& id : buffer.listIDs)
+          {
+            auto& list = lists[id];
+            for (auto&& buffer : list.buffers)
+            {
+              m_commandBuffers.free(std::move(buffer));
+            }
+          }
+        }
+        timing.submitSolve.stop();
+      }
+      timing.submitCpuTime.stop();
+      timeOnFlightSubmits.push_back(timing);
+      if (graph.m_sequence != InvalidSeqNum)
+      {
+        m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
+      }
+    }
+
+    void DeviceGroupData::submitST(std::optional<Swapchain> swapchain, CommandGraph& graph) {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      SubmitTiming timing = graph.m_timing;
+      timing.id = m_submitIDs++;
+      timing.listsCount = 0;
+      timing.timeBeforeSubmit.stop();
+      timing.submitCpuTime.start();
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        vector<PreparedCommandlist> lists;
+        {
+          HIGAN_CPU_BRACKET("addNodes");
+          timing.addNodes.start();
+          lists = prepareNodes(nodes, true);
           timing.addNodes.stop();
         }
 
@@ -1940,21 +2233,247 @@ namespace higanbana
         vector<std::shared_ptr<BarrierSolver>> solvers;
         solvers.resize(lists.size());
 
-        vector<vector<std::shared_future<void>>> listsFilled;
-        std::optional<std::shared_future<void>> lastGlobalPass;
-        std::optional<std::shared_future<void>> lastSubmitPass;
-
-        for (auto&& liveList : readyLists)
+        std::for_each(std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
+          HIGAN_CPU_BRACKET("OuterLoopFirstPass");
+          int offset = list.listIDs[0];
+          std::for_each(std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            HIGAN_CPU_BRACKET("InnerLoopFirstPass");
+            auto& vdev = m_devices[list.deviceID];
+            {
+              HIGAN_CPU_BRACKET("BarrierSolver creation");
+              solvers[id] = std::make_shared<BarrierSolver>(vdev.m_bufferStates, vdev.m_textureStates);
+            }
+            auto& solver = *solvers[id];
+            auto& buffer = lists[id];
+            auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+            firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver, list.readbacks[id - offset], id == offset);
+          });
+        });
+        
         {
-          int listIdBegin = liveList.listIDs[0];
-          vector<std::shared_future<void>> listfills;
-          for (auto&& listID : liveList.listIDs)
+          HIGAN_CPU_BRACKET("globalPass");
+          for (auto&& list : readyLists)
           {
-            auto isFirstList = listID == liveList.listIDs.front();
-            auto isLastList = listID == liveList.listIDs.back();
+            int offset = list.listIDs[0];
+            for (auto&& id : list.listIDs)
+            {
+              auto& solver = *solvers[id];
+              // this is order dependant
+              globalPassBarrierSolve(list.listTiming[id - offset], solver);
+              // also parallel
+            }
+          }
+        }
 
-            std::shared_future<void> localpass = std::async([&](){
+        std::for_each(std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list)
+        {
+          int offset = list.listIDs[0];
+          HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
+          std::for_each(std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
+            auto& buffer = lists[id];
+            auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+            auto& vdev = m_devices[list.deviceID];
+            auto& solver = *solvers[id];
+            fillNativeList(list.lists[id-offset], vdev, buffersView, solver, list.listTiming[id - offset]);
+            list.listTiming[id - offset].cpuBackendTime.stop();
+          });
+        });
+
+        timing.fillCommandLists.stop();
+
+        timing.submitSolve.start();
+        // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
+        //for (auto&& list : lists)
+        gcComplete.wait();
+        HIGAN_CPU_BRACKET("Submit Lists");
+        while(!readyLists.empty())
+        {
+          LiveCommandBuffer2 buffer = std::move(readyLists.front());
+          readyLists.pop_front();
+
+          auto& vdev = m_devices[buffer.deviceID];
+          buffer.dmaValue = 0;
+          buffer.gfxValue = 0;
+          buffer.cptValue = 0;
+          std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+          std::optional<TimelineSemaphoreInfo> timelineGfx;
+          std::optional<TimelineSemaphoreInfo> timelineCompute;
+          std::optional<TimelineSemaphoreInfo> timelineDma;
+          for (auto&& id : buffer.listIDs)
+          {
+            auto& list = lists[id];
+
+            if (list.waitGraphics)
+            {
+              timelineGfx = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+            }
+            if (list.waitCompute)
+            {
+              timelineCompute = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+            }
+            if (list.waitDMA)
+            {
+              timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            }
+
+            if (list.acquireSema)
+            {
+              buffer.wait.push_back(list.acquireSema);
+            }
+
+            if (list.presents && swapchain)
+            {
+              auto sc = swapchain.value();
+              auto presenene = sc.impl()->renderSemaphore();
+              if (presenene)
+              {
+                buffer.signal.push_back(presenene);
+              }
+            }
+            
+            // this could be removed when vulkan debug layers work
+            if (list.isLastList || !buffer.readbacks.empty())
+            {
+              buffer.fence = vdev.device->createFence();
+            }
+
+            if (buffer.fence)
+            {
+              viewToFence = buffer.fence;
+            }
+            // as fences arent needed with timelines semaphores
+
+            for (auto&& timing : buffer.listTiming)
+            {
+              timing.fromSubmitToFence.start();
+            }
+          }
+
+          vector<TimelineSemaphoreInfo> waitInfos;
+          if (timelineGfx) waitInfos.push_back(timelineGfx.value());
+          if (timelineCompute) waitInfos.push_back(timelineCompute.value());
+          if (timelineDma) waitInfos.push_back(timelineDma.value());
+
+          TimelineSemaphoreInfo signalTimeline;
+          switch (buffer.queue)
+          {
+          case QueueType::Dma:
+            ++vdev.dmaQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            buffer.dmaValue = vdev.dmaQueue;
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.m_dmaBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Compute:
+            ++vdev.cptQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+            buffer.cptValue = vdev.cptQueue;
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.m_computeBuffers.emplace_back(buffer);
+            break;
+          case QueueType::Graphics:
+          default:
+#if 0
+            {
+              for (int i = 0; i < buffer.lists.size(); i++)
+              {
+                if (i == 0)
+                  vdev.device->submitGraphics(buffer.lists[i], buffer.wait, {}, {});
+                else if (i == buffer.lists.size()-1)
+                  vdev.device->submitGraphics(buffer.lists[i], {}, buffer.signal, viewToFence);
+                else
+                  vdev.device->submitGraphics(buffer.lists[i], {}, {}, {});
+              }
+            }
+#else
+            ++vdev.gfxQueue;
+            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+            buffer.gfxValue = vdev.gfxQueue;
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+#endif
+            vdev.m_gfxBuffers.emplace_back(buffer);
+          }
+          for (auto&& id : buffer.listIDs)
+          {
+            auto& list = lists[id];
+            for (auto&& buffer : list.buffers)
+            {
+              m_commandBuffers.free(std::move(buffer));
+            }
+          }
+        }
+        timing.submitSolve.stop();
+      }
+      timing.submitCpuTime.stop();
+      timeOnFlightSubmits.push_back(timing);
+      if (graph.m_sequence != InvalidSeqNum)
+      {
+        m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
+      }
+    }
+    void DeviceGroupData::submitLBS(LBS& lbs, std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded) {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      SubmitTiming timing = graph.m_timing;
+      timing.id = m_submitIDs++;
+      timing.listsCount = 0;
+      timing.timeBeforeSubmit.stop();
+      timing.submitCpuTime.start();
+      auto& nodes = *graph.m_nodes;
+
+      if (!nodes.empty())
+      {
+        vector<PreparedCommandlist> lists;
+        {
+          HIGAN_CPU_BRACKET("addNodes");
+          timing.addNodes.start();
+          lists = prepareNodes(nodes, false);
+          timing.addNodes.stop();
+        }
+
+        {
+          HIGAN_CPU_BRACKET("GraphSolve");
+          timing.graphSolve.start();
+          auto firstUsageSeen = checkQueueDependencies(lists);
+          returnResouresToOriginalQueues(lists, firstUsageSeen);
+          handleQueueTransfersWithinRendergraph(lists, firstUsageSeen);
+          timing.graphSolve.stop();
+        }
+
+        timing.fillCommandLists.start();
+
+        auto readyLists = makeLiveCommandBuffers(lists, timing.id);
+        timing.listsCount = lists.size();
+
+        //std::shared_future<void> gcComplete;
+        std::string gcComplete = std::string("gccomplete");
+        {
+          HIGAN_CPU_BRACKET("launch gc task");
+          lbs.addTask(gcComplete, [&](size_t)
+          {
+            gc();
+          });
+        }
+
+        vector<std::shared_ptr<BarrierSolver>> solvers;
+        solvers.resize(lists.size());
+
+        vector<vector<std::string>> listsSubmitted;
+        //std::optional<std::shared_future<void>> lastGlobalPass;
+        //std::optional<std::shared_future<void>> lastSubmitPass;
+        std::string lastGlobalPass;
+        std::string lastSubmitPass;
+
+        for (int liveListID = 0; liveListID < readyLists.size(); liveListID++)
+        //for (auto&& liveList : readyLists)
+        {
+          int listIdBegin = readyLists[liveListID].listIDs[0];
+          vector<std::string> listfills;
+          for (auto&& listID : readyLists[liveListID].listIDs)
+          {
+            auto local = std::to_string(liveListID) + std::string("localpass") + std::to_string(listID);
+            lbs.addTask(desc::Task(local, {}, {}), [&, listIdBegin, liveListID, listID](size_t){
               HIGAN_CPU_BRACKET("localpass %d", listID);
+              auto& liveList = readyLists[liveListID];
               auto& vdev = m_devices[liveList.deviceID];
               {
                 HIGAN_CPU_BRACKET("BarrierSolver creation");
@@ -1963,33 +2482,31 @@ namespace higanbana
               auto& solver = *solvers[listID];
               auto& buffer = lists[listID];
               auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
-              firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, liveList.listTiming[listID - listIdBegin], solver, liveList.readbacks[listID - listIdBegin]);
+              firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, liveList.listTiming[listID - listIdBegin], solver, liveList.readbacks[listID - listIdBegin], listID == listIdBegin);
             });
-            std::shared_future<void> globalpass = std::async([&, localpass, lastGlobalPass](){
-              if (lastGlobalPass)
-              {
-                HIGAN_CPU_BRACKET("waiting previous globalpass");
-                lastGlobalPass->wait();
-              }
-              {
-                HIGAN_CPU_BRACKET("waiting own localpass %d", listID);
-                localpass.wait();
-              }
+            auto globalpass = std::to_string(liveListID) + std::string("globalpass") + std::to_string(listID);
+            desc::Task globalTask = desc::Task(globalpass, {local}, {});
+            if (!lastGlobalPass.empty())
+            {
+              globalTask = desc::Task(globalpass, {local, lastGlobalPass}, {});
+            }
+
+            lbs.addTask(globalTask, [&, listIdBegin, liveListID, listID](size_t){
               HIGAN_CPU_BRACKET("globalPass %d", listID);
+              std::lock_guard<std::mutex> guard(m_presentMutex);
               auto& solver = *solvers[listID];
               // this is order dependant
+              auto& liveList = readyLists[liveListID];
               globalPassBarrierSolve(liveList.listTiming[listID - listIdBegin], solver);
             });
             lastGlobalPass = globalpass;
-            std::shared_future<void> listfill = std::async([&, globalpass](){
-              {
-                HIGAN_CPU_BRACKET("waiting own global pass to finish");
-                globalpass.wait();
-              }
 
+            auto listFill = std::to_string(liveListID) + std::string("listfill") + std::to_string(listID);
+            lbs.addTask(desc::Task(listFill, {globalpass}, {}), [&, listIdBegin, liveListID, listID](size_t){
               HIGAN_CPU_BRACKET("filling list %d", listID);
               auto& buffer = lists[listID];
               auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
+              auto& liveList = readyLists[liveListID];
               auto& vdev = m_devices[liveList.deviceID];
               auto& solver = *solvers[listID];
               fillNativeList(liveList.lists[listID - listIdBegin], vdev, buffersView, solver, liveList.listTiming[listID - listIdBegin]);
@@ -1997,18 +2514,18 @@ namespace higanbana
             });
 
             /////////////////////////SUBMIT////////////////////////////////////////
+            auto submitpass = std::to_string(liveListID) + std::string("submit") + std::to_string(listID);
+            desc::Task submitTask = desc::Task(submitpass, {listFill, gcComplete}, {});
+            if (!lastSubmitPass.empty())
+              submitTask = desc::Task(submitpass, {listFill, gcComplete, lastSubmitPass}, {});
 
-            std::shared_future<void> submitPass = std::async([&, listfill, lastSubmitPass](){
-              if (lastSubmitPass)
-              {
-                HIGAN_CPU_BRACKET("waiting previous submit");
-                lastSubmitPass->wait();
-              }
-              {
-                HIGAN_CPU_BRACKET("waiting own list fill");
-                listfill.wait();
-              }
+            lbs.addTask(submitTask, [&, listIdBegin, liveListID, listID](size_t){
               HIGAN_CPU_BRACKET("submit");
+              std::lock_guard<std::mutex> guard(m_presentMutex);
+
+              auto& liveList = readyLists[liveListID];
+              auto isFirstList = listID == liveList.listIDs.front();
+              auto isLastList = listID == liveList.listIDs.back();
 
               auto& vdev = m_devices[liveList.deviceID];
               if (isFirstList)
@@ -2017,6 +2534,7 @@ namespace higanbana
                 liveList.gfxValue = 0;
                 liveList.cptValue = 0;
               }
+              MemView<std::shared_ptr<SemaphoreImpl>> wait;
               {
                 auto& list = lists[listID];
 
@@ -2032,6 +2550,7 @@ namespace higanbana
 
                 if (list.acquireSema) {
                   liveList.wait.push_back(list.acquireSema);
+                  wait = list.acquireSema;
                 }
                 if (list.presents && swapchain) {
                   auto sc = swapchain.value();
@@ -2043,10 +2562,6 @@ namespace higanbana
                 // this could be removed when vulkan debug layers work, timeline semaphores
                 if (list.isLastList || !liveList.readbacks.empty()) {
                   liveList.fence = vdev.device->createFence();
-                }
-
-                if (liveList.fence) {
-                  liveList.viewToFence = liveList.fence;
                 }
                 // as fences arent needed with timelines semaphores
 
@@ -2070,15 +2585,13 @@ namespace higanbana
               }
 
               TimelineSemaphoreInfo signalTimeline;
-              MemView<std::shared_ptr<SemaphoreImpl>> wait;
               MemView<std::shared_ptr<SemaphoreImpl>> signal;
-              if (isFirstList)
-              {
-                wait = liveList.wait;
-              }
+              std::optional<std::shared_ptr<FenceImpl>> viewToFence;
               if (isLastList)
               {
                 signal = liveList.signal;
+                if (liveList.fence)
+                  viewToFence = liveList.fence;
               }
               switch (liveList.queue)
               {
@@ -2086,15 +2599,13 @@ namespace higanbana
                 ++vdev.dmaQueue;
                 signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
                 liveList.dmaValue = vdev.dmaQueue;
-                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, liveList.viewToFence);
-                liveList.viewToFence.reset();
+                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
                 break;
               case QueueType::Compute:
                 ++vdev.cptQueue;
                 signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
                 liveList.cptValue = vdev.cptQueue;
-                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, liveList.viewToFence);
-                liveList.viewToFence.reset();
+                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
                 break;
               case QueueType::Graphics:
               default:
@@ -2114,13 +2625,14 @@ namespace higanbana
                 ++vdev.gfxQueue;
                 signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
                 liveList.gfxValue = vdev.gfxQueue;
-                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, liveList.viewToFence);
+                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
     #endif
               }
             });
-            listfills.emplace_back(submitPass);
+            lastSubmitPass = submitpass;
+            listfills.emplace_back(submitpass);
           }
-          listsFilled.emplace_back(std::move(listfills));
+          listsSubmitted.emplace_back(std::move(listfills));
         }
 
         timing.fillCommandLists.stop();
@@ -2128,20 +2640,11 @@ namespace higanbana
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         //for (auto&& list : lists)
-        gcComplete.wait();
         HIGAN_CPU_BRACKET("waiting submit Lists");
-        while(!readyLists.empty())
+        lbs.sleepTillKeywords({listsSubmitted.back().back()});
+
+        for (auto&& buffer : readyLists)
         {
-          {
-            HIGAN_CPU_BRACKET("waiting lists to be submitted");
-            for (auto&& listFill : listsFilled.back())
-            {
-              listFill.wait();
-            }
-            listsFilled.pop_back();
-          }
-          LiveCommandBuffer2 buffer = std::move(readyLists.front());
-          readyLists.pop_front();
           auto& vdev = m_devices[buffer.deviceID];
 
           switch (buffer.queue)

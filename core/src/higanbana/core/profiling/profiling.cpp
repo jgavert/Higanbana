@@ -98,20 +98,20 @@ void writeProfilingData(higanbana::FileSystem& fs)
   if (s_allThreadsProfilingData[0].allBrackets.empty())
     return;
   auto lastEvent = s_allThreadsProfilingData[0].allBrackets.back();
-  auto lastSeconds = lastEvent.begin + lastEvent.duration - 1000000000ll;
+  auto lastSeconds = 0; //lastEvent.begin + lastEvent.duration - 10000000000ll;
   for (int i = 0; i < s_myIndex; ++i)
   {
     for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
     //s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
     {
-      if (event.begin > lastSeconds)
+      //if (event.begin > lastSeconds)
         events.push_back(writeEvent(event.name, event.begin, event.duration, i));
     }//);
     for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
     //s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
     {
-      if (event.begin > lastSeconds)
-        events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
+      //if (event.begin > lastSeconds)
+        //events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
     }//);
   }
   j["traceEvents"] = events;

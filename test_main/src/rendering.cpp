@@ -178,7 +178,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
   if (swapchain.outOfDate()) // swapchain can end up being outOfDate
   {
     windowResized();
@@ -388,8 +388,12 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
     tasks.addPass(std::move(node));
   }
 
-  if (options.submitExperimental)
-    dev.submitExperimental(swapchain, tasks);
+  if (options.submitSingleThread)
+    dev.submitExperimental(swapchain, tasks, ThreadedSubmission::Sequenced);
+  else if (options.submitExperimental)
+    dev.submitExperimental(swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
+  else if (options.submitLBS)
+    dev.submitLBS(lbs, swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
   else 
     dev.submit(swapchain, tasks);
   {

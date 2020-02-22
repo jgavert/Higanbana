@@ -278,6 +278,7 @@ void mainWindow(ProgramParams& params)
     int cubeCommandLists = 4;
     int limitFPS = 0;
     app::RendererOptions rendererOptions{};
+    rendererOptions.submitExperimental = true;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -525,7 +526,9 @@ void mainWindow(ProgramParams& params)
               ImGui::Checkbox("render ECS", &renderECS);
               ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
               ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
-              ImGui::Checkbox("use exp submitting", &rendererOptions.submitExperimental);
+              ImGui::Checkbox("submit multithread experimental", &rendererOptions.submitExperimental);
+              ImGui::Checkbox("submit singlethread", &rendererOptions.submitSingleThread);
+              ImGui::Checkbox("submit lbs", &rendererOptions.submitLBS);
               ImGui::Checkbox("unbalanced cube drawlists", &rendererOptions.unbalancedCubes);
               ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
@@ -733,7 +736,7 @@ void mainWindow(ProgramParams& params)
               ac.maxZ = set.maxZ;
             });
             HIGAN_CPU_BRACKET("Render");
-            rend.render(rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
+            rend.render(lbs, rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
             logicAndRenderTime.tick();
             auto totalTime = logicAndRenderTime.getFrameTimeDelta();
             if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))

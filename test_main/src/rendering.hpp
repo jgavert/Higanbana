@@ -6,6 +6,7 @@
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
+#include <higanbana/core/system/LBS.hpp>
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
 #include "renderer/mesh_test.hpp"
@@ -25,6 +26,8 @@ namespace app
 struct RendererOptions
 {
   bool submitExperimental = false;
+  bool submitSingleThread = false;
+  bool submitLBS = false;
   bool unbalancedCubes = false;
   bool allowMeshShaders = false;
   bool allowRaytracing = false;
@@ -92,7 +95,7 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void windowResized();
-  void render(RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
+  void render(higanbana::LBS& lbs, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
   int loadMesh(MeshData& data);
   void unloadMesh(int index);

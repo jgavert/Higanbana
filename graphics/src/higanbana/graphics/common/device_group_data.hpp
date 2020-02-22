@@ -11,6 +11,7 @@
 
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
+#include <higanbana/core/system/LBS.hpp>
 #include <optional>
 #include <functional>
 #include <mutex>
@@ -94,7 +95,6 @@ namespace higanbana
       uint64_t submitID;
       vector<CommandListTiming> listTiming;
       // submit related
-      std::optional<std::shared_ptr<FenceImpl>> viewToFence;
       std::optional<TimelineSemaphoreInfo> timelineGfx;
       std::optional<TimelineSemaphoreInfo> timelineCompute;
       std::optional<TimelineSemaphoreInfo> timelineDma;
@@ -167,6 +167,7 @@ namespace higanbana
       std::unique_ptr<DelayedRelease> m_delayer;
       HandleManager m_handles;
       deque<higanbana::ReadbackFuture> m_shaderDebugReadbacks;
+      
 
       // used to free resources
       deque<SeqNum> m_seqNumRequirements;
@@ -231,11 +232,11 @@ namespace higanbana
       bool uploadInitialTexture(Texture& tex, CpuImage& image);
 
       // submit breakdown
-      vector<PreparedCommandlist> prepareNodes(vector<CommandGraphNode>& nodes);
+      vector<PreparedCommandlist> prepareNodes(vector<CommandGraphNode>& nodes, bool singleThreaded);
       void returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       void handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       deque<LiveCommandBuffer2> makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID);
-      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks);
+      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks, bool isFirstList);
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
       void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing);
 
@@ -245,6 +246,8 @@ namespace higanbana
       //void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
+      void submitST(std::optional<Swapchain> swapchain, CommandGraph& graph);
+      void submitLBS(LBS& lbs, std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void present(Swapchain& swapchain, int backbufferIndex);
 
       // test

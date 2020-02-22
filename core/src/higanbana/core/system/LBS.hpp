@@ -18,7 +18,7 @@
 // optional include, just dont enable "debug"
 #include "higanbana/core/global_debug.hpp"
 
-//#define DEBUG
+//#define DEBUGTEXT
 //#define DEADLOCKCHECK // this should be cheap to keep on, not
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -234,8 +234,8 @@ namespace higanbana
 
     // Requirements data
     std::mutex                                            m_wfrMutex;                // only one mutex :D to rule them all
-    higanbana::unordered_map< std::string, bool >               m_fullfilled;              // fulfilled Tasks
-    higanbana::unordered_map< size_t, TaskInfo >                m_taskInfos;               // take infos from here when task finished
+    std::unordered_map< std::string, bool >               m_fullfilled;              // fulfilled Tasks
+    std::unordered_map< size_t, TaskInfo >                m_taskInfos;               // take infos from here when task finished
     std::vector< std::pair< Requirements, std::string > > m_waitingPostRequirements; // When requirement is filled -> move string to m_fulfilled
     std::vector< std::pair< Requirements, Task > >         m_waitingPreRequirements;  // Put task in here if preR isn't fulfilled
     //END
@@ -289,7 +289,7 @@ namespace higanbana
         m_threads.push_back(std::thread(&LBS::loop, this, it.m_ID));
       }
 #ifdef DEBUGTEXT
-      HIGAN_LOG("LBS: Initializing with %d threads\n", procs);
+      HIGAN_LOGi("LBS: Initializing with %d threads\n", procs);
 #endif
     }
     LBS(int threadCount)
@@ -319,7 +319,7 @@ namespace higanbana
         m_threads.push_back(std::thread(&LBS::loop, this, it.m_ID));
       }
 #ifdef DEBUGTEXT
-      HIGAN_LOG("LBS: Initializing with %d threads\n", procs);
+      HIGAN_LOGi("LBS: Initializing with %d threads\n", procs);
 #endif
     }
 
@@ -346,7 +346,7 @@ namespace higanbana
     void sleepTillKeywords(Requirements req)
     {
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: sleepTillKeyword name %s\n", std::this_thread::get_id(), ""/*req.c_str()*/);
+      HIGAN_LOGi("T%d: sleepTillKeyword name %s\n", std::this_thread::get_id(), ""/*req.c_str()*/);
 #endif
       //notifyAll();
       std::unique_lock<std::mutex> lkk(*m_waiting.m);
@@ -354,12 +354,12 @@ namespace higanbana
       {
         std::lock_guard<std::mutex> np(*m_waiting.m);
 #ifdef DEBUGTEXT
-        HIGAN_LOG("T%d: Trying to wake princess\n", std::this_thread::get_id());
+        HIGAN_LOGi("T%d: Trying to wake princess\n", std::this_thread::get_id());
 #endif
         m_waiting.cv->notify_all();
       });
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: sleepTillKeyword name %s going to sleep\n", std::this_thread::get_id(), "" /*req.c_str()*/);
+      HIGAN_LOGi("T%d: sleepTillKeyword name %s going to sleep\n", std::this_thread::get_id(), "" /*req.c_str()*/);
 #endif
 #ifdef DEADLOCKCHECK
       checkDeadlock(-1);
@@ -372,7 +372,7 @@ namespace higanbana
       m_mainthreadsleeping = false;
 #endif
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: sleepTillKeyword name %s was woken\n", std::this_thread::get_id(), ""/*req.c_str()*/);
+      HIGAN_LOGi("T%d: sleepTillKeyword name %s was woken\n", std::this_thread::get_id(), ""/*req.c_str()*/);
 #endif
     }
 
@@ -428,7 +428,7 @@ namespace higanbana
       size_t newId = m_nextTaskID.fetch_add(1);
       assert(newId < m_nextTaskID);
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: internalAddTaskWithoutRequirements name \"%s\" id: %d\n", std::this_thread::get_id(), name.c_str(), newId);
+      HIGAN_LOGi("T%d: internalAddTaskWithoutRequirements name \"%s\" id: %d\n", std::this_thread::get_id(), name.c_str(), newId);
 #endif
       Task newTask(newId, start_iter, iterations);
       // add to queue
@@ -457,7 +457,7 @@ namespace higanbana
       size_t newId = m_nextTaskID.fetch_add(1);
       assert(newId < m_nextTaskID);
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: internalAddTask name \"%s\" id: %d\n", std::this_thread::get_id(), name.c_str(), newId);
+      HIGAN_LOGi("T%d: internalAddTask name \"%s\" id: %d\n", std::this_thread::get_id(), name.c_str(), newId);
 #endif
       Task newTask(newId, start_iter, iterations);
       newTask.genWorkFunc<ppt>(std::forward<Func>(func));
@@ -465,6 +465,7 @@ namespace higanbana
         std::lock(m_wfrMutex, *m_mutexes[ThreadID]);
         std::unique_lock<std::mutex> u1(m_wfrMutex, std::adopt_lock);
         std::unique_lock<std::mutex> u2(*m_mutexes[ThreadID], std::adopt_lock);
+        m_fullfilled[name] = false;
         if (checkRequirements(pre))
         {
           //HIGAN_LOG("T%d: internalAddTask name %s, ready\n", std::this_thread::get_id(), name.c_str());
@@ -507,7 +508,6 @@ namespace higanbana
           {
             if (it->second)
             {
-              it->second = false; // is this allowed !?
               return true;
             }
           }
@@ -523,7 +523,7 @@ namespace higanbana
     void postTaskWork(size_t taskID)
     {
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: postTaskWork id %llu\n", std::this_thread::get_id(), taskID);
+      HIGAN_LOGi("T%d: postTaskWork id %llu\n", std::this_thread::get_id(), taskID);
 #endif
       std::string taskname;
       {
@@ -557,7 +557,7 @@ namespace higanbana
     void informTaskFinished(std::string name)
     {
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: informTaskFinished name %s\n", std::this_thread::get_id(), name.c_str());
+      HIGAN_LOGi("T%d: informTaskFinished name %s\n", std::this_thread::get_id(), name.c_str());
 #endif
       std::vector<Task> addable;
       {
@@ -595,7 +595,7 @@ namespace higanbana
         }
       }
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: informTaskFinished name %s Exited reason success, added %llu tasks\n", std::this_thread::get_id(), name.c_str(), addable.size());
+      HIGAN_LOGi("T%d: informTaskFinished name %s Exited reason success, added %llu tasks\n", std::this_thread::get_id(), name.c_str(), addable.size());
 #endif
       {
         ThreadData& worker = m_allThreads.at(0);
@@ -696,7 +696,7 @@ namespace higanbana
     inline void stealOrWait(ThreadData& p)
     {
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: stealOrWait\n", std::this_thread::get_id());
+      HIGAN_LOGi("T%d: stealOrWait\n", std::this_thread::get_id());
 #endif
       size_t id = p.m_task.m_id;
       while (id == p.m_task.m_id)
@@ -743,7 +743,7 @@ namespace higanbana
 
           std::unique_lock<std::mutex> lk(*m_mutexes[p.m_ID]);
 #ifdef DEBUGTEXT
-          HIGAN_LOG("T%d: Sleep, idle: %d\n", std::this_thread::get_id(), idle_threads.load());
+          HIGAN_LOGi("T%d: Sleep, idle: %d\n", std::this_thread::get_id(), idle_threads.load());
 #endif
 #ifdef DEADLOCKCHECK
           checkDeadlock(p.m_ID);
@@ -752,7 +752,7 @@ namespace higanbana
           m_cvs[p.m_ID]->wait(lk);
           idle_threads--;
 #ifdef DEBUGTEXT
-          HIGAN_LOG("T%d: Woke Up, idle: %d\n", std::this_thread::get_id(), idle_threads.load());
+          HIGAN_LOGi("T%d: Woke Up, idle: %d\n", std::this_thread::get_id(), idle_threads.load());
 #endif
         }
         ThreadStatus[p.m_ID].first = RUNNINGLOGIC;
@@ -768,7 +768,7 @@ namespace higanbana
         return;
       }
 #ifdef DEBUGTEXT
-      HIGAN_LOG("T%d: didWorkFor id,amount %llu,%llu\n", std::this_thread::get_id(), task.m_id, amount);
+      HIGAN_LOGi("T%d: didWorkFor id,amount %llu,%llu\n", std::this_thread::get_id(), task.m_id, amount);
 #endif
       //HIGAN_LOG("T%d: didWorkFor id,amount %llu,%llu\n", std::this_thread::get_id(), id, amount);
       if (task.m_sharedWorkCounter->fetch_sub(amount) - amount <= 0) // be careful with the fetch_sub command

@@ -1776,7 +1776,7 @@ namespace higanbana
       constexpr auto APIRowPitchAlignmentRequirement = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
       const auto requiredRowPitch = roundUpMultiplePowerOf2(rowPitch, APIRowPitchAlignmentRequirement);
-      HIGAN_LOG("rowPitch %zu\n", requiredRowPitch);
+      //HIGAN_LOG("rowPitch %zu\n", requiredRowPitch);
       const auto requiredTotalSize = rows * requiredRowPitch;
 
       auto upload = m_dynamicUpload->allocate(requiredTotalSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
