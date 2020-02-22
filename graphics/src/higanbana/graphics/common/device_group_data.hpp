@@ -93,6 +93,11 @@ namespace higanbana
       // timings
       uint64_t submitID;
       vector<CommandListTiming> listTiming;
+      // submit related
+      std::optional<std::shared_ptr<FenceImpl>> viewToFence;
+      std::optional<TimelineSemaphoreInfo> timelineGfx;
+      std::optional<TimelineSemaphoreInfo> timelineCompute;
+      std::optional<TimelineSemaphoreInfo> timelineDma;
     };
 
     struct QueueTransfer 
