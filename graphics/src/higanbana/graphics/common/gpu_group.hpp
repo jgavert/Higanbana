@@ -198,7 +198,6 @@ namespace higanbana
     {
         return S().tryAcquirePresentableImage(swapchain);
     }
-
     void submit(Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
       S().submit(swapchain, graph, threading);
@@ -207,6 +206,16 @@ namespace higanbana
     void submit(CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
       S().submit(std::optional<Swapchain>(), graph, threading);
+    }
+
+    void submitExperimental(Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
+    {
+      S().submitExperimental(swapchain, graph, threading);
+    }
+
+    void submitExperimental(CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
+    {
+      S().submitExperimental(std::optional<Swapchain>(), graph, threading);
     }
 
     void present(Swapchain& swapchain, int backbufferIndex)

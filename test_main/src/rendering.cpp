@@ -309,14 +309,35 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
       depthDSV.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
-      int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
-      for (int i = 0; i < drawcalls; i+=stepSize)
+      if (!options.unbalancedCubes)
       {
-        if (i+stepSize > drawcalls)
+        int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
+        for (int i = 0; i < drawcalls; i+=stepSize)
         {
-          stepSize = stepSize - (i+stepSize - drawcalls);
+          if (i+stepSize > drawcalls)
+          {
+            stepSize = stepSize - (i+stepSize - drawcalls);
+          }
+          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
         }
-        nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
+      }
+      else
+      {
+        int cubesLeft = drawcalls;
+        int cubesDrawn = 0;
+        vector<int> reverseDraw;
+        for (int i = 0; i < drawsSplitInto-1; i++)
+        {
+          auto split = cubesLeft/2;
+          cubesLeft -= split;
+          reverseDraw.emplace_back(split);
+        }
+        reverseDraw.push_back(cubesLeft);
+        for (int i = reverseDraw.size()-1; i >= 0; i--)
+        {
+          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), cubesDrawn, reverseDraw[i]));
+          cubesDrawn += reverseDraw[i];
+        } 
       }
       std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
       {
@@ -367,7 +388,10 @@ void Renderer::render(RendererOptions options, ActiveCamera camera, higanbana::v
     tasks.addPass(std::move(node));
   }
 
-  dev.submit(swapchain, tasks);
+  if (options.submitExperimental)
+    dev.submitExperimental(swapchain, tasks);
+  else 
+    dev.submit(swapchain, tasks);
   {
     HIGAN_CPU_BRACKET("Present");
     dev.present(swapchain, obackbuffer.value().first);

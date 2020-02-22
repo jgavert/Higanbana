@@ -525,6 +525,8 @@ void mainWindow(ProgramParams& params)
               ImGui::Checkbox("render ECS", &renderECS);
               ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
               ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
+              ImGui::Checkbox("use exp submitting", &rendererOptions.submitExperimental);
+              ImGui::Checkbox("unbalanced cube drawlists", &rendererOptions.unbalancedCubes);
               ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
               ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);

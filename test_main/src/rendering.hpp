@@ -24,6 +24,8 @@ namespace app
 {
 struct RendererOptions
 {
+  bool submitExperimental = false;
+  bool unbalancedCubes = false;
   bool allowMeshShaders = false;
   bool allowRaytracing = false;
 };

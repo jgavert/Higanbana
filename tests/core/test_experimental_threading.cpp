@@ -6,50 +6,85 @@
 #include <optional>
 #include <cstdio>
 
-std::shared_future<int> do_work(int i, int seconds)
+std::shared_future<int> localpass(int i, int seconds)
 {
   return std::async([i, seconds](){
-    printf("worker: Task %d Started\n", i);
+    printf("worker: list %d localpass started\n", i);
     std::this_thread::sleep_for(std::chrono::milliseconds(seconds*1));
-    printf("worker: Task %d Ended\n", i);
+    printf("worker: list %d localpass ended\n", i);
     return i;
   });
 }
 
-std::shared_future<std::pair<int, std::shared_future<int>>> do_ordered_work(
-  std::optional<std::shared_future<std::pair<int, std::shared_future<int>>>> dependantGlobalTask,
-  std::shared_future<int> dependantWork)
+std::shared_future<int> globalPass(
+  std::optional<std::shared_future<int>> dependantGlobalTask,
+  std::shared_future<int> myLocalPass)
 {
-  return std::async([dependantGlobalTask, dependantWork]() mutable {
-    auto taskIndex = dependantWork.get();
+  return std::async([dependantGlobalTask, myLocalPass]() mutable {
+    auto taskIndex = myLocalPass.get();
     auto work = (taskIndex % 2 == 0) * 10 - taskIndex;
     if (dependantGlobalTask)
     {
-      auto previousTaskIndex = dependantGlobalTask->get().first;
-      printf("Global Task %d -> %d\n", previousTaskIndex, taskIndex);
-      return std::make_pair(taskIndex, do_work(taskIndex, work));
+      auto previousTaskIndex = dependantGlobalTask->get();
+      printf("GlobalPass list (%d ->) %d\n", previousTaskIndex, taskIndex);
+      return taskIndex;
     }
-    printf("Global Task %d\n", taskIndex);
-    return std::make_pair(taskIndex, do_work(taskIndex, work));
+    printf("GlobalPass list %d\n", taskIndex);
+    return taskIndex;
+  });
+}
+
+std::shared_future<int> fillList(
+  std::shared_future<int> myGlobalTask)
+{
+  return std::async([myGlobalTask]() mutable {
+    auto taskIndex = myGlobalTask.get();
+    auto work = (taskIndex % 2 == 0) * 10 - taskIndex;
+    printf("worker: list %d fillList started\n", taskIndex);
+    std::this_thread::sleep_for(std::chrono::milliseconds(work*1));
+    printf("worker: list %d fillList ended\n", taskIndex);
+    return taskIndex;
+  });
+}
+
+std::shared_future<int> submitList(
+  std::optional<std::shared_future<int>> lastSubmitDone,
+  std::shared_future<int> myListFilled)
+{
+  return std::async([lastSubmitDone, myListFilled]() mutable {
+    if (lastSubmitDone)
+    {
+      auto val = lastSubmitDone->get(); // waiting for last submit
+      printf("worker: dependant submit was done (%d)\n", val);
+    }
+    auto taskIndex = myListFilled.get();
+    auto work = (taskIndex % 2 == 0) * 10 - taskIndex;
+    printf("worker: submit list %d\n", taskIndex);
+    std::this_thread::sleep_for(std::chrono::milliseconds(work*1));
+    printf("worker: submit list %d done\n", taskIndex);
+    return taskIndex;
   });
 }
 
 TEST_CASE("c++ threading")
 {
-  std::vector<std::shared_future<std::pair<int, std::shared_future<int>>>> finalTasks;
-  std::optional<std::shared_future<std::pair<int, std::shared_future<int>>>> lastIssued;
+  std::vector<std::shared_future<int>> listsSubmitted;
+  std::optional<std::shared_future<int>> lastGlobalPass;
+  std::optional<std::shared_future<int>> lastSubmitPass;
 
-  for (int i = 0; i < 6; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     printf("Issued Task %d\n", i);
-    auto thisWork = do_ordered_work(lastIssued, do_work(i, 10-i));
-    finalTasks.emplace_back(thisWork);
-    lastIssued = thisWork;
+    auto globalDone = globalPass(lastGlobalPass, localpass(i, 1));
+    lastGlobalPass = globalDone;
+    auto submitDone = submitList(lastSubmitPass, fillList(globalDone));
+    lastSubmitPass = submitDone;
+    listsSubmitted.emplace_back(submitDone);
   }
   int i = 0;
-  for (auto&& task : finalTasks)
+  for (auto&& task : listsSubmitted)
   {
-    auto val = task.get().second.get();
+    auto val = task.get();
     printf("Finish %d!\n", val);
     REQUIRE(i == val);
     i++;

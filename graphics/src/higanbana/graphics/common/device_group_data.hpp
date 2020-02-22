@@ -239,6 +239,7 @@ namespace higanbana
       CommandGraph startCommandGraph();
       //void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
+      void submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void present(Swapchain& swapchain, int backbufferIndex);
 
       // test
