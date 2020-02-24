@@ -170,10 +170,10 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     dev.adjustSwapchain(swapchain, scdesc);
     resizeExternal(swapchain.buffers().begin()->texture().desc());
   }
-
-  if (options.internalRes.x != gbuffer.desc().desc.size3D().x || options.internalRes.y != gbuffer.desc().desc.size3D().y)
+  int2 currentRes = math::mul(options.resolutionScale, float2(swapchain.buffers().begin()->texture().desc().desc.size3D().xy()));
+  if (currentRes.x > 0 && currentRes.y > 0 && (currentRes.x != gbuffer.desc().desc.size3D().x || currentRes.y != gbuffer.desc().desc.size3D().y))
   {
-    auto desc = ResourceDescriptor(gbuffer.desc()).setSize(options.internalRes);
+    auto desc = ResourceDescriptor(gbuffer.desc()).setSize(currentRes);
     resizeInternal(desc);
   }
 

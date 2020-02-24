@@ -524,9 +524,14 @@ void mainWindow(ProgramParams& params)
 
             {
               ImGui::Checkbox("render ECS", &renderECS);
+              int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
+              ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); ImGui::SameLine();
               ImGui::DragFloat("resolution scale", &rendererOptions.resolutionScale, 0.01f, 0.0001f, 4.f);
-              ImGui::Checkbox("resolution scale", &rendererOptions.syncResolutionToSwapchain);
-              ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
+              ImGui::Checkbox("sync resolution to window size", &rendererOptions.syncResolutionToSwapchain);
+              if (rendererOptions.syncResolutionToSwapchain)
+              {
+                rendererOptions.resolutionScale = 1.f;
+              }
               ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
               ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
               ImGui::Checkbox("submit multithread experimental", &rendererOptions.submitExperimental);
