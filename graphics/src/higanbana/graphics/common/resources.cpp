@@ -74,7 +74,9 @@ namespace higanbana
         {
           // create correct sized heap and allocate from it.
           auto newHeap = createHeapBlock(m_heapIndex++, requirements);
-          alloc.block = newHeap.allocator.allocate(requirements.bytes, requirements.alignment).value();
+          auto newBlock = newHeap.allocator.allocate(requirements.bytes, requirements.alignment);
+          HIGAN_ASSERT(newBlock, "block wasnt successful");
+          alloc.block = newBlock.value();
           m_memoryAllocated += alloc.block.size;
           alloc.index = newHeap.index;
           auto heap = newHeap.heap;

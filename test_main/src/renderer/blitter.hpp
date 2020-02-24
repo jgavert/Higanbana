@@ -8,8 +8,10 @@ class Blitter
   higanbana::ShaderArgumentsLayout m_input;
   higanbana::GraphicsPipeline pipelineRGBA;
   higanbana::GraphicsPipeline pipelineBGRA;
+  higanbana::GraphicsPipeline pipelineUnorm16RGBA;
   higanbana::Renderpass renderpassRGBA;
   higanbana::Renderpass renderpassBGRA;
+  higanbana::Renderpass renderpassUnorm16RGBA;
   higanbana::ResourceDescriptor target;
 public:
   enum class FitMode

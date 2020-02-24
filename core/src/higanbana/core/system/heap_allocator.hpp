@@ -35,16 +35,20 @@ class HeapAllocator {
   size_t m_usedSize;
 
   inline int fls(uint64_t size) noexcept {
+    if (size == 0)
+      return -1;
     unsigned long index;
     return _BitScanReverse64(&index, size) ? index : -1;
   }
 
   inline int ffs(uint64_t size) noexcept {
+    if (size == 0)
+      return -1;
     unsigned long index;
     return _BitScanForward64(&index, size) ? index : -1;
   }
 
-  inline void mapping(size_t size, uint64_t& fl, uint64_t& sl) noexcept {
+  inline void mapping(size_t size, int& fl, int& sl) noexcept {
     fl = fls(size);
     sl = ((size ^ (1 << fl)) >> (fl - sli));
     fl = first_level_index(fl);
@@ -76,7 +80,7 @@ class HeapAllocator {
 
   inline void set_bit(uint64_t& value, int index) noexcept { value |= (1 << index); }
 
-  inline void insert(RangeBlock block, unsigned fl, unsigned sl) noexcept {
+  inline void insert(RangeBlock block, int fl, int sl) noexcept {
     auto& sizeClass = control.sizeclasses[fl];
     auto& secondLv = sizeClass.freeBlocks[sl];
     secondLv.push_back(block);
@@ -84,7 +88,7 @@ class HeapAllocator {
     set_bit(control.flBitmap, fl);
   }
 
-  inline RangeBlock search_suitable_block(size_t size, unsigned fl, unsigned sl) noexcept {
+  inline RangeBlock search_suitable_block(size_t size, int fl, int sl) noexcept {
     // first step, assume we got something at fl / sl location
     auto& secondLevel = control.sizeclasses[fl];
     auto& freeblocks = secondLevel.freeBlocks[sl];
@@ -95,24 +99,37 @@ class HeapAllocator {
       if (freeblocks.empty()) remove_bit(secondLevel.slBitmap, sl);
       if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
       return block;
-    } else {
-      // second step, scan bitmaps for empty slots
-      // create mask to ignore first bits, could be wrong
-      auto mask = ~((1 << (fl+1)) - 1);
-      auto fl2 = ffs(control.flBitmap & mask);
-      if (fl2 >= 0) {
-        auto& secondLevel2 = control.sizeclasses[fl2];
-        HIGAN_ASSERT(secondLevel2.sizeClass >= size && secondLevel2.slBitmap != 0, "bitmap expected to have something");
-        auto sl2 = ffs(secondLevel2.slBitmap);
-        HIGAN_ASSERT(!secondLevel2.freeBlocks[sl2].empty(), "freeblocks expected to contain something");
-        if (sl2 >= 0 && secondLevel2.freeBlocks[sl2].back().size >= size) {
-          auto block = secondLevel2.freeBlocks[sl2].back();
-          secondLevel2.freeBlocks[sl2].pop_back();
-          // remove bitmap bit
-          if (secondLevel2.freeBlocks[sl2].empty())
-            remove_bit(secondLevel2.slBitmap, sl2);
-          if (secondLevel2.slBitmap == 0) remove_bit(control.flBitmap, fl2);
-          return block;
+    }
+    else {
+      sl = ffs(secondLevel.slBitmap);
+      if (sl >= 0 && secondLevel.freeBlocks[sl].back().size >= size) { // somethings still in this size class
+        auto block = secondLevel.freeBlocks[sl].back();
+        secondLevel.freeBlocks[sl].pop_back();
+        // remove bitmap bit
+        if (secondLevel.freeBlocks[sl].empty())
+          remove_bit(secondLevel.slBitmap, sl);
+        if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
+        return block;
+      }
+      else {
+        // second step, scan bitmaps for empty slots
+        // create mask to ignore first bits, could be wrong
+        auto mask = ~((1 << (fl+1)) - 1);
+        auto fl2 = ffs(control.flBitmap & mask);
+        if (fl2 >= 0) {
+          auto& secondLevel2 = control.sizeclasses[fl2];
+          HIGAN_ASSERT(secondLevel2.sizeClass >= size && secondLevel2.slBitmap != 0, "bitmap expected to have something");
+          auto sl2 = ffs(secondLevel2.slBitmap);
+          HIGAN_ASSERT(!secondLevel2.freeBlocks[sl2].empty(), "freeblocks expected to contain something");
+          if (sl2 >= 0 && secondLevel2.freeBlocks[sl2].back().size >= size) {
+            auto block = secondLevel2.freeBlocks[sl2].back();
+            secondLevel2.freeBlocks[sl2].pop_back();
+            // remove bitmap bit
+            if (secondLevel2.freeBlocks[sl2].empty())
+              remove_bit(secondLevel2.slBitmap, sl2);
+            if (secondLevel2.slBitmap == 0) remove_bit(control.flBitmap, fl2);
+            return block;
+          }
         }
       }
     }

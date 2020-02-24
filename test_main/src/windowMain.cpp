@@ -524,6 +524,9 @@ void mainWindow(ProgramParams& params)
 
             {
               ImGui::Checkbox("render ECS", &renderECS);
+              ImGui::DragFloat("resolution scale", &rendererOptions.resolutionScale, 0.01f, 0.0001f, 4.f);
+              ImGui::Checkbox("resolution scale", &rendererOptions.syncResolutionToSwapchain);
+              ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
               ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
               ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
               ImGui::Checkbox("submit multithread experimental", &rendererOptions.submitExperimental);

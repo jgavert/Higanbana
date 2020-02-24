@@ -27,7 +27,6 @@ Cubes::Cubes(higanbana::GpuGroup& device){
     .setPixelShader("opaquePass")
     .setInterface(opaquePassInterface)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    .setRasterizer(RasterizerDescriptor())
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)
     .setRenderTargetCount(1)

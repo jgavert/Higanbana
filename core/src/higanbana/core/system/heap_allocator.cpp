@@ -8,7 +8,7 @@ HeapAllocator::HeapAllocator()
 HeapAllocator::HeapAllocator(RangeBlock initialBlock, size_t minimumBlockSize, int sli)
 : m_baseBlock(initialBlock), mbs(minimumBlockSize), sli(sli), sli_count(1 << sli), m_usedSize(0) {
   initialize();
-  uint64_t fl, sl;
+  int fl, sl;
   mapping(m_baseBlock.size, fl, sl);
   insert(initialBlock, fl, sl);
 }
@@ -16,7 +16,7 @@ HeapAllocator::HeapAllocator(RangeBlock initialBlock, size_t minimumBlockSize, i
 HeapAllocator::HeapAllocator(size_t size, size_t minimumBlockSize, int sli)
 : m_baseBlock({0, size}), mbs(minimumBlockSize), sli(sli), sli_count(1 << sli), m_usedSize(0) {
   initialize();
-  uint64_t fl, sl;
+  int fl, sl;
   mapping(m_baseBlock.size, fl, sl);
   insert(m_baseBlock, fl, sl);
 }
@@ -24,7 +24,7 @@ HeapAllocator::HeapAllocator(size_t size, size_t minimumBlockSize, int sli)
 std::optional<RangeBlock> HeapAllocator::allocate(size_t size, size_t alignment) noexcept {
   auto origSize = size;
   size = std::max(size, size_t(mbs));
-  uint64_t fl, sl, fl2, sl2;
+  int fl, sl, fl2, sl2;
   mapping(size, fl, sl);
   auto found_block = search_suitable_block(size, fl, sl);
 
@@ -93,7 +93,7 @@ void HeapAllocator::free(RangeBlock block) noexcept {
   if (block.size == 0)
     return;
   m_usedSize -= block.size;
-  uint64_t fl, sl;
+  int fl, sl;
   auto size = block.size;
   auto big_free_block = merge(block);
   while (big_free_block.size != size)  // while loop here

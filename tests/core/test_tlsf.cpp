@@ -404,3 +404,9 @@ TEST_CASE("alignment tests with minimum block size") {
   REQUIRE(block3);
   REQUIRE(block3.value().size == 16);
 }
+
+TEST_CASE("failed real world case 1") {
+  higanbana::HeapAllocator tlsf(50331648, 131072);
+  auto block = tlsf.allocate(50200588, 131072);
+  REQUIRE(block);
+}

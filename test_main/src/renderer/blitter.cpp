@@ -31,14 +31,18 @@ Blitter::Blitter(higanbana::GpuGroup& device)
 
   pipelineBGRA = device.createGraphicsPipeline(pipelineDescriptor);
   pipelineRGBA = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, FormatType::Unorm8RGBA));
+  pipelineUnorm16RGBA = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, FormatType::Unorm16RGBA));
   renderpassBGRA = device.createRenderpass();
   renderpassRGBA = device.createRenderpass();
+  renderpassUnorm16RGBA = device.createRenderpass();
 }
 
 void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target2){
   using namespace higanbana;
   if (target2.texture().desc().desc.format == FormatType::Unorm8BGRA)
     node.renderpass(renderpassBGRA, target2);
+  if (target2.texture().desc().desc.format == FormatType::Unorm16RGBA)
+    node.renderpass(renderpassUnorm16RGBA, target2);
   else
   {
     HIGAN_ASSERT(target2.desc().desc.format == FormatType::Unorm8RGBA, "");
@@ -69,13 +73,13 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   float right = topleft.x + size.x; // -0.8f + 1.f
   float bottom = topleft.y - size.y; // 0.8f - 1.f
 
-  vertices.push_back(float4{ left, bottom,  0.f, 0.f });
-  vertices.push_back(float4{ left,  top,    0.f, 1.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ left, bottom,  0.f, 1.f });
+  vertices.push_back(float4{ left,  top,    0.f, 0.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
-  vertices.push_back(float4{ right, bottom, 1.f, 0.f });
-  vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ right, bottom, 1.f, 1.f });
+  vertices.push_back(float4{ left,  bottom, 0.f, 1.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
 
@@ -85,6 +89,8 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
+  else if (target.desc.format == FormatType::Unorm16RGBA)
+    binding = node.bind(pipelineUnorm16RGBA);
   else
     binding = node.bind(pipelineRGBA);
 
@@ -111,13 +117,13 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   float right = left + size.x*2.f; // -0.8f + 1.f
   float bottom = top - size.y*2.f; // 0.8f - 1.f
 
-  vertices.push_back(float4{ left, bottom,  0.f, 0.f });
-  vertices.push_back(float4{ left,  top,    0.f, 1.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ left, bottom,  0.f, 1.f });
+  vertices.push_back(float4{ left,  top,    0.f, 0.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
-  vertices.push_back(float4{ right, bottom, 1.f, 0.f });
-  vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ right, bottom, 1.f, 1.f });
+  vertices.push_back(float4{ left,  bottom, 0.f, 1.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
 
@@ -127,6 +133,8 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
+  else if (target.desc.format == FormatType::Unorm16RGBA)
+    binding = node.bind(pipelineUnorm16RGBA);
   else
     binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);
@@ -178,13 +186,13 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   float right = left + x; // -0.8f + 1.f
   float bottom = top - y; // 0.8f - 1.f
 
-  vertices.push_back(float4{ left, bottom,  0.f, 0.f });
-  vertices.push_back(float4{ left,  top,    0.f, 1.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ left, bottom,  0.f, 1.f });
+  vertices.push_back(float4{ left,  top,    0.f, 0.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
-  vertices.push_back(float4{ right, bottom, 1.f, 0.f });
-  vertices.push_back(float4{ left,  bottom, 0.f, 0.f });
-  vertices.push_back(float4{ right, top,    1.f, 1.f });
+  vertices.push_back(float4{ right, bottom, 1.f, 1.f });
+  vertices.push_back(float4{ left,  bottom, 0.f, 1.f });
+  vertices.push_back(float4{ right, top,    1.f, 0.f });
 
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
   auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
@@ -193,6 +201,8 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
+  else if (target.desc.format == FormatType::Unorm16RGBA)
+    binding = node.bind(pipelineUnorm16RGBA);
   else
     binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);

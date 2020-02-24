@@ -31,6 +31,8 @@ struct RendererOptions
   bool unbalancedCubes = false;
   bool allowMeshShaders = false;
   bool allowRaytracing = false;
+  bool syncResolutionToSwapchain = false;
+  float resolutionScale = 1.f;
 };
 
 class Renderer
@@ -74,6 +76,8 @@ class Renderer
   higanbana::TextureSRV gbufferSRV;
   higanbana::Texture depth;
   higanbana::TextureDSV depthDSV;
+  higanbana::Texture depthExternal;
+  higanbana::TextureDSV depthExternalDSV;
   // other
   higanbana::PingPongTexture tsaaResolved; // tsaa history/current
 
@@ -94,7 +98,8 @@ public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
-  void windowResized();
+  void resizeExternal(higanbana::ResourceDescriptor& desc);
+  void resizeInternal(higanbana::ResourceDescriptor& desc);
   void render(higanbana::LBS& lbs, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
   int loadMesh(MeshData& data);

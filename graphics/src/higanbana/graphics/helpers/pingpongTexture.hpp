@@ -11,6 +11,13 @@ namespace higanbana
     vector<TextureRTV> rtvs;
     int currentIndex = 0;
     int maxTextures = 2;
+
+    int previousIndex()
+    {
+      auto index = (currentIndex - 1);
+      index = index < 0 ? maxTextures-1 : index;
+      return index;
+    }
   public:
 
     PingPongTexture()
@@ -40,7 +47,8 @@ namespace higanbana
 
     ResourceDescriptor desc()
     {
-      return srvs[0].desc();
+      HIGAN_ASSERT(!srvs.empty(), "No texture exists!, please resize.");
+      return srvs[0].texture().desc();
     }
 
     void next()
@@ -50,22 +58,55 @@ namespace higanbana
 
     TextureSRV& srv()
     {
+      HIGAN_ASSERT(srvs.size() > currentIndex, "Invalid index %d < size:%zu", currentIndex, srvs.size());
       return srvs[currentIndex];
     }
 
     TextureUAV& uav()
     {
+      HIGAN_ASSERT(uavs.size() > currentIndex, "Invalid index %d < size:%zu", currentIndex, uavs.size());
       return uavs[currentIndex];
     }
 
     TextureRTV& rtv()
     {
+      HIGAN_ASSERT(rtvs.size() > currentIndex, "Invalid index %d < size:%zu", currentIndex, rtvs.size());
       return rtvs[currentIndex];
     }
 
     Texture& texture()
     {
+      HIGAN_ASSERT(srvs.size() > currentIndex, "Invalid index %d < size:%zu", currentIndex, srvs.size());
       return srvs[currentIndex].texture();
+    }
+
+
+    TextureSRV& previousSrv()
+    {
+      auto index = previousIndex();
+      HIGAN_ASSERT(srvs.size() > index, "Invalid index %d < size:%zu", index, srvs.size());
+      return srvs[index];
+    }
+
+    TextureUAV& previousUav()
+    {
+      auto index = previousIndex();
+      HIGAN_ASSERT(uavs.size() > index, "Invalid index %d < size:%zu", index, uavs.size());
+      return uavs[index];
+    }
+
+    TextureRTV& previousRtv()
+    {
+      auto index = previousIndex();
+      HIGAN_ASSERT(rtvs.size() > index, "Invalid index %d < size:%zu", index, rtvs.size());
+      return rtvs[currentIndex];
+    }
+
+    Texture& previousTexture()
+    {
+      auto index = previousIndex();
+      HIGAN_ASSERT(srvs.size() > index, "Invalid index %d < size:%zu", index, srvs.size());
+      return srvs[index].texture();
     }
   };
 }

@@ -1,6 +1,6 @@
 #include "tsaa.hpp"
 SHADER_STRUCT(TSAAConstants,
-  uint coolstuff;
+  uint2 outputSize;
 );
 
 namespace app::renderer
@@ -33,6 +33,9 @@ void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNod
     .bind("result", output));
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, argument);
+  TSAAConstants consts{};
+  consts.outputSize = output.texture().desc().desc.size3D().xy();
+  binding.constants(consts);
   node.dispatchThreads(binding, output.texture().desc().desc.size3D());
 }
 }
