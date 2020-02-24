@@ -298,12 +298,6 @@ namespace higanbana
 
     void DeviceGroupData::waitGpuIdle() {
       HIGAN_CPU_FUNCTION_SCOPE();
-      std::lock_guard<std::mutex> guard(m_presentMutex);
-      while (!m_asyns.empty())
-      {
-        m_asyns.back().wait();
-        m_asyns.pop_back();
-      }
       for (auto&& vdev : m_devices)
       {
         vdev.device->waitGpuIdle();
