@@ -62,14 +62,14 @@ Particles::Particles(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayo
   m_drawPipeline = device.createGraphicsPipeline(pipelineDescriptor);
   m_renderpass = device.createRenderpass();
 }
-void Particles::simulate(higanbana::GpuGroup& dev, higanbana::CommandGraphNode& node) {
+void Particles::simulate(higanbana::GpuGroup& dev, higanbana::CommandGraphNode& node, float deltaTime) {
   using namespace higanbana;
 
   m_particles.next();
 
   SimulConstants consts{};
   consts.originPoint = float4(0,0,0,1);
-  consts.frameTimeDiff = 16.66667f;
+  consts.frameTimeDiff = deltaTime;
   consts.maxParticles = m_particles.desc().desc.width;
   
   ShaderArgumentsDescriptor desc = ShaderArgumentsDescriptor("simulation", m_simulationLayout)

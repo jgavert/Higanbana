@@ -14,15 +14,15 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 
   Particle p = previous[id.x];
   if(p.velocity.a > 0.0) {
-    p.pos = p.pos + float4(p.velocity.xyz, 0.0)*constants.frameTimeDiff*0.1;
-    p.velocity.a = p.velocity.a - (0.001*constants.frameTimeDiff*0.1);
+    p.pos = p.pos + float4(p.velocity.xyz, 0.0)*constants.frameTimeDiff;
+    p.velocity.a = p.velocity.a - (0.01*constants.frameTimeDiff);
   } else {
     p.pos = constants.originPoint;
     
     p.velocity.x = nrand(p.pos.yx + float2(id.x, gid.x) + p.velocity.xy) - 0.5;
     p.velocity.z = nrand(p.pos.zw + float2(id.x, gid.x) + p.velocity.yx) - 0.5;
     p.velocity.y = nrand(p.pos.xy + float2(id.x, gid.x) + p.velocity.xy);
-    p.velocity.xyz *= 0.5;
+    p.velocity.xyz *= 10;
     p.velocity.a = nrand(p.pos.zw + float2(id.x, gid.x) + p.velocity.xy);
   }
   current[id.x] = p;

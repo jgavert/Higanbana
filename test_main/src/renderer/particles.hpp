@@ -20,7 +20,7 @@ public:
     float4 velocity;
   );
   Particles(higanbana::GpuGroup& dev, higanbana::ShaderArgumentsLayout cameras);
-  void simulate(higanbana::GpuGroup& dev, higanbana::CommandGraphNode& node);
+  void simulate(higanbana::GpuGroup& dev, higanbana::CommandGraphNode& node, float timeDelta);
   void render(higanbana::GpuGroup& dev, higanbana::CommandGraphNode& node, higanbana::TextureRTV backbuffer, higanbana::TextureDSV depth, higanbana::ShaderArguments cameras);
 };
 }

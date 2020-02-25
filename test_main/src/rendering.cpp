@@ -362,9 +362,10 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     genImage.generate(dev, node, proxyTex.uav());
     tasks.addPass(std::move(node));
   }
+
   {
     auto ndoe = tasks.createPass("simulate particles");
-    particleSimulation.simulate(dev, ndoe);
+    particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
     tasks.addPass(std::move(ndoe));
   }
 

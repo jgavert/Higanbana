@@ -1,7 +1,8 @@
 #include "tsaa.hpp"
 SHADER_STRUCT(TSAAConstants,
   uint2 outputSize;
-  int2 jitter;
+  uint2 sourceSize;
+  float2 jitter;
 );
 
 namespace app::renderer
@@ -58,7 +59,8 @@ void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   binding.arguments(0, argument);
   TSAAConstants consts{};
   consts.outputSize = output.texture().desc().desc.size3D().xy();
-  consts.jitter = currentJitter;
+  consts.sourceSize = args.source.texture().desc().desc.size3D().xy();
+  consts.jitter = div(float2(currentJitter), 8.0f);
   binding.constants(consts);
   node.dispatchThreads(binding, output.texture().desc().desc.size3D());
 }

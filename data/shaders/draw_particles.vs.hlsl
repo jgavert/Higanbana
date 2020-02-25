@@ -20,6 +20,7 @@ VertexOut main(uint id: SV_VertexID, uint iid: SV_InstanceID)
 
   VertexOut vtxOut;
   float2 dirCorner = float2(0,0);
+  //float
   int2 choice = int2(0, 1);
   if (id < 3)
   {
@@ -31,8 +32,8 @@ VertexOut main(uint id: SV_VertexID, uint iid: SV_InstanceID)
   vtxOut.pos = pos;
   //vtxOut.pos.z = 0.1;
   //vtxOut.pos.w = 1.f;
-  vtxOut.uv.x = (id % 3 == 2) ?  1 : 0;
-  vtxOut.uv.y = (id % 3 == 1) ?  1 : 0;
+  vtxOut.uv.x = (id % 3 == 2) ?  choice.x : choice.y;
+  vtxOut.uv.y = (id % 3 == 1) ?  choice.x : choice.y;
 
   return vtxOut;
 }
