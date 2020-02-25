@@ -32,6 +32,8 @@ struct RendererOptions
   bool allowMeshShaders = false;
   bool allowRaytracing = false;
   bool syncResolutionToSwapchain = false;
+  bool jitterEnabled = false;
+  bool tsaaDebug = false;
   float resolutionScale = 1.f;
 };
 
@@ -71,15 +73,18 @@ class Renderer
 
   // resources
   // gbuffer??
-  higanbana::Texture gbuffer;
-  higanbana::TextureRTV gbufferRTV;
-  higanbana::TextureSRV gbufferSRV;
-  higanbana::Texture depth;
-  higanbana::TextureDSV depthDSV;
+  higanbana::Texture m_gbuffer;
+  higanbana::TextureRTV m_gbufferRTV;
+  higanbana::TextureSRV m_gbufferSRV;
+  higanbana::Texture m_depth;
+  higanbana::TextureDSV m_depthDSV;
   higanbana::Texture depthExternal;
   higanbana::TextureDSV depthExternalDSV;
   // other
   higanbana::PingPongTexture tsaaResolved; // tsaa history/current
+  higanbana::Texture tsaaDebug;
+  higanbana::TextureSRV tsaaDebugSRV;
+  higanbana::TextureUAV tsaaDebugUAV;
 
   higanbana::PingPongTexture proxyTex; // used for background color
 
@@ -91,9 +96,10 @@ class Renderer
   // info
   higanbana::WTime time;
   std::optional<higanbana::SubmitTiming> m_previousInfo;
-  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
-  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
 
+  void renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV gbufferRTV, higanbana::TextureDSV depth, RendererOptions options, int cameraIdx, const float4x4& perspective, float3 cameraPos, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);

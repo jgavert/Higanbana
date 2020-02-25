@@ -238,6 +238,17 @@ namespace higanbana
       }
       return n;
     }
+    
+    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+    constexpr inline VEC div(vType a, Vector<ELEMENT_COUNT, vType> b)
+    {
+      VEC n{};
+      for (int i = 0; i < ELEMENT_COUNT; ++i)
+      {
+        n.data[i] = a / b.data[i];
+      }
+      return n;
+    }
 
     template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
     constexpr inline VEC add(Vector<ELEMENT_COUNT, vType> a, vType b)

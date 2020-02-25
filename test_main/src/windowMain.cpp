@@ -532,6 +532,8 @@ void mainWindow(ProgramParams& params)
               {
                 rendererOptions.resolutionScale = 1.f;
               }
+              ImGui::Checkbox("enable jittered viewport", &rendererOptions.jitterEnabled);
+              ImGui::Checkbox("enable taa debugoutput", &rendererOptions.tsaaDebug);
               ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
               ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
               ImGui::Checkbox("submit multithread experimental", &rendererOptions.submitExperimental);

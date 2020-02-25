@@ -56,6 +56,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   auto bufLabelsCount = pCallbackData->cmdBufLabelCount;
   auto queueLabelsCount = pCallbackData->queueLabelCount;
   auto objectCount = pCallbackData->objectCount;
+  auto filter = strcmp("VUID-VkSwapchainCreateInfoKHR-imageExtent-01274", pCallbackData->pMessageIdName);
+  if (filter == 0) // ignore
+    return false;
 
   HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, msgType.c_str(), pMessage);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)

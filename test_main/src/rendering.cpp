@@ -94,20 +94,20 @@ int2 Renderer::windowSize() {
 }
 
 void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
-  gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
+  m_gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
     .setSize(desc.desc.size3D())
     .setFormat(FormatType::Unorm16RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("gbuffer"));
-  gbufferRTV = dev.createTextureRTV(gbuffer);
-  gbufferSRV = dev.createTextureSRV(gbuffer);
-  depth = dev.createTexture(higanbana::ResourceDescriptor()
+  m_gbufferRTV = dev.createTextureRTV(m_gbuffer);
+  m_gbufferSRV = dev.createTextureSRV(m_gbuffer);
+  m_depth = dev.createTexture(higanbana::ResourceDescriptor()
     .setSize(desc.desc.size3D())
     .setFormat(FormatType::Depth32)
     .setUsage(ResourceUsage::DepthStencil)
     .setName("opaqueDepth"));
 
-  depthDSV = dev.createTextureDSV(depth);
+  m_depthDSV = dev.createTextureDSV(m_depth);
 
   proxyTex.resize(dev, ResourceDescriptor()
     .setSize(desc.desc.size3D())
@@ -118,9 +118,14 @@ void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
 void Renderer::resizeExternal(higanbana::ResourceDescriptor& desc) {
   tsaaResolved.resize(dev, ResourceDescriptor()
     .setSize(desc.desc.size3D())
-    .setFormat(desc.desc.format)
+    .setFormat(FormatType::Unorm16RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("tsaa current/history"));
+
+  auto descTsaaResolved = tsaaResolved.desc();
+  tsaaDebug = dev.createTexture(descTsaaResolved);
+  tsaaDebugSRV = dev.createTextureSRV(tsaaDebug);
+  tsaaDebugUAV = dev.createTextureUAV(tsaaDebug);
 
   depthExternal = dev.createTexture(higanbana::ResourceDescriptor()
     .setSize(desc.desc.size3D())
@@ -139,72 +144,32 @@ std::optional<higanbana::SubmitTiming> Renderer::timings() {
   return m_previousInfo;
 }
 
-void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
-  depthDSV.clearOp({});
-  worldRend.beginRenderpass(node, backbuffer, depthDSV);
+  depth.clearOp({});
+  worldRend.beginRenderpass(node, backbuffer, depth);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, cameraIndex);
   }
   worldRend.endRenderpass(node);
 }
 
-void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
-  depthDSV.clearOp({});
+  depth.clearOp({});
   
-  worldMeshRend.beginRenderpass(node, backbuffer, depthDSV);
+  worldMeshRend.beginRenderpass(node, backbuffer, depth);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width);
+    worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width, cameraIndex);
   }
   node.endRenderpass();
 }
 
-void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
-  if (swapchain.outOfDate()) // swapchain can end up being outOfDate
-  {
-    dev.adjustSwapchain(swapchain, scdesc);
-    resizeExternal(swapchain.buffers().begin()->texture().desc());
-  }
-  int2 currentRes = math::mul(options.resolutionScale, float2(swapchain.buffers().begin()->texture().desc().desc.size3D().xy()));
-  if (currentRes.x > 0 && currentRes.y > 0 && (currentRes.x != gbuffer.desc().desc.size3D().x || currentRes.y != gbuffer.desc().desc.size3D().y))
-  {
-    auto desc = ResourceDescriptor(gbuffer.desc()).setSize(currentRes);
-    resizeInternal(desc);
-  }
-
-  CommandGraph tasks = dev.createGraph();
-  {
-    auto ndoe = tasks.createPass("simulate particles");
-    particleSimulation.simulate(dev, ndoe);
-    tasks.addPass(std::move(ndoe));
-  }
-  float4x4 perspective;
-  {
-    auto ndoe = tasks.createPass("copy cameras");
-    vector<CameraSettings> sets;
-    auto& swapDesc = swapchain.buffers().front().desc().desc;
-    auto aspect = float(swapDesc.height)/float(swapDesc.width);
-    float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
-    float4x4 rot = math::rotationMatrixLH(camera.direction);
-    float4x4 pos = math::translation(camera.position);
-    perspective = math::mul(pos, math::mul(rot, pers));
-    sets.push_back(CameraSettings{perspective});
-    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-    ndoe.copy(cameras, matUpdate);
-    tasks.addPass(std::move(ndoe));
-  }
-
-  {
-    auto node = tasks.createPass("generate Texture");
-    genImage.generate(dev, node, proxyTex.uav());
-    tasks.addPass(std::move(node));
-  }
-
+void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV gbufferRTV, higanbana::TextureDSV depth, RendererOptions options, int cameraIdx, const float4x4& perspective, float3 cameraPos, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
   {
     auto node = tasks.createPass("composite");
     node.acquirePresentableImage(swapchain);
@@ -253,7 +218,7 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     {
       int pixelsToDraw = drawcalls;
       gbufferRTV.setOp(LoadOp::Load);
-      depthDSV.clearOp({});
+      depth.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
       int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(drawsSplitInto))+0.5f));
@@ -270,13 +235,13 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
       std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
       {
         HIGAN_CPU_BRACKET("user - innerloop");
-        auto depth = depthDSV;
+        auto ldepth = depth;
         if (std::get<1>(node) == 0)
-          depth.setOp(LoadOp::Clear);
+          ldepth.setOp(LoadOp::Clear);
         else
-          depth.setOp(LoadOp::Load);
+          ldepth.setOp(LoadOp::Load);
         
-        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), camera.position, perspective, gbufferRTV, depth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), cameraPos, perspective, gbufferRTV, ldepth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
       });
 
       for (auto& node : nodes)
@@ -287,7 +252,7 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     else if (instances.empty())
     {
       gbufferRTV.setOp(LoadOp::Load);
-      depthDSV.clearOp({});
+      depth.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
       if (!options.unbalancedCubes)
@@ -323,13 +288,13 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
       std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
       {
         HIGAN_CPU_BRACKET("user - innerloop");
-        auto depth = depthDSV;
+        auto ldepth = depth;
         if (std::get<1>(node) == 0)
-          depth.setOp(LoadOp::Clear);
+          ldepth.setOp(LoadOp::Clear);
         else
-          depth.setOp(LoadOp::Load);
+          ldepth.setOp(LoadOp::Load);
         
-        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, gbufferRTV, depth,ind, args,  drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
+        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, gbufferRTV, ldepth, ind, args, drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
       });
 
       for (auto& node : nodes)
@@ -341,9 +306,9 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     {
       auto node = tasks.createPass("opaquePass - ecs");
       if (options.allowMeshShaders)
-        renderMeshesWithMeshShaders(node, gbufferRTV, instances);
+        renderMeshesWithMeshShaders(node, gbufferRTV, depth, cameraIdx, instances);
       else
-        renderMeshes(node, gbufferRTV, instances);
+        renderMeshes(node, gbufferRTV, depth, cameraIdx, instances);
       tasks.addPass(std::move(node));
     }
   }
@@ -351,14 +316,64 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
   // particles draw
   {
     auto node = tasks.createPass("particles - draw");
-    particleSimulation.render(dev, node, gbufferRTV, depthDSV, cameraArgs);
+    particleSimulation.render(dev, node, gbufferRTV, depth, cameraArgs);
     tasks.addPass(std::move(node));
   }
+}
+
+
+void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+  if (swapchain.outOfDate())
+  {
+    dev.adjustSwapchain(swapchain, scdesc);
+    resizeExternal(swapchain.buffers().begin()->texture().desc());
+  }
+
+  int2 currentRes = math::mul(options.resolutionScale, float2(swapchain.buffers().begin()->texture().desc().desc.size3D().xy()));
+  if (currentRes.x > 0 && currentRes.y > 0 && (currentRes.x != m_gbuffer.desc().desc.size3D().x || currentRes.y != m_gbuffer.desc().desc.size3D().y))
+  {
+    auto desc = ResourceDescriptor(m_gbuffer.desc()).setSize(currentRes);
+    resizeInternal(desc);
+  }
+
+  CommandGraph tasks = dev.createGraph();
+
+  float4x4 perspective;
+  {
+    auto ndoe = tasks.createPass("copy cameras");
+    vector<CameraSettings> sets;
+    auto& swapDesc = swapchain.buffers().front().desc().desc;
+    auto aspect = float(swapDesc.height)/float(swapDesc.width);
+    float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
+    float4x4 rot = math::rotationMatrixLH(camera.direction);
+    float4x4 pos = math::translation(camera.position);
+    perspective = math::mul(pos, math::mul(rot, pers));
+    if (options.jitterEnabled){
+      perspective = tsaa.jitterProjection(time.getFrame(), swapDesc.size3D().xy(), perspective);
+    }
+    sets.push_back(CameraSettings{perspective});
+    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+    ndoe.copy(cameras, matUpdate);
+    tasks.addPass(std::move(ndoe));
+  }
+
+  {
+    auto node = tasks.createPass("generate Texture");
+    genImage.generate(dev, node, proxyTex.uav());
+    tasks.addPass(std::move(node));
+  }
+  {
+    auto ndoe = tasks.createPass("simulate particles");
+    particleSimulation.simulate(dev, ndoe);
+    tasks.addPass(std::move(ndoe));
+  }
+
+  renderScene(tasks, m_gbufferRTV, m_depthDSV, options, 0, perspective, camera.position, instances, drawcalls, drawsSplitInto, heightmap);
 
   {
     auto tsaaNode = tasks.createPass("Temporal Supersampling AA");
     tsaaResolved.next();
-    tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{gbufferSRV, tsaaResolved.previousSrv()});
+    tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_gbufferSRV, tsaaDebugUAV});
     tasks.addPass(std::move(tsaaNode));
   }
 
@@ -376,7 +391,10 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
   {
     auto node = tasks.createPass("copy tsaa resolved to backbuffer");
     blitter.beginRenderpass(node, backbuffer);
-    blitter.blitImage(dev, node, tsaaResolved.srv(), renderer::Blitter::FitMode::Fill);
+    auto target = tsaaResolved.srv();
+    if (options.tsaaDebug)
+      target = tsaaDebugSRV;
+    blitter.blitImage(dev, node, target, renderer::Blitter::FitMode::Fill);
     node.endRenderpass();
     tasks.addPass(std::move(node));
   }

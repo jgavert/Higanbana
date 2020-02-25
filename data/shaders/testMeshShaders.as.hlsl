@@ -9,7 +9,7 @@ void main(
   uint gtid : SV_GroupThreadID,
   in uint3 groupID : SV_GroupID)    
 { 
-  CameraSettings settings = cameras.Load(0);
+  CameraSettings settings = cameras.Load(constants.camera);
   p.perspective = settings.perspective;
 
   uint survivingMeshlets = constants.meshletCount;

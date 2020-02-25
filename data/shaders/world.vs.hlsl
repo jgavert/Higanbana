@@ -14,7 +14,7 @@ VertexOut main(uint id: SV_VertexID)
   VertexOut vtxOut;
   vtxOut.pos.xyz = vertices.Load(id);
   vtxOut.pos.w = 1.f;
-  CameraSettings settings = cameras.Load(0);
+  CameraSettings settings = cameras.Load(constants.camera);
   vtxOut.pos = mul(vtxOut.pos, settings.perspective);
   vtxOut.normal = normals.Load(id);
   vtxOut.uv = uvs.Load(id);

@@ -2,6 +2,7 @@
 
 SHADER_STRUCT(DebugConstants,
   float3 pos;
+  int camera;
 );
 
 namespace app::renderer
@@ -46,12 +47,12 @@ void World::endRenderpass(higanbana::CommandGraphNode& node)
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, int cameraIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
-  binding.constants(DebugConstants{float3(0,0,0)});
+  binding.constants(DebugConstants{float3(0,0,0), cameraIndex});
   node.drawIndexed(binding, ibv, ibv.desc().desc.width);
 }
 }

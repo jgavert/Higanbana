@@ -41,7 +41,7 @@ void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Text
   using namespace higanbana;
   if (target2.texture().desc().desc.format == FormatType::Unorm8BGRA)
     node.renderpass(renderpassBGRA, target2);
-  if (target2.texture().desc().desc.format == FormatType::Unorm16RGBA)
+  else if (target2.texture().desc().desc.format == FormatType::Unorm16RGBA)
     node.renderpass(renderpassUnorm16RGBA, target2);
   else
   {

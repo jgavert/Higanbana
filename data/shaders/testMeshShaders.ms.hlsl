@@ -1,14 +1,6 @@
 #include "testMeshShaders.if.hlsl"
 #include "testMesh_payload.hlsl"
 
-struct VertexOut
-{
-  uint id : COLOR0;
-  float2 uv : TEXCOORD0;
-  float3 normal : NORMAL;
-  float4 pos : SV_Position;
-};
-
 [RootSignature(ROOTSIG)]
 [NumThreads(32, 1, 1)] 
 [OutputTopology("triangle")] 

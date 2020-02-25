@@ -2,7 +2,8 @@
 
 SHADER_STRUCT(DebugConstants,
   uint meshletCount;
-  float3 pos;
+  int camera;
+  float2 unused;
 );
 namespace app::renderer
 {
@@ -45,12 +46,12 @@ void MeshTest::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Tex
   node.renderpass(m_renderpass, target, depth);
 }
 
-void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets)
+void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets, int cameraIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
-  binding.constants(DebugConstants{meshlets, float3(0,0,0)});
+  binding.constants(DebugConstants{meshlets, cameraIndex});
   node.dispatchMesh(binding, uint3(1,1,1));
 }
 }
