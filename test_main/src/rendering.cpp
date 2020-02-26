@@ -350,7 +350,7 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     float4x4 pos = math::translation(camera.position);
     perspective = math::mul(pos, math::mul(rot, pers));
     if (options.jitterEnabled){
-      perspective = tsaa.jitterProjection(time.getFrame(), swapDesc.size3D().xy(), perspective);
+      perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), perspective);
     }
     sets.push_back(CameraSettings{perspective});
     auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
