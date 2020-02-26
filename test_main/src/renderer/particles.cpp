@@ -54,10 +54,11 @@ Particles::Particles(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayo
         .setBlendOpAlpha(BlendOp::Add)
         .setSrcBlend(Blend::SrcAlpha)
         .setSrcBlendAlpha(Blend::One)
-        .setDestBlend(Blend::DestAlpha)
+        .setDestBlend(Blend::InvSrcAlpha)
         .setDestBlendAlpha(Blend::One)))
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(true)
+      .setDepthWriteMask(DepthWriteMask::Zero)
       .setDepthFunc(ComparisonFunc::Greater));
   m_drawPipeline = device.createGraphicsPipeline(pipelineDescriptor);
   m_renderpass = device.createRenderpass();

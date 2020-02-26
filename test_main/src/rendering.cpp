@@ -313,6 +313,7 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
     }
   }
 
+  // transparent objects...
   // particles draw
   {
     auto node = tasks.createPass("particles - draw");
