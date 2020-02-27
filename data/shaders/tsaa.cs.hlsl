@@ -27,13 +27,35 @@ float4 load3by3(int2 uv)
   return endResult;
 }
 
+void debug3by3(int2 uv, float4 color)
+{
+  debug[uv + int2(1,1)] = color;
+  debug[uv - int2(1,1)] = color;
+  debug[uv + int2(-1,1)] = color;
+  debug[uv + int2(1,-1)] = color;
+  debug[uv + int2(0,1)] = color;
+  debug[uv + int2(1,0)] = color;
+  debug[uv + int2(0,-1)] = color;
+  debug[uv + int2(-1,0)] = color;
+}
+
+int2 convertFromSourceToOutputID(int2 sourceIndex, int zoom, float2 offsetUV, float2 uv_jitter_offset)
+{
+  float2 suv = float2((float(sourceIndex.x)+0.5) / float(constants.sourceSize.x), (float(sourceIndex.y)+0.5) / float(constants.sourceSize.y));
+  float2 jittered = suv - uv_jitter_offset;
+  float2 dsuv = (jittered-offsetUV)*float2(constants.outputSize*zoom);// + constants.jitter * subsampleSize;
+  int2 paintID = int2(dsuv);
+  return sourceIndex;
+}
+
 [RootSignature(ROOTSIG)]
 [numthreads(HIGANBANA_THREADGROUP_X, HIGANBANA_THREADGROUP_Y, HIGANBANA_THREADGROUP_Z)] // @nolint
 void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 { 
-  float historyWeight = 0.90;
-  uint zoom = 1;
+  float historyWeight = 0.95;
+  int zoom = 1;
   float2 offsetUV = float2(0,0);
+  float2 outputSubsampleSize = float2(1 / float(constants.outputSize.x*2), 1 / float(constants.outputSize.y*2));
   float2 sourceSubsampleSize = float2(1 / float(constants.sourceSize.x*2), 1 / float(constants.sourceSize.y*2));
 
   float2 uv = float2((float(id.x)+0.5) / float(constants.outputSize.x*zoom), (float(id.y)+0.5) / float(constants.outputSize.y*zoom));
@@ -52,13 +74,22 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   float maxDiff = max(max(rDist, bDist), gDist);
 
   float filtered = 0.f;
-  
-  //if (maxDiff > 0.3)
+  float distToSourcePixel = distance(uv, uv+uv_jitter_offset);
+  float sampleInsideOutputPixel = distToSourcePixel - length(outputSubsampleSize);
+
+  if (sampleInsideOutputPixel > 0)
   {
-    //historyWeight *= 1 - maxDiff*0.25;
-    filtered = maxDiff;
+    historyWeight = historyWeight*2;
+    filtered = distToSourcePixel*100;
+  }
+  
+  if (maxDiff > 0.2)
+  {
+    historyWeight *= 1 - maxDiff*0.25;
+    //filtered = maxDiff;
   }
 
+  historyWeight = min(0.95, historyWeight);
   float remainingWeight = 1.f - historyWeight;
   current = current * remainingWeight + oldPixel * historyWeight;
   //boxcolor /= 9;
@@ -70,14 +101,17 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
     float2 jittered = suv - uv_jitter_offset;
     float2 dsuv = (jittered-offsetUV)*float2(constants.outputSize*zoom);// + constants.jitter * subsampleSize;
     int2 paintID = int2(dsuv);
+    //debug3by3(paintID, float4(0,1,0,1));
     if (paintID.x == id.x && paintID.y == id.y)
     {
+      //debug3by3(sid, float4(0,1,0,1));
       //debug[id] = srcPixel;
+      //debug3by3(paintID, float4(0,1,0,1));
       //current = float4(1, 1, 1, 1);
     }
     else
     {
-      //debug[id] = float4(0,0,0,0);
+      debug[id] = float4(0,0,0,0);
     }
   }
 
@@ -89,6 +123,7 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   //debug[id] = (oldPixel*9 - (boxcolor+srcPixel));
   //historyWeight = 1 - historyWeight;
   //debug[id] = float4(rDist, gDist, bDist,1);
-  debug[id] = float4(maxDiff, maxDiff, maxDiff,1);
+  //debug[id] = float4(filtered, filtered, filtered,1);
+  //debug[id] = float4(maxDiff, maxDiff, maxDiff,1);
   //debug[id] = (boxcolor+srcPixel) / 9;
 }
