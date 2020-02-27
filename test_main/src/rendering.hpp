@@ -32,9 +32,47 @@ struct RendererOptions
   bool allowMeshShaders = false;
   bool allowRaytracing = false;
   bool syncResolutionToSwapchain = false;
-  bool jitterEnabled = false;
+  bool jitterEnabled = true;
+  bool particles = false;
+  bool particlesSimulate = true;
+  bool particlesDraw = true;
+  bool tsaa = true;
   bool tsaaDebug = false;
   float resolutionScale = 1.f;
+
+  void drawImGuiOptions()
+  {
+    if (ImGui::CollapsingHeader("Renderer Options"))
+    {
+      ImGui::Checkbox("sync resolution to window size", &syncResolutionToSwapchain);
+      if (!syncResolutionToSwapchain)
+      {
+        ImGui::DragFloat("resolution scale", &resolutionScale, 0.01f, 0.0001f, 4.f);
+      }
+      else
+      {
+        resolutionScale = 1.f;
+      }
+      ImGui::Checkbox("jitter viewport", &jitterEnabled);
+      ImGui::Checkbox("TSAA", &tsaa);
+      if (tsaa)
+      {
+        ImGui::Checkbox("enable taa debugoutput", &tsaaDebug);
+      }
+      ImGui::Checkbox("Particles", &particles);
+      if (particles)
+      {
+        ImGui::Checkbox(" Simulate", &particlesSimulate);
+        ImGui::Checkbox(" Draw", &particlesDraw);
+      }
+      ImGui::Checkbox("allow Mesh Shaders", &allowMeshShaders); ImGui::SameLine();
+      ImGui::Checkbox("allow Raytracing", &allowRaytracing);
+      ImGui::Checkbox("submit multithread experimental", &submitExperimental);
+      ImGui::Checkbox("submit singlethread", &submitSingleThread);
+      ImGui::Checkbox("submit lbs", &submitLBS);
+      ImGui::Checkbox("unbalanced cube drawlists", &unbalancedCubes);
+    }
+  }
 };
 
 class Renderer
@@ -94,19 +132,28 @@ class Renderer
   higanbana::Renderpass compositeRP;
 
   // info
-  higanbana::WTime time;
   std::optional<higanbana::SubmitTiming> m_previousInfo;
   void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
   void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
 
-  void renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV gbufferRTV, higanbana::TextureDSV depth, RendererOptions options, int cameraIdx, const float4x4& perspective, float3 cameraPos, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap);
+  struct SceneArguments{
+    higanbana::TextureRTV gbufferRTV;
+    higanbana::TextureDSV depth;
+    RendererOptions options;
+    int cameraIdx;
+    float4x4 perspective;
+    float3 cameraPos;
+    int drawcalls;
+    int drawsSplitInto;
+  };
+  void renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& time, const SceneArguments& args, higanbana::vector<InstanceDraw>& instances, std::optional<higanbana::CpuImage>& heightmap);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   void resizeInternal(higanbana::ResourceDescriptor& desc);
-  void render(higanbana::LBS& lbs, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
+  void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
   int loadMesh(MeshData& data);
   void unloadMesh(int index);

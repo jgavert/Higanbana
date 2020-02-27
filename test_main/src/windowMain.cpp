@@ -277,6 +277,9 @@ void mainWindow(ProgramParams& params)
     int cubeCount = 30;
     int cubeCommandLists = 4;
     int limitFPS = 0;
+    bool advanceSimulation = true;
+    bool stepOneFrameForward = false;
+    bool stepOneFrameBackward = false;
     app::RendererOptions rendererOptions{};
     rendererOptions.submitExperimental = true;
 
@@ -406,7 +409,11 @@ void mainWindow(ProgramParams& params)
             ImGuiIO &io = ::ImGui::GetIO();
             auto windowSize = rend.windowSize();
             io.DisplaySize = { float(windowSize.x), float(windowSize.y) };
-            time.tick();
+            if (advanceSimulation || stepOneFrameForward)
+            {
+              time.tick();
+              stepOneFrameForward = false;
+            }
             logicAndRenderTime.startFrame();
             io.DeltaTime = time.getFrameTimeDelta();
             if (io.DeltaTime < 0.f)
@@ -519,32 +526,30 @@ void mainWindow(ProgramParams& params)
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
             ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
-
+            ImGui::Checkbox("simulate", &advanceSimulation);
+            if (!advanceSimulation)
+            {
+              ImGui::Checkbox("   Step Frame Forward", &stepOneFrameForward);
+              ImGui::Checkbox("   Step Frame Backward", &stepOneFrameBackward);
+              if (stepOneFrameForward)
+              {
+                time.startFrame();
+              }
+            }
             ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
 
             {
               ImGui::Checkbox("render ECS", &renderECS);
               int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
-              ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); ImGui::SameLine();
-              ImGui::DragFloat("resolution scale", &rendererOptions.resolutionScale, 0.01f, 0.0001f, 4.f);
-              ImGui::Checkbox("sync resolution to window size", &rendererOptions.syncResolutionToSwapchain);
-              if (rendererOptions.syncResolutionToSwapchain)
-              {
-                rendererOptions.resolutionScale = 1.f;
-              }
-              ImGui::Checkbox("enable jittered viewport", &rendererOptions.jitterEnabled);
-              ImGui::Checkbox("enable taa debugoutput", &rendererOptions.tsaaDebug);
-              ImGui::Checkbox("allow Mesh Shaders", &rendererOptions.allowMeshShaders); ImGui::SameLine();
-              ImGui::Checkbox("allow Raytracing", &rendererOptions.allowRaytracing);
-              ImGui::Checkbox("submit multithread experimental", &rendererOptions.submitExperimental);
-              ImGui::Checkbox("submit singlethread", &rendererOptions.submitSingleThread);
-              ImGui::Checkbox("submit lbs", &rendererOptions.submitLBS);
-              ImGui::Checkbox("unbalanced cube drawlists", &rendererOptions.unbalancedCubes);
+              ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
               ImGui::Text("%d cubes/draw calls", cubeCount);
               ImGui::SameLine();
               ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
               ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
             }
+
+            rendererOptions.drawImGuiOptions();
+
             auto si = rend.timings();
             if (si && ImGui::CollapsingHeader("Renderpass"))
             {
@@ -746,7 +751,7 @@ void mainWindow(ProgramParams& params)
               ac.maxZ = set.maxZ;
             });
             HIGAN_CPU_BRACKET("Render");
-            rend.render(lbs, rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
+            rend.render(lbs, time, rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
             logicAndRenderTime.tick();
             auto totalTime = logicAndRenderTime.getFrameTimeDelta();
             if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))

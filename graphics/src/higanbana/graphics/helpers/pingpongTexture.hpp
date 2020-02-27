@@ -51,9 +51,9 @@ namespace higanbana
       return srvs[0].texture().desc();
     }
 
-    void next()
+    void next(int64_t time)
     {
-      currentIndex = (currentIndex + 1) % maxTextures;
+      currentIndex = (time + 1) % maxTextures;
     }
 
     TextureSRV& srv()

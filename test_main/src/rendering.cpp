@@ -78,7 +78,6 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setFormat(FormatType::Unorm8BGRA);
   resizeExternal(desc);
   resizeInternal(desc.setSize(uint3(960, 540, 1)));
-  time.startFrame();
 }
 
 void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
@@ -169,12 +168,12 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV gbufferRTV, higanbana::TextureDSV depth, RendererOptions options, int cameraIdx, const float4x4& perspective, float3 cameraPos, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& time, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances, std::optional<higanbana::CpuImage>& heightmap) {
   {
     auto node = tasks.createPass("composite");
     node.acquirePresentableImage(swapchain);
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
-
+    auto gbufferRTV = scene.gbufferRTV;
     gbufferRTV.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
     blitter.beginRenderpass(node, gbufferRTV);
     blitter.blitImage(dev, node, proxyTex.srv(), renderer::Blitter::FitMode::Fill);
@@ -216,12 +215,14 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
       .bind("vertexInput", vert));
     if (heightmap && instances.empty())
     {
-      int pixelsToDraw = drawcalls;
+      int pixelsToDraw = scene.drawcalls;
+      auto gbufferRTV = scene.gbufferRTV;
+      auto depth = scene.depth;
       gbufferRTV.setOp(LoadOp::Load);
       depth.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
-      int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(drawsSplitInto))+0.5f));
+      int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(scene.drawsSplitInto))+0.5f));
       for (int i = 0; i < pixelsToDraw; i+=stepSize)
       {
         if (i+stepSize > pixelsToDraw)
@@ -241,7 +242,7 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
         else
           ldepth.setOp(LoadOp::Load);
         
-        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), cameraPos, perspective, gbufferRTV, ldepth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
+        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), scene.cameraPos, scene.perspective, gbufferRTV, ldepth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
       });
 
       for (auto& node : nodes)
@@ -251,28 +252,30 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
     }
     else if (instances.empty())
     {
+      auto gbufferRTV = scene.gbufferRTV;
+      auto depth = scene.depth;
       gbufferRTV.setOp(LoadOp::Load);
       depth.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
-      if (!options.unbalancedCubes)
+      if (!scene.options.unbalancedCubes)
       {
-        int stepSize = std::max(1, int((float(drawcalls+1) / float(drawsSplitInto))+0.5f));
-        for (int i = 0; i < drawcalls; i+=stepSize)
+        int stepSize = std::max(1, int((float(scene.drawcalls+1) / float(scene.drawsSplitInto))+0.5f));
+        for (int i = 0; i < scene.drawcalls; i+=stepSize)
         {
-          if (i+stepSize > drawcalls)
+          if (i+stepSize > scene.drawcalls)
           {
-            stepSize = stepSize - (i+stepSize - drawcalls);
+            stepSize = stepSize - (i+stepSize - scene.drawcalls);
           }
           nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
         }
       }
       else
       {
-        int cubesLeft = drawcalls;
+        int cubesLeft = scene.drawcalls;
         int cubesDrawn = 0;
         vector<int> reverseDraw;
-        for (int i = 0; i < drawsSplitInto-1; i++)
+        for (int i = 0; i < scene.drawsSplitInto-1; i++)
         {
           auto split = cubesLeft/2;
           cubesLeft -= split;
@@ -294,7 +297,7 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
         else
           ldepth.setOp(LoadOp::Load);
         
-        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), perspective, gbufferRTV, ldepth, ind, args, drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
+        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
       });
 
       for (auto& node : nodes)
@@ -305,25 +308,28 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::TextureRTV
     else
     {
       auto node = tasks.createPass("opaquePass - ecs");
-      if (options.allowMeshShaders)
-        renderMeshesWithMeshShaders(node, gbufferRTV, depth, cameraIdx, instances);
+      auto gbufferRTV = scene.gbufferRTV;
+      auto depth = scene.depth;
+      if (scene.options.allowMeshShaders)
+        renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.cameraIdx, instances);
       else
-        renderMeshes(node, gbufferRTV, depth, cameraIdx, instances);
+        renderMeshes(node, gbufferRTV, depth, scene.cameraIdx, instances);
       tasks.addPass(std::move(node));
     }
   }
 
   // transparent objects...
   // particles draw
+  if (scene.options.particles && scene.options.particlesDraw)
   {
     auto node = tasks.createPass("particles - draw");
-    particleSimulation.render(dev, node, gbufferRTV, depth, cameraArgs);
+    particleSimulation.render(dev, node, scene.gbufferRTV, scene.depth, cameraArgs);
     tasks.addPass(std::move(node));
   }
 }
 
 
-void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -364,19 +370,29 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     tasks.addPass(std::move(node));
   }
 
+  if (options.particles && options.particlesSimulate)
   {
     auto ndoe = tasks.createPass("simulate particles");
     particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
     tasks.addPass(std::move(ndoe));
   }
 
-  renderScene(tasks, m_gbufferRTV, m_depthDSV, options, 0, perspective, camera.position, instances, drawcalls, drawsSplitInto, heightmap);
+  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, options, 0, perspective, camera.position, drawcalls, drawsSplitInto};
 
+
+  renderScene(tasks, time, sargs, instances, heightmap);
+
+
+  TextureSRV tsaaOutput = m_gbufferSRV;
+  if (options.tsaa)
   {
     auto tsaaNode = tasks.createPass("Temporal Supersampling AA");
-    tsaaResolved.next();
+    tsaaResolved.next(time.getFrame());
     tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_gbufferSRV, tsaaDebugUAV});
     tasks.addPass(std::move(tsaaNode));
+    tsaaOutput = tsaaResolved.srv();
+    if (options.tsaaDebug)
+      tsaaOutput = tsaaDebugSRV;
   }
 
   // If you acquire, you must submit it.
@@ -385,7 +401,6 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
   {
     HIGAN_LOGi( "No backbuffer available...\n");
     dev.submit(tasks);
-    time.tick();
     return;
   }
   TextureRTV backbuffer = obackbuffer.value().second;
@@ -393,10 +408,7 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
   {
     auto node = tasks.createPass("copy tsaa resolved to backbuffer");
     blitter.beginRenderpass(node, backbuffer);
-    auto target = tsaaResolved.srv();
-    if (options.tsaaDebug)
-      target = tsaaDebugSRV;
-    blitter.blitImage(dev, node, target, renderer::Blitter::FitMode::Fill);
+    blitter.blitImage(dev, node, tsaaOutput, renderer::Blitter::FitMode::Fill);
     node.endRenderpass();
     tasks.addPass(std::move(node));
   }
@@ -427,6 +439,5 @@ void Renderer::render(LBS& lbs, RendererOptions options, ActiveCamera camera, hi
     HIGAN_CPU_BRACKET("Present");
     dev.present(swapchain, obackbuffer.value().first);
   }
-  time.tick();
 }
 }
