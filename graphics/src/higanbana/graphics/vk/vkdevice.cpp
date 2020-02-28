@@ -468,6 +468,9 @@ namespace higanbana
       m_computeListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_computeQueueIndex); });
       m_graphicsListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_mainQueueIndex); });
 
+      bool mainQueuePresents = m_physDevice.getWin32PresentationSupportKHR(m_mainQueueIndex);
+      bool computePresents = m_computeQueueIndex >= 0 ? m_physDevice.getWin32PresentationSupportKHR(m_computeQueueIndex) : false;
+
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
       /* if VK_KHR_display is a things, use the below. For now, Borderless fullscreen!

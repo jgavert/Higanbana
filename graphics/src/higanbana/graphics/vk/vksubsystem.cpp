@@ -256,16 +256,12 @@ namespace higanbana
       auto canPresent = [](vk::PhysicalDevice dev)
       {
         auto queueProperties = dev.getQueueFamilyProperties();
-        for (auto&& queueProp : queueProperties)
-        {
-          for (uint32_t i = 0; i < queueProp.queueCount; ++i)
-          {
+        for (int i = 0; i < queueProperties.size(); ++i) {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-            if (dev.getWin32PresentationSupportKHR(i))
+          if (dev.getWin32PresentationSupportKHR(i))
 #endif
-            {
-              return true;
-            }
+          {
+            return true;
           }
         }
         return false;
