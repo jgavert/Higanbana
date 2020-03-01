@@ -26,11 +26,10 @@ void Renderer::unloadTexture(int index) {
 }
 
 int Renderer::loadMaterial(MaterialData& material) {
-  //materials.allocate()
-  return 0;
+  return materials.allocate(dev, material);
 }
 void Renderer::unloadMaterial(int index) {
-  //return materials.free(index);
+  materials.free(index);
 }
 
 Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev)
@@ -38,10 +37,11 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , dev(dev)
   , m_camerasLayout(dev.createShaderArgumentsLayout(higanbana::ShaderArgumentsLayoutDescriptor()
       .readOnly<CameraSettings>(ShaderResourceType::StructuredBuffer, "cameras")))
+  , textures(dev)
   , cubes(dev)
   , imgui(dev)
-  , worldRend(dev, m_camerasLayout)
-  , worldMeshRend(dev, m_camerasLayout)
+  , worldRend(dev, m_camerasLayout, textures.bindlessLayout())
+  , worldMeshRend(dev, m_camerasLayout, textures.bindlessLayout())
   , tsaa(dev)
   , blitter(dev)
   , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
@@ -143,19 +143,19 @@ std::optional<higanbana::SubmitTiming> Renderer::timings() {
   return m_previousInfo;
 }
 
-void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
   depth.clearOp({});
   worldRend.beginRenderpass(node, backbuffer, depth);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, cameraIndex);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex);
   }
   worldRend.endRenderpass(node);
 }
 
-void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
   depth.clearOp({});
   
@@ -163,7 +163,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, mesh.meshlets.desc().desc.width, cameraIndex);
+    worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, materials, mesh.meshlets.desc().desc.width, cameraIndex);
   }
   node.endRenderpass();
 }
@@ -311,9 +311,9 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& tim
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
       if (scene.options.allowMeshShaders)
-        renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.cameraIdx, instances);
+        renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
       else
-        renderMeshes(node, gbufferRTV, depth, scene.cameraIdx, instances);
+        renderMeshes(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
       tasks.addPass(std::move(node));
     }
   }
@@ -343,7 +343,16 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     resizeInternal(desc);
   }
 
+  // materials
+
   CommandGraph tasks = dev.createGraph();
+
+  {
+    auto ndoe = tasks.createPass("update materials");
+    materials.update(dev, ndoe);
+    tasks.addPass(std::move(ndoe));
+  }
+  auto materialArgs = textures.bindlessArgs(dev, materials.srv());
 
   float4x4 perspective;
   {
@@ -377,7 +386,7 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     tasks.addPass(std::move(ndoe));
   }
 
-  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, options, 0, perspective, camera.position, drawcalls, drawsSplitInto};
+  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, materialArgs, options, 0, perspective, camera.position, drawcalls, drawsSplitInto};
 
 
   renderScene(tasks, time, sargs, instances, heightmap);

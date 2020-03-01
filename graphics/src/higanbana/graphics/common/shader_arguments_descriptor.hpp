@@ -15,13 +15,16 @@ namespace higanbana
     std::string m_name;
     ResourceHandle m_layout;
     vector<ShaderResource> m_resources;
+    ShaderResource m_bindless;
     vector<ViewResourceHandle> m_handles;
+    vector<ViewResourceHandle> m_bindlessHandles;
 
   public:
     ShaderArgumentsDescriptor(std::string name, ShaderArgumentsLayout layout)
     : m_name(name)
     , m_layout(layout.handle())
     , m_resources(layout.resources())
+    , m_bindless(layout.bindless())
     , m_handles(m_resources.size())
     {
 
@@ -123,6 +126,21 @@ namespace higanbana
           return *this;
         }
         id++;
+      }
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
+    }
+
+    ShaderArgumentsDescriptor& bindBindless(const char* name, const vector<TextureSRV>& res)
+    {
+      if (m_bindless.name.compare(name) == 0)
+      {
+        HIGAN_ASSERT(m_bindless.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
+        m_bindlessHandles.clear();
+        for (auto&& it : res) {
+          m_bindlessHandles.push_back(it.handle());
+        }
+        return *this;
       }
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
       return *this;

@@ -10,7 +10,7 @@ namespace higanbana
       bool currentMode = true;
       int count = 0;
       bool madeATable = false;
-      auto addTable = [&]()
+      auto addTable = [&](bool bindless)
       {
         if (count > 0)
         {
@@ -31,7 +31,12 @@ namespace higanbana
           {
             lol += " UAV(u" + std::to_string(uavC);
           }
-          lol += ", numDescriptors = " + std::to_string(count) + ", space=" + std::to_string(setNumber) + " )";
+          lol += ", numDescriptors = ";
+          if (!bindless)
+            lol += std::to_string(count) + ", space=" + std::to_string(setNumber) + " )";
+          else
+            lol += "unbounded, space=" + std::to_string(setNumber) +", flags=DESCRIPTORS_VOLATILE )";
+          
           if (currentMode)
           {
             srvC += count;
@@ -48,12 +53,19 @@ namespace higanbana
       {
         if (it.readonly != currentMode)
         {
-          addTable();
+          addTable(false);
           currentMode = it.readonly;
         }
         count++;
       }
-      addTable();
+      addTable(false);
+      auto bindless = args.bindless();
+      if (!bindless.name.empty())
+      {
+        currentMode = bindless.readonly;
+        count++;
+        addTable(true);
+      }
       if (madeATable)
       {
         lol += "),\\\n  ";
@@ -79,7 +91,10 @@ namespace higanbana
       {
         resOut += "<" + res.templateParameter + ">";
       }
-      resOut += " " + res.name + " : register( ";
+      resOut += " " + res.name;
+      if (res.bindless)
+        resOut += "[]";
+      resOut += " : register( ";
       if (writeRes)
       {
         resOut += "u";
@@ -92,7 +107,8 @@ namespace higanbana
       return resOut;
     };
     
-    int i = 0;
+    int srv = 0;
+    int uav = 0;
     int gi = 0;
 
     lol += "// Shader Arguments " + std::to_string(set) + "\n";
@@ -112,20 +128,26 @@ namespace higanbana
     {
       if (res.readonly)
       {
-        lol += resourceToString(false, gi, i++, res) + "\n";
+        lol += resourceToString(false, gi, srv++, res) + "\n";
         gi++;
       }
     }
-    i = 0;
     //gi = 1;
     lol += "\n// Read Write resources\n";
     for (auto&& res : args.resources())
     {
       if (!res.readonly)
       {
-        lol += resourceToString(true, gi, i++, res) + "\n";
+        lol += resourceToString(true, gi, uav++, res) + "\n";
         gi++;
       }
+    }
+
+    auto bindless = args.bindless();
+    if (!bindless.name.empty())
+    {
+      lol += "\n// Bindless\n";
+      lol += resourceToString(!bindless.readonly, gi, bindless.readonly ? srv : uav, bindless) + "\n";
     }
   }
 

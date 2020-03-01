@@ -26,13 +26,15 @@ namespace higanbana
     std::string templateParameter;
     std::string name;
     bool readonly;
+    bool bindless;
     ShaderResource()
     {}
-    ShaderResource(ShaderResourceType type, std::string templateParameter, std::string name, bool readonly)
+    ShaderResource(ShaderResourceType type, std::string templateParameter, std::string name, bool readonly, bool bindless = false)
     : type(type)
     , templateParameter(templateParameter)
     , name(name)
     , readonly(readonly)
+    , bindless(bindless)
     {
 
     }

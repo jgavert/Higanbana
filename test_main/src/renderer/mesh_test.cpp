@@ -7,7 +7,7 @@ SHADER_STRUCT(DebugConstants,
 );
 namespace app::renderer
 {
-MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout)
+MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout, higanbana::ShaderArgumentsLayout materials)
 {
   using namespace higanbana;
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
@@ -22,7 +22,8 @@ MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
     .constants<DebugConstants>()
     .shaderArguments(0, camerasLayout)
-    .shaderArguments(1, m_meshArgumentsLayout);
+    .shaderArguments(1, m_meshArgumentsLayout)
+    .shaderArguments(2, materials);
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
@@ -46,11 +47,12 @@ void MeshTest::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Tex
   node.renderpass(m_renderpass, target, depth);
 }
 
-void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets, int cameraIndex)
+void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, uint meshlets, int cameraIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
+  binding.arguments(2, materials);
   binding.constants(DebugConstants{meshlets, cameraIndex});
   node.dispatchMesh(binding, uint3(1,1,1));
 }

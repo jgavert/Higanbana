@@ -13,6 +13,7 @@ namespace higanbana
     std::shared_ptr<ResourceHandle> m_id;
     std::shared_ptr<vector<std::pair<size_t, std::string>>> m_structs;
     std::shared_ptr<vector<ShaderResource>> m_resources;
+    std::shared_ptr<ShaderResource> m_bindless;
   public:
     ShaderArgumentsLayout()
       : m_id(std::make_shared<ResourceHandle>())
@@ -30,24 +31,24 @@ namespace higanbana
     {
     }
 
-    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::pair<size_t, std::string>> structs, vector<ShaderResource> resources)
+    ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::pair<size_t, std::string>> structs, vector<ShaderResource> resources, ShaderResource bindless)
       : m_id(id)
       , m_structs(std::make_shared<vector<std::pair<size_t, std::string>>>(structs))
       , m_resources(std::make_shared<vector<ShaderResource>>(resources))
-    {
+      , m_bindless(std::make_shared<ShaderResource>(bindless)) {
     }
 
-    vector<std::pair<size_t, std::string>>& structs()
-    {
+    vector<std::pair<size_t, std::string>>& structs() {
       return *m_structs;
     }
-    vector<ShaderResource>& resources()
-    {
+    vector<ShaderResource>& resources() {
       return *m_resources;
     }
+    ShaderResource bindless() {
+      return *m_bindless;
+    }
 
-    ResourceHandle handle() const
-    {
+    ResourceHandle handle() const {
       if (m_id)
         return *m_id;
       return ResourceHandle();
