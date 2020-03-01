@@ -19,9 +19,9 @@ class MeshTest
   higanbana::GraphicsPipeline m_pipeline;
   higanbana::Renderpass m_renderpass;
 public:
-  MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout);
-  higanbana::ShaderArgumentsLayout& meshArgLayout() {return m_meshArgumentsLayout;}
+  MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camerasLayout, higanbana::ShaderArgumentsLayout materials);
+  higanbana::ShaderArgumentsLayout& meshArgLayout() { return m_meshArgumentsLayout; }
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
-  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, uint meshlets, int cameraIndex);
+  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, uint meshlets, int cameraIndex);
 };
 }

@@ -200,7 +200,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       }
 
       // collect all textures
-      higanbana::vector<int> indexToRawImages(model.textures.size(), 0);
+      higanbana::vector<higanbana::Id> indexToRawImages(model.textures.size(), 0);
       for (auto&& tex : model.textures)
       {
         auto imageIdx = tex.source;
@@ -224,11 +224,11 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
           auto id = freelistTexture.allocate();
           if (rawTextureData.size() <= id) rawTextureData.resize(id+1);
           rawTextureData[id].image = himage;
-          indexToRawImages[imageIdx] = id;
 
           auto ent = database.createEntity();
           auto& table = database.get<components::RawTextureData>();
           table.insert(ent, {id});
+          indexToRawImages[imageIdx] = ent;
         }
       }
 
@@ -255,31 +255,40 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       {
         auto& material = model.materials[i];
         MaterialData md{};
+        components::MaterialLink rawLink{};
         auto getTextureIndex = [&](int index){
           if (index >= 0)
           {
             auto tex = model.textures[index];
             return indexToRawImages.at(tex.source);
           }
-          return -1;
+          return higanbana::Id(-1);
         };
         HIGAN_LOGi("material: %s alphaMode : %s\n", material.name.c_str(), material.alphaMode.c_str());
-        md.baseColorTexIndex = getTextureIndex(material.pbrMetallicRoughness.baseColorTexture.index);
         memcpy(md.emissiveFactor.data, material.emissiveFactor.data(), sizeof(double) * material.emissiveFactor.size());
         md.alphaCutoff = material.alphaCutoff;
         md.doubleSided = material.doubleSided;
         memcpy(md.baseColorFactor.data, material.pbrMetallicRoughness.baseColorFactor.data(), sizeof(double)*material.pbrMetallicRoughness.baseColorFactor.size()); 
         md.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
         md.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
-        md.metallicRoughnessTexIndex = getTextureIndex(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
-        md.normalTexIndex = getTextureIndex(material.normalTexture.index);
-        md.occlusionTextureIndex = getTextureIndex(material.occlusionTexture.index);
-        md.emissiveTextureIndex = getTextureIndex(material.emissiveTexture.index);
+        // albedo
+        rawLink.albedo = getTextureIndex(material.pbrMetallicRoughness.baseColorTexture.index);
+        //md.baseColorTexIndex = getTextureIndex(material.pbrMetallicRoughness.baseColorTexture.index);
+        // normal
+        rawLink.normal = getTextureIndex(material.normalTexture.index);
+        // metallic/roughness
+        rawLink.metallicRoughness = getTextureIndex(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+        // occlusion ?? window or something?
+        rawLink.occlusion = getTextureIndex(material.occlusionTexture.index);
+        // emissive
+        rawLink.emissive = getTextureIndex(material.emissiveTexture.index);
 
         auto id = database.createEntity();
         materials[i] = id;
         auto& materials = database.get<MaterialData>();
         materials.insert(id, md);
+        auto& materialLink = database.get<components::MaterialLink>();
+        materialLink.insert(id, rawLink);
       }
 
       // create mesh entities

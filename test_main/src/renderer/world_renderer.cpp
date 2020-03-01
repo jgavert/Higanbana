@@ -7,7 +7,7 @@ SHADER_STRUCT(DebugConstants,
 
 namespace app::renderer
 {
-World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cameras)
+World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cameras, higanbana::ShaderArgumentsLayout materials)
 {
   using namespace higanbana;
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
@@ -19,7 +19,8 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
     .constants<DebugConstants>()
     .shaderArguments(0, cameras)
-    .shaderArguments(1, m_meshArgumentsLayout);
+    .shaderArguments(1, m_meshArgumentsLayout)
+    .shaderArguments(2, materials);
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
@@ -47,11 +48,12 @@ void World::endRenderpass(higanbana::CommandGraphNode& node)
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, int cameraIndex)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
+  binding.arguments(2, materials);
   binding.constants(DebugConstants{float3(0,0,0), cameraIndex});
   node.drawIndexed(binding, ibv, ibv.desc().desc.width);
 }

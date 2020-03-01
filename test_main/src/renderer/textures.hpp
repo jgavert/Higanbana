@@ -10,9 +10,15 @@ class TextureDB
   higanbana::FreelistAllocator freelist;
   higanbana::vector<higanbana::TextureSRV> views;
 
+  higanbana::ShaderArgumentsLayout m_bindless;
+  higanbana::ShaderArguments m_bindlessSet;
+
 public:
+  TextureDB(higanbana::GpuGroup& gpu);
   int allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& data);
-  higanbana::TextureSRV& operator[](int index) { return views[index]; }
   void free(int index);
+  higanbana::TextureSRV& operator[](int index) { return views[index]; }
+  higanbana::ShaderArgumentsLayout bindlessLayout() { return m_bindless; }
+  higanbana::ShaderArguments bindlessArgs(higanbana::GpuGroup& gpu, higanbana::BufferSRV materials);
 };
 }

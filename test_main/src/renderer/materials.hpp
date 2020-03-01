@@ -8,17 +8,28 @@ namespace app
 {
 struct MaterialViews
 {
-  higanbana::TextureSRV albedo;
+  bool dirty;
+  MaterialData data;
 };
 
 class MaterialDB
 {
   higanbana::FreelistAllocator freelist;
   higanbana::vector<MaterialViews> views;
+  higanbana::Buffer m_materials;
+  higanbana::BufferSRV m_materialsSRV;
+  higanbana::BufferUAV m_materialsUAV;
+
 
 public:
-  int allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& materialLayout, MaterialData& data);
-  MaterialViews& operator[](int index) { return views[index]; }
+  int allocate(higanbana::GpuGroup& gpu, MaterialData& data);
   void free(int index);
+  MaterialData& updateMaterial(int index){
+    views[index].dirty = true;
+    return views[index].data;
+  }
+  MaterialViews& operator[](int index) { return views[index]; }
+  void update(higanbana::GpuGroup& gpu, higanbana::CommandGraphNode& node);
+  higanbana::BufferSRV srv() { return m_materialsSRV; }
 };
 }

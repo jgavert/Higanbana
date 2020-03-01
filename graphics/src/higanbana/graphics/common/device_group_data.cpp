@@ -772,7 +772,7 @@ namespace higanbana
       {
         vdev.device->createShaderArgumentsLayout(handle, desc);
       }
-      return ShaderArgumentsLayout(sharedHandle(handle), desc.structDeclarations(), desc.getResources());
+      return ShaderArgumentsLayout(sharedHandle(handle), desc.structDeclarations(), desc.getResources(), desc.bindless);
     }
 
     ShaderArguments DeviceGroupData::createShaderArguments(ShaderArgumentsDescriptor& binding) {
@@ -1956,7 +1956,7 @@ namespace higanbana
           for (auto&& listID : readyLists[liveListID].listIDs)
           {
             std::shared_future<void> localpass = std::async(policy, [&, listIdBegin, liveListID, listID](){
-              HIGAN_CPU_BRACKET("localpass %d", listID);
+              HIGAN_CPU_BRACKET("localpass");
               auto& liveList = readyLists[liveListID];
               auto& vdev = m_devices[liveList.deviceID];
               {
@@ -1975,10 +1975,10 @@ namespace higanbana
                 lastGlobalPass->wait();
               }
               {
-                HIGAN_CPU_BRACKET("waiting own localpass %d", listID);
+                HIGAN_CPU_BRACKET("waiting own localpass");
                 localpass.wait();
               }
-              HIGAN_CPU_BRACKET("globalPass %d", listID);
+              HIGAN_CPU_BRACKET("globalPass");
               std::lock_guard<std::mutex> guard(m_presentMutex);
               auto& solver = *solvers[listID];
               // this is order dependant
@@ -1992,7 +1992,7 @@ namespace higanbana
                 globalpass.wait();
               }
 
-              HIGAN_CPU_BRACKET("filling list %d", listID);
+              HIGAN_CPU_BRACKET("filling list");
               auto& buffer = lists[listID];
               auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
               auto& liveList = readyLists[liveListID];
@@ -2466,7 +2466,7 @@ namespace higanbana
           {
             auto local = std::to_string(liveListID) + std::string("localpass") + std::to_string(listID);
             lbs.addTask(desc::Task(local, {}, {}), [&, listIdBegin, liveListID, listID](size_t){
-              HIGAN_CPU_BRACKET("localpass %d", listID);
+              HIGAN_CPU_BRACKET("localpass");
               auto& liveList = readyLists[liveListID];
               auto& vdev = m_devices[liveList.deviceID];
               {
@@ -2486,7 +2486,7 @@ namespace higanbana
             }
 
             lbs.addTask(globalTask, [&, listIdBegin, liveListID, listID](size_t){
-              HIGAN_CPU_BRACKET("globalPass %d", listID);
+              HIGAN_CPU_BRACKET("globalPass");
               std::lock_guard<std::mutex> guard(m_presentMutex);
               auto& solver = *solvers[listID];
               // this is order dependant
@@ -2497,7 +2497,7 @@ namespace higanbana
 
             auto listFill = std::to_string(liveListID) + std::string("listfill") + std::to_string(listID);
             lbs.addTask(desc::Task(listFill, {globalpass}, {}), [&, listIdBegin, liveListID, listID](size_t){
-              HIGAN_CPU_BRACKET("filling list %d", listID);
+              HIGAN_CPU_BRACKET("filling list");
               auto& buffer = lists[listID];
               auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
               auto& liveList = readyLists[liveListID];

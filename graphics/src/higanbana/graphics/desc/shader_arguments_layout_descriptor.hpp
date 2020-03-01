@@ -2,6 +2,7 @@
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/external/SpookyV2.hpp>
+#include <higanbana/core/global_debug.hpp>
 #include <string>
 
 namespace higanbana
@@ -12,6 +13,7 @@ namespace higanbana
     std::string constantStructBody;
     vector<std::pair<size_t, std::string>> structDecls;
     vector<ShaderResource> sortedResources;
+    ShaderResource bindless;
 
     ShaderArgumentsLayoutDescriptor()
     {
@@ -56,6 +58,13 @@ namespace higanbana
     {
       auto res = ShaderResource(type, templateParameter, name, true);
       insertSort(res);
+      return *this;
+    }
+    // bindless
+    ShaderArgumentsLayoutDescriptor& readOnlyBindless(ShaderResourceType type, std::string name)
+    {
+      HIGAN_ASSERT(bindless.name.empty(), "Only one bindless allowed per ShaderArgumentsLayout");
+      bindless = ShaderResource(type, "", name, true, true);
       return *this;
     }
 

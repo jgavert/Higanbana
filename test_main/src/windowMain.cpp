@@ -369,6 +369,25 @@ void mainWindow(ProgramParams& params)
           gpuTexture.insert(id, instance);
         });
       }
+      // link initial textures to materials
+      {
+        auto& textureInstance = ecs.get<components::TextureInstance>();
+        query(pack(ecs.get<MaterialData>(), ecs.get<components::MaterialLink>()), // pack(ecs.getTag<components::MeshNode>()),
+        [&](higanbana::Id id, MaterialData& material, components::MaterialLink& link) {
+          auto getInstance = [&](higanbana::Id linkid){
+            if (linkid != higanbana::Id(-1)){
+              return textureInstance.get(linkid).id+1;
+            }
+            return 0;
+          };
+          material.albedoIndex = getInstance(link.albedo); // baseColorTexIndex
+          material.normalIndex = getInstance(link.normal); // normalTexIndex
+          material.metallicRoughnessIndex = getInstance(link.metallicRoughness);
+          material.occlusionIndex = getInstance(link.occlusion);
+          material.emissiveIndex = getInstance(link.emissive);
+        });
+      }
+
       // make initial materials
       {
         auto& gpuMaterial = ecs.get<components::MaterialGPUInstance>();

@@ -133,12 +133,13 @@ class Renderer
 
   // info
   std::optional<higanbana::SubmitTiming> m_previousInfo;
-  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
-  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
 
   struct SceneArguments{
     higanbana::TextureRTV gbufferRTV;
     higanbana::TextureDSV depth;
+    higanbana::ShaderArguments materials;
     RendererOptions options;
     int cameraIdx;
     float4x4 perspective;

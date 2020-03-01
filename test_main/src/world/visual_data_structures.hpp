@@ -4,6 +4,7 @@
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/graphics/common/cpuimage.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/graphics/desc/shader_input_descriptor.hpp>
 
 struct InstanceDraw
 {
@@ -48,21 +49,21 @@ struct MaterialData
   bool hadEmissiveTexture;
 };*/
 
-struct MaterialData
-{
+SHADER_STRUCT(MaterialData,
   double3 emissiveFactor;
   double alphaCutoff;
   bool doubleSided;
-  bool normalTexIndex;
-  bool occlusionTextureIndex;
-  bool emissiveTextureIndex;
   // pbr
   double4 baseColorFactor;
-  int baseColorTexIndex;
   double metallicFactor;
   double roughnessFactor;
-  int metallicRoughnessTexIndex;
-};
+
+  uint albedoIndex; // baseColorTexIndex
+  uint normalIndex; // normalTexIndex
+  uint metallicRoughnessIndex;
+  bool occlusionIndex;
+  bool emissiveIndex;
+);
 
 struct BufferData
 {

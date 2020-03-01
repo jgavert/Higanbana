@@ -12,10 +12,10 @@ class World
   higanbana::GraphicsPipeline m_pipeline;
   higanbana::Renderpass m_renderpass;
 public:
-  World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cameras);
+  World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cameras, higanbana::ShaderArgumentsLayout materials);
   higanbana::ShaderArgumentsLayout& meshArgLayout() {return m_meshArgumentsLayout;}
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth);
   void endRenderpass(higanbana::CommandGraphNode& node);
-  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, int cameraIndex);
+  void renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex);
 };
 }
