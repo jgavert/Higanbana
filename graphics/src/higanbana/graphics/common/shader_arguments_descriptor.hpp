@@ -49,6 +49,10 @@ namespace higanbana
     {
       return m_handles;
     }
+    const vector<ViewResourceHandle>& bBindless() const
+    {
+      return m_bindlessHandles;
+    }
 
     ShaderArgumentsDescriptor& bind(const char* name, const DynamicBufferView& res)
     {

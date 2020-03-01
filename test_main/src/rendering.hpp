@@ -38,6 +38,7 @@ struct RendererOptions
   bool particlesDraw = true;
   bool tsaa = true;
   bool tsaaDebug = false;
+  bool debugTextures = false;
   float resolutionScale = 1.f;
 
   void drawImGuiOptions()
@@ -53,6 +54,7 @@ struct RendererOptions
       {
         resolutionScale = 1.f;
       }
+      ImGui::Checkbox("debug textures", &debugTextures);
       ImGui::Checkbox("jitter viewport", &jitterEnabled);
       ImGui::Checkbox("TSAA", &tsaa);
       if (tsaa)

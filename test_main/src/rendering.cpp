@@ -418,6 +418,22 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     auto node = tasks.createPass("copy tsaa resolved to backbuffer");
     blitter.beginRenderpass(node, backbuffer);
     blitter.blitImage(dev, node, tsaaOutput, renderer::Blitter::FitMode::Fill);
+    if (options.debugTextures)
+    {
+      int2 curPos = int2(0,0);
+      int2 target = backbuffer.desc().desc.size3D().xy();
+      int2 times = int2(target.x/72, target.y/72);
+      for (int y = 0; y < times.y; y++) {
+        for (int x = 0; x < times.x; x++) {
+          curPos = int2(72*x, 72*y);
+          auto index = y*times.x + x;
+          if (index >= textures.size())
+            break;
+          blitter.blit(dev,node, textures[index], curPos, int2(64,64));
+        }
+      }
+    }
+
     node.endRenderpass();
     tasks.addPass(std::move(node));
   }

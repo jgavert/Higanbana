@@ -18,6 +18,7 @@ public:
   int allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& data);
   void free(int index);
   higanbana::TextureSRV& operator[](int index) { return views[index]; }
+  size_t size() const { return views.size(); }
   higanbana::ShaderArgumentsLayout bindlessLayout() { return m_bindless; }
   higanbana::ShaderArguments bindlessArgs(higanbana::GpuGroup& gpu, higanbana::BufferSRV materials);
 };

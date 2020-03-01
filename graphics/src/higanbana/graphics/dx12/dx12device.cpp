@@ -1608,8 +1608,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       vector<D3D12_CPU_DESCRIPTOR_HANDLE> cpudescriptors;
       auto& ar = allResources();
-      for (auto&& handle : binding.bResources())
-      {
+      auto addDescriptor = [&](ViewResourceHandle handle) {
         switch (handle.type)
         {
           case ViewResourceType::BufferSRV:
@@ -1691,7 +1690,15 @@ namespace higanbana
           default:
             break;
         }
+      };
+      for (auto&& handle : binding.bResources()) {
+        addDescriptor(handle);
       }
+      for (auto&& bindless : binding.bBindless()) {
+        addDescriptor(bindless);
+      }
+
+
       auto viewsCount = static_cast<unsigned>(cpudescriptors.size());
       auto descriptors = m_dynamicGpuDescriptors->allocate(viewsCount);
       auto start = descriptors.offset(0);

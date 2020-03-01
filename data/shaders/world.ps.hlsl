@@ -10,7 +10,8 @@ struct VertexOut
 [RootSignature(ROOTSIG)]
 float4 main(VertexOut input) : SV_TARGET
 {
-  float3 color = input.normal;
+  float4 color = materialTextures[0].SampleLevel(bilinearSampler, input.uv, 0); //input.normal;
   //color.xy *= input.uv*0.5;
-  return float4(color, 1);
+  //return float4(input.uv, 0, 1);
+  return color;
 }

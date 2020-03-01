@@ -9,5 +9,5 @@ struct PSInput
 [RootSignature(ROOTSIG)]
 float4 main(PSInput input) : SV_Target
 {
-  return source.Sample(bilinearSampler, input.uv);
+  return source.SampleLevel(bilinearSampler, input.uv, 0);
 }
