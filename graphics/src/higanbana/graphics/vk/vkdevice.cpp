@@ -1687,6 +1687,13 @@ namespace higanbana
           .setDescriptorType(getDescriptor(it.type, it.readonly))
           .setStageFlags(flags));
       }
+      if (!layout.bindless.name.empty()) {
+        bindings.push_back(vk::DescriptorSetLayoutBinding()
+          .setBinding(slot)
+          .setDescriptorCount(190)
+          .setDescriptorType(getDescriptor(layout.bindless.type, layout.bindless.readonly))
+          .setStageFlags(flags));
+      }
 
       return bindings;
     }
@@ -1869,7 +1876,8 @@ namespace higanbana
       }
       else
       {
-        auto image = m_device.createImage(fillImageInfo(desc));
+        auto imageInfo = fillImageInfo(desc);
+        auto image = m_device.createImage(imageInfo);
         VK_CHECK_RESULT(image);
         requirements = m_device.getImageMemoryRequirements(image.value);
         m_device.destroyImage(image.value);
@@ -2276,9 +2284,16 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAll);
+      vk::DescriptorBindingFlagsEXT partial = vk::DescriptorBindingFlagBits::ePartiallyBound;
+      vk::DescriptorSetLayoutBindingFlagsCreateInfo extflags = vk::DescriptorSetLayoutBindingFlagsCreateInfo()
+        .setBindingCount(bindings.size())
+        .setPBindingFlags(&partial);
       vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
         .setBindingCount(static_cast<uint32_t>(bindings.size()))
         .setPBindings(bindings.data());
+
+      if (!desc.bindless.name.empty())
+        info = info.setPNext(&extflags);
 
       auto setlayout = m_device.createDescriptorSetLayout(info);
       VK_CHECK_RESULT(setlayout);
@@ -2448,6 +2463,27 @@ namespace higanbana
         writeDescriptors.emplace_back(writeSet);
       }
       HIGAN_ASSERT(descriptions.size() == writeDescriptors.size(), "size should match");
+      vector<vk::DescriptorImageInfo> bindlessInfos;
+      if (!binding.bBindlessDesc().name.empty())
+      {
+        HIGAN_ASSERT(binding.bBindlessDesc().readonly && binding.bBindlessDesc().type == ShaderResourceType::Texture2D, "read only tex supported");
+        for (auto&& it : binding.bBindless())
+        {
+          if (it.type == ViewResourceType::Unknown)
+            bindlessInfos.push_back(nullTex2dd);
+          else
+            bindlessInfos.push_back(allResources().texSRV[it].native().info);
+        }
+        vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
+          .setDstSet(set)
+          .setDescriptorCount(binding.bBindless().size())
+          .setPImageInfo(bindlessInfos.data())
+          .setDstBinding(index++);
+        HIGAN_ASSERT(!writeDescriptors.empty(), "wtf!");
+        vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
+        m_device.updateDescriptorSets(writes, {});
+        return;
+      }
       HIGAN_ASSERT(!writeDescriptors.empty(), "wtf!");
       vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
       m_device.updateDescriptorSets(writes, {});

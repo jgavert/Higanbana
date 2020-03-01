@@ -49,6 +49,10 @@ namespace higanbana
     {
       return m_handles;
     }
+    const ShaderResource& bBindlessDesc() const
+    {
+      return m_bindless;
+    }
     const vector<ViewResourceHandle>& bBindless() const
     {
       return m_bindlessHandles;

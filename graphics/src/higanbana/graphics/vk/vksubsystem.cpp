@@ -458,6 +458,7 @@ namespace higanbana
       >(vk::DispatchLoaderStatic());
 
       auto& pipelineExeProp = features2.get<vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR>();
+      auto& descIndexing = features2.get<vk::PhysicalDeviceDescriptorIndexingFeaturesEXT>();
 
       auto device_info = vk::DeviceCreateInfo()
         .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
