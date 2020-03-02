@@ -1290,22 +1290,26 @@ namespace higanbana
       if (format == FormatType::Unknown)
         format = desc.format;
 
+      auto pixelSize = formatSizeInfo(format).pixelSize;
       auto descriptor = m_generics.allocate();
 
       auto sizeElements = viewDesc.m_elementCount;
       if (sizeElements == -1)
       {
         sizeElements = bufferDesc.desc.width;
-      }
-
-      if (viewDesc.m_format != FormatType::Unknown)
-      {
-        sizeElements = sizeElements * bufferDesc.desc.stride / formatSizeInfo(viewDesc.m_format).pixelSize;
+        if (viewDesc.m_format != FormatType::Unknown)
+        {
+          sizeElements = sizeElements * bufferDesc.desc.stride / pixelSize;
+        }
       }
 
       if (viewDesc.m_viewType == ResourceShaderType::IndexBuffer)
       {
-        m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native());
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = native.native()->GetGPUVirtualAddress() + viewDesc.m_firstElement * pixelSize;
+        view.Format = formatTodxFormat(format).view;
+        view.SizeInBytes = sizeElements * pixelSize;
+        m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native(), view);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {

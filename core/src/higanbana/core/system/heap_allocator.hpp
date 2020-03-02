@@ -90,6 +90,8 @@ class HeapAllocator {
 
   inline RangeBlock search_suitable_block(size_t size, int fl, int sl) noexcept {
     // first step, assume we got something at fl / sl location
+    if (control.sizeclasses.size() <= fl)
+      return {};
     auto& secondLevel = control.sizeclasses[fl];
     auto& freeblocks = secondLevel.freeBlocks[sl];
     if (!freeblocks.empty() && freeblocks.back().size >= size) {

@@ -645,7 +645,7 @@ namespace higanbana
       {
         vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::IndexBuffer));
       }
-      return BufferIBV(buffer, sharedViewHandle(handle));
+      return BufferIBV(buffer, sharedViewHandle(handle), std::make_shared<ShaderViewDescriptor>(viewDesc));
     }
 
     BufferSRV DeviceGroupData::createBufferSRV(Buffer buffer, ShaderViewDescriptor viewDesc) {
@@ -655,7 +655,7 @@ namespace higanbana
       {
         vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadOnly));
       }
-      return BufferSRV(buffer, sharedViewHandle(handle));
+      return BufferSRV(buffer, sharedViewHandle(handle), std::make_shared<ShaderViewDescriptor>(viewDesc));
     }
 
     BufferUAV DeviceGroupData::createBufferUAV(Buffer buffer, ShaderViewDescriptor viewDesc) {
@@ -665,7 +665,7 @@ namespace higanbana
       {
         vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::ReadWrite));
       }
-      return BufferUAV(buffer, sharedViewHandle(handle));
+      return BufferUAV(buffer, sharedViewHandle(handle), std::make_shared<ShaderViewDescriptor>(viewDesc));
     }
 
     TextureSRV DeviceGroupData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc) {

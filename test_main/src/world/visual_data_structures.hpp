@@ -5,6 +5,7 @@
 #include <higanbana/graphics/common/cpuimage.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/graphics/desc/shader_input_descriptor.hpp>
+#include <higanbana/core/entity/database.hpp>
 
 struct InstanceDraw
 {

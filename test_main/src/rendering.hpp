@@ -158,8 +158,10 @@ public:
   void resizeInternal(higanbana::ResourceDescriptor& desc);
   void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
-  int loadMesh(MeshData& data);
+  int loadMesh(MeshData& data, int buffer[5]);
   void unloadMesh(int index);
+  int loadBuffer(BufferData& data);
+  void unloadBuffer(int index);
   int loadTexture(TextureData& data);
   void unloadTexture(int index);
   int loadMaterial(MaterialData& data);

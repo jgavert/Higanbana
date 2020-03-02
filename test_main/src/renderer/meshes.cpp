@@ -61,10 +61,13 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
 
   auto sizeInfo = higanbana::formatSizeInfo(data.indices.format);
   auto& view = views[val];
+  int buffer = buffers[0];
+  auto block = sourceBuffers[buffer];
   ShaderViewDescriptor svd = ShaderViewDescriptor()
     .setFormat(data.indices.format)
-    .setFirstElement(sourceBuffers[buffers[0]].offset)
+    .setFirstElement(block.offset / sizeInfo.pixelSize)
     .setElementCount(data.indices.size / sizeInfo.pixelSize);
+  HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
   view.indices = gpu.createBufferIBV(meshbuffer, svd);
   // mesh shader required ... data is on gpu so old pipe is useless
   /*
@@ -98,29 +101,38 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
   */
 
   sizeInfo = higanbana::formatSizeInfo(data.vertices.format);
+  buffer = buffers[1];
+  block = sourceBuffers[buffer];
   svd = ShaderViewDescriptor()
     .setFormat(data.vertices.format)
-    .setFirstElement(sourceBuffers[buffers[1]].offset)
+    .setFirstElement(block.offset / sizeInfo.pixelSize)
     .setElementCount(data.vertices.size / sizeInfo.pixelSize);
+  HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
   view.vertices = gpu.createBufferSRV(meshbuffer, svd);
 
   if (data.texCoords.format != FormatType::Unknown)
   {
     sizeInfo = higanbana::formatSizeInfo(data.texCoords.format);
+    buffer = buffers[3];
+    block = sourceBuffers[buffer];
     svd = ShaderViewDescriptor()
       .setFormat(data.texCoords.format)
-      .setFirstElement(sourceBuffers[buffers[3]].offset)
+      .setFirstElement(block.offset / sizeInfo.pixelSize)
       .setElementCount(data.texCoords.size / sizeInfo.pixelSize);
+    HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
     view.uvs = gpu.createBufferSRV(meshbuffer, svd);
   }
 
   if (data.normals.format != FormatType::Unknown)
   {
     sizeInfo = higanbana::formatSizeInfo(data.normals.format);
+    buffer = buffers[2];
+    block = sourceBuffers[buffer];
     svd = ShaderViewDescriptor()
       .setFormat(data.normals.format)
-      .setFirstElement(sourceBuffers[buffers[2]].offset)
+      .setFirstElement(block.offset / sizeInfo.pixelSize)
       .setElementCount(data.normals.size / sizeInfo.pixelSize);
+    HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
     view.normals = gpu.createBufferSRV(meshbuffer, svd);
   }
 
@@ -176,34 +188,61 @@ void MeshSystem::free(int index)
   freelist.release(index);
 }
 int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
+  if (data.data.empty())
+    return -1;
   using namespace higanbana;
+  auto copy = sourceBuffers;
   auto val = freelistBuffers.allocate();
   if (sourceBuffers.size() < val+1) sourceBuffers.resize(val+1);
-
-  auto freeSpace = meshbufferAllocator.allocate(data.data.size());
+  constexpr const int alignment = 96;
+  auto freeSpace = meshbufferAllocator.allocate(data.data.size(), alignment);
   Buffer updateTarget;
-  if (!freeSpace)
+  vector<RangeBlock> migrateOldBuffers;
+  if (!freeSpace || freeSpace.value().size < data.data.size())
   {
-    meshbufferAllocator.resize(meshbufferAllocator.size() + data.data.size());
+    meshbufferAllocator = HeapAllocator(meshbufferAllocator.max_size() + data.data.size() + alignment);
+    migrateOldBuffers.resize(copy.size());
+    int index = 0;
+    for (auto&& it : copy)
+    {
+      auto all = meshbufferAllocator.allocate(it.size, alignment);
+      HIGAN_ASSERT(all, "must be true");
+      migrateOldBuffers[index] = all.value();
+      index++;
+    }
+    //meshbufferAllocator.resize(meshbufferAllocator.size() + data.data.size());
     updateTarget = gpu.createBuffer(ResourceDescriptor()
       .setName("meshbuffer")
-      .setCount(data.data.size())
+      .setCount(meshbufferAllocator.max_size())
       .setFormat(FormatType::Unorm8)
       .setUsage(ResourceUsage::GpuReadOnly)
       .setIndexBuffer());
-    freeSpace = meshbufferAllocator.allocate(data.data.size());
+    freeSpace = meshbufferAllocator.allocate(data.data.size(), alignment);
   }
-  sourceBuffers[val] = freeSpace.value();
 
   auto graph = gpu.createGraph();
   auto node = graph.createPass("Update buffer data");
-  if (!updateTarget.desc().desc.name.empty())
+
+  if (updateTarget.handle().id != ResourceHandle::InvalidId)
   {
-    node.copy(updateTarget, meshbuffer);
+    if (meshbuffer.handle().id != ResourceHandle::InvalidId)
+    {
+      for (size_t i = 0; i < migrateOldBuffers.size(); ++i) {
+        auto old = copy[i];
+        auto ne = migrateOldBuffers[i];
+        node.copy(updateTarget, ne.offset, meshbuffer, old.offset, old.size);
+        sourceBuffers[i] = migrateOldBuffers[i];
+      }
+    }
     meshbuffer = updateTarget;
   }
   auto dynamic = gpu.dynamicBuffer(makeMemView(data.data), FormatType::Unorm8);
   node.copy(meshbuffer, freeSpace.value().offset, dynamic);
+  graph.addPass(std::move(node));
+  gpu.submit(graph);
+  gpu.waitGpuIdle();
+  sourceBuffers[val] = freeSpace.value();
+
   return val;
 }
 void MeshSystem::freeBuffer(int index) {

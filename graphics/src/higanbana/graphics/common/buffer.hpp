@@ -41,13 +41,19 @@ namespace higanbana
   {
     Buffer buf;
     std::shared_ptr<ViewResourceHandle> m_id;
+    std::shared_ptr<ShaderViewDescriptor> m_desc;
   public:
     BufferView() = default;
 
-    BufferView(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
+    BufferView(Buffer buf, std::shared_ptr<ViewResourceHandle> id, std::shared_ptr<ShaderViewDescriptor> desc)
       : buf(buf)
       , m_id(id)
+      , m_desc(desc)
     {
+    }
+    ShaderViewDescriptor& viewDesc() const
+    {
+      return *m_desc;
     }
 
     ResourceDescriptor& desc() const
@@ -72,8 +78,8 @@ namespace higanbana
   {
   public:
     BufferSRV() = default;
-    BufferSRV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
-      : BufferView(buf, id)
+    BufferSRV(Buffer buf, std::shared_ptr<ViewResourceHandle> id, std::shared_ptr<ShaderViewDescriptor> desc)
+      : BufferView(buf, id, desc)
     {
     }
   };
@@ -82,8 +88,8 @@ namespace higanbana
   {
   public:
     BufferUAV() = default;
-    BufferUAV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
-      : BufferView(buf, id)
+    BufferUAV(Buffer buf, std::shared_ptr<ViewResourceHandle> id, std::shared_ptr<ShaderViewDescriptor> desc)
+      : BufferView(buf, id, desc)
     {
     }
   };
@@ -92,8 +98,8 @@ namespace higanbana
   {
   public:
     BufferIBV() = default;
-    BufferIBV(Buffer buf, std::shared_ptr<ViewResourceHandle> id)
-      : BufferView(buf, id)
+    BufferIBV(Buffer buf, std::shared_ptr<ViewResourceHandle> id, std::shared_ptr<ShaderViewDescriptor> desc)
+      : BufferView(buf, id, desc)
     {
     }
   };

@@ -362,9 +362,27 @@ void mainWindow(ProgramParams& params)
       }
       {
         auto& gpuMesh = ecs.get<components::MeshInstance>();
+        auto& gpuBuffer = ecs.get<components::BufferInstance>();
         query(pack(ecs.get<components::RawMeshData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawMeshData index) {
-          components::MeshInstance instance{rend.loadMesh(world.getMesh(index.id))};
+          auto mesh = world.getMesh(index.id);
+          int buffers[5];
+          if (auto buf = gpuBuffer.tryGet(mesh.indices.buffer)) {
+            buffers[0] = buf.value().id;
+          }
+          if (auto buf = gpuBuffer.tryGet(mesh.vertices.buffer)) {
+            buffers[1] = buf.value().id;
+          }
+          if (auto buf = gpuBuffer.tryGet(mesh.normals.buffer)) {
+            buffers[2] = buf.value().id;
+          }
+          if (auto buf = gpuBuffer.tryGet(mesh.texCoords.buffer)) {
+            buffers[3] = buf.value().id;
+          }
+          if (auto buf = gpuBuffer.tryGet(mesh.tangents.buffer)) {
+            buffers[4] = buf.value().id;
+          }
+          components::MeshInstance instance{rend.loadMesh(mesh, buffers)};
           gpuMesh.insert(id, instance);
         });
       }

@@ -11,6 +11,7 @@
 #endif
 #include <WinPixEventRuntime/pix3.h>
 #endif
+#include <nlohmann/json.hpp>
 
 namespace higanbana
 {

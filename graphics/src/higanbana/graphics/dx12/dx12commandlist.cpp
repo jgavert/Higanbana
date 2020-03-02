@@ -1071,11 +1071,11 @@ namespace higanbana
             if (params.indexbuffer.type == ViewResourceType::BufferIBV && m_boundIndexBufferHandle != params.indexbuffer)
             {
               auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-              auto& buf = device->allResources().buf[params.indexbuffer.resource];
-              m_ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
-              m_ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-              m_ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
-              buffer->IASetIndexBuffer(&m_ib);
+              //auto& buf = device->allResources().buf[params.indexbuffer.resource];
+              //m_ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
+              //m_ib.Format = formatTodxFormat(buf.desc().desc.format).view;
+              //m_ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
+              buffer->IASetIndexBuffer(ibv.ibv());
               m_boundIndexBufferHandle = params.indexbuffer;
             }
             else if (m_boundIndexBufferHandle != params.indexbuffer)

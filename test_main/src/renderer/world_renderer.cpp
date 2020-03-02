@@ -56,6 +56,6 @@ void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV i
   binding.arguments(1, meshBuffers);
   binding.arguments(2, materials);
   binding.constants(DebugConstants{float3(0,0,0), cameraIndex, materialIndex});
-  node.drawIndexed(binding, ibv, ibv.desc().desc.width);
+  node.drawIndexed(binding, ibv, ibv.viewDesc().m_elementCount);
 }
 }

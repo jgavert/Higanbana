@@ -18,7 +18,7 @@ void Renderer::unloadBuffer(int index) {
   meshes.freeBuffer(index);
 }
 int Renderer::loadMesh(MeshData& data, int buffers[5]) {
-  return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data, );
+  return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data, buffers);
 }
 
 void Renderer::unloadMesh(int index) {

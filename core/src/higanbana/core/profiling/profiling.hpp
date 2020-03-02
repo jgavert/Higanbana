@@ -5,7 +5,6 @@
 #include "higanbana/core/filesystem/filesystem.hpp"
 #include "higanbana/core/system/ringbuffer.hpp"
 #include <atomic>
-#include <nlohmann/json.hpp>
 
 namespace higanbana
 {
@@ -51,7 +50,7 @@ class ProfilingScope
   ~ProfilingScope();
 };
 void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t time, int64_t dur);
-nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid);
+//nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid);
 void writeProfilingData(higanbana::FileSystem& fs);
 }
 }

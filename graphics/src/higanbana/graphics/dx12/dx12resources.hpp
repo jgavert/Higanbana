@@ -1009,6 +1009,7 @@ namespace higanbana
     private:
       DX12CPUDescriptor resource;
       ID3D12Resource* refResource;
+      D3D12_INDEX_BUFFER_VIEW m_ibv;
 
     public:
       DX12BufferView()
@@ -1021,6 +1022,11 @@ namespace higanbana
         : resource(resource)
         , refResource(refRes)
       {}
+      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes, D3D12_INDEX_BUFFER_VIEW ibv)
+        : resource(resource)
+        , refResource(refRes)
+        , m_ibv(ibv)
+      {}
       DX12CPUDescriptor native()
       {
         return resource;
@@ -1028,6 +1034,9 @@ namespace higanbana
       ID3D12Resource* ref()
       {
         return refResource;
+      }
+      D3D12_INDEX_BUFFER_VIEW* ibv() {
+        return &m_ibv;
       }
     };
 
