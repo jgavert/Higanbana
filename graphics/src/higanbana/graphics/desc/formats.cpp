@@ -53,7 +53,7 @@ namespace higanbana
     HIGAN_ASSERT(wantedPixelSize > 0, "Yes, please bigger than 0 pixel sizes thankyou, probably error");
     for (auto&& format : FormatToSizeTable)
     {
-      if (format.pixelSize == wantedPixelSize && pixelType == format.pixelType)
+      if (format.pixelSize == wantedPixelSize && pixelType == format.pixelType && format.componentCount == components)
       {
         return format.fm;
       }

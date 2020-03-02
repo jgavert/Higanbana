@@ -150,7 +150,7 @@ void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::Textur
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, instance.materialId);
   }
   worldRend.endRenderpass(node);
 }

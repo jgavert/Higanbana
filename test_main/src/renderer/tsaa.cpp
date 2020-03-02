@@ -50,7 +50,7 @@ float4x4 ShittyTSAA::jitterProjection(int frame, int2 outputSize, float4x4 proje
 
 void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args) {
   using namespace higanbana;
-  auto argument = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_args)
+  auto argument = device.createShaderArguments(ShaderArgumentsDescriptor("tsaa resolve", m_args)
     .bind("history", args.history)
     .bind("source", args.source)
     .bind("result", output)

@@ -1,6 +1,6 @@
 #include "mesh_test.hpp"
 
-SHADER_STRUCT(DebugConstants,
+SHADER_STRUCT(DebugConstants2,
   uint meshletCount;
   int camera;
   float2 unused;
@@ -20,7 +20,7 @@ MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout
   m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
-    .constants<DebugConstants>()
+    .constants<DebugConstants2>()
     .shaderArguments(0, camerasLayout)
     .shaderArguments(1, m_meshArgumentsLayout)
     .shaderArguments(2, materials);
@@ -53,7 +53,7 @@ void MeshTest::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIB
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
   binding.arguments(2, materials);
-  binding.constants(DebugConstants{meshlets, cameraIndex});
+  binding.constants(DebugConstants2{meshlets, cameraIndex});
   node.dispatchMesh(binding, uint3(1,1,1));
 }
 }

@@ -124,7 +124,10 @@ higanbana::FormatTypeIdentifier gltfComponentTypeToFormatTypeIdent(int value)
 
 higanbana::FormatType convertTinygltfFormat(int component, int bits, int pixel_type)
 {
-  auto format = higanbana::findFormat(component, bits, gltfComponentTypeToFormatTypeIdent(pixel_type));
+  auto ident = gltfComponentTypeToFormatTypeIdent(pixel_type);
+  if (ident == higanbana::FormatTypeIdentifier::Unsigned)
+    ident = higanbana::FormatTypeIdentifier::Unorm;
+  auto format = higanbana::findFormat(component, bits, ident);
   HIGAN_ASSERT(format != higanbana::FormatType::Unknown, "Should find a valid format");
   return format;
 }

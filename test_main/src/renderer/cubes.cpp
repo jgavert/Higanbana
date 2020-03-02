@@ -99,7 +99,7 @@ void Cubes::drawHeightMapInVeryStupidWay(higanbana::GpuGroup& dev, float time, h
     consts.stretchBoxes = 1;
     binding.constants(consts);
 
-    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
+    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("heightmap", triangleLayout)
       .bind("vertexInput", vert));
 
     binding.arguments(0, args);
@@ -257,7 +257,7 @@ void Cubes::oldOpaquePass(higanbana::GpuGroup& dev, float time, higanbana::Comma
     consts.viewMat = viewMat;
     binding.constants(consts);
 
-    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", triangleLayout)
+    auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("old opaque", triangleLayout)
       .bind("vertexInput", vert));
 
     binding.arguments(0, args);

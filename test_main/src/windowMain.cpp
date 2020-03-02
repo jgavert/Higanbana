@@ -723,8 +723,16 @@ void mainWindow(ProgramParams& params)
                   {
                     auto meshTarget = ecs.get<components::MeshInstance>().tryGet(childMesh);
 
-                    if (meshTarget)
-                      allMeshesToDraw.push_back({{}, {}, meshTarget.value().id});
+                    InstanceDraw draw{};
+                    if (meshTarget) {
+                      auto material = ecs.get<components::MaterialInstance>().tryGet(childMesh);
+                      if (material) {
+                        auto matID = ecs.get<components::MaterialGPUInstance>().get(material->id);
+                        draw.materialId = matID.id;
+                      }
+                      draw.meshId = meshTarget.value().id;
+                      allMeshesToDraw.push_back(draw);
+                    }
                   }
                 }
                 return children.tryGet(id);

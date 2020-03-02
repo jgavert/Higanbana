@@ -3,6 +3,7 @@
 SHADER_STRUCT(DebugConstants,
   float3 pos;
   int camera;
+  int material;
 );
 
 namespace app::renderer
@@ -48,13 +49,13 @@ void World::endRenderpass(higanbana::CommandGraphNode& node)
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int materialIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
   binding.arguments(2, materials);
-  binding.constants(DebugConstants{float3(0,0,0), cameraIndex});
+  binding.constants(DebugConstants{float3(0,0,0), cameraIndex, materialIndex});
   node.drawIndexed(binding, ibv, ibv.desc().desc.width);
 }
 }

@@ -697,6 +697,8 @@ namespace higanbana
       nullTexcubed = dii.setImageView(nullTexcube);
       nullTexca = makeView(vk::ImageViewType::eCubeArray, nullImageCube);
       nullTexcad = dii.setImageView(nullTexca);
+
+      
     }
 
     VulkanDevice::~VulkanDevice()
@@ -2395,6 +2397,9 @@ namespace higanbana
           default:
           {
             // figure null resource here..
+            vk::DescriptorType imagedt = vk::DescriptorType::eSampledImage;
+            if (!binddesc.readonly)
+              imagedt = vk::DescriptorType::eStorageImage;
             switch(binddesc.type)
             {
               case ShaderResourceType::Buffer:
@@ -2412,43 +2417,43 @@ namespace higanbana
               }
               case ShaderResourceType::Texture1D:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTex1dd);
                 break;
               }
               case ShaderResourceType::Texture1DArray:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTex1dad);
                 break;
               }
               case ShaderResourceType::Texture2D:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTex2dd);
                 break;
               }
               case ShaderResourceType::Texture2DArray:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTex2dad);
                 break;
               }
               case ShaderResourceType::Texture3D:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTex3dd);
                 break;
               }
               case ShaderResourceType::TextureCube:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTexcubed);
                 break;
               }
               case ShaderResourceType::TextureCubeArray:
               {
-                writeSet = writeSet.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer);
+                writeSet = writeSet.setDescriptorType(imagedt);
                 writeSet = writeSet.setPImageInfo(&nullTexcad);
                 break;
               }

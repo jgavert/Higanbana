@@ -39,7 +39,7 @@ void Tonemapper::tonemap(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   else
     node.renderpass(m_renderpassRGBA, output);
 
-  auto argument = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_args)
+  auto argument = device.createShaderArguments(ShaderArgumentsDescriptor("tonemapper source", m_args)
     .bind("source", args.source));
   ShaderArgumentsBinding binding;
   if (output.texture().desc().desc.format == FormatType::Unorm8BGRA)

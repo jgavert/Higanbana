@@ -11,6 +11,7 @@ struct InstanceDraw
   float3 wp;
   float4x4 mat;
   int meshId;
+  int materialId;
 };
 
 struct ActiveCamera

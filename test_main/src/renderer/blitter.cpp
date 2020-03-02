@@ -4,6 +4,8 @@
 
 SHADER_STRUCT(BlitConstants,
   uint colorspace;
+  uint intTarget;
+  int2 sourceResolution;
 );
 namespace app::renderer 
 {
@@ -12,7 +14,8 @@ Blitter::Blitter(higanbana::GpuGroup& device)
   using namespace higanbana;
   auto inputDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly(ShaderResourceType::Buffer, "float4", "vertices")
-    .readOnly(ShaderResourceType::Texture2D, "float4", "source");
+    .readOnly(ShaderResourceType::Texture2D, "float4", "source")
+    .readOnly(ShaderResourceType::Texture2D, "int", "sourceInt");
   m_input = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()
@@ -83,9 +86,12 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
 
-  auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
+  BlitConstants consts{};
+  consts.intTarget = 0;
+  auto args = device.createShaderArguments(ShaderArgumentsDescriptor("blitter", m_input)
     .bind("vertices", verts)
-    .bind("source", source));
+    .bind("source", source)
+    .bind("sourceInt", TextureSRV()));
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
@@ -95,6 +101,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
     binding = node.bind(pipelineRGBA);
 
   binding.arguments(0, args);
+  binding.constants(consts);
   node.draw(binding, 6, 1);
 }
 
@@ -127,9 +134,24 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
 
-  auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
+  auto desc = ShaderArgumentsDescriptor("blitter2", m_input)
     .bind("vertices", verts)
-    .bind("source", source));
+    .bind("source", TextureSRV())
+    .bind("sourceInt", TextureSRV());
+
+  BlitConstants consts{};
+  consts.intTarget = 0;
+  consts.sourceResolution = source.texture().desc().desc.size3D().xy();
+
+  if (source.desc().desc.format == FormatType::Uint32) {
+    desc = desc.bind("sourceInt", source);
+    consts.intTarget = 1;
+  }
+  else
+    desc = desc.bind("source", source);
+
+  auto args = device.createShaderArguments(desc);
+
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
@@ -138,6 +160,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   else
     binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);
+  binding.constants(consts);
   node.draw(binding, 6, 1);
 }
 
@@ -194,10 +217,13 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   vertices.push_back(float4{ left,  bottom, 0.f, 1.f });
   vertices.push_back(float4{ right, top,    1.f, 0.f });
 
+  BlitConstants consts{};
+  consts.intTarget = 0;
   auto verts = device.dynamicBuffer<float4>(vertices, higanbana::FormatType::Float32RGBA);
-  auto args = device.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", m_input)
+  auto args = device.createShaderArguments(ShaderArgumentsDescriptor("blitter3", m_input)
     .bind("vertices", verts)
-    .bind("source", source));
+    .bind("source", source)
+    .bind("sourceInt", TextureSRV()));
   ShaderArgumentsBinding binding;
   if (target.desc.format == FormatType::Unorm8BGRA)
     binding = node.bind(pipelineBGRA);
@@ -206,6 +232,7 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
   else
     binding = node.bind(pipelineRGBA);
   binding.arguments(0, args);
+  binding.constants(consts);
   node.draw(binding, 6, 1);
 }
 }
