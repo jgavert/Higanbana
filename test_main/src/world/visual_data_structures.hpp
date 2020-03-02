@@ -62,8 +62,8 @@ SHADER_STRUCT(MaterialData,
   uint albedoIndex; // baseColorTexIndex
   uint normalIndex; // normalTexIndex
   uint metallicRoughnessIndex;
-  bool occlusionIndex;
-  bool emissiveIndex;
+  uint occlusionIndex;
+  uint emissiveIndex;
 );
 
 struct BufferData

@@ -1,4 +1,4 @@
-// INTERFACE_HASH:13942163469246398699:3464837383809622316
+// INTERFACE_HASH:1329268537054393937:8988694989159055602
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -43,7 +43,7 @@ VK_BINDING(2, 1) Buffer<float3> normals : register( t2, space1 );
 // Read Write resources
 // Shader Arguments 2
 // Struct declarations
-struct MaterialData { double3 emissiveFactor; double alphaCutoff; bool doubleSided; double4 baseColorFactor; double metallicFactor; double roughnessFactor; uint albedoIndex; uint normalIndex; uint metallicRoughnessIndex; bool occlusionIndex; bool emissiveIndex; };
+struct MaterialData { double3 emissiveFactor; double alphaCutoff; bool doubleSided; double4 baseColorFactor; double metallicFactor; double roughnessFactor; uint albedoIndex; uint normalIndex; uint metallicRoughnessIndex; uint occlusionIndex; uint emissiveIndex; };
 
 // Read Only resources
 VK_BINDING(0, 2) StructuredBuffer<MaterialData> materials : register( t0, space2 );

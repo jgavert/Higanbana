@@ -375,8 +375,12 @@ void mainWindow(ProgramParams& params)
         query(pack(ecs.get<MaterialData>(), ecs.get<components::MaterialLink>()), // pack(ecs.getTag<components::MeshNode>()),
         [&](higanbana::Id id, MaterialData& material, components::MaterialLink& link) {
           auto getInstance = [&](higanbana::Id linkid){
-            if (linkid != higanbana::Id(-1)){
-              return textureInstance.get(linkid).id+1;
+            if (linkid != higanbana::Id(-1))
+            {
+              auto instance = textureInstance.tryGet(linkid);
+              if (instance){
+                return instance->id+1;
+              }
             }
             return 0;
           };

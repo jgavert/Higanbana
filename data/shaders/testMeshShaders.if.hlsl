@@ -1,4 +1,4 @@
-// INTERFACE_HASH:7588123518513483495:3438222692608570522
+// INTERFACE_HASH:1602018390450552050:6303928268241932957
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -13,6 +13,9 @@
      SRV(t0, numDescriptors = 1, space=0 )),\
   DescriptorTable(\
      SRV(t0, numDescriptors = 6, space=1 )),\
+  DescriptorTable(\
+     SRV(t0, numDescriptors = 1, space=2 ),\
+     SRV(t1, numDescriptors = unbounded, space=2, flags=DESCRIPTORS_VOLATILE )),\
   StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
   StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT), \
   StaticSampler(s2, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP), \
@@ -20,8 +23,8 @@
 
 struct Constants
 {uint meshletCount; int camera; float2 unused; };
-VK_BINDING(0, 2) ConstantBuffer<Constants> constants : register( b0 );
-VK_BINDING(1, 2) RWByteAddressBuffer _debugOut : register( u99, space99 );
+VK_BINDING(0, 3) ConstantBuffer<Constants> constants : register( b0 );
+VK_BINDING(1, 3) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0
 // Struct declarations
 struct CameraSettings { float4x4 perspective; };
@@ -43,12 +46,23 @@ VK_BINDING(4, 1) Buffer<float2> uvs : register( t4, space1 );
 VK_BINDING(5, 1) Buffer<float3> normals : register( t5, space1 );
 
 // Read Write resources
+// Shader Arguments 2
+// Struct declarations
+struct MaterialData { double3 emissiveFactor; double alphaCutoff; bool doubleSided; double4 baseColorFactor; double metallicFactor; double roughnessFactor; uint albedoIndex; uint normalIndex; uint metallicRoughnessIndex; uint occlusionIndex; uint emissiveIndex; };
+
+// Read Only resources
+VK_BINDING(0, 2) StructuredBuffer<MaterialData> materials : register( t0, space2 );
+
+// Read Write resources
+
+// Bindless
+VK_BINDING(1, 2) Texture2D materialTextures[] : register( t1, space2 );
 
 // Usable Static Samplers
-VK_BINDING(2, 2) SamplerState bilinearSampler : register( s0 );
-VK_BINDING(3, 2) SamplerState pointSampler : register( s1 );
-VK_BINDING(4, 2) SamplerState bilinearSamplerWarp : register( s2 );
-VK_BINDING(5, 2) SamplerState pointSamplerWrap : register( s3 );
+VK_BINDING(2, 3) SamplerState bilinearSampler : register( s0 );
+VK_BINDING(3, 3) SamplerState pointSampler : register( s1 );
+VK_BINDING(4, 3) SamplerState bilinearSamplerWarp : register( s2 );
+VK_BINDING(5, 3) SamplerState pointSamplerWrap : register( s3 );
 
 uint getIndex(uint count, uint type)
 {
