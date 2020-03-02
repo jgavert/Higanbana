@@ -58,6 +58,11 @@ struct RawTextureData
 {
   int id;
 };
+struct RawBufferData
+{
+  int id;
+};
+
 struct MaterialLink
 {
   higanbana::Id albedo;
@@ -65,6 +70,10 @@ struct MaterialLink
   higanbana::Id metallicRoughness;
   higanbana::Id occlusion;
   higanbana::Id emissive;
+};
+struct BufferInstance
+{
+  int id;
 };
 
 struct MeshInstance

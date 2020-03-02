@@ -17,12 +17,13 @@ class World
   higanbana::FreelistAllocator freelistMesh;
   higanbana::vector<MeshData> rawMeshData;
   higanbana::FreelistAllocator freelistBuffer;
-  higanbana::vector<MeshData> rawBufferData;
+  higanbana::vector<BufferData> rawBufferData;
   higanbana::FreelistAllocator freelistTexture;
   higanbana::vector<TextureData> rawTextureData;
   public:
   void loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   MeshData& getMesh(int index); 
+  BufferData& getBuffer(int index); 
   TextureData& getTexture(int index); 
 };
 };

@@ -28,7 +28,7 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
     .setVertexShader("world")
     .setPixelShader("world")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    .setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(false))
+    //.setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(true))
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)
     .setRenderTargetCount(1)

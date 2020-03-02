@@ -195,6 +195,7 @@ class HeapAllocator {
   HeapAllocator(size_t size, size_t minimumBlockSize = 16, int sli = 3);
   std::optional<RangeBlock> allocate(size_t size, size_t alignment = 1) noexcept;
   void free(RangeBlock block) noexcept;
+  void resize(size_t size) noexcept;
 
   inline size_t size() const noexcept {
     return m_baseBlock.size - m_usedSize;

@@ -1,6 +1,7 @@
 #include "world.hpp"
 
 #include <higanbana/core/filesystem/filesystem.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 // Define these only in *one* .cc file.
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -137,11 +138,15 @@ namespace app
 MeshData& World::getMesh(int index) {
   return rawMeshData[index];
 }
+BufferData& World::getBuffer(int index) {
+  return rawBufferData[index];
+}
 TextureData& World::getTexture(int index) {
   return rawTextureData[index];
 }
 void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   for (auto&& file : fs.recursiveList(dir, ".gltf"))
   {
     if (!fs.fileExists(dir+file))
@@ -235,6 +240,26 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
         }
       }
 
+      // collect all buffers
+      higanbana::vector<higanbana::Id> indexToSourceBufferEntity(model.buffers.size(), 0);
+      int bufferIdx = 0;
+      for (auto&& buf : model.buffers)
+      {
+        auto& data = buf.data;
+        HIGAN_LOGi("buffer: %s\n", buf.uri.c_str());
+        HIGAN_ASSERT(!data.empty(), "WTF!");
+        auto id = freelistBuffer.allocate();
+        if (rawBufferData.size() <= id) rawBufferData.resize(id+1);
+        rawBufferData[id].data = data;
+        rawBufferData[id].name = buf.uri;
+
+        auto ent = database.createEntity();
+        auto& table = database.get<components::RawBufferData>();
+        table.insert(ent, {id});
+        indexToSourceBufferEntity[bufferIdx] = ent;
+        bufferIdx++;
+      }
+
       // create scene entities and link scenenodes as childs
       for (auto&& scene : model.scenes)
       {
@@ -312,21 +337,20 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto indType = componentTypeToString(indiceAccessor.type);
 
             auto componentType = gltfComponentTypeToFormatType(indiceAccessor.componentType);
-            md.indiceFormat = higanbana::FormatType::Uint32;
+            md.indices.format = higanbana::FormatType::Uint32;
             if (componentType == higanbana::FormatType::Uint16)
             {
-              md.indiceFormat = higanbana::FormatType::Uint16;
+              md.indices.format = higanbana::FormatType::Uint16;
             }
 
             HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceAccessor.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
-            auto& data = model.buffers[indiceView.buffer];
 
             auto offset = indiceView.byteOffset + indiceAccessor.byteOffset;
-            auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indiceFormat).pixelSize;
-            md.indices.resize(dataSize);
-            memcpy(md.indices.data(), data.data.data()+offset, dataSize); 
+            auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indices.format).pixelSize;
+            md.indices.offset = offset;
+            md.indices.size = dataSize;
+            md.indices.buffer = indexToSourceBufferEntity[indiceView.buffer];
           }
-
 
           for (auto&& attribute : primitive.attributes)
           {
@@ -334,44 +358,49 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto& bufferView = model.bufferViews[accessor.bufferView];
             auto type = componentTypeToString(accessor.type);
             HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, accessor.byteOffset, accessor.count, accessor.ByteStride(bufferView));
-            auto& data = model.buffers[bufferView.buffer];
+            //auto& data = model.buffers[bufferView.buffer];
+            auto bufferEntity = indexToSourceBufferEntity[bufferView.buffer];
 
             auto offset = bufferView.byteOffset + accessor.byteOffset;
             if (attribute.first.compare("POSITION") == 0)
             {
-              md.vertexFormat = higanbana::FormatType::Float32RGB;
+              md.vertices.format = higanbana::FormatType::Float32RGB;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertexFormat).pixelSize;
-              md.vertices.resize(dataSize);
-              memcpy(md.vertices.data(), data.data.data()+offset, dataSize); 
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertices.format).pixelSize;
+              md.vertices.size = dataSize;
+              md.vertices.offset = offset;
+              md.vertices.buffer = bufferEntity;
             }
             else if (attribute.first.compare("NORMAL") == 0)
             {
-              md.normalFormat = higanbana::FormatType::Float32RGB;
+              md.normals.format = higanbana::FormatType::Float32RGB;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normalFormat).pixelSize;
-              md.normals.resize(dataSize);
-              memcpy(md.normals.data(), data.data.data()+offset, dataSize); 
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.normals.format).pixelSize;
+              md.normals.size = dataSize;
+              md.normals.offset = offset;
+              md.normals.buffer = bufferEntity;
             }
             else if (attribute.first.compare("TEXCOORD_0") == 0)
             {
-              md.texCoordFormat = higanbana::FormatType::Float32RG;
+              md.texCoords.format = higanbana::FormatType::Float32RG;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC2, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.texCoordFormat).pixelSize;
-              md.texCoords.resize(dataSize);
-              memcpy(md.texCoords.data(), data.data.data()+offset, dataSize); 
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.texCoords.format).pixelSize;
+              md.texCoords.size = dataSize;
+              md.texCoords.offset = offset;
+              md.texCoords.buffer = bufferEntity;
             }
             else if (attribute.first.compare("TANGENT") == 0)
             {
-              md.tangentFormat = higanbana::FormatType::Float32RGBA;
+              md.tangents.format = higanbana::FormatType::Float32RGBA;
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC4, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
-              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.tangentFormat).pixelSize;
-              md.tangents.resize(dataSize);
-              memcpy(md.tangents.data(), data.data.data()+offset, dataSize); 
+              auto dataSize = accessor.count * higanbana::formatSizeInfo(md.tangents.format).pixelSize;
+              md.tangents.size = dataSize;
+              md.tangents.offset = offset;
+              md.tangents.buffer = bufferEntity;
             }
           }
 

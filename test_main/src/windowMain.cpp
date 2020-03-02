@@ -276,12 +276,12 @@ void mainWindow(ProgramParams& params)
     bool renderECS = false;
     int cubeCount = 30;
     int cubeCommandLists = 4;
-    int limitFPS = 0;
+    int limitFPS = 20;
     bool advanceSimulation = true;
     bool stepOneFrameForward = false;
     bool stepOneFrameBackward = false;
     app::RendererOptions rendererOptions{};
-    rendererOptions.submitExperimental = true;
+    rendererOptions.submitSingleThread = true;
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -352,6 +352,14 @@ void mainWindow(ProgramParams& params)
       app::Renderer rend(graphics, dev);
 
       // Load meshes to gpu
+      {
+        auto& gpuBuffer = ecs.get<components::BufferInstance>();
+        query(pack(ecs.get<components::RawBufferData>()), // pack(ecs.getTag<components::MeshNode>()),
+          [&](higanbana::Id id, components::RawBufferData index) {
+          components::BufferInstance instance{rend.loadBuffer(world.getBuffer(index.id))};
+          gpuBuffer.insert(id, instance);
+        });
+      }
       {
         auto& gpuMesh = ecs.get<components::MeshInstance>();
         query(pack(ecs.get<components::RawMeshData>()), // pack(ecs.getTag<components::MeshNode>()),

@@ -10,8 +10,15 @@ using namespace higanbana;
 
 namespace app
 {
-int Renderer::loadMesh(MeshData& data) {
-  return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data);
+int Renderer::loadBuffer(BufferData& data) {
+  return meshes.allocateBuffer(dev, data);
+}
+
+void Renderer::unloadBuffer(int index) {
+  meshes.freeBuffer(index);
+}
+int Renderer::loadMesh(MeshData& data, int buffers[5]) {
+  return meshes.allocate(dev, worldRend.meshArgLayout(), worldMeshRend.meshArgLayout(), data, );
 }
 
 void Renderer::unloadMesh(int index) {

@@ -66,6 +66,13 @@ std::optional<RangeBlock> HeapAllocator::allocate(size_t size, size_t alignment)
   return {};
 }
 
+void HeapAllocator::resize(size_t newSize) noexcept {
+  HIGAN_ASSERT(newSize > max_size(), "currently unable resize to smaller.");
+  auto offset = max_size();
+  auto sizeToAdd = newSize - offset;
+  free(RangeBlock{offset, sizeToAdd});
+}
+
 void HeapAllocator::free(RangeBlock block) noexcept {
   // immediately merge with existing free blocks.
   //HIGAN_ASSERT(block.size != 0, "Invalid free.");
