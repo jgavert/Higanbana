@@ -588,7 +588,7 @@ void mainWindow(ProgramParams& params)
             ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
 
             {
-              ImGui::Checkbox("render ECS", &renderECS);
+              ImGui::Checkbox("render selected glTF scene", &renderECS);
               int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
               ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
               ImGui::Text("%d cubes/draw calls", cubeCount);
