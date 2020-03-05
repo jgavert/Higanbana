@@ -777,8 +777,10 @@ namespace higanbana
       }
       for (auto&& pipe : m_allRes.pipelines.view()) {
         if (pipe) {
-          m_device.destroyPipeline(pipe.m_pipeline);
-          m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
+          if (pipe.m_pipeline != VK_NULL_HANDLE)
+            m_device.destroyPipeline(pipe.m_pipeline);
+          if (pipe.m_pipelineLayout != VK_NULL_HANDLE)
+            m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
           m_descriptors->freeSets(m_device, makeMemView(pipe.m_staticSet));
         }
       }
@@ -2483,7 +2485,9 @@ namespace higanbana
           .setDstSet(set)
           .setDescriptorCount(binding.bBindless().size())
           .setPImageInfo(bindlessInfos.data())
+          .setDescriptorType(vk::DescriptorType::eSampledImage)
           .setDstBinding(index++);
+        writeDescriptors.emplace_back(writeSet);
         HIGAN_ASSERT(!writeDescriptors.empty(), "wtf!");
         vk::ArrayProxy<const vk::WriteDescriptorSet> writes(writeDescriptors.size(), writeDescriptors.data());
         m_device.updateDescriptorSets(writes, {});
@@ -2732,7 +2736,8 @@ namespace higanbana
         }
         for (auto&& oldPipe : buffer->oldPipelines())
         {
-          m_device.destroyPipeline(oldPipe);
+          if (oldPipe != VK_NULL_HANDLE)
+            m_device.destroyPipeline(oldPipe);
         }
         delete buffer;
       });

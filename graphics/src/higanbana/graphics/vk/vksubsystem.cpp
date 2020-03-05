@@ -436,7 +436,7 @@ namespace higanbana
       vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
+      //vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
       vk::PhysicalDeviceImagelessFramebufferFeaturesKHR,
       vk::PhysicalDeviceFragmentShaderInterlockFeaturesEXT,
       //vk::PhysicalDeviceCooperativeMatrixFeaturesNV,
