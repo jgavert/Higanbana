@@ -146,6 +146,8 @@ namespace higanbana
         HIGAN_ASSERT(m_bindless.readonly, "Trying to bind BufferSRV \"%s\" as ReadWrite.", name);
         m_bindlessHandles.clear();
         for (auto&& it : res) {
+          if (m_bindlessHandles.size() >= m_bindless.bindlessCountWorstCase)
+            break;
           m_bindlessHandles.push_back(it.handle());
         }
         return *this;

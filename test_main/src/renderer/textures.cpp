@@ -7,7 +7,7 @@ TextureDB::TextureDB(higanbana::GpuGroup& gpu) {
   using namespace higanbana;
   m_bindless = gpu.createShaderArgumentsLayout(ShaderArgumentsLayoutDescriptor()
     .readOnly<MaterialData>(ShaderResourceType::StructuredBuffer, "materials")
-    .readOnlyBindless(ShaderResourceType::Texture2D, "materialTextures"));
+    .readOnlyBindless(ShaderResourceType::Texture2D, "materialTextures", 190));
 }
 int TextureDB::allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& image)
 {

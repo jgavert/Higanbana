@@ -27,14 +27,16 @@ namespace higanbana
     std::string name;
     bool readonly;
     bool bindless;
+    int bindlessCountWorstCase;
     ShaderResource()
     {}
-    ShaderResource(ShaderResourceType type, std::string templateParameter, std::string name, bool readonly, bool bindless = false)
+    ShaderResource(ShaderResourceType type, std::string templateParameter, std::string name, bool readonly, bool bindless = false, int descriptorCount = -1)
     : type(type)
     , templateParameter(templateParameter)
     , name(name)
     , readonly(readonly)
     , bindless(bindless)
+    , bindlessCountWorstCase(descriptorCount)
     {
 
     }

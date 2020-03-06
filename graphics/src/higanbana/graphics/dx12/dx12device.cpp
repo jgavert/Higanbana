@@ -1286,29 +1286,33 @@ namespace higanbana
 
       auto desc = bufferDesc.desc;
 
+      uint elementSize = bufferDesc.desc.stride;
       FormatType format = viewDesc.m_format;
       if (format == FormatType::Unknown)
         format = desc.format;
+      else {
+        elementSize = formatSizeInfo(format).pixelSize;
+      } 
 
-      auto pixelSize = formatSizeInfo(format).pixelSize;
+      //auto pixelSize = formatSizeInfo(format).pixelSize;
       auto descriptor = m_generics.allocate();
 
-      auto sizeElements = viewDesc.m_elementCount;
-      if (sizeElements == -1)
+      auto elementCount = viewDesc.m_elementCount;
+      if (elementCount == -1)
       {
-        sizeElements = bufferDesc.desc.width;
+        elementCount = bufferDesc.desc.width;
         if (viewDesc.m_format != FormatType::Unknown)
         {
-          sizeElements = sizeElements * bufferDesc.desc.stride / pixelSize;
+          elementCount = elementCount * elementSize;
         }
       }
 
       if (viewDesc.m_viewType == ResourceShaderType::IndexBuffer)
       {
         D3D12_INDEX_BUFFER_VIEW view;
-        view.BufferLocation = native.native()->GetGPUVirtualAddress() + viewDesc.m_firstElement * pixelSize;
+        view.BufferLocation = native.native()->GetGPUVirtualAddress() + viewDesc.m_firstElement * elementSize;
         view.Format = formatTodxFormat(format).view;
-        view.SizeInBytes = sizeElements * pixelSize;
+        view.SizeInBytes = elementCount * elementSize;
         m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native(), view);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
@@ -1318,8 +1322,8 @@ namespace higanbana
         natDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
         natDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-        natDesc.Buffer.NumElements = sizeElements;
-        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
+        natDesc.Buffer.NumElements = elementCount;
+        natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? elementSize : 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
         m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
         m_allRes.bufSRV[handle] = DX12BufferView(descriptor);
@@ -1330,7 +1334,7 @@ namespace higanbana
         natDesc.Format = formatTodxFormat(format).view;
         natDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
         natDesc.Buffer.FirstElement = viewDesc.m_firstElement;
-        natDesc.Buffer.NumElements = sizeElements;
+        natDesc.Buffer.NumElements = elementCount;
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? desc.stride : 0;
         natDesc.Buffer.CounterOffsetInBytes = 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;

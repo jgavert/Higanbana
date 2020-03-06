@@ -61,10 +61,11 @@ namespace higanbana
       return *this;
     }
     // bindless
-    ShaderArgumentsLayoutDescriptor& readOnlyBindless(ShaderResourceType type, std::string name)
+    ShaderArgumentsLayoutDescriptor& readOnlyBindless(ShaderResourceType type, std::string name, int maxCount)
     {
       HIGAN_ASSERT(bindless.name.empty(), "Only one bindless allowed per ShaderArgumentsLayout");
-      bindless = ShaderResource(type, "", name, true, true);
+      HIGAN_ASSERT(maxCount > 0, "must give positive max count as worst case for bindless");
+      bindless = ShaderResource(type, "", name, true, true, maxCount);
       return *this;
     }
 

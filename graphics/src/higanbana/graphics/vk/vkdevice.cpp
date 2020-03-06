@@ -1694,7 +1694,7 @@ namespace higanbana
       if (!layout.bindless.name.empty()) {
         bindings.push_back(vk::DescriptorSetLayoutBinding()
           .setBinding(slot)
-          .setDescriptorCount(190)
+          .setDescriptorCount(layout.bindless.bindlessCountWorstCase)
           .setDescriptorType(getDescriptor(layout.bindless.type, layout.bindless.readonly))
           .setStageFlags(flags));
       }
@@ -2016,14 +2016,17 @@ namespace higanbana
 
       auto& desc = resDesc.desc;
 
+      auto elementSize = desc.stride; // TODO: actually 0 most of the time. FIX SIZE FROM FORMAT.
       FormatType format = viewDesc.m_format;
       if (format == FormatType::Unknown)
         format = desc.format;
+      else {
+        elementSize = formatSizeInfo(format).pixelSize;
+      }
 
-      auto elementSize = desc.stride; // TODO: actually 0 most of the time. FIX SIZE FROM FORMAT.
       auto sizeInElements = desc.width;
       auto firstElement = viewDesc.m_firstElement * elementSize;
-      HIGAN_ASSERT(viewDesc.m_firstElement == firstElement, "first element should be something else element %u vs byteoffset %u", viewDesc.m_firstElement, firstElement);
+      //HIGAN_ASSERT(viewDesc.m_firstElement == firstElement, "first element should be something else element %u vs byteoffset %u", viewDesc.m_firstElement, firstElement);
       auto maxRange = viewDesc.m_elementCount * elementSize;
       if (viewDesc.m_elementCount <= 0)
         maxRange = elementSize * sizeInElements; // VK_WHOLE_SIZE
@@ -2476,14 +2479,16 @@ namespace higanbana
         HIGAN_ASSERT(binding.bBindlessDesc().readonly && binding.bBindlessDesc().type == ShaderResourceType::Texture2D, "read only tex supported");
         for (auto&& it : binding.bBindless())
         {
-          if (it.type == ViewResourceType::Unknown)
-            bindlessInfos.push_back(nullTex2dd);
+          if (it.type == ViewResourceType::Unknown) {
+            break;
+            //bindlessInfos.push_back(nullTex2dd);
+          }
           else
             bindlessInfos.push_back(allResources().texSRV[it].native().info);
         }
         vk::WriteDescriptorSet writeSet = vk::WriteDescriptorSet()
           .setDstSet(set)
-          .setDescriptorCount(binding.bBindless().size())
+          .setDescriptorCount(bindlessInfos.size())
           .setPImageInfo(bindlessInfos.data())
           .setDescriptorType(vk::DescriptorType::eSampledImage)
           .setDstBinding(index++);

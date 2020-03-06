@@ -19,6 +19,7 @@ namespace higanbana
     { FormatType::Uint32RGB, 12, 3, FormatTypeIdentifier::Unsigned},
     { FormatType::Uint32RG, 8, 2, FormatTypeIdentifier::Unsigned },
     { FormatType::Uint32, 4, 1, FormatTypeIdentifier::Unsigned },
+    { FormatType::Int32, 4, 1, FormatTypeIdentifier::Signed },
     { FormatType::Float32RGBA, 16, 4, FormatTypeIdentifier::Float },
     { FormatType::Float32RGB, 12, 3, FormatTypeIdentifier::Float },
     { FormatType::Float32RG, 8, 2, FormatTypeIdentifier::Float },
