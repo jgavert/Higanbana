@@ -241,16 +241,20 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
       }
 
       // collect all buffers
-      higanbana::vector<higanbana::Id> indexToSourceBufferEntity(model.buffers.size(), 0);
+      higanbana::vector<higanbana::Id> indexToSourceBufferEntity(model.bufferViews.size(), 0);
       int bufferIdx = 0;
-      for (auto&& buf : model.buffers)
+      for (auto&& view : model.bufferViews)
       {
+        auto& buf = model.buffers[view.buffer];
         auto& data = buf.data;
+        std::vector<uint8_t> copy;
+        copy.resize(view.byteLength);
+        memcpy(copy.data(), data.data()+view.byteOffset, view.byteLength);
         HIGAN_LOGi("buffer: %s\n", buf.uri.c_str());
         HIGAN_ASSERT(!data.empty(), "WTF!");
         auto id = freelistBuffer.allocate();
         if (rawBufferData.size() <= id) rawBufferData.resize(id+1);
-        rawBufferData[id].data = data;
+        rawBufferData[id].data = std::move(copy);
         rawBufferData[id].name = buf.uri;
 
         auto ent = database.createEntity();
@@ -345,11 +349,11 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
 
             HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceView.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
 
-            auto offset = indiceView.byteOffset + indiceAccessor.byteOffset;
+            auto offset = indiceAccessor.byteOffset;
             auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indices.format).pixelSize;
             md.indices.offset = offset;
             md.indices.size = dataSize;
-            md.indices.buffer = indexToSourceBufferEntity[indiceView.buffer];
+            md.indices.buffer = indexToSourceBufferEntity[indiceAccessor.bufferView];
           }
 
           for (auto&& attribute : primitive.attributes)
@@ -360,9 +364,9 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             HIGAN_ASSERT(accessor.byteOffset == 0, "What Accessor has byteoffset?");
             HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, bufferView.byteOffset, accessor.count, accessor.ByteStride(bufferView));
             //auto& data = model.buffers[bufferView.buffer];
-            auto bufferEntity = indexToSourceBufferEntity[bufferView.buffer];
+            auto bufferEntity = indexToSourceBufferEntity[accessor.bufferView];
 
-            auto offset = bufferView.byteOffset + accessor.byteOffset;
+            auto offset = accessor.byteOffset;
             if (attribute.first.compare("POSITION") == 0)
             {
               md.vertices.format = higanbana::FormatType::Float32RGB;
