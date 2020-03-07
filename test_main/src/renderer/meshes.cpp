@@ -65,9 +65,9 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
   auto block = sourceBuffers[buffer];
   ShaderViewDescriptor svd = ShaderViewDescriptor()
     .setFormat(data.indices.format)
-    .setFirstElement(block.offset / sizeInfo.pixelSize)
+    .setFirstElement((data.indices.offset + block.offset) / sizeInfo.pixelSize)
     .setElementCount(data.indices.size / sizeInfo.pixelSize);
-  HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
+  HIGAN_ASSERT((data.indices.offset + block.offset) % sizeInfo.pixelSize == 0, "failed offset");
   view.indices = gpu.createBufferIBV(meshbuffer, svd);
   // mesh shader required ... data is on gpu so old pipe is useless
   /*
@@ -105,9 +105,9 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
   block = sourceBuffers[buffer];
   svd = ShaderViewDescriptor()
     .setFormat(data.vertices.format)
-    .setFirstElement(block.offset / sizeInfo.pixelSize)
+    .setFirstElement((data.vertices.offset + block.offset) / sizeInfo.pixelSize)
     .setElementCount(data.vertices.size / sizeInfo.pixelSize);
-  HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
+  HIGAN_ASSERT((data.vertices.offset + block.offset) % sizeInfo.pixelSize == 0, "");
   view.vertices = gpu.createBufferSRV(meshbuffer, svd);
 
   if (data.texCoords.format != FormatType::Unknown)
@@ -117,9 +117,9 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
     block = sourceBuffers[buffer];
     svd = ShaderViewDescriptor()
       .setFormat(data.texCoords.format)
-      .setFirstElement(block.offset / sizeInfo.pixelSize)
+      .setFirstElement((data.texCoords.offset + block.offset) / sizeInfo.pixelSize)
       .setElementCount(data.texCoords.size / sizeInfo.pixelSize);
-    HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
+    HIGAN_ASSERT((data.texCoords.offset + block.offset) % sizeInfo.pixelSize == 0, "");
     view.uvs = gpu.createBufferSRV(meshbuffer, svd);
   }
 
@@ -130,9 +130,9 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
     block = sourceBuffers[buffer];
     svd = ShaderViewDescriptor()
       .setFormat(data.normals.format)
-      .setFirstElement(block.offset / sizeInfo.pixelSize)
+      .setFirstElement((data.normals.offset + block.offset) / sizeInfo.pixelSize)
       .setElementCount(data.normals.size / sizeInfo.pixelSize);
-    HIGAN_ASSERT(block.offset % sizeInfo.pixelSize == 0, "");
+    HIGAN_ASSERT((data.normals.offset + block.offset) % sizeInfo.pixelSize == 0, "");
     view.normals = gpu.createBufferSRV(meshbuffer, svd);
   }
 

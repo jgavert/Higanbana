@@ -343,7 +343,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
               md.indices.format = higanbana::FormatType::Uint16;
             }
 
-            HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceAccessor.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
+            HIGAN_LOGi("Indexbuffer: type:%s byteOffset: %zu count:%zu stride:%d\n", indType, indiceView.byteOffset, indiceAccessor.count, indiceAccessor.ByteStride(indiceView));
 
             auto offset = indiceView.byteOffset + indiceAccessor.byteOffset;
             auto dataSize = indiceAccessor.count * higanbana::formatSizeInfo(md.indices.format).pixelSize;
@@ -357,7 +357,8 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto& accessor = model.accessors[attribute.second];
             auto& bufferView = model.bufferViews[accessor.bufferView];
             auto type = componentTypeToString(accessor.type);
-            HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, accessor.byteOffset, accessor.count, accessor.ByteStride(bufferView));
+            HIGAN_ASSERT(accessor.byteOffset == 0, "What Accessor has byteoffset?");
+            HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, bufferView.byteOffset, accessor.count, accessor.ByteStride(bufferView));
             //auto& data = model.buffers[bufferView.buffer];
             auto bufferEntity = indexToSourceBufferEntity[bufferView.buffer];
 
@@ -368,6 +369,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
               HIGAN_ASSERT(accessor.type == TINYGLTF_TYPE_VEC3, "Expectations betrayed.");
               HIGAN_ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Expectations betrayed.");
               auto dataSize = accessor.count * higanbana::formatSizeInfo(md.vertices.format).pixelSize;
+              //HIGAN_ASSERT(bufferView.byteOffset % higanbana::formatSizeInfo(md.vertices.format).pixelSize == 0, "Wut");
               md.vertices.size = dataSize;
               md.vertices.offset = offset;
               md.vertices.buffer = bufferEntity;
