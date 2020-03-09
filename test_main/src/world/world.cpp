@@ -361,7 +361,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             auto& accessor = model.accessors[attribute.second];
             auto& bufferView = model.bufferViews[accessor.bufferView];
             auto type = componentTypeToString(accessor.type);
-            HIGAN_ASSERT(accessor.byteOffset == 0, "What Accessor has byteoffset?");
+            //HIGAN_ASSERT(accessor.byteOffset == 0, "What Accessor has byteoffset?");
             HIGAN_LOGi("primitiveBufferView: %s type:%s byteOffset: %zu count:%zu stride:%d\n", attribute.first.c_str(), type, bufferView.byteOffset, accessor.count, accessor.ByteStride(bufferView));
             //auto& data = model.buffers[bufferView.buffer];
             auto bufferEntity = indexToSourceBufferEntity[accessor.bufferView];
