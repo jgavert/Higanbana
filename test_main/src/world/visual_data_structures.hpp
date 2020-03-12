@@ -54,7 +54,6 @@ struct MaterialData
 SHADER_STRUCT(MaterialData,
   double3 emissiveFactor;
   double alphaCutoff;
-  bool doubleSided;
   // pbr
   double4 baseColorFactor;
   double metallicFactor;
@@ -65,6 +64,7 @@ SHADER_STRUCT(MaterialData,
   uint metallicRoughnessIndex;
   uint occlusionIndex;
   uint emissiveIndex;
+  uint doubleSided;
 );
 
 struct BufferData

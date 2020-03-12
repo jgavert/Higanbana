@@ -198,7 +198,7 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
   auto freeSpace = meshbufferAllocator.allocate(data.data.size(), alignment);
   Buffer updateTarget;
   vector<RangeBlock> migrateOldBuffers;
-  if (!freeSpace || freeSpace.value().size < data.data.size())
+  while (!freeSpace || freeSpace.value().size < data.data.size())
   {
     meshbufferAllocator = HeapAllocator(meshbufferAllocator.max_size() + data.data.size() + alignment);
     migrateOldBuffers.resize(copy.size());
