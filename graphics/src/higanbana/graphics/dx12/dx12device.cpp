@@ -19,7 +19,7 @@ namespace higanbana
 {
   namespace backend
   {
-    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer)
+    DX12Device::DX12Device(GpuInfo info, ComPtr<ID3D12Device2> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer)
       : m_info(info)
       , m_debugLayer(debugLayer)
       , m_device(device)
@@ -35,6 +35,9 @@ namespace higanbana
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32 * 1024))
     {
+      HRESULT success = m_device.As(&m_dxrdevice);
+      if (FAILED(success))
+        HIGAN_DEBUG_LOG("failed to get raytracing device");
       HIGAN_CPU_FUNCTION_SCOPE();
       if (m_debugLayer)
       {
@@ -908,94 +911,94 @@ namespace higanbana
       m_allRes.pipelines[handle] = DX12Pipeline();
       m_allRes.pipelines[handle].m_computeDesc = desc;
     }
-
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC DX12Device::getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass)
-    {
+    DX12PipelineStateStreamBuilder DX12Device::getDescStream(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass){
       HIGAN_CPU_FUNCTION_SCOPE();
-      D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+      DX12PipelineStateStreamBuilder builder{};
       {
         // BlendState
-        desc.BlendState.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
-        desc.BlendState.AlphaToCoverageEnable = d.blendDesc.desc.alphaToCoverageEnable;
+        D3D12_BLEND_DESC blend{};
+        blend.IndependentBlendEnable = d.blendDesc.desc.independentBlendEnable;
+        blend.AlphaToCoverageEnable = d.blendDesc.desc.alphaToCoverageEnable;
         auto logicEnable = d.blendDesc.desc.logicOpEnabled;
         auto logicOp = convertLogicOp(d.blendDesc.desc.logicOp);
         for (int i = 0; i < 8; ++i)
         {
           auto& rtb = d.blendDesc.desc.renderTarget[i].desc;
-          desc.BlendState.RenderTarget[i].BlendEnable = rtb.blendEnable;
-          desc.BlendState.RenderTarget[i].LogicOpEnable = logicEnable;
-          desc.BlendState.RenderTarget[i].SrcBlend = convertBlend(rtb.srcBlend);
-          desc.BlendState.RenderTarget[i].DestBlend = convertBlend(rtb.destBlend);
-          desc.BlendState.RenderTarget[i].BlendOp = convertBlendOp(rtb.blendOp);
-          desc.BlendState.RenderTarget[i].SrcBlendAlpha = convertBlend(rtb.srcBlendAlpha);
-          desc.BlendState.RenderTarget[i].DestBlendAlpha = convertBlend(rtb.destBlendAlpha);
-          desc.BlendState.RenderTarget[i].BlendOpAlpha = convertBlendOp(rtb.blendOpAlpha);
-          desc.BlendState.RenderTarget[i].LogicOp = logicOp;
-          desc.BlendState.RenderTarget[i].RenderTargetWriteMask = convertColorWriteEnable(rtb.colorWriteEnable);
+          blend.RenderTarget[i].BlendEnable = rtb.blendEnable;
+          blend.RenderTarget[i].LogicOpEnable = logicEnable;
+          blend.RenderTarget[i].SrcBlend = convertBlend(rtb.srcBlend);
+          blend.RenderTarget[i].DestBlend = convertBlend(rtb.destBlend);
+          blend.RenderTarget[i].BlendOp = convertBlendOp(rtb.blendOp);
+          blend.RenderTarget[i].SrcBlendAlpha = convertBlend(rtb.srcBlendAlpha);
+          blend.RenderTarget[i].DestBlendAlpha = convertBlend(rtb.destBlendAlpha);
+          blend.RenderTarget[i].BlendOpAlpha = convertBlendOp(rtb.blendOpAlpha);
+          blend.RenderTarget[i].LogicOp = logicOp;
+          blend.RenderTarget[i].RenderTargetWriteMask = convertColorWriteEnable(rtb.colorWriteEnable);
         }
+        builder.blend(blend);
       }
       {
+        D3D12_RASTERIZER_DESC raster;
         // Rasterization
         auto& rd = d.rasterDesc.desc;
-        desc.RasterizerState.FillMode = convertFillMode(rd.fill);
-        desc.RasterizerState.CullMode = convertCullMode(rd.cull);
-        desc.RasterizerState.FrontCounterClockwise = rd.frontCounterClockwise;
-        desc.RasterizerState.DepthBias = rd.depthBias;
-        desc.RasterizerState.DepthBiasClamp = rd.depthBiasClamp;
-        desc.RasterizerState.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
-        desc.RasterizerState.DepthClipEnable = rd.depthClipEnable;
-        desc.RasterizerState.MultisampleEnable = rd.multisampleEnable;
-        desc.RasterizerState.AntialiasedLineEnable = rd.antialiasedLineEnable;
-        desc.RasterizerState.ForcedSampleCount = rd.forcedSampleCount;
-        desc.RasterizerState.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
+        raster.FillMode = convertFillMode(rd.fill);
+        raster.CullMode = convertCullMode(rd.cull);
+        raster.FrontCounterClockwise = rd.frontCounterClockwise;
+        raster.DepthBias = rd.depthBias;
+        raster.DepthBiasClamp = rd.depthBiasClamp;
+        raster.SlopeScaledDepthBias = rd.slopeScaledDepthBias;
+        raster.DepthClipEnable = rd.depthClipEnable;
+        raster.MultisampleEnable = rd.multisampleEnable;
+        raster.AntialiasedLineEnable = rd.antialiasedLineEnable;
+        raster.ForcedSampleCount = rd.forcedSampleCount;
+        raster.ConservativeRaster = convertConservativeRasterization(rd.conservativeRaster);
+        builder.rasterizer(raster);
       }
       {
         // DepthStencil
+        D3D12_DEPTH_STENCIL_DESC desc;
         auto& dss = d.dsdesc.desc;
-        desc.DepthStencilState.DepthEnable = dss.depthEnable;
-        desc.DepthStencilState.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
-        desc.DepthStencilState.DepthFunc = convertComparisonFunc(dss.depthFunc);
-        desc.DepthStencilState.StencilEnable = dss.stencilEnable;
-        desc.DepthStencilState.StencilReadMask = dss.stencilReadMask;
-        desc.DepthStencilState.StencilWriteMask = dss.stencilWriteMask;
-        desc.DepthStencilState.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
-        desc.DepthStencilState.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
-        desc.DepthStencilState.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
-        desc.DepthStencilState.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
-        desc.DepthStencilState.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
-        desc.DepthStencilState.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
-        desc.DepthStencilState.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
-        desc.DepthStencilState.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
+        desc.DepthEnable = dss.depthEnable;
+        desc.DepthWriteMask = convertDepthWriteMask(dss.depthWriteMask);
+        desc.DepthFunc = convertComparisonFunc(dss.depthFunc);
+        desc.StencilEnable = dss.stencilEnable;
+        desc.StencilReadMask = dss.stencilReadMask;
+        desc.StencilWriteMask = dss.stencilWriteMask;
+        desc.FrontFace.StencilFailOp = convertStencilOp(dss.frontFace.desc.failOp);
+        desc.FrontFace.StencilDepthFailOp = convertStencilOp(dss.frontFace.desc.depthFailOp);
+        desc.FrontFace.StencilPassOp = convertStencilOp(dss.frontFace.desc.passOp);
+        desc.FrontFace.StencilFunc = convertComparisonFunc(dss.frontFace.desc.stencilFunc);
+        desc.BackFace.StencilFailOp = convertStencilOp(dss.backFace.desc.failOp);
+        desc.BackFace.StencilDepthFailOp = convertStencilOp(dss.backFace.desc.depthFailOp);
+        desc.BackFace.StencilPassOp = convertStencilOp(dss.backFace.desc.passOp);
+        desc.BackFace.StencilFunc = convertComparisonFunc(dss.backFace.desc.stencilFunc);
+        builder.depthStencil(desc);
       }
-      desc.PrimitiveTopologyType = convertPrimitiveTopologyType(d.primitiveTopology);
-      desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-      // subpass things here
+      builder.topology(convertPrimitiveTopologyType(d.primitiveTopology));
+      builder.indexStripValue(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED);
+      D3D12_RT_FORMAT_ARRAY array;
+
       auto rtvs = subpass.rtvs.convertToMemView();
-      desc.NumRenderTargets = static_cast<unsigned>(rtvs.size());
+      array.NumRenderTargets = static_cast<unsigned>(rtvs.size());
       for (size_t i = 0; i < rtvs.size(); ++i)
       {
         auto rawFormat = m_allRes.texRTV[rtvs[i]].viewFormat();
-        desc.RTVFormats[i] = rawFormat;
+        array.RTFormats[i] = rawFormat;
       }
-      
-      desc.DSVFormat = (subpass.dsv.id == ViewResourceHandle::InvalidViewId) ? DXGI_FORMAT_UNKNOWN : m_allRes.texDSV[subpass.dsv].viewFormat();
+      auto depthFormat = (subpass.dsv.id == ViewResourceHandle::InvalidViewId) ? DXGI_FORMAT_UNKNOWN : m_allRes.texDSV[subpass.dsv].viewFormat();
+      builder.depthFormat(depthFormat);
+
       for (size_t i = rtvs.size(); i < 8; ++i)
       {
-        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
+        array.RTFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
       }
-      desc.SampleMask = UINT_MAX;
-      /*
-      desc.NumRenderTargets = d.numRenderTargets;
-      for (int i = 0; i < 8; ++i)
-      {
-        desc.RTVFormats[i] = formatTodxFormat(d.rtvFormats[i]).view;
-      }
-      desc.DSVFormat = formatTodxFormat(d.dsvFormat).view;
-      */
-      desc.SampleDesc.Count = d.sampleCount;
-      desc.SampleDesc.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
-
-      return desc;
+      builder.rtFormats(array);
+      builder.sampleMask(UINT_MAX);
+      DXGI_SAMPLE_DESC sample;
+      sample.Count = d.sampleCount;
+      sample.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
+      builder.dxgiSample(sample);
+      return builder;
     }
 
     std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass)
@@ -1011,7 +1014,7 @@ namespace higanbana
       if (vp.m_hasPipeline->load() && !vp.needsUpdating())
         return oldPipe;
 
-      auto desc = getDesc(vp.m_gfxDesc.desc, renderpass);
+      auto desc = getDescStream(vp.m_gfxDesc.desc, renderpass);
 
       GraphicsPipelineDescriptor::Desc& d = vp.m_gfxDesc.desc;
       vector<MemoryBlob> blobs;
@@ -1032,59 +1035,67 @@ namespace higanbana
         {
           vp.m_watchedShaders.push_back(std::make_pair(m_shaders.watch(sourcePath, shaderType), shaderType));
         }
+        D3D12_SHADER_BYTECODE bytecode;
+        bytecode.BytecodeLength = blobs.back().size();
+        bytecode.pShaderBytecode = blobs.back().data();
         switch (shaderType)
         {
-          case ShaderType::Vertex:
-          {
-            desc.VS.BytecodeLength = blobs.back().size();
-            desc.VS.pShaderBytecode = blobs.back().data();
-            break;
-          }
-          case ShaderType::Geometry:
-          {
-            desc.GS.BytecodeLength = blobs.back().size();
-            desc.GS.pShaderBytecode = blobs.back().data();
-            break;
-          }
-          case ShaderType::Hull:
-          {
-            desc.HS.BytecodeLength = blobs.back().size();
-            desc.HS.pShaderBytecode = blobs.back().data();
-            break;
-          }
-          case ShaderType::Domain:
-          {
-            desc.DS.BytecodeLength = blobs.back().size();
-            desc.DS.pShaderBytecode = blobs.back().data();
-            break;
-          }
-          case ShaderType::Pixel:
-          {
-            desc.PS.BytecodeLength = blobs.back().size();
-            desc.PS.pShaderBytecode = blobs.back().data();
-            break;
-          }
-          case ShaderType::Amplification:
-          {
+        case ShaderType::Vertex:
+        {
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, bytecode);
+          //desc.VS.BytecodeLength = blobs.back().size();
+          //desc.VS.pShaderBytecode = blobs.back().data();
+          break;
+        }
+        case ShaderType::Geometry:
+        {
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, bytecode);
+          //desc.GS.BytecodeLength = blobs.back().size();
+          //desc.GS.pShaderBytecode = blobs.back().data();
+          break;
+        }
+        case ShaderType::Hull:
+        {
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, bytecode);
+          //desc.HS.BytecodeLength = blobs.back().size();
+          //desc.HS.pShaderBytecode = blobs.back().data();
+          break;
+        }
+        case ShaderType::Domain:
+        {
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, bytecode);
+          //desc.DS.BytecodeLength = blobs.back().size();
+          //desc.DS.pShaderBytecode = blobs.back().data();
+          break;
+        }
+        case ShaderType::Pixel:
+        {
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, bytecode);
+          //desc.PS.BytecodeLength = blobs.back().size();
+          //desc.PS.pShaderBytecode = blobs.back().data();
+          break;
+        }
+        case ShaderType::Amplification:
+        {
 
-          }
-          case ShaderType::Mesh:
-          {
+        }
+        case ShaderType::Mesh:
+        {
 
-          }
-          default:
-            break;
+        }
+        default:
+          break;
         }
       }
 
       ComPtr<ID3D12RootSignature> root;
-      HIGANBANA_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, desc.VS.pShaderBytecode, desc.VS.BytecodeLength, IID_PPV_ARGS(&root)));
+      HIGANBANA_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, blobs[0].data(), blobs[0].size(), IID_PPV_ARGS(&root)));
       //desc.pRootSignature = root.Get();
-    
-      desc.pRootSignature = nullptr;
+      //desc.pRootSignature = nullptr;
+      auto stream = desc.finalize();
 
       ComPtr<ID3D12PipelineState> pipe;
-      HIGANBANA_CHECK_HR(m_device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipe)));
+      HIGANBANA_CHECK_HR(m_device->CreatePipelineState(&stream, IID_PPV_ARGS(&pipe)));
 
       D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
 
@@ -1139,15 +1150,14 @@ namespace higanbana
       }
       pipe.cs.react();
 
-      D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
-      computeDesc.CS = byte;
-      computeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-      computeDesc.NodeMask = 0;
-      //computeDesc.pRootSignature = ptr->root.Get();
-      computeDesc.pRootSignature = nullptr;
-      pipe.m_hasPipeline->store(true);
+      DX12PipelineStateStreamBuilder computeDesc{};
+      computeDesc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS, byte);
+      computeDesc.stateFlags(D3D12_PIPELINE_STATE_FLAG_NONE);
 
-      HIGANBANA_CHECK_HR(m_device->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&pipe.pipeline)));
+      pipe.m_hasPipeline->store(true);
+      auto stream = computeDesc.finalize();
+
+      HIGANBANA_CHECK_HR(m_device->CreatePipelineState(&stream, IID_PPV_ARGS(&pipe.pipeline)));
       return oldPipe;
     }
 

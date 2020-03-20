@@ -866,6 +866,7 @@ namespace higanbana
         if (stage & AccessStage::Present)               flags |= D3D12_RESOURCE_STATE_PRESENT;
         if (stage & AccessStage::Raytrace)              flags |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         if (stage & AccessStage::AccelerationStructure) flags |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+        if (stage & AccessStage::ShadingRateSource)     flags |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
       }
       if (AccessUsage::Write == usage || AccessUsage::ReadWrite == usage)
       {
@@ -879,6 +880,7 @@ namespace higanbana
         if (stage & AccessStage::Present)               flags |= D3D12_RESOURCE_STATE_PRESENT; //?
         if (stage & AccessStage::Raytrace)              flags |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         if (stage & AccessStage::AccelerationStructure) flags |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+        if (stage & AccessStage::ShadingRateSource)     flags |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
       }
       return flags;
     }
@@ -1068,20 +1070,15 @@ namespace higanbana
           case PacketType::DrawIndexed:
           {
             auto params = header->data<gfxpacket::DrawIndexed>();
-            if (params.indexbuffer.type == ViewResourceType::BufferIBV && m_boundIndexBufferHandle != params.indexbuffer)
-            {
-              auto& ibv = device->allResources().bufIBV[params.indexbuffer];
-              //auto& buf = device->allResources().buf[params.indexbuffer.resource];
-              //m_ib.BufferLocation = ibv.ref()->GetGPUVirtualAddress();
-              //m_ib.Format = formatTodxFormat(buf.desc().desc.format).view;
-              //m_ib.SizeInBytes = buf.desc().desc.width * formatSizeInfo(buf.desc().desc.format).pixelSize;
-              buffer->IASetIndexBuffer(ibv.ibv());
-              m_boundIndexBufferHandle = params.indexbuffer;
-            }
-            else if (m_boundIndexBufferHandle != params.indexbuffer)
-            {
-              auto& ibv = device->allResources().dynSRV[params.indexbuffer];
-              m_ib = ibv.indexBufferView();
+            if (m_boundIndexBufferHandle != params.indexbuffer) {
+              if (params.indexbuffer.type == ViewResourceType::BufferIBV) {
+                auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+                m_ib = *ibv.ibv();
+              }
+              else {
+                auto& ibv = device->allResources().dynSRV[params.indexbuffer];
+                m_ib = ibv.indexBufferView();
+              }
               buffer->IASetIndexBuffer(&m_ib);
               m_boundIndexBufferHandle = params.indexbuffer;
             }

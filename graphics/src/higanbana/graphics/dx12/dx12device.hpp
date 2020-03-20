@@ -1,6 +1,7 @@
 #pragma once
 #include "higanbana/graphics/dx12/dx12resources.hpp"
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
+#include "higanbana/graphics/dx12/util/pipeline_stream_builder.hpp"
 #include "higanbana/graphics/dx12/dx12commandlist.hpp"
 #include "higanbana/graphics/common/command_packets.hpp"
 
@@ -15,7 +16,8 @@ namespace higanbana
     private:
       GpuInfo m_info;
       bool m_debugLayer;
-      ComPtr<ID3D12Device> m_device;
+      ComPtr<ID3D12Device2> m_device;
+      ComPtr<ID3D12Device5> m_dxrdevice;
       ComPtr<IDXGIDebug1> m_debug;
       ComPtr<IDXGIFactory4> m_factory;
 
@@ -83,9 +85,9 @@ namespace higanbana
 
       friend class DX12CommandList;
 
-      D3D12_GRAPHICS_PIPELINE_STATE_DESC getDesc(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
+      DX12PipelineStateStreamBuilder getDescStream(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
     public:
-      DX12Device(GpuInfo info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);
+      DX12Device(GpuInfo info, ComPtr<ID3D12Device2> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);
       ~DX12Device();
 
       std::lock_guard<std::mutex> deviceLock() { return std::lock_guard<std::mutex>(m_deviceMutex);}

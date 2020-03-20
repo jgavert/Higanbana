@@ -30,7 +30,8 @@ namespace higanbana
       DepthStencil = 0x40,
       Present = 0x80,
       Raytrace = 0x100,
-      AccelerationStructure = 0x200
+      AccelerationStructure = 0x200,
+      ShadingRateSource = 0x400
     };
 
     // carbon copy from vulkan

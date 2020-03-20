@@ -24,6 +24,8 @@ namespace higanbana
   {
     class DX12DependencySolver;
     class DX12Device;
+    class DX12PipelineStreamBuilder;
+
 
     struct DX12GPUDescriptor
     {

@@ -256,8 +256,12 @@ namespace higanbana
           infoQueue->PushStorageFilter(&filter);
         }
       }
+      ComPtr<ID3D12Device> comDevice(device);
+      ComPtr<ID3D12Device2> newestDevice;
+      HRESULT success = comDevice.As(&newestDevice);
+      HIGAN_ASSERT(SUCCEEDED(success), "failed to get ID3D12Device2");
 
-      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, device, pFactory, fs, m_debug),
+      std::shared_ptr<DX12Device> impl = std::shared_ptr<DX12Device>(new DX12Device(gpu, newestDevice, pFactory, fs, m_debug),
         [device](DX12Device* ptr)
       {
         device->Release();
