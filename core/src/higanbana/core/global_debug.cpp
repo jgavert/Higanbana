@@ -89,7 +89,7 @@ void log_def(const char* format, ...)
 void log_imSys(const char* prefix, const char* format, ...)
 {
   va_list args;
-  char buf[1024];
+  char buf[1024]{};
   va_start(args, format);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   _vsnprintf(&buf[0], sizeof(buf), format, args);

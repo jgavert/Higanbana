@@ -146,7 +146,7 @@ namespace higanbana
                 }
               }
               HIGAN_ASSERT(foundTiming, "Err, didn't find timing, error");
-              HIGAN_ASSERT(timeOnFlightSubmits.size() < 40, "wtf!");
+              //HIGAN_ASSERT(timeOnFlightSubmits.size() < 40, "wtf!");
               //HIGAN_LOGi("problem %zu?\n",timeOnFlightSubmits.size());
               while(!timeOnFlightSubmits.empty())
               {
@@ -732,6 +732,11 @@ namespace higanbana
       return TextureDSV(texture, sharedViewHandle(handle));
     }
 
+    size_t DeviceGroupData::availableDynamicMemory(int gpu) {
+      HIGAN_ASSERT(gpu >= 0 && gpu < m_devices.size(), "please no");
+      return m_devices[gpu].device->availableDynamicMemory();
+    }
+
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format) {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
@@ -788,10 +793,22 @@ namespace higanbana
 
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image) {
       HIGAN_CPU_FUNCTION_SCOPE();
+
+      auto allBytes = 0;
+      auto arraySize = image.desc().desc.arraySize;
+      for (auto slice = 0u; slice < arraySize; ++slice) {
+        for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip) {
+          allBytes += image.subresource(mip, slice).size() + 1024*16;
+        }
+      }
+      auto deviceMemory = m_devices[0].device->availableDynamicMemory();
+      if (deviceMemory < allBytes) {
+        waitGpuIdle(); 
+      }
+
       auto graph = startCommandGraph();
 
       vector<DynamicBufferView> allBufferToImages;
-      auto arraySize = image.desc().desc.arraySize;
       for (auto slice = 0u; slice < arraySize; ++slice)
       {
         for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip)
@@ -820,7 +837,6 @@ namespace higanbana
         }
       }
       submit(std::optional<Swapchain>(), graph, ThreadedSubmission::ParallelUnsequenced);
-      waitGpuIdle(); 
       return true;
     }
 

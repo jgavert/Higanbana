@@ -2519,6 +2519,10 @@ namespace higanbana
       return VulkanConstantBuffer(info, upload);
     }
 
+    size_t VulkanDevice::availableDynamicMemory() {
+      return m_dynamicUpload->size();
+    }
+
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, FormatType desiredFormat)
     {
       HIGAN_CPU_FUNCTION_SCOPE();

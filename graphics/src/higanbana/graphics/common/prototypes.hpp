@@ -146,6 +146,7 @@ namespace higanbana
         virtual void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) = 0;
 
         // create dynamic resources
+        virtual size_t availableDynamicMemory() = 0;
         virtual void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) = 0;
         virtual void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) = 0;
         virtual void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) = 0;

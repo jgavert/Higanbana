@@ -183,6 +183,7 @@ namespace higanbana
 
       VulkanConstantBuffer allocateConstants(MemView<uint8_t> bytes);
 
+      size_t availableDynamicMemory() override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
       void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;

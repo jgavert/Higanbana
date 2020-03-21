@@ -34,14 +34,14 @@ class HeapAllocator {
   TLSFControl control;
   size_t m_usedSize;
 
-  inline int fls(uint64_t size) noexcept {
+  inline int fls(uint64_t size) const noexcept {
     if (size == 0)
       return -1;
     unsigned long index;
     return _BitScanReverse64(&index, size) ? index : -1;
   }
 
-  inline int ffs(uint64_t size) noexcept {
+  inline int ffs(uint64_t size) const noexcept {
     if (size == 0)
       return -1;
     unsigned long index;
@@ -88,15 +88,23 @@ class HeapAllocator {
     set_bit(control.flBitmap, fl);
   }
 
+  inline int findLargeEnoughBlockWithinFree(const vector<RangeBlock>& freeblocks, size_t size) {
+    for (int i = 0; i < freeblocks.size(); ++i)
+      if (freeblocks[i].size > size)
+        return i;
+    return 0;
+  }
+
   inline RangeBlock search_suitable_block(size_t size, int fl, int sl) noexcept {
     // first step, assume we got something at fl / sl location
     if (control.sizeclasses.size() <= fl)
       return {};
     auto& secondLevel = control.sizeclasses[fl];
     auto& freeblocks = secondLevel.freeBlocks[sl];
-    if (!freeblocks.empty() && freeblocks.back().size >= size) {
-      auto block = freeblocks.back();
-      freeblocks.pop_back();
+    auto candidate = findLargeEnoughBlockWithinFree(freeblocks, size);
+    if (!freeblocks.empty() && freeblocks[candidate].size >= size) {
+      auto block = freeblocks[candidate];
+      freeblocks.erase(freeblocks.begin() + candidate);
       // remove bitmap bit
       if (freeblocks.empty()) remove_bit(secondLevel.slBitmap, sl);
       if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
@@ -104,11 +112,15 @@ class HeapAllocator {
     }
     else {
       sl = ffs(secondLevel.slBitmap);
-      if (sl >= 0 && secondLevel.freeBlocks[sl].back().size >= size) { // somethings still in this size class
-        auto block = secondLevel.freeBlocks[sl].back();
-        secondLevel.freeBlocks[sl].pop_back();
+      candidate = 0;
+      if (sl >= 0)
+        candidate = findLargeEnoughBlockWithinFree(secondLevel.freeBlocks[sl], size);
+      if (sl >= 0 && secondLevel.freeBlocks[sl][candidate].size >= size) { // somethings still in this size class
+        auto& freeblocks2 = secondLevel.freeBlocks[sl];
+        auto block = freeblocks2[candidate];
+        freeblocks2.erase(freeblocks2.begin() + candidate);
         // remove bitmap bit
-        if (secondLevel.freeBlocks[sl].empty())
+        if (freeblocks2.empty())
           remove_bit(secondLevel.slBitmap, sl);
         if (secondLevel.slBitmap == 0) remove_bit(control.flBitmap, fl);
         return block;
@@ -123,11 +135,13 @@ class HeapAllocator {
           HIGAN_ASSERT(secondLevel2.sizeClass >= size && secondLevel2.slBitmap != 0, "bitmap expected to have something");
           auto sl2 = ffs(secondLevel2.slBitmap);
           HIGAN_ASSERT(!secondLevel2.freeBlocks[sl2].empty(), "freeblocks expected to contain something");
-          if (sl2 >= 0 && secondLevel2.freeBlocks[sl2].back().size >= size) {
-            auto block = secondLevel2.freeBlocks[sl2].back();
-            secondLevel2.freeBlocks[sl2].pop_back();
+          candidate = (sl2 >= 0) ? findLargeEnoughBlockWithinFree(secondLevel2.freeBlocks[sl2], size) : 0;
+          if (sl2 >= 0 && secondLevel2.freeBlocks[sl2][candidate].size >= size) {
+            auto& freeblocks3 = secondLevel2.freeBlocks[sl2];
+            auto block = freeblocks3[candidate];
+            freeblocks3.erase(freeblocks3.begin() + candidate);
             // remove bitmap bit
-            if (secondLevel2.freeBlocks[sl2].empty())
+            if (freeblocks3.empty())
               remove_bit(secondLevel2.slBitmap, sl2);
             if (secondLevel2.slBitmap == 0) remove_bit(control.flBitmap, fl2);
             return block;
@@ -198,6 +212,7 @@ class HeapAllocator {
   std::optional<RangeBlock> allocate(size_t size, size_t alignment = 1) noexcept;
   void free(RangeBlock block) noexcept;
   void resize(size_t size) noexcept;
+  size_t findLargestAllocation() const noexcept;
 
   inline size_t size() const noexcept {
     return m_baseBlock.size - m_usedSize;

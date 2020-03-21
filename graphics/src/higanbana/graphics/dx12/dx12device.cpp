@@ -1730,6 +1730,10 @@ namespace higanbana
       m_allRes.shaArgs[handle] = DX12ShaderArguments(descriptors);
     }
 
+    size_t DX12Device::availableDynamicMemory() {
+      return m_dynamicUpload->size();
+    }
+
     void DX12Device::dynamic(ViewResourceHandle handle, MemView<uint8_t> view, FormatType type)
     {
       HIGAN_CPU_FUNCTION_SCOPE();

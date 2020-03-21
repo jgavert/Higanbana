@@ -156,6 +156,9 @@ bool FileSystem::loadFileFromHDD(FileInfo& path, size_t& size)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   std::replace(path.nativePath.begin(), path.nativePath.end(), '/', '\\');
 #endif
+  auto last5 = path.withoutNative.substr(path.withoutNative.size()-5);
+  if (strcmp("trace", last5.c_str()) == 0)
+    return false;
   auto fp = fopen(path.nativePath.c_str(), "rb");
   fseek(fp, 0L, SEEK_END);
   auto fsize = ftell(fp);

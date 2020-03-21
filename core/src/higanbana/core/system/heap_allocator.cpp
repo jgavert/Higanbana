@@ -1,4 +1,5 @@
 #include "higanbana/core/system/heap_allocator.hpp"
+#include "higanbana/core/math/utils.hpp"
 
 namespace higanbana
 {
@@ -24,6 +25,8 @@ HeapAllocator::HeapAllocator(size_t size, size_t minimumBlockSize, int sli)
 std::optional<RangeBlock> HeapAllocator::allocate(size_t size, size_t alignment) noexcept {
   auto origSize = size;
   size = std::max(size, size_t(mbs));
+  alignment = roundUpMultiple(mbs, alignment);
+  //alignment = std::max(alignment, size_t(mbs));
   int fl, sl, fl2, sl2;
   mapping(size, fl, sl);
   auto found_block = search_suitable_block(size, fl, sl);
@@ -31,7 +34,7 @@ std::optional<RangeBlock> HeapAllocator::allocate(size_t size, size_t alignment)
   if (found_block) {
     auto overAlign = found_block.offset % alignment;
 
-    if (overAlign != 0 && found_block.size < size + alignment) {
+    if (overAlign > 0 && found_block.size < size + alignment) {
       // we got a block that was too small, need to find a new one
       insert(found_block, fl, sl);
       size += alignment;
@@ -64,6 +67,15 @@ std::optional<RangeBlock> HeapAllocator::allocate(size_t size, size_t alignment)
     return found_block;
   }
   return {};
+}
+
+size_t HeapAllocator::findLargestAllocation() const noexcept {
+  auto bestPossibility = fls(control.flBitmap);
+  if (bestPossibility < 0)
+    return 0;
+  auto contr = control.sizeclasses[bestPossibility];
+  auto another = fls(contr.slBitmap);
+  return contr.freeBlocks[another].back().size;
 }
 
 void HeapAllocator::resize(size_t newSize) noexcept {

@@ -360,7 +360,7 @@ namespace higanbana
       
       size_t size() const noexcept
       {
-        return allocator.size();
+        return allocator.findLargestAllocation();
       }
       size_t max_size() const noexcept
       {

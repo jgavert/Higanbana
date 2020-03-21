@@ -130,6 +130,10 @@ namespace higanbana
       return createTextureDSV(createTexture(descriptor), viewDesc);
     }
 
+    size_t availableDynamicMemory(int gpu = 0) {
+      return S().availableDynamicMemory(gpu);
+    }
+
     template <typename Type>
     DynamicBufferView dynamicBuffer(MemView<Type> view, FormatType type)
     {

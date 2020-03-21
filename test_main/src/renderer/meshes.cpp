@@ -243,14 +243,14 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
     }
     meshbuffer = updateTarget;
   }
+  if (gpu.availableDynamicMemory() < data.data.size() + 100) {
+    HIGAN_CPU_BRACKET("wait gpu idle");
+    gpu.waitGpuIdle();
+  }
   auto dynamic = gpu.dynamicBuffer(makeMemView(data.data), FormatType::Unorm8);
   node.copy(meshbuffer, freeSpace.value().offset, dynamic);
   graph.addPass(std::move(node));
   gpu.submit(graph);
-  {
-    HIGAN_CPU_BRACKET("wait gpu idle");
-    gpu.waitGpuIdle();
-  }
   sourceBuffers[val] = freeSpace.value();
 
   return val;

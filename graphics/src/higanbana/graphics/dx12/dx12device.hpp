@@ -145,6 +145,7 @@ namespace higanbana
       void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) override;
       void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) override;
 
+      size_t availableDynamicMemory() override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned stride) override;
       void dynamicImage(ViewResourceHandle handle, MemView<uint8_t> bytes, unsigned rowPitch) override;

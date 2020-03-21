@@ -75,11 +75,13 @@ float WTime::interpolateFpsFromNanoseconds(int64_t time) {
 
 float WTime::getCurrentFps() {
   int64_t count = 0;
+  int64_t dataSize = 0;
   lastFrameTimes.forEach([&](int64_t& data)
   {
     count += data;
+    dataSize++;
   });
-  return static_cast<float>(count) / static_cast<float>(lastFrameTimes.size())* 0.000001f;
+  return static_cast<float>(count) / static_cast<float>(dataSize)* 0.000001f;
 }
 
 float WTime::getMaxFps() {

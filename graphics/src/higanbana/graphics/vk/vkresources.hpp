@@ -854,7 +854,7 @@ namespace higanbana
       VulkanConstantUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
                      , unsigned memorySize, unsigned unaccessibleMemoryAtEnd = 0)
-        : allocator(memorySize, unaccessibleMemoryAtEnd)
+        : allocator(memorySize-unaccessibleMemoryAtEnd, physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
         , m_device(device)
         , minUniformBufferAlignment(physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
       {
@@ -936,7 +936,7 @@ namespace higanbana
 
       size_t size() const noexcept
       {
-        return allocator.size();
+        return allocator.findLargestAllocation();
       }
 
       size_t max_size() const noexcept
