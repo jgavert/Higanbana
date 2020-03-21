@@ -2527,10 +2527,19 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto alignment = formatSizeInfo(desiredFormat).pixelSize * m_limits.minTexelBufferOffsetAlignment;
-      auto upload = m_dynamicUpload->allocate(dataRange.size(), alignment);
+      backend::VkUploadBlock upload;
+      {
+        HIGAN_CPU_BRACKET("dunamicUpload allocate");
+        upload = m_dynamicUpload->allocate(dataRange.size(), alignment);
+      }
       HIGAN_ASSERT(upload, "Halp");
       HIGAN_ASSERT(upload.block.offset % m_limits.minTexelBufferOffsetAlignment == 0, "fail, mintexelbufferoffsetalignment is %d", m_limits.minTexelBufferOffsetAlignment);
-      memcpy(upload.data(), dataRange.data(), dataRange.size());
+      {
+        std::string memcpySize = std::string("memcpy ") + std::to_string(dataRange.size_bytes()) +  std::string(" bytes");
+        
+        HIGAN_CPU_BRACKET(memcpySize.c_str());
+        memcpy(upload.data(), dataRange.data(), dataRange.size());
+      }
 
       auto format = formatToVkFormat(desiredFormat).view;
       //auto stride = formatSizeInfo(desiredFormat).pixelSize;
@@ -2543,8 +2552,14 @@ namespace higanbana
         .setOffset(upload.offset())
         .setRange(dataRange.size());
 
-      auto view = m_device.createBufferView(desc);
-      VK_CHECK_RESULT(view);
+      vk::BufferView rview;
+
+      {
+        HIGAN_CPU_BRACKET("createBufferView");
+        auto view = m_device.createBufferView(desc);
+        VK_CHECK_RESULT(view);
+        rview = view.value;
+      }
 
       vk::IndexType indextype = vk::IndexType::eUint16;
       if (formatBitDepth(desiredFormat) == 16)
@@ -2561,7 +2576,7 @@ namespace higanbana
         .setOffset(upload.offset())
         .setRange(dataRange.size());
 
-      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), view.value, info, upload);
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), rview, info, upload);
     }
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)
@@ -2938,7 +2953,8 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanFence>(fence);
       HIGAN_ASSERT(native->native(), "expected non null handle");
-      vk::ArrayProxy<const vk::Fence> proxy(native->native());
+      vk::Fence vkfence = native->native();
+      vk::ArrayProxy<const vk::Fence> proxy(vkfence);
       auto res = m_device.waitForFences(proxy, 1, (std::numeric_limits<int64_t>::max)());
       HIGAN_ASSERT(res == vk::Result::eSuccess, "uups");
     }
@@ -2963,9 +2979,10 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(tlSema);
+      auto sema = native->native();
       vk::SemaphoreWaitInfoKHR wi = vk::SemaphoreWaitInfoKHR()
         .setSemaphoreCount(1)
-        .setPSemaphores(&native->native())
+        .setPSemaphores(&sema)
         .setPValues(&value);
       m_device.waitSemaphoresKHR(wi, UINT64_MAX, m_dynamicDispatch);
     }
