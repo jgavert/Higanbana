@@ -308,7 +308,7 @@ void mainWindow(ProgramParams& params)
 
     while (true)
     {
-      HIGAN_CPU_BRACKET("omg!");
+      HIGAN_CPU_BRACKET("main program");
       vector<GpuInfo> allGpus;
       GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
       vector<GpuInfo> gpus;
@@ -353,6 +353,7 @@ void mainWindow(ProgramParams& params)
 
       // Load meshes to gpu
       {
+        HIGAN_CPU_BRACKET("Load meshes to gpu");
         auto& gpuBuffer = ecs.get<components::BufferInstance>();
         query(pack(ecs.get<components::RawBufferData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawBufferData index) {
@@ -361,6 +362,7 @@ void mainWindow(ProgramParams& params)
         });
       }
       {
+        HIGAN_CPU_BRACKET("link meshes to gpu meshes");
         auto& gpuMesh = ecs.get<components::MeshInstance>();
         auto& gpuBuffer = ecs.get<components::BufferInstance>();
         query(pack(ecs.get<components::RawMeshData>()), // pack(ecs.getTag<components::MeshNode>()),
@@ -388,6 +390,7 @@ void mainWindow(ProgramParams& params)
       }
       // load textures to gpu
       {
+        HIGAN_CPU_BRACKET("load textures to gpu");
         auto& gpuTexture = ecs.get<components::TextureInstance>();
         query(pack(ecs.get<components::RawTextureData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawTextureData index) {
@@ -397,6 +400,7 @@ void mainWindow(ProgramParams& params)
       }
       // link initial textures to materials
       {
+        HIGAN_CPU_BRACKET("link textures to existing materials");
         auto& textureInstance = ecs.get<components::TextureInstance>();
         query(pack(ecs.get<MaterialData>(), ecs.get<components::MaterialLink>()), // pack(ecs.getTag<components::MeshNode>()),
         [&](higanbana::Id id, MaterialData& material, components::MaterialLink& link) {
@@ -420,6 +424,7 @@ void mainWindow(ProgramParams& params)
 
       // make initial materials
       {
+        HIGAN_CPU_BRACKET("upload material structs to gpu");
         auto& gpuMaterial = ecs.get<components::MaterialGPUInstance>();
         query(pack(ecs.get<MaterialData>()), // pack(ecs.getTag<components::MeshNode>()),
         [&](higanbana::Id id, MaterialData material) {
@@ -455,6 +460,7 @@ void mainWindow(ProgramParams& params)
           while (renderActive)
           {
             HIGAN_CPU_BRACKET("Logic&Render loop begin!");
+
             ImGuiIO &io = ::ImGui::GetIO();
             auto windowSize = rend.windowSize();
             io.DisplaySize = { float(windowSize.x), float(windowSize.y) };
@@ -475,6 +481,7 @@ void mainWindow(ProgramParams& params)
             auto diffWithWriter = inputsUpdated.load() - currentInput;
             if (diffSinceLastInput > 0)
             {
+              HIGAN_CPU_BRACKET("reacting to new input");
               inputsRead = currentInput;
               auto mouse = amouse.read();
 
@@ -730,6 +737,7 @@ void mainWindow(ProgramParams& params)
             vector<InstanceDraw> allMeshesToDraw;
             if (renderECS)
             {
+              HIGAN_CPU_BRACKET("collecting mesh instances to render");
 
               struct ActiveScene
               {

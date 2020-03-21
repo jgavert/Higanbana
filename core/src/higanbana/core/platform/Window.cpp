@@ -1,6 +1,7 @@
 #include "higanbana/core/platform/Window.hpp"
 
 #include "higanbana/core/global_debug.hpp"
+#include "higanbana/core/profiling/profiling.hpp"
 
 #define DEBUG_LOG_RESIZE 0
 
@@ -297,6 +298,7 @@ namespace higanbana
     , m_height(height)
     , m_name(windowname)
   {
+    HIGAN_CPU_BRACKET("create window");
     WNDCLASSEX wc{};
     HWND hWnd{};
 
@@ -407,6 +409,7 @@ namespace higanbana
 
   bool Window::simpleReadMessages(int64_t frame)
   {
+    HIGAN_CPU_FUNCTION_SCOPE();
     m_frame = frame;
     m_inputs.setFrame(frame);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -433,6 +436,7 @@ namespace higanbana
 
   void Window::updateInputs()
   {
+    HIGAN_CPU_FUNCTION_SCOPE();
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
     if (GetFocus() == m_window->hWnd)
     {

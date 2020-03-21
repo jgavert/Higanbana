@@ -1,5 +1,6 @@
 #include "meshes.hpp"
 #include "mesh_test.hpp"
+#include <higanbana/core/profiling/profiling.hpp>
 
 struct MeshletPrepare
 {
@@ -12,6 +13,7 @@ namespace app
 {
 template <typename T>
 MeshletPrepare createMeshlets(const higanbana::MemView<T>& indices) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   MeshletPrepare meshlets{};
   constexpr const int maxUniqueVertices = 64; // max indice count per meshlet
   constexpr const int maxPrimitives = 126; // max indice count per meshlet
@@ -55,6 +57,7 @@ MeshletPrepare createMeshlets(const higanbana::MemView<T>& indices) {
 }
 
 int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLayout& normalLayout,higanbana::ShaderArgumentsLayout& meshLayout, MeshData& data, int buffers[5]) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   using namespace higanbana;
   auto val = freelist.allocate();
   if (views.size() < val+1) views.resize(val+1);
@@ -188,6 +191,7 @@ void MeshSystem::free(int index)
   freelist.release(index);
 }
 int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   if (data.data.empty())
     return -1;
   using namespace higanbana;
@@ -200,7 +204,10 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
   vector<RangeBlock> migrateOldBuffers;
   while (!freeSpace || freeSpace.value().size < data.data.size())
   {
-    meshbufferAllocator = HeapAllocator(meshbufferAllocator.max_size() + data.data.size() + alignment);
+    auto newSize = meshbufferAllocator.max_size() * 2 + alignment;
+    if (newSize < data.data.size())
+      newSize = meshbufferAllocator.max_size() + data.data.size() + alignment;
+    meshbufferAllocator = HeapAllocator(newSize);
     migrateOldBuffers.resize(copy.size());
     int index = 0;
     for (auto&& it : copy)
@@ -240,7 +247,10 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
   node.copy(meshbuffer, freeSpace.value().offset, dynamic);
   graph.addPass(std::move(node));
   gpu.submit(graph);
-  gpu.waitGpuIdle();
+  {
+    HIGAN_CPU_BRACKET("wait gpu idle");
+    gpu.waitGpuIdle();
+  }
   sourceBuffers[val] = freeSpace.value();
 
   return val;
