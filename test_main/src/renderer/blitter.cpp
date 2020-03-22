@@ -42,6 +42,8 @@ Blitter::Blitter(higanbana::GpuGroup& device)
 
 void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target2){
   using namespace higanbana;
+  target2.setOp(LoadOp::Load);
+  target2.setOp(StoreOp::Store);
   if (target2.texture().desc().desc.format == FormatType::Unorm8BGRA)
     node.renderpass(renderpassBGRA, target2);
   else if (target2.texture().desc().desc.format == FormatType::Unorm16RGBA)

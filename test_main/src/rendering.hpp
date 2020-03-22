@@ -11,6 +11,7 @@
 #include "renderer/world_renderer.hpp"
 #include "renderer/mesh_test.hpp"
 #include "renderer/tsaa.hpp"
+#include "renderer/tonemapper.hpp"
 #include "renderer/blitter.hpp"
 #include "renderer/cubes.hpp"
 #include "renderer/meshes.hpp"
@@ -107,6 +108,7 @@ class Renderer
   renderer::MeshTest worldMeshRend;
   // postprocess
   renderer::ShittyTSAA tsaa;
+  renderer::Tonemapper tonemapper;
   renderer::Blitter blitter;
   renderer::GenerateImage genImage;
   renderer::Particles particleSimulation;

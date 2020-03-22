@@ -50,6 +50,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , worldRend(dev, m_camerasLayout, textures.bindlessLayout())
   , worldMeshRend(dev, m_camerasLayout, textures.bindlessLayout())
   , tsaa(dev)
+  , tonemapper(dev)
   , blitter(dev)
   , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
   , particleSimulation(dev, m_camerasLayout) {
@@ -400,6 +401,7 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
 
 
   TextureSRV tsaaOutput = m_gbufferSRV;
+  TextureRTV tsaaOutputRTV = m_gbufferRTV;
   if (options.tsaa)
   {
     auto tsaaNode = tasks.createPass("Temporal Supersampling AA");
@@ -407,8 +409,29 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_gbufferSRV, tsaaDebugUAV});
     tasks.addPass(std::move(tsaaNode));
     tsaaOutput = tsaaResolved.srv();
+    tsaaOutputRTV = tsaaResolved.rtv();
     if (options.tsaaDebug)
       tsaaOutput = tsaaDebugSRV;
+  }
+
+  if (options.debugTextures)
+  {
+    auto node = tasks.createPass("debug textures");
+    blitter.beginRenderpass(node, tsaaOutputRTV);
+    int2 curPos = int2(0,0);
+    int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
+    int2 times = int2(target.x/72, target.y/72);
+    for (int y = 0; y < times.y; y++) {
+      for (int x = 0; x < times.x; x++) {
+        curPos = int2(72*x, 72*y);
+        auto index = y*times.x + x;
+        if (index >= textures.size())
+          break;
+        blitter.blit(dev, node, textures[index], curPos, int2(64,64));
+      }
+    }
+    node.endRenderpass();
+    tasks.addPass(std::move(node));
   }
 
   // If you acquire, you must submit it.
@@ -422,26 +445,8 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   TextureRTV backbuffer = obackbuffer.value().second;
 
   {
-    auto node = tasks.createPass("copy tsaa resolved to backbuffer");
-    blitter.beginRenderpass(node, backbuffer);
-    blitter.blitImage(dev, node, tsaaOutput, renderer::Blitter::FitMode::Fill);
-    if (options.debugTextures)
-    {
-      int2 curPos = int2(0,0);
-      int2 target = backbuffer.desc().desc.size3D().xy();
-      int2 times = int2(target.x/72, target.y/72);
-      for (int y = 0; y < times.y; y++) {
-        for (int x = 0; x < times.x; x++) {
-          curPos = int2(72*x, 72*y);
-          auto index = y*times.x + x;
-          if (index >= textures.size())
-            break;
-          blitter.blit(dev,node, textures[index], curPos, int2(64,64));
-        }
-      }
-    }
-
-    node.endRenderpass();
+    auto node = tasks.createPass("tonemapper");
+    tonemapper.tonemap(dev, node, backbuffer, renderer::TonemapperArguments{tsaaOutput});
     tasks.addPass(std::move(node));
   }
 
