@@ -3,7 +3,6 @@
 #include "higanbana/core/global_debug.hpp"
 
 #include <deque>
-
 #include <filesystem>
 
 #define HIGANBANA_FS_EXTRA_INFO 0
@@ -336,14 +335,45 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
   return true;
 }
 
-WatchFile FileSystem::watchFile(std::string path)
-{
+void FileSystem::addWatchDependency(std::string watchedPath, std::string notifyPath) {
   HIGAN_CPU_FUNCTION_SCOPE();
+  if (fileExists(watchedPath))
+  {
+    std::lock_guard<std::mutex> guard(m_lock);
+    auto dependency = m_dependencies.find(watchedPath);
+    if (dependency != m_dependencies.end()) {
+      bool hasAlready = false;
+      for (auto&& existingPath : dependency->second)
+        if (existingPath.compare(notifyPath) == 0) {
+          hasAlready = true;
+          break;
+        }
+      if (!hasAlready)
+        dependency->second.push_back(notifyPath);
+    }
+    else {
+      m_dependencies[watchedPath].push_back(notifyPath);
+    }
+  }
+}
+
+WatchFile FileSystem::watchFile(std::string path, std::optional<vector<std::string>> optionalTriggers) {
+  HIGAN_CPU_FUNCTION_SCOPE();
+  if (optionalTriggers) {
+    for (auto& addPath : optionalTriggers.value()) {
+      addWatchDependency(addPath, path);
+    }
+  }
   if (fileExists(path))
   {
     std::lock_guard<std::mutex> guard(m_lock);
+    auto foundWatch = m_watchedFiles.find(path);
+    if (foundWatch != m_watchedFiles.end())
+      return foundWatch->second;
+
     WatchFile w = WatchFile(std::make_shared<std::atomic<bool>>());
-    m_watchedFiles[path].push_back(w);
+    m_watchedFiles[path] = w;
+    m_dependencies[path];
     return w;
   }
   return WatchFile{};
@@ -353,15 +383,15 @@ void FileSystem::updateWatchedFiles()
 {
   HIGAN_CPU_FUNCTION_SCOPE();
   std::lock_guard<std::mutex> guard(m_lock);
-  if (m_watchedFiles.empty())
+  if (m_dependencies.empty())
   {
     return;
   }
-  if (rollingUpdate >= static_cast<int>(m_watchedFiles.size()))
+  if (rollingUpdate >= static_cast<int>(m_dependencies.size()))
   {
     rollingUpdate = 0;
   }
-  auto current = m_watchedFiles.begin();
+  auto current = m_dependencies.begin();
   for (int i = 0; i < rollingUpdate; ++i)
   {
     current++;
@@ -375,9 +405,15 @@ void FileSystem::updateWatchedFiles()
     size_t opt;
     FileInfo info = {fullPath, current->first};
     loadFileFromHDD(info, opt);
-    for (auto&& it : current->second)
-    {
-      it.update();
+    auto origFile = m_watchedFiles.find(current->first);
+    if (origFile != m_watchedFiles.end()) {
+      origFile->second.update();
+    }
+    for (auto& informPaths : current->second){
+      auto watchFile = m_watchedFiles.find(informPaths);
+      if (watchFile != m_watchedFiles.end()) {
+        watchFile->second.update();
+      }
     }
   }
   rollingUpdate++;

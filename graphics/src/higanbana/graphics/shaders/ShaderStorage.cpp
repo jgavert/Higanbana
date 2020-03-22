@@ -192,9 +192,10 @@ namespace higanbana
       auto shaderPath = sourcePathCombiner(info.desc.shaderName, info.desc.type);
       auto dxilPath = binaryPathCombiner(info.desc.shaderName, info.desc.type, info.desc.tgs, info.desc.definitions);
 
-      auto func = [](std::string filename)
+      auto func = [&](std::string filename)
       {
-        HIGAN_LOG("included: %s\n", filename.c_str());
+        //HIGAN_LOG("included: %s\n", filename.c_str());
+        m_fs.addWatchDependency(filename, shaderPath);
       };
       ensureShaderSourceFilesExist(info);
       auto foundBinary = m_fs.fileExists(dxilPath);
@@ -225,7 +226,7 @@ namespace higanbana
           shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
         }
 
-        if (m_compiler && (shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
+        if (m_compiler && (info.desc.forceCompile || shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
         {
           // HIGAN_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
           bool result = m_compiler->compileShader(
@@ -247,7 +248,7 @@ namespace higanbana
 
     WatchFile ShaderStorage::watch(std::string shaderName, ShaderType type)
     {
-      auto shd = sourcePath + shaderName + "." + shaderFileType(type) + ".hlsl";
+      auto shd = sourcePathCombiner(shaderName, type);
       if (m_fs.fileExists(shd))
       {
         return m_fs.watchFile(shd);

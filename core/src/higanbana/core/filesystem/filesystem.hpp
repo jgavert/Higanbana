@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <atomic>
+#include <optional>
 
 namespace higanbana
 {
@@ -80,7 +81,8 @@ namespace higanbana
     std::unordered_set<std::string> m_dirs;
 
     // watch
-    std::unordered_map<std::string, vector<WatchFile>> m_watchedFiles;
+    std::unordered_map<std::string, vector<std::string>> m_dependencies;
+    std::unordered_map<std::string, WatchFile> m_watchedFiles;
     int rollingUpdate = 0;
 
     // 
@@ -103,7 +105,8 @@ namespace higanbana
     bool writeFile(std::string path, const uint8_t* ptr, size_t size);
     bool writeFile(std::string path, higanbana::MemView<const uint8_t> view);
 
-    WatchFile watchFile(std::string path);
+    WatchFile watchFile(std::string path, std::optional<vector<std::string>> optionalTriggers = {});
+    void addWatchDependency(std::string watchedPath, std::string notifyPath);
     void updateWatchedFiles();
   private:
     bool loadFileFromHDD(FileInfo& path, size_t& size);

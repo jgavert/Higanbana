@@ -3,6 +3,7 @@
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/math/math.hpp>
+#include <higanbana/core/datastructures/proxy.hpp>
 
 #include <fstream>
 #include <string>

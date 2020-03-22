@@ -28,12 +28,17 @@ struct ShaderCreateInfo {
     uint3                    tgs = uint3(1, 1, 1);
     std::string              rootSignature = "";
     std::string              interfaceDeclaration = "";
+    bool                     forceCompile = false;
   } desc;
 
   ShaderCreateInfo(std::string shaderName, ShaderType type, PipelineInterfaceDescriptor shaderInterface) {
     desc.shaderName = shaderName;
     desc.type = type;
     desc.interfaceDeclaration = shaderInterface.createInterface();
+  }
+  ShaderCreateInfo& compile() {
+    desc.forceCompile = true;
+    return *this;
   }
   ShaderCreateInfo& setDefinitions(std::vector<std::string> value) {
     desc.definitions = value;

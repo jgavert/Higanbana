@@ -9,6 +9,7 @@
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
+#include <higanbana/core/system/time.hpp>
 
 #include <optional>
 
@@ -1280,6 +1281,98 @@ namespace higanbana
       }
     }
 
+    void VulkanDevice::getGfxPipelineInformation(vk::Pipeline pipe, higanbana::GraphicsPipelineDescriptor::Desc& d) {
+      if (m_dynamicDispatch.vkGetPipelineExecutablePropertiesKHR)
+      {
+        auto execProp = m_device.getPipelineExecutablePropertiesKHR(vk::PipelineInfoKHR().setPipeline(pipe), m_dynamicDispatch);
+        VK_CHECK_RESULT(execProp);
+        vector<vk::PipelineExecutableInfoKHR> execInfos;
+        int execIndex = 0;
+        for (auto&& prop : execProp.value)
+        {
+          //HIGAN_LOGi("Pipeline Prop \"%s\": \"%s\" %s\n", prop.name, prop.description, vk::to_string(prop.stages).c_str());
+          execInfos.emplace_back(vk::PipelineExecutableInfoKHR()
+            .setPipeline(pipe)
+            .setExecutableIndex(execIndex++));
+        }
+
+        execIndex = 0;
+        for (auto&& einfo : execInfos)
+        {
+          auto exeresult = m_device.getPipelineExecutableStatisticsKHR(einfo, m_dynamicDispatch);
+          VK_CHECK_RESULT(exeresult);
+          auto curIndex = execIndex++;
+          HIGAN_LOGi("Shader \"%s\" stats: %s\n", d.shaders[curIndex].second.c_str(), execProp.value[curIndex].description);
+          for (auto&& exeStats : exeresult.value)
+          {
+            HIGAN_LOGi("\t \"%s\": \"%s\" value: ", exeStats.name, exeStats.description);
+            switch (exeStats.format)
+            {
+              case vk::PipelineExecutableStatisticFormatKHR::eBool32:
+                HIGAN_LOGi("%s\n", exeStats.value.b32 ? "true" : "false");
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eInt64:
+                HIGAN_LOGi("%zd\n", exeStats.value.i64);
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eUint64:
+                HIGAN_LOGi("%zu\n", exeStats.value.u64);
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eFloat64:
+              default:
+                HIGAN_LOGi("%.3f\n", exeStats.value.f64);
+            }
+          }
+        }
+      }
+    }
+
+
+    void VulkanDevice::getComputePipelineInformation(vk::Pipeline pipe, higanbana::ComputePipelineDescriptor& d) {
+      if (m_dynamicDispatch.vkGetPipelineExecutablePropertiesKHR)
+      {
+        auto execProp = m_device.getPipelineExecutablePropertiesKHR(vk::PipelineInfoKHR().setPipeline(pipe), m_dynamicDispatch);
+        VK_CHECK_RESULT(execProp);
+        vector<vk::PipelineExecutableInfoKHR> execInfos;
+        int execIndex = 0;
+        for (auto&& prop : execProp.value)
+        {
+          //HIGAN_LOGi("Pipeline Prop \"%s\": \"%s\" %s\n", prop.name, prop.description, vk::to_string(prop.stages).c_str());
+          execInfos.emplace_back(vk::PipelineExecutableInfoKHR()
+            .setPipeline(pipe)
+            .setExecutableIndex(execIndex++));
+        }
+
+        execIndex = 0;
+        for (auto&& einfo : execInfos)
+        {
+          auto exeresult = m_device.getPipelineExecutableStatisticsKHR(einfo, m_dynamicDispatch);
+          VK_CHECK_RESULT(exeresult);
+          auto curIndex = execIndex++;
+          HIGAN_LOGi("Shader \"%s\" stats: %s\n", d.shader(), execProp.value[curIndex].description);
+          for (auto&& exeStats : exeresult.value)
+          {
+            HIGAN_LOGi("\t \"%s\": \"%s\" value: ", exeStats.name, exeStats.description);
+            switch (exeStats.format)
+            {
+              case vk::PipelineExecutableStatisticFormatKHR::eBool32:
+                HIGAN_LOGi("%s\n", exeStats.value.b32 ? "true" : "false");
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eInt64:
+                HIGAN_LOGi("%zd\n", exeStats.value.i64);
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eUint64:
+                HIGAN_LOGi("%zu\n", exeStats.value.u64);
+                break;
+              case vk::PipelineExecutableStatisticFormatKHR::eFloat64:
+              default:
+                HIGAN_LOGi("%.3f\n", exeStats.value.f64);
+            }
+          }
+        }
+      }
+
+    }
+
     std::optional<vk::Pipeline> VulkanDevice::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& rpbegin)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -1290,14 +1383,9 @@ namespace higanbana
       auto& vp = m_allRes.pipelines[pipeline];
       if (vp.m_hasPipeline->load() && !vp.needsUpdating())
         return {};
-      GFX_LOG("Updating Graphics Pipeline %s", vp.m_gfxDesc.desc.vertexShaderPath.c_str());
-      //if (!ptr->needsUpdating())
-      //  return;
 
+      Timer pipelineRecreationTime;
       auto& desc = vp.m_gfxDesc;
-      // collect all pipeline parts first
-      //auto pipeline = createPipeline(desc);
-      //auto* natptr = static_cast<VulkanPipeline*>(pipeline.get());
 
       struct ReadyShader
       {
@@ -1310,7 +1398,16 @@ namespace higanbana
 
       for (auto&& [shaderType, sourcePath] : d.shaders)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(sourcePath, shaderType, d.layout));
+        bool forceCompile = false;
+        for (auto& shader : vp.m_watchedShaders) {
+          if (shader.second == shaderType) {
+            forceCompile = shader.first.updated();
+            break;
+          }
+        }
+        auto sci = ShaderCreateInfo(sourcePath, shaderType, d.layout);
+        if (forceCompile) sci = sci.compile();
+        auto shader = m_shaders.shader(sci);
         vk::ShaderModuleCreateInfo si = vk::ShaderModuleCreateInfo()
           .setCodeSize(shader.size())
           .setPCode(reinterpret_cast<uint32_t*>(shader.data()));
@@ -1406,50 +1503,10 @@ namespace higanbana
       }
       vp.m_pipeline = compiled.value;
       vp.m_hasPipeline->store(true);
-      HIGAN_ILOG("Vulkan", "Pipeline compiled...");
 
-      if (m_dynamicDispatch.vkGetPipelineExecutablePropertiesKHR)
-      {
-        auto execProp = m_device.getPipelineExecutablePropertiesKHR(vk::PipelineInfoKHR().setPipeline(vp.m_pipeline), m_dynamicDispatch);
-        VK_CHECK_RESULT(execProp);
-        vector<vk::PipelineExecutableInfoKHR> execInfos;
-        int execIndex = 0;
-        for (auto&& prop : execProp.value)
-        {
-          //HIGAN_LOGi("Pipeline Prop \"%s\": \"%s\" %s\n", prop.name, prop.description, vk::to_string(prop.stages).c_str());
-          execInfos.emplace_back(vk::PipelineExecutableInfoKHR()
-            .setPipeline(vp.m_pipeline)
-            .setExecutableIndex(execIndex++));
-        }
-
-        execIndex = 0;
-        for (auto&& einfo : execInfos)
-        {
-          auto exeresult = m_device.getPipelineExecutableStatisticsKHR(einfo, m_dynamicDispatch);
-          VK_CHECK_RESULT(exeresult);
-          auto curIndex = execIndex++;
-          HIGAN_LOGi("Shader \"%s\" stats: %s\n", d.shaders[curIndex].second.c_str(), execProp.value[curIndex].description);
-          for (auto&& exeStats : exeresult.value)
-          {
-            HIGAN_LOGi("\t \"%s\": \"%s\" value: ", exeStats.name, exeStats.description);
-            switch (exeStats.format)
-            {
-              case vk::PipelineExecutableStatisticFormatKHR::eBool32:
-                HIGAN_LOGi("%s\n", exeStats.value.b32 ? "true" : "false");
-                break;
-              case vk::PipelineExecutableStatisticFormatKHR::eInt64:
-                HIGAN_LOGi("%zd\n", exeStats.value.i64);
-                break;
-              case vk::PipelineExecutableStatisticFormatKHR::eUint64:
-                HIGAN_LOGi("%zu\n", exeStats.value.u64);
-                break;
-              case vk::PipelineExecutableStatisticFormatKHR::eFloat64:
-              default:
-                HIGAN_LOGi("%.3f\n", exeStats.value.f64);
-            }
-          }
-        }
-      }
+      getGfxPipelineInformation(vp.m_pipeline, d);
+      
+      HIGAN_ILOG("Vulkan", "Graphics Pipeline \"%s\" created in %.2fms", d.shaders.back().second.c_str(), float(pipelineRecreationTime.timeFromLastReset()) / 1000000.f);
 
       return ret;
     }
@@ -1464,11 +1521,12 @@ namespace higanbana
       auto& pipe = m_allRes.pipelines[pipeline];
       if (pipe.m_hasPipeline->load() && !pipe.cs.updated())
         return {};
-
-      GFX_LOG("Updating Compute Pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
+      Timer pipelineRecreationTime;
 
       auto sci = ShaderCreateInfo(pipe.m_computeDesc.shader(), ShaderType::Compute, pipe.m_computeDesc.layout)
         .setComputeGroups(pipe.m_computeDesc.shaderGroups);
+      if (pipe.cs.updated())
+        sci = sci.compile();
       auto shader = m_shaders.shader(sci);
 
       auto shaderInfo = vk::ShaderModuleCreateInfo().setCodeSize(shader.size()).setPCode(reinterpret_cast<uint32_t*>(shader.data()));
@@ -1502,6 +1560,8 @@ namespace higanbana
         pipe.m_pipeline = result.value;
         pipe.m_hasPipeline->store(true);
       }
+      getComputePipelineInformation(pipe.m_pipeline, pipe.m_computeDesc);
+      HIGAN_ILOG("Vulkan", "Compute Pipeline \"%s\" created in %.2fms", pipe.m_computeDesc.shader(), float(pipelineRecreationTime.timeFromLastReset()) / 1000000.f);
       return oldPipe;
     }
 

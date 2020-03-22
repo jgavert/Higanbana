@@ -11,6 +11,7 @@
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/global_debug.hpp>
+#include <higanbana/core/system/time.hpp>
 
 #include <DXGIDebug.h>
 #include <numeric>
@@ -1013,7 +1014,7 @@ namespace higanbana
       auto& vp = m_allRes.pipelines[pipeline];
       if (vp.m_hasPipeline->load() && !vp.needsUpdating())
         return oldPipe;
-
+      Timer pipelineRecreationTime;
       auto desc = getDescStream(vp.m_gfxDesc.desc, renderpass);
 
       GraphicsPipelineDescriptor::Desc& d = vp.m_gfxDesc.desc;
@@ -1021,7 +1022,17 @@ namespace higanbana
 
       for (auto&& [shaderType, sourcePath] : d.shaders)
       {
-        auto shader = m_shaders.shader(ShaderCreateInfo(sourcePath, shaderType, d.layout));
+        bool forceCompile = false;
+        for (auto& shader : vp.m_watchedShaders) {
+          if (shader.second == shaderType) {
+            forceCompile = shader.first.updated();
+            break;
+          }
+        }
+        auto shaderDesc = ShaderCreateInfo(sourcePath, shaderType, d.layout);
+        if (forceCompile)
+          shaderDesc = shaderDesc.compile();
+        auto shader = m_shaders.shader(shaderDesc);
         blobs.emplace_back(shader);
         auto found = std::find_if(vp.m_watchedShaders.begin(), vp.m_watchedShaders.end(), [stype = shaderType](std::pair<WatchFile, ShaderType>& shader) {
             if (shader.second == stype)
@@ -1043,45 +1054,35 @@ namespace higanbana
         case ShaderType::Vertex:
         {
           desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, bytecode);
-          //desc.VS.BytecodeLength = blobs.back().size();
-          //desc.VS.pShaderBytecode = blobs.back().data();
           break;
         }
         case ShaderType::Geometry:
         {
           desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, bytecode);
-          //desc.GS.BytecodeLength = blobs.back().size();
-          //desc.GS.pShaderBytecode = blobs.back().data();
           break;
         }
         case ShaderType::Hull:
         {
           desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, bytecode);
-          //desc.HS.BytecodeLength = blobs.back().size();
-          //desc.HS.pShaderBytecode = blobs.back().data();
           break;
         }
         case ShaderType::Domain:
         {
           desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, bytecode);
-          //desc.DS.BytecodeLength = blobs.back().size();
-          //desc.DS.pShaderBytecode = blobs.back().data();
           break;
         }
         case ShaderType::Pixel:
         {
           desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, bytecode);
-          //desc.PS.BytecodeLength = blobs.back().size();
-          //desc.PS.pShaderBytecode = blobs.back().data();
           break;
         }
         case ShaderType::Amplification:
         {
-
+          HIGAN_ASSERT(false, "Insert amplification shaders support");
         }
         case ShaderType::Mesh:
         {
-
+          HIGAN_ASSERT(false, "Insert mesh shaders support");
         }
         default:
           break;
@@ -1090,8 +1091,6 @@ namespace higanbana
 
       ComPtr<ID3D12RootSignature> root;
       HIGANBANA_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, blobs[0].data(), blobs[0].size(), IID_PPV_ARGS(&root)));
-      //desc.pRootSignature = root.Get();
-      //desc.pRootSignature = nullptr;
       auto stream = desc.finalize();
 
       ComPtr<ID3D12PipelineState> pipe;
@@ -1108,6 +1107,8 @@ namespace higanbana
       vp.root = root;
       vp.primitive = primitive;
       vp.m_hasPipeline->store(true);
+      HIGAN_ILOG("DX12", "Graphics Pipeline \"%s\" created in %.2fms", d.shaders.back().second.c_str(), float(pipelineRecreationTime.timeFromLastReset()) / 1000000.f);
+
       return oldPipe;
     }
   
@@ -1124,18 +1125,14 @@ namespace higanbana
 
       if (pipe.m_hasPipeline->load() && !pipe.cs.updated())
         return {};
+      Timer pipelineRecreationTime;
       oldPipe = {pipe.pipeline, pipe.root};
-      if (pipe.cs.updated())
-      {
-        GFX_LOG("Updating Compute pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
-      }
-      else
-      {
-        GFX_LOG("First time create Compute pipeline %s", pipe.m_computeDesc.shaderSourcePath.c_str());
-      }
 
       ShaderCreateInfo sci = ShaderCreateInfo(pipe.m_computeDesc.shaderSourcePath, ShaderType::Compute, pipe.m_computeDesc.layout)
         .setComputeGroups(pipe.m_computeDesc.shaderGroups);
+
+      if (pipe.cs.updated())
+        sci = sci.compile();
 
       auto thing = m_shaders.shader(sci);
       HIGANBANA_CHECK_HR(m_device->CreateRootSignature(m_nodeMask, thing.data(), thing.size(), IID_PPV_ARGS(&pipe.root)));
@@ -1158,6 +1155,7 @@ namespace higanbana
       auto stream = computeDesc.finalize();
 
       HIGANBANA_CHECK_HR(m_device->CreatePipelineState(&stream, IID_PPV_ARGS(&pipe.pipeline)));
+      HIGAN_ILOG("DX12", "Compute Pipeline \"%s\" created in %.2fms", sci.desc.shaderName.c_str(), float(pipelineRecreationTime.timeFromLastReset()) / 1000000.f);
       return oldPipe;
     }
 

@@ -4,13 +4,16 @@
 #include <Objbase.h>
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
+
+#include <higanbana/core/system/time.hpp>
+
 template <typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-class DXCIncludeHandler2 : public IDxcIncludeHandler
+class DXCIncludeHandler : public IDxcIncludeHandler
 {
 public:
-  DXCIncludeHandler2(higanbana::FileSystem& fs, std::string sourcePath, std::string rootSignature, ComPtr<IDxcLibrary> lib, std::function<void(std::string)> func): m_fs(fs)
+  DXCIncludeHandler(higanbana::FileSystem& fs, std::string sourcePath, std::string rootSignature, ComPtr<IDxcLibrary> lib, std::function<void(std::string)> func): m_fs(fs)
     , m_sourcePath(sourcePath)
     , m_rootSignatureFile(rootSignature)
     , m_lib(lib)
@@ -23,7 +26,7 @@ public:
   }
 
   DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
-    virtual ~DXCIncludeHandler2() {}
+    virtual ~DXCIncludeHandler() {}
 
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override {
     return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
@@ -55,23 +58,7 @@ public:
 
     std::string finalPath;
     finalPath = m_sourcePath + filename;
-    if (filename.compare("rootSig.h") == 0)
-    {
-      HIGAN_LOG("Shader include wanted RootSignature!!\n");
-
-      ComPtr<IDxcBlobEncoding> asd;
-      auto hr = m_lib->CreateBlobWithEncodingFromPinned(m_rootSignatureFile.data(), static_cast<UINT32>(m_rootSignatureFile.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
-
-      if (SUCCEEDED(hr))
-      {
-        *ppIncludeSource = asd.Detach();
-      }
-      return hr;
-    }
-    else
-    {
-      HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
-    }
+    HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     if (m_fileIncluded)
     {
@@ -139,6 +126,7 @@ namespace higanbana
       , ShaderCreateInfo info
       , std::function<void(std::string)> includeCallback)
     {
+      Timer time;
       auto d = info.desc;
       auto shaderPath = shaderSourcePath;
       auto dxilPath = shaderBinaryPath;
@@ -158,7 +146,7 @@ namespace higanbana
       DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
       pLibrary->CreateBlobWithEncodingFromPinned(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
-      ComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler2(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
+      ComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
 
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;
@@ -262,7 +250,8 @@ namespace higanbana
         //HIGAN_ASSERT(false, "Temp assertion for strange errors");
         return false;
       }
-      HIGAN_ILOG("ShaderStorage", "Compiled: \"%s\"", d.shaderName.c_str());
+      auto timingFinish = float(time.timeFromLastReset());
+      HIGAN_ILOG("ShaderStorage", "Compiled: \"%s\" in %.2fms", dxilPath.c_str(), timingFinish / 1000000.f);
       ComPtr<IDxcBlob> blob;
       pResult->GetResult(blob.ReleaseAndGetAddressOf());
       auto thingA = blob->GetBufferPointer();

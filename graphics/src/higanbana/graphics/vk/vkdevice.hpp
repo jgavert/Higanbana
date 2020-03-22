@@ -98,6 +98,9 @@ namespace higanbana
 
       // thread lock stuff
       std::mutex m_deviceLock;
+
+      void getGfxPipelineInformation(vk::Pipeline pipe, higanbana::GraphicsPipelineDescriptor::Desc& d);
+      void getComputePipelineInformation(vk::Pipeline pipe, higanbana::ComputePipelineDescriptor& d);
     public:
       VulkanDevice(
         vk::Device device,
