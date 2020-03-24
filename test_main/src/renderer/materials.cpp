@@ -27,7 +27,7 @@ void MaterialDB::update(higanbana::GpuGroup& gpu, higanbana::CommandGraphNode& n
     if (it.dirty || copyAll) {
       auto materialData = gpu.dynamicBuffer<MaterialData>(it.data);
       node.copy(m_materials, index, materialData);
-      //it.dirty = false;
+      it.dirty = false;
     }
     index++;
   }
