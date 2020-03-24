@@ -32,6 +32,7 @@ namespace higanbana
       extern bool GraphicsEnableHandleCommonState;
       extern bool GraphicsEnableSplitBarriers;
       extern bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints;
+      extern int GraphicsHowManyBytesBeforeNewCommandBuffer;
     }
   }
 }

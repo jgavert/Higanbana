@@ -137,6 +137,7 @@ class Renderer
 
   // info
   std::optional<higanbana::SubmitTiming> m_previousInfo;
+  int64_t m_acquireTimeTaken;
   void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
   void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
 
@@ -160,6 +161,7 @@ public:
   void resizeInternal(higanbana::ResourceDescriptor& desc);
   void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
   std::optional<higanbana::SubmitTiming> timings();
+  float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);
   void unloadMesh(int index);
   int loadBuffer(BufferData& data);

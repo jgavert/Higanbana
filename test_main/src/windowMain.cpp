@@ -640,6 +640,7 @@ void mainWindow(ProgramParams& params)
               ImGui::Text("Drawcalls per second %zu", dps);
               ImGui::Text("GPU execution %.3fms", gpuTotal);
               ImGui::Text("CPU execution %.3fms", cpuTotal);
+              ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
               ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal/1024.f/1024.f);
               ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
               ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());

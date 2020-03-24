@@ -1431,6 +1431,15 @@ namespace higanbana
           nodes.back().m_readbackPromises.emplace_back(promise);
         }
       }
+      size_t allListSize = 0;
+      for (auto&& list : nodes) {
+        allListSize += list.list->list.sizeBytes();
+      }
+      auto splitSize = std::max(allListSize / 8, static_cast<size_t>(higanbana::globalconfig::graphics::GraphicsHowManyBytesBeforeNewCommandBuffer));
+      if (splitSize > 2 * 1024 * 1024ull) {
+        splitSize = std::max(allListSize / 16, 2*1024*1024ull);
+      }
+
       int i = 0;
       while (i < static_cast<int>(nodes.size()))
       {
@@ -1457,7 +1466,7 @@ namespace higanbana
           if (nodes[i].type != plist.type)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if (!singleThreaded && ( 1 || (currentSizeBytes > 1024*100 && addedNodeSize > 1024*10) || currentSizeBytes > 1024*128))
+          if (!singleThreaded && currentSizeBytes > splitSize)
             break;
           currentSizeBytes += addedNodeSize;
           plist.buffers.emplace_back(std::move(nodes[i].list->list));

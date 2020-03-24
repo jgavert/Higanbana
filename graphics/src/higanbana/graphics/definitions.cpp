@@ -12,6 +12,7 @@ namespace higanbana
       bool GraphicsEnableHandleCommonState = true;
       bool GraphicsEnableSplitBarriers = false;
       bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints = false;
+      int GraphicsHowManyBytesBeforeNewCommandBuffer = 200 * 1024;
     }
   }
 }

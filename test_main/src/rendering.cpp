@@ -435,7 +435,9 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   }
 
   // If you acquire, you must submit it.
+  Timer acquireTime;
   std::optional<std::pair<int,TextureRTV>> obackbuffer = dev.acquirePresentableImage(swapchain);
+  m_acquireTimeTaken = acquireTime.timeFromLastReset();
   if (!obackbuffer.has_value())
   {
     HIGAN_LOGi( "No backbuffer available...\n");
