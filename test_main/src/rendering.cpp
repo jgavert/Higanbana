@@ -375,7 +375,7 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     if (options.jitterEnabled){
       perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), perspective);
     }
-    sets.push_back(CameraSettings{perspective});
+    sets.push_back(CameraSettings{float4(camera.position, 1.f), perspective});
     auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
     ndoe.copy(cameras, matUpdate);
     tasks.addPass(std::move(ndoe));

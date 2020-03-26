@@ -1,4 +1,4 @@
-// INTERFACE_HASH:12321615094543316910:4799717373245859446
+// INTERFACE_HASH:17000605198578316206:9654085510401328020
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -12,7 +12,7 @@
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=0 )),\
   DescriptorTable(\
-     SRV(t0, numDescriptors = 3, space=1 )),\
+     SRV(t0, numDescriptors = 4, space=1 )),\
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=2 ),\
      SRV(t1, numDescriptors = unbounded, space=2, flags=DESCRIPTORS_VOLATILE )),\
@@ -27,7 +27,7 @@ VK_BINDING(0, 3) ConstantBuffer<Constants> constants : register( b0 );
 VK_BINDING(1, 3) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0
 // Struct declarations
-struct CameraSettings { float4x4 perspective; };
+struct CameraSettings { float4 position; float4x4 perspective; };
 
 // Read Only resources
 VK_BINDING(0, 0) StructuredBuffer<CameraSettings> cameras : register( t0, space0 );
@@ -39,6 +39,7 @@ VK_BINDING(0, 0) StructuredBuffer<CameraSettings> cameras : register( t0, space0
 VK_BINDING(0, 1) Buffer<float3> vertices : register( t0, space1 );
 VK_BINDING(1, 1) Buffer<float2> uvs : register( t1, space1 );
 VK_BINDING(2, 1) Buffer<float3> normals : register( t2, space1 );
+VK_BINDING(3, 1) Buffer<float3> tangents : register( t3, space1 );
 
 // Read Write resources
 // Shader Arguments 2

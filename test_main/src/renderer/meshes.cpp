@@ -139,10 +139,24 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
     view.normals = gpu.createBufferSRV(meshbuffer, svd);
   }
 
+  if (data.tangents.format != FormatType::Unknown)
+  {
+    sizeInfo = higanbana::formatSizeInfo(data.tangents.format);
+    buffer = buffers[4];
+    block = sourceBuffers[buffer];
+    svd = ShaderViewDescriptor()
+      .setFormat(data.tangents.format)
+      .setFirstElement((data.tangents.offset + block.offset) / sizeInfo.pixelSize)
+      .setElementCount(data.tangents.size / sizeInfo.pixelSize);
+    HIGAN_ASSERT((data.tangents.offset + block.offset) % sizeInfo.pixelSize == 0, "");
+    view.tangents = gpu.createBufferSRV(meshbuffer, svd);
+  }
+
   view.args = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout", normalLayout)
     .bind("vertices", view.vertices)
     .bind("uvs", view.uvs)
-    .bind("normals", view.normals));
+    .bind("normals", view.normals)
+    .bind("tangents", view.tangents));
 
   view.meshArgs = gpu.createShaderArguments(higanbana::ShaderArgumentsDescriptor("World shader layout(mesh version)", meshLayout)
     .bind("meshlets", view.meshlets)
@@ -150,7 +164,8 @@ int MeshSystem::allocate(higanbana::GpuGroup& gpu, higanbana::ShaderArgumentsLay
     .bind("packedIndices", view.packedIndices)
     .bind("vertices", view.vertices)
     .bind("uvs", view.uvs)
-    .bind("normals", view.normals));
+    .bind("normals", view.normals)
+    .bind("tangents", view.tangents));
 
   /*
   auto graph = gpu.createGraph();

@@ -14,7 +14,8 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
   ShaderArgumentsLayoutDescriptor inputDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly(ShaderResourceType::Buffer, "float3", "vertices")
     .readOnly(ShaderResourceType::Buffer, "float2", "uvs")
-    .readOnly(ShaderResourceType::Buffer, "float3", "normals");
+    .readOnly(ShaderResourceType::Buffer, "float3", "normals")
+    .readOnly(ShaderResourceType::Buffer, "float3", "tangents");
   m_meshArgumentsLayout = device.createShaderArgumentsLayout(inputDataLayout);
 
   PipelineInterfaceDescriptor instancePipeline = PipelineInterfaceDescriptor()

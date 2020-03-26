@@ -1,5 +1,8 @@
 #ifndef __aces__
 #define __aces__
+// taken from the blog, you know
+// not going to use this as is... probably have to figure out something myself.
+
 // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
 static const float3x3 ACESInputMat =
 {

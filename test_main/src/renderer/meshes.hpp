@@ -14,6 +14,7 @@ struct MeshViews
   higanbana::BufferSRV vertices;
   higanbana::BufferSRV uvs;
   higanbana::BufferSRV normals;
+  higanbana::BufferSRV tangents;
   // mesh shader required
   higanbana::BufferSRV uniqueIndices;
   higanbana::BufferSRV packedIndices;
