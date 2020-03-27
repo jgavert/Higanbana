@@ -1302,7 +1302,8 @@ namespace higanbana
           auto exeresult = m_device.getPipelineExecutableStatisticsKHR(einfo, m_dynamicDispatch);
           VK_CHECK_RESULT(exeresult);
           auto curIndex = execIndex++;
-          HIGAN_LOGi("Shader \"%s\" stats: %s\n", d.shaders[curIndex].second.c_str(), execProp.value[curIndex].description);
+          std::string something = (curIndex < d.shaders.size()) ? d.shaders[curIndex].second : "Unknown";
+          HIGAN_LOGi("Shader \"%s\" stats: %s\n", something.c_str(), execProp.value[curIndex].description);
           for (auto&& exeStats : exeresult.value)
           {
             HIGAN_LOGi("\t \"%s\": \"%s\" value: ", exeStats.name, exeStats.description);

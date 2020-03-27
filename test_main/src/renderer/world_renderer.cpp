@@ -31,9 +31,10 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
     .setVertexShader("world")
     .setPixelShader("world")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    .setRTVFormat(0, FormatType::Unorm8BGRA)
+    .setRTVFormat(0, FormatType::Unorm16RGBA)
+    .setRTVFormat(1, FormatType::Float16RGBA)
     .setDSVFormat(FormatType::Depth32)
-    .setRenderTargetCount(1)
+    .setRenderTargetCount(2)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(true)
       .setDepthFunc(ComparisonFunc::Greater));
