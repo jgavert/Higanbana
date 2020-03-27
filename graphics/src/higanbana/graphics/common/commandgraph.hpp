@@ -121,6 +121,15 @@ namespace higanbana
       list->renderpass(pass, {rtv}, dsv);
     }
 
+    void renderpass(Renderpass& pass, TextureRTV& rtv, TextureRTV& rtv2, TextureDSV& dsv)
+    {
+      addViewTex(rtv);
+      addViewTex(rtv2);
+      addViewTex(dsv);
+      TextureRTV temp_rtvs[2] = {rtv, rtv2};
+      list->renderpass(pass, temp_rtvs, dsv);
+    }
+
     void renderpass(Renderpass& pass, TextureDSV& dsv)
     {
       addViewTex(dsv);

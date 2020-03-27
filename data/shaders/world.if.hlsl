@@ -1,4 +1,4 @@
-// INTERFACE_HASH:17000605198578316206:9654085510401328020
+// INTERFACE_HASH:1958335781797978140:10280204417222193959
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -22,12 +22,12 @@
   StaticSampler(s3, filter = FILTER_MIN_MAG_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP)"
 
 struct Constants
-{float3 pos; int camera; int material; };
+{float3 pos; int camera; int prevCamera; int material; int2 outputSize; };
 VK_BINDING(0, 3) ConstantBuffer<Constants> constants : register( b0 );
 VK_BINDING(1, 3) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Shader Arguments 0
 // Struct declarations
-struct CameraSettings { float4 position; float4x4 perspective; };
+struct CameraSettings { float4x4 perspective; float4 position; };
 
 // Read Only resources
 VK_BINDING(0, 0) StructuredBuffer<CameraSettings> cameras : register( t0, space0 );
@@ -44,7 +44,7 @@ VK_BINDING(3, 1) Buffer<float3> tangents : register( t3, space1 );
 // Read Write resources
 // Shader Arguments 2
 // Struct declarations
-struct MaterialData { double3 emissiveFactor; double alphaCutoff; double4 baseColorFactor; double metallicFactor; double roughnessFactor; uint albedoIndex; uint normalIndex; uint metallicRoughnessIndex; uint occlusionIndex; uint emissiveIndex; uint doubleSided; };
+struct MaterialData { float3 emissiveFactor; float alphaCutoff; float4 baseColorFactor; float metallicFactor; float roughnessFactor; uint albedoIndex; uint normalIndex; uint metallicRoughnessIndex; uint occlusionIndex; uint emissiveIndex; uint doubleSided; };
 
 // Read Only resources
 VK_BINDING(0, 2) StructuredBuffer<MaterialData> materials : register( t0, space2 );

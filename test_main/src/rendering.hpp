@@ -120,6 +120,9 @@ class Renderer
   higanbana::TextureSRV m_gbufferSRV;
   higanbana::Texture m_depth;
   higanbana::TextureDSV m_depthDSV;
+  higanbana::Texture m_motionVectors;
+  higanbana::TextureSRV m_motionVectorsSRV;
+  higanbana::TextureRTV m_motionVectorsRTV;
   higanbana::Texture depthExternal;
   higanbana::TextureDSV depthExternalDSV;
   // other
@@ -135,18 +138,23 @@ class Renderer
   higanbana::GraphicsPipeline composite;
   higanbana::Renderpass compositeRP;
 
+  // temp, probably shouldnt be here
+  CameraSettings m_previousCamera;
+
   // info
   std::optional<higanbana::SubmitTiming> m_previousInfo;
   int64_t m_acquireTimeTaken;
-  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
-  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer,higanbana::TextureDSV& depth,higanbana::ShaderArguments materials,int cameraIndex, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, higanbana::vector<InstanceDraw>& instances);
+  void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances);
 
-  struct SceneArguments{
+  struct SceneArguments {
     higanbana::TextureRTV gbufferRTV;
     higanbana::TextureDSV depth;
+    higanbana::TextureRTV motionVectors;
     higanbana::ShaderArguments materials;
     RendererOptions options;
     int cameraIdx;
+    int prevCameraIdx;
     float4x4 perspective;
     float3 cameraPos;
     int drawcalls;

@@ -14,14 +14,14 @@ struct VertexOut
 VertexOut main(uint id: SV_VertexID)
 { 
   VertexOut vtxOut;
-  float3 inputPos = vertices.Load(id);
-  vtxOut.pos.xyz = inputPos;
-  vtxOut.pos.w = 1.f;
+  float4 inputPos = float4(vertices.Load(id),1);
+
+  vtxOut.wPos = float4(inputPos.xyz, 1.f);
   CameraSettings settings = cameras.Load(constants.camera);
-  vtxOut.pos = mul(vtxOut.pos, settings.perspective);
+  float4 vpos = mul(inputPos, settings.perspective);
+  vtxOut.pos = vpos;
   vtxOut.normal = normals.Load(id);
   vtxOut.tangent = tangents.Load(id);
   vtxOut.uv = uvs.Load(id);
-  vtxOut.wPos = float4(inputPos.xyz, 1.f);
   return vtxOut;
 }

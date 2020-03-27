@@ -1,4 +1,4 @@
-// INTERFACE_HASH:15371879849191059656:5909916842730741251
+// INTERFACE_HASH:9578755909342611794:12583399221600060320
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -10,7 +10,7 @@
   CBV(b0), \
   DescriptorTable( UAV(u99, numDescriptors = 1, space=99 )), \
   DescriptorTable(\
-     SRV(t0, numDescriptors = 2, space=0 ),\
+     SRV(t0, numDescriptors = 3, space=0 ),\
      UAV(u0, numDescriptors = 2, space=0 )),\
   StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
   StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT), \
@@ -26,10 +26,11 @@ VK_BINDING(1, 1) RWByteAddressBuffer _debugOut : register( u99, space99 );
 // Read Only resources
 VK_BINDING(0, 0) Texture2D<float4> history : register( t0, space0 );
 VK_BINDING(1, 0) Texture2D<float4> source : register( t1, space0 );
+VK_BINDING(2, 0) Texture2D<float4> motion : register( t2, space0 );
 
 // Read Write resources
-VK_BINDING(2, 0) RWTexture2D<float4> result : register( u0, space0 );
-VK_BINDING(3, 0) RWTexture2D<float4> debug : register( u1, space0 );
+VK_BINDING(3, 0) RWTexture2D<float4> result : register( u0, space0 );
+VK_BINDING(4, 0) RWTexture2D<float4> debug : register( u1, space0 );
 
 // Usable Static Samplers
 VK_BINDING(2, 1) SamplerState bilinearSampler : register( s0 );

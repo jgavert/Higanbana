@@ -158,7 +158,7 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       float multiplier = 1.f;
       if (inputs.isPressedThisFrame(VK_SHIFT, 2))
       {
-        multiplier = 100.f;
+        multiplier = 1000.f;
       }
       if (inputs.isPressedThisFrame('W', 2))
       {
@@ -448,6 +448,8 @@ void mainWindow(ProgramParams& params)
         bool captureMouse = false;
         bool controllerConnected = false;
 
+        bool autoRotateCamera = false;
+
         AtomicBuffered<InputBuffer> ainputs;
         AtomicBuffered<gamepad::X360LikePad> agamepad;
         ainputs.write(window.inputs());
@@ -457,6 +459,7 @@ void mainWindow(ProgramParams& params)
         int inputsRead = 0;
 
         lbs.addTask("logic&render loop", [&](size_t) {
+          float timeSinceLastInput = 0;
           while (renderActive)
           {
             HIGAN_CPU_BRACKET("Logic&Render loop begin!");
@@ -571,8 +574,12 @@ void mainWindow(ProgramParams& params)
               {
                 renderActive = false;
               }
-
-              handleInputs(ecs, pad, mouse, inputs, time.getFrameTimeDelta(), captureMouse);
+              auto timestep = timeSinceLastInput + time.getFrameTimeDelta();
+              handleInputs(ecs, pad, mouse, inputs, timestep, captureMouse);
+              timeSinceLastInput = 0.f;
+            }
+            else {
+              timeSinceLastInput += time.getFrameTimeDelta();
             }
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
@@ -582,6 +589,7 @@ void mainWindow(ProgramParams& params)
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
             ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
             ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
+            ImGui::Checkbox("rotate camera", &autoRotateCamera);
             ImGui::Checkbox("simulate", &advanceSimulation);
             if (!advanceSimulation)
             {
@@ -700,6 +708,8 @@ void mainWindow(ProgramParams& params)
                 [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
                 {
                   ImGui::DragFloat3("position", pos.pos.data);
+                  if (autoRotateCamera)
+                    pos.pos.x += sin(time.getFTime())*10;
                   float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
                   float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
                   float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, rot.rot));
@@ -824,9 +834,10 @@ void mainWindow(ProgramParams& params)
             {
               auto targetTime = (1000000.f / float(limitFPS));
               auto ourTime = time.getFrameTimeDelta()*1000000.f;
-              auto howFarAreWe = std::min(0.f, targetTime - ourTime);
+              auto howFarAreWe = std::max(std::min(0.f, targetTime - ourTime), targetTime * -2.f);
               auto overTime = (1000000.f / float(limitFPS)) - totalTime*1000000.f;
-              std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int64_t>(overTime+howFarAreWe*1.8f)));
+              auto waitTime = std::min(1000000ll, static_cast<int64_t>(overTime+howFarAreWe*1.8f));
+              std::this_thread::sleep_for(std::chrono::microseconds(waitTime));
               //HIGAN_LOGi("delta to fps limit %.4f %.4f %.4f %.4f %.4f\n", howFarAreWe, totalTime*1000000.f, overTime, targetTime, ourTime);
             }
           }

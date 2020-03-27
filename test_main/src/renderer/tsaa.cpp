@@ -12,6 +12,7 @@ ShittyTSAA::ShittyTSAA(higanbana::GpuGroup& device) {
   auto inputDataLayout = ShaderArgumentsLayoutDescriptor()
     .readOnly(ShaderResourceType::Texture2D, "float4", "history")
     .readOnly(ShaderResourceType::Texture2D, "float4", "source")
+    .readOnly(ShaderResourceType::Texture2D, "float4", "motion")
     .readWrite(ShaderResourceType::Texture2D, "float4", "result")
     .readWrite(ShaderResourceType::Texture2D, "float4", "debug");
   m_args = device.createShaderArgumentsLayout(inputDataLayout);
@@ -53,6 +54,7 @@ void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   auto argument = device.createShaderArguments(ShaderArgumentsDescriptor("tsaa resolve", m_args)
     .bind("history", args.history)
     .bind("source", args.source)
+    .bind("motion", args.motionVectors)
     .bind("result", output)
     .bind("debug", args.debug));
   auto binding = node.bind(m_pipeline);

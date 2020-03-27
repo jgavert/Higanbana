@@ -9,6 +9,12 @@ struct VertexOut
   float4 pos : SV_Position;
 };
 
+struct PixelOut
+{
+  float4 color: SV_Target0;
+  float4 motion: SV_Target1;
+};
+
 // taken from microsoft samples
 float4 CalcLightingColor(float3 vLightPos, float3 vLightDir, float4 vLightColor, float4 vFalloffs, float3 vPosWorld, float3 vPerPixelNormal)
 {
@@ -37,7 +43,7 @@ float4 CalcLightingColor(float3 vLightPos, float3 vLightDir, float4 vLightColor,
 
 
 [RootSignature(ROOTSIG)]
-float4 main(VertexOut input) : SV_TARGET
+PixelOut main(VertexOut input) 
 {
   uint materialIndex = constants.material;
   float4 albedo = float4(1,1,1,1);
@@ -61,7 +67,7 @@ float4 main(VertexOut input) : SV_TARGET
       float3 pixelNormal = mul(normal, mTangentSpaceToWorldSpace);
     }
   }
-  float4 totalLight = float4(1,1,1,1) * 0.1;
+  float4 totalLight = float4(1,1,1,1) * 0.9;
 
   float4 lColor = float4(1,1,1,1);
   float lStr = 5.f;
@@ -73,10 +79,43 @@ float4 main(VertexOut input) : SV_TARGET
   float4 lightPass = float4(0,0,0,0);
   lightPass = CalcLightingColor(lPos, float3(0,1,0), lColor, float4(150, 10,0.5,1), input.wPos.xyz, pixelNormal);
 
-  if (albedo.w < 0.00001)
-    discard;
 
   totalLight += lightPass;
 
-  return albedo * saturate(totalLight);
+  PixelOut output;
+  output.color = albedo * saturate(totalLight);
+  CameraSettings settings2 = cameras.Load(constants.prevCamera);
+  float4 prevPos = mul(float4(input.wPos.xyz,1), settings2.perspective);// input.prevPos;
+  float4 curPos = input.pos;
+  curPos.xy /=  constants.outputSize;
+  curPos.xy -= float2(0.5, 0.5);
+  curPos.xy *= float2(2,-2);
+  prevPos = prevPos / prevPos.w;
+  //prevPos.xy = prevPos.xy * float2(0.5,-0.5) + float2(0.5, 0.5);
+  //prevPos.xy = prevPos.xy * constants.outputSize;
+  curPos.w = 1.f;
+
+
+  output.motion = prevPos - curPos; // so we need the previous wPos somehow... previous camera the least.
+  output.motion.xy *= float2(1, -1);
+  //output.motion.xy /= constants.outputSize;
+
+  int2 pixel = int2(1000, 500);
+  if (input.pos.x > pixel.x && input.pos.x < pixel.x+1 && input.pos.y > pixel.y && input.pos.y < pixel.y+1)
+  {
+    if (curPos.z > 0.0001)
+    {
+      //print(float4(curPos.xy, prevPos.xy));
+      //output.color = float4(1,1,1,1);
+    }
+    //print(curPos);
+    //float2 wtf = float2(1,1)-prevPos.xy/prevPos.w*float2(-1,1);
+    //print(float4(diff));
+    //output.motion = float4(1,1,1,1);
+  }
+  //output.motion = prevPos.zzzz*10; // so we need the previous wPos somehow... previous camera the least.
+
+  //if (albedo.w < 0.00001)
+  //  discard;
+  return output;
 }

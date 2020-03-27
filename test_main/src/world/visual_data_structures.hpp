@@ -52,12 +52,12 @@ struct MaterialData
 };*/
 
 SHADER_STRUCT(MaterialData,
-  double3 emissiveFactor;
-  double alphaCutoff;
+  float3 emissiveFactor;
+  float alphaCutoff;
   // pbr
-  double4 baseColorFactor;
-  double metallicFactor;
-  double roughnessFactor;
+  float4 baseColorFactor;
+  float metallicFactor;
+  float roughnessFactor;
 
   uint albedoIndex; // baseColorTexIndex
   uint normalIndex; // normalTexIndex

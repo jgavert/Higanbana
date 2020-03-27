@@ -3,7 +3,9 @@
 SHADER_STRUCT(DebugConstants,
   float3 pos;
   int camera;
+  int prevCamera;
   int material;
+  int2 outputSize;
 );
 
 namespace app::renderer
@@ -29,7 +31,6 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
     .setVertexShader("world")
     .setPixelShader("world")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    //.setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(true))
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)
     .setRenderTargetCount(1)
@@ -41,22 +42,23 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
   m_renderpass = device.createRenderpass();
 }
 
-void World::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureDSV& depth)
+void World::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth)
 {
-  node.renderpass(m_renderpass, target, depth);
+  node.renderpass(m_renderpass, target, motionVecs, depth);
+  outputSize = target.texture().desc().desc.size3D().xy();
 }
 void World::endRenderpass(higanbana::CommandGraphNode& node)
 {
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int materialIndex)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, int materialIndex)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
   binding.arguments(1, meshBuffers);
   binding.arguments(2, materials);
-  binding.constants(DebugConstants{float3(0,0,0), cameraIndex, materialIndex});
+  binding.constants(DebugConstants{float3(0,0,0), cameraIndex, prevCamera, materialIndex, outputSize});
   node.drawIndexed(binding, ibv, ibv.viewDesc().m_elementCount);
 }
 }

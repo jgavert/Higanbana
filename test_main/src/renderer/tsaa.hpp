@@ -11,6 +11,7 @@ struct TSAAArguments
 {
   higanbana::TextureSRV source;
   higanbana::TextureSRV history;
+  higanbana::TextureSRV motionVectors;
   higanbana::TextureSRV groundtruth;
   higanbana::TextureUAV debug;
 };

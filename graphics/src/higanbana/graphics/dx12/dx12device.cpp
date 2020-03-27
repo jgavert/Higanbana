@@ -1094,7 +1094,10 @@ namespace higanbana
       auto stream = desc.finalize();
 
       ComPtr<ID3D12PipelineState> pipe;
-      HIGANBANA_CHECK_HR(m_device->CreatePipelineState(&stream, IID_PPV_ARGS(&pipe)));
+      HRESULT hr = m_device->CreatePipelineState(&stream, IID_PPV_ARGS(&pipe));
+
+      if (FAILED(hr))
+        return oldPipe;
 
       D3D12_PRIMITIVE_TOPOLOGY primitive = convertPrimitiveTopology(d.primitiveTopology);
 

@@ -121,6 +121,15 @@ void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
     .setFormat(desc.desc.format)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("proxyTex"));
+
+  m_motionVectors = dev.createTexture(higanbana::ResourceDescriptor()
+    .setSize(desc.desc.size3D())
+    .setFormat(FormatType::Float16RGBA)
+    .setUsage(ResourceUsage::RenderTarget)
+    .setName("motion vectors"));
+  
+  m_motionVectorsSRV = dev.createTextureSRV(m_motionVectors);
+  m_motionVectorsRTV = dev.createTextureRTV(m_motionVectors);
 }
 void Renderer::resizeExternal(higanbana::ResourceDescriptor& desc) {
   tsaaResolved.resize(dev, ResourceDescriptor()
@@ -151,14 +160,14 @@ std::optional<higanbana::SubmitTiming> Renderer::timings() {
   return m_previousInfo;
 }
 
-void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, higanbana::vector<InstanceDraw>& instances) {
   backbuffer.setOp(LoadOp::Load);
   depth.clearOp({});
-  worldRend.beginRenderpass(node, backbuffer, depth);
+  worldRend.beginRenderpass(node, backbuffer, motionVecs, depth);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, instance.materialId);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, prevCamera, instance.materialId);
   }
   worldRend.endRenderpass(node);
 }
@@ -318,10 +327,12 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& tim
       auto node = tasks.createPass("opaquePass - ecs");
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
+      auto moti = scene.motionVectors;
+      moti.setOp(LoadOp::Clear);
       if (scene.options.allowMeshShaders)
         renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
       else
-        renderMeshes(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
+        renderMeshes(node, gbufferRTV, moti, depth, scene.materials, scene.cameraIdx, scene.prevCameraIdx, instances);
       tasks.addPass(std::move(node));
     }
   }
@@ -336,6 +347,15 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& tim
   }
 }
 
+higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 swapchainRes) {
+  using namespace higanbana;
+  auto aspect = float(swapchainRes.y)/float(swapchainRes.x);
+  float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
+  float4x4 rot = math::rotationMatrixLH(camera.direction);
+  float4x4 pos = math::translation(camera.position);
+  float4x4 perspective = math::mul(pos, math::mul(rot, pers));
+  return perspective;
+}
 
 void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
   if (swapchain.outOfDate())
@@ -354,7 +374,6 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   // materials
 
   CommandGraph tasks = dev.createGraph();
-
   {
     auto ndoe = tasks.createPass("update materials");
     materials.update(dev, ndoe);
@@ -367,15 +386,16 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     auto ndoe = tasks.createPass("copy cameras");
     vector<CameraSettings> sets;
     auto& swapDesc = swapchain.buffers().front().desc().desc;
-    auto aspect = float(swapDesc.height)/float(swapDesc.width);
-    float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
-    float4x4 rot = math::rotationMatrixLH(camera.direction);
-    float4x4 pos = math::translation(camera.position);
-    perspective = math::mul(pos, math::mul(rot, pers));
+    perspective = calculatePerspective(camera, swapDesc.size3D().xy());
+    auto prevCamera = m_previousCamera;
+    auto newCamera = CameraSettings{ perspective, float4(camera.position, 1.f)};
+    m_previousCamera = newCamera;
     if (options.jitterEnabled){
-      perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), perspective);
+      prevCamera.perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), prevCamera.perspective);
+      newCamera.perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), newCamera.perspective);
     }
-    sets.push_back(CameraSettings{float4(camera.position, 1.f), perspective});
+    sets.push_back(prevCamera);
+    sets.push_back(newCamera);
     auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
     ndoe.copy(cameras, matUpdate);
     tasks.addPass(std::move(ndoe));
@@ -394,11 +414,9 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     tasks.addPass(std::move(ndoe));
   }
 
-  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, materialArgs, options, 0, perspective, camera.position, drawcalls, drawsSplitInto};
-
+  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, m_motionVectorsRTV, materialArgs, options, 1, 0, perspective, camera.position, drawcalls, drawsSplitInto};
 
   renderScene(tasks, time, sargs, instances, heightmap);
-
 
   TextureSRV tsaaOutput = m_gbufferSRV;
   TextureRTV tsaaOutputRTV = m_gbufferRTV;
@@ -406,7 +424,7 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   {
     auto tsaaNode = tasks.createPass("Temporal Supersampling AA");
     tsaaResolved.next(time.getFrame());
-    tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_gbufferSRV, tsaaDebugUAV});
+    tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_motionVectorsSRV, m_gbufferSRV, tsaaDebugUAV});
     tasks.addPass(std::move(tsaaNode));
     tsaaOutput = tsaaResolved.srv();
     tsaaOutputRTV = tsaaResolved.rtv();
