@@ -51,7 +51,7 @@ PixelOut main(VertexOut input)
   float3 pixelNormal = input.normal;
   if (materialIndex > 0)
   {
-    MaterialData mat = materials[constants.material];
+    MaterialData mat = materials[constants.material-1];
     uint albedoId = mat.albedoIndex;
     if (albedoId > 0) 
       albedo = materialTextures[albedoId-1].SampleLevel(bilinearSampler, input.uv, 0);
