@@ -46,7 +46,7 @@ float4 CalcLightingColor(float3 vLightPos, float3 vLightDir, float4 vLightColor,
 PixelOut main(VertexOut input) 
 {
   uint materialIndex = constants.material;
-  float4 albedo = float4(1,1,1,1);
+  float4 albedo = float4(input.uv,1,1);
   float3 normal = float3(1,1,0);
   float3 pixelNormal = input.normal;
   if (materialIndex > 0)

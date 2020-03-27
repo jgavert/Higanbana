@@ -14,17 +14,32 @@ float4 sample3by3(float2 uv, float2 pixelSize)
   return endResult;
 }
 
-float4 load3by3(int2 uv)
+void load3by3(int2 uv, out float4 minC, out float4 maxC)
 {
-  float4 endResult = source[uv + int2(1,1)];
-  endResult += source[uv - int2(1,1)];
-  endResult += source[uv + int2(-1,1)];
-  endResult += source[uv + int2(1,-1)];
-  endResult += source[uv + int2(0,1)];
-  endResult += source[uv + int2(1,0)];
-  endResult += source[uv + int2(0,-1)];
-  endResult += source[uv + int2(-1,0)];
-  return endResult;
+  float4 sample = source[uv + int2(1,1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv - int2(1,1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(-1,1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(1,-1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(0,1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(1,0)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(0,-1)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
+  sample = source[uv + int2(-1,0)];
+  minC = min(minC, sample);
+  maxC = max(maxC, sample);
 }
 
 void debug3by3(int2 uv, float4 color)
@@ -83,14 +98,16 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
       //print(hid-id);
       //oldPixel = float4(1,1,1,1);
     }
+ 
+  float4 minC = srcPixel;
+  float4 maxC = srcPixel;
   
-  
-  float4 boxcolor = (load3by3(sid)+srcPixel) / 9; //sample3by3(subsampleUV, sourceSubsampleSize)+srcPixel;
+  load3by3(sid, minC, maxC); //sample3by3(subsampleUV, sourceSubsampleSize)+srcPixel;
   //float distToCurrent = distance(oldPixel, boxcolor);
-  float rDist = distance(oldPixel.r, boxcolor.r);
-  float bDist = distance(oldPixel.b, boxcolor.b);
-  float gDist = distance(oldPixel.g, boxcolor.g);
-  float maxDiff = max(max(rDist, bDist), gDist);
+  //float rDist = distance(oldPixel.r, boxcolor.r);
+  //float bDist = distance(oldPixel.b, boxcolor.b);
+  //float gDist = distance(oldPixel.g, boxcolor.g);
+  float maxDiff = distance(minC, maxC);
 
   float filtered = 0.f;
   float distToSourcePixel = distance(uv, uv+uv_jitter_offset);
@@ -105,19 +122,20 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
     historyWeight = 0;
   } 
   
-  if (maxDiff > 0.1)
+  if (any(oldPixel < minC*0.9) || any(oldPixel > maxC*1.1))
   {
-    historyWeight *=  1.f - maxDiff;
+    historyWeight = 0.2;
     //filtered = maxDiff;
   }
 
-  historyWeight = min(0.95, historyWeight);
+  historyWeight = max(0,min(0.95, historyWeight));
   //historyWeight = 1.f;
   float remainingWeight = 1.f - historyWeight;
   current = current * remainingWeight + oldPixel * historyWeight;
+
   //boxcolor /= 9;
   //float4 colorClamp = float4(historyWeight/2, historyWeight/2, historyWeight/2, 1);
-  //current = clamp(current, max(float4(0,0,0,1),boxcolor-colorClamp), min(float4(1,1,1,1), boxcolor+colorClamp));
+  current = clamp(current, minC, maxC);
   if (0)
   {
     float2 suv = float2((float(sid.x)+0.5) / float(constants.sourceSize.x), (float(sid.y)+0.5) / float(constants.sourceSize.y));

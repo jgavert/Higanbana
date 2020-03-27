@@ -112,6 +112,7 @@ float WTime::getAverageFps()
 }
 float WTime::getFrameTimeDelta()
 {
+  // this can return too large values sometimes.
   return deltatime*0.000001f;
 }
 

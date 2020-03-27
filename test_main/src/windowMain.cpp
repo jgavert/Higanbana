@@ -289,7 +289,7 @@ void mainWindow(ProgramParams& params)
       auto& t_cameraSet = ecs.get<components::CameraSettings>();
 
       auto cid = ecs.createEntity();
-      t_pos.insert(cid, {float3(3, 0 , 8)});
+      t_pos.insert(cid, {float3(0, 0 , 4)});
       t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
       t_cameraSet.insert(cid, {90.f, 0.01f, 100.f});
       ecs.getTag<components::ActiveCamera>().insert(cid);
@@ -707,13 +707,17 @@ void mainWindow(ProgramParams& params)
                 query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
                 [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
                 {
-                  ImGui::DragFloat3("position", pos.pos.data);
-                  if (autoRotateCamera)
-                    pos.pos.x += sin(time.getFTime())*10;
                   float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
                   float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
                   float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, rot.rot));
                   float3 xyz{};
+                  if (autoRotateCamera)
+                  {
+                    float circleMultiplier = -1.2f;
+                    pos.pos = math::add(pos.pos, math::mul(circleMultiplier * time.getFrameTimeDelta(), sideVec));
+                    xyz.x = -0.23* time.getFrameTimeDelta();
+                  }
+                  ImGui::DragFloat3("position", pos.pos.data);
                   ImGui::DragFloat3("xyz", xyz.data, 0.01f);
                   ImGui::DragFloat4("quaternion", rot.rot.data, 0.01f);
                   ImGui::DragFloat3("forward", dir.data);
