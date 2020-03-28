@@ -159,9 +159,9 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   result[id] = current;
   //float4 motionVec = abs(motion[sid]);
   //debug[id] = float4(1,1,1,1);
-  float motionLength = length(motionVec)*0.02;
+  float motionLength = length(motionVec)*10000;
 
-  debug[id] = float4(maxDiff.xxx, 1);
+  debug[id] = float4(motionLength.xxx, 1);
   //debug[id] = float4(motionLength.xx*1000, 0, 1);
   //float4 gt = source.SampleLevel(bilinearSampler, uv, 0);
   //float diff = distance(oldPixel, srcPixel);

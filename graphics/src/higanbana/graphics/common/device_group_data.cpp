@@ -740,7 +740,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, FormatType format) {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, format);
@@ -751,7 +751,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicBuffer(MemView<uint8_t> range, unsigned stride) {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamic(handle, range, stride);
@@ -762,7 +762,7 @@ namespace higanbana
     DynamicBufferView DeviceGroupData::dynamicImage(MemView<uint8_t> range, unsigned rowPitch) {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateViewResource(ViewResourceType::DynamicBufferSRV, ResourceHandle());
-      m_delayer->insert(m_currentSeqNum+1, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
+      m_delayer->insert(m_currentSeqNum, handle); // dynamic buffers will be released immediately with delay. "one frame/use"
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->dynamicImage(handle, range, rowPitch);

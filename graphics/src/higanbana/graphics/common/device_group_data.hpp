@@ -31,13 +31,23 @@ namespace higanbana
       deque<Garbage> m_garbage;
       std::mutex lock; 
 
-      void ensureGarbage(SeqNum sequence)
-      {
-        if (m_garbage.empty() || m_garbage.back().sequence != sequence)
-        {
-          m_garbage.push_back(Garbage{sequence, {}});
+      Garbage* findOrInsertGarbage(SeqNum sequence) {
+        auto iter = std::find_if(m_garbage.begin(), m_garbage.end(), [sequence](const Garbage& garb){
+          return garb.sequence == sequence;
+        });
+        if (iter != m_garbage.end())
+          return &(*iter);
+
+        iter = m_garbage.begin();
+        while (iter != m_garbage.end()) {
+          if (iter->sequence > sequence) {
+            break;
+          }
+          iter++;
         }
+        return &(*m_garbage.insert(iter, Garbage{sequence, {}}));
       }
+
     public:
       DelayedRelease()
       {
@@ -47,19 +57,13 @@ namespace higanbana
       void insert(SeqNum sequence, ResourceHandle handle)
       {
         std::lock_guard<std::mutex> guard(lock);
-        ensureGarbage(sequence);
-
-        auto& bck = m_garbage.back();
-        bck.trash.push_back(handle);
+        findOrInsertGarbage(sequence)->trash.push_back(handle);
       }
 
       void insert(SeqNum sequence, ViewResourceHandle handle)
       {
         std::lock_guard<std::mutex> guard(lock);
-        ensureGarbage(sequence);
-
-        auto& bck = m_garbage.back();
-        bck.viewTrash.push_back(handle);
+        findOrInsertGarbage(sequence)->viewTrash.push_back(handle);
       }
 
       Garbage garbageCollection(SeqNum completedTo)
