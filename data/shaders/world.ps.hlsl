@@ -46,8 +46,8 @@ float4 CalcLightingColor(float3 vLightPos, float3 vLightDir, float4 vLightColor,
 PixelOut main(VertexOut input) 
 {
   uint materialIndex = constants.material;
-  float4 albedo = float4(input.uv,1,1);
-  float3 normal = float3(1,1,0);
+  float4 albedo = float4(1,1,1,1);
+  float3 normal = input.normal;
   float3 pixelNormal = input.normal;
   if (materialIndex > 0)
   {
@@ -67,7 +67,7 @@ PixelOut main(VertexOut input)
       float3 pixelNormal = mul(normal, mTangentSpaceToWorldSpace);
     }
   }
-  float4 totalLight = float4(1,1,1,1) * 0.9;
+  float4 totalLight = float4(1,1,1,1) * 0.2;
 
   float4 lColor = float4(1,1,1,1);
   float lStr = 5.f;
