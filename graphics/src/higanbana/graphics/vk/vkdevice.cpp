@@ -1468,6 +1468,7 @@ namespace higanbana
 
       auto rp = m_allRes.renderpasses[rpbegin.renderpass].native();
       vk::GraphicsPipelineCreateInfo pipelineInfo = vk::GraphicsPipelineCreateInfo()
+        .setFlags(vk::PipelineCreateFlagBits::eCaptureStatisticsKHR)
         .setLayout(vp.m_pipelineLayout)
         .setStageCount(shaderInfos.size())
         .setPStages(shaderInfos.data())
@@ -1541,6 +1542,7 @@ namespace higanbana
       pipe.cs.react();
 
       auto pipelineDesc = vk::ComputePipelineCreateInfo()
+        .setFlags(vk::PipelineCreateFlagBits::eCaptureStatisticsKHR)
         .setStage(vk::PipelineShaderStageCreateInfo()
           .setModule(smodule.value)
           .setPName("main")

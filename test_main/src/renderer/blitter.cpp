@@ -26,33 +26,25 @@ Blitter::Blitter(higanbana::GpuGroup& device)
     .setInterface(instancePipeline)
     .setVertexShader("blitter")
     .setPixelShader("blitter")
-    .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setRenderTargetCount(1)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  pipelineBGRA = device.createGraphicsPipeline(pipelineDescriptor);
-  pipelineRGBA = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, FormatType::Unorm8RGBA));
-  pipelineUnorm16RGBA = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, FormatType::Unorm16RGBA));
-  renderpassBGRA = device.createRenderpass();
-  renderpassRGBA = device.createRenderpass();
-  renderpassUnorm16RGBA = device.createRenderpass();
+  FormatType supportedFormats[] = {FormatType::Unorm8BGRA, FormatType::Unorm8RGBA, FormatType::Unorm16RGBA, FormatType::Float16RGBA};
+  for (auto&& format : supportedFormats) {
+    pipelines(format) = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, format));
+    renderpasses(format) = device.createRenderpass();
+  }
 }
 
 void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target2){
   using namespace higanbana;
   target2.setOp(LoadOp::Load);
   target2.setOp(StoreOp::Store);
-  if (target2.texture().desc().desc.format == FormatType::Unorm8BGRA)
-    node.renderpass(renderpassBGRA, target2);
-  else if (target2.texture().desc().desc.format == FormatType::Unorm16RGBA)
-    node.renderpass(renderpassUnorm16RGBA, target2);
-  else
-  {
-    HIGAN_ASSERT(target2.desc().desc.format == FormatType::Unorm8RGBA, "");
-    node.renderpass(renderpassRGBA, target2);
-  }
+  auto& renderpass = renderpasses(target2.texture().desc().desc.format);
+  HIGAN_ASSERT(renderpass, "should be valid renderpass");
+  node.renderpass(renderpass, target2);
   target = target2.desc();
 }
 
@@ -94,14 +86,9 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
     .bind("vertices", verts)
     .bind("source", source)
     .bind("sourceInt", TextureSRV()));
-  ShaderArgumentsBinding binding;
-  if (target.desc.format == FormatType::Unorm8BGRA)
-    binding = node.bind(pipelineBGRA);
-  else if (target.desc.format == FormatType::Unorm16RGBA)
-    binding = node.bind(pipelineUnorm16RGBA);
-  else
-    binding = node.bind(pipelineRGBA);
-
+  auto& pipeline = pipelines(target.desc.format);
+  HIGAN_ASSERT(pipeline, "pipeline should be valid");
+  auto binding = node.bind(pipeline);
   binding.arguments(0, args);
   binding.constants(consts);
   node.draw(binding, 6, 1);
@@ -154,13 +141,9 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 
   auto args = device.createShaderArguments(desc);
 
-  ShaderArgumentsBinding binding;
-  if (target.desc.format == FormatType::Unorm8BGRA)
-    binding = node.bind(pipelineBGRA);
-  else if (target.desc.format == FormatType::Unorm16RGBA)
-    binding = node.bind(pipelineUnorm16RGBA);
-  else
-    binding = node.bind(pipelineRGBA);
+  auto& pipeline = pipelines(target.desc.format);
+  HIGAN_ASSERT(pipeline, "pipeline should be valid");
+  auto binding = node.bind(pipeline);
   binding.arguments(0, args);
   binding.constants(consts);
   node.draw(binding, 6, 1);
@@ -226,13 +209,9 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
     .bind("vertices", verts)
     .bind("source", source)
     .bind("sourceInt", TextureSRV()));
-  ShaderArgumentsBinding binding;
-  if (target.desc.format == FormatType::Unorm8BGRA)
-    binding = node.bind(pipelineBGRA);
-  else if (target.desc.format == FormatType::Unorm16RGBA)
-    binding = node.bind(pipelineUnorm16RGBA);
-  else
-    binding = node.bind(pipelineRGBA);
+  auto& pipeline = pipelines(target.desc.format);
+  HIGAN_ASSERT(pipeline, "pipeline should be valid");
+  auto binding = node.bind(pipeline);
   binding.arguments(0, args);
   binding.constants(consts);
   node.draw(binding, 6, 1);

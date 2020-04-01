@@ -23,6 +23,15 @@ namespace higanbana
       , m_update(std::make_shared<WatchFile>())
       , descriptor(desc)
     {}
+    ResourceHandle handle() const
+    {
+      if (impl)
+        return *impl;
+      return ResourceHandle();
+    }
+    operator bool() const {
+      return handle().id != ResourceHandle::InvalidId;
+    }
   };
 
   class GraphicsPipeline
@@ -59,5 +68,14 @@ namespace higanbana
       : pipeline(handle)
       , descriptor(desc)
     {}
+    ResourceHandle handle() const
+    {
+      if (pipeline)
+        return *pipeline;
+      return ResourceHandle();
+    }
+    operator bool() const {
+      return handle().id != ResourceHandle::InvalidId;
+    }
   };
 }

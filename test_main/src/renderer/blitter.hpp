@@ -1,17 +1,14 @@
 #pragma once
 #include <higanbana/graphics/GraphicsCore.hpp>
+#include <higanbana/graphics/helpers/multi_pipeline.hpp>
 
 namespace app::renderer
 {
 class Blitter
 {
   higanbana::ShaderArgumentsLayout m_input;
-  higanbana::GraphicsPipeline pipelineRGBA;
-  higanbana::GraphicsPipeline pipelineBGRA;
-  higanbana::GraphicsPipeline pipelineUnorm16RGBA;
-  higanbana::Renderpass renderpassRGBA;
-  higanbana::Renderpass renderpassBGRA;
-  higanbana::Renderpass renderpassUnorm16RGBA;
+  higanbana::GraphicsPipelines<higanbana::FormatType> pipelines;
+  higanbana::Renderpasses<higanbana::FormatType> renderpasses;
   higanbana::ResourceDescriptor target;
 public:
   enum class FitMode

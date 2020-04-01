@@ -17,11 +17,15 @@ namespace higanbana
     {
     }
 
-    ResourceHandle handle()
+    ResourceHandle handle() const
     {
       if (m_renderpass)
         return *m_renderpass;
       return ResourceHandle();
+    }
+
+    operator bool() const {
+      return handle().id != ResourceHandle::InvalidId;
     }
   };
 }
