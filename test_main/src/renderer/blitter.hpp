@@ -20,7 +20,7 @@ public:
 
   Blitter(higanbana::GpuGroup& device);
 
-  void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target);
+  void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV target);
 
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, float2 topleft, float2 size);
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, int2 topleft, int2 size);

@@ -7,7 +7,7 @@
 namespace higanbana
 {
 template <typename T, typename... Enums>
-class MultiObject
+class EnumArray
 {
   template<typename ... EnumTypes>
   struct EnumCount {
@@ -39,12 +39,7 @@ class MultiObject
   }
 };
   template<typename... Enums>
-  using GraphicsPipelines = MultiObject<GraphicsPipeline, Enums...>;
+  using GraphicsPipelines = EnumArray<GraphicsPipeline, Enums...>;
   template<typename... Enums>
-  using Renderpasses = MultiObject<Renderpass, Enums...>;
+  using Renderpasses = EnumArray<Renderpass, Enums...>;
 }
-
-/*
-MultiGraphicsPipeline<Enum1, Enum2> pipes;
-pipes(Enum1::super, Enum2::ebin) = device.createPipeline yadayada
-*/

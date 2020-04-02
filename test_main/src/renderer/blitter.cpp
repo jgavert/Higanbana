@@ -31,14 +31,14 @@ Blitter::Blitter(higanbana::GpuGroup& device)
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  FormatType supportedFormats[] = {FormatType::Unorm8BGRA, FormatType::Unorm8RGBA, FormatType::Unorm16RGBA, FormatType::Float16RGBA};
-  for (auto&& format : supportedFormats) {
-    pipelines(format) = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, format));
-    renderpasses(format) = device.createRenderpass();
+  for (int i = 0; i < static_cast<int>(FormatType::Count); i++) {
+    auto formatInfo = formatSizeInfo(static_cast<FormatType>(i));
+    pipelines(formatInfo.fm) = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, formatInfo.fm));
+    renderpasses(formatInfo.fm) = device.createRenderpass();
   }
 }
 
-void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target2){
+void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV target2){
   using namespace higanbana;
   target2.setOp(LoadOp::Load);
   target2.setOp(StoreOp::Store);
