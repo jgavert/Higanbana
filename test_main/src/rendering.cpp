@@ -118,7 +118,7 @@ void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
 
   proxyTex.resize(dev, ResourceDescriptor()
     .setSize(desc.desc.size3D())
-    .setFormat(desc.desc.format)
+    .setFormat(FormatType::Unorm8RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("proxyTex"));
 
