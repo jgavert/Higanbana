@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <higanbana/core/datastructures/proxy.hpp>
+#include <string_view>
 
 namespace higanbana
 {
@@ -18,6 +19,14 @@ namespace higanbana
     TextureCubeArray,
   };
 
+  enum class ShaderElementType
+  {
+    Unknown,
+    FloatingPoint,
+    Unsigned,
+    Integer
+  };
+
   const char* toString(ShaderResourceType type);
 
   struct ShaderResource
@@ -25,6 +34,7 @@ namespace higanbana
     ShaderResourceType type;
     std::string templateParameter;
     std::string name;
+    ShaderElementType elementType = ShaderElementType::Unknown;
     bool readonly;
     bool bindless;
     int bindlessCountWorstCase;
@@ -38,7 +48,16 @@ namespace higanbana
     , bindless(bindless)
     , bindlessCountWorstCase(descriptorCount)
     {
-
+      std::string_view templ{templateParameter};
+      std::string_view maybeFloat = templ.substr(0, std::min(5ull, templ.size()));
+      std::string_view maybeInt = templ.substr(0, std::min(3ull, templ.size()));
+      std::string_view maybeUint = templ.substr(0, std::min(4ull, templ.size()));
+      if (maybeFloat.compare("float") == 0)
+        elementType = ShaderElementType::FloatingPoint;
+      if (maybeInt.compare("int") == 0)
+        elementType = ShaderElementType::Integer;
+      if (maybeUint.compare("uint") == 0)
+        elementType = ShaderElementType::Unsigned;
     }
   };
 };

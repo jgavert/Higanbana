@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/vk/vkresources.hpp"
+#include <higanbana/core/datastructures/enum_array.hpp>
 #include <optional>
 #include <mutex>
 
@@ -73,28 +74,36 @@ namespace higanbana
       Resources m_allRes;
     
       // null views
-      vk::DeviceMemory nullHeap;
-      vk::Buffer nullBuffer;
-      vk::Image nullImage1d;
-      //vk::Image nullImage2d;
-      vk::Image nullImage3d;
-      vk::Image nullImageCube;
-      vk::DescriptorBufferInfo nullStorageBuffer;
-      vk::BufferView nullTexelView;
-      vk::ImageView nullTex1d;
-      vk::DescriptorImageInfo nullTex1dd;
-      vk::ImageView nullTex1da;
-      vk::DescriptorImageInfo nullTex1dad;
-      vk::ImageView nullTex2d;
-      vk::DescriptorImageInfo nullTex2dd;
-      vk::ImageView nullTex2da;
-      vk::DescriptorImageInfo nullTex2dad;
-      vk::ImageView nullTex3d;
-      vk::DescriptorImageInfo nullTex3dd;
-      vk::ImageView nullTexcube;
-      vk::DescriptorImageInfo nullTexcubed;
-      vk::ImageView nullTexca;
-      vk::DescriptorImageInfo nullTexcad;
+      vk::DeviceMemory nullHeapBuffers;
+      vk::DeviceMemory nullHeapImages;
+      struct NullBuffer {
+        vk::Buffer buffer;
+        vk::DescriptorBufferInfo ssbo;
+        vk::BufferView texel;
+      };
+      struct NullImage {
+        vk::Image nullImage1d;
+        vk::Image nullImage3d;
+        vk::Image nullImageCube;
+        vk::ImageView oneDim;
+        vk::ImageView oneDimArray;
+        vk::ImageView twoDim;
+        vk::ImageView twoDimArray;
+        vk::ImageView threeDim;
+        vk::ImageView cube;
+        vk::ImageView cubeArray;
+        vk::DescriptorImageInfo desc1D;
+        vk::DescriptorImageInfo desc1DArray;
+        vk::DescriptorImageInfo desc2D;
+        vk::DescriptorImageInfo desc2DArray;
+        vk::DescriptorImageInfo desc3D;
+        vk::DescriptorImageInfo descCube;
+        vk::DescriptorImageInfo descCubeArray;
+      };
+
+      const higanbana::FormatType nullFormats[3] = {higanbana::FormatType::Unorm8RGBA, higanbana::FormatType::Uint8RGBA, higanbana::FormatType::Int8RGBA};
+      EnumArray<NullBuffer, FormatType> nullBuffers;
+      EnumArray<NullImage, FormatType> nullImages;
 
       // thread lock stuff
       std::mutex m_deviceLock;
