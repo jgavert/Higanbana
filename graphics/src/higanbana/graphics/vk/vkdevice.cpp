@@ -2424,10 +2424,14 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto bindings = gatherSetLayoutBindings(desc, vk::ShaderStageFlagBits::eAll);
-      vk::DescriptorBindingFlagsEXT partial = vk::DescriptorBindingFlagBits::ePartiallyBound;
+      vk::DescriptorBindingFlagsEXT partial = vk::DescriptorBindingFlagBitsEXT::ePartiallyBound
+      | vk::DescriptorBindingFlagBitsEXT::eVariableDescriptorCount
+      | vk::DescriptorBindingFlagBitsEXT::eUpdateUnusedWhilePending;
+      vector<vk::DescriptorBindingFlagsEXT> flags(bindings.size(), vk::DescriptorBindingFlagsEXT());
+      flags.back() = partial;
       vk::DescriptorSetLayoutBindingFlagsCreateInfo extflags = vk::DescriptorSetLayoutBindingFlagsCreateInfo()
         .setBindingCount(bindings.size())
-        .setPBindingFlags(&partial);
+        .setPBindingFlags(flags.data());
       vk::DescriptorSetLayoutCreateInfo info = vk::DescriptorSetLayoutCreateInfo()
         .setBindingCount(static_cast<uint32_t>(bindings.size()))
         .setPBindings(bindings.data());
