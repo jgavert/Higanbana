@@ -5,7 +5,7 @@ SResources::SResources()
   , fileSystem(TESTS_FILESYSTEM_PATH)
 {
   auto gpus = subsystem.getVendorDevice(GraphicsApi::Vulkan); // TODO: make it so that it always tests both api at once
-  gpu = subsystem.createGroup(fileSystem, {gpus});
+  gpu = subsystem.createDevice(fileSystem, gpus[0]);
 }
 
 static std::shared_ptr<SResources> _g;

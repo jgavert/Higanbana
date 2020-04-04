@@ -131,9 +131,9 @@ namespace higanbana
             i++;
             continue;
           }
-          info.vendor = VendorID::Unknown;
           info.type = DeviceType::Unknown;
           info.vendor = vendorIDto(desc.VendorId);
+          info.deviceId = desc.DeviceId;
           info.id = static_cast<int>(vAdapters.size()) - 1;
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;

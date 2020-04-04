@@ -348,7 +348,7 @@ void mainWindow(ProgramParams& params)
       }
       ImGui::StyleColorsDark();
 
-      auto dev = graphics.createGroup(fs, allGpus);
+      auto dev = graphics.createDevice(fs, allGpus[0]);
       app::Renderer rend(graphics, dev);
 
       // Load meshes to gpu
@@ -447,7 +447,6 @@ void mainWindow(ProgramParams& params)
         bool renderResize = false;
         bool captureMouse = false;
         bool controllerConnected = false;
-
         bool autoRotateCamera = false;
 
         AtomicBuffered<InputBuffer> ainputs;

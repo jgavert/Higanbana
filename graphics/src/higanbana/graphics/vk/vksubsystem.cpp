@@ -274,6 +274,7 @@ namespace higanbana
         info.id = devId;
         info.name = std::string(stuff.deviceName);
         info.vendor = VendorID::Unknown;
+        info.deviceId = stuff.deviceID;
         if (stuff.vendorID == 4098)
         {
           info.vendor = VendorID::Amd;

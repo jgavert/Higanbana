@@ -59,22 +59,46 @@ namespace higanbana
         implVulkan = std::make_shared<VulkanSubsystem>(appName, appVersion, engineName, engineVersion, debugLayer);
       }
     }
-    vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api, VendorID id)
+    vector<GpuInfo> SubsystemData::availableGpus(GraphicsApi api, VendorID id, QueryDevicesMode mode)
     {
+      if (m_cachedInfos.empty() || mode == QueryDevicesMode::SlowQuery) {
+        m_cachedInfos.clear();
+        if (implVulkan)
+        {
+          m_cachedInfos = implVulkan->availableGpus(VendorID::All); // I might have killed RGP with this
+          for (auto&& it : m_cachedInfos) it.api = GraphicsApi::Vulkan;
+        }
+        if (implDX12)
+        {
+          vector<GpuInfo> dx12Gpus = implDX12->availableGpus(VendorID::All); // TODO: test rgp
+          for (auto&& it : dx12Gpus) {
+            it.api = GraphicsApi::DX12;
+            bool merged = false;
+            for (auto&& desc : m_cachedInfos) {
+              if (desc.deviceId == it.deviceId) {
+                // same device!
+                desc = it;
+                desc.api = GraphicsApi::All;
+                merged = true;
+                break;
+              }
+            }
+            if (!merged)
+              m_cachedInfos.push_back(it);
+          }
+        }
+      }
+
+      // craft filtered version of all devices here as per request
       vector<GpuInfo> infos;
-      HIGAN_ASSERT(api == GraphicsApi::All || api == GraphicsApi::DX12 || (implVulkan && api == GraphicsApi::Vulkan), "Subsystem wasn't created with Vulkan enabled! check --rgp switch!");
-      if (implVulkan && (api == GraphicsApi::All || api == GraphicsApi::Vulkan))
-      {
-        infos = implVulkan->availableGpus(id);
-        for (auto&& it : infos) it.api = GraphicsApi::Vulkan;
+      for (auto&& info : m_cachedInfos) {
+        if (api == GraphicsApi::All || info.api == api) {
+          if (id == VendorID::All || id == info.vendor) {
+            infos.push_back(info);
+          }
+        }
       }
-      HIGAN_ASSERT(api == GraphicsApi::All || api == GraphicsApi::Vulkan || (implDX12 && api == GraphicsApi::DX12), "Subsystem wasn't created with DX12 enabled! check --rgp switch!");
-      if (implDX12 && (api == GraphicsApi::All || api == GraphicsApi::DX12))
-      {
-        vector<GpuInfo> dx12Gpus = implDX12->availableGpus(id);
-        for (auto&& it : dx12Gpus) it.api = GraphicsApi::DX12;
-        infos.insert(infos.end(), dx12Gpus.begin(), dx12Gpus.end());
-      }
+
       return infos;
     }
     GpuGroup SubsystemData::createGroup(FileSystem& fs, vector<GpuInfo> gpus)
@@ -82,16 +106,16 @@ namespace higanbana
       vector<std::shared_ptr<prototypes::DeviceImpl>> devices;
       for (auto&& info : gpus)
       {
-        if (info.api == GraphicsApi::DX12)
+        if (implDX12 && (info.api == GraphicsApi::DX12 || info.api == GraphicsApi::All))
           devices.push_back(implDX12->createGpuDevice(fs, info));
-        else
+        if (implVulkan && (info.api == GraphicsApi::Vulkan || info.api == GraphicsApi::All))
           devices.push_back(implVulkan->createGpuDevice(fs, info));
       }
       return GpuGroup({devices, gpus});
     }
     GraphicsSurface SubsystemData::createSurface(Window & window, GpuInfo gpu)
     {
-      if (gpu.api == GraphicsApi::DX12) return implDX12->createSurface(window);
+      if (implDX12 && (gpu.api == GraphicsApi::DX12 || gpu.api == GraphicsApi::All)) return implDX12->createSurface(window);
       return implVulkan->createSurface(window);
     }
   }

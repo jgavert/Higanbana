@@ -11,6 +11,12 @@
 
 namespace higanbana
 {
+  enum class QueryDevicesMode
+  {
+    UseCached,
+    SlowQuery
+  };
+
   enum class GraphicsApi
   {
 	  All,
@@ -55,6 +61,7 @@ namespace higanbana
     std::string name;
     int64_t memory;
     VendorID vendor;
+    uint deviceId; // used to match 2 devices together for interopt
     DeviceType type;
     bool canPresent;
     bool canRaytrace;

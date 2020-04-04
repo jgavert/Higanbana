@@ -19,7 +19,7 @@ TEST_CASE("device creation") {
       return;
     decltype(gpus) infos;
     infos.push_back(gpus[0]);
-    REQUIRE_NOTHROW(graphics.createGroup(fs, infos));
+    REQUIRE_NOTHROW(graphics.createDevice(fs, infos[0]));
   }
 }
 
@@ -46,7 +46,7 @@ TEST_CASE("create buffer") {
       return;
     decltype(gpus) infos;
     infos.push_back(gpus[0]);
-    auto dev = graphics.createGroup(fs, infos);
+    auto dev = graphics.createDevice(fs, infos[0]);
 
     {
       REQUIRE_NOTHROW(dev.createBuffer(ResourceDescriptor().setFormat(FormatType::Uint32).setCount(100)));
