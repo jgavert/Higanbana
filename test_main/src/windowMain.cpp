@@ -300,42 +300,55 @@ void mainWindow(ProgramParams& params)
 
     log.update();
 
-    bool explicitID = false;
-    //GpuInfo gpuinfo{};
-
     WTime time;
     WTime logicAndRenderTime;
+
+    uint chosenDeviceID = 0;
+    GraphicsApi chosenApi = api;
 
     while (true)
     {
       HIGAN_CPU_BRACKET("main program");
       vector<GpuInfo> allGpus;
+      vector<bool> selectedDevice;
+      GpuInfo physicalDevice;
       GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
-      vector<GpuInfo> gpus;
       if (rgpCapture)
       {
-        gpus = graphics.availableGpus(api, VendorID::Amd);
-        if (!gpus.empty())
-          allGpus.push_back(gpus[0]);
+        allGpus = graphics.availableGpus(api, VendorID::Amd);
+        if (!allGpus.empty()) {
+          physicalDevice = allGpus[0];
+        }
         else
           HIGAN_LOGi("Failed to find AMD RGP compliant device in %s api", toString(api));
       }
       else
       {
-        gpus = graphics.availableGpus();
-        auto gpuInfo = graphics.getVendorDevice(api, preferredVendor);
-        allGpus.emplace_back(gpuInfo);
+        allGpus = graphics.availableGpus();
+        if (chosenDeviceID == 0) {
+          physicalDevice = graphics.getVendorDevice(api, preferredVendor);
+          chosenDeviceID = physicalDevice.deviceId;
+          chosenApi = physicalDevice.api;
+        } 
+        else
+        {
+          for (auto&& gpu : allGpus) {
+            if (gpu.deviceId == chosenDeviceID) {
+              physicalDevice = gpu;
+              physicalDevice.api = chosenApi;
+              break;
+            }
+          }
+        }
       }
-      //allGpus.emplace_back(gpuInfo2);
       if (updateLog) log.update();
-      if (allGpus.empty())
+      if (allGpus.empty()) {
+        HIGAN_LOGi("No gpu's found, exiting...\n");
         return;
+      }
 
 	    std::string windowTitle = "";
-      for (auto& gpu : allGpus)
-      {
-        windowTitle += std::string(toString(gpu.api)) + ": " + gpu.name + " ";
-      }
+      windowTitle += std::string(toString(physicalDevice.api)) + ": " + physicalDevice.name + " ";
       Window window(params, windowTitle, 1280, 720, 300, 200);
       window.open();
 
@@ -348,7 +361,12 @@ void mainWindow(ProgramParams& params)
       }
       ImGui::StyleColorsDark();
 
-      auto dev = graphics.createDevice(fs, allGpus[0]);
+      auto dev = graphics.createDevice(fs, physicalDevice);
+      selectedDevice.resize(allGpus.size());
+      for (int i = 0; i < allGpus.size(); ++i) {
+        if (allGpus[i].deviceId == chosenDeviceID)
+          selectedDevice[i] = true;
+      }
       app::Renderer rend(graphics, dev);
 
       // Load meshes to gpu
@@ -435,12 +453,9 @@ void mainWindow(ProgramParams& params)
       }
       {
         auto toggleHDR = false;
-        rend.initWindow(window, allGpus[0]);
+        rend.initWindow(window, physicalDevice);
 
-        for (auto& gpu : allGpus)
-        {
-          HIGAN_LOG("Created device \"%s\"\n", gpu.name.c_str());
-        }
+        HIGAN_LOGi("Created device \"%s\"\n", physicalDevice.name.c_str());
 
         bool closeAnyway = false;
         bool renderActive = true;
@@ -583,6 +598,25 @@ void mainWindow(ProgramParams& params)
             ::ImGui::NewFrame();
             ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
             ImGui::Begin("main");
+            if (ImGui::ListBoxHeader("device selection", ImVec2(0, allGpus.size()*18))) {
+              int i = 0;
+              for (auto&& device : allGpus) {
+                if (ImGui::Selectable(device.name.c_str(), selectedDevice[i]))
+                  selectedDevice[i] = !selectedDevice[i];
+                i++;
+              }
+            }
+            ImGui::ListBoxFooter();
+            if (ImGui::Button("Reinit")) {
+              for (int i = 0; i < selectedDevice.size(); i++) {
+                if (selectedDevice[i]) {
+                  chosenDeviceID = allGpus[i].deviceId;
+                  reInit = true;
+                  renderActive = false;
+                  break;
+                }
+              }
+            }
             ImGui::Text("%zd frames since last inputs. %zd diff to Writer, current: %zd read %d", diffSinceLastInput, diffWithWriter, currentInput, lastRead);
 
             ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
