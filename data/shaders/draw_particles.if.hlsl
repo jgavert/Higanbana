@@ -1,4 +1,4 @@
-// INTERFACE_HASH:5522678699275499740:2924971315641410917
+// INTERFACE_HASH:987917102330451044:16248818025957849044
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -32,7 +32,7 @@ VK_BINDING(0, 0) StructuredBuffer<Particle> particles : register( t0, space0 );
 // Read Write resources
 // Shader Arguments 1
 // Struct declarations
-struct CameraSettings { float4x4 perspective; };
+struct CameraSettings { float4x4 perspective; float4 position; };
 
 // Read Only resources
 VK_BINDING(0, 1) StructuredBuffer<CameraSettings> cameras : register( t0, space1 );

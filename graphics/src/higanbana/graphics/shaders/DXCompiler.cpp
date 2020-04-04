@@ -43,6 +43,20 @@ public:
     return filename.size();
   }
 
+  void removeExtraSlashes(std::string& path) noexcept {
+    auto iter = path.begin();
+    auto lastChar = '0';
+    while(iter != path.end()) {
+      if (lastChar == '/' && *iter == '/') {
+        iter = path.erase(iter);
+        lastChar = '0';
+        continue;
+      }
+      lastChar = *iter;
+      iter++;
+    }
+  }
+
   HRESULT STDMETHODCALLTYPE LoadSource(
     _In_ LPCWSTR pFilename,                                   // Candidate filename.
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
@@ -54,6 +68,7 @@ public:
     {
       auto substrStart = findFirstNonSpecialCharacter(filename);
       filename = filename.substr(substrStart);
+      removeExtraSlashes(filename);
     }
 
     std::string finalPath;

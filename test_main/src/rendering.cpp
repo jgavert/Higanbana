@@ -103,7 +103,7 @@ int2 Renderer::windowSize() {
 void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
   m_gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
     .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Unorm16RGBA)
+    .setFormat(FormatType::Float16RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("gbuffer"));
   m_gbufferRTV = dev.createTextureRTV(m_gbuffer);
@@ -134,7 +134,7 @@ void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
 void Renderer::resizeExternal(higanbana::ResourceDescriptor& desc) {
   tsaaResolved.resize(dev, ResourceDescriptor()
     .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Unorm16RGBA)
+    .setFormat(FormatType::Float16RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("tsaa current/history"));
 

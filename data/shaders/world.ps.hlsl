@@ -83,7 +83,7 @@ PixelOut main(VertexOut input)
   totalLight += lightPass;
 
   PixelOut output;
-  output.color = albedo * saturate(totalLight);
+  output.color = albedo * totalLight;
   CameraSettings settings2 = cameras.Load(constants.prevCamera);
   float4 prevPos = mul(float4(input.wPos.xyz,1), settings2.perspective);// input.prevPos;
   float4 curPos = input.pos;
