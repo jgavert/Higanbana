@@ -7,7 +7,8 @@ namespace app::renderer
 {
 class IMGui
 {
-  higanbana::ShaderArgumentsLayout argsLayout;
+  higanbana::ShaderArgumentsLayout vertexLayout;
+  higanbana::ShaderArgumentsLayout imageLayout;
   higanbana::GraphicsPipeline pipeline;
   higanbana::Renderpass renderpass;
   higanbana::Texture fontatlas;
@@ -16,6 +17,6 @@ class IMGui
   higanbana::CpuImage image;
 public:
   IMGui(higanbana::GpuGroup& device);
-  void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target);
+  void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target, higanbana::TextureSRV& viewport);
 };
 }

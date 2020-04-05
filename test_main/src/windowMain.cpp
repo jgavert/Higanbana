@@ -305,6 +305,22 @@ void mainWindow(ProgramParams& params)
 
     uint chosenDeviceID = 0;
     GraphicsApi chosenApi = api;
+    int2 windowSize = int2(1280, 720);
+    int2 windowPos = int2(300,400);
+
+    // IMGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    {
+      ImGuiIO& io = ImGui::GetIO(); (void)io;
+      io.IniFilename = nullptr;
+      if (fs.fileExists("/imgui.config")) {
+        auto file = fs.viewToFile("/imgui.config");
+        ImGui::LoadIniSettingsFromMemory(reinterpret_cast<const char*>(file.data()), file.size_bytes());
+      }
+      io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
+    }
+    ImGui::StyleColorsDark();
 
     while (true)
     {
@@ -349,17 +365,9 @@ void mainWindow(ProgramParams& params)
 
 	    std::string windowTitle = "";
       windowTitle += std::string(toString(physicalDevice.api)) + ": " + physicalDevice.name + " ";
-      Window window(params, windowTitle, 1280, 720, 300, 200);
+      Window window(params, windowTitle, windowSize.x, windowSize.y, windowPos.x, windowPos.y);
       window.open();
 
-      // IMGUI
-      IMGUI_CHECKVERSION();
-      ImGui::CreateContext();
-      {
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.IniFilename = nullptr;
-      }
-      ImGui::StyleColorsDark();
 
       auto dev = graphics.createDevice(fs, physicalDevice);
       selectedDevice.resize(allGpus.size());
@@ -558,6 +566,10 @@ void mainWindow(ProgramParams& params)
                 window.captureMouse(false);
                 captureMouse = false;
               }
+              if (inputs.isPressedWithinNFrames(diffSinceLastInput, 220, 1)) // tilde... or something like that
+              {
+                rendererOptions.renderImGui = !rendererOptions.renderImGui;
+              }
 
               if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '1', 1))
               {
@@ -571,6 +583,7 @@ void mainWindow(ProgramParams& params)
                   api = GraphicsApi::Vulkan;
                 else
                   api = GraphicsApi::DX12;
+                chosenDeviceID = 0;
                 renderActive = false;
               }
 
@@ -596,143 +609,164 @@ void mainWindow(ProgramParams& params)
               timeSinceLastInput += time.getFrameTimeDelta();
             }
             ::ImGui::NewFrame();
-            ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_Once);
-            ImGui::Begin("main");
-            if (ImGui::ListBoxHeader("device selection", ImVec2(0, allGpus.size()*18))) {
-              int i = 0;
-              for (auto&& device : allGpus) {
-                if (ImGui::Selectable(device.name.c_str(), selectedDevice[i]))
-                  selectedDevice[i] = !selectedDevice[i];
-                i++;
+            if (rendererOptions.renderImGui) {
+              auto gid = ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode);
+              ImGui::SetNextWindowSize(ImVec2(660, 580), ImGuiCond_FirstUseEver);
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Viewport")) {
+                auto ws = ImGui::GetWindowSize();
+                ws.y -= 36;
+                ImGui::Image(reinterpret_cast<void*>(1), ws);
+                rendererOptions.imguiViewport = int2(ws.x, ws.y);
               }
-            }
-            ImGui::ListBoxFooter();
-            if (ImGui::Button("Reinit")) {
-              for (int i = 0; i < selectedDevice.size(); i++) {
-                if (selectedDevice[i]) {
-                  chosenDeviceID = allGpus[i].deviceId;
-                  reInit = true;
-                  renderActive = false;
-                  break;
-                }
-              }
-            }
-            ImGui::Text("%zd frames since last inputs. %zd diff to Writer, current: %zd read %d", diffSinceLastInput, diffWithWriter, currentInput, lastRead);
-
-            ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
-            ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
-            ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
-            ImGui::Checkbox("rotate camera", &autoRotateCamera);
-            ImGui::Checkbox("simulate", &advanceSimulation);
-            if (!advanceSimulation)
-            {
-              ImGui::Checkbox("   Step Frame Forward", &stepOneFrameForward);
-              ImGui::Checkbox("   Step Frame Backward", &stepOneFrameBackward);
-              if (stepOneFrameForward)
-              {
-                time.startFrame();
-              }
-            }
-            ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
-
-            {
-              ImGui::Checkbox("render selected glTF scene", &renderECS);
-              int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
-              ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
-              ImGui::Text("%d cubes/draw calls", cubeCount);
-              ImGui::SameLine();
-              ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
-              ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
-            }
-
-            rendererOptions.drawImGuiOptions();
-
-            auto si = rend.timings();
-            if (si && ImGui::CollapsingHeader("Renderpass"))
-            {
-              ImGui::Text("RenderGraph statistics:");
-              auto rsi = si.value();
-              float gpuTotal = 0.f;
-              for (auto& list : rsi.lists)
-              {
-                gpuTotal += list.gpuTime.milliseconds();
-              }
-
-              uint64_t draws = 0, dispatches = 0;
-              uint64_t bytesInCommandBuffersTotal = 0;
-              for (auto&& cmdlist : rsi.lists)
-              {
-                for (auto&& node : cmdlist.nodes)
-                {
-                  draws += node.draws;
-                  dispatches += node.dispatches;
-                  bytesInCommandBuffersTotal += node.cpuSizeBytes;
-                }
-              }
-
-              float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
-              if (gpuTotal > cpuTotal)
-                ImGui::Text("Bottleneck: GPU");
-              else
-                ImGui::Text("Bottleneck: CPU");
-              auto multiplier = 1000.f / time.getCurrentFps();
-              auto allDraws = float(draws) * multiplier;
-              int dps = static_cast<int>(allDraws);
-              ImGui::Text("Drawcalls per second %zu", dps);
-              ImGui::Text("GPU execution %.3fms", gpuTotal);
-              ImGui::Text("CPU execution %.3fms", cpuTotal);
-              ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
-              ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal/1024.f/1024.f);
-              ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
-              ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());
-              ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());
-              ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
-              ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
-              ImGui::Text("- Submit total %.2fms", rsi.submitCpuTime.milliseconds());
-
-              int listIndex = 0;
-              for (auto& cmdlist : rsi.lists)
-              {
-                std::string listName = toString(cmdlist.type);
-                listName += " list " + std::to_string(listIndex++);
-                if (ImGui::TreeNode(listName.c_str()))
-                {
-                  //ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
-                  ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
-                  ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
-                  ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
-                  ImGui::Text("\t- barrierSolveLocal %.3fms", cmdlist.barrierSolveLocal.milliseconds());
-                  ImGui::Text("\t- barrierSolveGlobal %.3fms", cmdlist.barrierSolveGlobal.milliseconds());
-                  ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
-                  ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
-                  ImGui::Text("\tGPU nodes:");
-                  for (auto& graphNode : cmdlist.nodes)
-                  {
-                    ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+              ImGui::End();
+              ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_FirstUseEver);
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("main")) {
+                if (ImGui::ListBoxHeader("device selection", ImVec2(0, allGpus.size()*18))) {
+                  int i = 0;
+                  for (auto&& device : allGpus) {
+                    if (ImGui::Selectable(device.name.c_str(), selectedDevice[i]))
+                      selectedDevice[i] = !selectedDevice[i];
+                    i++;
                   }
-                  ImGui::TreePop();
+                  ImGui::ListBoxFooter();
+                }
+                if (ImGui::Button("Reinit")) {
+                  for (int i = 0; i < selectedDevice.size(); i++) {
+                    if (selectedDevice[i]) {
+                      chosenDeviceID = allGpus[i].deviceId;
+                      reInit = true;
+                      renderActive = false;
+                      break;
+                    }
+                  }
+                }
+                ImGui::Text("%zd frames since last inputs. %zd diff to Writer, current: %zd read %d", diffSinceLastInput, diffWithWriter, currentInput, lastRead);
+
+                ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
+                ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
+                ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
+                ImGui::Checkbox("rotate camera", &autoRotateCamera);
+                ImGui::Checkbox("simulate", &advanceSimulation);
+                if (!advanceSimulation)
+                {
+                  ImGui::Checkbox("   Step Frame Forward", &stepOneFrameForward);
+                  ImGui::Checkbox("   Step Frame Backward", &stepOneFrameBackward);
+                  if (stepOneFrameForward)
+                  {
+                    time.startFrame();
+                  }
+                }
+                ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
+
+                {
+                  ImGui::Checkbox("render selected glTF scene", &renderECS);
+                  int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
+                  ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
+                  ImGui::Text("%d cubes/draw calls", cubeCount);
+                  ImGui::SameLine();
+                  ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
+                  ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
                 }
               }
-            }
-            if (ImGui::CollapsingHeader("Gpu statistics"))
-            {
-              auto stats = dev.gpuStatistics();
-              auto bytesToMb = [](uint64_t bytes){ return bytes / 1024.f / 1024.f; };
-              auto unitsToK = [](uint64_t units){ return units / 1000.f; };
-              for (auto& stat : stats)
+              ImGui::End();
+
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              rendererOptions.drawImGuiOptions();
+
+              auto si = rend.timings();
+              
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Renderpass") && si)
               {
-                ImGui::Text("Commandbuffers on gpu       %zu", stat.commandlistsOnGpu);
-                ImGui::Text("GPU Memory allocated        %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.gpuMemoryAllocated), bytesToMb(stat.gpuTotalMemory), bytesToMb(stat.gpuMemoryAllocated) / bytesToMb(stat.gpuTotalMemory) * 100.f);
-                ImGui::Text("Memory used by constants    %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.constantsUploadMemoryInUse), bytesToMb(stat.maxConstantsUploadMemory), bytesToMb(stat.constantsUploadMemoryInUse) / bytesToMb(stat.maxConstantsUploadMemory) * 100.f);
-                ImGui::Text("Generic upload memory used  %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.genericUploadMemoryInUse), bytesToMb(stat.maxGenericUploadMemory), bytesToMb(stat.genericUploadMemoryInUse) / bytesToMb(stat.maxGenericUploadMemory) * 100.f);
-                if (stat.descriptorsInShaderArguments)
-                  ImGui::Text("ShaderArguments             %zu / %zu  %.2f%%", stat.descriptorsAllocated, stat.maxDescriptors, float(stat.descriptorsAllocated) / float(stat.maxDescriptors) * 100.f);
+                ImGui::Text("RenderGraph statistics:");
+                auto rsi = si.value();
+                float gpuTotal = 0.f;
+                for (auto& list : rsi.lists)
+                {
+                  gpuTotal += list.gpuTime.milliseconds();
+                }
+
+                uint64_t draws = 0, dispatches = 0;
+                uint64_t bytesInCommandBuffersTotal = 0;
+                for (auto&& cmdlist : rsi.lists)
+                {
+                  for (auto&& node : cmdlist.nodes)
+                  {
+                    draws += node.draws;
+                    dispatches += node.dispatches;
+                    bytesInCommandBuffersTotal += node.cpuSizeBytes;
+                  }
+                }
+
+                float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
+                if (gpuTotal > cpuTotal)
+                  ImGui::Text("Bottleneck: GPU");
                 else
-                  ImGui::Text("Descriptors                 %.2fk / %.2fk %.2f%%", unitsToK(stat.descriptorsAllocated), unitsToK(stat.maxDescriptors), unitsToK(stat.descriptorsAllocated) / unitsToK(stat.maxDescriptors) * 100.f);
+                  ImGui::Text("Bottleneck: CPU");
+                auto multiplier = 1000.f / time.getCurrentFps();
+                auto allDraws = float(draws) * multiplier;
+                int dps = static_cast<int>(allDraws);
+                ImGui::Text("Drawcalls per second %zu", dps);
+                ImGui::Text("GPU execution %.3fms", gpuTotal);
+                ImGui::Text("CPU execution %.3fms", cpuTotal);
+                ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
+                ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal/1024.f/1024.f);
+                ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
+                ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());
+                ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());
+                ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
+                ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
+                ImGui::Text("- Submit total %.2fms", rsi.submitCpuTime.milliseconds());
+
+                int listIndex = 0;
+                for (auto& cmdlist : rsi.lists)
+                {
+                  std::string listName = toString(cmdlist.type);
+                  listName += " list " + std::to_string(listIndex++);
+                  if (ImGui::TreeNode(listName.c_str()))
+                  {
+                    //ImGui::Text("\n%s Commandlist", toString(cmdlist.type));
+                    ImGui::Text("\tGPU time %.3fms", cmdlist.gpuTime.milliseconds());
+                    ImGui::Text("\t- totalTimeOnGPU %.3fms", cmdlist.fromSubmitToFence.milliseconds());
+                    ImGui::Text("\t- barrierPrepare %.3fms", cmdlist.barrierAdd.milliseconds());
+                    ImGui::Text("\t- barrierSolveLocal %.3fms", cmdlist.barrierSolveLocal.milliseconds());
+                    ImGui::Text("\t- barrierSolveGlobal %.3fms", cmdlist.barrierSolveGlobal.milliseconds());
+                    ImGui::Text("\t- fillNativeList %.3fms", cmdlist.fillNativeList.milliseconds());
+                    ImGui::Text("\t- cpuBackendTime(?) %.3fms", cmdlist.cpuBackendTime.milliseconds());
+                    ImGui::Text("\tGPU nodes:");
+                    for (auto& graphNode : cmdlist.nodes)
+                    {
+                      ImGui::Text("\t\t%s %.3fms (cpu %.3fms)", graphNode.nodeName.c_str(), graphNode.gpuTime.milliseconds(), graphNode.cpuTime.milliseconds());
+                    }
+                    ImGui::TreePop();
+                  }
+                }
               }
-            }
-            {
-              if (ImGui::CollapsingHeader("Camera"))
+              ImGui::End();
+
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Gpu statistics"))
+              {
+                auto stats = dev.gpuStatistics();
+                auto bytesToMb = [](uint64_t bytes){ return bytes / 1024.f / 1024.f; };
+                auto unitsToK = [](uint64_t units){ return units / 1000.f; };
+                for (auto& stat : stats)
+                {
+                  ImGui::Text("Commandbuffers on gpu       %zu", stat.commandlistsOnGpu);
+                  ImGui::Text("GPU Memory allocated        %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.gpuMemoryAllocated), bytesToMb(stat.gpuTotalMemory), bytesToMb(stat.gpuMemoryAllocated) / bytesToMb(stat.gpuTotalMemory) * 100.f);
+                  ImGui::Text("Memory used by constants    %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.constantsUploadMemoryInUse), bytesToMb(stat.maxConstantsUploadMemory), bytesToMb(stat.constantsUploadMemoryInUse) / bytesToMb(stat.maxConstantsUploadMemory) * 100.f);
+                  ImGui::Text("Generic upload memory used  %.2fmb / %.2fmb  %.2f%%", bytesToMb(stat.genericUploadMemoryInUse), bytesToMb(stat.maxGenericUploadMemory), bytesToMb(stat.genericUploadMemoryInUse) / bytesToMb(stat.maxGenericUploadMemory) * 100.f);
+                  if (stat.descriptorsInShaderArguments)
+                    ImGui::Text("ShaderArguments             %zu / %zu  %.2f%%", stat.descriptorsAllocated, stat.maxDescriptors, float(stat.descriptorsAllocated) / float(stat.maxDescriptors) * 100.f);
+                  else
+                    ImGui::Text("Descriptors                 %.2fk / %.2fk %.2f%%", unitsToK(stat.descriptorsAllocated), unitsToK(stat.maxDescriptors), unitsToK(stat.descriptorsAllocated) / unitsToK(stat.maxDescriptors) * 100.f);
+                }
+              }
+              ImGui::End();
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Camera"))
               {
                 auto& t_pos = ecs.get<components::WorldPosition>();
                 auto& t_rot = ecs.get<components::Rotation>();
@@ -765,20 +799,23 @@ void mainWindow(ProgramParams& params)
                   rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
                 });
               }
-            }
-            if (ImGui::CollapsingHeader("Keys"))
-            {
-              ImGui::Text(" Exit:                         ESC");
-              ImGui::Text(" Capture Mouse:                F1");
-              ImGui::Text(" Release Mouse:                F2");
-              ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
-              ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
-              ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
-            }
-            ImGui::End();
-            // render entities
-            entityViewer.render(ecs);
+              ImGui::End();
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Keys"))
+              {
+                ImGui::Text(" Exit:                         ESC");
+                ImGui::Text(" Capture Mouse:                F1");
+                ImGui::Text(" Release Mouse:                F2");
+                ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+                ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
+                ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
+              }
+              ImGui::End();
+              // render entities
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              entityViewer.render(ecs);
 
+            }
             ImGui::Render();
 
             // collect all model instances and their matrices for drawing...
@@ -895,6 +932,9 @@ void mainWindow(ProgramParams& params)
           ainputs.write(kinputs);
           amouse.write(window.mouse());
           inputsUpdated = kinputs.frame();
+          auto sizeInfo = window.posAndSize();
+          windowSize = int2(sizeInfo.z, sizeInfo.w);
+          windowPos = sizeInfo.xy();
           if (!renderActive)
             break;
           std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -911,6 +951,12 @@ void mainWindow(ProgramParams& params)
       }
     }
     quit = true;
+    size_t amountToWrite = 0;
+    auto data = ImGui::SaveIniSettingsToMemory(&amountToWrite);
+    vector<uint8_t> out;
+    out.resize(amountToWrite);
+    memcpy(out.data(), data, amountToWrite);
+    fs.writeFile("/imgui.config", makeMemView(out));
     higanbana::profiling::writeProfilingData(fs);
   };
 #if 0

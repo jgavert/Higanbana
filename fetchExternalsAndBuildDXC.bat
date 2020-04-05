@@ -16,8 +16,14 @@ rd /s /Q ext\stb
 git clone https://github.com/nothings/stb.git ext/stb
 
 REM Not going to even explain
-rd /s /Q ext\IMGui
+rd /s /Q ext\imgui
 git clone https://github.com/ocornut/imgui.git ext/imgui
+
+REM switch to docking branch for some sexy docking time
+cd ext\imgui
+git fetch
+git checkout docking
+cd ..\..
 
 REM For all json needs, api looks clean and usable
 rd /s /Q ext\nlohmann_json

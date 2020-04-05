@@ -13,72 +13,72 @@ void EntityView::render(Database<2048>& ecs)
   //ImGui::ShowDemoWindow(&m_show);
   /*
   */
-  ImGui::Begin("EntityViewer", &m_show, ImGuiWindowFlags_AlwaysAutoResize);
-  auto& childsTable = ecs.get<components::Childs>();
-  auto& names = ecs.get<components::Name>();
-  auto& meshes = ecs.get<components::Mesh>();
-  auto& matrices = ecs.get<components::Matrix>();
+  if (ImGui::Begin("EntityViewer", &m_show, ImGuiWindowFlags_AlwaysAutoResize)) {
+    auto& childsTable = ecs.get<components::Childs>();
+    auto& names = ecs.get<components::Name>();
+    auto& meshes = ecs.get<components::Mesh>();
+    auto& matrices = ecs.get<components::Matrix>();
 
-  auto& activeScenes = ecs.get<components::SceneInstance>();
-  higanbana::Id oldActiveScene = 0;
-  bool wasActive = false;
+    auto& activeScenes = ecs.get<components::SceneInstance>();
+    higanbana::Id oldActiveScene = 0;
+    bool wasActive = false;
 
-  higanbana::Id activeGameObject;
+    higanbana::Id activeGameObject;
 
-  query(pack(activeScenes), [&](higanbana::Id id, components::SceneInstance target){
-    oldActiveScene = target.target;
-    activeGameObject = id;
-    wasActive = true;
-  });
+    query(pack(activeScenes), [&](higanbana::Id id, components::SceneInstance target){
+      oldActiveScene = target.target;
+      activeGameObject = id;
+      wasActive = true;
+    });
 
-  if (!wasActive)
-  {
-    auto id = ecs.createEntity();
-    activeScenes.insert(id, components::SceneInstance{oldActiveScene});
-    ecs.get<components::WorldPosition>().insert(id, components::WorldPosition{float3(0,0,0)});
-    activeGameObject = id;
-  }
-
-  // choose active gltf scene... take first one for now.
-  auto nameInstance = names.tryGet(oldActiveScene);
-  std::string currentSceneStr = "null";
-  if (nameInstance)
-  {
-    currentSceneStr = nameInstance.value().str;
-  }
-  bool activeSceneSet = false;
-  higanbana::Id newActiveScene = oldActiveScene;
-  if (ImGui::BeginCombo("Active GLTF scene", currentSceneStr.c_str()))
-  {
-    query(pack(names), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name)
+    if (!wasActive)
     {
-      bool selected = id == newActiveScene;
-      if (ImGui::Selectable(name.str.c_str(), selected))
+      auto id = ecs.createEntity();
+      activeScenes.insert(id, components::SceneInstance{oldActiveScene});
+      ecs.get<components::WorldPosition>().insert(id, components::WorldPosition{float3(0,0,0)});
+      activeGameObject = id;
+    }
+
+    // choose active gltf scene... take first one for now.
+    auto nameInstance = names.tryGet(oldActiveScene);
+    std::string currentSceneStr = "null";
+    if (nameInstance)
+    {
+      currentSceneStr = nameInstance.value().str;
+    }
+    bool activeSceneSet = false;
+    higanbana::Id newActiveScene = oldActiveScene;
+    if (ImGui::BeginCombo("Active GLTF scene", currentSceneStr.c_str()))
+    {
+      query(pack(names), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name)
       {
-        newActiveScene = id;
-      }
-      if (selected)
-      {
-        ImGui::SetItemDefaultFocus();
+        bool selected = id == newActiveScene;
+        if (ImGui::Selectable(name.str.c_str(), selected))
+        {
+          newActiveScene = id;
+        }
+        if (selected)
+        {
+          ImGui::SetItemDefaultFocus();
       }
     });
     ImGui::EndCombo();
-  }
+    }
 
-  activeScenes.insert(activeGameObject, components::SceneInstance{newActiveScene});
+    activeScenes.insert(activeGameObject, components::SceneInstance{newActiveScene});
 
 
-  // viewer part functionality
-  ImGui::NewLine();
-  auto hasMesh = [&](higanbana::Id id){
+    // viewer part functionality
+    ImGui::NewLine();
+    auto hasMesh = [&](higanbana::Id id){
     if (auto meshId = meshes.tryGet(id))
     {
       std::string meshn = "mesh " + std::to_string(meshId.value().target);
       ImGui::Text(meshn.c_str());
     }
-  };
+    };
 
-  auto hasMatrix = [&](higanbana::Id id){
+    auto hasMatrix = [&](higanbana::Id id){
     if (auto matrix = matrices.tryGet(id))
     {
       std::string matn = "matrics " + std::to_string(id);
@@ -101,16 +101,16 @@ void EntityView::render(Database<2048>& ecs)
         ImGui::TreePop();
       }
     }
-  };
+    };
 
-  auto allChecks = [&](higanbana::Id id)
-  {
+    auto allChecks = [&](higanbana::Id id)
+    {
     hasMesh(id);
     hasMatrix(id);
-  };
+    };
 
-  auto forSingleId = [&](higanbana::Id id) -> std::optional<components::Childs>
-  {
+    auto forSingleId = [&](higanbana::Id id) -> std::optional<components::Childs>
+    {
     std::string nodeName = "node ";
     if (auto name = names.tryGet(id))
     {
@@ -126,10 +126,10 @@ void EntityView::render(Database<2048>& ecs)
       ImGui::TreePop();
     }
     return {};
-  };
+    };
 
-  query(pack(names, childsTable), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name, components::Childs& childs)
-  {
+    query(pack(names, childsTable), pack(ecs.getTag<components::GltfNode>()), [&](higanbana::Id id, components::Name& name, components::Childs& childs)
+    {
     higanbana::deque<higanbana::vector<higanbana::Id>> stack;
     auto clds = forSingleId(id);
     if (clds)
@@ -153,7 +153,8 @@ void EntityView::render(Database<2048>& ecs)
         }
       }
     }
-  });
+    });
+  }
 
   ImGui::End();
 }

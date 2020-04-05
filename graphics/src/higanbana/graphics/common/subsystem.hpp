@@ -34,7 +34,7 @@ namespace higanbana
     GpuInfo getVendorDevice(GraphicsApi api = GraphicsApi::All, VendorID id = VendorID::Unknown, QueryDevicesMode mode = QueryDevicesMode::UseCached)
     {
       auto gpus = availableGpus(GraphicsApi::All, VendorID::All, mode);
-      GpuInfo info;
+      GpuInfo info{};
       for (auto&& it : gpus)
       {
         if (it.api == GraphicsApi::All || it.api == api)
@@ -44,8 +44,12 @@ namespace higanbana
             info = it;
             break;
           }
+          if (info.id == -1)
+            info = it;
         }
       }
+      if (info.id == -1) // in case everything fails, give something valid. Meant to give some device regardless of inputs.
+        info = gpus[0];
       if (api != GraphicsApi::All && info.api == GraphicsApi::All)
         info.api = api;
       return info;

@@ -364,7 +364,21 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     resizeExternal(swapchain.buffers().begin()->texture().desc());
   }
 
-  int2 currentRes = math::mul(options.resolutionScale, float2(swapchain.buffers().begin()->texture().desc().desc.size3D().xy()));
+  int2 targetRes = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
+  if (options.renderImGui) {
+    targetRes = options.imguiViewport;
+    auto cis = imguiViewport.desc().desc.size3D().xy();
+    if (cis.x != targetRes.x || cis.y != targetRes.y) {
+      imguiViewport = dev.createTexture(ResourceDescriptor()
+        .setFormat(scdesc.desc.format)
+        .setSize(targetRes)
+        .setUsage(ResourceUsage::RenderTarget));
+      imguiViewportSRV = dev.createTextureSRV(imguiViewport);
+      imguiViewportRTV = dev.createTextureRTV(imguiViewport);
+      imguiViewportRTV.setOp(LoadOp::Clear);
+    }
+  }
+  int2 currentRes = math::mul(options.resolutionScale, float2(targetRes));
   if (currentRes.x > 0 && currentRes.y > 0 && (currentRes.x != m_gbuffer.desc().desc.size3D().x || currentRes.y != m_gbuffer.desc().desc.size3D().y))
   {
     auto desc = ResourceDescriptor(m_gbuffer.desc()).setSize(currentRes);
@@ -385,8 +399,7 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   {
     auto ndoe = tasks.createPass("copy cameras");
     vector<CameraSettings> sets;
-    auto& swapDesc = swapchain.buffers().front().desc().desc;
-    perspective = calculatePerspective(camera, swapDesc.size3D().xy());
+    perspective = calculatePerspective(camera, currentRes);
     auto prevCamera = m_previousCamera;
     auto newCamera = CameraSettings{ perspective, float4(camera.position, 1.f)};
     m_previousCamera = newCamera;
@@ -463,17 +476,22 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     return;
   }
   TextureRTV backbuffer = obackbuffer.value().second;
+  backbuffer.setOp(LoadOp::Clear);
 
   {
     auto node = tasks.createPass("tonemapper");
-    tonemapper.tonemap(dev, node, backbuffer, renderer::TonemapperArguments{tsaaOutput});
+    auto target = backbuffer;
+    if (options.renderImGui)
+      target = imguiViewportRTV;
+    tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
     tasks.addPass(std::move(node));
   }
 
   // IMGUI
+  if (options.renderImGui)
   {
     auto node = tasks.createPass("IMGui");
-    imgui.render(dev, node, backbuffer);
+    imgui.render(dev, node, backbuffer, imguiViewportSRV);
     tasks.addPass(std::move(node));
   }
   

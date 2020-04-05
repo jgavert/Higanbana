@@ -57,17 +57,17 @@ namespace higanbana
 
   struct GpuInfo
   {
-    int id;
-    std::string name;
-    int64_t memory;
-    VendorID vendor;
-    uint deviceId; // used to match 2 devices together for interopt
-    DeviceType type;
-    bool canPresent;
-    bool canRaytrace;
-    GraphicsApi api;
-    uint32_t apiVersion;
-    std::string apiVersionStr;
+    int id = -1;
+    std::string name = "";
+    int64_t memory = -1;
+    VendorID vendor = VendorID::Unknown;
+    uint deviceId = 0; // used to match 2 devices together for interopt
+    DeviceType type = DeviceType::Unknown;
+    bool canPresent = false;
+    bool canRaytrace = false;
+    GraphicsApi api = GraphicsApi::All;
+    uint32_t apiVersion = 0;
+    std::string apiVersionStr = "";
   };
 
   enum class ThreadedSubmission

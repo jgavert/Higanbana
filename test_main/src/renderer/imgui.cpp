@@ -4,6 +4,7 @@ using namespace higanbana;
 
 SHADER_STRUCT(imguiConstants,
   float2 reciprocalResolution;
+  uint renderCustom;
 );
 
 namespace app::renderer 
@@ -11,13 +12,17 @@ namespace app::renderer
 IMGui::IMGui(GpuGroup& device)
 {
   ShaderArgumentsLayoutDescriptor argsLayoutDesc = ShaderArgumentsLayoutDescriptor()
-    .readOnly(ShaderResourceType::ByteAddressBuffer, "vertices")
-    .readOnly(ShaderResourceType::Texture2D, "float", "tex");
-  argsLayout = device.createShaderArgumentsLayout(argsLayoutDesc);
+    .readOnly(ShaderResourceType::ByteAddressBuffer, "vertices");
+  ShaderArgumentsLayoutDescriptor argsLayoutDesc2 = ShaderArgumentsLayoutDescriptor()
+    .readOnly(ShaderResourceType::Texture2D, "float", "tex")
+    .readOnly(ShaderResourceType::Texture2D, "float4", "custom");
+  vertexLayout = device.createShaderArgumentsLayout(argsLayoutDesc);
+  imageLayout = device.createShaderArgumentsLayout(argsLayoutDesc2);
 
   higanbana::PipelineInterfaceDescriptor imguiInterface = PipelineInterfaceDescriptor()
     .constants<imguiConstants>()
-    .shaderArguments(0, argsLayout);
+    .shaderArguments(0, imageLayout)
+    .shaderArguments(1, vertexLayout);
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(imguiInterface)
@@ -87,7 +92,7 @@ IMGui::IMGui(GpuGroup& device)
   io.KeyMap[ImGuiKey_Z] = 'Z';
 }
 
-void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
+void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target, TextureSRV& viewport)
 {
   auto drawData = ::ImGui::GetDrawData();
   HIGAN_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
@@ -99,10 +104,14 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
 
   imguiConstants constants;
   constants.reciprocalResolution = math::div(float2{ 1.f, 1.f }, float2{ float(target.texture().desc().desc.width), float(target.texture().desc().desc.height) });
+  constants.renderCustom = 0;
+  auto bindArgs = ShaderArgumentsDescriptor("IMGui vertices", vertexLayout);
+  auto alternateArgs = ShaderArgumentsDescriptor("IMGui custom Image", imageLayout);
+  alternateArgs.bind("tex", fontatlasSrv);
+  alternateArgs.bind("custom", viewport);
+  auto customImageArgs = device.createShaderArguments(alternateArgs);
+  binding.arguments(0, customImageArgs);
   binding.constants(constants);
-  //binding.bind("tex", fontatlasSrv);
-  auto bindArgs = ShaderArgumentsDescriptor("IMGui descriptors", argsLayout);
-  bindArgs.bind("tex", fontatlasSrv);
 
   for (int i = 0; i < drawData->CmdListsCount; ++i)
   {
@@ -113,7 +122,7 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
 
     bindArgs.bind("vertices", vbv);
     auto args = device.createShaderArguments(bindArgs);
-    binding.arguments(0, args);
+    binding.arguments(1, args);
 
     uint indexOffset = 0;
     for (auto &d : list->CmdBuffer)
@@ -124,9 +133,17 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target)
       }
       else
       {
+        if (d.TextureId != nullptr) {
+          constants.renderCustom = 1;
+          binding.constants(constants);
+        }
         auto clipRect = d.ClipRect;
         node.setScissor(int2{ static_cast<int>(clipRect.x), static_cast<int>(clipRect.y) }, int2{ static_cast<int>(clipRect.z), static_cast<int>(clipRect.w) });
         node.drawIndexed(binding, ibv, d.ElemCount, 1, indexOffset);
+        if (d.TextureId != nullptr) {
+          constants.renderCustom = 0;
+          binding.constants(constants);
+        }
       }
 
       indexOffset += d.ElemCount;

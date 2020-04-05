@@ -41,10 +41,12 @@ struct RendererOptions
   bool tsaaDebug = false;
   bool debugTextures = false;
   float resolutionScale = 1.f;
+  int2 imguiViewport = int2(100, 100);
+  bool renderImGui = true;
 
   void drawImGuiOptions()
   {
-    if (ImGui::CollapsingHeader("Renderer Options"))
+    if (ImGui::Begin("Renderer Options"))
     {
       ImGui::Checkbox("sync resolution to window size", &syncResolutionToSwapchain);
       if (!syncResolutionToSwapchain)
@@ -75,6 +77,7 @@ struct RendererOptions
       ImGui::Checkbox("submit lbs", &submitLBS);
       ImGui::Checkbox("unbalanced cube drawlists", &unbalancedCubes);
     }
+    ImGui::End();
   }
 };
 
@@ -130,6 +133,11 @@ class Renderer
   higanbana::Texture tsaaDebug;
   higanbana::TextureSRV tsaaDebugSRV;
   higanbana::TextureUAV tsaaDebugUAV;
+
+  // imgui texture... when we cannot go straight to backbuffer
+  higanbana::Texture imguiViewport;
+  higanbana::TextureSRV imguiViewportSRV;
+  higanbana::TextureRTV imguiViewportRTV;
 
   higanbana::PingPongTexture proxyTex; // used for background color
 

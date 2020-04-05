@@ -10,7 +10,12 @@ struct VertexOut
 [RootSignature(ROOTSIG)]
 float4 main(VertexOut i) : SV_TARGET
 {
-  float  texColor = tex.Sample(pointSampler, i.uv.xy);
-  float4 vertColor = i.color;
-  return texColor * vertColor;
+  if (constants.renderCustom == 1) {
+    return custom.Sample(bilinearSampler, i.uv.xy);
+  }
+  else {
+    float  texColor = tex.Sample(pointSampler, i.uv.xy);
+    float4 vertColor = i.color;
+    return texColor * vertColor;
+  }
 }

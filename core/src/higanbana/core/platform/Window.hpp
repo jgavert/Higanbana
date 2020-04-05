@@ -208,6 +208,12 @@ namespace higanbana
     {
       return m_mouse;
     }
+    int4 posAndSize() {
+      RECT rect;
+      GetWindowRect(m_window->getHWND(), &rect);
+
+      return int4(rect.left, rect.top, rect.right-rect.left, rect.bottom - rect.top);
+    }
 
     vector<wchar_t> charInputs()
     {
