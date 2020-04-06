@@ -20,6 +20,7 @@ int TextureDB::allocate(higanbana::GpuGroup& gpu, higanbana::CpuImage& image)
 
 void TextureDB::free(int index)
 {
+  freelist.release(index);
   views[index] = {};
 }
 

@@ -25,6 +25,7 @@ namespace higanbana
     std::shared_ptr<CommandList> list;
     std::string name;
     friend struct backend::DeviceGroupData;
+    friend struct CommandNodeVector;
     friend struct CommandGraph;
     QueueType type;
     int gpuId;
@@ -356,6 +357,30 @@ namespace higanbana
     }
   };
 
+  class CommandNodeVector
+  {
+    CommandBufferPool& m_buffers;
+    std::shared_ptr<vector<CommandGraphNode>> m_nodes;
+    friend struct CommandGraph;
+  public:
+    CommandNodeVector(CommandBufferPool& buffers)
+      : m_buffers(buffers)
+      , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
+    {
+    }
+
+    CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
+    {
+      return CommandGraphNode(name, type, gpu, m_buffers.allocate());
+    }
+
+    void addPass(CommandGraphNode&& node)
+    {
+      node.timing.cpuTime.stop();
+      node.timing.cpuSizeBytes = node.list->sizeBytesUsed();
+      m_nodes->emplace_back(std::move(node));
+    }
+  };
   class CommandGraph
   {
     SeqNum m_sequence;
@@ -382,6 +407,17 @@ namespace higanbana
       node.timing.cpuTime.stop();
       node.timing.cpuSizeBytes = node.list->sizeBytesUsed();
       m_nodes->emplace_back(std::move(node));
+    }
+
+    CommandNodeVector localThreadVector() {
+      return CommandNodeVector(m_buffers);
+    }
+    
+    void addVectorOfPasses(CommandNodeVector&& vec)
+    {
+      for (auto&& node : *vec.m_nodes) {
+        m_nodes->emplace_back(std::move(node));
+      }
     }
   };
 }

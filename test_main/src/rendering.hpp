@@ -19,6 +19,7 @@
 #include "renderer/materials.hpp"
 #include "renderer/generate_image.hpp"
 #include "renderer/particles.hpp"
+#include "renderer/viewport.hpp"
 #include "world/visual_data_structures.hpp"
 
 
@@ -46,39 +47,42 @@ struct RendererOptions
 
   void drawImGuiOptions()
   {
-    if (ImGui::Begin("Renderer Options"))
+    ImGui::Checkbox("sync resolution to window size", &syncResolutionToSwapchain);
+    if (!syncResolutionToSwapchain)
     {
-      ImGui::Checkbox("sync resolution to window size", &syncResolutionToSwapchain);
-      if (!syncResolutionToSwapchain)
-      {
-        ImGui::DragFloat("resolution scale", &resolutionScale, 0.01f, 0.0001f, 4.f);
-      }
-      else
-      {
-        resolutionScale = 1.f;
-      }
-      ImGui::Checkbox("debug textures", &debugTextures);
-      ImGui::Checkbox("jitter viewport", &jitterEnabled);
-      ImGui::Checkbox("TSAA", &tsaa);
-      if (tsaa)
-      {
-        ImGui::Checkbox("enable taa debugoutput", &tsaaDebug);
-      }
-      ImGui::Checkbox("Particles", &particles);
-      if (particles)
-      {
-        ImGui::Checkbox(" Simulate", &particlesSimulate);
-        ImGui::Checkbox(" Draw", &particlesDraw);
-      }
-      ImGui::Checkbox("allow Mesh Shaders", &allowMeshShaders); ImGui::SameLine();
-      ImGui::Checkbox("allow Raytracing", &allowRaytracing);
-      ImGui::Checkbox("submit multithread experimental", &submitExperimental);
-      ImGui::Checkbox("submit singlethread", &submitSingleThread);
-      ImGui::Checkbox("submit lbs", &submitLBS);
-      ImGui::Checkbox("unbalanced cube drawlists", &unbalancedCubes);
+      ImGui::DragFloat("resolution scale", &resolutionScale, 0.01f, 0.0001f, 4.f);
     }
-    ImGui::End();
+    else
+    {
+      resolutionScale = 1.f;
+    }
+    ImGui::Checkbox("debug textures", &debugTextures);
+    ImGui::Checkbox("jitter viewport", &jitterEnabled);
+    ImGui::Checkbox("TSAA", &tsaa);
+    if (tsaa)
+    {
+      ImGui::Checkbox("enable taa debugoutput", &tsaaDebug);
+    }
+    ImGui::Checkbox("Particles", &particles);
+    if (particles)
+    {
+      ImGui::Checkbox(" Simulate", &particlesSimulate);
+      ImGui::Checkbox(" Draw", &particlesDraw);
+    }
+    ImGui::Checkbox("allow Mesh Shaders", &allowMeshShaders); ImGui::SameLine();
+    ImGui::Checkbox("allow Raytracing", &allowRaytracing);
+    ImGui::Checkbox("submit multithread experimental", &submitExperimental);
+    ImGui::Checkbox("submit singlethread", &submitSingleThread);
+    ImGui::Checkbox("submit lbs", &submitLBS);
+    ImGui::Checkbox("unbalanced cube drawlists", &unbalancedCubes);
   }
+};
+
+struct RenderViewportInfo {
+  int viewportIndex; // gained when allocating a viewport from renderer
+  int2 viewportSize;
+  RendererOptions options;
+  ActiveCamera camera;
 };
 
 class Renderer
@@ -117,7 +121,9 @@ class Renderer
   renderer::Particles particleSimulation;
 
   // resources
+  higanbana::vector<app::Viewport> viewports;
   // gbuffer??
+  /*
   higanbana::Texture m_gbuffer;
   higanbana::TextureRTV m_gbufferRTV;
   higanbana::TextureSRV m_gbufferSRV;
@@ -137,7 +143,8 @@ class Renderer
   // imgui texture... when we cannot go straight to backbuffer
   higanbana::Texture imguiViewport;
   higanbana::TextureSRV imguiViewportSRV;
-  higanbana::TextureRTV imguiViewportRTV;
+  higanbana::TextureRTV imguiViewportRTV;*/
+  
 
   higanbana::PingPongTexture proxyTex; // used for background color
 
@@ -147,7 +154,7 @@ class Renderer
   higanbana::Renderpass compositeRP;
 
   // temp, probably shouldnt be here
-  CameraSettings m_previousCamera;
+  //CameraSettings m_previousCamera;
 
   // info
   std::optional<higanbana::SubmitTiming> m_previousInfo;
@@ -168,14 +175,15 @@ class Renderer
     int drawcalls;
     int drawsSplitInto;
   };
-  void renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& time, const SceneArguments& args, higanbana::vector<InstanceDraw>& instances, std::optional<higanbana::CpuImage>& heightmap);
+  void renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const SceneArguments& args, higanbana::vector<InstanceDraw>& instances);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   int2 windowSize();
+  void ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
-  void resizeInternal(higanbana::ResourceDescriptor& desc);
-  void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
+  //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
+  void renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);

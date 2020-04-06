@@ -99,6 +99,11 @@ struct SceneInstance
   higanbana::Id target;
 };
 
+struct ViewportCamera
+{
+  int targetViewport;
+};
+
 struct GltfNode;
 struct CameraNode;
 struct MeshNode;

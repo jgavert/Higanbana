@@ -15,7 +15,7 @@ IMGui::IMGui(GpuGroup& device)
     .readOnly(ShaderResourceType::ByteAddressBuffer, "vertices");
   ShaderArgumentsLayoutDescriptor argsLayoutDesc2 = ShaderArgumentsLayoutDescriptor()
     .readOnly(ShaderResourceType::Texture2D, "float", "tex")
-    .readOnly(ShaderResourceType::Texture2D, "float4", "custom");
+    .readOnlyBindless(ShaderResourceType::Texture2D, "viewports", 20);
   vertexLayout = device.createShaderArgumentsLayout(argsLayoutDesc);
   imageLayout = device.createShaderArgumentsLayout(argsLayoutDesc2);
 
@@ -92,7 +92,7 @@ IMGui::IMGui(GpuGroup& device)
   io.KeyMap[ImGuiKey_Z] = 'Z';
 }
 
-void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target, TextureSRV& viewport)
+void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target, vector<TextureSRV>& viewports)
 {
   auto drawData = ::ImGui::GetDrawData();
   HIGAN_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
@@ -108,7 +108,7 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target,
   auto bindArgs = ShaderArgumentsDescriptor("IMGui vertices", vertexLayout);
   auto alternateArgs = ShaderArgumentsDescriptor("IMGui custom Image", imageLayout);
   alternateArgs.bind("tex", fontatlasSrv);
-  alternateArgs.bind("custom", viewport);
+  alternateArgs.bindBindless("viewports", viewports);
   auto customImageArgs = device.createShaderArguments(alternateArgs);
   binding.arguments(0, customImageArgs);
   binding.constants(constants);
@@ -134,7 +134,7 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target,
       else
       {
         if (d.TextureId != nullptr) {
-          constants.renderCustom = 1;
+          constants.renderCustom = reinterpret_cast<int>(d.TextureId);
           binding.constants(constants);
         }
         auto clipRect = d.ClipRect;

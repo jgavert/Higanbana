@@ -17,6 +17,6 @@ class IMGui
   higanbana::CpuImage image;
 public:
   IMGui(higanbana::GpuGroup& device);
-  void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target, higanbana::TextureSRV& viewport);
+  void render(higanbana::GpuGroup& device, higanbana::CommandGraphNode& graph, higanbana::TextureRTV& target, higanbana::vector<higanbana::TextureSRV>& viewport);
 };
 }

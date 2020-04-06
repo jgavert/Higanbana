@@ -45,10 +45,9 @@ void Blitter::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::Text
   auto& renderpass = renderpasses(target2.texture().desc().desc.format);
   HIGAN_ASSERT(renderpass, "should be valid renderpass");
   node.renderpass(renderpass, target2);
-  target = target2.desc();
 }
 
-void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, float2 topleft, float2 size)
+void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node,higanbana::TextureRTV target,  higanbana::TextureSRV& source, float2 topleft, float2 size)
 {
   using namespace higanbana;
   higanbana::vector<float4> vertices;
@@ -86,7 +85,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
     .bind("vertices", verts)
     .bind("source", source)
     .bind("sourceInt", TextureSRV()));
-  auto& pipeline = pipelines(target.desc.format);
+  auto& pipeline = pipelines(target.desc().desc.format);
   HIGAN_ASSERT(pipeline, "pipeline should be valid");
   auto binding = node.bind(pipeline);
   binding.arguments(0, args);
@@ -94,16 +93,16 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   node.draw(binding, 6, 1);
 }
 
-void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, int2 itopleft, int2 isize)
+void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node,higanbana::TextureRTV target,  higanbana::TextureSRV& source, int2 itopleft, int2 isize)
 {
   using namespace higanbana;
-  float x = float(isize.x) / float(target.desc.width);
-  float y = float(isize.y) / float(target.desc.height);
+  float x = float(isize.x) / float(target.desc().desc.width);
+  float y = float(isize.y) / float(target.desc().desc.height);
 
   float2 size = { x, y };
 
-  x = float(itopleft.x) / float(target.desc.width);
-  y = float(itopleft.y) / float(target.desc.height);
+  x = float(itopleft.x) / float(target.desc().desc.width);
+  y = float(itopleft.y) / float(target.desc().desc.height);
 
   float2 topleft = { x, y };
 
@@ -141,7 +140,7 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 
   auto args = device.createShaderArguments(desc);
 
-  auto& pipeline = pipelines(target.desc.format);
+  auto& pipeline = pipelines(target.desc().desc.format);
   HIGAN_ASSERT(pipeline, "pipeline should be valid");
   auto binding = node.bind(pipeline);
   binding.arguments(0, args);
@@ -149,10 +148,10 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
   node.draw(binding, 6, 1);
 }
 
-void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureSRV& source, FitMode mode)
+void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node,higanbana::TextureRTV target,  higanbana::TextureSRV& source, FitMode mode)
 {
   using namespace higanbana;
-  float dstScale = float(target.desc.width) / float(target.desc.height);
+  float dstScale = float(target.desc().desc.width) / float(target.desc().desc.height);
   float srcScale = float(source.desc().desc.width) / float(source.desc().desc.height);
   //float scaleDiff = dstScale - srcScale;
 
@@ -209,7 +208,7 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
     .bind("vertices", verts)
     .bind("source", source)
     .bind("sourceInt", TextureSRV()));
-  auto& pipeline = pipelines(target.desc.format);
+  auto& pipeline = pipelines(target.desc().desc.format);
   HIGAN_ASSERT(pipeline, "pipeline should be valid");
   auto binding = node.bind(pipeline);
   binding.arguments(0, args);

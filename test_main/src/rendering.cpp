@@ -85,7 +85,6 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setSize(uint3(1280, 720, 1))
     .setFormat(FormatType::Unorm8BGRA);
   resizeExternal(desc);
-  resizeInternal(desc.setSize(uint3(960, 540, 1)));
 }
 
 void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
@@ -100,56 +99,12 @@ int2 Renderer::windowSize() {
   return swapchain.buffers().front().desc().desc.size3D().xy();
 }
 
-void Renderer::resizeInternal(higanbana::ResourceDescriptor& desc) {
-  m_gbuffer = dev.createTexture(higanbana::ResourceDescriptor()
-    .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Float16RGBA)
-    .setUsage(ResourceUsage::RenderTargetRW)
-    .setName("gbuffer"));
-  m_gbufferRTV = dev.createTextureRTV(m_gbuffer);
-  m_gbufferSRV = dev.createTextureSRV(m_gbuffer);
-  m_depth = dev.createTexture(higanbana::ResourceDescriptor()
-    .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Depth32)
-    .setUsage(ResourceUsage::DepthStencil)
-    .setName("opaqueDepth"));
-
-  m_depthDSV = dev.createTextureDSV(m_depth);
-
+void Renderer::resizeExternal(higanbana::ResourceDescriptor& desc) {
   proxyTex.resize(dev, ResourceDescriptor()
     .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Unorm8RGBA)
+    .setFormat(FormatType::Float16RGBA)
     .setUsage(ResourceUsage::RenderTargetRW)
     .setName("proxyTex"));
-
-  m_motionVectors = dev.createTexture(higanbana::ResourceDescriptor()
-    .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Float16RGBA)
-    .setUsage(ResourceUsage::RenderTarget)
-    .setName("motion vectors"));
-  
-  m_motionVectorsSRV = dev.createTextureSRV(m_motionVectors);
-  m_motionVectorsRTV = dev.createTextureRTV(m_motionVectors);
-}
-void Renderer::resizeExternal(higanbana::ResourceDescriptor& desc) {
-  tsaaResolved.resize(dev, ResourceDescriptor()
-    .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Float16RGBA)
-    .setUsage(ResourceUsage::RenderTargetRW)
-    .setName("tsaa current/history"));
-
-  auto descTsaaResolved = tsaaResolved.desc();
-  tsaaDebug = dev.createTexture(descTsaaResolved);
-  tsaaDebugSRV = dev.createTextureSRV(tsaaDebug);
-  tsaaDebugUAV = dev.createTextureUAV(tsaaDebug);
-
-  depthExternal = dev.createTexture(higanbana::ResourceDescriptor()
-    .setSize(desc.desc.size3D())
-    .setFormat(FormatType::Depth32)
-    .setUsage(ResourceUsage::DepthStencil)
-    .setName("opaqueDepth"));
-
-  depthExternalDSV = dev.createTextureDSV(depthExternal);
 }
 
 std::optional<higanbana::SubmitTiming> Renderer::timings() {
@@ -167,7 +122,7 @@ void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::Textur
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, prevCamera, instance.materialId);
+    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, prevCamera, instance.materialId, backbuffer.desc().desc.size3D().xy());
   }
   worldRend.endRenderpass(node);
 }
@@ -185,15 +140,14 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& time, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances, std::optional<higanbana::CpuImage>& heightmap) {
+void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances) {
   {
     auto node = tasks.createPass("composite");
-    node.acquirePresentableImage(swapchain);
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
     auto gbufferRTV = scene.gbufferRTV;
     gbufferRTV.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
     blitter.beginRenderpass(node, gbufferRTV);
-    blitter.blitImage(dev, node, proxyTex.srv(), renderer::Blitter::FitMode::Fill);
+    blitter.blitImage(dev, node, gbufferRTV, proxyTex.srv(), renderer::Blitter::FitMode::Fill);
     node.endRenderpass();
     tasks.addPass(std::move(node));
   }
@@ -230,7 +184,7 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& tim
 
     auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
       .bind("vertexInput", vert));
-    if (heightmap && instances.empty())
+    /*if (heightmap && instances.empty())
     {
       int pixelsToDraw = scene.drawcalls;
       auto gbufferRTV = scene.gbufferRTV;
@@ -267,7 +221,7 @@ void Renderer::renderScene(higanbana::CommandGraph& tasks, higanbana::WTime& tim
         tasks.addPass(std::move(std::get<0>(node)));
       }
     }
-    else if (instances.empty())
+    else */if (instances.empty())
     {
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
@@ -357,35 +311,28 @@ higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 
   return perspective;
 }
 
-void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera camera, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto, std::optional<higanbana::CpuImage>& heightmap) {
+void Renderer::ensureViewportCount(int size) {
+  if (viewports.size() != static_cast<size_t>(size))
+    viewports.resize(size);
+}
+
+void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
     resizeExternal(swapchain.buffers().begin()->texture().desc());
   }
 
-  int2 targetRes = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
-  if (options.renderImGui) {
-    targetRes = options.imguiViewport;
-    auto cis = imguiViewport.desc().desc.size3D().xy();
-    if (cis.x != targetRes.x || cis.y != targetRes.y) {
-      imguiViewport = dev.createTexture(ResourceDescriptor()
-        .setFormat(scdesc.desc.format)
-        .setSize(targetRes)
-        .setUsage(ResourceUsage::RenderTarget));
-      imguiViewportSRV = dev.createTextureSRV(imguiViewport);
-      imguiViewportRTV = dev.createTextureRTV(imguiViewport);
-      imguiViewportRTV.setOp(LoadOp::Clear);
-    }
-  }
-  int2 currentRes = math::mul(options.resolutionScale, float2(targetRes));
-  if (currentRes.x > 0 && currentRes.y > 0 && (currentRes.x != m_gbuffer.desc().desc.size3D().x || currentRes.y != m_gbuffer.desc().desc.size3D().y))
-  {
-    auto desc = ResourceDescriptor(m_gbuffer.desc()).setSize(currentRes);
-    resizeInternal(desc);
+  vector<int> indexesToVP;
+  for (int i = 0; i < viewportsToRender.size(); ++i) {
+    indexesToVP.push_back(i);
   }
 
-  // materials
+  for (auto& index : indexesToVP) {
+    auto& vp = viewports[index];
+    auto& vpInfo = viewportsToRender[index];
+    vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
+  }
 
   CommandGraph tasks = dev.createGraph();
   {
@@ -395,20 +342,28 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   }
   auto materialArgs = textures.bindlessArgs(dev, materials.srv());
 
-  float4x4 perspective;
   {
     auto ndoe = tasks.createPass("copy cameras");
     vector<CameraSettings> sets;
-    perspective = calculatePerspective(camera, currentRes);
-    auto prevCamera = m_previousCamera;
-    auto newCamera = CameraSettings{ perspective, float4(camera.position, 1.f)};
-    m_previousCamera = newCamera;
-    if (options.jitterEnabled){
-      prevCamera.perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), prevCamera.perspective);
-      newCamera.perspective = tsaa.jitterProjection(time.getFrame(), m_gbuffer.desc().desc.size3D().xy(), newCamera.perspective);
+    for (auto& index : indexesToVP) {
+      auto& vpInfo = viewportsToRender[index];
+      auto& vp = viewports[index];
+      auto gbufferRes = vp.gbuffer.desc().desc.size3D().xy();
+      vp.perspective = calculatePerspective(vpInfo.camera, gbufferRes);
+
+      auto prevCamera = vp.previousCamera;
+      auto newCamera = CameraSettings{ vp.perspective, float4(vpInfo.camera.position, 1.f)};
+      vp.previousCamera = newCamera;
+      if (vpInfo.options.jitterEnabled){
+        prevCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, prevCamera.perspective);
+        newCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, newCamera.perspective);
+      }
+      vp.previousCameraIndex = static_cast<int>(sets.size());
+      sets.push_back(prevCamera);
+      vp.currentCameraIndex = static_cast<int>(sets.size());
+      sets.push_back(newCamera);
+      vp.jitterOffset = tsaa.getJitterOffset(time.getFrame());
     }
-    sets.push_back(prevCamera);
-    sets.push_back(newCamera);
     auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
     ndoe.copy(cameras, matUpdate);
     tasks.addPass(std::move(ndoe));
@@ -420,50 +375,64 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     tasks.addPass(std::move(node));
   }
 
-  if (options.particles && options.particlesSimulate)
+  if (0 /*options.particles && options.particlesSimulate*/)
   {
     auto ndoe = tasks.createPass("simulate particles");
     particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
     tasks.addPass(std::move(ndoe));
   }
 
-  Renderer::SceneArguments sargs{m_gbufferRTV, m_depthDSV, m_motionVectorsRTV, materialArgs, options, 1, 0, perspective, camera.position, drawcalls, drawsSplitInto};
-
-  renderScene(tasks, time, sargs, instances, heightmap);
-
-  TextureSRV tsaaOutput = m_gbufferSRV;
-  TextureRTV tsaaOutputRTV = m_gbufferRTV;
-  if (options.tsaa)
-  {
-    auto tsaaNode = tasks.createPass("Temporal Supersampling AA");
-    tsaaResolved.next(time.getFrame());
-    tsaa.resolve(dev, tsaaNode, tsaaResolved.uav(), renderer::TSAAArguments{m_gbufferSRV, tsaaResolved.previousSrv(), m_motionVectorsSRV, m_gbufferSRV, tsaaDebugUAV});
-    tasks.addPass(std::move(tsaaNode));
-    tsaaOutput = tsaaResolved.srv();
-    tsaaOutputRTV = tsaaResolved.rtv();
-    if (options.tsaaDebug)
-      tsaaOutput = tsaaDebugSRV;
+  vector<CommandNodeVector> nodeVecs;
+  for (auto&& vpInfo : viewportsToRender) {
+    nodeVecs.push_back(tasks.localThreadVector());
   }
+  //for (auto&& vpInfo : viewportsToRender) {
+  std::for_each(std::execution::par_unseq, std::begin(indexesToVP), std::end(indexesToVP), [&](int& index) {
+    auto& vpInfo = viewportsToRender[index];
+    auto& vp = viewports[index];
+    auto& options = vpInfo.options;
+    auto& localVec = nodeVecs[index];
 
-  if (options.debugTextures)
-  {
-    auto node = tasks.createPass("debug textures");
-    blitter.beginRenderpass(node, tsaaOutputRTV);
-    int2 curPos = int2(0,0);
-    int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
-    int2 times = int2(target.x/72, target.y/72);
-    for (int y = 0; y < times.y; y++) {
-      for (int x = 0; x < times.x; x++) {
-        curPos = int2(72*x, 72*y);
-        auto index = y*times.x + x;
-        if (index >= textures.size())
-          break;
-        blitter.blit(dev, node, textures[index], curPos, int2(64,64));
-      }
+    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
+
+    renderScene(localVec, time, sceneArgs, instances);
+
+    TextureSRV tsaaOutput = vp.gbufferSRV;
+    TextureRTV tsaaOutputRTV = vp.gbufferRTV;
+    if (options.tsaa)
+    {
+      auto tsaaNode = localVec.createPass("Temporal Supersampling AA");
+      vp.tsaaResolved.next(time.getFrame());
+      tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), vp.motionVectorsSRV, vp.gbufferSRV, vp.tsaaDebugUAV});
+      localVec.addPass(std::move(tsaaNode));
+      tsaaOutput = vp.tsaaResolved.srv();
+      tsaaOutputRTV = vp.tsaaResolved.rtv();
+      if (options.tsaaDebug)
+        tsaaOutput = vp.tsaaDebugSRV;
     }
-    node.endRenderpass();
-    tasks.addPass(std::move(node));
-  }
+
+    if (options.debugTextures)
+    {
+      auto node = localVec.createPass("debug textures");
+      blitter.beginRenderpass(node, tsaaOutputRTV);
+      int2 curPos = int2(0,0);
+      int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
+      int2 times = int2(target.x/72, target.y/72);
+      for (int y = 0; y < times.y; y++) {
+        for (int x = 0; x < times.x; x++) {
+          curPos = int2(72*x, 72*y);
+          auto index = y*times.x + x;
+          if (index >= textures.size())
+            break;
+          blitter.blit(dev, node, tsaaOutputRTV, textures[index], curPos, int2(64,64));
+        }
+      }
+      node.endRenderpass();
+      localVec.addPass(std::move(node));
+    }
+  });
+  for (auto&& nodeVec : nodeVecs)
+    tasks.addVectorOfPasses(std::move(nodeVec));
 
   // If you acquire, you must submit it.
   Timer acquireTime;
@@ -479,19 +448,33 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
   backbuffer.setOp(LoadOp::Clear);
 
   {
+    auto node = tasks.createPass("acquireImage");
+    node.acquirePresentableImage(swapchain);
+    tasks.addPass(std::move(node));
+  }
+
+  for (auto&& index : indexesToVP) {
+    auto& vpInfo = viewportsToRender[index];
+    auto& vp = viewports[index];
     auto node = tasks.createPass("tonemapper");
     auto target = backbuffer;
-    if (options.renderImGui)
-      target = imguiViewportRTV;
+    target = vp.viewportRTV;
+    TextureSRV tsaaOutput = vp.gbufferSRV;
+    if (vpInfo.options.tsaa) {
+      tsaaOutput = vp.tsaaResolved.srv();
+    }
     tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
     tasks.addPass(std::move(node));
   }
 
   // IMGUI
-  if (options.renderImGui)
+  //if (options.renderImGui)
   {
     auto node = tasks.createPass("IMGui");
-    imgui.render(dev, node, backbuffer, imguiViewportSRV);
+    vector<TextureSRV> allViewports;
+    for (auto&& viewport : viewports)
+      allViewports.push_back(viewport.viewportSRV);
+    imgui.render(dev, node, backbuffer, allViewports);
     tasks.addPass(std::move(node));
   }
   
@@ -502,14 +485,16 @@ void Renderer::render(LBS& lbs, higanbana::WTime& time, RendererOptions options,
     tasks.addPass(std::move(node));
   }
 
+  /*
   if (options.submitSingleThread)
     dev.submitExperimental(swapchain, tasks, ThreadedSubmission::Sequenced);
   else if (options.submitExperimental)
     dev.submitExperimental(swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
   else if (options.submitLBS)
     dev.submitLBS(lbs, swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
-  else 
-    dev.submit(swapchain, tasks);
+  else
+  */
+  dev.submit(swapchain, tasks);
   {
     HIGAN_CPU_BRACKET("Present");
     dev.present(swapchain, obackbuffer.value().first);

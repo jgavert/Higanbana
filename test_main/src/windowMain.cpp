@@ -277,11 +277,12 @@ void mainWindow(ProgramParams& params)
     int cubeCount = 30;
     int cubeCommandLists = 4;
     int limitFPS = 20;
+    int viewportCount = 1;
     bool advanceSimulation = true;
     bool stepOneFrameForward = false;
     bool stepOneFrameBackward = false;
-    app::RendererOptions rendererOptions{};
-    rendererOptions.submitSingleThread = true;
+    vector<app::RenderViewportInfo> rendererViewports;
+    rendererViewports.push_back({});
 
     {
       auto& t_pos = ecs.get<components::WorldPosition>();
@@ -568,7 +569,7 @@ void mainWindow(ProgramParams& params)
               }
               if (inputs.isPressedWithinNFrames(diffSinceLastInput, 220, 1)) // tilde... or something like that
               {
-                rendererOptions.renderImGui = !rendererOptions.renderImGui;
+                //rendererOptions.renderImGui = !rendererOptions.renderImGui;
               }
 
               if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '1', 1))
@@ -609,17 +610,22 @@ void mainWindow(ProgramParams& params)
               timeSinceLastInput += time.getFrameTimeDelta();
             }
             ::ImGui::NewFrame();
-            if (rendererOptions.renderImGui) {
+            //if (rendererOptions.renderImGui)
+            {
               auto gid = ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode);
               ImGui::SetNextWindowSize(ImVec2(660, 580), ImGuiCond_FirstUseEver);
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
-              if (ImGui::Begin("Viewport")) {
-                auto ws = ImGui::GetWindowSize();
-                ws.y -= 36;
-                ImGui::Image(reinterpret_cast<void*>(1), ws);
-                rendererOptions.imguiViewport = int2(ws.x, ws.y);
+              for (int i = 0; i < static_cast<int>(rendererViewports.size()); ++i) {
+                std::string viewportName = std::string("Viewport ") + std::to_string(i);
+                if (ImGui::Begin(viewportName.c_str())) {
+                  auto ws = ImGui::GetWindowSize();
+                  ws.y -= 36;
+                  ImGui::Image(reinterpret_cast<void*>(i+1), ws);
+                  rendererViewports[i].viewportSize = int2(ws.x, ws.y);
+                  rendererViewports[i].viewportIndex = i+1;
+                }
+                ImGui::End();
               }
-              ImGui::End();
               ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_FirstUseEver);
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               if (ImGui::Begin("main")) {
@@ -662,8 +668,6 @@ void mainWindow(ProgramParams& params)
 
                 {
                   ImGui::Checkbox("render selected glTF scene", &renderECS);
-                  int2 currentRes = math::mul(rendererOptions.resolutionScale, float2(rend.windowSize()));
-                  ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
                   ImGui::Text("%d cubes/draw calls", cubeCount);
                   ImGui::SameLine();
                   ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
@@ -673,7 +677,23 @@ void mainWindow(ProgramParams& params)
               ImGui::End();
 
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
-              rendererOptions.drawImGuiOptions();
+              if (ImGui::Begin("Renderer options for viewports")) {
+                ImGui::DragInt("viewport count", &viewportCount, 1, 1, 8);
+                rendererViewports.resize(viewportCount, app::RenderViewportInfo{1, int2(16, 16),{},{}});
+                ImGui::BeginTabBar("viewports");
+                for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++) {
+                  std::string index = std::string("viewport ") + std::to_string(i);
+                  if (ImGui::BeginTabItem(index.c_str())) {
+                    auto& vp = rendererViewports[i];
+                    int2 currentRes = math::mul(vp.options.resolutionScale, float2(vp.viewportSize));
+                    ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
+                    vp.options.drawImGuiOptions();
+                    ImGui::EndTabItem();
+                  }
+                }
+                ImGui::EndTabBar();
+              }
+              ImGui::End();
 
               auto si = rend.timings();
               
@@ -901,7 +921,11 @@ void mainWindow(ProgramParams& params)
               ac.maxZ = set.maxZ;
             });
             HIGAN_CPU_BRACKET("Render");
-            rend.render(lbs, time, rendererOptions, ac, allMeshesToDraw, cubeCount, cubeCommandLists, coolHeightmap);
+            rend.ensureViewportCount(viewportCount);
+            for (auto&& vp : rendererViewports) {
+              vp.camera = ac;
+            }
+            rend.renderViewports(lbs, time, makeMemView(rendererViewports), allMeshesToDraw, cubeCount, cubeCommandLists);
             logicAndRenderTime.tick();
             auto totalTime = logicAndRenderTime.getFrameTimeDelta();
             if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))

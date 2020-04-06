@@ -10,8 +10,8 @@ struct VertexOut
 [RootSignature(ROOTSIG)]
 float4 main(VertexOut i) : SV_TARGET
 {
-  if (constants.renderCustom == 1) {
-    return custom.Sample(bilinearSampler, i.uv.xy);
+  if (constants.renderCustom > 0) {
+    return viewports[constants.renderCustom - 1].Sample(bilinearSampler, i.uv.xy);
   }
   else {
     float  texColor = tex.Sample(pointSampler, i.uv.xy);

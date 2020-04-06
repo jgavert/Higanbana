@@ -39,7 +39,7 @@ float4x4 ShittyTSAA::jitterProjection(int frame, int2 outputSize, float4x4 proje
     
   const float2 TexSize(div(1.0f, float2(outputSize))); // Texel size
   const float2 SubsampleSize = mul(TexSize, 2.0f); // That is the size of the subsample in NDC
-  currentJitter = SampleLocations8[SubsampleIdx];
+  auto currentJitter = SampleLocations8[SubsampleIdx];
   const float2 S = div(float2(currentJitter), 8.0f); // In [-1, 1]
     
   float2 Subsample = mul(S, SubsampleSize); // In [-SubsampleSize, SubsampleSize] range
@@ -62,7 +62,7 @@ void ShittyTSAA::resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   TSAAConstants consts{};
   consts.outputSize = output.texture().desc().desc.size3D().xy();
   consts.sourceSize = args.source.texture().desc().desc.size3D().xy();
-  consts.jitter = div(float2(currentJitter), 8.0f);
+  consts.jitter = div(float2(args.jitterOffset), 8.0f);
   binding.constants(consts);
   node.dispatchThreads(binding, output.texture().desc().desc.size3D());
 }

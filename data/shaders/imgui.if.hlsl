@@ -1,4 +1,4 @@
-// INTERFACE_HASH:3670436747646645028:5083375461567803138
+// INTERFACE_HASH:6977852702629671690:8899359164988369506
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -10,7 +10,8 @@
   CBV(b0), \
   DescriptorTable( UAV(u99, numDescriptors = 1, space=99 )), \
   DescriptorTable(\
-     SRV(t0, numDescriptors = 2, space=0 )),\
+     SRV(t0, numDescriptors = 1, space=0 ),\
+     SRV(t1, numDescriptors = unbounded, space=0, flags=DESCRIPTORS_VOLATILE )),\
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=1 )),\
   StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
@@ -26,9 +27,11 @@ VK_BINDING(1, 2) RWByteAddressBuffer _debugOut : register( u99, space99 );
 
 // Read Only resources
 VK_BINDING(0, 0) Texture2D<float> tex : register( t0, space0 );
-VK_BINDING(1, 0) Texture2D<float4> custom : register( t1, space0 );
 
 // Read Write resources
+
+// Bindless
+VK_BINDING(1, 0) Texture2D viewports[] : register( t1, space0 );
 // Shader Arguments 1
 
 // Read Only resources

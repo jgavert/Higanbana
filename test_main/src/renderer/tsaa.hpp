@@ -9,6 +9,7 @@ namespace app::renderer
 {
 struct TSAAArguments
 {
+  int2 jitterOffset;
   higanbana::TextureSRV source;
   higanbana::TextureSRV history;
   higanbana::TextureSRV motionVectors;
@@ -48,10 +49,15 @@ class ShittyTSAA
     int2(7, 7),
     int2(1, 3),
     int2(-3, 5)};
-  int2 currentJitter;
 public:
   ShittyTSAA(higanbana::GpuGroup& device);
   float4x4 jitterProjection(int frame, int2 outputsize, float4x4 projection);
+  int2 getJitterOffset(int frame) {
+    constexpr static const int SAMPLE_COUNT = 8;
+
+    const unsigned SubsampleIdx = frame % SAMPLE_COUNT;
+    return SampleLocations8[SubsampleIdx];
+  }
   void resolve(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureUAV output, TSAAArguments args);
 };
 }

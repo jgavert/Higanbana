@@ -46,14 +46,13 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
 void World::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth)
 {
   node.renderpass(m_renderpass, target, motionVecs, depth);
-  outputSize = target.texture().desc().desc.size3D().xy();
 }
 void World::endRenderpass(higanbana::CommandGraphNode& node)
 {
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, int materialIndex)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, int materialIndex, int2 outputSize)
 {
   auto binding = node.bind(m_pipeline);
   binding.arguments(0, cameras);
