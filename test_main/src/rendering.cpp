@@ -54,6 +54,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , blitter(dev)
   , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
   , particleSimulation(dev, m_camerasLayout) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   scdesc = SwapchainDescriptor()
     .formatType(FormatType::Unorm8RGBA)
     .colorspace(Colorspace::BT709)
@@ -71,7 +72,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   size_t textureSize = 1280 * 720;
 
   cameras = dev.createBuffer(ResourceDescriptor()
-  .setCount(10)
+  .setCount(8*4)
   .setStructured<CameraSettings>()
   .setName("Cameras")
   .setUsage(ResourceUsage::GpuRW));
@@ -88,6 +89,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
 }
 
 void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   surface = graphics.createSurface(window, info);
   swapchain = dev.createSwapchain(surface, scdesc);
   resizeExternal(swapchain.buffers().front().texture().desc());
@@ -116,18 +118,24 @@ std::optional<higanbana::SubmitTiming> Renderer::timings() {
 }
 
 void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, higanbana::vector<InstanceDraw>& instances) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   backbuffer.setOp(LoadOp::Load);
   depth.clearOp({});
   worldRend.beginRenderpass(node, backbuffer, motionVecs, depth);
+  auto binding = worldRend.bindPipeline(node);
+  binding.arguments(0, cameraArgs);
+  binding.arguments(2, materials);
   for (auto&& instance : instances)
   {
     auto& mesh = meshes[instance.meshId];
-    worldRend.renderMesh(node, mesh.indices, cameraArgs, mesh.args, materials, cameraIndex, prevCamera, instance.materialId, backbuffer.desc().desc.size3D().xy());
+    binding.arguments(1, mesh.args);
+    worldRend.renderMesh(node, binding, mesh.indices, cameraIndex, prevCamera, instance.materialId, backbuffer.desc().desc.size3D().xy());
   }
   worldRend.endRenderpass(node);
 }
 
 void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   backbuffer.setOp(LoadOp::Load);
   depth.clearOp({});
   
@@ -140,7 +148,8 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances) {
+void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances) {
+  HIGAN_CPU_FUNCTION_SCOPE();
   {
     auto node = tasks.createPass("composite");
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
@@ -153,7 +162,6 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
   }
 
   {
-    HIGAN_CPU_BRACKET("user - outerloop");
     vector<float> vertexData = {
       1.0f, -1.f, -1.f,
       1.0f, -1.f, 1.f, 
@@ -223,13 +231,14 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
     }
     else */if (instances.empty())
     {
+      HIGAN_CPU_BRACKET("draw cubes - outer loop");
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
       gbufferRTV.setOp(LoadOp::Load);
       depth.clearOp({});
       
       vector<std::tuple<CommandGraphNode, int, int>> nodes;
-      if (!scene.options.unbalancedCubes)
+      if (!rendererOptions.unbalancedCubes)
       {
         int stepSize = std::max(1, int((float(scene.drawcalls+1) / float(scene.drawsSplitInto))+0.5f));
         for (int i = 0; i < scene.drawcalls; i+=stepSize)
@@ -261,7 +270,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
       }
       std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
       {
-        HIGAN_CPU_BRACKET("user - innerloop");
+        HIGAN_CPU_BRACKET("draw cubes - inner pass");
         auto ldepth = depth;
         if (std::get<1>(node) == 0)
           ldepth.setOp(LoadOp::Clear);
@@ -283,7 +292,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
       auto depth = scene.depth;
       auto moti = scene.motionVectors;
       moti.setOp(LoadOp::Clear);
-      if (scene.options.allowMeshShaders)
+      if (rendererOptions.allowMeshShaders && scene.options.useMeshShaders)
         renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
       else
         renderMeshes(node, gbufferRTV, moti, depth, scene.materials, scene.cameraIdx, scene.prevCameraIdx, instances);
@@ -293,7 +302,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
 
   // transparent objects...
   // particles draw
-  if (scene.options.particles && scene.options.particlesDraw)
+  if (rendererOptions.particles && scene.options.particlesDraw)
   {
     auto node = tasks.createPass("particles - draw");
     particleSimulation.render(dev, node, scene.gbufferRTV, scene.depth, cameraArgs);
@@ -316,7 +325,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -375,7 +384,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higa
     tasks.addPass(std::move(node));
   }
 
-  if (0 /*options.particles && options.particlesSimulate*/)
+  if (rendererOptions.particles && rendererOptions.particlesSimulate)
   {
     auto ndoe = tasks.createPass("simulate particles");
     particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
@@ -395,7 +404,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higa
 
     Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
 
-    renderScene(localVec, time, sceneArgs, instances);
+    renderScene(localVec, time, rendererOptions, sceneArgs, instances);
 
     TextureSRV tsaaOutput = vp.gbufferSRV;
     TextureRTV tsaaOutputRTV = vp.gbufferRTV;
@@ -459,6 +468,8 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higa
     auto node = tasks.createPass("tonemapper");
     auto target = backbuffer;
     target = vp.viewportRTV;
+    if (!rendererOptions.renderImGui)
+      target = backbuffer;
     TextureSRV tsaaOutput = vp.gbufferSRV;
     if (vpInfo.options.tsaa) {
       tsaaOutput = vp.tsaaResolved.srv();
@@ -468,7 +479,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higa
   }
 
   // IMGUI
-  //if (options.renderImGui)
+  if (rendererOptions.renderImGui)
   {
     auto node = tasks.createPass("IMGui");
     vector<TextureSRV> allViewports;
@@ -485,16 +496,15 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, higa
     tasks.addPass(std::move(node));
   }
 
-  /*
-  if (options.submitSingleThread)
+  if (rendererOptions.submitSingleThread)
     dev.submitExperimental(swapchain, tasks, ThreadedSubmission::Sequenced);
-  else if (options.submitExperimental)
+  else if (rendererOptions.submitExperimental)
     dev.submitExperimental(swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
-  else if (options.submitLBS)
+  else if (rendererOptions.submitLBS)
     dev.submitLBS(lbs, swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
   else
-  */
-  dev.submit(swapchain, tasks);
+    dev.submit(swapchain, tasks);
+    
   {
     HIGAN_CPU_BRACKET("Present");
     dev.present(swapchain, obackbuffer.value().first);

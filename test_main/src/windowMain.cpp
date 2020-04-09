@@ -281,6 +281,7 @@ void mainWindow(ProgramParams& params)
     bool advanceSimulation = true;
     bool stepOneFrameForward = false;
     bool stepOneFrameBackward = false;
+    app::RendererOptions renderOptions;
     vector<app::RenderViewportInfo> rendererViewports;
     rendererViewports.push_back({});
 
@@ -569,7 +570,7 @@ void mainWindow(ProgramParams& params)
               }
               if (inputs.isPressedWithinNFrames(diffSinceLastInput, 220, 1)) // tilde... or something like that
               {
-                //rendererOptions.renderImGui = !rendererOptions.renderImGui;
+                renderOptions.renderImGui = !renderOptions.renderImGui;
               }
 
               if (inputs.isPressedWithinNFrames(diffSinceLastInput, VK_MENU, 2) && inputs.isPressedWithinNFrames(diffSinceLastInput, '1', 1))
@@ -610,7 +611,7 @@ void mainWindow(ProgramParams& params)
               timeSinceLastInput += time.getFrameTimeDelta();
             }
             ::ImGui::NewFrame();
-            //if (rendererOptions.renderImGui)
+            if (renderOptions.renderImGui)
             {
               auto gid = ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode);
               ImGui::SetNextWindowSize(ImVec2(660, 580), ImGuiCond_FirstUseEver);
@@ -677,8 +678,14 @@ void mainWindow(ProgramParams& params)
               ImGui::End();
 
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Renderer options")) {
+                renderOptions.drawImGuiOptions();
+              }
+              ImGui::End();
+
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               if (ImGui::Begin("Renderer options for viewports")) {
-                ImGui::DragInt("viewport count", &viewportCount, 1, 1, 8);
+                ImGui::DragInt("viewport count", &viewportCount, 1, 1, 9);
                 rendererViewports.resize(viewportCount, app::RenderViewportInfo{1, int2(16, 16),{},{}});
                 ImGui::BeginTabBar("viewports");
                 for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++) {
@@ -687,7 +694,7 @@ void mainWindow(ProgramParams& params)
                     auto& vp = rendererViewports[i];
                     int2 currentRes = math::mul(vp.options.resolutionScale, float2(vp.viewportSize));
                     ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
-                    vp.options.drawImGuiOptions();
+                    vp.options.drawImGuiOptions(allGpus);
                     ImGui::EndTabItem();
                   }
                 }
@@ -925,7 +932,10 @@ void mainWindow(ProgramParams& params)
             for (auto&& vp : rendererViewports) {
               vp.camera = ac;
             }
-            rend.renderViewports(lbs, time, makeMemView(rendererViewports), allMeshesToDraw, cubeCount, cubeCommandLists);
+            auto vpCount = renderOptions.renderImGui ? rendererViewports.size() : 1;
+            auto viewport = MemView(rendererViewports.data(), vpCount);
+            rend.renderViewports(lbs, time, renderOptions, makeMemView(rendererViewports), allMeshesToDraw, cubeCount, cubeCommandLists);
+
             logicAndRenderTime.tick();
             auto totalTime = logicAndRenderTime.getFrameTimeDelta();
             if (limitFPS > 6 && totalTime < (1.f / float(limitFPS)))

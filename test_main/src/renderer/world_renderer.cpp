@@ -1,4 +1,5 @@
 #include "world_renderer.hpp"
+#include <higanbana/core/profiling/profiling.hpp>
 
 SHADER_STRUCT(DebugConstants,
   float3 pos;
@@ -45,19 +46,22 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
 
 void World::beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV& target, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   node.renderpass(m_renderpass, target, motionVecs, depth);
 }
 void World::endRenderpass(higanbana::CommandGraphNode& node)
 {
+  HIGAN_CPU_FUNCTION_SCOPE();
   node.endRenderpass();
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::BufferIBV ibv, higanbana::ShaderArguments cameras, higanbana::ShaderArguments meshBuffers, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, int materialIndex, int2 outputSize)
+higanbana::ShaderArgumentsBinding World::bindPipeline(higanbana::CommandGraphNode& node) {
+  return node.bind(m_pipeline);
+}
+
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::ShaderArgumentsBinding& binding, higanbana::BufferIBV ibv, int cameraIndex, int prevCamera, int materialIndex, int2 outputSize)
 {
-  auto binding = node.bind(m_pipeline);
-  binding.arguments(0, cameras);
-  binding.arguments(1, meshBuffers);
-  binding.arguments(2, materials);
+  HIGAN_CPU_FUNCTION_SCOPE();
   binding.constants(DebugConstants{float3(0,0,0), cameraIndex, prevCamera, materialIndex, outputSize});
   node.drawIndexed(binding, ibv, ibv.viewDesc().m_elementCount);
 }

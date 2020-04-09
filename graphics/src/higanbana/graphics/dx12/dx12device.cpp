@@ -30,8 +30,8 @@ namespace higanbana
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 10240) // lol 1024, right.
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
-      , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64)
-      , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 16)
+      , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1024)
+      , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1024)
       , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_CONSTANT_BUFFER_AMOUNT))
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32 * 1024))
