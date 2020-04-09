@@ -50,6 +50,7 @@ struct RendererOptions
 };
 struct ViewportOptions
 {
+  bool visible = false;
   int gpuToUse = 0;
   bool useMeshShaders = false;
   bool useRaytracing = false;
@@ -60,7 +61,6 @@ struct ViewportOptions
   bool tsaaDebug = false;
   bool debugTextures = false;
   float resolutionScale = 1.f;
-  int2 viewport = int2(100, 100);
   bool writeStraightToBackbuffer = false;
 
   void drawImGuiOptions(higanbana::vector<higanbana::GpuInfo>& gpus)

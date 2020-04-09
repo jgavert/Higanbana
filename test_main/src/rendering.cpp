@@ -337,10 +337,16 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     indexesToVP.push_back(i);
   }
 
+  int vpsHandled = 0;
   for (auto& index : indexesToVP) {
     auto& vp = viewports[index];
     auto& vpInfo = viewportsToRender[index];
     vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
+    vpsHandled++;
+  }
+  for (; vpsHandled < static_cast<int>(viewports.size()); ++vpsHandled) {
+    auto& vp = viewports[vpsHandled];
+    vp.resize(dev, int2(16, 16), 1.f, swapchain.buffers().begin()->texture().desc().desc.format);
   }
 
   CommandGraph tasks = dev.createGraph();
