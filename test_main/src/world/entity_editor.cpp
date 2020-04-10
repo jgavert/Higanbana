@@ -115,7 +115,7 @@ void EntityEditor::render(Database<2048>& ecs)
     if (ecs.get<components::Position>().check(selection)) {
       if (ImGui::CollapsingHeader("Position")) {
         auto& val = ecs.get<components::Position>().get(selection);
-        ImGui::DragFloat3("##position_value", val.pos.data);
+        ImGui::DragFloat3("##position_value", val.pos.data, 0.01f, -99999999.f, 99999999.f);
       }
     }
     if (ecs.get<components::Rotation>().check(selection)) {
@@ -140,8 +140,8 @@ void EntityEditor::render(Database<2048>& ecs)
       if (ImGui::CollapsingHeader("Scale")) {
         auto& val = ecs.get<components::Scale>().get(selection);
         auto multiplier = math::length(val.value);
-        ImGui::DragFloat("##scale_value_multi", &multiplier);
-        ImGui::DragFloat3("##scale_value", val.value.data);
+        ImGui::DragFloat("##scale_value_multi", &multiplier, 0.01f);
+        ImGui::DragFloat3("##scale_value", val.value.data, 0.01f);
         val.value = mul(normalize(val.value), multiplier);
       }
     }

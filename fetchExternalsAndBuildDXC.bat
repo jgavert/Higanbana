@@ -56,7 +56,7 @@ REM Run the following if Windows Driver Kit is not installed
 call python .\utils\hct\hctgettaef.py
 
 REM # Configure and build
-call .\utils\hct\hctbuild.cmd -rel -parallel -spirv
+call .\utils\hct\hctbuild.cmd -rel -vs2019 -spirv
 
 cd ..
 cd ..

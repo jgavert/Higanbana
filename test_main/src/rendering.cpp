@@ -192,44 +192,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
 
     auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
       .bind("vertexInput", vert));
-    /*if (heightmap && instances.empty())
-    {
-      int pixelsToDraw = scene.drawcalls;
-      auto gbufferRTV = scene.gbufferRTV;
-      auto depth = scene.depth;
-      gbufferRTV.setOp(LoadOp::Load);
-      depth.clearOp({});
-      
-      vector<std::tuple<CommandGraphNode, int, int>> nodes;
-      int stepSize = std::max(1, int((float(pixelsToDraw+1) / float(scene.drawsSplitInto))+0.5f));
-      for (int i = 0; i < pixelsToDraw; i+=stepSize)
-      {
-        if (i+stepSize > pixelsToDraw)
-        {
-          stepSize = stepSize - (i+stepSize - pixelsToDraw);
-        }
-        nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
-      }
-
-
-      std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
-      {
-        HIGAN_CPU_BRACKET("user - innerloop");
-        auto ldepth = depth;
-        if (std::get<1>(node) == 0)
-          ldepth.setOp(LoadOp::Clear);
-        else
-          ldepth.setOp(LoadOp::Load);
-        
-        cubes.drawHeightMapInVeryStupidWay2(dev, time.getFTime(), std::get<0>(node), scene.cameraPos, scene.perspective, gbufferRTV, ldepth, heightmap.value(), ind, args, pixelsToDraw, std::get<1>(node), std::get<1>(node)+std::get<2>(node));
-      });
-
-      for (auto& node : nodes)
-      {
-        tasks.addPass(std::move(std::get<0>(node)));
-      }
-    }
-    else */if (instances.empty())
+    if (instances.empty())
     {
       HIGAN_CPU_BRACKET("draw cubes - outer loop");
       auto gbufferRTV = scene.gbufferRTV;
@@ -291,6 +254,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
       auto moti = scene.motionVectors;
+      HIGAN_ASSERT(scene.materials, "wtf!");
       moti.setOp(LoadOp::Clear);
       if (rendererOptions.allowMeshShaders && scene.options.useMeshShaders)
         renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
@@ -341,6 +305,9 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   for (auto& index : indexesToVP) {
     auto& vp = viewports[index];
     auto& vpInfo = viewportsToRender[index];
+    auto vpSize = vpInfo.viewportSize;
+    if (!rendererOptions.renderImGui)
+      vpSize = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
     vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
     vpsHandled++;
   }
@@ -358,7 +325,6 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   auto materialArgs = textures.bindlessArgs(dev, materials.srv());
 
   {
-    auto ndoe = tasks.createPass("copy cameras");
     vector<CameraSettings> sets;
     for (auto& index : indexesToVP) {
       auto& vpInfo = viewportsToRender[index];
@@ -379,9 +345,12 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
       sets.push_back(newCamera);
       vp.jitterOffset = tsaa.getJitterOffset(time.getFrame());
     }
-    auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-    ndoe.copy(cameras, matUpdate);
-    tasks.addPass(std::move(ndoe));
+    if (!sets.empty()) {
+      auto ndoe = tasks.createPass("copy cameras");
+      auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+      ndoe.copy(cameras, matUpdate);
+      tasks.addPass(std::move(ndoe));
+    }
   }
 
   {
@@ -402,13 +371,13 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     nodeVecs.push_back(tasks.localThreadVector());
   }
   //for (auto&& vpInfo : viewportsToRender) {
-  std::for_each(std::execution::par_unseq, std::begin(indexesToVP), std::end(indexesToVP), [&](int& index) {
+  std::for_each(std::execution::par_unseq, std::begin(indexesToVP), std::end(indexesToVP), [&,materialCopy = materialArgs](int& index) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
     auto& options = vpInfo.options;
     auto& localVec = nodeVecs[index];
 
-    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
+    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialCopy, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
 
     renderScene(localVec, time, rendererOptions, sceneArgs, instances);
 

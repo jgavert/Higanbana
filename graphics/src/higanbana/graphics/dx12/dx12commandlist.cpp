@@ -428,10 +428,10 @@ namespace higanbana
       {
         for (auto& table : tables)
         {
-          if (m_boundGfxSets[tableIndex] != table)
+          if (m_boundSets[tableIndex] != table)
           {
             buffer->SetGraphicsRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-            m_boundGfxSets[tableIndex] = table; 
+            m_boundSets[tableIndex] = table; 
           }
           rootIndex++; tableIndex++;
         }
@@ -440,416 +440,15 @@ namespace higanbana
       {
         for (auto& table : tables)
         {
-          if (m_boundCompSets[tableIndex] != table)
+          if (m_boundSets[tableIndex] != table)
           {
             buffer->SetComputeRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-            m_boundCompSets[tableIndex] = table; 
+            m_boundSets[tableIndex] = table; 
           }
           rootIndex++; tableIndex++;
         }
       }
     }
-
-/*
-    void handle(ID3D12GraphicsCommandList* buffer, gfxpacket::ClearRT& packet)
-    {
-      auto view = std::static_pointer_cast<DX12TextureView>(packet.rtv.native());
-      auto texture = std::static_pointer_cast<DX12Texture>(packet.rtv.texture().native());
-      float rgba[4]{ packet.color.x, packet.color.y, packet.color.z, packet.color.w };
-      buffer->ClearRenderTargetView(view->native().cpu, rgba, 0, nullptr);
-    }
-
-    void DX12CommandList::addCommands(DX12Device* dev, D3D12GraphicsCommandList* buffer, DX12DependencySolver* solver, backend::IntermediateList& list)
-    {
-      int drawIndex = 0;
-
-      if (!m_buffer->dma())
-      {
-        ID3D12DescriptorHeap* heaps[] = { m_descriptors->native() };
-        buffer->SetDescriptorHeaps(1, heaps);
-      }
-
-      size_t currentActiveSubpassHash = 0;
-      bool startedPixBeginEvent = false;
-
-      CommandPacket* subpass = nullptr;
-      //bool subpassCommandsHandled = false;
-
-/*
-      auto subpassClears = [&]()
-      {
-        if (!subpassCommandsHandled)
-        {
-          auto& ref = packetRef(gfxpacket::RenderpassBegin, subpass);
-          for (auto&& rtv : ref.rtvs)
-          {
-            if (rtv.loadOp() == LoadOp::Clear)
-            {
-              FLOAT color[4] = { 0.f, 0.f, 0.f, 0.f };
-              buffer->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv.view().view }, color, 0, nullptr);
-            }
-          }
-          for (auto&& dsv : ref.dsvs)
-          {
-            if (dsv.loadOp() == LoadOp::Clear)
-            {
-              buffer->ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE{ dsv.view().view }, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.f, 0, 0, nullptr);
-            }
-          }
-          subpassCommandsHandled = true;
-        }
-      };
-      */
-/*
-      DX12Query activeQuery{};
-
-      std::function<void(MemView<std::pair<std::string, double>>)> queryCallback;
-      bool queriesWanted = false;
-
-      DX12Query fullFrameQuery{};
-      if (!m_buffer->dma())
-      {
-        fullFrameQuery = m_queryheap->allocate();
-        buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.beginIndex);
-        m_freeResources->queries.push_back(QueryBracket{ fullFrameQuery , "Commandlist" });
-      }
-
-      for (CommandPacket* packet : list)
-      {
-        switch (packet->type())
-        {
-        case CommandPacket::PacketType::RenderBlock:
-        {
-          if (!m_buffer->dma())
-          {
-            auto p = packetRef(gfxpacket::RenderBlock, packet);
-            if (!startedPixBeginEvent)
-            {
-              startedPixBeginEvent = true;
-            }
-            else
-            {
-#if defined(PROFILE)
-              PIXEndEvent(buffer);
-#endif
-              buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
-            }
-#if defined(PROFILE)
-            PIXBeginEvent(buffer, 0, p.name.c_str());
-#endif
-            activeQuery = m_queryheap->allocate();
-            buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.beginIndex);
-            m_freeResources->queries.push_back(QueryBracket{ activeQuery , p.name });
-          }
-          break;
-        }
-        case CommandPacket::PacketType::UpdateTexture:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::UpdateTexture, packet), m_upload->native());
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::TextureCopy:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::TextureCopy, packet));
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::BufferCopy:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::BufferCopy, packet));
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::BufferCpuToGpuCopy:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::BufferCpuToGpuCopy, packet), m_upload->native());
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::ReadbackTexture:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::ReadbackTexture, packet), m_readback.get(), m_freeResources.get());
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::Readback:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::Readback, packet), m_readback.get(), m_freeResources.get());
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::RenderpassBegin:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          drawIndex++;
-          currentActiveSubpassHash = (packetRef(gfxpacket::RenderpassBegin, packet)).hash;
-          handle(buffer, packetRef(gfxpacket::RenderpassBegin, packet));
-          subpass = packet;
-          //subpassCommandsHandled = false;
-          break;
-        }
-        case CommandPacket::PacketType::RenderpassEnd:
-        {
-          buffer->EndRenderPass();
-          break;
-        }
-        case CommandPacket::PacketType::ResourceBinding:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handleBindings(dev, buffer, packetRef(gfxpacket::ResourceBinding, packet));
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::SetScissorRect:
-        {
-          handle(buffer, packetRef(gfxpacket::SetScissorRect, packet));
-          break;
-        }
-        case CommandPacket::PacketType::DrawIndexed:
-        {
-          handle(buffer, packetRef(gfxpacket::DrawIndexed, packet));
-          break;
-        }
-        case CommandPacket::PacketType::DrawDynamicIndexed:
-        {
-          handle(buffer, packetRef(gfxpacket::DrawDynamicIndexed, packet));
-          break;
-        }
-        case CommandPacket::PacketType::Draw:
-        {
-          handle(buffer, packetRef(gfxpacket::Draw, packet));
-          break;
-        }
-        case CommandPacket::PacketType::Dispatch:
-        {
-          handle(buffer, packetRef(gfxpacket::Dispatch, packet));
-          break;
-        }
-        case CommandPacket::PacketType::GraphicsPipelineBind:
-        {
-          if (currentActiveSubpassHash == 0)
-            break;
-          handle(buffer, currentActiveSubpassHash, packetRef(gfxpacket::GraphicsPipelineBind, packet));
-          break;
-        }
-        case CommandPacket::PacketType::ComputePipelineBind:
-        {
-          handle(buffer, packetRef(gfxpacket::ComputePipelineBind, packet));
-          break;
-        }
-        case CommandPacket::PacketType::ClearRT:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          handle(buffer, packetRef(gfxpacket::ClearRT, packet));
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::PrepareForPresent:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::PrepareForQueueSwitch:
-        {
-          solver->runBarrier(buffer, drawIndex);
-          drawIndex++;
-          break;
-        }
-        case CommandPacket::PacketType::QueryCounters:
-        {
-          if (!m_buffer->dma())
-          {
-            queryCallback = (packetRef(gfxpacket::QueryCounters, packet)).func;
-            queriesWanted = true;
-          }
-          break;
-        }
-        default:
-          break;
-        }
-      }
-
-      if (startedPixBeginEvent)
-      {
-#if defined(PROFILE)
-        PIXEndEvent(buffer);
-#endif
-        buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, activeQuery.endIndex);
-      }
-      if (!m_buffer->dma())
-      {
-        buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, fullFrameQuery.endIndex);
-      }
-      if (queriesWanted)
-      {
-        auto rb = m_readback->allocate(m_queryheap->size()*m_queryheap->counterSize());
-
-        auto rbfunc = [queries = m_freeResources->queries, queryCallback, ticksPerSecond = m_queryheap->getGpuTicksPerSecond()](higanbana::MemView<uint8_t> view)
-        {
-          auto properView = reinterpret_memView<uint64_t>(view);
-          vector<std::pair<std::string, double>> data;
-          for (auto&& it : queries)
-          {
-            auto begin = properView[it.query.beginIndex];
-            auto end = properView[it.query.endIndex];
-            double delta = static_cast<double>(end - begin);
-            data.emplace_back(it.name, (delta / double(ticksPerSecond)) * 1000.0);
-            //queryCallback(it.name.c_str(), static_cast<uint64_t>((delta / double(ticksPerSecond)) * 10000000.0));
-          }
-          queryCallback(data);
-        };
-
-        m_freeResources->readbacks.push_back(DX12ReadbackLambda{ rb, rbfunc });
-        buffer->ResolveQueryData(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, 0, static_cast<UINT>(m_queryheap->size()), m_readback->native(), rb.offset);
-      }
-    }
-
-    void DX12CommandList::addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list)
-    {
-      int drawIndex = 0;
-
-      for (CommandPacket* packet : list)
-      {
-        switch (packet->type())
-        {
-        case CommandPacket::PacketType::UpdateTexture:
-        {
-          auto& p = packetRef(gfxpacket::UpdateTexture, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          SubresourceRange range{};
-          range.mipLevels = 1;
-          range.arraySize = 1;
-          range.mipOffset = static_cast<int16_t>(p.mip);
-          range.sliceOffset = static_cast<int16_t>(p.slice);
-          solver->addResource(drawIndex, p.dst.dependency(), D3D12_RESOURCE_STATE_COPY_DEST, range);
-          break;
-        }
-        case CommandPacket::PacketType::Readback:
-        {
-          auto& p = packetRef(gfxpacket::Readback, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_SOURCE);
-          break;
-        }
-        case CommandPacket::PacketType::ReadbackTexture:
-        {
-          auto& p = packetRef(gfxpacket::ReadbackTexture, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_SOURCE);
-          break;
-        }
-        case CommandPacket::PacketType::BufferCpuToGpuCopy:
-        {
-          auto& p = packetRef(gfxpacket::BufferCpuToGpuCopy, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
-          break;
-        }
-        case CommandPacket::PacketType::TextureCopy:
-        {
-          auto& p = packetRef(gfxpacket::TextureCopy, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
-          solver->addResource(drawIndex, p.source, D3D12_RESOURCE_STATE_COPY_SOURCE);
-          break;
-        }
-        case CommandPacket::PacketType::BufferCopy:
-        {
-          auto& p = packetRef(gfxpacket::BufferCopy, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.target, D3D12_RESOURCE_STATE_COPY_DEST);
-          solver->addResource(drawIndex, p.source, D3D12_RESOURCE_STATE_COPY_SOURCE);
-          break;
-        }
-        case CommandPacket::PacketType::ClearRT:
-        {
-          auto& p = packetRef(gfxpacket::ClearRT, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.rtv.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-          break;
-        }
-        case CommandPacket::PacketType::RenderpassBegin:
-        {
-          drawIndex = solver->addDrawCall(packet->type());
-          auto& s = packetRef(gfxpacket::RenderpassBegin, packet);
-          for (auto&& it : s.rtvs)
-          {
-            solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-          }
-          for (auto&& it : s.dsvs)
-          {
-            solver->addResource(drawIndex, it.dependency(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-          }
-          break;
-        }
-        case CommandPacket::PacketType::ResourceBinding:
-        {
-          drawIndex = solver->addDrawCall(packet->type());
-          auto& p = packetRef(gfxpacket::ResourceBinding, packet);
-
-          auto readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-
-          if (p.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-          {
-            readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-          }
-
-          for (auto&& it : p.resources)
-          {
-            if (it.readonly)
-            {
-              solver->addResource(drawIndex, it, readState);
-            }
-            else
-            {
-              solver->addResource(drawIndex, it, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            }
-          }
-
-          break;
-        }
-        case CommandPacket::PacketType::DrawIndexed:
-        {
-          auto& p = packetRef(gfxpacket::DrawIndexed, packet);
-          solver->addResource(drawIndex, p.ib.dependency(), D3D12_RESOURCE_STATE_INDEX_BUFFER);
-          break;
-        }
-        case CommandPacket::PacketType::PrepareForPresent:
-        {
-          auto& p = packetRef(gfxpacket::PrepareForPresent, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          solver->addResource(drawIndex, p.texture.dependency(), D3D12_RESOURCE_STATE_PRESENT);
-          break;
-        }
-        case CommandPacket::PacketType::PrepareForQueueSwitch:
-        {
-          auto& p = packetRef(gfxpacket::PrepareForQueueSwitch, packet);
-          drawIndex = solver->addDrawCall(packet->type());
-          for (auto&& res : p.deps)
-          {
-            if (!reinterpret_cast<DX12ResourceState*>(res.statePtr)->commonStateOptimisation)
-            {
-              solver->addResource(drawIndex, res, D3D12_RESOURCE_STATE_COMMON);
-            }
-          }
-          break;
-        }
-        default:
-          break;
-        }
-      }
-      solver->makeAllBarriers();
-    }
-
-*/
 
     D3D12_RESOURCE_STATES translateAccessMask(AccessStage stage, AccessUsage usage)
     {
@@ -1032,6 +631,8 @@ namespace higanbana
                 m_freeResources->pipelines.push_back(oldPipe.value());
               }
               auto& pipe = device->allResources().pipelines[packet.pipeline];
+              for (int i = 0; i < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS; i++)
+                m_boundSets[i] = {};
               buffer->SetGraphicsRootSignature(pipe.root.Get());
               buffer->SetPipelineState(pipe.pipeline.Get());
               buffer->IASetPrimitiveTopology(pipe.primitive);
@@ -1049,6 +650,8 @@ namespace higanbana
                 m_freeResources->pipelines.push_back(oldPipe.value());
               }
               auto& pipe = device->allResources().pipelines[packet.pipeline];
+              for (int i = 0; i < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS; i++)
+                m_boundSets[i] = {};
               buffer->SetComputeRootSignature(pipe.root.Get());
               buffer->SetPipelineState(pipe.pipeline.Get());
               boundPipeline = packet.pipeline;

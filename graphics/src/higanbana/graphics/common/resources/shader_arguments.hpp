@@ -128,5 +128,10 @@ namespace higanbana
         return *m_id;
       return ResourceHandle();
     }
+
+    explicit operator bool() const
+    {
+      return handle().id != ResourceHandle::InvalidId && m_referencedBuffers && m_referencedTextures;
+    }
   };
 };

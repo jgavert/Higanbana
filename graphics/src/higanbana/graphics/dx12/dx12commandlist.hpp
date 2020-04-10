@@ -24,8 +24,7 @@ namespace higanbana
       LinearDescriptorAllocator m_descriptorAllocator;
       DX12GPUDescriptor m_shaderDebugTable;
 
-      ResourceHandle  m_boundGfxSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
-      ResourceHandle  m_boundCompSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
+      ResourceHandle  m_boundSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
       ViewResourceHandle m_boundIndexBufferHandle = {};
       D3D12_INDEX_BUFFER_VIEW m_ib = {};
 
