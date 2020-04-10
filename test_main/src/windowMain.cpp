@@ -22,6 +22,8 @@
 #include "world/world.hpp"
 #include "world/components.hpp"
 #include "world/entity_viewer.hpp"
+#include "world/scene_editor.hpp"
+#include "world/entity_editor.hpp"
 #include "world/visual_data_structures.hpp"
 #include "world/map_data_extractor.hpp"
 
@@ -65,8 +67,8 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
   float3 rxyz{ 0 };
   float2 xy{ 0 };
 
-  query(pack(ecs.get<components::WorldPosition>(), ecs.get<components::Rotation>()), pack(ecs.getTag<components::ActiveCamera>()),
-  [&](higanbana::Id, components::WorldPosition& pos, components::Rotation& rot)
+  query(pack(ecs.get<components::Position>(), ecs.get<components::Rotation>()), pack(ecs.getTag<components::ActiveCamera>()),
+  [&](higanbana::Id, components::Position& pos, components::Rotation& rot)
   {
     quaternion& direction = rot.rot;
     float3& position = pos.pos;
@@ -273,6 +275,9 @@ void mainWindow(ProgramParams& params)
     higanbana::gamepad::Controllers inputs;
     world.loadGLTFScene(ecs, fs, "/scenes");
     app::EntityView entityViewer;
+    app::SceneEditor sceneEditor;
+    app::EntityEditor entityEditor;
+    bool renderGltfScene = false;
     bool renderECS = false;
     int cubeCount = 30;
     int cubeCommandLists = 4;
@@ -286,7 +291,16 @@ void mainWindow(ProgramParams& params)
     rendererViewports.push_back({});
 
     {
-      auto& t_pos = ecs.get<components::WorldPosition>();
+      auto& name = ecs.get<components::Name>();
+      auto& childs = ecs.get<components::Childs>();
+      auto& sceneRoot = ecs.getTag<components::SceneEntityRoot>();
+      auto e = ecs.createEntity();
+      name.insert(e, components::Name{"Scene Root"});
+      childs.insert(e, components::Childs{});
+      sceneRoot.insert(e);
+    }
+    {
+      auto& t_pos = ecs.get<components::Position>();
       auto& t_rot = ecs.get<components::Rotation>();
       auto& t_cameraSet = ecs.get<components::CameraSettings>();
 
@@ -382,17 +396,17 @@ void mainWindow(ProgramParams& params)
       // Load meshes to gpu
       {
         HIGAN_CPU_BRACKET("Load meshes to gpu");
-        auto& gpuBuffer = ecs.get<components::BufferInstance>();
+        auto& gpuBuffer = ecs.get<components::GpuBufferInstance>();
         query(pack(ecs.get<components::RawBufferData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawBufferData index) {
-          components::BufferInstance instance{rend.loadBuffer(world.getBuffer(index.id))};
+          components::GpuBufferInstance instance{rend.loadBuffer(world.getBuffer(index.id))};
           gpuBuffer.insert(id, instance);
         });
       }
       {
         HIGAN_CPU_BRACKET("link meshes to gpu meshes");
-        auto& gpuMesh = ecs.get<components::MeshInstance>();
-        auto& gpuBuffer = ecs.get<components::BufferInstance>();
+        auto& gpuMesh = ecs.get<components::GpuMeshInstance>();
+        auto& gpuBuffer = ecs.get<components::GpuBufferInstance>();
         query(pack(ecs.get<components::RawMeshData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawMeshData index) {
           auto mesh = world.getMesh(index.id);
@@ -412,24 +426,24 @@ void mainWindow(ProgramParams& params)
           if (auto buf = gpuBuffer.tryGet(mesh.tangents.buffer)) {
             buffers[4] = buf.value().id;
           }
-          components::MeshInstance instance{rend.loadMesh(mesh, buffers)};
+          components::GpuMeshInstance instance{rend.loadMesh(mesh, buffers)};
           gpuMesh.insert(id, instance);
         });
       }
       // load textures to gpu
       {
         HIGAN_CPU_BRACKET("load textures to gpu");
-        auto& gpuTexture = ecs.get<components::TextureInstance>();
+        auto& gpuTexture = ecs.get<components::GpuTextureInstance>();
         query(pack(ecs.get<components::RawTextureData>()), // pack(ecs.getTag<components::MeshNode>()),
           [&](higanbana::Id id, components::RawTextureData index) {
-          components::TextureInstance instance{rend.loadTexture(world.getTexture(index.id))};
+          components::GpuTextureInstance instance{rend.loadTexture(world.getTexture(index.id))};
           gpuTexture.insert(id, instance);
         });
       }
       // link initial textures to materials
       {
         HIGAN_CPU_BRACKET("link textures to existing materials");
-        auto& textureInstance = ecs.get<components::TextureInstance>();
+        auto& textureInstance = ecs.get<components::GpuTextureInstance>();
         query(pack(ecs.get<MaterialData>(), ecs.get<components::MaterialLink>()), // pack(ecs.getTag<components::MeshNode>()),
         [&](higanbana::Id id, MaterialData& material, components::MaterialLink& link) {
           auto getInstance = [&](higanbana::Id linkid){
@@ -453,11 +467,11 @@ void mainWindow(ProgramParams& params)
       // make initial materials
       {
         HIGAN_CPU_BRACKET("upload material structs to gpu");
-        auto& gpuMaterial = ecs.get<components::MaterialGPUInstance>();
+        auto& gpuMaterial = ecs.get<components::GpuMaterialInstance>();
         query(pack(ecs.get<MaterialData>()), // pack(ecs.getTag<components::MeshNode>()),
         [&](higanbana::Id id, MaterialData material) {
           int gpuid = rend.loadMaterial(material);
-          components::MaterialGPUInstance instance{gpuid};
+          components::GpuMaterialInstance instance{gpuid};
           gpuMaterial.insert(id, instance);
         });
       }
@@ -672,7 +686,8 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("Validation Layer %s", validationLayer ? "Enabled" : "Disabled");
 
                 {
-                  ImGui::Checkbox("render selected glTF scene", &renderECS);
+                  ImGui::Checkbox("render selected glTF scene", &renderGltfScene);
+                  ImGui::Checkbox("render current ECS", &renderECS);
                   ImGui::Text("%d cubes/draw calls", cubeCount);
                   ImGui::SameLine();
                   ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
@@ -799,11 +814,11 @@ void mainWindow(ProgramParams& params)
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               if (ImGui::Begin("Camera"))
               {
-                auto& t_pos = ecs.get<components::WorldPosition>();
+                auto& t_pos = ecs.get<components::Position>();
                 auto& t_rot = ecs.get<components::Rotation>();
                 auto& t_cameraSet = ecs.get<components::CameraSettings>();
                 query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
-                [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+                [&](higanbana::Id id, components::Position& pos, components::Rotation& rot, components::CameraSettings& set)
                 {
                   float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, rot.rot));
                   float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, rot.rot));
@@ -846,14 +861,19 @@ void mainWindow(ProgramParams& params)
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               entityViewer.render(ecs);
 
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              sceneEditor.render(ecs);
+
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              entityEditor.render(ecs);
             }
             ImGui::Render();
 
             // collect all model instances and their matrices for drawing...
             vector<InstanceDraw> allMeshesToDraw;
-            if (renderECS)
+            if (renderGltfScene)
             {
-              HIGAN_CPU_BRACKET("collecting mesh instances to render");
+              HIGAN_CPU_BRACKET("collecting gltf mesh instances to render");
 
               struct ActiveScene
               {
@@ -861,7 +881,7 @@ void mainWindow(ProgramParams& params)
                 float3 wp;
               };
               higanbana::vector<ActiveScene> scenes;
-              query(pack(ecs.get<components::SceneInstance>(), ecs.get<components::WorldPosition>()), [&](higanbana::Id id, components::SceneInstance scene, components::WorldPosition wp)
+              query(pack(ecs.get<components::SceneInstance>(), ecs.get<components::Position>()), [&](higanbana::Id id, components::SceneInstance scene, components::Position wp)
               {
                 scenes.push_back(ActiveScene{scene, wp.pos});
               });
@@ -875,13 +895,13 @@ void mainWindow(ProgramParams& params)
                 {
                   for (auto&& childMesh : children.get(hasMesh.value().target).childs)
                   {
-                    auto meshTarget = ecs.get<components::MeshInstance>().tryGet(childMesh);
+                    auto meshTarget = ecs.get<components::GpuMeshInstance>().tryGet(childMesh);
 
                     InstanceDraw draw{};
                     if (meshTarget) {
                       auto material = ecs.get<components::MaterialInstance>().tryGet(childMesh);
                       if (material) {
-                        auto matID = ecs.get<components::MaterialGPUInstance>().get(material->id);
+                        auto matID = ecs.get<components::GpuMaterialInstance>().get(material->id);
                         draw.materialId = matID.id;
                       }
                       draw.meshId = meshTarget.value().id;
@@ -915,15 +935,45 @@ void mainWindow(ProgramParams& params)
                 }
               }
             }
+            else if (renderECS) {
+              HIGAN_CPU_BRACKET("collecting entity instances to render");
 
-            auto& t_pos = ecs.get<components::WorldPosition>();
+              auto& positions = ecs.get<components::Position>();
+              auto& rotations = ecs.get<components::Rotation>();
+              auto& scales = ecs.get<components::Scale>();
+              auto& meshes = ecs.get<components::MeshInstance>();
+              auto& materials = ecs.get<components::MaterialInstance>();
+
+              query(pack(positions, rotations, scales, meshes, materials),
+                [&](higanbana::Id id,
+                    const components::Position& pos,
+                    const components::Rotation& rot,
+                    const components::Scale& scale,
+                    const components::MeshInstance& mesh,
+                    const components::MaterialInstance& mat){
+                auto gpuMesh = ecs.get<components::GpuMeshInstance>().get(mesh.id);
+                auto gpuMat = ecs.get<components::GpuMaterialInstance>().get(mat.id);
+                
+                float4x4 rotM = math::rotationMatrixLH(rot.rot);
+                float4x4 posM = math::translation(pos.pos);
+                float4x4 scaleM = math::scale(scale.value);
+                float4x4 worldM = math::mul(math::mul(scaleM, rotM), posM);
+                InstanceDraw draw;
+                draw.mat = worldM;
+                draw.materialId = gpuMat.id;
+                draw.meshId = gpuMesh.id;
+                allMeshesToDraw.push_back(draw);
+              });
+            }
+
+            auto& t_pos = ecs.get<components::Position>();
             auto& t_rot = ecs.get<components::Rotation>();
             auto& t_cameraSet = ecs.get<components::CameraSettings>();
 
             ActiveCamera ac{};
 
             query(pack(t_pos, t_rot, t_cameraSet), pack(ecs.getTag<components::ActiveCamera>()),
-            [&](higanbana::Id id, components::WorldPosition& pos, components::Rotation& rot, components::CameraSettings& set)
+            [&](higanbana::Id id, components::Position& pos, components::Rotation& rot, components::CameraSettings& set)
             {
               ac.position = pos.pos;
               ac.direction = rot.rot;

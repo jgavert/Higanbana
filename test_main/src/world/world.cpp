@@ -446,6 +446,8 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             {
               mattable.insert(ent, {materials[primitive.material]});
             }
+            database.get<components::Name>().insert(ent, components::Name{file});
+            // this is actually a single mesh with a single material
 
             childs.childs.push_back(ent);
           }
@@ -456,6 +458,7 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
             childtable.insert(ent, std::move(childs));
             database.getTag<components::MeshNode>().insert(ent);
           }
+          // this is a gltf mesh, consisting of many Meshes.
           meshes.push_back(ent);
         }
 
@@ -486,6 +489,8 @@ void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSy
           if (model.nodes[i].mesh >= 0)
           {
             auto& meshtable = database.get<components::Mesh>();
+            // we point to Mesh node, which has meshes as it's child.
+            // id entity should basically be a "scene", collection of meshes.
             meshtable.insert(id, {meshes[model.nodes[i].mesh]});
           }
           if (model.nodes[i].camera >= 0)

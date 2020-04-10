@@ -763,6 +763,11 @@ namespace higanbana
       return scale(whole, whole, whole);
     }
 
+    inline float4x4 scale(Vector<3, float> whole)
+    {
+      return scale(whole.x, whole.y, whole.z);
+    }
+
     inline float4x4 translation(float x, float y, float z)
     {
       float4x4 result = float4x4::identity();

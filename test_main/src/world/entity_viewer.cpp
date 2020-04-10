@@ -35,7 +35,7 @@ void EntityView::render(Database<2048>& ecs)
     {
       auto id = ecs.createEntity();
       activeScenes.insert(id, components::SceneInstance{oldActiveScene});
-      ecs.get<components::WorldPosition>().insert(id, components::WorldPosition{float3(0,0,0)});
+      ecs.get<components::Position>().insert(id, components::Position{float3(0,0,0)});
       activeGameObject = id;
     }
 
@@ -60,9 +60,9 @@ void EntityView::render(Database<2048>& ecs)
         if (selected)
         {
           ImGui::SetItemDefaultFocus();
-      }
-    });
-    ImGui::EndCombo();
+        }
+      });
+      ImGui::EndCombo();
     }
 
     activeScenes.insert(activeGameObject, components::SceneInstance{newActiveScene});
@@ -116,6 +116,7 @@ void EntityView::render(Database<2048>& ecs)
     {
       nodeName += name.value().str;
     }
+    nodeName += "##";
     nodeName += std::to_string(id);
     if (ImGui::TreeNode(nodeName.c_str())) {
       allChecks(id);
