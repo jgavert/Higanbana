@@ -2,18 +2,19 @@
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #include <wrl.h>
 #include <Objbase.h>
+template <typename T>
+using CComPtr = Microsoft::WRL::ComPtr<T>;
+#endif
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
 
 #include <higanbana/core/system/time.hpp>
 
-template <typename T>
-using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 class DXCIncludeHandler : public IDxcIncludeHandler
 {
 public:
-  DXCIncludeHandler(higanbana::FileSystem& fs, std::string sourcePath, std::string rootSignature, ComPtr<IDxcLibrary> lib, std::function<void(std::string)> func): m_fs(fs)
+  DXCIncludeHandler(higanbana::FileSystem& fs, std::string sourcePath, std::string rootSignature, CComPtr<IDxcLibrary> lib, std::function<void(std::string)> func): m_fs(fs)
     , m_sourcePath(sourcePath)
     , m_rootSignatureFile(rootSignature)
     , m_lib(lib)
@@ -81,8 +82,8 @@ public:
     }
 
     auto shader = m_fs.viewToFile(finalPath);
-    ComPtr<IDxcBlobEncoding> asd;
-    auto hr = m_lib->CreateBlobWithEncodingFromPinned(shader.data(), static_cast<uint32_t>(shader.size()), CP_ACP, asd.ReleaseAndGetAddressOf());
+    CComPtr<IDxcBlobEncoding> asd;
+    auto hr = m_lib->CreateBlobWithEncodingFromPinned(shader.data(), static_cast<uint32_t>(shader.size()), CP_ACP, &asd);
 
     if (SUCCEEDED(hr))
     {
@@ -100,7 +101,7 @@ private:
   std::string m_sourcePath;
   std::string m_rootSignatureFile;
   std::function<void(std::string)> m_fileIncluded;
-  ComPtr<IDxcLibrary> m_lib;
+  CComPtr<IDxcLibrary> m_lib;
   DXC_MICROCOM_REF_FIELD(m_dwRef)
 };
 
@@ -156,12 +157,12 @@ namespace higanbana
       auto TGS_Y = s2ws(std::to_string(d.tgs.y));
       auto TGS_Z = s2ws(std::to_string(d.tgs.z));
 
-      ComPtr<IDxcLibrary> pLibrary;
-      ComPtr<IDxcBlobEncoding> pSource;
+      CComPtr<IDxcLibrary> pLibrary;
+      CComPtr<IDxcBlobEncoding> pSource;
       DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
       pLibrary->CreateBlobWithEncodingFromPinned(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
-      ComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
+      CComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
 
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;
@@ -194,7 +195,7 @@ namespace higanbana
       */
       ppArgs.push_back(L"/Zpr"); // row-major matrices.
 
-      ComPtr<IDxcCompiler2> pCompiler;
+      CComPtr<IDxcCompiler2> pCompiler;
       DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler2), (void **)&pCompiler);
 
       std::vector<DxcDefine> defs;
@@ -227,18 +228,18 @@ namespace higanbana
         defs.push_back(DxcDefine{ it.c_str(), nullptr });
       }
 
-      ComPtr<IDxcOperationResult> pResult;
+      CComPtr<IDxcOperationResult> pResult;
 
       std::wstring kek = s2ws(d.shaderName);
 
       pCompiler->Compile(
-        pSource.Get(),                                      // program text
+        pSource,                                      // program text
         kek.c_str(),                                        // file name, mostly for error messages
         L"main",                                            // entry point function
         shaderFeatureDXC(d.type),                             // target profile
         ppArgs.data(), static_cast<UINT32>(ppArgs.size()),  // compilation arguments
         defs.data(), static_cast<UINT32>(defs.size()),      // name/value defines and their count
-        dxcHandlerPtr.Get(),                                // handler for #include directives
+        dxcHandlerPtr,                                // handler for #include directives
         &pResult);
 
       // TODO: PDB's for debugging https://blogs.msdn.microsoft.com/pix/using-automatic-shader-pdb-resolution-in-pix/
@@ -246,8 +247,8 @@ namespace higanbana
       HRESULT hr;
 
       pResult->GetStatus(&hr);
-      ComPtr<IDxcBlobEncoding> errorblob;
-      pResult->GetErrorBuffer(errorblob.GetAddressOf());
+      CComPtr<IDxcBlobEncoding> errorblob;
+      pResult->GetErrorBuffer(&errorblob);
 
       if (FAILED(hr))
       {
@@ -267,8 +268,8 @@ namespace higanbana
       }
       auto timingFinish = float(time.timeFromLastReset());
       HIGAN_ILOG("ShaderStorage", "Compiled: \"%s\" in %.2fms", dxilPath.c_str(), timingFinish / 1000000.f);
-      ComPtr<IDxcBlob> blob;
-      pResult->GetResult(blob.ReleaseAndGetAddressOf());
+      CComPtr<IDxcBlob> blob;
+      pResult->GetResult(&blob);
       auto thingA = blob->GetBufferPointer();
       auto thingB = blob->GetBufferSize();
       auto viewToBlob = higanbana::reinterpret_memView<const uint8_t>(higanbana::makeByteView(thingA, thingB));
@@ -278,4 +279,3 @@ namespace higanbana
     }
   }
 }
-#endif

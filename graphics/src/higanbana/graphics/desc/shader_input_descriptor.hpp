@@ -49,9 +49,9 @@ namespace higanbana
     , bindlessCountWorstCase(descriptorCount)
     {
       std::string_view templ{templateParameter};
-      std::string_view maybeFloat = templ.substr(0, std::min(5ull, templ.size()));
-      std::string_view maybeInt = templ.substr(0, std::min(3ull, templ.size()));
-      std::string_view maybeUint = templ.substr(0, std::min(4ull, templ.size()));
+      std::string_view maybeFloat = templ.substr(0, std::min(size_t(5), templ.size()));
+      std::string_view maybeInt = templ.substr(0, std::min(size_t(3), templ.size()));
+      std::string_view maybeUint = templ.substr(0, std::min(size_t(4), templ.size()));
       if (maybeFloat.compare("float") == 0)
         elementType = ShaderElementType::FloatingPoint;
       if (maybeInt.compare("int") == 0)

@@ -39,7 +39,7 @@ namespace higanbana
         // 1. find all the resources
         for (auto&& it : subpass.rtvs.convertToMemView())
         {
-          auto found = uidToAttachmendId.find(it.resource.id);
+          auto found = uidToAttachmendId.find(it.resourceHandle().id);
           if (found != uidToAttachmendId.end())
           {
             colors.emplace_back(vk::AttachmentReference()
@@ -49,7 +49,7 @@ namespace higanbana
           else
           {
             auto attachmentId = static_cast<int>(attachments.size());
-            uidToAttachmendId[it.resource.id] = attachmentId;
+            uidToAttachmendId[it.resourceHandle().id] = attachmentId;
             colors.emplace_back(vk::AttachmentReference()
               .setAttachment(attachmentId)
               .setLayout(vk::ImageLayout::eColorAttachmentOptimal));
@@ -89,7 +89,7 @@ namespace higanbana
         if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
         {
           auto& it = subpass.dsv;
-          auto found = uidToAttachmendId.find(it.resource.id);
+          auto found = uidToAttachmendId.find(it.resourceHandle().id);
           if (found != uidToAttachmendId.end())
           {
             depthStencil.emplace_back(vk::AttachmentReference()
@@ -100,7 +100,7 @@ namespace higanbana
           else
           {
             auto attachmentId = static_cast<int>(attachments.size());
-            uidToAttachmendId[it.resource.id] = attachmentId;
+            uidToAttachmendId[it.resourceHandle().id] = attachmentId;
             depthStencil.emplace_back(vk::AttachmentReference()
               .setAttachment(attachmentId)
               .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal));
@@ -207,11 +207,11 @@ namespace higanbana
 
       for (auto&& it : subpass.rtvs.convertToMemView())
       {
-        auto found = uidToAttachmendId.find(it.resource.id);
+        auto found = uidToAttachmendId.find(it.resourceHandle().id);
         if (found == uidToAttachmendId.end())
         {
           auto& view = device->allResources().texRTV[it];
-          auto& desc = device->allResources().tex[it.resource].desc();
+          auto& desc = device->allResources().tex[it.resourceHandle()].desc();
           if (fbWidth == fbHeight && fbHeight == -1)
           {
             fbWidth = static_cast<int>(desc.desc.width);
@@ -219,18 +219,18 @@ namespace higanbana
           }
           HIGAN_ASSERT(fbWidth == static_cast<int>(desc.desc.width) && fbHeight == static_cast<int>(desc.desc.height), "Width and height must be same.");
           auto attachmentId = static_cast<int>(attachments.size());
-          uidToAttachmendId[it.resource.id] = attachmentId;
+          uidToAttachmendId[it.resourceHandle().id] = attachmentId;
           attachments.emplace_back(view.native().view);
         }
       }
       if (subpass.dsv.id != ViewResourceHandle::InvalidViewId)
       {
         // have dsv
-        auto found = uidToAttachmendId.find(subpass.dsv.resource.id);
+        auto found = uidToAttachmendId.find(subpass.dsv.resourceHandle().id);
         if (found == uidToAttachmendId.end())
         {
           auto& view = device->allResources().texDSV[subpass.dsv];
-          auto& desc = device->allResources().tex[subpass.dsv.resource].desc();
+          auto& desc = device->allResources().tex[subpass.dsv.resourceHandle()].desc();
           if (fbWidth == fbHeight && fbHeight == -1)
           {
             fbWidth = static_cast<int>(desc.desc.width);
@@ -238,7 +238,7 @@ namespace higanbana
           }
           HIGAN_ASSERT(fbWidth <= static_cast<int>(desc.desc.width) && fbHeight <= static_cast<int>(desc.desc.height), "Width and height must be correct.");
           auto attachmentId = static_cast<int>(attachments.size());
-          uidToAttachmendId[subpass.dsv.resource.id] = attachmentId;
+          uidToAttachmendId[subpass.dsv.resourceHandle().id] = attachmentId;
           attachments.emplace_back(view.native().view);
         }
       }

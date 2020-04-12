@@ -23,9 +23,9 @@ class EnumArray
     return static_cast<size_t>(val);
   }
 
-  template<typename Enum, typename... Enums>
-  inline size_t calculateIndex(Enum val, Enums... rest) const {
-    return static_cast<size_t>(val)*EnumCount<Enums...>::count + calculateIndex(rest...);
+  template<typename Enum, typename... Enums2>
+  inline size_t calculateIndex(Enum val, Enums2... rest) const {
+    return static_cast<size_t>(val)*EnumCount<Enums2...>::count + calculateIndex(rest...);
   }
 
   public:

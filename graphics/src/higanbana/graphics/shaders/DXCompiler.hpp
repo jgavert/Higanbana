@@ -25,7 +25,6 @@ namespace higanbana
         ShaderCreateInfo info,
         std::function<void(std::string)> includeCallback) = 0;
     };
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
     class DXCompiler : public ShaderCompiler
     {
       higanbana::FileSystem& m_fs;
@@ -69,6 +68,5 @@ namespace higanbana
         ShaderCreateInfo info,
         std::function<void(std::string)> includeCallback);
     };
-#endif
   }
 }

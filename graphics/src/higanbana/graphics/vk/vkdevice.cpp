@@ -469,8 +469,13 @@ namespace higanbana
       m_computeListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_computeQueueIndex); });
       m_graphicsListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_mainQueueIndex); });
 
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       bool mainQueuePresents = m_physDevice.getWin32PresentationSupportKHR(m_mainQueueIndex);
       bool computePresents = m_computeQueueIndex >= 0 ? m_physDevice.getWin32PresentationSupportKHR(m_computeQueueIndex) : false;
+#else
+      bool mainQueuePresents = true; // todo: add proper detection to linux
+      bool computePresents = false;
+#endif
 
       //auto memProp = m_physDevice.getMemoryProperties();
       //printMemoryTypeInfos(memProp);
@@ -843,9 +848,9 @@ namespace higanbana
       }
       for (auto&& pipe : m_allRes.pipelines.view()) {
         if (pipe) {
-          if (pipe.m_pipeline != VK_NULL_HANDLE)
+          if (pipe.m_pipeline)
             m_device.destroyPipeline(pipe.m_pipeline);
-          if (pipe.m_pipelineLayout != VK_NULL_HANDLE)
+          if (pipe.m_pipelineLayout)
             m_device.destroyPipelineLayout(pipe.m_pipelineLayout);
           m_descriptors->freeSets(m_device, makeMemView(pipe.m_staticSet));
         }
@@ -2905,7 +2910,7 @@ namespace higanbana
         }
         for (auto&& oldPipe : buffer->oldPipelines())
         {
-          if (oldPipe != VK_NULL_HANDLE)
+          if (oldPipe)
             m_device.destroyPipeline(oldPipe);
         }
         delete buffer;
@@ -3162,6 +3167,7 @@ namespace higanbana
     
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore()
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR();
 
@@ -3176,6 +3182,9 @@ namespace higanbana
         device.destroySemaphore(*ptr);
         delete ptr;
       })));
+#else
+      return nullptr;
+#endif
     };
 
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl> shared)
@@ -3186,6 +3195,7 @@ namespace higanbana
     };
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       auto& native = m_allRes.heaps[heapAllocation.heap.handle];
 
@@ -3199,10 +3209,14 @@ namespace higanbana
         CloseHandle(ptr->handle);
         delete ptr;
       });
+#else
+      return nullptr;
+#endif
     }
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
     std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle> shared)
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::Semaphore sema;
       auto importInfo = vk::ImportSemaphoreWin32HandleInfoKHR()
@@ -3217,10 +3231,14 @@ namespace higanbana
         device.destroySemaphore(*ptr);
         delete ptr;
       })));
+#else
+      return nullptr;
+#endif
     };
     
     void VulkanDevice::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
@@ -3240,10 +3258,13 @@ namespace higanbana
       VK_CHECK_RESULT(memory);
 
       m_allRes.heaps[handle] = VulkanHeap(memory.value);
+#else
+#endif
     }
 
     void VulkanDevice::createBufferFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, HeapAllocation allocation, ResourceDescriptor& descriptor)
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::ImportMemoryWin32HandleInfoKHR info = vk::ImportMemoryWin32HandleInfoKHR()
       .setHandle(shared->handle);
@@ -3265,9 +3286,11 @@ namespace higanbana
       m_allRes.heaps[allocation.heap.handle] = VulkanHeap(memory.value);
 
       createBuffer(handle, allocation, descriptor);
+#endif
     }
     void VulkanDevice::createTextureFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared, ResourceDescriptor& descriptor)
     {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::ExternalMemoryImageCreateInfo extInfo;
       extInfo = extInfo.setHandleTypes(vk::ExternalMemoryHandleTypeFlagBits::eD3D12Resource);
@@ -3324,6 +3347,7 @@ namespace higanbana
       //auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
       m_device.bindImageMemory(image.value, memory.value, 0);
       m_allRes.tex[handle] = VulkanTexture(image.value, descriptor, memory.value);
+#endif
     }
   }
 }

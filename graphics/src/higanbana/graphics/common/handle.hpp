@@ -154,7 +154,7 @@ namespace higanbana
         uint64_t m_loadop : 2;
         uint64_t m_storeop : 1;
         uint64_t unused : 1;
-        ResourceHandle resource;
+        uint64_t resource : 64;
       };
       struct 
       {
@@ -166,17 +166,19 @@ namespace higanbana
       : id(InvalidViewId)
       , generation(0)
       , type(ViewResourceType::Unknown)
-      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0))
+      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0).rawValue)
       {}
     ViewResourceHandle(uint64_t id, uint64_t generation, ViewResourceType type)
       : id(id)
       , generation(generation)
       , type(type)
-      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0))
+      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0).rawValue)
     {
       static_assert(std::is_standard_layout<ViewResourceHandle>::value,  "ResourceHandle should be trivial to destroy.");
       static_assert(sizeof(ViewResourceHandle) == 16,  "ViewRResourceHandle should be 128bits");
     }
+
+    ResourceHandle resourceHandle() const { ResourceHandle h; h.rawValue = resource; return h;}
 
     void subresourceRange(int fullMipSize, int startMip, int mipSize, int startArr, int arrSize)
     {
@@ -397,7 +399,7 @@ namespace higanbana
       int index = static_cast<int>(type) - 1;
       auto& pool = m_views[index];
       auto view = pool.allocate();
-      view.resource = resource;
+      view.resource = resource.rawValue;
       return view;
     }
 

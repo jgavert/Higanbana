@@ -2,7 +2,7 @@
 #include "higanbana/graphics/vk/vkdevice.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/vk/vkresources.hpp"
-#include <higanbana/core/Platform/Window.hpp>
+#include <higanbana/core/platform/Window.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 
@@ -69,7 +69,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
 #else
   if (breakOn)
   {
-    __debugbreak();
+    debugBreak();
   }
 #endif
   return false;
@@ -233,11 +233,23 @@ namespace higanbana
         auto allocInfo = m_alloc_info;
         m_debugcallback = std::shared_ptr<vk::DebugUtilsMessengerEXT>(new vk::DebugUtilsMessengerEXT, [lol, allocInfo](vk::DebugUtilsMessengerEXT * ist)
           {
-            vk::DispatchLoaderDynamic loader(*lol, vk::Device());
+            vk::Device dummyDevice;
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+            vk::DispatchLoaderDynamic loader(*lol, dummyDevice);
+#else
+            vk::DispatchLoaderDynamic loader;
+            loader.init(*lol, dummyDevice);
+#endif
             lol->destroyDebugUtilsMessengerEXT(*ist, allocInfo, loader);
           });
           
-        vk::DispatchLoaderDynamic loader(*m_instance, vk::Device());
+        vk::Device dummyDevice;
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+        vk::DispatchLoaderDynamic loader(*m_instance, dummyDevice);
+#else
+        vk::DispatchLoaderDynamic loader;
+        loader.init(*m_instance, dummyDevice);
+#endif
         auto rduc = m_instance->createDebugUtilsMessengerEXT(info, m_alloc_info, loader);
         VK_CHECK_RESULT(rduc);
         
@@ -473,7 +485,12 @@ namespace higanbana
       VK_CHECK_RESULT(devRes);
       vk::Device dev = devRes.value;
 
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
       vk::DispatchLoaderDynamic loader(*m_instance, dev);
+#else
+      vk::DispatchLoaderDynamic loader;
+      loader.init(*m_instance, dev);
+#endif 
 
       std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, loader, fs, queueProperties, gpu, false);
 

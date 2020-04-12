@@ -1,4 +1,5 @@
 #include "higanbana/graphics/dx12/util/pipeline_stream_builder.hpp"
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
 
 namespace higanbana
 {
@@ -85,3 +86,4 @@ D3D12_PIPELINE_STATE_STREAM_DESC DX12PipelineStateStreamBuilder::finalize(){
 }
 }
 }
+#endif

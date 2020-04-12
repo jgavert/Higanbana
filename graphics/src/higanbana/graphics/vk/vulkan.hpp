@@ -6,6 +6,7 @@
 #endif
 #define VULKAN_HPP_NO_SMART_HANDLE
 #define VULKAN_HPP_NO_EXCEPTIONS
+#define VULKAN_HPP_DISABLE_IMPLICIT_RESULT_VALUE_CAST
 #include <cassert>
 #define VULKAN_HPP_ASSERT
 #include <vulkan/vulkan.hpp>

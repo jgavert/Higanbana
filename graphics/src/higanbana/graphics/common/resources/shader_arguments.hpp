@@ -71,7 +71,7 @@ namespace higanbana
           case ViewResourceType::BufferUAV:
           case ViewResourceType::BufferIBV:
           {
-            m_referencedBuffers->setBit(view.resource.id);
+            m_referencedBuffers->setBit(view.resourceHandle().id);
             break;
           }
           case ViewResourceType::TextureSRV:
@@ -79,7 +79,7 @@ namespace higanbana
           case ViewResourceType::TextureRTV:
           case ViewResourceType::TextureDSV:
           {
-            m_referencedTextures->setBit(view.resource.id);
+            m_referencedTextures->setBit(view.resourceHandle().id);
             break;
           }
           default:

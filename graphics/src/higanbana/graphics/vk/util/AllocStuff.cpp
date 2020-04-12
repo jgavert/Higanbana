@@ -1,5 +1,5 @@
 #include "higanbana/graphics/vk/util/AllocStuff.hpp"
-#include <higanbana/core/Platform/definitions.hpp>
+#include <higanbana/core/platform/definitions.hpp>
 #include <higanbana/core/global_debug.hpp>
 
 #include <stdlib.h>

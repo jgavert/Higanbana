@@ -10,17 +10,17 @@ namespace higanbana
     }
     void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
-      m_bufferCache[buffer.resource].state = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
+      m_bufferCache[buffer.resourceHandle()].state = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
       m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access});
-      m_uniqueBuffers.insert(buffer.resource);
+      m_uniqueBuffers.insert(buffer.resourceHandle());
     }
     void BarrierSolver::addTexture(int drawCallIndex, ViewResourceHandle texture, ResourceState access)
     {
       const ResourceState exampleState = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
-      m_imageCache[texture.resource].states.resize((*m_textureStates)[texture.resource].states.size(), exampleState);
+      m_imageCache[texture.resourceHandle()].states.resize((*m_textureStates)[texture.resourceHandle()].states.size(), exampleState);
       //m_imageCache[texture.resource].states = m_textureStates[texture.resource].states;
       m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access});
-      m_uniqueTextures.insert(texture.resource);
+      m_uniqueTextures.insert(texture.resourceHandle());
     }
     void BarrierSolver::reset()
     {
@@ -59,9 +59,9 @@ namespace higanbana
         {
           auto& job = m_jobs[jobIndex];
           auto jobResAccess = job.nextAccess;
-          if (job.resource.resource.type == ResourceType::Buffer)
+          if (job.resource.resourceHandle().type == ResourceType::Buffer)
           {
-            auto& resource = m_bufferCache[job.resource.resource];
+            auto& resource = m_bufferCache[job.resource.resourceHandle()];
             auto lastAccess = resource.state;
             auto lastWriting = lastAccess.usage == AccessUsage::ReadWrite || lastAccess.usage == AccessUsage::Write;
             auto nextWriting = jobResAccess.usage == AccessUsage::ReadWrite || jobResAccess.usage == AccessUsage::Write;
@@ -88,7 +88,7 @@ namespace higanbana
                 {
                   resource.state.queue_index = jobResAccess.queue_index;
                 }
-                bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resource});
+                bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resourceHandle()});
                 ++bufferBarrierOffsets;
               }
             }
@@ -98,7 +98,7 @@ namespace higanbana
               src.queue_index = QueueType::Unknown;
               auto dst = jobResAccess;
               dst.queue_index = QueueType::Unknown;
-              bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resource});
+              bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resourceHandle()});
               ++bufferBarrierOffsets;
               resource.state = job.nextAccess;
             }
@@ -109,7 +109,7 @@ namespace higanbana
           }
           else
           {
-            auto& resource = m_imageCache[job.resource.resource];
+            auto& resource = m_imageCache[job.resource.resourceHandle()];
             {
               // check if we are doing queue transfer first, if yes, skip res
               if (job.nextAccess.queue_index != resource.states[0].queue_index && job.nextAccess.stage == AccessStage::Common)
@@ -138,13 +138,13 @@ namespace higanbana
                     dst.stage = AccessStage::Common;
                     dst.usage = AccessUsage::Read;
 
-                    imageBarriers.emplace_back(ImageBarrier{src, transitionToCommon, job.resource.resource, 0, mips, 0, arrSize});
+                    imageBarriers.emplace_back(ImageBarrier{src, transitionToCommon, job.resource.resourceHandle(), 0, mips, 0, arrSize});
                     ++imageBarrierOffsets;
                     src.stage = AccessStage::Common;
                     src.usage = AccessUsage::Read;
                   }
 
-                  imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, 0, mips, 0, arrSize});
+                  imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resourceHandle(), 0, mips, 0, arrSize});
                   ++imageBarrierOffsets;
                   // fix all the state
                   if (!acquire)
@@ -176,7 +176,7 @@ namespace higanbana
                   src.queue_index = QueueType::Unknown;
                   auto dst = job.nextAccess;
                   dst.queue_index = QueueType::Unknown;
-                  imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resource, range.startMip, range.mipSize, range.startArr, range.arrSize});
+                  imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resourceHandle(), range.startMip, range.mipSize, range.startArr, range.arrSize});
                   ++imageBarrierOffsets;
                 };
                 RangePerAccessType current{};

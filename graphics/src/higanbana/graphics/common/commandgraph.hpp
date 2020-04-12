@@ -54,14 +54,14 @@ namespace higanbana
     void addViewBuf(ViewType type)
     {
       auto h = type.handle();
-      m_referencedBuffers.setBit(h.resource.id);
+      m_referencedBuffers.setBit(h.resourceHandle().id);
     }
 
     template <typename ViewType>
     void addViewTex(ViewType type)
     {
       auto h = type.handle();
-      m_referencedTextures.setBit(h.resource.id);
+      m_referencedTextures.setBit(h.resourceHandle().id);
     }
     
     void addRefArgs(MemView<ShaderArguments> args)

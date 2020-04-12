@@ -38,6 +38,8 @@ cc_library(
     name = "DXC_headers",
     hdrs = ["dxc-bin/include/dxc/dxcapi.h",
      "dxc-bin/include/dxc/Support/microcom.h",
+     "dxc-bin/include/dxc/Support/WinAdapter.h",
+     "dxc-bin/include/llvm/Support/DataTypes.h",
      "dxc-bin/include/llvm/Support/Atomic.h"],
     includes = ["dxc-bin/include"],
     linkstatic = False,
