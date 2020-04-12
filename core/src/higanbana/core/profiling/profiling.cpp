@@ -17,8 +17,8 @@ namespace higanbana
 {
 namespace profiling
 {
-static std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
-static std::atomic<int> s_myIndex;
+std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
+std::atomic<int> s_myIndex;
 thread_local ThreadProfileData* my_profile_data = nullptr;
 thread_local int my_thread_id = 0;
 

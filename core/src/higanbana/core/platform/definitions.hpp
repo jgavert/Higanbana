@@ -15,9 +15,11 @@
       #define NOMINMAX
     #endif
     #define _CONSOLE
+    #define HIGAN_INLINE __forceinline
     //#define _CRT_SECURE_NO_WARNINGS
     //#define _WINSOCK_DEPRECATED_NO_WARNINGS
   #else
     #define HIGANBANA_PLATFORM_LINUX
+    #define HIGAN_INLINE __attribute__((always_inline))
   #endif
 #endif

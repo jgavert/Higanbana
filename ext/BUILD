@@ -46,8 +46,12 @@ cc_library(
 
 cc_import(
     name = "DXC_lib",
-    interface_library = "dxc-bin/lib/dxcompiler.lib",
-    shared_library = "dxc-bin/bin/dxcompiler.dll",
+    interface_library = select({
+          "@bazel_tools//src/conditions:windows": "dxc-bin/lib/dxcompiler.lib",
+          "//conditions:default": "dxc-bin/lib/libdxcompiler.so"}),
+    shared_library = select({
+          "@bazel_tools//src/conditions:windows": "dxc-bin/lib/dxcompiler.dll",
+          "//conditions:default": "dxc-bin/lib/libdxcompiler.so"}),
     visibility = ["//visibility:public"], 
 )
 
