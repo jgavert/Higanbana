@@ -16,9 +16,10 @@ VertexOut main(uint id: SV_VertexID)
   VertexOut vtxOut;
   float4 inputPos = float4(vertices.Load(id),1);
 
-  vtxOut.wPos = float4(inputPos.xyz, 1.f);
   CameraSettings settings = cameras.Load(constants.camera);
-  float4 vpos = mul(inputPos, settings.perspective);
+  float4 vpos = mul(inputPos, constants.worldMatrix);
+  vtxOut.wPos = vpos;
+  vpos = mul(vpos, settings.perspective);
   vtxOut.pos = vpos;
   vtxOut.normal = normals.Load(id);
   vtxOut.tangent = tangents.Load(id);

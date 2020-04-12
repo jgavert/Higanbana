@@ -129,7 +129,7 @@ void Renderer::renderMeshes(higanbana::CommandGraphNode& node, higanbana::Textur
   {
     auto& mesh = meshes[instance.meshId];
     binding.arguments(1, mesh.args);
-    worldRend.renderMesh(node, binding, mesh.indices, cameraIndex, prevCamera, instance.materialId, backbuffer.desc().desc.size3D().xy());
+    worldRend.renderMesh(node, binding, mesh.indices, cameraIndex, prevCamera, instance.materialId, backbuffer.desc().desc.size3D().xy(), instance.mat);
   }
   worldRend.endRenderpass(node);
 }

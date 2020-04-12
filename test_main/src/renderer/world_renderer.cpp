@@ -7,6 +7,7 @@ SHADER_STRUCT(DebugConstants,
   int prevCamera;
   int material;
   int2 outputSize;
+  float4x4 worldMatrix;
 );
 
 namespace app::renderer
@@ -59,10 +60,10 @@ higanbana::ShaderArgumentsBinding World::bindPipeline(higanbana::CommandGraphNod
   return node.bind(m_pipeline);
 }
 
-void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::ShaderArgumentsBinding& binding, higanbana::BufferIBV ibv, int cameraIndex, int prevCamera, int materialIndex, int2 outputSize)
+void World::renderMesh(higanbana::CommandGraphNode& node, higanbana::ShaderArgumentsBinding& binding, higanbana::BufferIBV ibv, int cameraIndex, int prevCamera, int materialIndex, int2 outputSize, float4x4 worldTransform)
 {
   HIGAN_CPU_FUNCTION_SCOPE();
-  binding.constants(DebugConstants{float3(0,0,0), cameraIndex, prevCamera, materialIndex, outputSize});
+  binding.constants(DebugConstants{float3(0,0,0), cameraIndex, prevCamera, materialIndex, outputSize, worldTransform});
   node.drawIndexed(binding, ibv, ibv.viewDesc().m_elementCount);
 }
 }
