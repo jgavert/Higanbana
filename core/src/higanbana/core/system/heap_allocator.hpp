@@ -41,7 +41,7 @@ class HeapAllocator {
     unsigned long index;
     return _BitScanReverse64(&index, size) ? index : -1;
 #else
-    return __builtin_clz(size);
+    return  63 - __builtin_clzll(size);
 #endif
   }
 
@@ -52,7 +52,7 @@ class HeapAllocator {
     unsigned long index;
     return _BitScanForward64(&index, size) ? index : -1;
 #else
-    return __builtin_ctz(size);
+    return __builtin_ctzll(size);
 #endif
   }
 
@@ -89,7 +89,9 @@ class HeapAllocator {
   inline void set_bit(uint64_t& value, int index) noexcept { value |= (1 << index); }
 
   inline void insert(RangeBlock block, int fl, int sl) noexcept {
+    HIGAN_ASSERT(fl < control.sizeclasses.size() && fl >= 0, "fl should be valid, was fl:%d, sizeclasses %zu", fl, control.sizeclasses.size());
     auto& sizeClass = control.sizeclasses[fl];
+    HIGAN_ASSERT(sl < sizeClass.freeBlocks.size() && sl >= 0, "sl should be valid, was fl:%d sl:%d freeBlocks %zu", fl, sl, sizeClass.freeBlocks.size());
     auto& secondLv = sizeClass.freeBlocks[sl];
     secondLv.push_back(block);
     set_bit(sizeClass.slBitmap, sl);

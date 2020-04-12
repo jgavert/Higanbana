@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-
+#include <higanbana/core/platform/definitions.hpp>
 #include <higanbana/core/system/heap_allocator.hpp>
 
 struct Block {
@@ -7,6 +7,29 @@ struct Block {
   uint64_t size;
   operator bool() { return size != 0; }
 };
+
+  int hfls(uint64_t size) noexcept {
+    if (size == 0)
+      return -1;
+#ifdef HIGANBANA_PLATFORM_WINDOWS
+    unsigned long index;
+    return _BitScanReverse64(&index, size) ? index : -1;
+#else
+    //auto res = 64 - __builtin_clzll(size)
+    return 63 - __builtin_clzll(size);
+#endif
+  }
+
+  int hffs(uint64_t size) noexcept {
+    if (size == 0)
+      return -1;
+#ifdef HIGANBANA_PLATFORM_WINDOWS
+    unsigned long index;
+    return _BitScanForward64(&index, size) ? index : -1;
+#else
+    return __builtin_ctzll(size);
+#endif
+  }
 
 class TLSFAllocator {
   struct TLSFSizeClass {
@@ -29,18 +52,10 @@ class TLSFAllocator {
   TLSFControl control;
   size_t m_usedSize;
 
-  int fls(uint64_t size) noexcept {
-    unsigned long index;
-    return _BitScanReverse64(&index, size) ? index : -1;
-  }
 
-  int ffs(uint64_t size) noexcept {
-    unsigned long index;
-    return _BitScanForward64(&index, size) ? index : -1;
-  }
 
   void mapping(size_t size, uint64_t& fl, uint64_t& sl) noexcept {
-    fl = fls(size);
+    fl = hfls(size);
     sl = ((size ^ (1 << fl)) >> (fl - sli));
     fl = first_level_index(fl);
     // printf("%zu -> fl %u sl %u\n", size, fl, sl);
@@ -53,9 +68,9 @@ class TLSFAllocator {
   }
 
   void initialize() noexcept {
-    fli = fls(m_baseBlock.size);
+    fli = hfls(m_baseBlock.size);
     mbs = std::min(int(m_baseBlock.size), mbs);
-    min_fli = fls(mbs);
+    min_fli = hfls(mbs);
     control.flBitmap = 0;
     if (0)
     {
@@ -248,6 +263,11 @@ class TLSFAllocator {
 };
 
 TEST_CASE("some basic allocation tests") {
+  auto res = hfls(4ull);
+  REQUIRE(res == 2);
+  res = hffs(4ull);
+  REQUIRE(res == 2);
+
   higanbana::HeapAllocator tlsf(4, 1);
   auto block = tlsf.allocate(5);
   REQUIRE_FALSE(block);
@@ -372,12 +392,12 @@ TEST_CASE("alignment tests") {
   auto block4 = tlsf.allocate(10, 2);
   REQUIRE(block4);
   REQUIRE(block4.value().size == 10);
-  auto block3 = tlsf.allocate(3, 1);
+  auto block3 = tlsf.allocate(6, 1);
   REQUIRE(block3);
-  REQUIRE(block3.value().size == 3);
-  auto block5 = tlsf.allocate(10, 1);
+  REQUIRE(block3.value().size == 6);
+  auto block5 = tlsf.allocate(4, 1);
   REQUIRE(block5);
-  REQUIRE(block5.value().size == 10);
+  REQUIRE(block5.value().size == 4);
 
   tlsf.free(block2.value());
   block2 = tlsf.allocate(3*3, 1);

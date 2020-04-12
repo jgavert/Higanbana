@@ -9,6 +9,6 @@ cc_binary(
         defines = ["_WIN64"],
         linkopts = select({
         "@bazel_tools//src/conditions:windows": ["/subsystem:WINDOWS"],
-        "//conditions:default": [""],
+        "//conditions:default": ["-pthread"],
         }),  
 )
