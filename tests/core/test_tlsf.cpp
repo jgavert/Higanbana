@@ -118,11 +118,11 @@ class TLSFAllocator {
       // second step, scan bitmaps for empty slots
       // create mask to ignore first bits, could be wrong
       auto mask = ~((1 << (fl+1)) - 1);
-      auto fl2 = ffs(control.flBitmap & mask);
+      auto fl2 = hffs(control.flBitmap & mask);
       if (fl2 >= 0) {
         auto& secondLevel2 = control.sizeclasses[fl2];
         assert(secondLevel2.sizeClass >= size && secondLevel2.slBitmap != 0);
-        auto sl2 = ffs(secondLevel2.slBitmap);
+        auto sl2 = hffs(secondLevel2.slBitmap);
         assert(!secondLevel2.freeBlocks[sl2].empty());
         if (sl2 >= 0 && secondLevel2.freeBlocks[sl2].back().size >= size) {
           auto block = secondLevel2.freeBlocks[sl2].back();
@@ -156,14 +156,14 @@ class TLSFAllocator {
     // scan through only the memory where blocks reside using bitfields
     auto flBM = control.flBitmap;
     while (flBM != 0) {
-      auto fl = ffs(flBM);
+      auto fl = hffs(flBM);
       remove_bit(flBM, fl);
 
       auto& secondLevel = control.sizeclasses[fl];
       // use the bitmap to only check relevant vectors
       auto slBM = secondLevel.slBitmap;
       while (slBM != 0) {
-        auto sl = ffs(slBM);
+        auto sl = hffs(slBM);
         remove_bit(slBM, sl);
 
         auto& freeBlocks = secondLevel.freeBlocks[sl];
