@@ -37,15 +37,23 @@ class HeapAllocator {
   inline int fls(uint64_t size) const noexcept {
     if (size == 0)
       return -1;
+#ifdef HIGANBANA_PLATFORM_WINDOWS
     unsigned long index;
     return _BitScanReverse64(&index, size) ? index : -1;
+#else
+    return __builtin_clz(size);
+#endif
   }
 
   inline int ffs(uint64_t size) const noexcept {
     if (size == 0)
       return -1;
+#ifdef HIGANBANA_PLATFORM_WINDOWS
     unsigned long index;
     return _BitScanForward64(&index, size) ? index : -1;
+#else
+    return __builtin_ctz(size);
+#endif
   }
 
   inline void mapping(size_t size, int& fl, int& sl) noexcept {

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cmath>
+#include "higanbana/core/platform/definitions.hpp"
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #pragma warning( push )
@@ -74,7 +75,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<2, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)) {}
 
-      __forceinline vType& operator()(unsigned index)
+      HIGAN_INLINE vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -104,7 +105,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<3, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)) {}
 
-      __forceinline vType& operator()(unsigned index)
+      HIGAN_INLINE vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -140,7 +141,7 @@ namespace higanbana
       template<typename vTypeAnother>
       constexpr inline Vector(const Vector<4, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)), w(static_cast<vType>(o.w)) {}
 
-      __forceinline vType& operator()(unsigned index)
+      HIGAN_INLINE vType& operator()(unsigned index)
       {
         return data[index];
       }
@@ -364,7 +365,7 @@ namespace higanbana
     {
       vType data[rowCount*columnCount];
 
-      __forceinline vType& operator()(unsigned x, unsigned y)
+      HIGAN_INLINE vType& operator()(unsigned x, unsigned y)
       {
         return data[y * columnCount + x];
       }
@@ -373,7 +374,7 @@ namespace higanbana
         return data[y * columnCount + x];
       }
 
-      __forceinline vType& operator()(unsigned x)
+      HIGAN_INLINE vType& operator()(unsigned x)
       {
         return data[x];
       }

@@ -1,7 +1,7 @@
 #pragma once
 #include "higanbana/core/platform/definitions.hpp"
-#ifdef HIGANBANA_PLATFORM_WINDOWS
 #include <chrono>
+#ifdef HIGANBANA_PLATFORM_WINDOWS
 
 namespace higanbana
 {

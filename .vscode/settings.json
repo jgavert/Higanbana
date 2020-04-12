@@ -97,7 +97,12 @@
         "string_span": "cpp",
         "concepts": "cpp",
         "*.def": "cpp",
-        "execution": "cpp"
+        "execution": "cpp",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "cwctype": "cpp",
+        "memory_resource": "cpp",
+        "cfenv": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
