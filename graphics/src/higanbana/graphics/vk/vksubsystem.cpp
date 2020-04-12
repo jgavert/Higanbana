@@ -69,7 +69,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
 #else
   if (breakOn)
   {
-    debugBreak();
+    __builtin_trap();
   }
 #endif
   return false;

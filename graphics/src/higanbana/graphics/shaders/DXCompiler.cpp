@@ -1,7 +1,7 @@
 #include "higanbana/graphics/shaders/DXCompiler.hpp"
-#include "dxc/Support/WinIncludes.h"
-#include "dxc/Support/Global.h"
-#include "dxc/DxilContainer/DxilContainer.h"
+#include <dxc/Support/WinIncludes.h>
+#include <dxc/Support/Global.h>
+#include <dxc/DxilContainer/DxilContainer.h>
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
 

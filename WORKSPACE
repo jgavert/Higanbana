@@ -114,3 +114,34 @@ cc_import(
 )
   """
 )
+
+# linux libraries...
+
+new_local_repository(
+  name = "VulkanSDKLinux",
+  path = "/usr",
+  build_file_content = """
+cc_library(
+    name = "Vulkan_headers",
+    hdrs = ["include/vulkan/vulkan.h","include/vulkan/vulkan.hpp"],
+    includes = ["include/vulkan"],
+    visibility = ["//visibility:public"], 
+)
+
+cc_import(
+    name = "Vulkan_lib",
+    interface_library = "lib/libvulkan.so",
+    system_provided = 1,
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
+    name = "Vulkan",
+    deps = [
+         "Vulkan_headers",
+         "Vulkan_lib",
+    ],
+    visibility = ["//visibility:public"], 
+)
+"""
+)

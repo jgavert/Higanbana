@@ -15,7 +15,7 @@ cc_library(
                "@DXGI//:DXGI", 
                "@DXGUID//:DXGUID",
                "@DXIL//:DXIL"],
-          "//conditions:default": [],
+          "//conditions:default": ["@VulkanSDKLinux//:Vulkan"],
     }),
   copts = select({
           "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "-ftime-trace"],

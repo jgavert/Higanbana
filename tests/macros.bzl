@@ -10,7 +10,7 @@ def src_graphics_test(target_name):
     defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE"],
     linkopts = select({
       "@bazel_tools//src/conditions:windows": ["/subsystem:CONSOLE"],
-      "//conditions:default": ["-pthread"],
+      "//conditions:default": ["-pthread", "-ltbb", "-ldl"],
     }),
   )  
 
@@ -26,7 +26,7 @@ def src_graphics_test_with_header(target_name):
     defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE"],
     linkopts = select({
       "@bazel_tools//src/conditions:windows": ["/subsystem:CONSOLE"],
-      "//conditions:default": ["-pthread"],
+      "//conditions:default": ["-pthread", "-ltbb", "-ldl"],
     }),
   )  
 

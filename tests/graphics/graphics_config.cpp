@@ -5,10 +5,10 @@ SResources::SResources()
   , fileSystem(TESTS_FILESYSTEM_PATH)
 {
   auto gpus = subsystem.getVendorDevice(GraphicsApi::Vulkan); // TODO: make it so that it always tests both api at once
-  gpu = subsystem.createDevice(fileSystem, gpus[0]);
+  gpu = subsystem.createDevice(fileSystem, gpus);
 }
 
-static std::shared_ptr<SResources> _g;
+std::shared_ptr<SResources> _g;
 
 GraphicsFixture::GraphicsFixture() {
   if (!_initialised) {
