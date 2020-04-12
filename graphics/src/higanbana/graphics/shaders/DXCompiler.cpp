@@ -1,10 +1,7 @@
 #include "higanbana/graphics/shaders/DXCompiler.hpp"
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
-#include <wrl.h>
-#include <Objbase.h>
-template <typename T>
-using CComPtr = Microsoft::WRL::ComPtr<T>;
-#endif
+#include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/Global.h"
+#include "dxc/DxilContainer/DxilContainer.h"
 #include <dxc/dxcapi.h>
 #include <dxc/Support/microcom.h>
 

@@ -905,6 +905,7 @@ void mainWindow(ProgramParams& params)
                         draw.materialId = matID.id;
                       }
                       draw.meshId = meshTarget.value().id;
+                      draw.mat = float4x4::identity();
                       allMeshesToDraw.push_back(draw);
                     }
                   }

@@ -76,12 +76,12 @@ namespace higanbana
       auto& allRes = ptr->allResources();
       if (rtvs.size() > 0)
       {
-        auto& d = allRes.tex[rtvs[0].resource].desc().desc;
+        auto& d = allRes.tex[rtvs[0].resourceHandle()].desc().desc;
         size = uint2{ d.width, d.height };
       }
       else if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
-        auto& d = allRes.tex[packet.dsv.resource].desc().desc;
+        auto& d = allRes.tex[packet.dsv.resourceHandle()].desc().desc;
         size = uint2{ d.width, d.height };
       }
       else
