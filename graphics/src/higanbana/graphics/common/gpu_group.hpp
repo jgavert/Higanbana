@@ -258,6 +258,10 @@ namespace higanbana
       return valid();
     }
 
+    int deviceCount() const {
+      return static_cast<int>(S().m_devices.size());
+    }
+
     deque<SubmitTiming> submitTimingInfo()
     {
       auto infos = S().timeSubmitsFinished;

@@ -836,7 +836,8 @@ namespace higanbana
           graph.addPass(std::move(node));
         }
       }
-      submit(std::optional<Swapchain>(), graph, ThreadedSubmission::ParallelUnsequenced);
+      //submit(std::optional<Swapchain>(), graph, ThreadedSubmission::ParallelUnsequenced);
+      submitST(std::optional<Swapchain>(), graph);
       return true;
     }
 
@@ -1446,6 +1447,7 @@ namespace higanbana
         auto* firstList = &nodes[i];
 
         PreparedCommandlist plist{};
+        plist.device = firstList->gpuId;
         plist.type = firstList->type;
         auto list = std::move(nodes[i].list->list);
         plist.buffers.emplace_back(std::move(list));
@@ -1463,7 +1465,7 @@ namespace higanbana
         i += 1;
         for (; i < static_cast<int>(nodes.size()); ++i)
         {
-          if (nodes[i].type != plist.type)
+          if (nodes[i].type != plist.type || nodes[i].gpuId != plist.device)
             break;
           auto addedNodeSize = nodes[i].list->list.sizeBytes();
           if (!singleThreaded && currentSizeBytes > splitSize)
@@ -1578,6 +1580,7 @@ namespace higanbana
       HIGAN_ASSERT(uhOhDma.empty(), "Need to make lists to fix these resources...");
     }
 
+    // one liveCommandBuffer for each deivce and queue.
     deque<LiveCommandBuffer2> DeviceGroupData::makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID) {
       HIGAN_CPU_FUNCTION_SCOPE();
       deque<LiveCommandBuffer2> readyLists;
@@ -1589,7 +1592,7 @@ namespace higanbana
       for (auto&& list : lists)
       {
         HIGAN_CPU_BRACKET("list in lists");
-        if (list.type != buffer.queue)
+        if (list.type != buffer.queue || list.device != buffer.deviceID)
         {
           HIGAN_CPU_BRACKET("readyLists.emplace_back");
           readyLists.emplace_back(std::move(buffer));

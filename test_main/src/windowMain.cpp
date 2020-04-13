@@ -287,6 +287,7 @@ void mainWindow(ProgramParams& params)
     bool stepOneFrameForward = false;
     bool stepOneFrameBackward = false;
     app::RendererOptions renderOptions;
+    renderOptions.submitSingleThread = true;
     vector<app::RenderViewportInfo> rendererViewports;
     rendererViewports.push_back({});
 
@@ -321,7 +322,8 @@ void mainWindow(ProgramParams& params)
 
     uint chosenDeviceID = 0;
     GraphicsApi chosenApi = api;
-    int2 windowSize = int2(1280, 720);
+    bool interoptDevice = false;
+    int2 windowSize = div(int2(1280, 720), 2);
     int2 windowPos = int2(300,400);
 
     // IMGUI
@@ -358,7 +360,10 @@ void mainWindow(ProgramParams& params)
       {
         allGpus = graphics.availableGpus();
         if (chosenDeviceID == 0) {
-          physicalDevice = graphics.getVendorDevice(api, preferredVendor);
+          auto expApi = api;
+          if (interoptDevice)
+            expApi = GraphicsApi::All;
+          physicalDevice = graphics.getVendorDevice(expApi, preferredVendor);
           chosenDeviceID = physicalDevice.deviceId;
           chosenApi = physicalDevice.api;
         } 
@@ -367,7 +372,8 @@ void mainWindow(ProgramParams& params)
           for (auto&& gpu : allGpus) {
             if (gpu.deviceId == chosenDeviceID) {
               physicalDevice = gpu;
-              physicalDevice.api = chosenApi;
+              if (!interoptDevice)
+                physicalDevice.api = chosenApi;
               break;
             }
           }
@@ -385,7 +391,11 @@ void mainWindow(ProgramParams& params)
       window.open();
 
 
-      auto dev = graphics.createDevice(fs, physicalDevice);
+      higanbana::GpuGroup dev;
+      if (interoptDevice && physicalDevice.api == GraphicsApi::All)
+        dev = graphics.createInteroptDevice(fs, physicalDevice);
+      else
+        dev = graphics.createDevice(fs, physicalDevice);
       selectedDevice.resize(allGpus.size());
       for (int i = 0; i < allGpus.size(); ++i) {
         if (allGpus[i].deviceId == chosenDeviceID)
@@ -657,6 +667,7 @@ void mainWindow(ProgramParams& params)
                   }
                   ImGui::ListBoxFooter();
                 }
+                ImGui::Checkbox("interopt", &interoptDevice); ImGui::SameLine();
                 if (ImGui::Button("Reinit")) {
                   for (int i = 0; i < selectedDevice.size(); i++) {
                     if (selectedDevice[i]) {

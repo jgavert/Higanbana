@@ -104,14 +104,23 @@ namespace higanbana
     GpuGroup SubsystemData::createGroup(FileSystem& fs, vector<GpuInfo> gpus)
     {
       vector<std::shared_ptr<prototypes::DeviceImpl>> devices;
+      vector<GpuInfo> infos;
       for (auto&& info : gpus)
       {
-        if (implDX12 && (info.api == GraphicsApi::DX12 || info.api == GraphicsApi::All))
+        if (implDX12 && (info.api == GraphicsApi::DX12 || info.api == GraphicsApi::All)) {
           devices.push_back(implDX12->createGpuDevice(fs, info));
-        if (implVulkan && (info.api == GraphicsApi::Vulkan || info.api == GraphicsApi::All))
+          auto cop = info;
+          cop.api = GraphicsApi::DX12;
+          infos.push_back(cop);
+        }
+        if (implVulkan && (info.api == GraphicsApi::Vulkan || info.api == GraphicsApi::All)) {
           devices.push_back(implVulkan->createGpuDevice(fs, info));
+          auto cop = info;
+          cop.api = GraphicsApi::Vulkan;
+          infos.push_back(cop);
+        }
       }
-      return GpuGroup({devices, gpus});
+      return GpuGroup({devices, infos});
     }
     GraphicsSurface SubsystemData::createSurface(Window & window, GpuInfo gpu)
     {

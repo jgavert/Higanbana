@@ -1554,7 +1554,7 @@ namespace higanbana
       }
 
       ID3D12Resource* texture;
-      m_device->CreatePlacedResource(native.native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture));
+      HIGANBANA_CHECK_HR(m_device->CreatePlacedResource(native.native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture)));
 
       auto wstr = s2ws(desc.desc.name);
       texture->SetName(wstr.c_str());

@@ -236,6 +236,13 @@ namespace higanbana
         ppArgs.push_back(it.c_str());
       }
 
+      /*
+      CComPtr<DxcResult> pResult = DxcResult::Alloc(m_pMalloc);
+      pResult->SetEncoding(opts.DefaultTextCodePage);
+
+      CComPtr<IDxcResult> pImplResult;
+      */
+
       CComPtr<IDxcOperationResult> pResult;
 
       ppArgs.push_back(L"/Emain");
@@ -246,11 +253,7 @@ namespace higanbana
       std::wstring kek = s2ws(d.shaderName);
       pCompiler->Compile(
         &srcBuffer,                                      // program text
-        //kek.c_str(),                                        // file name, mostly for error messages
-        //L"main",                                            // entry point function
-        //shaderFeatureDXC(d.type),                             // target profile
         ppArgs.data(), static_cast<UINT32>(ppArgs.size()),  // compilation arguments
-        //defs.data(), static_cast<UINT32>(defs.size()),      // name/value defines and their count
         dxcHandlerPtr,                                // handler for #include directives
         IID_PPV_ARGS(&pResult));
 
@@ -286,6 +289,20 @@ namespace higanbana
       auto thingB = blob->GetBufferSize();
       auto viewToBlob = higanbana::reinterpret_memView<const uint8_t>(higanbana::makeByteView(thingA, thingB));
       m_fs.writeFile(dxilPath, viewToBlob);
+
+      // Extract debug blob if present
+      /*
+      CComHeapPtr<wchar_t> pDebugNameOnComHeap;
+      CComPtr<IDxcBlob> pDebugBlob;
+      if (SUCCEEDED(hr)) {
+        CComPtr<IDxcBlobUtf16> pDebugName;
+        hr = pResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugBlob), &pDebugName);
+        if (SUCCEEDED(hr) && ppDebugBlobName && pDebugName) {
+          if (!pDebugNameOnComHeap.AllocateBytes(pDebugName->GetBufferSize()))
+            return E_OUTOFMEMORY;
+          memcpy(pDebugNameOnComHeap.m_pData, pDebugName->GetBufferPointer(), pDebugName->GetBufferSize());
+        }
+      }*/
       return true;
 
     }

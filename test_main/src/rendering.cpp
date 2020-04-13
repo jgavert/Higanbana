@@ -151,7 +151,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
 void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances) {
   HIGAN_CPU_FUNCTION_SCOPE();
   {
-    auto node = tasks.createPass("composite");
+    auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
     auto gbufferRTV = scene.gbufferRTV;
     gbufferRTV.clearOp(float4{ 0.f, redcolor, 0.f, 0.2f });
@@ -210,7 +210,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
           {
             stepSize = stepSize - (i+stepSize - scene.drawcalls);
           }
-          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), i, stepSize));
+          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes", QueueType::Graphics, scene.options.gpuToUse), i, stepSize));
         }
       }
       else
@@ -227,7 +227,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
         reverseDraw.push_back(cubesLeft);
         for (int i = reverseDraw.size()-1; i >= 0; i--)
         {
-          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes"), cubesDrawn, reverseDraw[i]));
+          nodes.push_back(std::make_tuple(tasks.createPass("opaquePass - cubes", QueueType::Graphics, scene.options.gpuToUse), cubesDrawn, reverseDraw[i]));
           cubesDrawn += reverseDraw[i];
         } 
       }
@@ -250,7 +250,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
     }
     else
     {
-      auto node = tasks.createPass("opaquePass - ecs");
+      auto node = tasks.createPass("opaquePass - ecs", QueueType::Graphics, scene.options.gpuToUse);
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
       auto moti = scene.motionVectors;
@@ -268,7 +268,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
   // particles draw
   if (rendererOptions.particles && scene.options.particlesDraw)
   {
-    auto node = tasks.createPass("particles - draw");
+    auto node = tasks.createPass("particles - draw", QueueType::Graphics, scene.options.gpuToUse);
     particleSimulation.render(dev, node, scene.gbufferRTV, scene.depth, cameraArgs);
     tasks.addPass(std::move(node));
   }
@@ -317,8 +317,9 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   }
 
   CommandGraph tasks = dev.createGraph();
+  for (int i = 0; i < dev.deviceCount(); i++)
   {
-    auto ndoe = tasks.createPass("update materials");
+    auto ndoe = tasks.createPass("update materials", QueueType::Graphics, i);
     materials.update(dev, ndoe);
     tasks.addPass(std::move(ndoe));
   }
@@ -346,25 +347,29 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
       vp.jitterOffset = tsaa.getJitterOffset(time.getFrame());
     }
     if (!sets.empty()) {
-      auto ndoe = tasks.createPass("copy cameras");
-      auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
-      ndoe.copy(cameras, matUpdate);
-      tasks.addPass(std::move(ndoe));
+      for (int i = 0; i < dev.deviceCount(); i++) {
+        auto ndoe = tasks.createPass("copy cameras", QueueType::Graphics, i);
+        auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+        ndoe.copy(cameras, matUpdate);
+        tasks.addPass(std::move(ndoe));
+      }
     }
   }
 
-  {
-    auto node = tasks.createPass("generate Texture");
+  for (int i = 0; i < dev.deviceCount(); i++) {
+    auto node = tasks.createPass("generate Texture", QueueType::Graphics, i);
     genImage.generate(dev, node, proxyTex.uav());
     tasks.addPass(std::move(node));
   }
 
-  if (rendererOptions.particles && rendererOptions.particlesSimulate)
-  {
-    auto ndoe = tasks.createPass("simulate particles");
-    particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
-    tasks.addPass(std::move(ndoe));
-  }
+  for (int i = 0; i < dev.deviceCount(); i++)
+    if (rendererOptions.particles && rendererOptions.particlesSimulate)
+    {
+      auto ndoe = tasks.createPass("simulate particles", QueueType::Graphics, i);
+      particleSimulation.simulate(dev, ndoe, time.getFrameTimeDelta());
+      tasks.addPass(std::move(ndoe));
+    }
+
 
   vector<CommandNodeVector> nodeVecs;
   for (auto&& vpInfo : viewportsToRender) {
@@ -385,7 +390,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     TextureRTV tsaaOutputRTV = vp.gbufferRTV;
     if (options.tsaa)
     {
-      auto tsaaNode = localVec.createPass("Temporal Supersampling AA");
+      auto tsaaNode = localVec.createPass("Temporal Supersampling AA", QueueType::Graphics, options.gpuToUse);
       vp.tsaaResolved.next(time.getFrame());
       tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), vp.motionVectorsSRV, vp.gbufferSRV, vp.tsaaDebugUAV});
       localVec.addPass(std::move(tsaaNode));
@@ -397,7 +402,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
 
     if (options.debugTextures)
     {
-      auto node = localVec.createPass("debug textures");
+      auto node = localVec.createPass("debug textures", QueueType::Graphics, options.gpuToUse);
       blitter.beginRenderpass(node, tsaaOutputRTV);
       int2 curPos = int2(0,0);
       int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
@@ -440,7 +445,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    auto node = tasks.createPass("tonemapper");
+    auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);
     auto target = backbuffer;
     target = vp.viewportRTV;
     if (!rendererOptions.renderImGui)
