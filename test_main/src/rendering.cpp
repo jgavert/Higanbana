@@ -448,14 +448,45 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);
     auto target = backbuffer;
     target = vp.viewportRTV;
-    if (!rendererOptions.renderImGui)
+    if (!rendererOptions.renderImGui && vpInfo.options.gpuToUse == 0)
       target = backbuffer;
     TextureSRV tsaaOutput = vp.gbufferSRV;
     if (vpInfo.options.tsaa) {
       tsaaOutput = vp.tsaaResolved.srv();
     }
     tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
+
     tasks.addPass(std::move(node));
+  }
+
+  if (indexesToVP.size() == 1) {
+    auto& vpInfo = viewportsToRender[0];
+    auto& vp = viewports[0];
+    auto node = tasks.createPass("shared gpu transfer", QueueType::Graphics, vpInfo.options.gpuToUse);
+    node.copy(vp.sharedViewport, size_t(0), vp.viewport, Subresource().mip(0).slice(0));
+    node.copy(vp.viewport, Subresource().mip(0).slice(0), vp.sharedViewport, 0);
+    tasks.addPass(std::move(node));
+  }
+
+  // send from other gpu's to main gpu
+  for (auto&& index : indexesToVP) {
+    auto& vpInfo = viewportsToRender[index];
+    auto& vp = viewports[index];
+    if (vpInfo.options.gpuToUse != 0) {
+      auto node = tasks.createPass("shared gpu transfer", QueueType::Graphics, vpInfo.options.gpuToUse);
+      node.copy(vp.sharedViewport, size_t(0), vp.viewport, Subresource().mip(0).slice(0));
+      tasks.addPass(std::move(node));
+    }
+  }
+  // copy all received to samplable structure.
+  for (auto&& index : indexesToVP) {
+    auto& vpInfo = viewportsToRender[index];
+    auto& vp = viewports[index];
+    if (vpInfo.options.gpuToUse != 0) {
+      auto node = tasks.createPass("receiving transfer", QueueType::Graphics, 0);
+      node.copy(vp.viewport, Subresource().mip(0).slice(0), vp.sharedViewport, 0);
+      tasks.addPass(std::move(node));
+    }
   }
 
   // IMGUI

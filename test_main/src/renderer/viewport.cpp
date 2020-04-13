@@ -17,6 +17,12 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
     viewportSRV = device.createTextureSRV(viewport);
     viewportRTV = device.createTextureRTV(viewport);
     viewportRTV.setOp(LoadOp::Clear);
+
+    sharedViewport = device.createBuffer(ResourceDescriptor()
+      .setName("shared buffer")
+      .setFormat(FormatType::Raw32)
+      .setCount(sizeFormatSlicePitch(viewport.desc().desc.size3D(), viewport.desc().desc.format))
+      .allowCrossAdapter());
     
     tsaaResolved.resize(device, ResourceDescriptor()
       .setSize(targetRes)

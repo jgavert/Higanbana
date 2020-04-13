@@ -259,6 +259,67 @@ namespace higanbana
       }
     };
 
+    struct TextureToBufferCopy
+    {
+      ResourceHandle dstBuffer;
+      uint32_t dstOffset;
+      
+      ResourceHandle srcTexture;
+      uint32_t allMips;
+      uint32_t mip;
+      uint32_t slice;
+      uint32_t width;  
+      uint32_t height;
+      FormatType format;
+
+      static constexpr const backend::PacketType type = backend::PacketType::TextureToBufferCopy;
+      static void constructor(backend::CommandBuffer& , TextureToBufferCopy* packet,
+        ResourceHandle dstBuffer, uint32_t dstOffset, 
+        ResourceHandle srcTex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format)
+      {
+        packet->dstBuffer = dstBuffer;
+        packet->dstOffset = dstOffset;
+        packet->srcTexture = srcTex;
+        packet->allMips = allMips;
+        packet->mip = mip;
+        packet->slice = slice;
+        packet->width = width;
+        packet->height = height;
+        packet->format = format;
+      }
+    };
+
+    struct BufferToTextureCopy
+    {
+      ResourceHandle dstTexture;
+      uint32_t allMips;
+      uint32_t mip;
+      uint32_t slice;
+      uint32_t width;  
+      uint32_t height;
+      FormatType format;
+
+      ResourceHandle srcBuffer;
+      uint32_t srcOffset;
+      uint32_t numBytes; 
+
+      static constexpr const backend::PacketType type = backend::PacketType::BufferToTextureCopy;
+      static void constructor(backend::CommandBuffer& , BufferToTextureCopy* packet,
+        ResourceHandle tex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format,
+        ResourceHandle sourceBuffer, uint32_t srcOffset)
+      {
+        packet->dstTexture = tex;
+        packet->allMips = allMips;
+        packet->mip = mip;
+        packet->slice = slice;
+        packet->width = width;
+        packet->height = height;
+        packet->format = format;
+        packet->srcBuffer = sourceBuffer;
+        packet->srcOffset = srcOffset;
+      }
+    };
+
     struct ScissorRect
     {
       int2 topleft;

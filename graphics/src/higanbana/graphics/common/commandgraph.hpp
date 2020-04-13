@@ -316,6 +316,19 @@ namespace higanbana
       list->updateTexture(target, source, sub.mipLevel, sub.arraySlice);
     }
 
+    // mm I'm doing something funny here aren't I... what happened to not expose this at all...
+    void copy(Buffer dst, size_t dstOffset, Texture src, Subresource sub) {
+      m_referencedBuffers.setBit(dst.handle().id);
+      m_referencedBuffers.setBit(src.handle().id);
+      list->copy(dst, dstOffset, src, sub);
+    }
+
+    void copy(Texture dst, Subresource sub, Buffer src, size_t srcOffset) {
+      m_referencedBuffers.setBit(dst.handle().id);
+      m_referencedBuffers.setBit(src.handle().id);
+      list->copy(dst, sub, src, srcOffset);
+    }
+
     ReadbackFuture readback(Texture tex, Subresource resource)
     {
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});

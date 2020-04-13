@@ -884,7 +884,7 @@ namespace higanbana
       else if (desc.desc.usage == ResourceUsage::Readback)
         type = HeapType::Readback;
 
-      if (m_features.opt0.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_2)
+      if (m_features.opt0.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_2 && !desc.desc.allowCrossAdapter && !desc.desc.interopt)
       {
         reqs.heapType = packInt64(0, static_cast<int32_t>(type));
       }

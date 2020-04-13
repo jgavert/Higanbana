@@ -769,6 +769,56 @@ namespace higanbana
             buffer.copyBufferToImage(dynamic.buffer, texture.native(), vk::ImageLayout::eTransferDstOptimal, {info});
             break;
           }
+          case PacketType::TextureToBufferCopy:
+          {
+            auto params = header->data<gfxpacket::TextureToBufferCopy>();
+            auto srcTex = device->allResources().tex[params.srcTexture];
+            auto dstBuf = device->allResources().buf[params.dstBuffer];
+
+            auto rows = params.height;
+
+            vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
+              .setMipLevel(params.mip)
+              .setLayerCount(params.slice)
+              .setLayerCount(1)
+              .setAspectMask(srcTex.aspectFlags());
+
+            vk::BufferImageCopy info = vk::BufferImageCopy()
+              .setBufferOffset(params.dstOffset)
+              .setBufferRowLength(params.width)
+              .setBufferImageHeight(params.height)
+              .setImageOffset(vk::Offset3D(0, 0, 0))
+              .setImageExtent(vk::Extent3D(params.width, params.height, 1))
+              .setImageSubresource(layers);
+            
+            buffer.copyImageToBuffer(srcTex.native(), vk::ImageLayout::eTransferSrcOptimal, dstBuf.native(), {info});
+            break;
+          }
+          case PacketType::BufferToTextureCopy:
+          {
+            auto params = header->data<gfxpacket::BufferToTextureCopy>();
+            auto srcBuf = device->allResources().buf[params.srcBuffer];
+            auto dstTex = device->allResources().tex[params.dstTexture];
+
+            auto rows = params.height;
+
+            vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
+              .setMipLevel(params.mip)
+              .setLayerCount(params.slice)
+              .setLayerCount(1)
+              .setAspectMask(dstTex.aspectFlags());
+
+            vk::BufferImageCopy info = vk::BufferImageCopy()
+              .setBufferOffset(params.srcOffset)
+              .setBufferRowLength(params.width)
+              .setBufferImageHeight(params.height)
+              .setImageOffset(vk::Offset3D(0, 0, 0))
+              .setImageExtent(vk::Extent3D(params.width, params.height, 1))
+              .setImageSubresource(layers);
+            
+            buffer.copyBufferToImage(srcBuf.native(), dstTex.native(), vk::ImageLayout::eTransferDstOptimal, {info});
+            break;
+          }
           case PacketType::RenderpassEnd:
           {
             buffer.endRenderPass();

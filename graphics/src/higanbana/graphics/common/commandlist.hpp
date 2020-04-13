@@ -165,6 +165,18 @@ namespace higanbana
       //list.insert<gfxpacket::TextureCopy>(target.dependency(), source.dependency(), range);
     }
 
+    void copy(Buffer target, size_t targetOffsetBytes, Texture source, Subresource sub) {
+      auto size = source.desc().desc.size3D().xy();
+      auto type = source.desc().desc.format;
+      list.insert<gfxpacket::TextureToBufferCopy>(target.handle(), targetOffsetBytes, source.handle(), source.desc().desc.miplevels, sub.mipLevel, sub.arraySlice, size.x, size.y, type);
+    }
+
+    void copy(Texture target, Subresource sub, Buffer source, size_t srcOffsetBytes) {
+      auto size = target.desc().desc.size3D().xy();
+      auto type = target.desc().desc.format;
+      list.insert<gfxpacket::BufferToTextureCopy>(target.handle(), target.desc().desc.miplevels, sub.mipLevel, sub.arraySlice, size.x, size.y, type, source.handle(), srcOffsetBytes);
+    }
+
     void copy(Buffer& target, uint dstStart, Buffer& source, uint srcStart, uint elements)
     {
       auto dstOffset = dstStart * target.desc().desc.stride;

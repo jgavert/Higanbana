@@ -14,6 +14,7 @@ class Viewport
   higanbana::Texture    viewport;
   higanbana::TextureSRV viewportSRV;
   higanbana::TextureRTV viewportRTV;
+  higanbana::Buffer     sharedViewport; // shared resource from host gpu 0. viewport copied to this.
   higanbana::PingPongTexture tsaaResolved; // tsaa history/current
   higanbana::Texture    tsaaDebug;
   higanbana::TextureSRV tsaaDebugSRV;

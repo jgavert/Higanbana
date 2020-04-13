@@ -14,6 +14,11 @@ float4 main(VertexOut input) : SV_TARGET
   //lightDir.y = sin(constants.time*0.7f)*0.3f+0.4f;
 
   float light = max(0, dot(normal.xyz, lightDir));
-  return normal * (light + 0.1f);
+  float4 color = normal*(light+0.1);
+#ifdef HIGANBANA_VULKAN
+  return color + float4(0.8,0.0,0.0,0.0);
+#else
+  return color + float4(0.0,0.4,0.0,0.0);
+#endif
   //return float4(input.pos.zzz*1000.f-0.05f, 1.f);
 }

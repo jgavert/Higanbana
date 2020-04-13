@@ -1,4 +1,5 @@
 #include "higanbana/graphics/desc/formats.hpp"
+#include <higanbana/core/math/utils.hpp>
 #include <higanbana/core/global_debug.hpp>
 
 namespace higanbana
@@ -90,6 +91,27 @@ namespace higanbana
       }
     }
     return (slot.pixelSize / slot.componentCount) * 8;
+  }
+
+  size_t sizeFormatRowPitch(int2 size, FormatType type) {
+    constexpr size_t APIRowPitchAlignmentRequirement = 256;
+    size_t tightRowPitch = size.x * formatSizeInfo(type).pixelSize;
+    return roundUpMultiplePowerOf2(tightRowPitch, APIRowPitchAlignmentRequirement);
+  }
+
+  size_t sizeFormatSlicePitch(int2 size, FormatType type) {
+    constexpr size_t APIRowPitchAlignmentRequirement = 256;
+    size_t tightRowPitch = size.x * formatSizeInfo(type).pixelSize;
+    size_t laxRowPitch = roundUpMultiplePowerOf2(tightRowPitch, APIRowPitchAlignmentRequirement);
+    return laxRowPitch * static_cast<size_t>(size.y);
+  }
+
+  size_t sizeFormatRowPitch(int3 size, FormatType type) {
+    return sizeFormatRowPitch(size.xy(), type);
+  }
+
+  size_t sizeFormatSlicePitch(int3 size, FormatType type) {
+    return sizeFormatSlicePitch(size.xy(), type);
   }
 
   const char* formatToString(FormatType format)

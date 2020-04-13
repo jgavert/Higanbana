@@ -25,6 +25,8 @@ namespace higanbana
       ReadbackBuffer,
       DynamicBufferCopy,
       UpdateTexture,
+      TextureToBufferCopy,
+      BufferToTextureCopy,
       Dispatch,
       PrepareForPresent,
       RenderpassBegin,

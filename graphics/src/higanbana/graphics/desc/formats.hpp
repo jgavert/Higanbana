@@ -1,5 +1,6 @@
 #pragma once
 #include <higanbana/core/system/helperMacros.hpp>
+#include <higanbana/core/math/math.hpp>
 
 namespace higanbana
 {
@@ -79,6 +80,10 @@ namespace higanbana
   FormatSizeInfo formatSizeInfo(FormatType format);
   int formatBitDepth(FormatType format);
 
+  size_t sizeFormatRowPitch(int2 size, FormatType type);
+  size_t sizeFormatSlicePitch(int2 size, FormatType type);
+  size_t sizeFormatRowPitch(int3 size, FormatType type);
+  size_t sizeFormatSlicePitch(int3 size, FormatType type);
   const char* formatToString(FormatType format);
 
   enum class ResourceUsage

@@ -216,6 +216,20 @@ namespace higanbana
       return loc;
     }
 
+    D3D12_TEXTURE_COPY_LOCATION locationFromBuffer(ID3D12Resource* buf, uint32_t offset, uint32_t rowPitch, int width, int height, FormatType format)
+    {
+      D3D12_TEXTURE_COPY_LOCATION loc{};
+      loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      loc.PlacedFootprint.Footprint.Width = width;
+      loc.PlacedFootprint.Footprint.Height = height;
+      loc.PlacedFootprint.Footprint.Depth = 1;
+      loc.PlacedFootprint.Footprint.Format = backend::formatTodxFormat(format).storage;
+      loc.PlacedFootprint.Footprint.RowPitch = rowPitch;
+      loc.PlacedFootprint.Offset = offset;
+      loc.pResource = buf;
+      return loc;
+    }
+
     D3D12_TEXTURE_COPY_LOCATION locationFromDynamic(ID3D12Resource* upload, DX12DynamicBufferView& view, int width, int height, FormatType format)
     {
       D3D12_TEXTURE_COPY_LOCATION loc{};
@@ -720,6 +734,30 @@ namespace higanbana
 
             D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.allMips, params.mip, params.slice);
             D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
+            buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            break;
+          }
+          case PacketType::TextureToBufferCopy:
+          {
+            auto params = header->data<gfxpacket::TextureToBufferCopy>();
+            auto dstBuf = device->allResources().buf[params.dstBuffer];
+            auto srcTex = device->allResources().tex[params.srcTexture];
+            auto rowPitch = sizeFormatRowPitch(int2(params.width, params.height), params.format);
+
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(srcTex.native(), params.allMips, params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromBuffer(dstBuf.native(), params.dstOffset, rowPitch, params.width, params.height, params.format);
+            buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            break;
+          }
+          case PacketType::BufferToTextureCopy:
+          {
+            auto params = header->data<gfxpacket::BufferToTextureCopy>();
+            auto dstTex = device->allResources().tex[params.dstTexture];
+            auto srcBuf = device->allResources().buf[params.srcBuffer];
+            auto rowPitch = sizeFormatRowPitch(int2(params.width, params.height), params.format);
+
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromBuffer(srcBuf.native(), params.srcOffset, rowPitch, params.width, params.height, params.format);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dstTex.native(), params.allMips, params.mip, params.slice);
             buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
             break;
           }
