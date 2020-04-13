@@ -262,6 +262,14 @@ namespace higanbana
       return static_cast<int>(S().m_devices.size());
     }
 
+    vector<GpuInfo> activeDevicesInfo() {
+      vector<GpuInfo> ret;
+      for (auto&& device : S().m_devices) {
+        ret.push_back(device.info);
+      }
+      return ret;
+    }
+
     deque<SubmitTiming> submitTimingInfo()
     {
       auto infos = S().timeSubmitsFinished;

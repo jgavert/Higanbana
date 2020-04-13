@@ -322,7 +322,7 @@ void mainWindow(ProgramParams& params)
 
     uint chosenDeviceID = 0;
     GraphicsApi chosenApi = api;
-    bool interoptDevice = false;
+    bool interoptDevice = true;
     int2 windowSize = div(int2(1280, 720), 2);
     int2 windowPos = int2(300,400);
 
@@ -344,6 +344,7 @@ void mainWindow(ProgramParams& params)
     {
       HIGAN_CPU_BRACKET("main program");
       vector<GpuInfo> allGpus;
+      vector<GpuInfo> activeDevices;
       vector<bool> selectedDevice;
       GpuInfo physicalDevice;
       GraphicsSubsystem graphics(allowedApis, "higanbana", validationLayer);
@@ -365,7 +366,8 @@ void mainWindow(ProgramParams& params)
             expApi = GraphicsApi::All;
           physicalDevice = graphics.getVendorDevice(expApi, preferredVendor);
           chosenDeviceID = physicalDevice.deviceId;
-          chosenApi = physicalDevice.api;
+          if (!interoptDevice)
+            chosenApi = physicalDevice.api;
         } 
         else
         {
@@ -385,10 +387,6 @@ void mainWindow(ProgramParams& params)
         return;
       }
 
-	    std::string windowTitle = "";
-      windowTitle += std::string(toString(physicalDevice.api)) + ": " + physicalDevice.name + " ";
-      Window window(params, windowTitle, windowSize.x, windowSize.y, windowPos.x, windowPos.y);
-      window.open();
 
 
       higanbana::GpuGroup dev;
@@ -396,6 +394,18 @@ void mainWindow(ProgramParams& params)
         dev = graphics.createInteroptDevice(fs, physicalDevice);
       else
         dev = graphics.createDevice(fs, physicalDevice);
+      
+      activeDevices = dev.activeDevicesInfo();
+
+	    std::string windowTitle = "";
+      {
+        int devId = 0;
+        for(auto&& info : activeDevices)
+          windowTitle += std::to_string(devId++) + std::string(": ") + std::string(toString(info.api)) + ": " + info.name + " ";
+      }
+      Window window(params, windowTitle, windowSize.x, windowSize.y, windowPos.x, windowPos.y);
+      window.open();
+
       selectedDevice.resize(allGpus.size());
       for (int i = 0; i < allGpus.size(); ++i) {
         if (allGpus[i].deviceId == chosenDeviceID)
@@ -635,9 +645,22 @@ void mainWindow(ProgramParams& params)
               timeSinceLastInput += time.getFrameTimeDelta();
             }
             ::ImGui::NewFrame();
+
             if (renderOptions.renderImGui)
             {
               auto gid = ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode);
+
+              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+              if (ImGui::Begin("Keys"))
+              {
+                ImGui::Text(" Exit:                         ESC");
+                ImGui::Text(" Capture Mouse:                F1");
+                ImGui::Text(" Release Mouse:                F2");
+                ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+                ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
+                ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
+              }
+              ImGui::End();
               ImGui::SetNextWindowSize(ImVec2(660, 580), ImGuiCond_FirstUseEver);
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               int enabledViewport = 0;
@@ -709,6 +732,12 @@ void mainWindow(ProgramParams& params)
 
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               if (ImGui::Begin("Renderer options")) {
+                ImGui::Text("Active devices:");
+                for (int i = 0; i < activeDevices.size(); ++i) {
+                  const auto& info = activeDevices[i];
+                  std::string str = std::to_string(i) + std::string(": ")  + info.name + " (" + std::string(toString(info.api))+ ")";
+                  ImGui::Text(str.c_str());
+                }
                 renderOptions.drawImGuiOptions();
               }
               ImGui::End();
@@ -724,7 +753,7 @@ void mainWindow(ProgramParams& params)
                   if (ImGui::BeginTabItem(index.c_str())) {
                     int2 currentRes = math::mul(vp.options.resolutionScale, float2(vp.viewportSize));
                     ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y); //ImGui::SameLine();
-                    vp.options.drawImGuiOptions(allGpus);
+                    vp.options.drawImGuiOptions(activeDevices);
                     ImGui::EndTabItem();
                   }
                 }
@@ -857,17 +886,7 @@ void mainWindow(ProgramParams& params)
                 });
               }
               ImGui::End();
-              ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
-              if (ImGui::Begin("Keys"))
-              {
-                ImGui::Text(" Exit:                         ESC");
-                ImGui::Text(" Capture Mouse:                F1");
-                ImGui::Text(" Release Mouse:                F2");
-                ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
-                ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
-                ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
-              }
-              ImGui::End();
+
               // render entities
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               entityViewer.render(ecs);
