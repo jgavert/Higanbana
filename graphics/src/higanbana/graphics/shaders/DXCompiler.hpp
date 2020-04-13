@@ -35,21 +35,21 @@ namespace higanbana
         switch (type)
         {
         case ShaderType::Vertex:
-          return L"vs_6_4";
+          return L"/Tvs_6_4";
         case ShaderType::Pixel:
-          return L"ps_6_4";
+          return L"/Tps_6_4";
         case ShaderType::Compute:
-          return L"cs_6_4";
+          return L"/Tcs_6_4";
         case ShaderType::Geometry:
-          return L"gs_6_4";
+          return L"/Tgs_6_4";
         case ShaderType::Hull: // hs_6_0 ??
-          return L"hs_6_4";
+          return L"/Ths_6_4";
         case ShaderType::Domain: // ds_6_0 ??
-          return L"ds_6_4";
+          return L"/Tds_6_4";
         case ShaderType::Amplification: //
-          return L"as_6_5";
+          return L"/Tas_6_5";
         case ShaderType::Mesh: //
-          return L"ms_6_5";
+          return L"/Tms_6_5";
         default:
           HIGAN_ASSERT(false, "Unknown ShaderType");
         }

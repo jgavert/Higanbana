@@ -305,9 +305,9 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   for (auto& index : indexesToVP) {
     auto& vp = viewports[index];
     auto& vpInfo = viewportsToRender[index];
-    auto vpSize = vpInfo.viewportSize;
-    if (!rendererOptions.renderImGui)
-      vpSize = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
+    if (!rendererOptions.renderImGui) {
+      vpInfo.viewportSize = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
+    }
     vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
     vpsHandled++;
   }

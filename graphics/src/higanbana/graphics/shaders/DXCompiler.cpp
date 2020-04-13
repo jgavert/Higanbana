@@ -8,8 +8,8 @@
 #include <higanbana/core/system/time.hpp>
 
 
-class DXCIncludeHandler : public IDxcIncludeHandler
-{
+class DXCIncludeHandler : public IDxcIncludeHandler {
+  DXC_MICROCOM_REF_FIELD(m_dwRef)
 public:
   DXCIncludeHandler(higanbana::FileSystem& fs, std::string sourcePath, std::string rootSignature, CComPtr<IDxcLibrary> lib, std::function<void(std::string)> func): m_fs(fs)
     , m_sourcePath(sourcePath)
@@ -24,7 +24,6 @@ public:
   }
 
   DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)
-    virtual ~DXCIncludeHandler() {}
 
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override {
     return DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
@@ -57,7 +56,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE LoadSource(
     _In_ LPCWSTR pFilename,                                   // Candidate filename.
-    _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
+    _COM_Outptr_  IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
   ) override
   {
     //ppIncludeSource = nullptr;
@@ -99,7 +98,6 @@ private:
   std::string m_rootSignatureFile;
   std::function<void(std::string)> m_fileIncluded;
   CComPtr<IDxcLibrary> m_lib;
-  DXC_MICROCOM_REF_FIELD(m_dwRef)
 };
 
 namespace higanbana
@@ -163,6 +161,7 @@ namespace higanbana
 
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;
+
       if (binType == ShaderBinaryType::SPIRV)
       {
         ppArgs.push_back(L"-spirv"); // enable spirv codegen
@@ -183,61 +182,77 @@ namespace higanbana
       ppArgs.push_back(L"/Zi"); // Enable debugging information.
       ppArgs.push_back(L"/WX"); // Treat warnings as errors.
       ppArgs.push_back(L"/Ges"); //Enable strict mode.
-      ppArgs.push_back(L"/enable_unbounded_descriptor_tables"); //Enables unbounded descriptor tables.
       ppArgs.push_back(L"/all_resources_bound"); // Enable aggressive flattening in SM5.1+.
-      ppArgs.push_back(L"/enable-16bit-types"); 
+      ppArgs.push_back(L"/enable-16bit-types"); // needs _6_2 shaders minimum
       /*
         /Zpc	Pack matrices in column-major order.
         /Zpr	Pack matrices in row-major order.
       */
       ppArgs.push_back(L"/Zpr"); // row-major matrices.
 
-      CComPtr<IDxcCompiler2> pCompiler;
-      DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler2), (void **)&pCompiler);
-
-      std::vector<DxcDefine> defs;
+      CComPtr<IDxcCompiler3> pCompiler;
+      DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void **)&pCompiler);
 
       if (binType == ShaderBinaryType::DXIL)
       {
-        defs.push_back(DxcDefine{ L"HIGANBANA_DX12", nullptr });
+        ppArgs.push_back(L"/DHIGANBANA_DX12");
+        //defs.push_back(DxcDefine{ L"HIGANBANA_DX12", nullptr });
       }
       else
       {
-        defs.push_back(DxcDefine{ L"HIGANBANA_VULKAN", nullptr});
+        ppArgs.push_back(L"/DHIGANBANA_VULKAN");
+        //defs.push_back(DxcDefine{ L"HIGANBANA_VULKAN", nullptr});
       }
 
+      std::wstring tx, ty, tz;
       if (d.type == ShaderType::Compute)
       {
-        defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_X", TGS_X.c_str() });
-        defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Y", TGS_Y.c_str() });
-        defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Z", TGS_Z.c_str() });
+        tx = L"/DHIGANBANA_THREADGROUP_X=";
+        tx += TGS_X;
+        ty = L"/DHIGANBANA_THREADGROUP_Y=";
+        ty += TGS_Y;
+        tz = L"/DHIGANBANA_THREADGROUP_Z=";
+        tz += TGS_Z;
+        ppArgs.push_back(tx.c_str());
+        ppArgs.push_back(ty.c_str());
+        ppArgs.push_back(tz.c_str());
+        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_X", TGS_X.c_str() });
+        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Y", TGS_Y.c_str() });
+        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Z", TGS_Z.c_str() });
       }
 
       std::vector<std::wstring> convertedDefs;
 
       for (auto&& it : d.definitions)
       {
-        convertedDefs.push_back(s2ws(it));
+        std::wstring wtr = L"/D";
+        wtr += s2ws(it);
+        convertedDefs.push_back(wtr);
       }
 
       for (auto&& it : convertedDefs)
       {
-        defs.push_back(DxcDefine{ it.c_str(), nullptr });
+        //defs.push_back(DxcDefine{ it.c_str(), nullptr });
+        ppArgs.push_back(it.c_str());
       }
 
       CComPtr<IDxcOperationResult> pResult;
 
-      std::wstring kek = s2ws(d.shaderName);
+      ppArgs.push_back(L"/Emain");
+      ppArgs.push_back(shaderFeatureDXC(d.type));
 
+      DxcBuffer srcBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+
+      std::wstring kek = s2ws(d.shaderName);
       pCompiler->Compile(
-        pSource,                                      // program text
-        kek.c_str(),                                        // file name, mostly for error messages
-        L"main",                                            // entry point function
-        shaderFeatureDXC(d.type),                             // target profile
+        &srcBuffer,                                      // program text
+        //kek.c_str(),                                        // file name, mostly for error messages
+        //L"main",                                            // entry point function
+        //shaderFeatureDXC(d.type),                             // target profile
         ppArgs.data(), static_cast<UINT32>(ppArgs.size()),  // compilation arguments
-        defs.data(), static_cast<UINT32>(defs.size()),      // name/value defines and their count
+        //defs.data(), static_cast<UINT32>(defs.size()),      // name/value defines and their count
         dxcHandlerPtr,                                // handler for #include directives
-        &pResult);
+        IID_PPV_ARGS(&pResult));
 
       // TODO: PDB's for debugging https://blogs.msdn.microsoft.com/pix/using-automatic-shader-pdb-resolution-in-pix/
 
