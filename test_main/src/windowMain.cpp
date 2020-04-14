@@ -665,10 +665,15 @@ void mainWindow(ProgramParams& params)
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               int enabledViewport = 0;
               for (int i = 0; i < static_cast<int>(rendererViewports.size()); ++i) {
+                const auto& gpInfo = activeDevices[rendererViewports[i].options.gpuToUse];
+                rendererViewports[i].options.visible = false;
                 std::string viewportName = std::string("Viewport ") + std::to_string(i);
-                  rendererViewports[i].options.visible = false;
+                ImVec2 windowOffset;
+                ImVec2 windowSize;
                 if (ImGui::Begin(viewportName.c_str())) {
                   auto ws = ImGui::GetWindowSize();
+                  windowSize = ws;
+                  windowOffset = ImGui::GetWindowPos();
                   ws.y -= 36;
                   rendererViewports[i].options.visible = true;
                   ImGui::Image(reinterpret_cast<void*>(enabledViewport+1), ws);
@@ -677,6 +682,31 @@ void mainWindow(ProgramParams& params)
                   enabledViewport++;
                 }
                 ImGui::End();
+                const float DISTANCE = 20.0f;
+                static int corner = 0;
+                ImGuiIO& io = ImGui::GetIO();
+                if (rendererViewports[i].options.visible)
+                {
+                  ImVec2 window_pos = ImVec2((corner & 1) ? (windowOffset.x + windowSize.x - DISTANCE) : (windowOffset.x + DISTANCE), (corner & 2) ? (windowOffset.y + windowSize.y - DISTANCE) : (windowOffset.y + DISTANCE));
+                  ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+                  ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+                  ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+                }
+                viewportName += "##overlay";
+                if (rendererViewports[i].options.visible && ImGui::Begin(viewportName.c_str(), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+                {
+                    std::string gpu = std::string(toString(gpInfo.api)) + ": " + gpInfo.name;
+                    ImGui::Text(gpu.c_str());
+                    /*
+                    ImGui::Separator();
+                    if (ImGui::IsMousePosValid())
+                        ImGui::Text("Mouse Position: (%.1f,%.1f)", io.MousePos.x - windowOffset.x, io.MousePos.y-windowOffset.y);
+                    else
+                        ImGui::Text("Mouse Position: <invalid>");
+                        */
+                }
+                if (rendererViewports[i].options.visible)
+                  ImGui::End();
               }
               ImGui::SetNextWindowSize(ImVec2(360, 580), ImGuiCond_FirstUseEver);
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
@@ -744,7 +774,7 @@ void mainWindow(ProgramParams& params)
 
               ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
               if (ImGui::Begin("Renderer options for viewports")) {
-                ImGui::DragInt("viewport count", &viewportCount, 1, 1, 9);
+                ImGui::SliderInt("viewport count", &viewportCount, 1, 16);
                 rendererViewports.resize(viewportCount, app::RenderViewportInfo{1, int2(16, 16),{},{}});
                 ImGui::BeginTabBar("viewports");
                 for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++) {

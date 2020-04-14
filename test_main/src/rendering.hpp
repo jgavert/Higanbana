@@ -65,7 +65,8 @@ struct ViewportOptions
 
   void drawImGuiOptions(higanbana::vector<higanbana::GpuInfo>& gpus)
   {
-    ImGui::SliderInt("GPU Device index: ", &gpuToUse, 0, static_cast<int>(gpus.size()));
+    if (gpus.size() > 1)
+      ImGui::SliderInt("GPU Device index: ", &gpuToUse, 0, static_cast<int>(gpus.size())-1);
     ImGui::Checkbox("sync resolution to viewport size", &syncResolutionToSwapchain);
     if (!syncResolutionToSwapchain)
     {
@@ -103,6 +104,12 @@ class Renderer
 
   higanbana::SwapchainDescriptor scdesc;
   higanbana::Swapchain swapchain;
+
+  // api logos
+  higanbana::Texture m_logoDx12;
+  higanbana::TextureSRV m_logoDx12Srv;
+  higanbana::Texture m_logoVulkan;
+  higanbana::TextureSRV m_logoVulkanSrv;
 
   // global layouts
   higanbana::ShaderArgumentsLayout m_camerasLayout;
@@ -165,6 +172,7 @@ class Renderer
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
+  void loadLogos(higanbana::FileSystem& fs);
   int2 windowSize();
   void ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);

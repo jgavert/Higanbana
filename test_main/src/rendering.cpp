@@ -1,6 +1,7 @@
 #include "rendering.hpp"
 
 #include <higanbana/core/profiling/profiling.hpp>
+#include <higanbana/graphics/common/image_loaders.hpp>
 
 #include <imgui.h>
 #include <execution>
@@ -86,6 +87,20 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setSize(uint3(1280, 720, 1))
     .setFormat(FormatType::Unorm8BGRA);
   resizeExternal(desc);
+}
+void Renderer::loadLogos(higanbana::FileSystem& fs) {
+  if (!fs.fileExists("/misc/dx12u_logo.png") || !fs.fileExists("/misc/vulkan_logo.png"))
+    return;
+  
+  // load dx12
+  /*
+  auto dx_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/dx12u_logo.png");
+  auto vk_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/vulkan_logo.png");
+  m_logoDx12 = dev.createTexture(dx_logo);
+  m_logoDx12Srv = dev.createTextureSRV(m_logoDx12);
+  m_logoVulkan = dev.createTexture(vk_logo);
+  m_logoVulkanSrv = dev.createTextureSRV(m_logoVulkan);
+  */
 }
 
 void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
@@ -255,7 +270,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
       auto depth = scene.depth;
       auto moti = scene.motionVectors;
       HIGAN_ASSERT(scene.materials, "wtf!");
-      moti.setOp(LoadOp::Clear);
+      moti.clearOp(float4(0.f,0.f,0.f,0.f));
       if (rendererOptions.allowMeshShaders && scene.options.useMeshShaders)
         renderMeshesWithMeshShaders(node, gbufferRTV, depth, scene.materials, scene.cameraIdx, instances);
       else
@@ -445,18 +460,32 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);
     auto target = backbuffer;
     target = vp.viewportRTV;
     if (!rendererOptions.renderImGui && vpInfo.options.gpuToUse == 0)
       target = backbuffer;
     TextureSRV tsaaOutput = vp.gbufferSRV;
-    if (vpInfo.options.tsaa) {
+    if (vpInfo.options.tsaa)
       tsaaOutput = vp.tsaaResolved.srv();
-    }
-    tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
 
-    tasks.addPass(std::move(node));
+    {
+      auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);
+      tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
+      tasks.addPass(std::move(node));
+    }
+
+    auto logo = m_logoDx12Srv;
+    if (dev.activeDevicesInfo()[vpInfo.options.gpuToUse].api == GraphicsApi::Vulkan)
+      logo = m_logoVulkanSrv;
+    
+    if (logo.texture().handle())
+    {
+      auto node = tasks.createPass("drawLogo", QueueType::Graphics, vpInfo.options.gpuToUse);
+      blitter.beginRenderpass(node, target);
+      blitter.blit(dev, node, target, logo, int2(10,10), int2(40,40));
+      node.endRenderpass();
+      tasks.addPass(std::move(node));
+    }
   }
 
   // send from other gpu's to main gpu
