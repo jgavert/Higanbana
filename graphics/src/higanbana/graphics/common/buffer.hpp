@@ -35,6 +35,9 @@ namespace higanbana
         return *m_id;
       return ResourceHandle();
     }
+    explicit operator bool() const {
+      return bool(handle());
+    }
   };
 
   class BufferView

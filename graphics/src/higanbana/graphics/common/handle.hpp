@@ -130,6 +130,9 @@ namespace higanbana
     {
       return id != other.id;
     }
+    explicit operator bool() const {
+      return id != InvalidId;
+    }
   };
 
   // Saving some space by making specific type for views

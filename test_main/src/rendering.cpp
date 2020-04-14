@@ -347,9 +347,9 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
       vp.jitterOffset = tsaa.getJitterOffset(time.getFrame());
     }
     if (!sets.empty()) {
+      auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
       for (int i = 0; i < dev.deviceCount(); i++) {
         auto ndoe = tasks.createPass("copy cameras", QueueType::Graphics, i);
-        auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
         ndoe.copy(cameras, matUpdate);
         tasks.addPass(std::move(ndoe));
       }
@@ -456,15 +456,6 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     }
     tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
 
-    tasks.addPass(std::move(node));
-  }
-
-  if (indexesToVP.size() == 1) {
-    auto& vpInfo = viewportsToRender[0];
-    auto& vp = viewports[0];
-    auto node = tasks.createPass("shared gpu transfer", QueueType::Graphics, vpInfo.options.gpuToUse);
-    node.copy(vp.sharedViewport, size_t(0), vp.viewport, Subresource().mip(0).slice(0));
-    node.copy(vp.viewport, Subresource().mip(0).slice(0), vp.sharedViewport, 0);
     tasks.addPass(std::move(node));
   }
 

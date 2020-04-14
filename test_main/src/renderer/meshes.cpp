@@ -243,28 +243,35 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
   }
 
   auto graph = gpu.createGraph();
-  auto node = graph.createPass("Update buffer data");
-
-  if (updateTarget.handle().id != ResourceHandle::InvalidId)
-  {
-    if (meshbuffer.handle().id != ResourceHandle::InvalidId)
-    {
-      for (size_t i = 0; i < migrateOldBuffers.size(); ++i) {
-        auto old = copy[i];
-        auto ne = migrateOldBuffers[i];
-        node.copy(updateTarget, ne.offset, meshbuffer, old.offset, old.size);
-        sourceBuffers[i] = migrateOldBuffers[i];
-      }
-    }
-    meshbuffer = updateTarget;
-  }
   if (gpu.availableDynamicMemory() < data.data.size() + 100) {
     HIGAN_CPU_BRACKET("wait gpu idle");
     gpu.waitGpuIdle();
   }
   auto dynamic = gpu.dynamicBuffer(makeMemView(data.data), FormatType::Unorm8);
-  node.copy(meshbuffer, freeSpace.value().offset, dynamic);
-  graph.addPass(std::move(node));
+  for (int k = 0; k < gpu.deviceCount(); k++) {
+    auto node = graph.createPass("Update buffer data", QueueType::Graphics, k);
+
+    auto correctTarget = meshbuffer;
+    if (updateTarget)
+    {
+      if (meshbuffer)
+      {
+        for (size_t i = 0; i < migrateOldBuffers.size(); ++i) {
+          auto old = copy[i];
+          auto ne = migrateOldBuffers[i];
+          node.copy(updateTarget, ne.offset, meshbuffer, old.offset, old.size);
+          sourceBuffers[i] = migrateOldBuffers[i];
+        }
+      }
+      correctTarget = updateTarget;
+    }
+    node.copy(correctTarget, freeSpace.value().offset, dynamic);
+    graph.addPass(std::move(node));
+  }
+  if (updateTarget)
+  {
+    meshbuffer = updateTarget;
+  }
   gpu.submit(graph);
   sourceBuffers[val] = freeSpace.value();
 

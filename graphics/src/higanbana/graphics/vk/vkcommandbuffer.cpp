@@ -783,9 +783,11 @@ namespace higanbana
               .setLayerCount(1)
               .setAspectMask(srcTex.aspectFlags());
 
+            auto rowLength = sizeFormatRowPitch(int2(params.width, params.height), params.format) / formatSizeInfo(params.format).pixelSize;
+
             vk::BufferImageCopy info = vk::BufferImageCopy()
               .setBufferOffset(params.dstOffset)
-              .setBufferRowLength(params.width)
+              .setBufferRowLength(rowLength)
               .setBufferImageHeight(params.height)
               .setImageOffset(vk::Offset3D(0, 0, 0))
               .setImageExtent(vk::Extent3D(params.width, params.height, 1))
@@ -800,17 +802,17 @@ namespace higanbana
             auto srcBuf = device->allResources().buf[params.srcBuffer];
             auto dstTex = device->allResources().tex[params.dstTexture];
 
-            auto rows = params.height;
-
             vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
               .setMipLevel(params.mip)
               .setLayerCount(params.slice)
               .setLayerCount(1)
               .setAspectMask(dstTex.aspectFlags());
 
+            auto rowLength = sizeFormatRowPitch(int2(params.width, params.height), params.format) / formatSizeInfo(params.format).pixelSize;
+
             vk::BufferImageCopy info = vk::BufferImageCopy()
               .setBufferOffset(params.srcOffset)
-              .setBufferRowLength(params.width)
+              .setBufferRowLength(rowLength)
               .setBufferImageHeight(params.height)
               .setImageOffset(vk::Offset3D(0, 0, 0))
               .setImageExtent(vk::Extent3D(params.width, params.height, 1))
