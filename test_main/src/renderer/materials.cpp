@@ -15,7 +15,7 @@ void MaterialDB::update(higanbana::GpuGroup& gpu, higanbana::CommandGraphNode& n
   if (m_materials.handle().id == higanbana::ResourceHandle::InvalidId || m_materials.desc().desc.width != views.size())
   {
     m_materials = gpu.createBuffer(ResourceDescriptor()
-      .setCount(views.size())
+      .setCount(views.size() > 0 ? views.size() : 1)
       .setStructured<MaterialData>()
       .setName("materials")
       .setUsage(ResourceUsage::GpuReadOnly));

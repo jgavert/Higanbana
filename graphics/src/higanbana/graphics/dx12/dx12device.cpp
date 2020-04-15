@@ -2128,18 +2128,18 @@ namespace higanbana
       HIGANBANA_CHECK_HR(native->native()->Present(syncInterval, flag));
     }
 
-    std::shared_ptr<SemaphoreImpl> DX12Device::createSharedSemaphore()
+    std::shared_ptr<TimelineSemaphoreImpl> DX12Device::createSharedSemaphore()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
       HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER | D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
-      return std::make_shared<DX12Semaphore>(fence);
+      return std::make_shared<DX12TimelineSemaphore>(fence);
     }
 
-    std::shared_ptr<backend::SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> sema)
+    std::shared_ptr<backend::SharedHandle> DX12Device::openSharedHandle(std::shared_ptr<backend::TimelineSemaphoreImpl> sema)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto native = std::static_pointer_cast<DX12Semaphore>(sema);
+      auto native = std::static_pointer_cast<DX12TimelineSemaphore>(sema);
 
       HANDLE h;
 
@@ -2205,19 +2205,19 @@ namespace higanbana
       });
     }
 
-    std::shared_ptr<backend::SemaphoreImpl> DX12Device::createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle)
+    std::shared_ptr<backend::TimelineSemaphoreImpl> DX12Device::createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ComPtr<ID3D12Fence> fence;
-      m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(fence.GetAddressOf()));
-      return std::make_shared<DX12Semaphore>(fence);
+      HIGANBANA_CHECK_HR(m_device->OpenSharedHandle(handle->handle, IID_PPV_ARGS(fence.GetAddressOf())));
+      return std::make_shared<DX12TimelineSemaphore>(fence);
     }
 
     void DX12Device::createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Heap* heap;
-      m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap));
+      HIGANBANA_CHECK_HR(m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap)));
       m_allRes.heaps[handle] = DX12Heap(heap);
     }
       
@@ -2225,7 +2225,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Heap* heap;
-      m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap));
+      HIGANBANA_CHECK_HR(m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&heap)));
 
       auto dxDesc = fillPlacedBufferInfo(desc);
 
@@ -2234,7 +2234,7 @@ namespace higanbana
       state.commonStateOptimisation = true;
       state.flags.emplace_back(startState);
       ID3D12Resource* buffer;
-      m_device->CreatePlacedResource(heap, heapAllocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer));
+      HIGANBANA_CHECK_HR(m_device->CreatePlacedResource(heap, heapAllocation.allocation.block.offset, &dxDesc, startState, nullptr, IID_PPV_ARGS(&buffer)));
 
       auto wstr = s2ws(desc.desc.name);
       buffer->SetName(wstr.c_str());
@@ -2246,7 +2246,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ID3D12Resource* texture;
-      m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&texture));
+      HIGANBANA_CHECK_HR(m_device->OpenSharedHandle(shared->handle, IID_PPV_ARGS(&texture)));
 
       D3D12_RESOURCE_STATES startState = D3D12_RESOURCE_STATE_COMMON;
 

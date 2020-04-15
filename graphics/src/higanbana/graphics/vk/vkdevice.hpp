@@ -182,13 +182,13 @@ namespace higanbana
       void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) override;
       void createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding) override;
 
-      std::shared_ptr<SemaphoreImpl> createSharedSemaphore() override;
+      std::shared_ptr<TimelineSemaphoreImpl> createSharedSemaphore() override;
 
-      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<SemaphoreImpl>) override;
+      std::shared_ptr<SharedHandle> openSharedHandle(std::shared_ptr<TimelineSemaphoreImpl>) override;
       std::shared_ptr<SharedHandle> openSharedHandle(HeapAllocation) override;
       std::shared_ptr<SharedHandle> openSharedHandle(ResourceHandle handle) override;
       std::shared_ptr<SharedHandle> openForInteropt(ResourceHandle resource) override {return nullptr;};
-      std::shared_ptr<SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override;
+      std::shared_ptr<TimelineSemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<SharedHandle>) override;
       void createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared) override;
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override;
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override;

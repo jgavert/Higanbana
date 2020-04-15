@@ -125,6 +125,8 @@ namespace higanbana
       bool waitGraphics = false, waitCompute = false, waitDMA = false;
       bool signal = false; // signal own queue sema
       std::shared_ptr<SemaphoreImpl> acquireSema;
+      vector<int> sharedSignals;
+      vector<int> sharedWaits;
       bool presents = false;
       bool isLastList = false;
       vector<ReadbackPromise> readbacks;
@@ -167,6 +169,8 @@ namespace higanbana
         deque<LiveCommandBuffer2> m_gfxBuffers;
         deque<LiveCommandBuffer2> m_computeBuffers;
         deque<LiveCommandBuffer2> m_dmaBuffers;
+        vector<std::shared_ptr<TimelineSemaphoreImpl>> sharedTimelines; // has own shared in own id slot
+        uint64_t sharedValue = 0;
       };
       vector<VirtualDevice> m_devices;
       CommandBufferPool m_commandBuffers;

@@ -134,13 +134,13 @@ namespace higanbana
         virtual void createShaderArgumentsLayout(ResourceHandle handle, ShaderArgumentsLayoutDescriptor& desc) = 0;
         virtual void createShaderArguments(ResourceHandle handle, ShaderArgumentsDescriptor& binding) = 0;
 
-        virtual std::shared_ptr<backend::SemaphoreImpl> createSharedSemaphore() = 0;
+        virtual std::shared_ptr<backend::TimelineSemaphoreImpl> createSharedSemaphore() = 0;
 
-        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::SemaphoreImpl> semaphore) = 0;
+        virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(std::shared_ptr<backend::TimelineSemaphoreImpl> semaphore) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(HeapAllocation allocation) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openSharedHandle(ResourceHandle resource) = 0;
         virtual std::shared_ptr<backend::SharedHandle> openForInteropt(ResourceHandle resource) = 0;
-        virtual std::shared_ptr<backend::SemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle) = 0;
+        virtual std::shared_ptr<backend::TimelineSemaphoreImpl> createSemaphoreFromHandle(std::shared_ptr<backend::SharedHandle> handle) = 0;
         virtual void createHeapFromHandle(ResourceHandle handle, std::shared_ptr<SharedHandle> shared) = 0;
         virtual void createBufferFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, HeapAllocation heapAllocation, ResourceDescriptor& desc) = 0;
         virtual void createTextureFromHandle(ResourceHandle handle, std::shared_ptr<backend::SharedHandle> shared, ResourceDescriptor& desc) = 0;

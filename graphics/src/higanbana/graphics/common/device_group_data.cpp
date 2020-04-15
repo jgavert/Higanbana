@@ -42,6 +42,26 @@ namespace higanbana
         auto t3 = impls[i]->createTimelineSemaphore();
         m_devices.push_back({i, impls[i], HeapManager(), infos[i], t1, t2, t3, 0, 0, 0});
       }
+      // so all gpu's should have a reference to other gpu's shared timeline.
+      if (m_devices.size() > 1) {
+        if (m_devices.size() == 2 && infos[1].api == GraphicsApi::Vulkan) {
+          // interopt
+          // create vulkan timeline semaphore and share it with DX12
+          auto timeline = m_devices[1].device->createSharedSemaphore();
+          m_devices[1].sharedTimelines.resize(2, timeline);
+          auto shared = m_devices[1].device->openSharedHandle(timeline);
+          auto sharedTimeline = m_devices[0].device->createSemaphoreFromHandle(shared);
+          m_devices[0].sharedTimelines.resize(2, sharedTimeline);
+        }
+        else {
+          HIGAN_ASSERT(false, "unimplemented.");
+          /*
+          auto sharedTimeline = m_devices[0].device->createTimelineSemaphore();
+          for (int i = 1; i < m_devices.size(); i++) {
+            //m_devices[i].device->openSharedHandle
+          }*/
+        }
+      }
     }
 
     void DeviceGroupData::checkCompletedLists() {
@@ -529,8 +549,8 @@ namespace higanbana
 
       if (desc.desc.allowCrossAdapter) {
         handle.sharedResource = 1;
+        handle.setGpuId(desc.desc.hostGPU);
         HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
-        //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
         auto memRes = vdev.device->getReqs(desc); // memory requirements
         ResourceHandle heapHandle;
@@ -593,8 +613,8 @@ namespace higanbana
       if (desc.desc.allowCrossAdapter) // only interopt supported for now
       {
         handle.sharedResource = 1;
+        handle.setGpuId(desc.desc.hostGPU);
         HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
-        //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
         // texture
         vdev.device->createTexture(handle, desc);
@@ -1264,18 +1284,25 @@ namespace higanbana
       vector<ResourceHandle> writtenSharedResources;
 
       int nodesSize = static_cast<int>(nodes.size());
-      for (int i = 0; i < nodesSize; ++i)
+      int i = 0;
+      while (i < nodesSize)
       {
         auto* node = &nodes[i];
         bool finished = false;
         auto& plist = gpus[node->gpuId];
+        if (plist.initialized && !node->consumesSharedResource.empty()) {
+          lists.emplace_back(std::move(plist));
+          plist = {};
+        }
         plist.nodeIndex = i;
         if (!plist.initialized) {
+          plist.initialized = true;
           plist.device = node->gpuId;
           plist.type = node->type;
           plist.timing.type = node->type;
         }
         if (node->type == plist.type && (singleThreaded || plist.bytesOfList < splitSize)) {
+          i++; // only allowed here to progress list as all nodes have to be processed.
           auto addedNodeSize = node->list->list.sizeBytes();
           plist.bytesOfList += addedNodeSize;
           plist.buffers.emplace_back(&node->list->list);
@@ -1297,6 +1324,7 @@ namespace higanbana
               if (reads.id == writes.id) {
                 // todo: insert fence wait for shared fence.
                 //HIGAN_LOGi("preparenodes gpu:%d depends from gpu:%d !\n", node->gpuId, writes.ownerGpuId());
+                plist.sharedWaits.push_back(writes.ownerGpuId());
               }
             }
           }
@@ -1305,6 +1333,8 @@ namespace higanbana
             writtenSharedResources.push_back(write);
             // todo: insert fence signal to shared fence.
             //HIGAN_LOGi("preparenodes gpu:%d produces something !\n", node->gpuId);
+            plist.sharedSignals.push_back(node->gpuId);
+            finished = true;
           }
         }
         else
@@ -1313,7 +1343,7 @@ namespace higanbana
         }
         bool seenInLastNodes = false;
         if (!finished) {
-          for (int k = i+1; k < nodesSize; ++k)
+          for (int k = plist.nodeIndex+1; k < nodesSize; ++k)
             if (nodes[k].gpuId == plist.device) {
               seenInLastNodes = true;
               break;
@@ -1584,6 +1614,8 @@ namespace higanbana
           std::optional<TimelineSemaphoreInfo> timelineGfx;
           std::optional<TimelineSemaphoreInfo> timelineCompute;
           std::optional<TimelineSemaphoreInfo> timelineDma;
+          vector<int> sharedSignals;
+          vector<int> sharedWaits;
           for (auto&& id : buffer.listIDs)
           {
             auto& list = lists[id];
@@ -1599,6 +1631,22 @@ namespace higanbana
             if (list.waitDMA)
             {
               timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            }
+            for (auto& wait : list.sharedWaits) {
+              bool has = false;
+              for (auto&& it : sharedWaits)
+                if (it == wait)
+                  has = true;
+              if (!has)
+                sharedWaits.push_back(wait);
+            }
+            for (auto& signal : list.sharedSignals) {
+              bool has = false;
+              for (auto&& it : sharedSignals)
+                if (it == signal)
+                  has = true;
+              if (!has)
+                sharedSignals.push_back(signal);
             }
 
             if (list.acquireSema)
@@ -1639,21 +1687,29 @@ namespace higanbana
           if (timelineCompute) waitInfos.push_back(timelineCompute.value());
           if (timelineDma) waitInfos.push_back(timelineDma.value());
 
-          TimelineSemaphoreInfo signalTimeline;
+          for (auto&& wait : sharedWaits) {
+            waitInfos.push_back(TimelineSemaphoreInfo{m_devices[buffer.deviceID].sharedTimelines[wait].get(), m_devices[wait].sharedValue});
+          }
+          vector<TimelineSemaphoreInfo> signalTimelines;
+          for (auto&& signal : sharedSignals) {
+            m_devices[signal].sharedValue++;
+            signalTimelines.push_back(TimelineSemaphoreInfo{m_devices[buffer.deviceID].sharedTimelines[signal].get(), m_devices[signal].sharedValue});
+          }
+
           switch (buffer.queue)
           {
           case QueueType::Dma:
             ++vdev.dmaQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue});
             buffer.dmaValue = vdev.dmaQueue;
-            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
             ++vdev.cptQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue});
             buffer.cptValue = vdev.cptQueue;
-            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
@@ -1672,9 +1728,9 @@ namespace higanbana
             }
 #else
             ++vdev.gfxQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue});
             buffer.gfxValue = vdev.gfxQueue;
-            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
@@ -1722,12 +1778,12 @@ namespace higanbana
             device.heaps.release(device.m_textures[handle]);
           }
           auto ownerGpuId = handle.ownerGpuId();
-          if (handle.type == ResourceType::ReadbackBuffer && ownerGpuId == device.id)
+          if (handle.type == ResourceType::ReadbackBuffer)
           {
             device.device->unmapReadback(handle);
             device.device->releaseHandle(handle);
           }
-          else if (ownerGpuId == -1 || ownerGpuId == device.id)
+          else
           {
             device.device->releaseHandle(handle);
           }

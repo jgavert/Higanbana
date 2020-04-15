@@ -3170,19 +3170,23 @@ namespace higanbana
       }
     }
     
-    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSharedSemaphore()
+    std::shared_ptr<TimelineSemaphoreImpl> VulkanDevice::createSharedSemaphore()
     {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
-      vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR();
+      vk::ExportSemaphoreWin32HandleInfoKHR exportInfoHandle = vk::ExportSemaphoreWin32HandleInfoKHR().setDwAccess(GENERIC_ALL);
 
       vk::ExportSemaphoreCreateInfo exportSema = vk::ExportSemaphoreCreateInfo()
         .setPNext(&exportInfoHandle)
-        .setHandleTypes(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32 | vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
+        .setHandleTypes(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32);
 
-      auto fence = m_device.createSemaphore(vk::SemaphoreCreateInfo().setPNext(&exportSema));
+      vk::SemaphoreTypeCreateInfo timelineCreateInfo = vk::SemaphoreTypeCreateInfo().setPNext(&exportSema);
+      timelineCreateInfo.semaphoreType = vk::SemaphoreType::eTimeline;
+      timelineCreateInfo.initialValue = 0;
+
+      auto fence = m_device.createSemaphore(vk::SemaphoreCreateInfo().setPNext(&timelineCreateInfo), nullptr, m_dynamicDispatch);
       VK_CHECK_RESULT(fence);
-      return std::make_shared<VulkanSemaphore>(VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence.value), [device = m_device](vk::Semaphore* ptr)
+      return std::make_shared<VulkanTimelineSemaphore>(VulkanTimelineSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(fence.value), [device = m_device](vk::Semaphore* ptr)
       {
         device.destroySemaphore(*ptr);
         delete ptr;
@@ -3192,11 +3196,19 @@ namespace higanbana
 #endif
     };
 
-    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<SemaphoreImpl> shared)
+    std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<TimelineSemaphoreImpl> shared)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
+      auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(shared)->native();
 
-      return nullptr;
+      vk::SemaphoreGetWin32HandleInfoKHR getHandle = vk::SemaphoreGetWin32HandleInfoKHR().setSemaphore(native).setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32);
+      auto handle = m_device.getSemaphoreWin32HandleKHR(getHandle, m_dynamicDispatch);
+      VK_CHECK_RESULT(handle);
+      return std::shared_ptr<SharedHandle>(new SharedHandle{GraphicsApi::Vulkan, handle.value }, [](SharedHandle* ptr)
+      {
+        CloseHandle(ptr->handle);
+        delete ptr;
+      });
     };
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {
@@ -3219,7 +3231,7 @@ namespace higanbana
 #endif
     }
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(ResourceHandle handle) { return nullptr; };
-    std::shared_ptr<SemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle> shared)
+    std::shared_ptr<TimelineSemaphoreImpl> VulkanDevice::createSemaphoreFromHandle(std::shared_ptr<SharedHandle> shared)
     {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -3227,11 +3239,11 @@ namespace higanbana
       auto importInfo = vk::ImportSemaphoreWin32HandleInfoKHR()
       .setHandle(shared->handle)
       .setSemaphore(sema)
-      .setFlags(vk::SemaphoreImportFlagBits::eTemporary)
+      //.setFlags(vk::SemaphoreImportFlagBits::eTemporary)
       .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
       auto res = m_device.importSemaphoreWin32HandleKHR(importInfo, m_dynamicDispatch);
       VK_CHECK_RESULT_RAW(res);
-      return std::make_shared<VulkanSemaphore>(VulkanSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(sema), [device = m_device](vk::Semaphore* ptr)
+      return std::make_shared<VulkanTimelineSemaphore>(VulkanTimelineSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(sema), [device = m_device](vk::Semaphore* ptr)
       {
         device.destroySemaphore(*ptr);
         delete ptr;
