@@ -63,9 +63,48 @@ struct ViewportOptions
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
 
+  void ToggleButton(const char* hidden_id, bool* v)
+  {
+    ImVec2 p = ImGui::GetCursorScreenPos();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    float height = ImGui::GetFrameHeight();
+    float width = height * 1.55f;
+    float radius = height * 0.50f;
+
+    ImU32 falseColor = IM_COL32(210, 50, 50, 255);
+    ImU32 trueColor = IM_COL32(50, 210, 50, 255);
+    ImU32 falseHovColor = IM_COL32(210, 50+20, 50+20, 255);
+    ImU32 trueHovColor = IM_COL32(50+20, 210, 50+20, 255);
+
+    if (ImGui::InvisibleButton(hidden_id, ImVec2(width, height)))
+        *v = !*v;
+    ImU32 col_bg;
+    if (ImGui::IsItemHovered())
+        col_bg = *v ? trueHovColor : falseHovColor;
+    else
+        col_bg = *v ? trueColor : falseColor;
+
+    draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), col_bg, height * 0.5f);
+    draw_list->AddCircleFilled(ImVec2(*v ? (p.x + width - radius) : (p.x + radius), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+  }
+
   void drawImGuiOptions(higanbana::vector<higanbana::GpuInfo>& gpus)
   {
-    if (gpus.size() > 1)
+    bool isInteropDevice = false;
+    if (gpus.size() == 2 && gpus[0].api != gpus[1].api)
+      isInteropDevice = true;
+
+    if (isInteropDevice) {
+      bool current = gpus[gpuToUse].api == higanbana::GraphicsApi::DX12;
+      bool before = current;
+      ImGui::Text("Vulkan"); ImGui::SameLine();
+      ToggleButton("##toggle", &current); ImGui::SameLine();
+      ImGui::Text("DX12");
+      if (current != before) {
+        gpuToUse = gpuToUse == 1 ? 0 : 1;
+      }
+    } else if (gpus.size() > 1)
       ImGui::SliderInt("GPU Device index: ", &gpuToUse, 0, static_cast<int>(gpus.size())-1);
     ImGui::Checkbox("sync resolution to viewport size", &syncResolutionToSwapchain);
     if (!syncResolutionToSwapchain)
