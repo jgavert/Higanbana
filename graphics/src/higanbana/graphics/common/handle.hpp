@@ -58,7 +58,8 @@ namespace higanbana
         ResourceType type : 6; // ... I don't really want to write this much api types
         uint64_t gpuid : 16; // this should just be a bitfield, one bit for gpu, starting with modest 16 gpu's =D
         uint64_t m_usage : 4;
-        uint64_t unused : 10; // honestly could be more bits here, lets just see how things go on 
+        uint64_t sharedResource : 1;
+        uint64_t unused : 9; // honestly could be more bits here, lets just see how things go on 
       };
       uint64_t rawValue;
     };
@@ -67,15 +68,19 @@ namespace higanbana
       , generation(0)
       , type(ResourceType::Unknown)
       , gpuid(0)
+      , sharedResource(0)
+      , unused(0)
       {}
-    ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID)
+    ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID, bool isShared)
       : id(id)
       , generation(generation)
       , type(type)
       , gpuid(gpuID)
+      , sharedResource(isShared ? 1 : 0)
+      , unused(0)
     {
       static_assert(std::is_standard_layout<ResourceHandle>::value,  "ResourceHandle should be trivial to destroy.");
-      static_assert(sizeof(ResourceHandle) == 8,  "ViewRResourceHandle should be 128bits");
+      static_assert(sizeof(ResourceHandle) == 8,  "ResourceHandle should be 64bits");
     }
 
     // returns positive value when single gpu
@@ -107,9 +112,9 @@ namespace higanbana
 
     // shared resource means it's a handle that can be opened on another api/gpu device
     // otherwise all gpu's have their own version of this resource.
-    bool sharedResource() const
+    bool shared() const
     {
-      return ownerGpuId() >= 0; // false for now
+      return sharedResource;
     }
 
     void setUsage(ResourceUsage usage)
@@ -169,13 +174,13 @@ namespace higanbana
       : id(InvalidViewId)
       , generation(0)
       , type(ViewResourceType::Unknown)
-      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0).rawValue)
+      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0, false).rawValue)
       {}
     ViewResourceHandle(uint64_t id, uint64_t generation, ViewResourceType type)
       : id(id)
       , generation(generation)
       , type(type)
-      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0).rawValue)
+      , resource(ResourceHandle(ResourceHandle::InvalidId, 0, ResourceType::Unknown, 0, false).rawValue)
     {
       static_assert(std::is_standard_layout<ViewResourceHandle>::value,  "ResourceHandle should be trivial to destroy.");
       static_assert(sizeof(ViewResourceHandle) == 16,  "ViewRResourceHandle should be 128bits");
@@ -282,13 +287,13 @@ namespace higanbana
         m_generation.push_back(0);
         auto id = m_currentSize;
         m_currentSize++;
-        return ResourceHandle{id, 0, m_type, ResourceHandle::AllGpus};
+        return ResourceHandle{id, 0, m_type, ResourceHandle::AllGpus, false};
       }
       HIGAN_ASSERT(!m_freelist.empty(), "No free handles.");
       auto id = m_freelist.back();
       m_freelist.pop_back();
       auto generation = m_generation[id]; // take current generation
-      return ResourceHandle{id, generation, m_type, ResourceHandle::AllGpus};
+      return ResourceHandle{id, generation, m_type, ResourceHandle::AllGpus, false};
     }
 
     void release(ResourceHandle val)

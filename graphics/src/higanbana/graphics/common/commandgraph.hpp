@@ -38,6 +38,9 @@ namespace higanbana
     DynamicBitfield m_referencedBuffers;
     DynamicBitfield m_referencedTextures;
 
+    vector<ResourceHandle> consumesSharedResource; // reads from a SharedResource which likely another gpu produces.
+    vector<ResourceHandle> producesSharedResources; // writes to another gpu's resource
+
     vector<ReadbackPromise> m_readbackPromises;
     GraphNodeTiming timing;
 
@@ -48,6 +51,17 @@ namespace higanbana
     const DynamicBitfield& refTex() const
     {
       return m_referencedTextures;
+    }
+
+    void addReadShared(ResourceHandle handle) {
+      if (handle.shared()) {
+        consumesSharedResource.push_back(handle);
+      }
+    }
+    void addWriteShared(ResourceHandle handle) {
+      if (handle.shared()) {
+        producesSharedResources.push_back(handle);
+      }
     }
 
     template <typename ViewType>
@@ -97,11 +111,13 @@ namespace higanbana
       acquireSemaphore = swapchain.impl()->acquireSemaphore();
     }
 
+    /*
     void clearRT(TextureRTV& rtv, float4 color)
     {
       addViewTex(rtv);
       list->clearRT(rtv, color);
     }
+    */
 
     void prepareForPresent(TextureRTV& rtv)
     {
@@ -270,6 +286,8 @@ namespace higanbana
 
     void copy(Buffer target, Buffer source)
     {
+      addWriteShared(target.handle());
+      addReadShared(source.handle());
       m_referencedBuffers.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
       list->copy(target, 0, source, 0, source.desc().desc.width);
@@ -277,6 +295,8 @@ namespace higanbana
 
     void copy(Buffer target, uint targetElementOffset, Buffer source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
     {
+      addWriteShared(target.handle());
+      addReadShared(source.handle());
       if (sourceElementsToCopy == -1)
       {
         sourceElementsToCopy = source.desc().desc.width;
@@ -288,6 +308,7 @@ namespace higanbana
 
     void copy(Buffer target, DynamicBufferView source)
     {
+      addWriteShared(target.handle());
       auto elements = source.logicalSize() / source.elementSize();
       m_referencedBuffers.setBit(target.handle().id);
       list->copy(target, 0, source, 0, elements);
@@ -295,6 +316,7 @@ namespace higanbana
 
     void copy(Buffer target, uint targetElementOffset, DynamicBufferView source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
     {
+      addWriteShared(target.handle());
       if (sourceElementsToCopy == -1)
       {
         sourceElementsToCopy = source.logicalSize() / source.elementSize();
@@ -305,6 +327,8 @@ namespace higanbana
 
     void copy(Texture target, Buffer source, Subresource sub)
     {
+      addWriteShared(target.handle());
+      addReadShared(source.handle());
       m_referencedBuffers.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
       HIGAN_ASSERT(false, "Not implemented");
@@ -312,18 +336,22 @@ namespace higanbana
 
     void copy(Texture target, DynamicBufferView source, Subresource sub)
     {
+      addWriteShared(target.handle());
       m_referencedTextures.setBit(target.handle().id);
       list->updateTexture(target, source, sub.mipLevel, sub.arraySlice);
     }
 
-    // mm I'm doing something funny here aren't I... what happened to not expose this at all...
     void copy(Buffer dst, size_t dstOffset, Texture src, Subresource sub) {
+      addWriteShared(dst.handle());
+      addReadShared(src.handle());
       m_referencedBuffers.setBit(dst.handle().id);
       m_referencedBuffers.setBit(src.handle().id);
       list->copy(dst, dstOffset, src, sub);
     }
 
     void copy(Texture dst, Subresource sub, Buffer src, size_t srcOffset) {
+      addWriteShared(dst.handle());
+      addReadShared(src.handle());
       m_referencedBuffers.setBit(dst.handle().id);
       m_referencedBuffers.setBit(src.handle().id);
       list->copy(dst, sub, src, srcOffset);
@@ -331,6 +359,7 @@ namespace higanbana
 
     ReadbackFuture readback(Texture tex, Subresource resource)
     {
+      addReadShared(tex.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
       m_readbackPromises.push_back(promise);
       m_referencedTextures.setBit(tex.handle().id);
@@ -342,6 +371,7 @@ namespace higanbana
 
     ReadbackFuture readback(Buffer buffer, int offset = -1, int size = -1)
     {
+      addReadShared(buffer.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
       m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);
@@ -362,6 +392,7 @@ namespace higanbana
 
     ReadbackFuture readback(Buffer buffer, unsigned startElement, unsigned size)
     {
+      addReadShared(buffer.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
       m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);

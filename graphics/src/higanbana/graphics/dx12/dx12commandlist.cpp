@@ -560,7 +560,7 @@ namespace higanbana
 #endif
       }
     }
-    void DX12CommandList::addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
+    void DX12CommandList::addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       int drawIndex = 0;
@@ -585,7 +585,7 @@ namespace higanbana
 
       for (auto&& list : buffers)
       {
-        for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
+        for (auto iter = list->begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
           auto* header = *iter;
           //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
@@ -806,7 +806,7 @@ namespace higanbana
       }
     }
     // implementations
-    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
+    void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_buffer->resetList();

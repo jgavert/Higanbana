@@ -113,9 +113,11 @@ namespace higanbana
     
     struct PreparedCommandlist
     {
+      bool initialized = false;
+      int nodeIndex = -1;
       int device = 0;
       QueueType type;
-      vector<backend::CommandBuffer> buffers;
+      vector<backend::CommandBuffer*> buffers;
       vector<QueueTransfer> acquire;
       vector<QueueTransfer> release;
       DynamicBitfield requirementsBuf;
@@ -127,6 +129,7 @@ namespace higanbana
       bool isLastList = false;
       vector<ReadbackPromise> readbacks;
       CommandListTiming timing;
+      size_t bytesOfList;
     };
 
     struct FirstUseResource
@@ -241,9 +244,9 @@ namespace higanbana
       void returnResouresToOriginalQueues(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       void handleQueueTransfersWithinRendergraph(vector<PreparedCommandlist>& lists, vector<backend::FirstUseResource>& firstUsageSeen);
       deque<LiveCommandBuffer2> makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID);
-      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks, bool isFirstList);
+      void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer*>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks, bool isFirstList);
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
-      void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing);
+      void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
 
 
       // commandgraph

@@ -591,7 +591,7 @@ namespace higanbana
       }
     }
 
-    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<CommandBuffer>& buffers, BarrierSolver& solver)
+    void VulkanCommandBuffer::addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       int drawIndex = 0;
@@ -605,7 +605,7 @@ namespace higanbana
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       for (auto&& list : buffers)
       {
-        for (auto iter = list.begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
+        for (auto iter = list->begin(); (*iter)->type != PacketType::EndOfPackets; iter++)
         {
           auto* header = *iter;
           //HIGAN_ILOG("addCommandsVK", "type header: %s", gfxpacket::packetTypeToString(header->type));
@@ -889,14 +889,14 @@ namespace higanbana
       }
     }
 
-    void VulkanCommandBuffer::preprocess(VulkanDevice* device, MemView<backend::CommandBuffer>& buffers)
+    void VulkanCommandBuffer::preprocess(VulkanDevice* device, MemView<backend::CommandBuffer*>& buffers)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
       // find all renderpasses & compile all missing graphics pipelines
       for (auto&& list : buffers)
       {
-        for (auto iter = list.begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
+        for (auto iter = list->begin(); (*iter)->type != backend::PacketType::EndOfPackets; iter++)
         {
           switch ((*iter)->type)
           {
@@ -940,7 +940,7 @@ namespace higanbana
     }
 
     // implementations
-    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer>& buffers, BarrierSolver& solver)
+    void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_tempSets.resize(5);

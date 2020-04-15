@@ -526,9 +526,9 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       desc = desc.setDimension(FormatDimension::Buffer);
       auto handle = m_handles.allocateResource(ResourceType::Buffer);
-      // TODO: sharedbuffers
 
       if (desc.desc.allowCrossAdapter) {
+        handle.sharedResource = 1;
         HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
         //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
@@ -538,6 +538,7 @@ namespace higanbana
         {
           heapHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
           heapHandle.setGpuId(vdev.id); //??
+          heapHandle.sharedResource = 1;
           vdev.device->createHeap(heapHandle, desc);
           return GpuHeap(heapHandle, desc);
         }); // get heap corresponding to requirements
@@ -591,6 +592,7 @@ namespace higanbana
 
       if (desc.desc.allowCrossAdapter) // only interopt supported for now
       {
+        handle.sharedResource = 1;
         HIGAN_ASSERT(desc.desc.hostGPU >= 0 && desc.desc.hostGPU < m_devices.size(), "Invalid hostgpu.");
         //handle.setGpuId(desc.desc.hostGPU);
         auto& vdev = m_devices[desc.desc.hostGPU];
@@ -848,7 +850,7 @@ namespace higanbana
 
     void DeviceGroupData::firstPassBarrierSolve(
       VirtualDevice& vdev,
-      MemView<CommandBuffer>& buffers,
+      MemView<CommandBuffer*>& buffers,
       QueueType queue,
       vector<QueueTransfer>& acquires,
       vector<QueueTransfer>& releases,
@@ -868,7 +870,7 @@ namespace higanbana
 
       for (auto&& buffer : buffers)
       {
-        auto iter = buffer.begin();
+        auto iter = buffer->begin();
         while((*iter)->type != PacketType::EndOfPackets)
         {
           CommandBuffer::PacketHeader* header = *iter;
@@ -1054,7 +1056,7 @@ namespace higanbana
       }
       if (!releases.empty())
       {
-        buffers[buffers.size()-1].insert<gfxpacket::ReleaseFromQueue>();
+        buffers[buffers.size()-1]->insert<gfxpacket::ReleaseFromQueue>();
         auto drawIndex = solver.addDrawCall();
         for (auto&& rel : releases)
         {
@@ -1089,7 +1091,7 @@ namespace higanbana
       timing.barrierSolveGlobal.stop();
     }
 
-    void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer>& buffers, BarrierSolver& solver, CommandListTiming& timing) {
+    void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing) {
       HIGAN_CPU_FUNCTION_SCOPE();
       timing.fillNativeList.start();
       nativeList->fillWith(vdev.device, buffers, solver);
@@ -1235,6 +1237,8 @@ namespace higanbana
     // submit function breakdown
     vector<PreparedCommandlist> DeviceGroupData::prepareNodes(vector<CommandGraphNode>& nodes, bool singleThreaded) {
       HIGAN_CPU_FUNCTION_SCOPE();
+      vector<PreparedCommandlist> gpus; // one list per gpu, added to lists once ready.
+      gpus.resize(m_devices.size(), PreparedCommandlist{});
       vector<PreparedCommandlist> lists;
       {
         if (shaderDebugReadback && m_shaderDebugReadbacks.size() < 10)
@@ -1257,53 +1261,68 @@ namespace higanbana
         splitSize = std::max(allListSize / 16ull, 2*1024*1024ull);
       }
 
-      int i = 0;
-      while (i < static_cast<int>(nodes.size()))
+      vector<ResourceHandle> writtenSharedResources;
+
+      int nodesSize = static_cast<int>(nodes.size());
+      for (int i = 0; i < nodesSize; ++i)
       {
-        auto* firstList = &nodes[i];
-
-        PreparedCommandlist plist{};
-        plist.device = firstList->gpuId;
-        plist.type = firstList->type;
-        auto list = std::move(nodes[i].list->list);
-        plist.buffers.emplace_back(std::move(list));
-        //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
-        plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
-        plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-        plist.readbacks = nodes[i].m_readbackPromises;
-        plist.acquireSema = nodes[i].acquireSemaphore;
-        plist.presents = nodes[i].preparesPresent;
-        plist.timing.nodes.emplace_back(nodes[i].timing);
-        plist.timing.type = firstList->type;
-
-        auto currentSizeBytes = plist.buffers.back().sizeBytes();
-
-        i += 1;
-        for (; i < static_cast<int>(nodes.size()); ++i)
-        {
-          if (nodes[i].type != plist.type || nodes[i].gpuId != plist.device)
-            break;
-          auto addedNodeSize = nodes[i].list->list.sizeBytes();
-          if (!singleThreaded && currentSizeBytes > splitSize)
-            break;
-          currentSizeBytes += addedNodeSize;
-          plist.buffers.emplace_back(std::move(nodes[i].list->list));
+        auto* node = &nodes[i];
+        bool finished = false;
+        auto& plist = gpus[node->gpuId];
+        plist.nodeIndex = i;
+        if (!plist.initialized) {
+          plist.device = node->gpuId;
+          plist.type = node->type;
+          plist.timing.type = node->type;
+        }
+        if (node->type == plist.type && (singleThreaded || plist.bytesOfList < splitSize)) {
+          auto addedNodeSize = node->list->list.sizeBytes();
+          plist.bytesOfList += addedNodeSize;
+          plist.buffers.emplace_back(&node->list->list);
           //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
-          plist.requirementsBuf = plist.requirementsBuf.unionFields(nodes[i].refBuf());
-          plist.requirementsTex = plist.requirementsTex.unionFields(nodes[i].refTex());
-          plist.readbacks.insert(plist.readbacks.end(), nodes[i].m_readbackPromises.begin(), nodes[i].m_readbackPromises.end());
-          plist.timing.nodes.emplace_back(nodes[i].timing);
+          plist.requirementsBuf = plist.requirementsBuf.unionFields(node->refBuf());
+          plist.requirementsTex = plist.requirementsTex.unionFields(node->refTex());
+          plist.readbacks.insert(plist.readbacks.end(), node->m_readbackPromises.begin(), node->m_readbackPromises.end());
+          plist.timing.nodes.emplace_back(node->timing);
           if (!plist.acquireSema)
           {
-            plist.acquireSema = nodes[i].acquireSemaphore;
+            plist.acquireSema = node->acquireSemaphore;
           }
           if (!plist.presents)
           {
-            plist.presents = nodes[i].preparesPresent;
+            plist.presents = node->preparesPresent;
+          }
+          for (auto& reads : node->consumesSharedResource) {
+            for (auto& writes : writtenSharedResources) {
+              if (reads.id == writes.id) {
+                // todo: insert fence wait for shared fence.
+                //HIGAN_LOGi("preparenodes gpu:%d depends from gpu:%d !\n", node->gpuId, writes.ownerGpuId());
+              }
+            }
+          }
+          for (auto& write : node->producesSharedResources) {
+            write.setGpuId(node->gpuId);
+            writtenSharedResources.push_back(write);
+            // todo: insert fence signal to shared fence.
+            //HIGAN_LOGi("preparenodes gpu:%d produces something !\n", node->gpuId);
           }
         }
-
-        lists.emplace_back(std::move(plist));
+        else
+        {
+          finished = true;
+        }
+        bool seenInLastNodes = false;
+        if (!finished) {
+          for (int k = i+1; k < nodesSize; ++k)
+            if (nodes[k].gpuId == plist.device) {
+              seenInLastNodes = true;
+              break;
+            }
+        }
+        if (finished || !seenInLastNodes) {
+          lists.emplace_back(std::move(plist));
+          plist = {};
+        }
       }
       int lsize = lists.size();
       lists[lsize - 1].isLastList = true;
@@ -1404,6 +1423,7 @@ namespace higanbana
       
       LiveCommandBuffer2 buffer{};
       buffer.queue = lists[0].type;
+      buffer.deviceID = lists[0].device;
 
       for (auto&& list : lists)
       {
@@ -1411,6 +1431,7 @@ namespace higanbana
         if (list.type != buffer.queue || list.device != buffer.deviceID)
         {
           HIGAN_CPU_BRACKET("readyLists.emplace_back");
+          HIGAN_ASSERT(!buffer.listIDs.empty(), "wtf!");
           readyLists.emplace_back(std::move(buffer));
           buffer = LiveCommandBuffer2{};
         }
@@ -1657,16 +1678,11 @@ namespace higanbana
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          for (auto&& id : buffer.listIDs)
-          {
-            auto& list = lists[id];
-            for (auto&& buffer : list.buffers)
-            {
-              m_commandBuffers.free(std::move(buffer));
-            }
-          }
         }
         timing.submitSolve.stop();
+      }
+      for (auto&& list : nodes) {
+        m_commandBuffers.free(std::move(list.list->list));
       }
       timing.submitCpuTime.stop();
       timeOnFlightSubmits.push_back(timing);
@@ -2007,16 +2023,11 @@ namespace higanbana
           default:
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          for (auto&& id : buffer.listIDs)
-          {
-            auto& list = lists[id];
-            for (auto&& buffer : list.buffers)
-            {
-              m_commandBuffers.free(std::move(buffer));
-            }
-          }
         }
         timing.submitSolve.stop();
+      }
+      for (auto&& list : nodes) {
+        m_commandBuffers.free(std::move(list.list->list));
       }
       timing.submitCpuTime.stop();
       timeOnFlightSubmits.push_back(timing);
@@ -2231,16 +2242,11 @@ namespace higanbana
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          for (auto&& id : buffer.listIDs)
-          {
-            auto& list = lists[id];
-            for (auto&& buffer : list.buffers)
-            {
-              m_commandBuffers.free(std::move(buffer));
-            }
-          }
         }
         timing.submitSolve.stop();
+      }
+      for (auto&& list : nodes) {
+        m_commandBuffers.free(std::move(list.list->list));
       }
       timing.submitCpuTime.stop();
       timeOnFlightSubmits.push_back(timing);
@@ -2497,16 +2503,11 @@ namespace higanbana
           default:
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
-          for (auto&& id : buffer.listIDs)
-          {
-            auto& list = lists[id];
-            for (auto&& buffer : list.buffers)
-            {
-              m_commandBuffers.free(std::move(buffer));
-            }
-          }
         }
         timing.submitSolve.stop();
+      }
+      for (auto&& list : nodes) {
+        m_commandBuffers.free(std::move(list.list->list));
       }
       timing.submitCpuTime.stop();
       timeOnFlightSubmits.push_back(timing);
