@@ -525,30 +525,33 @@ namespace higanbana
 
       /////////////////// DESCRIPTORS ////////////////////////////////
       // aim for total 512k single descriptors
-      constexpr const int totalDrawCalls = 131072; // 2^17
-      constexpr const int samplers = totalDrawCalls*4; // 4 samplers always bound, lazy
-      constexpr const int dynamicUniform = totalDrawCalls;
-      constexpr const int uav = totalDrawCalls * 4; // support average of 4 uavs per drawcall... could be less :D
-      constexpr const int srv = totalDrawCalls * 8; // support average of 8 srv per drawcall... could be less :D
-
+      constexpr const int totalDescriptorsAvailable = 1024*512;
+      constexpr const int samplers = 0;
+      constexpr const int dynamicUniform = 0;
+      constexpr const int sampledImages = totalDescriptorsAvailable / 2;
+      constexpr const int storageImages = 10000;
+      constexpr const int storageBuffers = 10000;
+      constexpr const int texelBuffers = 10000;
+      constexpr const int storageTexelBuffers = 10000;
+      constexpr const int totalUniqueDescriptorSets = 10000;
       vector<vk::DescriptorPoolSize> dps;
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(dynamicUniform).setType(vk::DescriptorType::eUniformBufferDynamic));
+      //dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(dynamicUniform).setType(vk::DescriptorType::eUniformBufferDynamic));
       //dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(samplers).setType(vk::DescriptorType::eSampler));
       // actual possible user values
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(srv/3).setType(vk::DescriptorType::eSampledImage));
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav/3).setType(vk::DescriptorType::eStorageImage));
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav - uav/3).setType(vk::DescriptorType::eStorageBuffer));
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(srv - srv/3).setType(vk::DescriptorType::eUniformTexelBuffer));
-      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(uav/3).setType(vk::DescriptorType::eStorageTexelBuffer));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(sampledImages).setType(vk::DescriptorType::eSampledImage));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(storageImages).setType(vk::DescriptorType::eStorageImage));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(storageBuffers).setType(vk::DescriptorType::eStorageBuffer));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(texelBuffers).setType(vk::DescriptorType::eUniformTexelBuffer));
+      dps.push_back(vk::DescriptorPoolSize().setDescriptorCount(storageTexelBuffers).setType(vk::DescriptorType::eStorageTexelBuffer));
 
 
       auto poolRes = m_device.createDescriptorPool(vk::DescriptorPoolCreateInfo()
-        .setMaxSets(totalDrawCalls)
-        .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+        .setMaxSets(totalUniqueDescriptorSets)
+        .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBindEXT)
         .setPoolSizeCount(dps.size())
         .setPPoolSizes(dps.data()));
 
-      m_maxDescriptorSets = totalDrawCalls;
+      m_maxDescriptorSets = totalUniqueDescriptorSets;
 
       VK_CHECK_RESULT(poolRes);
 
@@ -2441,8 +2444,10 @@ namespace higanbana
         .setBindingCount(static_cast<uint32_t>(bindings.size()))
         .setPBindings(bindings.data());
 
-      if (!desc.bindless.name.empty())
+      if (!desc.bindless.name.empty()) {
         info = info.setPNext(&extflags);
+        info = info.setFlags(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPoolEXT);
+      }
 
       auto setlayout = m_device.createDescriptorSetLayout(info);
       VK_CHECK_RESULT(setlayout);
