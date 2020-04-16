@@ -1948,6 +1948,8 @@ namespace higanbana
                 liveList.gfxValue = 0;
                 liveList.cptValue = 0;
               }
+              vector<int> sharedSignals;
+              vector<int> sharedWaits;
               MemView<std::shared_ptr<SemaphoreImpl>> wait;
               {
                 auto& list = lists[listID];
@@ -1960,6 +1962,22 @@ namespace higanbana
                 }
                 if (list.waitDMA) {
                   liveList.timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                }
+                for (auto& wait : list.sharedWaits) {
+                  bool has = false;
+                  for (auto&& it : sharedWaits)
+                    if (it == wait)
+                      has = true;
+                  if (!has)
+                    sharedWaits.push_back(wait);
+                }
+                for (auto& signal : list.sharedSignals) {
+                  bool has = false;
+                  for (auto&& it : sharedSignals)
+                    if (it == signal)
+                      has = true;
+                  if (!has)
+                    sharedSignals.push_back(signal);
                 }
 
                 if (list.acquireSema) {
@@ -1998,7 +2016,6 @@ namespace higanbana
                 liveList.timelineDma.reset();
               }
 
-              TimelineSemaphoreInfo signalTimeline;
               MemView<std::shared_ptr<SemaphoreImpl>> signal;
               std::optional<std::shared_ptr<FenceImpl>> viewToFence;
               if (isLastList)
@@ -2007,19 +2024,27 @@ namespace higanbana
                 if (liveList.fence)
                   viewToFence = liveList.fence;
               }
+              for (auto&& wait : sharedWaits) {
+                waitInfos.push_back(TimelineSemaphoreInfo{m_devices[liveList.deviceID].sharedTimelines[wait].get(), m_devices[wait].sharedValue});
+              }
+              vector<TimelineSemaphoreInfo> signalTimelines;
+              for (auto&& signal : sharedSignals) {
+                m_devices[signal].sharedValue++;
+                signalTimelines.push_back(TimelineSemaphoreInfo{m_devices[liveList.deviceID].sharedTimelines[signal].get(), m_devices[signal].sharedValue});
+              }
               switch (liveList.queue)
               {
               case QueueType::Dma:
                 ++vdev.dmaQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue});
                 liveList.dmaValue = vdev.dmaQueue;
-                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
                 break;
               case QueueType::Compute:
                 ++vdev.cptQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue});
                 liveList.cptValue = vdev.cptQueue;
-                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
                 break;
               case QueueType::Graphics:
               default:
@@ -2037,9 +2062,9 @@ namespace higanbana
                 }
     #else
                 ++vdev.gfxQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue});
                 liveList.gfxValue = vdev.gfxQueue;
-                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
     #endif
               }
             });
@@ -2204,6 +2229,8 @@ namespace higanbana
           std::optional<TimelineSemaphoreInfo> timelineGfx;
           std::optional<TimelineSemaphoreInfo> timelineCompute;
           std::optional<TimelineSemaphoreInfo> timelineDma;
+          vector<int> sharedSignals;
+          vector<int> sharedWaits;
           for (auto&& id : buffer.listIDs)
           {
             auto& list = lists[id];
@@ -2219,6 +2246,22 @@ namespace higanbana
             if (list.waitDMA)
             {
               timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            }
+            for (auto& wait : list.sharedWaits) {
+              bool has = false;
+              for (auto&& it : sharedWaits)
+                if (it == wait)
+                  has = true;
+              if (!has)
+                sharedWaits.push_back(wait);
+            }
+            for (auto& signal : list.sharedSignals) {
+              bool has = false;
+              for (auto&& it : sharedSignals)
+                if (it == signal)
+                  has = true;
+              if (!has)
+                sharedSignals.push_back(signal);
             }
 
             if (list.acquireSema)
@@ -2259,21 +2302,28 @@ namespace higanbana
           if (timelineCompute) waitInfos.push_back(timelineCompute.value());
           if (timelineDma) waitInfos.push_back(timelineDma.value());
 
-          TimelineSemaphoreInfo signalTimeline;
+          for (auto&& wait : sharedWaits) {
+            waitInfos.push_back(TimelineSemaphoreInfo{m_devices[buffer.deviceID].sharedTimelines[wait].get(), m_devices[wait].sharedValue});
+          }
+          vector<TimelineSemaphoreInfo> signalTimelines;
+          for (auto&& signal : sharedSignals) {
+            m_devices[signal].sharedValue++;
+            signalTimelines.push_back(TimelineSemaphoreInfo{m_devices[buffer.deviceID].sharedTimelines[signal].get(), m_devices[signal].sharedValue});
+          }
           switch (buffer.queue)
           {
           case QueueType::Dma:
             ++vdev.dmaQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue});
             buffer.dmaValue = vdev.dmaQueue;
-            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitDMA(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
             vdev.m_dmaBuffers.emplace_back(buffer);
             break;
           case QueueType::Compute:
             ++vdev.cptQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue});
             buffer.cptValue = vdev.cptQueue;
-            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitCompute(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
             vdev.m_computeBuffers.emplace_back(buffer);
             break;
           case QueueType::Graphics:
@@ -2292,9 +2342,9 @@ namespace higanbana
             }
 #else
             ++vdev.gfxQueue;
-            signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+            signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue});
             buffer.gfxValue = vdev.gfxQueue;
-            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimeline, viewToFence);
+            vdev.device->submitGraphics(buffer.lists, buffer.wait, buffer.signal, waitInfos, signalTimelines, viewToFence);
 #endif
             vdev.m_gfxBuffers.emplace_back(buffer);
           }
@@ -2435,6 +2485,8 @@ namespace higanbana
                 liveList.cptValue = 0;
               }
               MemView<std::shared_ptr<SemaphoreImpl>> wait;
+              vector<int> sharedSignals;
+              vector<int> sharedWaits;
               {
                 auto& list = lists[listID];
 
@@ -2446,6 +2498,22 @@ namespace higanbana
                 }
                 if (list.waitDMA) {
                   liveList.timelineDma = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                }
+                for (auto& wait : list.sharedWaits) {
+                  bool has = false;
+                  for (auto&& it : sharedWaits)
+                    if (it == wait)
+                      has = true;
+                  if (!has)
+                    sharedWaits.push_back(wait);
+                }
+                for (auto& signal : list.sharedSignals) {
+                  bool has = false;
+                  for (auto&& it : sharedSignals)
+                    if (it == signal)
+                      has = true;
+                  if (!has)
+                    sharedSignals.push_back(signal);
                 }
 
                 if (list.acquireSema) {
@@ -2484,7 +2552,6 @@ namespace higanbana
                 liveList.timelineDma.reset();
               }
 
-              TimelineSemaphoreInfo signalTimeline;
               MemView<std::shared_ptr<SemaphoreImpl>> signal;
               std::optional<std::shared_ptr<FenceImpl>> viewToFence;
               if (isLastList)
@@ -2493,19 +2560,27 @@ namespace higanbana
                 if (liveList.fence)
                   viewToFence = liveList.fence;
               }
+              for (auto&& wait : sharedWaits) {
+                waitInfos.push_back(TimelineSemaphoreInfo{m_devices[liveList.deviceID].sharedTimelines[wait].get(), m_devices[wait].sharedValue});
+              }
+              vector<TimelineSemaphoreInfo> signalTimelines;
+              for (auto&& signal : sharedSignals) {
+                m_devices[signal].sharedValue++;
+                signalTimelines.push_back(TimelineSemaphoreInfo{m_devices[liveList.deviceID].sharedTimelines[signal].get(), m_devices[signal].sharedValue});
+              }
               switch (liveList.queue)
               {
               case QueueType::Dma:
                 ++vdev.dmaQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue});
                 liveList.dmaValue = vdev.dmaQueue;
-                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitDMA(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
                 break;
               case QueueType::Compute:
                 ++vdev.cptQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineCompute.get(), vdev.cptQueue});
                 liveList.cptValue = vdev.cptQueue;
-                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitCompute(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
                 break;
               case QueueType::Graphics:
               default:
@@ -2523,9 +2598,9 @@ namespace higanbana
                 }
     #else
                 ++vdev.gfxQueue;
-                signalTimeline = TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue};
+                signalTimelines.push_back(TimelineSemaphoreInfo{vdev.timelineGfx.get(), vdev.gfxQueue});
                 liveList.gfxValue = vdev.gfxQueue;
-                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimeline, viewToFence);
+                vdev.device->submitGraphics(liveList.lists[listID], wait, signal, waitInfos, signalTimelines, viewToFence);
     #endif
               }
             });

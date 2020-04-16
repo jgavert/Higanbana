@@ -38,13 +38,13 @@ struct RendererOptions
   bool renderImGui = true;
   void drawImGuiOptions()
   {
-    ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
+    //ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);
-    ImGui::Checkbox("Submit using LBS", &submitLBS);
-    ImGui::Checkbox("Particles", &particles);
-    ImGui::Checkbox("Simulate", &particlesSimulate);
-    ImGui::Checkbox("Allow Mesh Shaders", &allowMeshShaders);
-    ImGui::Checkbox("Allow Raytracing", &allowRaytracing);
+    //ImGui::Checkbox("Submit using LBS", &submitLBS);
+    ImGui::Checkbox("Particles Enabled", &particles);
+    ImGui::Checkbox("Simulate Particles", &particlesSimulate);
+    //ImGui::Checkbox("Allow Mesh Shaders", &allowMeshShaders);
+    //ImGui::Checkbox("Allow Raytracing", &allowRaytracing);
     ImGui::Checkbox("Unbalanced cube drawlists", &unbalancedCubes);
   }
 };

@@ -183,7 +183,10 @@ namespace higanbana
       ppArgs.push_back(L"/WX"); // Treat warnings as errors.
       ppArgs.push_back(L"/Ges"); //Enable strict mode.
       ppArgs.push_back(L"/all_resources_bound"); // Enable aggressive flattening in SM5.1+.
-      ppArgs.push_back(L"/enable-16bit-types"); // needs _6_2 shaders minimum
+      //ppArgs.push_back(L"/rootsig-define");
+      //ppArgs.push_back(L"ROOTSIG");
+      // TODO: how to handle enabling of 16bit types... and have correct binaries for gpu's without them.
+      //ppArgs.push_back(L"/enable-16bit-types"); // needs _6_2 shaders minimum
       /*
         /Zpc	Pack matrices in column-major order.
         /Zpr	Pack matrices in row-major order.

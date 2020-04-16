@@ -281,13 +281,13 @@ void mainWindow(ProgramParams& params)
     bool renderECS = false;
     int cubeCount = 30;
     int cubeCommandLists = 4;
-    int limitFPS = 20;
+    int limitFPS = -1;
     int viewportCount = 1;
     bool advanceSimulation = true;
     bool stepOneFrameForward = false;
     bool stepOneFrameBackward = false;
     app::RendererOptions renderOptions;
-    renderOptions.submitSingleThread = true;
+    renderOptions.submitSingleThread = false;
     vector<app::RenderViewportInfo> rendererViewports;
     rendererViewports.push_back({});
 
@@ -323,7 +323,7 @@ void mainWindow(ProgramParams& params)
     uint chosenDeviceID = 0;
     GraphicsApi chosenApi = api;
     bool interoptDevice = true;
-    int2 windowSize = div(int2(1280, 720), 2);
+    int2 windowSize = div(int2(1280, 720), 1);
     int2 windowPos = int2(300,400);
 
     // IMGUI
@@ -654,9 +654,11 @@ void mainWindow(ProgramParams& params)
               if (ImGui::Begin("Keys"))
               {
                 ImGui::Text(" Exit:                         ESC");
-                ImGui::Text(" Capture Mouse:                F1");
+                ImGui::Text(" Toggle ImGui:                 ~ or \"console key\"");
+                ImGui::Text(" Capture Mouse(fps controls):  F1");
                 ImGui::Text(" Release Mouse:                F2");
                 ImGui::Text(" Toggle Borderless Fullscreen: Alt + 1");
+                ImGui::Text("   - Just dont switch api or vendor while borderless fullscreen.");
                 ImGui::Text(" Toggle GFX API Vulkan/DX12:   Alt + 2");
                 ImGui::Text(" Toggle GPU Vendor Nvidia/AMD: Alt + 3");
               }
@@ -751,9 +753,16 @@ void mainWindow(ProgramParams& params)
 
                 {
                   ImGui::Checkbox("render selected glTF scene", &renderGltfScene);
-                  ImGui::Checkbox("render current ECS", &renderECS);
-                  ImGui::Text("%d cubes/draw calls", cubeCount);
-                  ImGui::SameLine();
+                  ImGui::Checkbox("render current scene", &renderECS);
+                  int activeViewports = 0;
+                  for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++)
+                    if (rendererViewports[i].options.visible)
+                      activeViewports++;
+                  ImGui::Text("%d cubes * %d viewports", cubeCount, activeViewports);
+                  ImGui::Text("= %d draw calls / frame", cubeCount*activeViewports);
+                  ImGui::Text("Preallocated constant memory of 380mb or so");
+                  ImGui::Text("Exceeding >350k of drawcalls / frame crashes.");
+                  ImGui::Text("Thank you.");
                   ImGui::DragInt("drawcalls/cubes", &cubeCount, 10, 0, 500000);
                   ImGui::DragInt("drawcalls split into", &cubeCommandLists, 1, 1, 128);
                 }
