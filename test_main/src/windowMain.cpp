@@ -322,7 +322,7 @@ void mainWindow(ProgramParams& params)
 
     uint chosenDeviceID = 0;
     GraphicsApi chosenApi = api;
-    bool interoptDevice = true;
+    bool interoptDevice = false;
     int2 windowSize = div(int2(1280, 720), 1);
     int2 windowPos = int2(300,400);
 
@@ -738,6 +738,7 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("average FPS %.2f (%.2fms)", 1000.f / time.getCurrentFps(), time.getCurrentFps());
                 ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / time.getMaxFps(), time.getMaxFps());
                 ImGui::DragInt("FPS limit", &limitFPS, 1, -1, 144);
+                ImGui::Checkbox("Readback shader prints", &higanbana::globalconfig::graphics::GraphicsEnableShaderDebug);
                 ImGui::Checkbox("rotate camera", &autoRotateCamera);
                 ImGui::Checkbox("simulate", &advanceSimulation);
                 if (!advanceSimulation)

@@ -18,7 +18,6 @@
 #define HIGANBANA_SHADER_DEBUG_WIDTH 1024
 #define HIGANBANA_CONSTANT_BUFFER_AMOUNT 256 * 24 * 64 * 1024
 #define HIGANBANA_UPLOAD_MEMORY_AMOUNT 64 * 1024 * 1024
-#define HIGANBANA_ENABLE_SHADER_DEBUG
 
 namespace higanbana
 {
@@ -33,6 +32,7 @@ namespace higanbana
       extern bool GraphicsEnableSplitBarriers;
       extern bool GraphicsSplitBarriersPlaceBeginsOnExistingPoints;
       extern int GraphicsHowManyBytesBeforeNewCommandBuffer;
+      extern bool GraphicsEnableShaderDebug;
     }
   }
 }

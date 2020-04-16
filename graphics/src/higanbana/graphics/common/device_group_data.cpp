@@ -20,12 +20,6 @@
 
 #define IF_QUEUE_DEPENDENCY_DEBUG if constexpr (0)
 
-#if defined(HIGANBANA_ENABLE_SHADER_DEBUG)
-static constexpr const bool shaderDebugReadback = true;
-#else
-static constexpr const bool shaderDebugReadback = false;
-#endif
-
 namespace higanbana
 {
   namespace backend
@@ -1261,7 +1255,7 @@ namespace higanbana
       gpus.resize(m_devices.size(), PreparedCommandlist{});
       vector<PreparedCommandlist> lists;
       {
-        if (shaderDebugReadback && m_shaderDebugReadbacks.size() < 10)
+        if (globalconfig::graphics::GraphicsEnableShaderDebug && m_shaderDebugReadbacks.size() < 10)
         {
           auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
           handle.setGpuId(nodes.back().gpuId);
