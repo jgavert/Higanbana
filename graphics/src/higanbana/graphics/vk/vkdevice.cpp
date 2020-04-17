@@ -3191,6 +3191,13 @@ namespace higanbana
       HIGAN_LOGi("compatibleHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.compatibleHandleTypes).c_str());
       HIGAN_LOGi("exportFromImportedHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.exportFromImportedHandleTypes).c_str());
       HIGAN_LOGi("externalSemaphoreFeatures %s\n", vk::to_string(interopSemaphoreInfo.externalSemaphoreFeatures).c_str());
+      interopSemaphoreInfo = m_physDevice.getExternalSemaphoreProperties(vk::PhysicalDeviceExternalSemaphoreInfo()
+        .setPNext(&timelineCreateInfo)
+        .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence));
+
+      HIGAN_LOGi("compatibleHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.compatibleHandleTypes).c_str());
+      HIGAN_LOGi("exportFromImportedHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.exportFromImportedHandleTypes).c_str());
+      HIGAN_LOGi("externalSemaphoreFeatures %s\n", vk::to_string(interopSemaphoreInfo.externalSemaphoreFeatures).c_str());
 
       timelineCreateInfo = timelineCreateInfo.setPNext(&exportSema);
 
@@ -3246,11 +3253,17 @@ namespace higanbana
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::Semaphore sema;
+      vk::SemaphoreTypeCreateInfo timelineCreateInfo = vk::SemaphoreTypeCreateInfo();
+      timelineCreateInfo.semaphoreType = vk::SemaphoreType::eTimeline;
+      timelineCreateInfo.initialValue = 0;
+      auto fence = m_device.createSemaphore(vk::SemaphoreCreateInfo().setPNext(&timelineCreateInfo), nullptr, m_dynamicDispatch);
+      VK_CHECK_RESULT(fence);
+      sema = fence.value;
       auto importInfo = vk::ImportSemaphoreWin32HandleInfoKHR()
       .setHandle(shared->handle)
       .setSemaphore(sema)
       //.setFlags(vk::SemaphoreImportFlagBits::eTemporary)
-      .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eD3D12Fence);
+      .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32);
       auto res = m_device.importSemaphoreWin32HandleKHR(importInfo, m_dynamicDispatch);
       VK_CHECK_RESULT_RAW(res);
       return std::make_shared<VulkanTimelineSemaphore>(VulkanTimelineSemaphore(std::shared_ptr<vk::Semaphore>(new vk::Semaphore(sema), [device = m_device](vk::Semaphore* ptr)

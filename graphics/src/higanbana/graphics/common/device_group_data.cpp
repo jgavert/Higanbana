@@ -41,11 +41,11 @@ namespace higanbana
         if (m_devices.size() == 2 && infos[1].api == GraphicsApi::Vulkan) {
           // interopt
           // create vulkan timeline semaphore and share it with DX12
-          auto timeline = m_devices[1].device->createSharedSemaphore();
-          m_devices[1].sharedTimelines.resize(2, timeline);
-          auto shared = m_devices[1].device->openSharedHandle(timeline);
-          auto sharedTimeline = m_devices[0].device->createSemaphoreFromHandle(shared);
-          m_devices[0].sharedTimelines.resize(2, sharedTimeline);
+          auto timeline = m_devices[0].device->createSharedSemaphore();
+          m_devices[0].sharedTimelines.resize(2, timeline);
+          auto shared = m_devices[0].device->openSharedHandle(timeline);
+          auto sharedTimeline = m_devices[1].device->createSemaphoreFromHandle(shared);
+          m_devices[1].sharedTimelines.resize(2, sharedTimeline);
         }
         else {
           HIGAN_ASSERT(false, "unimplemented.");
