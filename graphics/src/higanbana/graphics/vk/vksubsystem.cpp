@@ -415,7 +415,10 @@ namespace higanbana
         ++i;
       }
 
+
       //auto features = physDev.getFeatures(); // ALL OF THEM FEATURES.
+      //vk::PhysicalDeviceVulkan11Features,
+      //vk::PhysicalDeviceVulkan12Features,
       auto features2 = physDev.getFeatures2<
       vk::PhysicalDeviceFeatures2,
       vk::PhysicalDeviceVariablePointersFeatures,

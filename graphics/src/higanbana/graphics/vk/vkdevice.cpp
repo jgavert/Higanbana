@@ -3180,9 +3180,19 @@ namespace higanbana
         .setPNext(&exportInfoHandle)
         .setHandleTypes(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32);
 
-      vk::SemaphoreTypeCreateInfo timelineCreateInfo = vk::SemaphoreTypeCreateInfo().setPNext(&exportSema);
+      vk::SemaphoreTypeCreateInfo timelineCreateInfo = vk::SemaphoreTypeCreateInfo();
       timelineCreateInfo.semaphoreType = vk::SemaphoreType::eTimeline;
       timelineCreateInfo.initialValue = 0;
+
+      auto interopSemaphoreInfo = m_physDevice.getExternalSemaphoreProperties(vk::PhysicalDeviceExternalSemaphoreInfo()
+        .setPNext(&timelineCreateInfo)
+        .setHandleType(vk::ExternalSemaphoreHandleTypeFlagBits::eOpaqueWin32));
+
+      HIGAN_LOGi("compatibleHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.compatibleHandleTypes).c_str());
+      HIGAN_LOGi("exportFromImportedHandleTypes %s\n", vk::to_string(interopSemaphoreInfo.exportFromImportedHandleTypes).c_str());
+      HIGAN_LOGi("externalSemaphoreFeatures %s\n", vk::to_string(interopSemaphoreInfo.externalSemaphoreFeatures).c_str());
+
+      timelineCreateInfo = timelineCreateInfo.setPNext(&exportSema);
 
       auto fence = m_device.createSemaphore(vk::SemaphoreCreateInfo().setPNext(&timelineCreateInfo), nullptr, m_dynamicDispatch);
       VK_CHECK_RESULT(fence);
