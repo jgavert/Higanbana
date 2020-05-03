@@ -1,16 +1,16 @@
-# Higanbana
+# Higanbana (name subject to change)
 as the flower depicts, is a library which grows in the lands of Vulkan and DirectX12. Lands which are not very kind to mortals...
-(This name can change at anytime, but used for now. Doesn't flow so easily from tongue so might change in future...)
 
 Aim is to provide simplified, but efficient Graphics API, helping with using the latest and greatest gpu features...
 
-Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also my proof of concept on understanding the api's... Maybe I know something, I hope.
+Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also my proof of concept on understanding the api's...
 
 ## Building
 You will need the following additional software to build.
-* Windows 10 build 1809 or higher
+* Windows 10 build 1909 or higher
 * Bazel
 * Visual Studio 2019
+  * Desktop Development with C++
 * Windows SDK 10.0.18368.0 or newer
 * Latest Vulkan SDK
 * Latest GPU Drivers
@@ -19,8 +19,11 @@ Optional
 * VS Code with c++ plugins...
 
 These are required for building DirectXShaderCompiler
+* Visual Studio 2019
+  * Universal Windows Platform Development
 * CMake
 * Python 3
+* Windows Driver Kit - same version as the SDK
 
 ### Build Steps - Windows
 First run 
@@ -29,7 +32,7 @@ First run
 
 This will ensure that you have all the externals.
 
-small note: This compiles DXC in release mode with spirv. This can take fairly long and prevent you from doing anything on computer for 10 minutes or so.
+small note: This compiles DXC in release mode with spirv. This can take fairly long and prevent you from doing anything on computer for 10 minutes or so. And DXC compilation is highly likely to fail currently. Blame DXC for being so hard to compile.
 
 Building the project is simply
 
@@ -38,7 +41,7 @@ or run build.bat
 
 Which results in my test exe. You can test it by running:
 
-    run.bat
+    runDX12.bat or runVulkan.bat
 or go to bazel-bin/test_main and run the exe from that location.
 
 
@@ -50,16 +53,16 @@ These are partly current features and features I'm aiming for and might have got
 * Multi GPU support through explicit devices
     * Won't take advantage of SLI/Crossfire support
     * This is on-going effort
-    * Cross-device isn't well supported by Vulkan on Windows
-    * DX12 <-> Vulkan is within one device only
+    * Cross-device isn't supported on Vulkan
+    * DX12 <-> Vulkan is within one device only, Nvidia only for now.
 * Easy to make use of graphics/Compute/Dma queue
     * all semaphores/synchronization/everything handled for you.
-* WIP Multithreaded using std::for_each(std::execution:par_unseq ! Can use all cores non-optimally!
-    * Not all of api is hardened against multithreading so good luck :D
+* Multithreaded using std::for_each(std::execution:par_unseq !
 * Tight cpu perf with simple drawcalls!
     * Warning: Using many resources in shaders is untested perfwise.
 * Homebrew implementations to many problems :D
 * CPU and GPU timings can be fetched for easy profiling or integrate it to other platforms like chrome://tracing
+  * requires compiletime switch currently and default disabled.
 
 ## What's next?
 * Profiling support(HighPrio) using chrome://tracing
@@ -71,9 +74,10 @@ These are partly current features and features I'm aiming for and might have got
 * Clean unnecessary comments and code
 * Support Raytracing (Started)
 * Sharing buffer/image between DX12 and Vulkan for debuggability
-    * Use one code to render on both and show the results in one swapchain buffer
-* Mesh Shaders (Started)
-    * Waiting for support from DX12 and DXC... Waiting my implementation now.
+    * Use one code to render on both and show the results in one swapchain buffer (Done)
+    * Works only on Nvidia now.
+* Mesh Shaders (Mostly done)
+    * DX12: Waiting for Windows to update to latest.
 * Optimise the cpu code
     * Architecture was designed with multithreading in mind, just didn't bother to write it yet. (DONE)
     * Many low hanging fruits (Most done)
@@ -89,8 +93,20 @@ These are partly current features and features I'm aiming for and might have got
 * Linux support
     * This is also the reason why I'm using Bazel as build system
     * Biggest show stoppers here are only...
-        * I'm lazy
         * Windowing support abstraction and support
             * honestly bonus, I should start with headless
-        * Does DXC compile nicely? make Bazel scripts for it?
-        * Really not many problems though, someday!
+        * DXC compiles on linux, but have issues linking to it.
+        * Effort was started. (Done)
+
+## External libraries
+* https://github.com/catchorg/Catch2.git for tests
+* https://github.com/jarro2783/cxxopts.git for commandline options
+* https://github.com/microsoft/GSL.git for gsl::span
+* https://github.com/nothings/stb.git for easy image loading
+* https://github.com/ocornut/imgui.git the best and easiest ui library
+* https://github.com/nlohmann/json.git for json support
+* https://github.com/syoyo/tinygltf.git for gltf parsing
+* https://www.nuget.org/api/v2/package/WinPixEventRuntime to support pix events
+* https://github.com/microsoft/DirectXShaderCompiler for compiling shaders for Vulkan and DirectX 12
+* SpookyV2 hash library
+* https://github.com/martinus/robin-hood-hashing/ hashmap
