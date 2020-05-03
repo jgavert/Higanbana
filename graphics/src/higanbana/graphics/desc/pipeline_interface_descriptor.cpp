@@ -177,9 +177,15 @@ namespace higanbana
 
     // ??
     lol += "StaticSampler(s0, "                   \
-    "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), " \
+    "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, " \
+    "addressU = TEXTURE_ADDRESS_CLAMP, "           \
+    "addressV = TEXTURE_ADDRESS_CLAMP, "           \
+    "addressW = TEXTURE_ADDRESS_CLAMP), "          \
     "\\\n  StaticSampler(s1, "                    \
-    "filter = FILTER_MIN_MAG_MIP_POINT), "        \
+    "filter = FILTER_MIN_MAG_MIP_POINT, "        \
+    "addressU = TEXTURE_ADDRESS_CLAMP, "           \
+    "addressV = TEXTURE_ADDRESS_CLAMP, "           \
+    "addressW = TEXTURE_ADDRESS_CLAMP), "          \
     "\\\n  StaticSampler(s2, "                    \
     "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, "  \
     "addressU = TEXTURE_ADDRESS_WRAP, "           \

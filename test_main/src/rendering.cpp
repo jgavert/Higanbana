@@ -407,12 +407,11 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     {
       auto tsaaNode = localVec.createPass("Temporal Supersampling AA", QueueType::Graphics, options.gpuToUse);
       vp.tsaaResolved.next(time.getFrame());
-      tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), vp.motionVectorsSRV, vp.gbufferSRV, vp.tsaaDebugUAV});
+      auto motionVectors = instances.empty() ? TextureSRV() : vp.motionVectorsSRV;
+      tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), motionVectors, vp.gbufferSRV, vp.tsaaDebugUAV});
       localVec.addPass(std::move(tsaaNode));
       tsaaOutput = vp.tsaaResolved.srv();
       tsaaOutputRTV = vp.tsaaResolved.rtv();
-      if (options.tsaaDebug)
-        tsaaOutput = vp.tsaaDebugSRV;
     }
 
     if (options.debugTextures)
@@ -467,6 +466,8 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     TextureSRV tsaaOutput = vp.gbufferSRV;
     if (vpInfo.options.tsaa)
       tsaaOutput = vp.tsaaResolved.srv();
+    if (vpInfo.options.tsaaDebug)
+      tsaaOutput = vp.tsaaDebugSRV;
 
     {
       auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);

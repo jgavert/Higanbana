@@ -9,6 +9,72 @@
 
 namespace higanbana
 {
+
+class RayHitGroupDescriptor
+{
+  public:
+  std::string hitGroupIdentifier;
+  std::string closestHit;
+  std::string anyHit;
+  std::string intersection;
+
+  RayHitGroupDescriptor(std::string name = "")
+    : hitGroupIdentifier(name)
+  {
+  }
+
+  RayHitGroupDescriptor& setClosestHit(std::string path)
+  {
+    closestHit = path;
+    return *this;
+  }
+  RayHitGroupDescriptor& setAnyHit(std::string path)
+  {
+    anyHit = path;
+    return *this;
+  }
+  RayHitGroupDescriptor& setIntersection(std::string path)
+  {
+    intersection = path;
+    return *this;
+  }
+};
+
+class RaytracingPipelineDescriptor
+{
+public:
+  vector<RayHitGroupDescriptor> hitGroups;
+  std::string rayGenerationShader;
+  std::string missShader;
+  std::string rootSignature;
+  PipelineInterfaceDescriptor layout;
+
+  RaytracingPipelineDescriptor()
+  {
+  }
+
+  RaytracingPipelineDescriptor& setRayHitGroup(int index, RayHitGroupDescriptor hitgroup) {
+    HIGAN_ASSERT(index >= 0 && index < 64, "sanity check for index");
+    if (hitGroups.size() < index) hitGroups.resize(index+1);
+    hitGroups[index] = hitgroup;
+  }
+
+  RaytracingPipelineDescriptor& setRayGen(std::string path) {
+    rayGenerationShader = path;
+    return *this;
+  }
+  RaytracingPipelineDescriptor& setMissShader(std::string path) {
+    missShader = path;
+    return *this;
+  }
+
+  RaytracingPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val) {
+    layout = val;
+    return *this;
+  }
+};
+
+  
   class ComputePipelineDescriptor
   {
   public:

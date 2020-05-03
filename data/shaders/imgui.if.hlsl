@@ -1,4 +1,4 @@
-// INTERFACE_HASH:6977852702629671690:8899359164988369506
+// INTERFACE_HASH:1893528349753268741:6507348936856666675
 // This file is generated from code.
 #ifdef HIGANBANA_VULKAN
 #define VK_BINDING(index, set) [[vk::binding(index, set)]]
@@ -14,8 +14,8 @@
      SRV(t1, numDescriptors = unbounded, space=0, flags=DESCRIPTORS_VOLATILE )),\
   DescriptorTable(\
      SRV(t0, numDescriptors = 1, space=1 )),\
-  StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT), \
-  StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT), \
+  StaticSampler(s0, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP), \
+  StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_POINT, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP), \
   StaticSampler(s2, filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP), \
   StaticSampler(s3, filter = FILTER_MIN_MAG_MIP_POINT, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP)"
 

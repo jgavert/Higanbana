@@ -497,17 +497,27 @@ namespace higanbana
 
       vk::SamplerCreateInfo s0 = vk::SamplerCreateInfo()
         .setMagFilter(vk::Filter::eLinear)
-        .setMinFilter(vk::Filter::eLinear);
+        .setMinFilter(vk::Filter::eLinear)
+        .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
+        .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
+        .setAddressModeU(vk::SamplerAddressMode::eClampToEdge);
       vk::SamplerCreateInfo s1 = vk::SamplerCreateInfo()
         .setMagFilter(vk::Filter::eNearest)
-        .setMinFilter(vk::Filter::eNearest);
+        .setMinFilter(vk::Filter::eNearest)
+        .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
+        .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
+        .setAddressModeU(vk::SamplerAddressMode::eClampToEdge);
       vk::SamplerCreateInfo s2 = vk::SamplerCreateInfo()
         .setMagFilter(vk::Filter::eLinear)
         .setMinFilter(vk::Filter::eLinear)
+        .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+        .setAddressModeV(vk::SamplerAddressMode::eRepeat)
         .setAddressModeU(vk::SamplerAddressMode::eRepeat);
       vk::SamplerCreateInfo s3 = vk::SamplerCreateInfo()
         .setMagFilter(vk::Filter::eNearest)
         .setMinFilter(vk::Filter::eNearest)
+        .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+        .setAddressModeV(vk::SamplerAddressMode::eRepeat)
         .setAddressModeU(vk::SamplerAddressMode::eRepeat);
 
       auto sr0 = m_device.createSampler(s0);
@@ -1742,6 +1752,12 @@ namespace higanbana
       m_device.updateDescriptorSets({wds, shaderDebug}, {});
 
       m_allRes.pipelines[handle] = VulkanPipeline( pipelineLayout.value, desc, set[0]);
+    }
+    void VulkanDevice::createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc)
+    {
+      HIGAN_CPU_FUNCTION_SCOPE();
+
+      m_allRes.pipelines[handle] = VulkanPipeline();
     }
 
     vector<vk::DescriptorSetLayoutBinding> VulkanDevice::defaultSetLayoutBindings(vk::ShaderStageFlags flags)

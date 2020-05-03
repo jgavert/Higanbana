@@ -827,7 +827,7 @@ void mainWindow(ProgramParams& params)
                 }
 
                 float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
-                if (gpuTotal > cpuTotal)
+                if (gpuTotal > cpuTotal || rend.acquireTimeTakenMs() > 0.1f)
                   ImGui::Text("Bottleneck: GPU");
                 else
                   ImGui::Text("Bottleneck: CPU");
@@ -839,7 +839,10 @@ void mainWindow(ProgramParams& params)
                 ImGui::Text("CPU execution %.3fms", cpuTotal);
                 ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
                 ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal/1024.f/1024.f);
-                ImGui::Text("- user fill time %.2fms", rsi.timeBeforeSubmit.milliseconds());
+                auto userFillTime = rsi.timeBeforeSubmit.milliseconds() - rend.acquireTimeTakenMs(); // we know that these can overlap.
+                ImGui::Text("- user fill time %.2fms", userFillTime);
+                auto bandwidth = float(bytesInCommandBuffersTotal/1024.f/1024.f) / userFillTime * 1000.f;
+                ImGui::Text("- CPU Bandwidth in filling %.3fGB/s", bandwidth/1024.f);
                 ImGui::Text("- combine nodes %.3fms", rsi.addNodes.milliseconds());
                 ImGui::Text("- Graph solving %.3fms", rsi.graphSolve.milliseconds());
                 ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());

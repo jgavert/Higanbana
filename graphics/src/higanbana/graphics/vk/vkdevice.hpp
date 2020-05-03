@@ -169,6 +169,7 @@ namespace higanbana
       vector<vk::DescriptorSetLayoutBinding> gatherSetLayoutBindings(ShaderArgumentsLayoutDescriptor desc, vk::ShaderStageFlags flags);
       void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
       void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
+      void createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc) override;
 
       void createHeap(ResourceHandle handle, HeapDescriptor desc) override;
 

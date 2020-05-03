@@ -119,6 +119,7 @@ namespace higanbana
         virtual void createRenderpass(ResourceHandle handle) = 0;
         virtual void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc) = 0;
         virtual void createPipeline(ResourceHandle handle, ComputePipelineDescriptor desc) = 0;
+        virtual void createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc) = 0;
 
         //create/destroy pairs
         virtual void createHeap(ResourceHandle handle, HeapDescriptor desc) = 0;

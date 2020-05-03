@@ -95,17 +95,17 @@ namespace higanbana
 
       m_queryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createGraphicsQueryHeap(256);
+        return createGraphicsQueryHeap(1024);
       });
 
       m_computeQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createComputeQueryHeap(256);
+        return createComputeQueryHeap(1024);
       });
 
       m_dmaQueryHeapPool = Rabbitpool2<DX12QueryHeap>([&]()
       {
-        return createDMAQueryHeap(128);
+        return createDMAQueryHeap(512);
       });
 
       m_readbackPool = Rabbitpool2<DX12ReadbackHeap>([&]()
@@ -1000,6 +1000,12 @@ namespace higanbana
       sample.Quality = d.sampleCount > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
       builder.dxgiSample(sample);
       return builder;
+    }
+    void DX12Device::createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc)
+    {
+      HIGAN_CPU_FUNCTION_SCOPE();
+
+      m_allRes.pipelines[handle] = DX12Pipeline();
     }
 
     std::optional<DX12OldPipeline> DX12Device::updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass)

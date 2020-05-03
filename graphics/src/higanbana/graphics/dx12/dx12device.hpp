@@ -108,6 +108,7 @@ namespace higanbana
       // impl
       void createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor layout) override;
       void createPipeline(ResourceHandle handle, ComputePipelineDescriptor layout) override;
+      void createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc) override;
 
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;
       void adjustSwapchain(std::shared_ptr<prototypes::SwapchainImpl> sc, SwapchainDescriptor descriptor) override;

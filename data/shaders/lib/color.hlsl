@@ -23,4 +23,19 @@ float3 yCoCgToRgb(float3 ycocg) {
   return mul(ycocg, transpose(s_yCoCgToRgb)); 
 } 
 
+float3 reinhard(float3 rgb) {
+  return rgb / (rgb + 1);
+}
+float4 reinhard(float4 rgb) {
+  return float4(rgb.rgb / (rgb.rgb + 1), rgb.w);
+}
+
+float3 inverse_reinhard(float3 rgb) {
+  return 1.f / (1.f - rgb) - 1.f;
+}
+
+float4 inverse_reinhard(float4 rgb) {
+  return float4(1.f / (1.f - rgb.rgb) - 1.f, rgb.w);
+}
+
 #endif // __color__
