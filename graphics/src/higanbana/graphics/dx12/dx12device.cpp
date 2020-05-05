@@ -1004,6 +1004,70 @@ namespace higanbana
     void DX12Device::createPipeline(ResourceHandle handle, RaytracingPipelineDescriptor desc)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
+      D3D12_STATE_OBJECT_DESC raytracingPipelinedesc{};
+      raytracingPipelinedesc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
+
+
+      // DXIL library
+      // This contains the shaders and their entrypoints for the state object.
+      // Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
+
+      D3D12_DXIL_LIBRARY_DESC libDesc{};
+      D3D12_SHADER_BYTECODE libdxil; // = CD3DX12_SHADER_BYTECODE((void *)g_pRaytracing, ARRAYSIZE(g_pRaytracing));
+      libDesc.DXILLibrary = libdxil;
+      libDesc.
+      //auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+      //lib->SetDXILLibrary(&libdxil);
+      D3D12_STATE_SUBOBJECT lib{};
+      lib.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+      lib.pDesc = &libDesc;
+      // Define which shader exports to surface from the library.
+      // If no shader exports are defined for a DXIL library subobject, all shaders will be surfaced.
+      // In this sample, this could be ommited for convenience since the sample uses all shaders in the library. 
+      {
+          lib->DefineExport(c_raygenShaderName);
+          lib->DefineExport(c_closestHitShaderName);
+          lib->DefineExport(c_missShaderName);
+      }
+      
+      // Triangle hit group
+      // A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
+      // In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
+      auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+      hitGroup->SetClosestHitShaderImport(c_closestHitShaderName);
+      hitGroup->SetHitGroupExport(c_hitGroupName);
+      hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+      
+      // Shader config
+      // Defines the maximum sizes in bytes for the ray payload and attribute structure.
+      auto shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+      UINT payloadSize = sizeof(XMFLOAT4);    // float4 pixelColor
+      UINT attributeSize = sizeof(XMFLOAT2);  // float2 barycentrics
+      shaderConfig->Config(payloadSize, attributeSize);
+
+      // Local root signature and shader association
+      // This is a root signature that enables a shader to have unique arguments that come from shader tables.
+      CreateLocalRootSignatureSubobjects(&raytracingPipeline);
+
+      // Global root signature
+      // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
+      auto globalRootSignature = raytracingPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+      globalRootSignature->SetRootSignature(m_raytracingGlobalRootSignature.Get());
+
+      // Pipeline config
+      // Defines the maximum TraceRay() recursion depth.
+      auto pipelineConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+      // PERFOMANCE TIP: Set max recursion depth as low as needed 
+      // as drivers may apply optimization strategies for low recursion depths.
+      UINT maxRecursionDepth = 1; // ~ primary rays only. 
+      pipelineConfig->Config(maxRecursionDepth);
+
+  #if _DEBUG
+      PrintStateObjectDesc(raytracingPipeline);
+  #endif
+
+      // Create the state object.
+      ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
 
       m_allRes.pipelines[handle] = DX12Pipeline();
     }
