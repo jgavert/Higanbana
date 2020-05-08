@@ -1011,13 +1011,16 @@ namespace higanbana
       // DXIL library
       // This contains the shaders and their entrypoints for the state object.
       // Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
+      UINT index = 0;
+      vector<D3D12_STATE_SUBOBJECT> subobjects;
 
       D3D12_DXIL_LIBRARY_DESC libDesc{};
       D3D12_SHADER_BYTECODE libdxil; // = CD3DX12_SHADER_BYTECODE((void *)g_pRaytracing, ARRAYSIZE(g_pRaytracing));
       libDesc.DXILLibrary = libdxil;
-      libDesc.
+      //libDesc.
       //auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
       //lib->SetDXILLibrary(&libdxil);
+      /*
       D3D12_STATE_SUBOBJECT lib{};
       lib.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
       lib.pDesc = &libDesc;
@@ -1068,7 +1071,7 @@ namespace higanbana
 
       // Create the state object.
       ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
-
+*/
       m_allRes.pipelines[handle] = DX12Pipeline();
     }
 

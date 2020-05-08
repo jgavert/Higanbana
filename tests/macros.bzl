@@ -36,7 +36,7 @@ def src_core_test(target_name):
     srcs = ["core/test_" + target_name + ".cpp"],
     deps = ["//core:core", "catch-main"],
     copts = select({
-      "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
+      "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "/await"],
       "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64", "-pthread"],
     }),
     defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE"],
@@ -52,7 +52,7 @@ def src_core_test_with_header(target_name):
     srcs = ["core/test_" + target_name + ".cpp", "core/test_" + target_name + ".hpp"],
     deps = ["//core:core", "catch-main"],
     copts = select({
-      "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-"],
+      "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "/await"],
       "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
     defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE"],
