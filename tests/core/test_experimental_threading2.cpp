@@ -150,7 +150,7 @@ TEST_CASE("simple recursive async")
 }
 
 template<typename T>
-class my_future {
+class awaitable {
 public:
   struct promise_type {
     using coro_handle = std::experimental::coroutine_handle<promise_type>;
@@ -163,15 +163,18 @@ public:
     void unhandled_exception() {
       std::terminate();
     }
+    auto await_transform(awaitable<T> handle) {
+      return handle;
+    }
     T m_value;
   };
   using coro_handle = std::experimental::coroutine_handle<promise_type>;
-  my_future(coro_handle handle) : handle_(handle)
+  awaitable(coro_handle handle) : handle_(handle)
   {
     assert(handle);
   }
-  my_future(my_future& other) = delete;
-  my_future(my_future&& other) : handle_(std::move(other.handle_)) {
+  awaitable(awaitable& other) = delete;
+  awaitable(awaitable&& other) : handle_(std::move(other.handle_)) {
     assert(handle_);
     other.handle_ = nullptr;
   }
@@ -194,7 +197,7 @@ public:
     while(resume());
   }
   // :o
-  ~my_future() { if (handle_) handle_.destroy(); }
+  ~awaitable() { if (handle_) handle_.destroy(); }
   T get()
   {
     while(resume());
@@ -206,7 +209,7 @@ private:
 };
 
 template<>
-class my_future<void> {
+class awaitable<void> {
 public:
   struct promise_type {
     using coro_handle = std::experimental::coroutine_handle<promise_type>;
@@ -219,14 +222,17 @@ public:
     void unhandled_exception() {
       std::terminate();
     }
+    auto await_transform(awaitable<void> handle) {
+      return handle;
+    }
   };
   using coro_handle = std::experimental::coroutine_handle<promise_type>;
-  my_future(coro_handle handle) : handle_(handle)
+  awaitable(coro_handle handle) : handle_(handle)
   {
     assert(handle);
   }
-  my_future(my_future& other) = delete;
-  my_future(my_future&& other) : handle_(std::move(other.handle_)) {
+  awaitable(awaitable& other) = delete;
+  awaitable(awaitable&& other) : handle_(std::move(other.handle_)) {
     assert(handle_);
     other.handle_ = nullptr;
   }
@@ -247,21 +253,21 @@ public:
     while(resume());
   }
   // :o
-  ~my_future() { if (handle_) handle_.destroy(); }
+  ~awaitable() { if (handle_) handle_.destroy(); }
 private:
   coro_handle handle_;
 };
 
-my_future<int> funfun() {
+awaitable<int> funfun() {
   co_return 1;
 }
 
-my_future<void> funfun2() {
+awaitable<void> funfun2() {
   printf("woot\n");
   co_return;
 }
 
-my_future<int> addInTreeAsync2(int treeDepth) {
+awaitable<int> addInTreeAsync2(int treeDepth) {
   if (treeDepth <= 0)
     co_return 1;
   int result=0;
