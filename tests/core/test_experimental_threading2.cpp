@@ -8,6 +8,7 @@
 #include <optional>
 #include <cstdio>
 #include <iostream>
+#include <deque>
 #include <experimental/coroutine>
 
 class SuperLBS
@@ -424,15 +425,143 @@ TEST_CASE("threaded awaitable")
   auto fut = funfun3().get();
   fut = funfun4().get();
   REQUIRE(fut == 1);
-  int treeSize = 20;
+  int treeSize = 24;
   higanbana::Timer time;
   int basecase = addInTreeNormal(treeSize);
   auto normalTime = time.reset();
-  int asynced = addInTreeAsync3(treeSize, 18).get();
+  int asynced = addInTreeAsync3(treeSize, treeSize-7).get();
+  asynced = addInTreeAsync3(treeSize, treeSize-7).get();
+  time.reset();
+  asynced = addInTreeAsync3(treeSize, treeSize-7).get();
   auto asyncTime = time.reset();
   REQUIRE(basecase == asynced);
   printf("normal %.3fms awaitable %.3fms %.2f speedup\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f, float(normalTime)/float(asyncTime));
 }
+
+class Task
+{
+public:
+  Task() :
+    m_id(0),
+    m_iterations(0),
+    m_iterID(0),
+    m_ppt(1),
+    m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
+  {
+    genWorkFunc<1>([](size_t) {});
+  };
+  Task(size_t id, size_t start, size_t iterations) :
+    m_id(id),
+    m_iterations(iterations),
+    m_iterID(start),
+    m_ppt(1),
+    m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
+  {
+    genWorkFunc<1>([](size_t) {});
+    m_sharedWorkCounter->store(m_iterations);
+  };
+
+private:
+  Task(size_t id, size_t start, size_t iterations, std::shared_ptr < std::atomic<size_t> > sharedWorkCount) :
+    m_id(id),
+    m_iterations(iterations),
+    m_iterID(start),
+    m_ppt(1),
+    m_sharedWorkCounter(sharedWorkCount)
+  {
+    genWorkFunc<1>([](size_t) {});
+  };
+public:
+
+  size_t m_id;
+  size_t m_iterations;
+  size_t m_iterID;
+  int m_ppt;
+  bool m_reschedule = false;
+  std::shared_ptr < std::atomic<size_t> > m_sharedWorkCounter;
+
+  std::function<bool(size_t&, size_t&)> f_work;
+
+  // Generates ppt sized for -loop lambda inside this work.
+  template<size_t ppt, typename Func>
+  void genWorkFunc(Func&& func)
+  {
+    m_ppt = ppt;
+    f_work = [func](size_t& iterID, size_t& iterations) -> bool
+    {
+      if (iterations == 0)
+      {
+        return true;
+      }
+      if (ppt > iterations)
+      {
+        for (size_t i = 0; i < iterations; ++i)
+        {
+          func(iterID);
+          ++iterID;
+        }
+        iterations = 0;
+      }
+      else
+      {
+        for (size_t i = 0; i < ppt; ++i)
+        {
+          func(iterID);
+          ++iterID;
+        }
+        iterations -= ppt;
+      }
+      return iterations == 0;
+    };
+  }
+
+  inline bool doWork()
+  {
+    return f_work(m_iterID, m_iterations);
+  }
+
+  inline bool canSplit()
+  {
+    return (m_iterations > static_cast<size_t>(m_ppt));
+  }
+
+  inline Task split()
+  {
+    auto iters = m_iterations / 2;
+    auto newStart = m_iterID + iters;
+    Task splittedWork(m_id, newStart, iters + m_iterations % 2, m_sharedWorkCounter);
+    splittedWork.f_work = f_work;
+    m_iterations = iters;
+    return splittedWork;
+  }
+};
+
+class ThreadData
+{
+public:
+  ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)) { }
+  ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)) {  }
+
+  ThreadData(const ThreadData&) = delete;
+  ThreadData(ThreadData&&) = default;
+
+  ThreadData& operator=(const ThreadData&) = delete;
+  ThreadData& operator=(ThreadData&&) = default;
+
+  int m_ID = 0;
+  Task m_task;
+  std::shared_ptr<std::atomic<int64_t>> m_localQueueSize;
+  std::deque< Task > m_localDeque;
+};
+
+
+// hosts the worker threads for lbs_awaitable and works as the backend
+class LBSPool
+{
+  std::vector< ThreadData >                    m_allThreads;
+  std::vector< std::thread >                   m_threads;
+  public:
+};
 
 template<typename T>
 class lbs_awaitable {
