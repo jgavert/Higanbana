@@ -112,12 +112,13 @@ resumable foo(){
   std::cout << "Coroutine" << std::endl;
 }
 
+/*
 TEST_CASE("c++ threading")
 {
   resumable res = foo();
   std::cout << "created resumable" << std::endl;
   while (res.resume()) {std::cout << "resume coroutines!!" << std::endl;}
-}
+}*/
 
 int addInTreeNormal(int treeDepth) {
   if (treeDepth <= 0)
@@ -137,6 +138,7 @@ std::future<int> addInTreeAsync(int treeDepth) {
   co_return result;
 }
 
+/*
 TEST_CASE("simple recursive async")
 {
   int treeSize = 20;
@@ -148,6 +150,7 @@ TEST_CASE("simple recursive async")
   REQUIRE(basecase == futured);
   printf("normal %.3fms vs coroutined %.3fms\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f);
 }
+*/
 
 template<typename T>
 class awaitable {
@@ -275,7 +278,7 @@ awaitable<int> addInTreeAsync2(int treeDepth) {
   result += co_await addInTreeAsync2(treeDepth-1);
   co_return result;
 }
-
+/*
 TEST_CASE("simple my future")
 {
   auto fut = funfun().get();
@@ -289,5 +292,162 @@ TEST_CASE("simple my future")
   int futured2 = addInTreeAsync2(treeSize).get();
   auto asyncTime2 = time.reset();
   REQUIRE(basecase == futured2);
-  printf("my_future %.3fms\n", asyncTime2/1000.f/1000.f);
+  printf("awaitable %.3fms\n", asyncTime2/1000.f/1000.f);
+}*/
+
+template<typename T>
+class async_awaitable {
+public:
+  struct promise_type {
+    using coro_handle = std::experimental::coroutine_handle<promise_type>;
+    auto get_return_object() {
+      //printf("get_return_object\n");
+      return coro_handle::from_promise(*this);
+    }
+    auto initial_suspend() {
+      //-printf("initial_suspend\n");
+      return suspend_always();
+    }
+    auto final_suspend() noexcept {
+      //printf("final_suspend\n");
+      return suspend_always();
+    }
+    void return_value(T value) {m_value = value;}
+    void unhandled_exception() {
+      std::terminate();
+    }
+    auto await_transform(async_awaitable<T> handle) {
+      //printf("await_transform\n");
+      return handle;
+    }
+    T m_value;
+  };
+  using coro_handle = std::experimental::coroutine_handle<promise_type>;
+  async_awaitable(coro_handle handle) : handle_(std::make_shared<coro_handle>(handle))
+  {
+    //printf("created async_awaitable\n");
+    assert(handle);
+
+    m_fut = std::async(std::launch::async, [handlePtr = handle_]
+    {
+      if (!handlePtr->done()) {
+        //printf("trying to work\n");
+        handlePtr->resume();
+      }
+    });
+  }
+  async_awaitable(async_awaitable& other) = delete;
+  async_awaitable(async_awaitable&& other) : handle_(std::move(other.handle_)), m_fut(std::move(other.m_fut)) {
+    //printf("moving\n");
+    assert(handle_);
+    other.handle_ = nullptr;
+    //other.m_fut = nullptr;
+  }
+
+  bool launch_work_if_work_left() noexcept {
+    if (m_fut.valid() && !m_fut._Is_ready())
+      m_fut.wait();
+    bool allWorkDone = handle_->done();
+    if (!allWorkDone) {
+      m_fut = std::async(std::launch::async, [handlePtr = handle_]
+      {
+      if (!handlePtr->done()) {
+        //printf("trying to work some more\n");
+        handlePtr->resume();
+      }
+      });
+    }
+    return !allWorkDone;
+  }
+  // coroutine meat
+  T await_resume() noexcept {
+    //printf("await_resume\n");
+    while(launch_work_if_work_left());
+    return handle_->promise().m_value;
+  }
+  bool await_ready() noexcept {
+    //printf("await_ready\n");
+    if (m_fut.valid())
+      m_fut.wait();
+    return handle_->done();
+  }
+
+  // enemy coroutine needs this coroutines result, therefore we compute it.
+  void await_suspend(coro_handle handle) noexcept {
+    //printf("await_suspend\n");
+    while(launch_work_if_work_left());
+  }
+  // :o
+  ~async_awaitable() { if (handle_) handle_->destroy(); }
+  T get()
+  {
+    //printf("get\n");
+    while(launch_work_if_work_left());
+    assert(handle_->done());
+    return handle_->promise().m_value; 
+  }
+private:
+  std::shared_ptr<coro_handle> handle_;
+  std::future<void> m_fut;
+};
+
+async_awaitable<int> funfun3() {
+  co_return 1;
+}
+
+async_awaitable<int> funfun4() {
+  int sum = 0;
+  sum += co_await funfun3();
+  co_return sum;
+}
+
+async_awaitable<int> addInTreeAsync3(int treeDepth) {
+  if (treeDepth <= 0)
+    co_return 1;
+  if (treeDepth > 20 && treeDepth % 5 == 0) {
+    int result = 0;
+    auto res0 = addInTreeAsync3(treeDepth-1);
+    auto res1 = addInTreeAsync3(treeDepth-1);
+    result += res1.get();
+    result += res0.get();
+    co_return result;
+  }
+  else {
+    auto res0 = addInTreeNormal(treeDepth-1);
+    auto res1 = addInTreeNormal(treeDepth-1);
+    co_return res0 + res1;
+  }
+}
+
+async_awaitable<int> addInTreeAsync4(int treeDepth) {
+  if (treeDepth <= 0)
+    co_return 1;
+  if (treeDepth > 8 && treeDepth % 3 == 0) {
+    int res0 = co_await addInTreeAsync4(treeDepth-1);
+    int res1 = co_await addInTreeAsync4(treeDepth-1);
+    co_return res0 + res1;
+  }
+  else {
+    auto res0 = addInTreeNormal(treeDepth-1);
+    auto res1 = addInTreeNormal(treeDepth-1);
+    co_return res0 + res1;
+  }
+}
+
+TEST_CASE("threaded awaitable")
+{
+  auto fut = funfun3().get();
+  fut = funfun4().get();
+  REQUIRE(fut == 1);
+  int treeSize = 29;
+  higanbana::Timer time;
+  int basecase = addInTreeNormal(treeSize);
+  auto normalTime = time.reset();
+  int asynced = addInTreeAsync3(treeSize).get();
+  auto asyncTime = time.reset();
+  int asynced2 = addInTreeAsync4(treeSize).get();
+  auto asyncTime2 = time.reset();
+  REQUIRE(basecase == asynced);
+  REQUIRE(basecase == asynced2);
+  printf("normal %.3fms awaitable %.3fms awaitable2 %.3fms\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f, asyncTime2/1000.f/1000.f);
 }
