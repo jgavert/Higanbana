@@ -50,7 +50,7 @@
             "name": "benchmarks win64 opt",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/benchmarks/benchmarks.exe",
+            "program": "${workspaceFolder}/bazel-bin/benchmarks/bench_core_coroutine.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/benchmarks",

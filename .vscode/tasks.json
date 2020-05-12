@@ -44,7 +44,7 @@
             "type": "shell",
             "command": "bazel.exe",
             "args": [
-                "build", "benchmarks" , "--compilation_mode=opt"
+                "build", "//benchmarks/..." , "--compilation_mode=opt"
             ],
             "group": {
                 "kind": "build",
@@ -80,7 +80,7 @@
             "type": "shell",
             "command": "bazel.exe",
             "args": [
-                "build", "tests:all-core-tests" , "--compilation_mode=dbg"
+              "build", "tests:all-core-tests" , "--compilation_mode=dbg"
             ],
             "group": {
                 "kind": "build",
