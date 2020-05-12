@@ -324,74 +324,72 @@ public:
       return handle;
     }
     T m_value;
+    std::future<void> m_fut;
+    std::promise<void> finalFut;
+    std::weak_ptr<coro_handle> weakref;
   };
   using coro_handle = std::experimental::coroutine_handle<promise_type>;
-  async_awaitable(coro_handle handle) : handle_(std::make_shared<coro_handle>(handle))
+  async_awaitable(coro_handle handle) : handle_(std::shared_ptr<coro_handle>(new coro_handle(handle), [](coro_handle* ptr){ptr->destroy(); delete ptr;}))
   {
     //printf("created async_awaitable\n");
     assert(handle);
 
-    m_fut = std::async(std::launch::async, [handlePtr = handle_]
+    handle_->promise().weakref = handle_;
+    handle_->promise().m_fut = std::async(std::launch::async, [handlePtr = handle_]
     {
       if (!handlePtr->done()) {
-        //printf("trying to work\n");
         handlePtr->resume();
+        if (handlePtr->done())
+          handlePtr->promise().finalFut.set_value();
       }
     });
   }
-  async_awaitable(async_awaitable& other) = delete;
-  async_awaitable(async_awaitable&& other) : handle_(std::move(other.handle_)), m_fut(std::move(other.m_fut)) {
+  async_awaitable(async_awaitable& other) {
+    handle_ = other.handle_;
+  };
+  async_awaitable(async_awaitable&& other) : handle_(std::move(other.handle_)) {
     //printf("moving\n");
     assert(handle_);
     other.handle_ = nullptr;
     //other.m_fut = nullptr;
   }
-
-  bool launch_work_if_work_left() noexcept {
-    if (m_fut.valid() && !m_fut._Is_ready())
-      m_fut.wait();
-    bool allWorkDone = handle_->done();
-    if (!allWorkDone) {
-      m_fut = std::async(std::launch::async, [handlePtr = handle_]
-      {
-      if (!handlePtr->done()) {
-        //printf("trying to work some more\n");
-        handlePtr->resume();
-      }
-      });
-    }
-    return !allWorkDone;
-  }
   // coroutine meat
   T await_resume() noexcept {
-    //printf("await_resume\n");
-    while(launch_work_if_work_left());
     return handle_->promise().m_value;
   }
   bool await_ready() noexcept {
-    //printf("await_ready\n");
-    if (m_fut.valid())
-      m_fut.wait();
     return handle_->done();
   }
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
   void await_suspend(coro_handle handle) noexcept {
-    //printf("await_suspend\n");
-    while(launch_work_if_work_left());
+    handle_->promise().finalFut.get_future().wait();
+    //handle_->promise().m_fut.wait();
+    //handle.promise().m_fut.wait();
+    std::shared_ptr<coro_handle> otherHandle = handle.promise().weakref.lock();
+    
+    auto newfut = std::async(std::launch::async, [handlePtr = otherHandle]() mutable
+    {
+      if (!handlePtr->done()) {
+        handlePtr->resume();
+        if (handlePtr->done())
+          handlePtr->promise().finalFut.set_value();
+      }
+    });
+    handle.promise().m_fut = std::move(newfut);
   }
   // :o
-  ~async_awaitable() { if (handle_) handle_->destroy(); }
+  ~async_awaitable() { }
   T get()
   {
     //printf("get\n");
-    while(launch_work_if_work_left());
+    auto finalFut = handle_->promise().finalFut.get_future();
+    finalFut.wait();
     assert(handle_->done());
     return handle_->promise().m_value; 
   }
 private:
   std::shared_ptr<coro_handle> handle_;
-  std::future<void> m_fut;
 };
 
 async_awaitable<int> funfun3() {
@@ -411,8 +409,8 @@ async_awaitable<int> addInTreeAsync3(int treeDepth, int parallelDepth) {
     int result = 0;
     auto res0 = addInTreeAsync3(treeDepth-1, parallelDepth);
     auto res1 = addInTreeAsync3(treeDepth-1, parallelDepth);
-    result += res1.get();
-    result += res0.get();
+    result += co_await res1;
+    result += co_await res0;
     co_return result;
   }
   else {
@@ -640,18 +638,20 @@ public:
 class ThreadData
 {
 public:
-  ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) { }
-  ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int64_t>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) {  }
+  ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) { }
+  ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) {  }
 
   int m_ID = 0;
   Task m_task;
-  std::shared_ptr<std::atomic<int64_t>> m_localQueueSize;
+  std::shared_ptr<std::atomic<int>> m_localQueueSize;
   std::deque<Task> m_localDeque;
   std::shared_ptr<std::atomic<bool>> m_alive;
 };
 
 #define LBSPOOL_ENABLE_PROFILE_THREADS
 // hosts the worker threads for lbs_awaitable and works as the backend
+thread_local bool thread_from_pool = false;
+thread_local int thread_id = -1;
 class LBSPool
 {
   struct AllThreadData 
@@ -691,7 +691,22 @@ class LBSPool
         it->cv.notify_one();
     }
   }
+
   public:
+  int tasksAdded() {return tasks_in_queue;}
+  int tasksReadyToProcess() {return tasks_to_do;}
+  int my_queue_count() {
+    if (thread_from_pool)
+      return m_threadData[thread_id]->data.m_localQueueSize->load(std::memory_order::relaxed);
+    return 0;
+  }
+  int my_thread_index() {
+    if (thread_from_pool)
+      return thread_id;
+    return 0;
+  }
+
+
   LBSPool()
     : m_nextTaskID(1) // keep 0 as special task index.
     , StopCondition(false)
@@ -739,6 +754,8 @@ class LBSPool
   }
   void loop(int i)
   {
+    thread_from_pool = true;
+    thread_id = i;
     threads_awake++;
     std::string threadName = "Thread ";
     threadName += std::to_string(i);
@@ -784,6 +801,8 @@ class LBSPool
     }
     p.data.m_alive->store(false);
     threads_awake--;
+    thread_from_pool = false;
+    thread_id = 0;
   }
 
   inline bool stealOrSleep(AllThreadData& data, bool allowedToSleep = true) {
@@ -953,18 +972,28 @@ class LBSPool
   }
 
   template<typename Func>
-  inline BarrierObserver task(std::vector<BarrierObserver> depends, Func&& func) {
-    return internalAddTask<1>(0, depends, 0, 1, std::forward<Func>(func));
+  inline BarrierObserver task(std::vector<BarrierObserver>&& depends, Func&& func) {
+    int queue_count =  my_queue_count();
+    bool spawnTask = !depends.empty() || !allDepsDone(depends) || queue_count <= 1;
+    //tasksReadyToProcess() < threads_awake.load(std::memory_order::relaxed)
+    spawnTask = !(depends.empty() && queue_count > 0);
+    if (spawnTask)
+      return internalAddTask<1>(std::forward<decltype(depends)>(depends), 0, 1, std::forward<Func>(func));
+    else
+    {
+      func(0);
+      return BarrierObserver();
+    }
   }
 
   template<size_t ppt, typename Func>
-  inline BarrierObserver internalAddTask(int ThreadID, std::vector<BarrierObserver> depends, size_t start_iter, size_t iterations, Func&& func)
+  inline BarrierObserver internalAddTask(std::vector<BarrierObserver>&& depends, size_t start_iter, size_t iterations, Func&& func)
   {
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
     // need a temporary storage for tasks that haven't had requirements filled
-    ThreadID = std::max(0, std::min(static_cast<int>(m_threadData.size())-1, ThreadID));
+    int ThreadID = my_thread_index();
     size_t newId = m_nextTaskID.fetch_add(1);
     assert(newId < m_nextTaskID);
     //printf("task added %zd\n", newId);
@@ -973,7 +1002,7 @@ class LBSPool
     auto& threadData = m_threadData.at(ThreadID);
     newTask.genWorkFunc<ppt>(std::forward<Func>(func));
     {
-      if (allDepsDone(depends))
+      if (depends.empty() || allDepsDone(depends))
       {
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
         HIGAN_CPU_BRACKET("own queue");
@@ -1048,6 +1077,10 @@ public:
       return suspend_always();
     }
     void return_value(T value) {m_value = std::move(value);}
+    auto yield_value(T value) {
+      m_value = std::move(value);
+      return std::experimental::suspend_always{};
+    }
     void unhandled_exception() {
       std::terminate();
     }
@@ -1163,6 +1196,12 @@ lbs_awaitable<int> addInTreeLBS(int treeDepth, int parallelDepth) {
   }
 }
 
+lbs_awaitable<int> generator(int amount) {
+  for (int i = 0; i < amount-1; ++i)
+    co_yield i;
+  co_return amount-1;
+}
+
 TEST_CASE("threaded awaitable - lbs")
 {
   {
@@ -1171,8 +1210,12 @@ TEST_CASE("threaded awaitable - lbs")
     //auto fut = funfun5().get();
     //fut = funfun6().get();
     //REQUIRE(fut == 1);
+    for (auto n : generator(5)) {
+      printf("%d\n");
+      fflush(stdout);
+    }
     int treeSize = 28;
-    int computeTree = 6;
+    int computeTree = 7;
     /*
     for (int i = 0; i < 1000*1000; i++) {
       my_pool->resetIDs();
@@ -1191,14 +1234,15 @@ TEST_CASE("threaded awaitable - lbs")
     int asynced = addInTreeAsync3(treeSize, treeSize-computeTree).get();
     time.reset();
     asynced = addInTreeAsync3(treeSize, treeSize-computeTree).get();
-    auto asyncTime = time.reset();
     REQUIRE(basecase == asynced);
-
+    auto asyncTime = time.reset();
+    //auto lbsed0 = addInTreeLBS(treeSize, treeSize-computeTree);
     auto lbsed = addInTreeLBS(treeSize, treeSize-computeTree).get();
+    //lbsed0.get();
     REQUIRE(basecase == lbsed);
     auto lbsTime = time.reset();
     printf("normal %.3fms awaitable %.3fms %.2f speedup\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f, float(normalTime)/float(asyncTime));
-    printf("normal %.3fms lbs %.3fms %.2f speedup\n", normalTime/1000.f/1000.f, lbsTime/1000.f/1000.f, float(normalTime)/float(lbsTime));
+    printf("tasks done %zd normal %.3fms lbs %.3fms %.2f speedup\n", my_pool->tasksDone(), normalTime/1000.f/1000.f, lbsTime/1000.f/1000.f, float(normalTime)/float(lbsTime));
     
     /*
     LBSPool& pool = *my_pool;
