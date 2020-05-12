@@ -30,10 +30,13 @@ struct GPUProfileData
 class ThreadProfileData
 {
   public:
+  ThreadProfileData():canWriteProfilingData(std::make_shared<std::atomic_bool>(true)) {}
   //RingBuffer<ProfileData, 10240> allBrackets;
   //RingBuffer<GPUProfileData, 10240> gpuBrackets;
   vector<ProfileData> allBrackets;
   vector<GPUProfileData> gpuBrackets;
+  std::shared_ptr<std::atomic_bool> canWriteProfilingData;
+  inline bool canWriteProfile() const { return canWriteProfilingData->load(std::memory_order::seq_cst);}
 };
 extern std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
 extern std::atomic<int> s_myIndex;
@@ -43,7 +46,8 @@ extern thread_local int my_thread_id;
 class ProfilingScope
 {
   const char* name;
-  timepoint begin;
+  //timepoint begin;
+  int64_t start;
 
   public:
   ProfilingScope(const char* name);

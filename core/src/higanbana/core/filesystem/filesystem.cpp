@@ -306,6 +306,7 @@ bool FileSystem::writeFile(std::string path, const uint8_t* ptr, size_t size)
   {
     if (!system_fs::create_directories(fullPath.parent_path()))
     {
+      FS_LOG("failed to write file %s\n", fullPath.string().c_str());
       return false;
     }
   }

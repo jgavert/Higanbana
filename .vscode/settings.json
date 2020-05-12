@@ -103,7 +103,8 @@
         "cwctype": "cpp",
         "memory_resource": "cpp",
         "cfenv": "cpp",
-        "resumable": "cpp"
+        "resumable": "cpp",
+        "span_ext": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

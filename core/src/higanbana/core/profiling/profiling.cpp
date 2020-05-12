@@ -21,10 +21,24 @@ std::array<ThreadProfileData, 1024> s_allThreadsProfilingData;
 std::atomic<int> s_myIndex;
 thread_local ThreadProfileData* my_profile_data = nullptr;
 thread_local int my_thread_id = 0;
+thread_local int64_t previousBegin = std::numeric_limits<int64_t>::min();
+thread_local int64_t nextDuration = 0;
+
+int64_t getCurrentTime() {
+  int64_t value = std::chrono::time_point_cast<std::chrono::nanoseconds>(HighPrecisionClock::now()).time_since_epoch().count();
+  if (value <= previousBegin) {
+    value = previousBegin + 1000;
+    nextDuration -= 1000;
+  }
+  else {
+    nextDuration = 0;
+  }
+  return value;
+}
 
 ProfilingScope::ProfilingScope(const char* str)
   : name(str)
-  , begin(HighPrecisionClock::now())
+  , start(getCurrentTime())
 {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   PIXBeginEvent(0ull, str);
@@ -43,10 +57,9 @@ ProfilingScope::ProfilingScope(const char* str)
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   PIXEndEvent();
 #endif
-  int64_t now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
-  timepoint new_tp = HighPrecisionClock::now();
-  int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(new_tp - begin).count();
-  my_profile_data->allBrackets.push_back(ProfileData{name, now_ns, duration});
+  int64_t duration = getCurrentTime() - start;
+  if (my_profile_data->canWriteProfile())
+    my_profile_data->allBrackets.push_back(ProfileData{name, start, duration + nextDuration});
 }
 
 void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t time, int64_t dur)
@@ -58,7 +71,8 @@ void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t ti
     s_allThreadsProfilingData[newIdx] = ThreadProfileData();
     my_profile_data = &s_allThreadsProfilingData[newIdx];
   }
-  my_profile_data->gpuBrackets.push_back(GPUProfileData{gpuid, queue, std::string(view), time, dur});
+  if (my_profile_data->canWriteProfile())
+    my_profile_data->gpuBrackets.push_back(GPUProfileData{gpuid, queue, std::string(view), time, dur});
 }
 
 nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int tid)
@@ -70,7 +84,7 @@ nlohmann::json writeEvent(std::string_view view, int64_t time, int64_t dur, int 
   j["ph"] = "X";
   j["ts"] = double(time) / 1000.0;
   j["pid"] = "higanbana";
-  j["dur"] = double(dur) / 1000.0;
+  j["dur"] = std::max(double(0.001), double(dur) / 1000.0);
   j["tid"] = "Thread " + std::to_string(tid);
 
   return j;
@@ -102,18 +116,21 @@ void writeProfilingData(higanbana::FileSystem& fs)
   auto lastSeconds = 0; //lastEvent.begin + lastEvent.duration - 10000000000ll;
   for (int i = 0; i < s_myIndex; ++i)
   {
-    for (auto&& event : s_allThreadsProfilingData[i].allBrackets)
-    //s_allThreadsProfilingData[i].allBrackets.forEach([&](const ProfileData& event)
-    {
+    higanbana::profiling::ProfileData previousEvent;
+    int eventCount = 0;
+    s_allThreadsProfilingData[i].canWriteProfilingData->store(false, std::memory_order::seq_cst);
+    auto cpuBrackets = s_allThreadsProfilingData[i].allBrackets;
+    for (const auto& event : cpuBrackets){
       //if (event.begin > lastSeconds)
         events.push_back(writeEvent(event.name, event.begin, event.duration, i));
     }//);
-    for (auto&& event : s_allThreadsProfilingData[i].gpuBrackets)
+    auto gpuBrackets =  s_allThreadsProfilingData[i].gpuBrackets;
+    for (const auto& event : gpuBrackets){
     //s_allThreadsProfilingData[i].gpuBrackets.forEach([&](const GPUProfileData& event)
-    {
       //if (event.begin > lastSeconds)
-        //events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
+        events.push_back(writeEventGPU(event.name, event.begin, event.duration, event.gpuID, event.queue));
     }//);
+    s_allThreadsProfilingData[i].canWriteProfilingData->store(true);
   }
   j["traceEvents"] = events;
   std::string output = j.dump();
