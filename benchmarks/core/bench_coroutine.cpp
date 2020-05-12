@@ -396,7 +396,7 @@ class LBSPool
     HIGAN_CPU_FUNCTION_SCOPE();
     int procs = std::thread::hardware_concurrency();
     // control the amount of threads made.
-    // procs = 2;
+    //procs = 64;
     for (int i = 0; i < procs; i++)
     {
       m_threadData.emplace_back(std::make_shared<AllThreadData>(i));
@@ -752,21 +752,17 @@ class lbs_awaitable {
 public:
   struct promise_type {
     using coro_handle = std::experimental::coroutine_handle<promise_type>;
-    auto get_return_object() {
-      return coro_handle::from_promise(*this);
+    auto get_return_object() noexcept {
+      return lbs_awaitable(coro_handle::from_promise(*this));
     }
-    auto initial_suspend() {
+    auto initial_suspend() noexcept {
       return suspend_always();
     }
     auto final_suspend() noexcept {
       return suspend_always();
     }
-    void return_value(T value) {m_value = std::move(value);}
-    auto yield_value(T value) {
-      m_value = std::move(value);
-      return std::experimental::suspend_always{};
-    }
-    void unhandled_exception() {
+    void return_value(T value) noexcept {m_value = std::move(value);}
+    void unhandled_exception() noexcept {
       std::terminate();
     }
     /*
@@ -800,10 +796,10 @@ public:
     });
     HIGAN_CPU_BRACKET("end ctr");
   }
-  lbs_awaitable(lbs_awaitable& other) {
+  lbs_awaitable(lbs_awaitable& other) noexcept {
     handle_ = other.handle_;
   };
-  lbs_awaitable(lbs_awaitable&& other) {
+  lbs_awaitable(lbs_awaitable&& other) noexcept {
     if (other.handle_)
       handle_ = std::move(other.handle_);
     assert(handle_);
@@ -820,7 +816,7 @@ public:
   }
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
-  void await_suspend(coro_handle handle) noexcept {
+  bool await_suspend(coro_handle handle) noexcept {
     auto& barrier = observer();
     auto& enemyBarrier = handle.promise().dependency;
     std::shared_ptr<coro_handle> otherHandle = handle.promise().weakref.lock();
@@ -839,7 +835,7 @@ public:
   ~lbs_awaitable() {
   }
 
-  T get()
+  T get() noexcept 
   {
     BarrierObserver obs(handle_->promise().wholeCoroReady);
     // not safe to call this, should be never called from within coroutined function.
@@ -851,9 +847,8 @@ public:
   // unwrap() future<future<int>> -> future<int>
   // future then(lambda) -> attach function to be done after current task.
   // is_ready() are you ready?
-  coro_handle coro() { return *handle_; }
 private:
-  BarrierObserver& observer() const { return handle_->promise().dependency;}
+  BarrierObserver& observer() const noexcept { return handle_->promise().dependency;}
   std::shared_ptr<coro_handle> handle_;
 };
 
