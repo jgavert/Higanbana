@@ -447,21 +447,24 @@ class Barrier
 {
   friend class BarrierObserver;
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  size_t taskid = 0;
+  //size_t taskid = 0;
   public:
-  Barrier(int taskid = 0) : m_counter(std::make_shared<std::atomic<int64_t>>(1)), taskid(taskid)
+  Barrier(int taskid = 0) : m_counter(std::make_shared<std::atomic<int64_t>>(1))//, taskid(taskid)
   {
   }
   Barrier(const Barrier& copy){
     m_counter = copy.m_counter;
-    taskid = copy.taskid;
+    //taskid = copy.taskid;
     m_counter->fetch_add(1);
   }
-  Barrier(Barrier&& other) : m_counter(std::move(other.m_counter)), taskid(other.taskid) {other.m_counter = nullptr;}
+  Barrier(Barrier&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid)
+  {
+    other.m_counter = nullptr;
+  }
   Barrier& operator=(const Barrier& copy) {
     m_counter->fetch_sub(1);
     m_counter = copy.m_counter;
-    taskid = copy.taskid;
+    //taskid = copy.taskid;
     m_counter->fetch_add(1);
     return *this;
   }
@@ -469,7 +472,7 @@ class Barrier
     if (m_counter)
       *m_counter -= 1;
     m_counter = std::move(other.m_counter);
-    taskid = other.taskid;
+    //taskid = other.taskid;
     other.m_counter = nullptr;
     return *this;
   }
@@ -488,25 +491,29 @@ class Barrier
 class BarrierObserver 
 {
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  size_t taskid = 0;
+  //size_t taskid = 0;
   public:
   BarrierObserver() : m_counter(std::make_shared<std::atomic<int64_t>>(0))
   {
   }
-  BarrierObserver(Barrier barrier) : m_counter(barrier.m_counter), taskid(barrier.taskid)
+  BarrierObserver(Barrier barrier) : m_counter(barrier.m_counter)//, taskid(barrier.taskid)
   {
   }
-  BarrierObserver(const BarrierObserver& copy) : m_counter(copy.m_counter), taskid(copy.taskid){
+  BarrierObserver(const BarrierObserver& copy) : m_counter(copy.m_counter)//, taskid(copy.taskid)
+  {
   }
-  BarrierObserver(BarrierObserver&& other) : m_counter(std::move(other.m_counter)), taskid(other.taskid) {other.m_counter = nullptr;}
+  BarrierObserver(BarrierObserver&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid) 
+  {
+    other.m_counter = nullptr;
+  }
   BarrierObserver& operator=(const BarrierObserver& copy) {
     m_counter = copy.m_counter;
-    taskid = copy.taskid;
+    //taskid = copy.taskid;
     return *this;
   }
   BarrierObserver& operator=(BarrierObserver&& other) {
     m_counter = std::move(other.m_counter);
-    taskid = other.taskid;
+    //taskid = other.taskid;
     other.m_counter = nullptr;
     return *this;
   }
@@ -514,7 +521,7 @@ class BarrierObserver
     Barrier bar;
     m_counter->fetch_add(1);
     bar.m_counter = m_counter;
-    bar.taskid = taskid;
+    //bar.taskid = taskid;
     return bar;
   }
   bool done() const {
@@ -668,7 +675,7 @@ class LBSPool
   std::mutex m_globalWorkMutex;
   std::vector<std::pair<std::vector<BarrierObserver>, Task>> m_taskQueue;
 
-  inline void notifyAll(int whoNotified, bool ignoreTasks = false)
+  void notifyAll(int whoNotified, bool ignoreTasks = false)
   {
     //HIGAN_CPU_FUNCTION_SCOPE();
     auto tasks = std::max(1, idle_threads - tasks_to_do.load());
@@ -697,14 +704,14 @@ class LBSPool
     HIGAN_CPU_FUNCTION_SCOPE();
     int procs = std::thread::hardware_concurrency();
     // control the amount of threads made.
-    //procs = 2;
+    // procs = 2;
     for (int i = 0; i < procs; i++)
     {
       m_threadData.emplace_back(std::make_shared<AllThreadData>(i));
     }
     for (auto&& it : m_threadData)
     {
-      if (it->data.m_ID == 0) // to let the creator be one of the threads.
+      if (it->data.m_ID == 0) // Basically mainthread is one of *us*
         continue; 
       m_threads.push_back(std::thread(&LBSPool::loop, this, it->data.m_ID));
     }
@@ -822,11 +829,11 @@ class LBSPool
       {
         return false;
       }
-      if (true || idle_threads.fetch_add(1) == threads_awake)
+      // potentially keep 1 thread always alive? for responsiveness? I don't know.
+      if (idle_threads.fetch_add(1) >= threads_awake)
       {
         idle_threads.fetch_sub(1);
         //HIGAN_CPU_BRACKET("short sleeping");
-        //std::this_thread::sleep_for(std::chrono::microseconds(10));
         return false;
       }
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
@@ -937,7 +944,7 @@ class LBSPool
     return rdy;
   }
 
-  bool allDepsDone(const std::vector<BarrierObserver>& barrs) {
+  inline bool allDepsDone(const std::vector<BarrierObserver>& barrs) {
     for (const auto& barrier : barrs) {
       if (!barrier.done())
         return false;
@@ -1032,25 +1039,22 @@ public:
   struct promise_type {
     using coro_handle = std::experimental::coroutine_handle<promise_type>;
     auto get_return_object() {
-      //printf("get_return_object\n");
       return coro_handle::from_promise(*this);
     }
     auto initial_suspend() {
-      //-printf("initial_suspend\n");
       return suspend_always();
     }
     auto final_suspend() noexcept {
-      //printf("final_suspend\n");
       return suspend_always();
     }
-    void return_value(T value) {m_value = value;}
+    void return_value(T value) {m_value = std::move(value);}
     void unhandled_exception() {
       std::terminate();
     }
+    /*
     auto await_transform(lbs_awaitable<T> handle) {
-      //printf("await_transform\n");
       return handle;
-    }
+    }*/
     T m_value;
     BarrierObserver dependency;
     Barrier wholeCoroReady;
@@ -1059,7 +1063,6 @@ public:
   using coro_handle = std::experimental::coroutine_handle<promise_type>;
   lbs_awaitable(coro_handle handle) : handle_(std::shared_ptr<coro_handle>(new coro_handle(handle), [](coro_handle* ptr){ptr->destroy();delete ptr;}))
   {
-    //printf("created async_awaitable\n");
     assert(handle);
 
     auto& barrier = observer();
@@ -1068,7 +1071,6 @@ public:
 
     barrier = my_pool->task({}, [handlePtr = handle_](size_t) mutable {
       if (!handlePtr->done()) {
-        //printf("trying to work\n");
         handlePtr->resume();
         if (handlePtr->done()) {
           handlePtr->promise().wholeCoroReady.kill();
@@ -1082,49 +1084,26 @@ public:
   lbs_awaitable(lbs_awaitable&& other) {
     if (other.handle_)
       handle_ = std::move(other.handle_);
-    //printf("moving\n");
     assert(handle_);
     other.handle_ = nullptr;
   }
-  /*
-  bool launch_work_if_work_left() noexcept {
-    auto& barrier = observer();
-    while (barrier && !barrier.done());
-    bool allWorkDone = handle_->done();
-    if (!allWorkDone) {
-      barrier = my_pool->task({}, [handlePtr = handle_](size_t){
-        if (!handlePtr->done()) {
-          printf("trying to work\n");
-          handlePtr->resume();
-        }
-      });
-    }
-    return !allWorkDone;
-  }*/
+
   // coroutine meat
   T await_resume() noexcept {
-    //printf("await_resume\n");
-    //assert(observer().done());
-    //while(launch_work_if_work_left());
     return handle_->promise().m_value;
   }
   bool await_ready() noexcept {
-    //printf("await_ready\n");
-    auto& barrier = observer();
-    //while (barrier && !barrier.done());
-    return barrier.done() && handle_->done();
+    BarrierObserver obs(handle_->promise().wholeCoroReady);
+    return obs.done() && handle_->done();
   }
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
   void await_suspend(coro_handle handle) noexcept {
-    //printf("await_suspend\n");
     auto& barrier = observer();
-
     auto& enemyBarrier = handle.promise().dependency;
     std::shared_ptr<coro_handle> otherHandle = handle.promise().weakref.lock();
     enemyBarrier = my_pool->task({handle_->promise().wholeCoroReady,barrier, enemyBarrier}, [handlePtr = otherHandle](size_t) mutable {
       if (!handlePtr->done()) {
-        //printf("trying to do dependant work\n");
         handlePtr->resume();
         if (handlePtr->done())
         {
@@ -1140,9 +1119,9 @@ public:
 
   T get()
   {
-    //printf("get\n");
     BarrierObserver obs(handle_->promise().wholeCoroReady);
-    //my_pool->helpTasksUntilBarrierComplete(barrier);
+    // not safe to call this, should be never called from within coroutined function.
+    my_pool->helpTasksUntilBarrierComplete(obs);
     while(!obs.done());
     assert(handle_->done());
     return handle_->promise().m_value; 
@@ -1163,7 +1142,6 @@ lbs_awaitable<int> funfun5() {
 lbs_awaitable<int> funfun6() {
   int sum = 0;
   sum += co_await funfun5();
-  //printf("wtf!\n");
   co_return sum;
 }
 
@@ -1174,9 +1152,6 @@ lbs_awaitable<int> addInTreeLBS(int treeDepth, int parallelDepth) {
     int result = 0;
     auto res0 = addInTreeLBS(treeDepth-1, parallelDepth);
     auto res1 = addInTreeLBS(treeDepth-1, parallelDepth);
-    //co_await combine(res0, res1);
-    //result += res0;
-    //result += res1;
     result += co_await res1;
     result += co_await res0;
     co_return result;
@@ -1196,7 +1171,7 @@ TEST_CASE("threaded awaitable - lbs")
     //auto fut = funfun5().get();
     //fut = funfun6().get();
     //REQUIRE(fut == 1);
-    int treeSize = 20;
+    int treeSize = 28;
     int computeTree = 6;
     /*
     for (int i = 0; i < 1000*1000; i++) {
@@ -1270,6 +1245,6 @@ TEST_CASE("threaded awaitable - lbs")
     printf("parallelfor - schedule overhead: total time %.4fms and total tasks produced and done %zu\n", t/1000.f/1000.f, pool.tasksDone());
     */
   }
-  higanbana::FileSystem fs("/../../tests/data/");
-  higanbana::profiling::writeProfilingData(fs);
+  //higanbana::FileSystem fs("/../../tests/data/");
+  //higanbana::profiling::writeProfilingData(fs);
 }
