@@ -12,6 +12,7 @@
 #include <iostream>
 #include <deque>
 #include <experimental/coroutine>
+#include <atomic>
 
 #include <windows.h>
 
@@ -441,92 +442,105 @@ class Barrier
 {
   friend class BarrierObserver;
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  //size_t taskid = 0;
   public:
-  Barrier(int taskid = 0) : m_counter(std::make_shared<std::atomic<int64_t>>(1))//, taskid(taskid)
+  Barrier(int taskid = 0)
   {
+    std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(1));
   }
   Barrier(const Barrier& copy){
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
-    m_counter->fetch_add(1);
+    if (copy.m_counter) {
+      std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
+      auto al = std::atomic_load(&m_counter);
+      if (al)
+        al->fetch_add(1);
+    }
+    else {
+      std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(1));
+    }
   }
-  Barrier(Barrier&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid)
+  Barrier(Barrier&& other)
   {
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
   Barrier& operator=(const Barrier& copy) {
-    m_counter->fetch_sub(1);
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
-    m_counter->fetch_add(1);
+    std::atomic_load(&m_counter)->fetch_sub(1);
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
+    std::atomic_load(&m_counter)->fetch_add(1);
     return *this;
   }
   Barrier& operator=(Barrier&& other) {
     if (m_counter)
-      *m_counter -= 1;
-    m_counter = std::move(other.m_counter);
-    //taskid = other.taskid;
-    other.m_counter = nullptr;
+      std::atomic_load(&m_counter)->fetch_sub(1);
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
     return *this;
   }
   bool done() const {
-    return m_counter->load() <= 0;
+    return std::atomic_load(&m_counter)->load() <= 0;
   }
   void kill() {
-    if (m_counter && m_counter->load() > 0)
-      m_counter->store(-10);
+    if (m_counter) {
+      auto local = std::atomic_load(&m_counter);
+      if (local->load() > 0)
+        local->store(-100);
+    }
+  }
+  explicit operator bool() const {
+    return bool(std::atomic_load(&m_counter));
   }
   ~Barrier(){
-    if (m_counter)
-      m_counter->fetch_sub(1);
+    auto local = std::atomic_load(&m_counter);
+    if (local)
+      local->fetch_sub(1);
+    std::atomic_store(&m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
 };
 
 class BarrierObserver 
 {
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  //size_t taskid = 0;
   public:
-  BarrierObserver() : m_counter(std::make_shared<std::atomic<int64_t>>(0))
+  BarrierObserver()
   {
+    std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(0));
   }
-  BarrierObserver(Barrier barrier) : m_counter(barrier.m_counter)//, taskid(barrier.taskid)
+  BarrierObserver(const Barrier& barrier)
   {
+    std::atomic_store(&m_counter, std::atomic_load(&barrier.m_counter));
   }
-  BarrierObserver(const BarrierObserver& copy) : m_counter(copy.m_counter)//, taskid(copy.taskid)
+  BarrierObserver(const BarrierObserver& copy)
   {
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
   }
-  BarrierObserver(BarrierObserver&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid) 
+  BarrierObserver(BarrierObserver&& other)
   {
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
   BarrierObserver& operator=(const BarrierObserver& copy) {
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
     return *this;
   }
   BarrierObserver& operator=(BarrierObserver&& other) {
-    m_counter = std::move(other.m_counter);
-    //taskid = other.taskid;
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
     return *this;
   }
   Barrier barrier() {
     Barrier bar;
-    m_counter->fetch_add(1);
-    bar.m_counter = m_counter;
-    //bar.taskid = taskid;
+    auto local = std::atomic_load(&m_counter);
+    local->fetch_add(1);
+    std::atomic_store(&bar.m_counter, local);
     return bar;
   }
-  void makeSureOne() {
-    m_counter->store(1);
-  }
   bool done() const {
-    return m_counter->load() <= 0;
+    if (!m_counter)
+      return true;
+    return std::atomic_load(&m_counter)->load() <= 0;
   }
   explicit operator bool() const {
-    return bool(m_counter);
+    return bool(std::atomic_load(&m_counter));
   }
   ~BarrierObserver(){
   } 
@@ -849,7 +863,7 @@ class LBSPool
       procs = 0;
       bool hyperThreading = true;
       bool allCores = true;
-      bool allGroups = false;
+      bool allGroups = true;
       for (int i = 0; i < procs; i++)
       {
       }
@@ -986,10 +1000,11 @@ class LBSPool
         return true;
       }
     }
-    // check others deque
+    // other deques
+    
     for (auto &it : m_threadData)
     {
-      if (it->data.m_ID == p.m_ID) // skip itself
+      if (it->data.m_ID == p.m_ID || it->data.m_l3group != p.m_l3group)
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
@@ -1005,6 +1020,26 @@ class LBSPool
         }
       }
     }
+#if 1
+    for (auto &it : m_threadData)
+    {
+      if (it->data.m_l3group == p.m_l3group)
+        continue;
+      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
+      {
+        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
+        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        {
+          p.m_task = it->data.m_localDeque.front();
+          assert(p.m_task.m_iterations != 0);
+          it->data.m_localDeque.pop_front();
+          it->data.m_localQueueSize->store(it->data.m_localDeque.size());
+          tasks_to_do--;
+          return true;
+        }
+      }
+    }
+#endif
     // as last effort, check global queue
     if (tryTakeTaskFromGlobalQueue(data)) {
       return true;
@@ -1150,9 +1185,9 @@ class LBSPool
   bool wantToAddTask(std::vector<BarrierObserver>&& depends) {
     int queue_count =  my_queue_count();
     bool depsDone = allDepsDone(depends);
-    bool spawnTask = !depends.empty() || !depsDone || queue_count <= 1;
+    bool spawnTask = !depends.empty() || !depsDone || queue_count <= 10;
     //tasksReadyToProcess() < threads_awake.load(std::memory_order::relaxed)
-    spawnTask = !((depends.empty() || depsDone) && (queue_count > 0 && tasks_to_do > threads_awake/2));
+    spawnTask = !((depends.empty() || depsDone) && queue_count > 2);
     return spawnTask;
   }
 
@@ -1255,7 +1290,7 @@ std::experimental::coroutine_handle<> noop_coroutine() {
   }().coro;
 }
 std::experimental::coroutine_handle<> noop_coroutine(Barrier dep) {
-  return [b = dep]() mutable -> noop_task {
+  return [b = std::move(dep)]() mutable -> noop_task {
     b.kill();
     co_return;
   }().coro;
@@ -1293,20 +1328,21 @@ public:
             handle.resume();
           }
         });*/
-        assert(!h.promise().finalDependency.done());
+        auto finalDep = h.promise().finalDependency;
+        assert(!finalDep.done());
         //finalDependency = h.promise().finalDependency;
         void* ptr = h.address();
 
         if (!h.promise().async && h.promise().m_continuation.address() != nullptr){
           assert(thread_check_value != ptr);
-          h.promise().finalDependency.kill();
+          finalDep.kill();
           return h.promise().m_continuation;
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(100));
         //assert(!h.promise().finalDependency.done());
         //assert(h.promise().async && thread_check_value == ptr);
         //assert(h.promise().finalDependency.done());
-        return noop_coroutine(h.promise().finalDependency);
+        return noop_coroutine(std::move(h.promise().finalDependency));
       }
       void await_resume() noexcept {}
     };
@@ -1330,7 +1366,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = Barrier();
-    if (true||my_pool->wantToAddTask({})) {
+    if (true && my_pool->wantToAddTask({})) {
       handle_.promise().async = true;
       handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         thread_check_value = handlePtr;
@@ -1393,7 +1429,10 @@ public:
       //if (handle.address() != nullptr && !handle.done()) {
         void* ptr = handle.address();
         //assert(thread_check_value == ptr);
-        auto obs = BarrierObserver(handle_.promise().finalDependency);
+        BarrierObserver obs;
+        auto finalDep = handle_.promise().finalDependency;
+        if (!handle_.done() && finalDep)
+          obs = BarrierObserver(finalDep);
         if (obs.done() && handle_.promise().bar.done())
         {
           //assert(handle_.done());
@@ -1503,21 +1542,17 @@ lbs_awaitable<int> addInTreeLBS(int treeDepth, int parallelDepth) {
   }
 }
 
-lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree) {
+lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) {
   higanbana::Timer time2;
 
-  time2.reset();
-  int a = addInTreeNormal(treeSize);
-  auto stTime = time2.reset();
-  auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
-  size_t mint, maxt;
-  co_await overlap;
-  mint = time2.reset();
-  maxt = mint;
-  mint = mint * 10;
+  size_t mint = 0, maxt = 0;
+  size_t avegMin = 0, avegMax = 0;
+  size_t aveCount = 0;
+  mint = compareTime;
+  maxt = 0;
   auto omi = mint;
-  auto oma = maxt;
-  overlap = std::move(addInTreeLBS(treeSize, treeSize-computeTree));
+  auto oma = 0;
+  auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
   for (int i = 0; i < 1000*1000; i++) {
     //my_pool->resetIDs();
@@ -1526,33 +1561,43 @@ lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree) {
     //}
     //funfun6().get();
     auto another = addInTreeLBS(treeSize, treeSize-computeTree);
-    int lbs = co_await overlap;
-    overlap = std::move(another);
+    int lbs = co_await another; //overlap;
+    //overlap = std::move(another);
     auto t = time2.reset();
     aveg += t;
     mint = (mint > t) ? t : mint;
     maxt = (maxt < t) ? t : maxt;
     if (i%100 == 0) {
-    printf("done %d ST:%.3fms %.2f ratio %.3fms %.3fms %.3fms\n",i, stTime/1000.f/1000.f, float(stTime) / float(aveg/100), aveg/100/1000.f/1000.f, mint/1000.f/1000.f, maxt/1000.f/1000.f);
-    aveg = 0;
-    mint = omi;
-    maxt = oma;
-    fflush(stdout);
+      avegMin = avegMin + mint;
+      avegMax = avegMax + maxt;
+      aveCount++;
+      printf("done %d ST:%.3fms %.2f ratio %.3fms %.3fms %.3fms\n",i, compareTime/1000.f/1000.f, float(compareTime) / float(aveg/100), aveg/100/1000.f/1000.f, avegMin/aveCount/1000.f/1000.f, avegMax/aveCount/1000.f/1000.f);
+      aveg = 0;
+      mint = omi;
+      maxt = oma;
+      fflush(stdout);
     }
   }
-  co_return a + co_await overlap;
+  co_return co_await overlap;
 }
 
 TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
+    int computeTree = 5;
+    int treeSize = 24;
+    int a = addInTreeNormal(treeSize);
+    a = addInTreeNormal(treeSize);
+    a = addInTreeNormal(treeSize);
+    a = addInTreeNormal(treeSize);
+    auto time2 = higanbana::Timer();
+    a = addInTreeNormal(treeSize);
+    auto stTime = time2.reset();
     my_pool = std::make_shared<LBSPool>();
     //auto fut = funfun5().get();
     //fut = funfun6().get();
     //REQUIRE(fut == 1);
-    int computeTree = 5;
-    int treeSize = 25;
     
 
     /*
@@ -1574,8 +1619,8 @@ TEST_CASE("threaded awaitable - lbs")
     }
     overlap.get();
     */
-    int result = asyncLoopTest(treeSize, computeTree).get();
-    int basecase2 = addInTreeNormal(treeSize);
+    int result = asyncLoopTest(treeSize, computeTree, stTime).get();
+    int basecase2 = addInTreeNormal(treeSize) + a;
     REQUIRE(basecase2 == result);
     
     
