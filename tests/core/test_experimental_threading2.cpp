@@ -1496,9 +1496,10 @@ public:
     auto obs = BarrierObserver(handle_.promise().finalDependency);
     bool wasIAsync = handle_.promise().async;
     while(!handle_.done()){
-      if (handle_.promise().async && !obs.done())
+      if (handle_.promise().async)
         my_pool->helpTasksUntilBarrierComplete(obs);
       else {
+        //assert(handle_.promise().async);
         handle_.resume();
         if (!wasIAsync && handle_.promise().async)
         {
@@ -1556,6 +1557,23 @@ lbs_awaitable<int> addInTreeLBS(int treeDepth, int parallelDepth) {
     co_return res0 + res1;
   }
 }
+uint64_t Fibonacci(uint64_t number) {
+  return number < 2 ? 1 : Fibonacci(number - 1) + Fibonacci(number - 2);
+}
+lbs_awaitable<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel) {
+  if (number < 2)
+      co_return 1;
+  
+  if (number > parallel) {
+      auto v0 = FibonacciCoro(number-1, parallel);
+      auto v1 = FibonacciCoro(number-2, parallel);
+      co_return co_await v0 + co_await v1;
+  }
+  auto fib0 = Fibonacci(number - 1);
+  auto fib1 = Fibonacci(number - 2);
+  co_return fib0 + fib1;
+}
+
 
 lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) {
   higanbana::Timer time2;
@@ -1610,9 +1628,21 @@ TEST_CASE("threaded awaitable - lbs")
     a = addInTreeNormal(treeSize);
     auto stTime = time2.reset();
     my_pool = std::make_shared<LBSPool>();
-    //auto fut = funfun5().get();
-    //fut = funfun6().get();
-    //REQUIRE(fut == 1);
+    auto fut = funfun5().get();
+    fut = funfun6().get();
+    
+    REQUIRE(fut == 3);
+
+    for (int i = 0; i < 10000; i++) {
+      auto fibo = Fibonacci(20);
+      auto fibo2 = fibo;
+      try {
+        fibo2 = FibonacciCoro(20, 7).get();
+      } catch (...){
+        assert(false);
+      }
+      REQUIRE(fibo == fibo2);
+    }
     
 
     /*

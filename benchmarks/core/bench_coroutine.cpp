@@ -10,6 +10,7 @@
 #include <iostream>
 #include <deque>
 #include <experimental/coroutine>
+#include <windows.h>
 
 
 struct suspend_never {
@@ -122,88 +123,105 @@ class Barrier
 {
   friend class BarrierObserver;
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  //size_t taskid = 0;
   public:
-  Barrier(int taskid = 0) : m_counter(std::make_shared<std::atomic<int64_t>>(1))//, taskid(taskid)
+  Barrier(int taskid = 0)
   {
+    std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(1));
   }
   Barrier(const Barrier& copy){
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
-    m_counter->fetch_add(1);
+    if (copy.m_counter) {
+      std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
+      auto al = std::atomic_load(&m_counter);
+      if (al)
+        al->fetch_add(1);
+    }
+    else {
+      std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(1));
+    }
   }
-  Barrier(Barrier&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid)
+  Barrier(Barrier&& other)
   {
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
   Barrier& operator=(const Barrier& copy) {
-    m_counter->fetch_sub(1);
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
-    m_counter->fetch_add(1);
+    std::atomic_load(&m_counter)->fetch_sub(1);
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
+    std::atomic_load(&m_counter)->fetch_add(1);
     return *this;
   }
   Barrier& operator=(Barrier&& other) {
     if (m_counter)
-      *m_counter -= 1;
-    m_counter = std::move(other.m_counter);
-    //taskid = other.taskid;
-    other.m_counter = nullptr;
+      std::atomic_load(&m_counter)->fetch_sub(1);
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
     return *this;
   }
   bool done() const {
-    return m_counter->load() <= 0;
+    return std::atomic_load(&m_counter)->load() <= 0;
   }
   void kill() {
-    *m_counter = -1;
+    if (m_counter) {
+      auto local = std::atomic_load(&m_counter);
+      if (local->load() > 0)
+        local->store(-100);
+    }
+  }
+  explicit operator bool() const {
+    return bool(std::atomic_load(&m_counter));
   }
   ~Barrier(){
-    if (m_counter)
-      m_counter->fetch_sub(1);
+    auto local = std::atomic_load(&m_counter);
+    if (local)
+      local->fetch_sub(1);
+    std::atomic_store(&m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
 };
 
 class BarrierObserver 
 {
   std::shared_ptr<std::atomic<int64_t>> m_counter;
-  //size_t taskid = 0;
   public:
-  BarrierObserver() : m_counter(std::make_shared<std::atomic<int64_t>>(0))
+  BarrierObserver()
   {
+    std::atomic_store(&m_counter, std::make_shared<std::atomic<int64_t>>(0));
   }
-  BarrierObserver(Barrier barrier) : m_counter(barrier.m_counter)//, taskid(barrier.taskid)
+  BarrierObserver(const Barrier& barrier)
   {
+    std::atomic_store(&m_counter, std::atomic_load(&barrier.m_counter));
   }
-  BarrierObserver(const BarrierObserver& copy) : m_counter(copy.m_counter)//, taskid(copy.taskid)
+  BarrierObserver(const BarrierObserver& copy)
   {
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
   }
-  BarrierObserver(BarrierObserver&& other) : m_counter(std::move(other.m_counter))//, taskid(other.taskid) 
+  BarrierObserver(BarrierObserver&& other)
   {
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
   }
   BarrierObserver& operator=(const BarrierObserver& copy) {
-    m_counter = copy.m_counter;
-    //taskid = copy.taskid;
+    std::atomic_store(&m_counter, std::atomic_load(&copy.m_counter));
     return *this;
   }
   BarrierObserver& operator=(BarrierObserver&& other) {
-    m_counter = std::move(other.m_counter);
-    //taskid = other.taskid;
-    other.m_counter = nullptr;
+    std::atomic_store(&m_counter, std::atomic_load(&other.m_counter));
+    std::atomic_store(&other.m_counter, std::shared_ptr<std::atomic<int64_t>>(nullptr));
     return *this;
   }
   Barrier barrier() {
     Barrier bar;
-    m_counter->fetch_add(1);
-    bar.m_counter = m_counter;
-    //bar.taskid = taskid;
+    auto local = std::atomic_load(&m_counter);
+    local->fetch_add(1);
+    std::atomic_store(&bar.m_counter, local);
     return bar;
   }
   bool done() const {
-    return m_counter->load() <= 0;
+    if (!m_counter)
+      return true;
+    return std::atomic_load(&m_counter)->load() <= 0;
   }
   explicit operator bool() const {
-    return bool(m_counter);
+    return bool(std::atomic_load(&m_counter));
   }
   ~BarrierObserver(){
   } 
@@ -316,13 +334,130 @@ class ThreadData
 {
 public:
   ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) { }
-  ThreadData(int id) :m_ID(id), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) {  }
+  ThreadData(int id, int logicalThread) :m_ID(id), m_logicalThread(logicalThread), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) {  }
 
   int m_ID = 0;
+  int m_logicalThread = 0;
+  int m_core = 0;
+  int m_l3group = 0;
   Task m_task;
   std::shared_ptr<std::atomic<int>> m_localQueueSize;
   std::deque<Task> m_localDeque;
   std::shared_ptr<std::atomic<bool>> m_alive;
+};
+
+struct CpuCore
+{
+  std::vector<int> logicalCores;
+};
+
+struct L3CacheCpuGroup
+{
+  uint64_t mask;
+  std::vector<CpuCore> cores;
+};
+
+struct Numa
+{
+  DWORD number = 0;
+  WORD processor = 0;
+  int cores = 0;
+  int threads = 0;
+  std::vector<L3CacheCpuGroup> coreGroups;
+};
+
+class SystemCpuInfo {
+  public:
+  std::vector<Numa> numas;
+  SystemCpuInfo() {
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION info = nullptr;
+    DWORD infoLen = 0;
+    if (!GetLogicalProcessorInformation(info, &infoLen)){
+      auto error = GetLastError();
+      if (error == ERROR_INSUFFICIENT_BUFFER) {
+        info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(malloc(infoLen));
+        if (GetLogicalProcessorInformation(info, &infoLen)) {
+          DWORD byteOffset = 0;
+          PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr = info;
+          std::vector<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION> ptrs;
+          while (byteOffset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= infoLen) {
+            ptrs.push_back(ptr);
+            switch(ptr->Relationship) {
+              case RelationNumaNode:
+              {
+                GROUP_AFFINITY affi;
+                bool woot = GetNumaNodeProcessorMaskEx(ptr->NumaNode.NodeNumber, &affi);
+                numas.push_back({ptr->NumaNode.NodeNumber, affi.Group});
+                break;
+              }
+              default:
+                break;
+            }
+            byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+            ptr++;
+          }
+
+          for (auto& numa : numas) {
+            for (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pt : ptrs) {
+              switch(pt->Relationship) {
+                case RelationProcessorCore:
+                {
+                  break;
+                }
+                case RelationCache:
+                {
+                  if (pt->Cache.Level == 3) {
+                    L3CacheCpuGroup group{};
+                    group.mask = static_cast<uint64_t>(pt->ProcessorMask);
+                    numa.coreGroups.push_back(group);
+                  }
+                  break;
+                }
+                case RelationProcessorPackage:
+                {
+                  break;
+                }
+                default:
+                  break;
+              }
+            }
+            for (auto& l3ca : numa.coreGroups)
+              for (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pt : ptrs) {
+                auto res = l3ca.mask & pt->ProcessorMask;
+                if (res != pt->ProcessorMask)
+                  continue;
+                switch(pt->Relationship) {
+                  case RelationProcessorCore:
+                  {
+                    CpuCore core{};
+                    auto mask = pt->ProcessorMask;
+                    numa.cores++;
+                    while(mask != 0) {
+                      unsigned long index = -1;
+                      if (_BitScanForward(&index, mask)!=0) {
+                        core.logicalCores.push_back(static_cast<int>(index));
+                        numa.threads++;
+                        unsigned long unsetMask = 1 << index;
+                        mask ^= unsetMask;
+                      }
+                      else{
+                        break;
+                      }
+                    }
+                    l3ca.cores.push_back(core);
+                    break;
+                  }
+                  default:
+                    break;
+                }
+              }
+          }
+        }
+        free(info);
+      }
+    }
+  }
+
 };
 
 #define LBSPOOL_ENABLE_PROFILE_THREADS
@@ -333,7 +468,7 @@ class LBSPool
 {
   struct AllThreadData 
   {
-    AllThreadData(int i):data(i) {}
+    AllThreadData(int i, int logicalThread):data(i, logicalThread) {}
     ThreadData data;
     std::mutex mutex;
     std::condition_variable cv;
@@ -355,17 +490,17 @@ class LBSPool
   void notifyAll(int whoNotified, bool ignoreTasks = false)
   {
     //HIGAN_CPU_FUNCTION_SCOPE();
-    auto tasks = threads_awake.load(); //std::max(1, idle_threads - tasks_to_do.load());
-
-    for (auto& it : m_threadData)
+    auto tasks = std::max(1, tasks_to_do.load());
+    auto offset = std::max(0, whoNotified);
+    const int tdSize = static_cast<int>(m_threadData.size());
+    for (int i = 1; i < tdSize; ++i) 
     {
-      if (tasks > 0 && it->data.m_ID != whoNotified && it->data.m_ID != 0)
+      auto& it = m_threadData[(i+offset)%tdSize];
+      if ((tasks > 0 && it->data.m_ID != 0) || (ignoreTasks && it->data.m_ID != 0))
       {
         tasks--;
         it->cv.notify_one();
       }
-      if (ignoreTasks && it->data.m_ID != 0)
-        it->cv.notify_one();
     }
   }
 
@@ -394,18 +529,72 @@ class LBSPool
     , tasks_done(0)
   {
     HIGAN_CPU_FUNCTION_SCOPE();
-    int procs = std::thread::hardware_concurrency();
+    int procs = 0;//std::thread::hardware_concurrency();
     // control the amount of threads made.
-    //procs = 64;
-    for (int i = 0; i < procs; i++)
-    {
-      m_threadData.emplace_back(std::make_shared<AllThreadData>(i));
+    //procs = 4;
+   
+    SystemCpuInfo info;
+    if (!info.numas.empty()) { // use the numa info
+      auto& numa = info.numas.front();
+      printf("found beautiful numa info!\n");
+      printf("numas %zu\n", info.numas.size());
+      printf("l3groups %zu\n", numa.coreGroups.size());
+      printf("cores %d\n", numa.cores);
+      printf("threads %d\n", numa.threads);
+      procs = 0;
+      bool hyperThreading = true;
+      bool allCores = true;
+      bool allGroups = true;
+      bool splitCores = false; // create cores like 12341234 instead of current 11223344
+      bool splitGroups = false; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
+      int group = 0;
+      int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
+      int coresPerGroup = (splitGroups ? 2 : numa.cores/static_cast<int>(numa.coreGroups.size()));
+      for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
+        for (int k = 0; k < numa.coreGroups.size(); k+= coresPerGroup){
+          for (auto& ccx : numa.coreGroups) {
+            for (int ci = 0; ci < coresPerGroup; ci++) {
+              auto& core = ccx.cores[k+ci];
+              for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
+                auto& thread = core.logicalCores[lt+i];
+                m_threadData.emplace_back(std::make_shared<AllThreadData>(procs, thread));
+                auto& data = m_threadData.back()->data;
+                data.m_l3group = group;
+                data.m_core = core.logicalCores.front() / static_cast<int>(core.logicalCores.size());
+                procs++;
+                if (!hyperThreading)
+                  break;
+              }
+              if (!allCores)
+                break;
+            }
+            if (!allGroups)
+              break;
+            group++;
+          }
+        }
+      }
     }
+    else // fallback to old
+    {
+      printf("no numas here rip, fallback to old\n");
+      procs = std::thread::hardware_concurrency();
+      for (int i = 0; i < procs; i++)
+      {
+        m_threadData.emplace_back(std::make_shared<AllThreadData>(i, i));
+      }
+    }
+    fflush(stdout);
+
+    BOOL res = SetThreadAffinityMask(GetCurrentThread(), 1u<<m_threadData[0]->data.m_logicalThread);
+    assert(res);
     for (auto&& it : m_threadData)
     {
       if (it->data.m_ID == 0) // Basically mainthread is one of *us*
         continue; 
       m_threads.push_back(std::thread(&LBSPool::loop, this, it->data.m_ID));
+      res = SetThreadAffinityMask(m_threads.back().native_handle(), 1u << it->data.m_logicalThread);
+      assert(res);
     }
     HIGAN_CPU_BRACKET("waiting for threads to wakeup for instant business.");
     while(threads_awake != procs-1);
@@ -486,7 +675,7 @@ class LBSPool
     //HIGAN_CPU_FUNCTION_SCOPE();
     // check my own deque
     auto& p = data.data;
-    if (p.m_localQueueSize->load() != 0)
+    if (p.m_localQueueSize->load() > 0)
     {
       // try to take work from own deque, backside.
       std::lock_guard<std::mutex> guard(data.mutex);
@@ -499,35 +688,65 @@ class LBSPool
         return true;
       }
     }
-    // check others deque
-    for (auto &it : m_threadData)
+    // other deques
+    
+    //for (auto &it : m_threadData)
+    const int tdSize = static_cast<int>(m_threadData.size());
+    for (int i = 1; i < tdSize; ++i) 
     {
-      if (it->data.m_ID == p.m_ID) // skip itself
+      auto& it = m_threadData[(i+p.m_ID)%tdSize];
+      if (it->data.m_l3group != p.m_l3group)
         continue;
-      if (it->data.m_localQueueSize->load() != 0) // this should reduce unnecessary lock_guards, and cheap.
+      if (it->data.m_localQueueSize->load(std::memory_order::seq_cst) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::lock_guard<std::mutex> guard(it->mutex);
-        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
+        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
         {
           p.m_task = it->data.m_localDeque.front();
           assert(p.m_task.m_iterations != 0);
           it->data.m_localDeque.pop_front();
-          it->data.m_localQueueSize->store(it->data.m_localDeque.size(), std::memory_order_relaxed);
+          it->data.m_localQueueSize->store(it->data.m_localDeque.size());
           tasks_to_do--;
           return true;
         }
       }
     }
+#if 1
+    for (int i = 0; i < tdSize-1; ++i) 
+    {
+      auto& it = m_threadData[(i+p.m_ID)%tdSize];
+      if (it->data.m_l3group == p.m_l3group)
+        continue;
+      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
+      {
+        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
+        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        {
+          p.m_task = it->data.m_localDeque.front();
+          assert(p.m_task.m_iterations != 0);
+          it->data.m_localDeque.pop_front();
+          it->data.m_localQueueSize->store(it->data.m_localDeque.size());
+          tasks_to_do--;
+          return true;
+        }
+      }
+    }
+#endif
+    // as last effort, check global queue
+    if (tryTakeTaskFromGlobalQueue(data)) {
+      return true;
+    }
+
     // if all else fails, wait for more work.
     if (!StopCondition && allowedToSleep) // this probably doesn't fix the random deadlock
     {
-      if (p.m_localQueueSize->load() != 0 || tasks_to_do > 0 || tasks_in_queue > 5)
+      if (p.m_localQueueSize->load() != 0 || tasks_to_do > 0)
       {
         return false;
       }
-      //return false;
       // potentially keep 1 thread always alive? for responsiveness? I don't know.
-      /*if (idle_threads.fetch_add(1) >= threads_awake)
+      /*
+      if (idle_threads.fetch_add(1) >= threads_awake)
       {
         idle_threads.fetch_sub(1);
         //HIGAN_CPU_BRACKET("short sleeping");
@@ -556,53 +775,59 @@ class LBSPool
       stealOrSleep(data, allowedToSleep);
     }
   }
+  bool tryTakeTaskFromGlobalQueue(AllThreadData& data)
+  {
+#if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
+    HIGAN_CPU_FUNCTION_SCOPE();
+#endif
+    std::vector<Task>& addable = data.addableTasks;
+    if (tasks_in_queue.load(std::memory_order::relaxed) > 0)
+    {
+      if (!addable.empty())
+        addable.clear();
+#if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
+      HIGAN_CPU_BRACKET("getting task from global queue");
+#endif
+      std::unique_lock<std::mutex> guard(m_globalWorkMutex, std::defer_lock_t());
+      if (guard.try_lock()) {
+        m_taskQueue.erase(std::remove_if(m_taskQueue.begin(), m_taskQueue.end(), [&](const std::pair<std::vector<BarrierObserver>, Task>& it){
+          if (allDepsDone(it.first)) {
+            addable.push_back(std::move(it.second));
+            return true;
+          }
+          return false;
+        }), m_taskQueue.end());
+      }
+      tasks_in_queue -= static_cast<int>(addable.size());
+    }
+    if (!addable.empty())
+    {
+#if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
+      HIGAN_CPU_BRACKET("adding tasks to own queue");
+#endif
+      std::lock_guard<std::mutex> guard(data.mutex);
+      data.data.m_localDeque.insert(data.data.m_localDeque.end(), addable.begin(), addable.end());
+      data.data.m_localQueueSize->store(data.data.m_localDeque.size(), std::memory_order_relaxed);
+      tasks_to_do += static_cast<int>(addable.size());
+      notifyAll(data.data.m_ID);
+      addable.clear();
+      return true;
+    }
+    return false;
+  }
+
   void informTaskFinished(AllThreadData& data)
   {
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
     data.data.m_task.m_id = 0;
-    std::vector<Task>& addable = data.addableTasks;
-    addable.clear();
+    BarrierObserver observs = data.data.m_task.m_blocks;
+    data.data.m_task.m_blocks.kill();
+    data.data.m_task.m_blocks = Barrier();
+    if (observs.done()) // possibly something done
     {
-      BarrierObserver observs = data.data.m_task.m_blocks;
-      data.data.m_task.m_blocks = Barrier();
-      if (observs.done())
-      {
-#if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
-        HIGAN_CPU_BRACKET("getting task from global queue");
-#endif
-        std::lock_guard<std::mutex> guard(m_globalWorkMutex);
-        bool cond = true;
-        while (cond)
-        {
-          cond = false;
-          for (auto it = m_taskQueue.begin(); it != m_taskQueue.end(); it++)
-          {
-            if (allDepsDone(it->first))
-            {
-              addable.push_back(std::move(it->second));
-              m_taskQueue.erase(it);
-              cond = true;
-              break;
-            }
-          }
-        }
-        tasks_in_queue -= static_cast<int>(addable.size());
-      }
-    }
-    {
-#if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
-      HIGAN_CPU_BRACKET("adding tasks to own queue");
-#endif
-      std::lock_guard<std::mutex> guard(data.mutex);
-      for (auto& it : addable)
-      {
-        data.data.m_localDeque.push_front(std::move(it));
-        data.data.m_localQueueSize->store(data.data.m_localDeque.size(), std::memory_order_relaxed);
-      }
-      tasks_to_do += static_cast<int>(addable.size());
-      notifyAll(data.data.m_ID);
+      tryTakeTaskFromGlobalQueue(data);
     }
   }
 
@@ -635,11 +860,7 @@ class LBSPool
     ThreadData& p = data.data;
     auto currentIterID = p.m_task.m_iterID;
     bool rdy = false;
-    
-    {
-        HIGAN_CPU_BRACKET("dowork");
-        rdy = p.m_task.doWork();
-    }
+    rdy = p.m_task.doWork();
     auto amountOfWork = p.m_task.m_iterID - currentIterID;
     didWorkFor(data, amountOfWork);
     return rdy;
@@ -653,22 +874,18 @@ class LBSPool
     return true;
   }
 
-  template<typename Func>
-  inline BarrierObserver task(std::vector<BarrierObserver>&& depends, Func&& func) {
+  bool wantToAddTask(std::vector<BarrierObserver>&& depends) {
     int queue_count =  my_queue_count();
     bool depsDone = allDepsDone(depends);
-    bool spawnTask = !depends.empty() || !depsDone || queue_count <= 1;
+    bool spawnTask = !depends.empty() || !depsDone || queue_count <= 10;
     //tasksReadyToProcess() < threads_awake.load(std::memory_order::relaxed)
-    spawnTask = !((depends.empty() || depsDone) && (queue_count > 0 && tasks_to_do > threads_awake/2));
-    //.if (tasksDone() % 1000 == 0)
-    //    printf("tasks done %zu\n", tasksDone());
-    if (spawnTask)
-      return internalAddTask<1>(std::forward<decltype(depends)>(depends), 0, 1, std::forward<Func>(func));
-    else
-    {
-      func(0);
-      return BarrierObserver();
-    }
+    spawnTask = !((depends.empty() || depsDone) && queue_count > 2);
+    return spawnTask;
+  }
+
+  template<typename Func>
+  inline BarrierObserver task(std::vector<BarrierObserver>&& depends, Func&& func) {
+    return internalAddTask<1>(std::forward<decltype(depends)>(depends), 0, 1, std::forward<Func>(func));
   }
 
   template<size_t ppt, typename Func>
@@ -682,8 +899,8 @@ class LBSPool
     size_t newId = m_nextTaskID.fetch_add(1);
     assert(newId < m_nextTaskID);
     //printf("task added %zd\n", newId);
-    Barrier taskBarrier(newId);
-    Task newTask(newId, start_iter, iterations, taskBarrier);
+    BarrierObserver obs;
+    Task newTask(newId, start_iter, iterations, std::move(obs.barrier()));
     auto& threadData = m_threadData.at(ThreadID);
     newTask.genWorkFunc<ppt>(std::forward<Func>(func));
     {
@@ -708,10 +925,13 @@ class LBSPool
       }
     }
     notifyAll(-1);
-    return BarrierObserver(taskBarrier);
+    //while(!obs.done()){}
+    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return obs;
   }
 
   void helpTasksUntilBarrierComplete(BarrierObserver observed) {
+    assert(my_thread_index() == 0);
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
@@ -743,80 +963,145 @@ class LBSPool
 
   size_t tasksDone() const { return tasks_done;}
 };
+struct noop_task {
+  struct promise_type {
+    noop_task get_return_object() noexcept {
+      return { std::experimental::coroutine_handle<promise_type>::from_promise(*this) };
+    }
+    void unhandled_exception() noexcept {}
+    void return_void() noexcept {}
+    suspend_always initial_suspend() noexcept { return {}; }
+    suspend_never final_suspend() noexcept { return {}; }
+  };
+  std::experimental::coroutine_handle<> coro;
+};
 
+std::experimental::coroutine_handle<> noop_coroutine() {
+  return []() -> noop_task {
+    co_return;
+  }().coro;
+}
+std::experimental::coroutine_handle<> noop_coroutine(Barrier dep) {
+  return [b = std::move(dep)]() mutable -> noop_task {
+    b.kill();
+    co_return;
+  }().coro;
+}
 
 static std::shared_ptr<LBSPool> my_pool = nullptr;
+thread_local void* thread_check_value = nullptr;
+thread_local int arpa = 1;
 
 template<typename T>
 class lbs_awaitable {
 public:
   struct promise_type {
     using coro_handle = std::experimental::coroutine_handle<promise_type>;
-    auto get_return_object() noexcept {
+    __declspec(noinline) auto get_return_object() {
       return lbs_awaitable(coro_handle::from_promise(*this));
     }
-    auto initial_suspend() noexcept {
-      return suspend_always();
+    suspend_always initial_suspend() {
+      return {};
     }
-    auto final_suspend() noexcept {
-      return suspend_always();
+
+    struct final_awaiter {
+      bool await_ready() noexcept {
+        return false;
+      }
+      std::experimental::coroutine_handle<> await_suspend(coro_handle h) noexcept {
+        // The coroutine is now suspended at the final-suspend point.
+        // Lookup its continuation in the promise and resume it.
+        /*
+        auto handle = h.promise().continuation;
+        auto& barrier = handle.promise().dependency;
+        barrier = my_pool->task({h.promise().dependency}, [handlePtr = handle.address()](size_t) mutable {
+          auto handle = coro_handle::from_address(handlePtr); 
+          if (!handle.done()) {
+            handle.resume();
+          }
+        });*/
+        auto finalDep = h.promise().finalDependency;
+        assert(!finalDep.done());
+        //finalDependency = h.promise().finalDependency;
+        void* ptr = h.address();
+
+        if (!h.promise().async && h.promise().m_continuation.address() != nullptr){
+          assert(thread_check_value != ptr);
+          finalDep.kill();
+          return h.promise().m_continuation;
+        }
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //assert(!h.promise().finalDependency.done());
+        //assert(h.promise().async && thread_check_value == ptr);
+        //assert(h.promise().finalDependency.done());
+        return noop_coroutine(std::move(h.promise().finalDependency));
+      }
+      void await_resume() noexcept {}
+    };
+
+    final_awaiter final_suspend() noexcept {
+      return {};
     }
-    void return_value(T value) noexcept {m_value = std::move(value);}
-    void unhandled_exception() noexcept {
+    void return_value(T value) {m_value = std::move(value);}
+    void unhandled_exception() {
       std::terminate();
     }
-    /*
-    auto await_transform(lbs_awaitable<T> handle) {
-      return handle;
-    }*/
     T m_value;
-    BarrierObserver dependency;
-    Barrier wholeCoroReady;
-    std::weak_ptr<coro_handle> weakref;
+    bool async = false;
+    bool isKilled = false;
+    BarrierObserver bar;
+    Barrier finalDependency;
+    std::experimental::coroutine_handle<> m_continuation;
   };
   using coro_handle = std::experimental::coroutine_handle<promise_type>;
-  lbs_awaitable(coro_handle handle) : handle_(std::shared_ptr<coro_handle>(new coro_handle(handle), [](coro_handle* ptr){ptr->destroy();delete ptr;}))
+  lbs_awaitable(coro_handle handle) : handle_(handle)
   {
-    HIGAN_CPU_FUNCTION_SCOPE();
     assert(handle);
-
-    auto& barrier = observer();
-    handle_->promise().wholeCoroReady = Barrier(0);
-    handle_->promise().weakref = handle_;
-
-
-    barrier = my_pool->task({}, [handlePtr = handle_](size_t) {
-      HIGAN_CPU_FUNCTION_SCOPE();
-      if (!handlePtr->done()) {
-        handlePtr->resume();
-        if (handlePtr->done()) {
-          handlePtr->promise().wholeCoroReady.kill();
-        }
-      }
-    });
-    HIGAN_CPU_BRACKET("end ctr");
+    handle_.promise().finalDependency = Barrier();
+    if (true || my_pool->wantToAddTask({})) {
+      handle_.promise().async = true;
+      handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
+        thread_check_value = handlePtr;
+        auto handle = coro_handle::from_address(handlePtr); 
+        handle.resume();
+        assert(thread_check_value == handlePtr);
+        thread_check_value = nullptr;
+        //if (handle.done()) handle.promise().finalDependency.kill();
+      });
+    }
   }
-  lbs_awaitable(lbs_awaitable& other) noexcept {
+  lbs_awaitable(lbs_awaitable& other) {
     handle_ = other.handle_;
   };
-  lbs_awaitable(lbs_awaitable&& other) noexcept {
+  lbs_awaitable(lbs_awaitable&& other) {
     if (other.handle_)
       handle_ = std::move(other.handle_);
     assert(handle_);
     other.handle_ = nullptr;
   }
+  lbs_awaitable& operator=(lbs_awaitable& other) {
+    handle_ = other.handle_;
+    return *this;
+  };
+  lbs_awaitable& operator=(lbs_awaitable&& other) {
+    if (other.handle_)
+      handle_ = std::move(other.handle_);
+    assert(handle_);
+    other.handle_ = nullptr;
+    return *this;
+  }
 
   // coroutine meat
   T await_resume() noexcept {
-    return handle_->promise().m_value;
+    return handle_.promise().m_value;
   }
   bool await_ready() noexcept {
-    BarrierObserver obs(handle_->promise().wholeCoroReady);
-    return obs.done() && handle_->done();
+    return handle_.done();
   }
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
-  bool await_suspend(coro_handle handle) noexcept {
+  std::experimental::coroutine_handle<> await_suspend(coro_handle handle) noexcept {
+    /*
     auto& barrier = observer();
     auto& enemyBarrier = handle.promise().dependency;
     std::shared_ptr<coro_handle> otherHandle = handle.promise().weakref.lock();
@@ -830,26 +1115,90 @@ public:
       }
     });
     handle.promise().dependency = enemyBarrier;
+    */
+    if(handle_.promise().async)
+    {
+      //if (handle.address() != nullptr && !handle.done()) {
+        void* ptr = handle.address();
+        //assert(thread_check_value == ptr);
+        BarrierObserver obs;
+        auto finalDep = handle_.promise().finalDependency;
+        if (finalDep)
+          obs = BarrierObserver(finalDep);
+        if (obs.done() && handle_.promise().bar.done())
+        {
+          //assert(handle_.done());
+        }
+        else
+        {
+          //assert(!handle_.done());
+        }
+        bool wasIAsync = handle.promise().async;
+        Barrier temp;
+        BarrierObserver tobs(temp);
+        handle.promise().async = true;
+        /*
+        if (thread_check_value != handle.address())
+          assert(thread_check_value == handle_.address());*/
+        //assert(thread_check_value == handle.address());
+        handle.promise().bar = my_pool->task({std::move(obs), handle_.promise().bar, handle.promise().bar, tobs}, [handlePtr = handle.address()](size_t) mutable {
+          thread_check_value = handlePtr;
+          auto handle = coro_handle::from_address(handlePtr);
+          assert(!handle.done());
+          handle.resume();
+          assert(thread_check_value == handlePtr);
+          thread_check_value = nullptr;
+          //if (handle.done())
+          //  handle.promise().finalDependency.kill();
+        });
+        //if (wasIAsync)
+        //  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //}
+      //else {
+      //  assert(false);
+      //}
+      return noop_coroutine(temp);
+    }
+    handle_.promise().m_continuation = handle;
+    return handle_;
   }
   // :o
   ~lbs_awaitable() {
+    if (handle_ && handle_.done()) {
+      assert(handle_.done());
+      assert(!handle_.promise().isKilled);
+      handle_.promise().isKilled = true;
+      handle_.destroy();
+    }
   }
 
-  T get() noexcept 
+  __declspec(noinline) T get()
   {
-    BarrierObserver obs(handle_->promise().wholeCoroReady);
-    // not safe to call this, should be never called from within coroutined function.
-    my_pool->helpTasksUntilBarrierComplete(obs);
-    while(!obs.done());
-    assert(handle_->done());
-    return handle_->promise().m_value; 
+    auto obs = BarrierObserver(handle_.promise().finalDependency);
+    bool wasIAsync = handle_.promise().async;
+    while(!handle_.done()){
+      if (handle_.promise().async)
+        my_pool->helpTasksUntilBarrierComplete(obs);
+      else {
+        handle_.resume();
+        if (!wasIAsync && handle_.promise().async)
+        {
+          wasIAsync = true;
+          printf("Am async now! \n");
+        }
+      }
+    }
+    // we are exiting here too fast, somebody with stack left and our destruction kills it.
+    assert(BarrierObserver(handle_.promise().finalDependency).done());
+    //assert(handle_.promise().bar.done());
+    assert(handle_.done());
+    return handle_.promise().m_value; 
   }
   // unwrap() future<future<int>> -> future<int>
   // future then(lambda) -> attach function to be done after current task.
   // is_ready() are you ready?
 private:
-  BarrierObserver& observer() const noexcept { return handle_->promise().dependency;}
-  std::shared_ptr<coro_handle> handle_;
+  std::experimental::coroutine_handle<promise_type> handle_;
 };
 
 namespace {
@@ -869,7 +1218,9 @@ namespace {
             auto v1 = FibonacciCoro(number-2, parallel);
             co_return co_await v0 + co_await v1;
         }
-        co_return Fibonacci(number - 1) + Fibonacci(number - 2);
+        auto fib0 = Fibonacci(number - 1);
+        auto fib1 = Fibonacci(number - 2);
+        co_return fib0 + fib1;
     }
 
     async_awaitable<uint64_t> FibonacciAsync(uint64_t number, uint64_t parallel) {
@@ -898,7 +1249,7 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     // some more asserts..
     CHECK(FibonacciCoro(5, 5).get() == 8);
     // some more asserts..
-    uint64_t parallel = 7;
+    uint64_t parallel = 6;
     BENCHMARK("Fibonacci 25") {
         return FibonacciOrig(25).get();
     };
@@ -923,14 +1274,14 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
         return FibonacciOrig(36).get();
     };
     BENCHMARK("Coroutine Fibonacci 36") {
-        return FibonacciCoro(36,36-parallel-3).get();
+        return FibonacciCoro(36,36-parallel-1).get();
     };
 
     BENCHMARK("Fibonacci 38") {
         return FibonacciOrig(38).get();
     };
     BENCHMARK("Coroutine Fibonacci 38") {
-        return FibonacciCoro(38,38-parallel-6).get();
+        return FibonacciCoro(38,38-parallel-2).get();
     };
     
 
