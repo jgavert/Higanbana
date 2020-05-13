@@ -809,17 +809,17 @@ class LBSPool
   void notifyAll(int whoNotified, bool ignoreTasks = false)
   {
     //HIGAN_CPU_FUNCTION_SCOPE();
-    auto tasks = std::max(1, idle_threads - tasks_to_do.load());
-
-    for (auto& it : m_threadData)
+    auto tasks = std::max(1, tasks_to_do.load());
+    auto offset = std::max(0, whoNotified);
+    const int tdSize = static_cast<int>(m_threadData.size());
+    for (int i = 1; i < tdSize; ++i) 
     {
-      if (tasks > 0 && it->data.m_ID != whoNotified && it->data.m_ID != 0)
+      auto& it = m_threadData[(i+offset)%tdSize];
+      if ((tasks > 0 && it->data.m_ID != 0) || (ignoreTasks && it->data.m_ID != 0))
       {
         tasks--;
         it->cv.notify_one();
       }
-      if (ignoreTasks && it->data.m_ID != 0)
-        it->cv.notify_one();
     }
   }
 
@@ -864,27 +864,34 @@ class LBSPool
       bool hyperThreading = true;
       bool allCores = true;
       bool allGroups = true;
-      for (int i = 0; i < procs; i++)
-      {
-      }
+      bool splitCores = false; // create cores like 12341234 instead of current 11223344
+      bool splitGroups = false; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
       int group = 0;
-      for (auto& ccx : numa.coreGroups) {
-        for (auto& core : ccx.cores) {
-          for (auto& logicalThread : core.logicalCores) {
-            m_threadData.emplace_back(std::make_shared<AllThreadData>(procs, logicalThread));
-            auto& data = m_threadData.back()->data;
-            data.m_l3group = group;
-            data.m_core = core.logicalCores.front() / static_cast<int>(core.logicalCores.size());
-            procs++;
-            if (!hyperThreading)
+      int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
+      int coresPerGroup = (splitGroups ? 2 : numa.cores/static_cast<int>(numa.coreGroups.size()));
+      for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
+        for (int k = 0; k < numa.coreGroups.size(); k+= coresPerGroup){
+          for (auto& ccx : numa.coreGroups) {
+            for (int ci = 0; ci < coresPerGroup; ci++) {
+              auto& core = ccx.cores[k+ci];
+              for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
+                auto& thread = core.logicalCores[lt+i];
+                m_threadData.emplace_back(std::make_shared<AllThreadData>(procs, thread));
+                auto& data = m_threadData.back()->data;
+                data.m_l3group = group;
+                data.m_core = core.logicalCores.front() / static_cast<int>(core.logicalCores.size());
+                procs++;
+                if (!hyperThreading)
+                  break;
+              }
+              if (!allCores)
+                break;
+            }
+            if (!allGroups)
               break;
+            group++;
           }
-          if (!allCores)
-            break;
         }
-        if (!allGroups)
-          break;
-        group++;
       }
     }
     else // fallback to old
@@ -1002,11 +1009,14 @@ class LBSPool
     }
     // other deques
     
-    for (auto &it : m_threadData)
+    //for (auto &it : m_threadData)
+    const int tdSize = static_cast<int>(m_threadData.size());
+    for (int i = 1; i < tdSize; ++i) 
     {
-      if (it->data.m_ID == p.m_ID || it->data.m_l3group != p.m_l3group)
+      auto& it = m_threadData[(i+p.m_ID)%tdSize];
+      if (it->data.m_l3group != p.m_l3group)
         continue;
-      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
+      if (it->data.m_localQueueSize->load(std::memory_order::seq_cst) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
         std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
         if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
@@ -1021,8 +1031,9 @@ class LBSPool
       }
     }
 #if 1
-    for (auto &it : m_threadData)
+    for (int i = 0; i < tdSize-1; ++i) 
     {
+      auto& it = m_threadData[(i+p.m_ID)%tdSize];
       if (it->data.m_l3group == p.m_l3group)
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
@@ -1565,8 +1576,8 @@ lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTi
     //}
     //funfun6().get();
     auto another = addInTreeLBS(treeSize, treeSize-computeTree);
-    int lbs = co_await overlap;
-    overlap = std::move(another);
+    int lbs = co_await another;//overlap;
+    //overlap = std::move(another);
     auto t = time2.reset();
     aveg += t;
     mint = (mint > t) ? t : mint;
@@ -1589,8 +1600,8 @@ TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
-    int computeTree = 7;
-    int treeSize = 30;
+    int computeTree = 6;
+    int treeSize = 26;
     int a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
