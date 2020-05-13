@@ -1366,7 +1366,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = Barrier();
-    if (true && my_pool->wantToAddTask({})) {
+    if (true || my_pool->wantToAddTask({})) {
       handle_.promise().async = true;
       handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         thread_check_value = handlePtr;
@@ -1431,7 +1431,7 @@ public:
         //assert(thread_check_value == ptr);
         BarrierObserver obs;
         auto finalDep = handle_.promise().finalDependency;
-        if (!handle_.done() && finalDep)
+        if (finalDep)
           obs = BarrierObserver(finalDep);
         if (obs.done() && handle_.promise().bar.done())
         {
@@ -1445,6 +1445,10 @@ public:
         Barrier temp;
         BarrierObserver tobs(temp);
         handle.promise().async = true;
+        /*
+        if (thread_check_value != handle.address())
+          assert(thread_check_value == handle_.address());*/
+        //assert(thread_check_value == handle.address());
         handle.promise().bar = my_pool->task({std::move(obs), handle_.promise().bar, handle.promise().bar, tobs}, [handlePtr = handle.address()](size_t) mutable {
           thread_check_value = handlePtr;
           auto handle = coro_handle::from_address(handlePtr);
@@ -1561,8 +1565,8 @@ lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTi
     //}
     //funfun6().get();
     auto another = addInTreeLBS(treeSize, treeSize-computeTree);
-    int lbs = co_await another; //overlap;
-    //overlap = std::move(another);
+    int lbs = co_await overlap;
+    overlap = std::move(another);
     auto t = time2.reset();
     aveg += t;
     mint = (mint > t) ? t : mint;
@@ -1585,8 +1589,8 @@ TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
-    int computeTree = 5;
-    int treeSize = 24;
+    int computeTree = 7;
+    int treeSize = 30;
     int a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
