@@ -869,8 +869,8 @@ class LBSPool
       bool leaveFewThreadsOutForSystem = false;
       int group = 0;
       int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
-      int coresPerGroup = (splitGroups ? 4 : numa.cores/static_cast<int>(numa.coreGroups.size()));
-      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-2 : numa.threads;
+      int coresPerGroup = (splitGroups ? numa.coreGroups.front().cores.size() : numa.cores/static_cast<int>(numa.coreGroups.size()));
+      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-1 : numa.threads;
       int threadsTaken = 0;
       for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
         for (int k = 0; k < numa.coreGroups.size(); k+= coresPerGroup){
@@ -879,7 +879,7 @@ class LBSPool
               auto& core = ccx.cores[k+ci];
               for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
                 threadsTaken++;
-                if (lt+i > 0 && threadsToTake < threadsTaken){
+                if (threadsToTake < threadsTaken){
                   continue;
                 }
                 auto& thread = core.logicalCores[lt+i];
