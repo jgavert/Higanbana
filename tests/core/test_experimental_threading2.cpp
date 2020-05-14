@@ -870,7 +870,7 @@ class LBSPool
       int group = 0;
       int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
       int coresPerGroup = (splitGroups ? numa.coreGroups.front().cores.size() : numa.cores/static_cast<int>(numa.coreGroups.size()));
-      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-1 : numa.threads;
+      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-2 : numa.threads;
       int threadsTaken = 0;
       for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
         for (int k = 0; k < numa.coreGroups.size(); k+= coresPerGroup){
@@ -882,14 +882,14 @@ class LBSPool
                 if (threadsToTake < threadsTaken){
                   continue;
                 }
+                if (!hyperThreading && lt+i > 0)
+                  break;
                 auto& thread = core.logicalCores[lt+i];
                 m_threadData.emplace_back(std::make_shared<AllThreadData>(procs, thread));
                 auto& data = m_threadData.back()->data;
                 data.m_l3group = group;
                 data.m_core = core.logicalCores.front() / static_cast<int>(core.logicalCores.size());
                 procs++;
-                if (!hyperThreading)
-                  break;
               }
               if (!allCores)
                 break;
