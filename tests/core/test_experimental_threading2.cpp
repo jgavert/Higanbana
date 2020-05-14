@@ -864,17 +864,24 @@ class LBSPool
       bool hyperThreading = true;
       bool allCores = true;
       bool allGroups = true;
-      bool splitCores = false; // create cores like 12341234 instead of current 11223344
-      bool splitGroups = false; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
+      bool splitCores = true; // create cores like 12341234 instead of current 11223344
+      bool splitGroups = true; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
+      bool leaveFewThreadsOutForSystem = false;
       int group = 0;
       int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
-      int coresPerGroup = (splitGroups ? 2 : numa.cores/static_cast<int>(numa.coreGroups.size()));
+      int coresPerGroup = (splitGroups ? 4 : numa.cores/static_cast<int>(numa.coreGroups.size()));
+      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-2 : numa.threads;
+      int threadsTaken = 0;
       for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
         for (int k = 0; k < numa.coreGroups.size(); k+= coresPerGroup){
           for (auto& ccx : numa.coreGroups) {
             for (int ci = 0; ci < coresPerGroup; ci++) {
               auto& core = ccx.cores[k+ci];
               for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
+                threadsTaken++;
+                if (lt+i > 0 && threadsToTake < threadsTaken){
+                  continue;
+                }
                 auto& thread = core.logicalCores[lt+i];
                 m_threadData.emplace_back(std::make_shared<AllThreadData>(procs, thread));
                 auto& data = m_threadData.back()->data;
@@ -1018,8 +1025,8 @@ class LBSPool
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::seq_cst) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
-        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(it->mutex);
+        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
         {
           p.m_task = it->data.m_localDeque.front();
           assert(p.m_task.m_iterations != 0);
@@ -1031,15 +1038,15 @@ class LBSPool
       }
     }
 #if 1
-    for (int i = 0; i < tdSize-1; ++i) 
+    for (int i = 1; i < tdSize; ++i) 
     {
       auto& it = m_threadData[(i+p.m_ID)%tdSize];
       if (it->data.m_l3group == p.m_l3group)
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
-        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(it->mutex);
+        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
         {
           p.m_task = it->data.m_localDeque.front();
           assert(p.m_task.m_iterations != 0);
@@ -1604,7 +1611,7 @@ lbs_awaitable<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTi
       avegMin = avegMin + mint;
       avegMax = avegMax + maxt;
       aveCount++;
-      printf("done %d ST:%.3fms %.2f ratio %.3fms %.3fms %.3fms\n",i, compareTime/1000.f/1000.f, float(compareTime) / float(aveg/100), aveg/100/1000.f/1000.f, avegMin/aveCount/1000.f/1000.f, avegMax/aveCount/1000.f/1000.f);
+      printf("done %d ST:%.3fms %.2f ratio %.3fms %.3fms %.3fms\n",i, compareTime/1000.f/1000.f, float(compareTime) / float(aveg/100), aveg/100/1000.f/1000.f, mint/1000.f/1000.f, maxt/1000.f/1000.f);
       aveg = 0;
       mint = omi;
       maxt = oma;
@@ -1633,6 +1640,7 @@ TEST_CASE("threaded awaitable - lbs")
     
     REQUIRE(fut == 3);
 
+    /*
     for (int i = 0; i < 10000; i++) {
       auto fibo = Fibonacci(20);
       auto fibo2 = fibo;
@@ -1642,7 +1650,7 @@ TEST_CASE("threaded awaitable - lbs")
         assert(false);
       }
       REQUIRE(fibo == fibo2);
-    }
+    }*/
     
 
     /*

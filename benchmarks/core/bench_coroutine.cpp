@@ -545,8 +545,8 @@ class LBSPool
       bool hyperThreading = true;
       bool allCores = true;
       bool allGroups = true;
-      bool splitCores = false; // create cores like 12341234 instead of current 11223344
-      bool splitGroups = false; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
+      bool splitCores = true; // create cores like 12341234 instead of current 11223344
+      bool splitGroups = true; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
       int group = 0;
       int logicalThreadsPerCore = (splitCores ? 1 : numa.threads / numa.cores);
       int coresPerGroup = (splitGroups ? 2 : numa.cores/static_cast<int>(numa.coreGroups.size()));
@@ -699,8 +699,8 @@ class LBSPool
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::seq_cst) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
-        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(it->mutex);
+        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
         {
           p.m_task = it->data.m_localDeque.front();
           assert(p.m_task.m_iterations != 0);
@@ -712,15 +712,15 @@ class LBSPool
       }
     }
 #if 1
-    for (int i = 0; i < tdSize-1; ++i) 
+    for (int i = 1; i < tdSize; ++i) 
     {
       auto& it = m_threadData[(i+p.m_ID)%tdSize];
       if (it->data.m_l3group == p.m_l3group)
         continue;
       if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::unique_lock<std::mutex> guard(it->mutex, std::defer_lock_t());
-        if (guard.try_lock() && !it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(it->mutex);
+        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
         {
           p.m_task = it->data.m_localDeque.front();
           assert(p.m_task.m_iterations != 0);
