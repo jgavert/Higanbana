@@ -805,7 +805,7 @@ class LBSPool
     std::vector<Task> addableTasks;
   };
   std::vector<std::thread> m_threads;
-  std::vector<std::shared_ptr<AllThreadData>>  m_threadData;
+  std::vector<std::unique_ptr<AllThreadData>>  m_threadData;
   std::atomic<size_t>      m_nextTaskID; // just increasing index...
   std::atomic<bool> StopCondition;
   std::atomic<int> idle_threads;
@@ -834,13 +834,17 @@ class LBSPool
       }
       return;
     }
-    auto tasks = std::max(1, tasks_to_do.load());
+
+    auto doableTasks = tasks_to_do.load(std::memory_order::relaxed); 
+    auto tasks = std::max(1, doableTasks - 2); // slightly modify how many threads to actually wake up, 2 is deemed as good value
+    // 1 so that there is a task for this thread, +1 since it's likely that one thread will end up without a task. == 2
     auto offset = std::max(0, whoNotified);
     const int tdSize = static_cast<int>(m_threadData.size());
     for (int i = 1; i < tdSize; ++i) 
     {
       if (tasks <= 0)
         break;
+      //auto index = (i+offset)%tdSize;
       auto& it = m_threadData[(i+offset)%tdSize];
       if (it->data.m_hyperThread)
         continue;
@@ -851,6 +855,7 @@ class LBSPool
     {
       if (tasks <= 0)
         break;
+      //auto index = (i+offset)%tdSize;
       auto& it = m_threadData[(i+offset)%tdSize];
       if (!it->data.m_hyperThread)
         continue;
@@ -924,11 +929,12 @@ class LBSPool
                 if (!hyperThreading && lt+i > 0)
                   break;
                 auto& thread = core.logicalCores[lt+i];
-                m_threadData.emplace_back(std::make_shared<AllThreadData>(thread, thread));
+                m_threadData.emplace_back(std::make_unique<AllThreadData>(thread, thread));
                 auto& data = m_threadData.back()->data;
                 data.m_l3group = group;
                 data.m_core = data.m_ID / logicThreads;
                 data.m_hyperThread = procs % logicThreads != 0;
+                //printf("proc %d vs thread %d == hyperthread? %d\n", procs, thread, data.m_hyperThread);
                 procs++;
               }
               if (!allCores)
@@ -949,7 +955,7 @@ class LBSPool
       procs = std::thread::hardware_concurrency();
       for (int i = 0; i < procs; i++)
       {
-        m_threadData.emplace_back(std::make_shared<AllThreadData>(i, i));
+        m_threadData.emplace_back(std::make_unique<AllThreadData>(i, i));
       }
     }
 
@@ -975,6 +981,7 @@ class LBSPool
   {
     HIGAN_CPU_FUNCTION_SCOPE();
     StopCondition.store(true);
+    tasks_to_do = 32;
     for (auto&& data : m_threadData) {
       if (data->data.m_ID !=0)
         while (data->data.m_alive->load())
@@ -1248,7 +1255,7 @@ class LBSPool
     bool spawnTask = !depends.empty() || !depsDone || queue_count <= 10;
     //tasksReadyToProcess() < threads_awake.load(std::memory_order::relaxed)
     spawnTask = !((depends.empty() || depsDone) && queue_count > 2);
-    return spawnTask;
+    return spawnTask || true;
   }
 
   template<typename Func>
@@ -1426,7 +1433,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = Barrier();
-    if (true || my_pool->wantToAddTask({})) {
+    if (my_pool->wantToAddTask({})) {
       handle_.promise().async = true;
       handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         thread_check_value = handlePtr;

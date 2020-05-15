@@ -803,7 +803,7 @@ class LBSPool
       std::unique_lock<std::mutex> lk(data.mutex);
       idle_threads.fetch_add(1, std::memory_order::relaxed);
       data.cv.wait(lk, [&]{
-        if (tasks_to_do.load(std::memory_order::relaxed) > 0)
+        if (tasks_to_do.load(std::memory_order::relaxed) > 0 || StopCondition.load(std::memory_order::relaxed))
           return true;
         return false;
       }); // thread sleep
@@ -1108,6 +1108,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = Barrier();
+    if (!my_pool) my_pool = std::make_shared<LBSPool>();
     if (true || my_pool->wantToAddTask({})) {
       handle_.promise().async = true;
       handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
@@ -1289,7 +1290,6 @@ namespace {
 
 TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
 
-    my_pool = std::make_shared<LBSPool>();
     
     CHECK(FibonacciOrig(0).get() == 1);
     // some more asserts..
@@ -1334,6 +1334,9 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
         return FibonacciCoro(38,38-parallel-2).get();
     };
     
+    
+    //my_pool->~LBSPool();
+
 
   //higanbana::FileSystem fs("/../../tests/data/");
   //higanbana::profiling::writeProfilingData(fs);
