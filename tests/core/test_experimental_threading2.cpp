@@ -437,7 +437,6 @@ TEST_CASE("threaded awaitable")
 }
 */
 
-// can ask if all latches are released -> dependency is solved, can run the task
 class Barrier
 {
   friend class BarrierObserver;
@@ -656,7 +655,7 @@ public:
 };
 
 // hosts all per thread data, the local work queue and current task.
-class alignas(128) ThreadData
+class ThreadData
 {
 public:
   ThreadData() : m_task(Task()), m_ID(0) { }
@@ -795,7 +794,7 @@ class LBSPool
   struct AllThreadData 
   {
     //public:
-    AllThreadData(int i, int k = 0):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
+    AllThreadData(int i):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
     //AllThreadData(const AllThreadData& other):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
     //AllThreadData(AllThreadData&& other):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
     ThreadData data;
@@ -881,85 +880,17 @@ class LBSPool
     , tasks_done(0)
   {
     HIGAN_CPU_FUNCTION_SCOPE();
-    int procs = 0;//std::thread::hardware_concurrency();
-    // control the amount of threads made.
-    //procs = 4;
-   
-    SystemCpuInfo info;
-    if (!info.numas.empty()) { // use the numa info
-      auto& numa = info.numas.front();
-      int Level3CacheGroups = static_cast<int>(numa.coreGroups.size());
-      int CoresPerL3 = static_cast<int>(numa.coreGroups.front().cores.size());
-      int logicThreads = static_cast<int>(numa.coreGroups.front().cores.front().logicalCores.size());
-      printf("found beautiful numa info!\n");
-      printf("numas %zu\n", info.numas.size());
-      printf("l3groups %d\n", Level3CacheGroups);
-      printf("cores %d\n", numa.cores);
-      printf("threads %d\n", numa.threads);
-      procs = 0;
-      bool hyperThreading = true;
-      bool allCores = true;
-      bool allGroups = true;
-      bool splitCores = true; // create cores like 12341234 instead of current 11223344
-      bool splitGroups = true; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
-      bool leaveFewThreadsOutForSystem = false;
-      int group = 0;
-      int logicalThreadsPerCore = (splitCores ? 1 : logicThreads);
-      int coresPerGroup = (splitGroups ? CoresPerL3 / Level3CacheGroups : CoresPerL3);
-      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-2 : numa.threads;
-      int threadsTaken = 0;
-      for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
-        for (int k = 0; k < Level3CacheGroups; k+= coresPerGroup){
-          for (auto& ccx : numa.coreGroups) {
-            for (int ci = 0; ci < coresPerGroup; ci++) {
-              auto& core = ccx.cores[k+ci];
-              for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
-                threadsTaken++;
-                if (threadsToTake < threadsTaken){
-                  continue;
-                }
-                if (!hyperThreading && lt+i > 0)
-                  break;
-                auto& thread = core.logicalCores[lt+i];
-                m_threadData.emplace_back(procs, thread);
-                auto& data = m_threadData.back().data;
-                //data.m_l3group = group;
-                //data.m_core = data.m_ID / logicThreads;
-                //data.m_hyperThread = false; //procs % logicThreads != 0;
-                //printf("proc %d vs thread %d == hyperthread? %d\n", procs, thread, data.m_hyperThread);
-                procs++;
-              }
-              if (!allCores)
-                break;
-            }
-            if (!allGroups)
-              break;
-            group++;
-          }
-        }
-      }
-      procs = m_threadData.size();
-      fflush(stdout);
-    }
-    else // fallback to old
+    unsigned procs = std::thread::hardware_concurrency();
+    for (unsigned i = 0; i < procs; i++)
     {
-      printf("no numas here rip, fallback to old\n");
-      procs = std::thread::hardware_concurrency();
-      for (int i = 0; i < procs; i++)
-      {
-        m_threadData.emplace_back(i, i);
-      }
+      m_threadData.emplace_back(i);
     }
-
-    //BOOL res = SetThreadAffinityMask(GetCurrentThread(), 1u<<m_threadData[0]->data.m_logicalThread);
-    //assert(res);
+    assert(!m_threadData.empty() && m_threadData.size() == procs);
     for (auto&& it : m_threadData)
     {
       if (it.data.m_ID == 0) // Basically mainthread is one of *us*
         continue; 
       m_threads.push_back(std::thread(&LBSPool::loop, this, it.data.m_ID));
-      //res = SetThreadAffinityMask(m_threads.back().native_handle(), 1u << it->data.m_logicalThread);
-      //assert(res);
     }
     HIGAN_CPU_BRACKET("waiting for threads to wakeup for instant business.");
     while(threads_awake != procs-1);
@@ -1064,8 +995,6 @@ class LBSPool
       if (threadId == p.m_ID)
         continue;
       auto& it = m_threadData[threadId];
-      //if (it->data.m_l3group != p.m_l3group)
-      //  continue;
       if (it.data.m_localQueueSize.load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
         std::unique_lock<std::mutex> guard(*it.mutex);
@@ -1080,28 +1009,6 @@ class LBSPool
         }
       }
     }
-#if 0
-    for (int i = 1; i < tdSize; ++i) 
-    {
-      auto& it = m_threadData[(i+p.m_ID)%tdSize];
-      if (it->data.m_l3group == p.m_l3group)
-        continue;
-      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
-      {
-        std::unique_lock<std::mutex> guard(it->mutex);
-        
-        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
-        {
-          p.m_task = it->data.m_localDeque.back();
-          assert(p.m_task.m_iterations != 0);
-          it->data.m_localDeque.pop_back();
-          it->data.m_localQueueSize->store(it->data.m_localDeque.size(), std::memory_order::relaxed);
-          tasks_to_do.fetch_sub(1, std::memory_order::relaxed);
-          return true;
-        }
-      }
-    }
-#endif
     // as last effort, check global queue
     if (tryTakeTaskFromGlobalQueue(data)) {
       return true;
