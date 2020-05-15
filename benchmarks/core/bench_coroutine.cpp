@@ -120,6 +120,7 @@ private:
   std::shared_ptr<coro_handle> handle_;
 };
 // can ask if all latches are released -> dependency is solved, can run the task
+// can ask if all latches are released -> dependency is solved, can run the task
 class Barrier
 {
   friend class BarrierObserver;
@@ -246,7 +247,6 @@ public:
     m_ppt(1),
     m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
   {
-    //genWorkFunc<1>([](size_t) {});
   };
   Task(size_t id, size_t start, size_t iterations, Barrier barrier) :
     m_id(id),
@@ -256,7 +256,6 @@ public:
     m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>())),
     m_blocks(std::move(barrier))
   {
-    //genWorkFunc<1>([](size_t) {});
     m_sharedWorkCounter->store(m_iterations);
   };
 
@@ -269,26 +268,25 @@ private:
     m_sharedWorkCounter(sharedWorkCount),
     m_blocks(std::move(barrier))
   {
-    //genWorkFunc<1>([](size_t) {});
   };
 public:
 
   size_t m_id;
   size_t m_iterations;
   size_t m_iterID;
-  int m_ppt;
   std::shared_ptr<std::atomic<size_t>> m_sharedWorkCounter;
   Barrier m_blocks; // maybe there is always one?...?
 
   std::function<bool(size_t&, size_t&)> f_work;
+  int m_ppt;
 
   // Generates ppt sized for -loop lambda inside this work.
   template<size_t ppt, typename Func>
   void genWorkFunc(Func&& func) noexcept
   {
-    m_ppt = ppt;
     f_work = [func](size_t& iterID, size_t& iterations) mutable -> bool
     {
+      assert(iterations > 0);
       if (iterations == 0)
       {
         return true;
@@ -313,10 +311,12 @@ public:
       }
       return iterations == 0;
     };
+    m_ppt = ppt;
   }
 
   inline bool doWork() noexcept
   {
+    __assume(f_work);
     return f_work(m_iterID, m_iterations);
   }
 
@@ -342,20 +342,17 @@ public:
 class ThreadData
 {
 public:
-  ThreadData() :m_ID(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) { }
-  ThreadData(int id, int logicalThread) :m_ID(id), m_logicalThread(0), m_task(Task()), m_localQueueSize(std::make_shared<std::atomic<int>>(0)), m_alive(std::make_shared<std::atomic<bool>>(true)) {  }
+  ThreadData() : m_task(Task()), m_ID(0) { }
+  ThreadData(int id) : m_task(Task()), m_ID(id) {  }
 
-  int m_ID = 0;
-  int m_logicalThread = 0;
-  int m_core = 0;
-  int m_l3group = 0;
-  size_t m_falseWakes = 0;
-  
-  bool m_hyperThread = 0;
+  ThreadData(const ThreadData& data) : m_task(Task()), m_ID(data.m_ID) {}
+  ThreadData(ThreadData&& data) : m_task(Task()), m_ID(data.m_ID) {}
+
   Task m_task;
-  std::shared_ptr<std::atomic<int>> m_localQueueSize;
+  std::atomic<int> m_localQueueSize = {0};
   std::deque<Task> m_localDeque;
-  std::shared_ptr<std::atomic<bool>> m_alive;
+  std::atomic<bool> m_alive = {true};
+  int m_ID = 0;
 };
 
 struct CpuCore
@@ -480,14 +477,17 @@ class LBSPool
 {
   struct AllThreadData 
   {
-    AllThreadData(int i, int logicalThread):data(i, logicalThread) {}
+    //public:
+    AllThreadData(int i):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
+    //AllThreadData(const AllThreadData& other):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
+    //AllThreadData(AllThreadData&& other):data(i), mutex(std::make_unique<std::mutex>()), cv(std::make_unique<std::condition_variable>()) {}
     ThreadData data;
-    std::mutex mutex;
-    std::condition_variable cv;
+    std::unique_ptr<std::mutex> mutex;
     std::vector<Task> addableTasks;
+    std::unique_ptr<std::condition_variable> cv;
   };
   std::vector<std::thread> m_threads;
-  std::vector<std::shared_ptr<AllThreadData>>  m_threadData;
+  std::vector<AllThreadData>  m_threadData;
   std::atomic<size_t>      m_nextTaskID; // just increasing index...
   std::atomic<bool> StopCondition;
   std::atomic<int> idle_threads;
@@ -501,43 +501,38 @@ class LBSPool
 
   void notifyAll(int whoNotified, bool ignoreTasks = false) noexcept
   {
-    //HIGAN_CPU_FUNCTION_SCOPE();
     if (ignoreTasks)
     {
-      auto offset = std::max(0, whoNotified);
-      const int tdSize = static_cast<int>(m_threadData.size());
-      for (int i = 1; i < tdSize; ++i) 
+      auto offset = static_cast<unsigned>(std::max(0, whoNotified));
+      const unsigned tdSize = static_cast<unsigned>(m_threadData.size());
+      for (unsigned i = 1; i < tdSize; ++i) 
       {
         auto& it = m_threadData[(i+offset)%tdSize];
-        if (it->data.m_ID != offset)
+        if (it.data.m_ID != offset)
         {
-          it->cv.notify_one();
+          it.cv->notify_one();
         }
       }
       return;
     }
-    auto tasks = std::max(1, tasks_to_do.load());
-    auto offset = std::max(0, whoNotified);
-    const int tdSize = static_cast<int>(m_threadData.size());
-    for (int i = 1; i < tdSize; ++i) 
+
+    auto doableTasks = tasks_to_do.load(std::memory_order::relaxed); 
+    // 1 so that there is a task for this thread, +1 since it's likely that one thread will end up without a task. == 2
+    unsigned offset = static_cast<unsigned>(std::max(0, whoNotified)+1);
+    const unsigned tdSize = std::max(1u, static_cast<unsigned>(m_threadData.size()));
+    auto tasks = std::min(static_cast<int>(tdSize)-1, std::max(1, doableTasks - 2)); // slightly modify how many threads to actually wake up, 2 is deemed as good value
+    
+    constexpr int breakInPieces = 1;
+    const unsigned innerLoop = tdSize-1;
+    if (tasks <= 0)
+      return;
+    for (unsigned i = 0; i < innerLoop; ++i) 
     {
       if (tasks <= 0)
         break;
-      auto& it = m_threadData[(i+offset)%tdSize];
-      if (it->data.m_hyperThread)
-        continue;
+      auto& it = m_threadData[(offset+i)%tdSize];
       tasks--;
-      it->cv.notify_one();
-    }
-    for (int i = 1; i < tdSize; ++i) 
-    {
-      if (tasks <= 0)
-        break;
-      auto& it = m_threadData[(i+offset)%tdSize];
-      if (!it->data.m_hyperThread)
-        continue;
-      tasks--;
-      it->cv.notify_one();
+      it.cv->notify_one();
     }
   }
 
@@ -546,7 +541,7 @@ class LBSPool
   int tasksReadyToProcess() noexcept {return tasks_to_do.load(std::memory_order::relaxed);}
   int my_queue_count() noexcept {
     if (thread_from_pool)
-      return m_threadData[thread_id]->data.m_localQueueSize->load(std::memory_order::relaxed);
+      return m_threadData[thread_id].data.m_localQueueSize.load(std::memory_order::relaxed);
     return 0;
   }
   int my_thread_index() noexcept {
@@ -555,6 +550,9 @@ class LBSPool
     return 0;
   }
 
+  void launchThreads() noexcept {
+    
+  }
 
   LBSPool()
     : m_nextTaskID(1) // keep 0 as special task index.
@@ -566,84 +564,17 @@ class LBSPool
     , tasks_done(0)
   {
     HIGAN_CPU_FUNCTION_SCOPE();
-    int procs = 0;//std::thread::hardware_concurrency();
-    // control the amount of threads made.
-    //procs = 4;
-   
-    SystemCpuInfo info;
-    if (!info.numas.empty()) { // use the numa info
-      auto& numa = info.numas.front();
-      int Level3CacheGroups = static_cast<int>(numa.coreGroups.size());
-      int CoresPerL3 = static_cast<int>(numa.coreGroups.front().cores.size());
-      int logicThreads = static_cast<int>(numa.coreGroups.front().cores.front().logicalCores.size());
-      printf("found beautiful numa info!\n");
-      printf("numas %zu\n", info.numas.size());
-      printf("l3groups %d\n", Level3CacheGroups);
-      printf("cores %d\n", numa.cores);
-      printf("threads %d\n", numa.threads);
-      procs = 0;
-      bool hyperThreading = true;
-      bool allCores = true;
-      bool allGroups = true;
-      bool splitCores = true; // create cores like 12341234 instead of current 11223344
-      bool splitGroups = true; // create cores like 11332244 instead of 11223344, mix with above to get 13241324
-      bool leaveFewThreadsOutForSystem = false;
-      int group = 0;
-      int logicalThreadsPerCore = (splitCores ? 1 : logicThreads);
-      int coresPerGroup = (splitGroups ? CoresPerL3 / Level3CacheGroups : CoresPerL3);
-      int threadsToTake = leaveFewThreadsOutForSystem ? numa.threads-2 : numa.threads;
-      int threadsTaken = 0;
-      for (int i = 0; i < numa.threads / numa.cores; i += logicalThreadsPerCore) {
-        for (int k = 0; k < Level3CacheGroups; k+= coresPerGroup){
-          for (auto& ccx : numa.coreGroups) {
-            for (int ci = 0; ci < coresPerGroup; ci++) {
-              auto& core = ccx.cores[k+ci];
-              for (int lt = 0; lt < logicalThreadsPerCore; lt++) {
-                threadsTaken++;
-                if (threadsToTake < threadsTaken){
-                  continue;
-                }
-                if (!hyperThreading && lt+i > 0)
-                  break;
-                auto& thread = core.logicalCores[lt+i];
-                m_threadData.emplace_back(std::make_shared<AllThreadData>(thread, thread));
-                auto& data = m_threadData.back()->data;
-                data.m_l3group = group;
-                data.m_core = data.m_ID / logicThreads;
-                data.m_hyperThread = procs % logicThreads != 0;
-                procs++;
-              }
-              if (!allCores)
-                break;
-            }
-            if (!allGroups)
-              break;
-            group++;
-          }
-        }
-      }
-      procs = m_threadData.size();
-      fflush(stdout);
-    }
-    else // fallback to old
+    unsigned procs = std::thread::hardware_concurrency();
+    for (unsigned i = 0; i < procs; i++)
     {
-      printf("no numas here rip, fallback to old\n");
-      procs = std::thread::hardware_concurrency();
-      for (int i = 0; i < procs; i++)
-      {
-        m_threadData.emplace_back(std::make_shared<AllThreadData>(i, i));
-      }
+      m_threadData.emplace_back(i);
     }
-
-    //BOOL res = SetThreadAffinityMask(GetCurrentThread(), 1u<<m_threadData[0]->data.m_logicalThread);
-    //assert(res);
+    assert(!m_threadData.empty() && m_threadData.size() == procs);
     for (auto&& it : m_threadData)
     {
-      if (it->data.m_ID == 0) // Basically mainthread is one of *us*
+      if (it.data.m_ID == 0) // Basically mainthread is one of *us*
         continue; 
-      m_threads.push_back(std::thread(&LBSPool::loop, this, it->data.m_ID));
-      //res = SetThreadAffinityMask(m_threads.back().native_handle(), 1u << it->data.m_logicalThread);
-      //assert(res);
+      m_threads.push_back(std::thread(&LBSPool::loop, this, it.data.m_ID));
     }
     HIGAN_CPU_BRACKET("waiting for threads to wakeup for instant business.");
     while(threads_awake != procs-1);
@@ -657,9 +588,10 @@ class LBSPool
   {
     HIGAN_CPU_FUNCTION_SCOPE();
     StopCondition.store(true);
+    tasks_to_do = 32;
     for (auto&& data : m_threadData) {
-      if (data->data.m_ID !=0)
-        while (data->data.m_alive->load())
+      if (data.data.m_ID !=0)
+        while (data.data.m_alive.load())
           notifyAll(-1, true);
     }
     for (auto& it : m_threads)
@@ -675,7 +607,7 @@ class LBSPool
     std::string threadName = "Thread ";
     threadName += std::to_string(i);
     threadName += '\0';
-    AllThreadData& p = *m_threadData.at(i);
+    AllThreadData& p = m_threadData.at(i);
     {
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
       HIGAN_CPU_BRACKET("thread - First steal!");
@@ -694,12 +626,12 @@ class LBSPool
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
           HIGAN_CPU_BRACKET("try split task");
 #endif
-          if (p.data.m_localQueueSize->load(std::memory_order::relaxed) == 0)
+          if (p.data.m_localQueueSize.load(std::memory_order::relaxed) == 0)
           { // Queue didn't have anything, adding.
             {
-              std::lock_guard<std::mutex> guard(p.mutex);
+              std::lock_guard<std::mutex> guard(*p.mutex);
               p.data.m_localDeque.emplace_back(std::move(p.data.m_task.split())); // push back
-              p.data.m_localQueueSize->store(p.data.m_localDeque.size(), std::memory_order_relaxed);
+              p.data.m_localQueueSize.store(p.data.m_localDeque.size(), std::memory_order_relaxed);
               tasks_to_do++;
             }
             notifyAll(p.data.m_ID);
@@ -714,7 +646,7 @@ class LBSPool
         stealOrWait(p);
       }
     }
-    p.data.m_alive->store(false);
+    p.data.m_alive.store(false);
     threads_awake--;
     thread_from_pool = false;
     thread_id = 0;
@@ -724,15 +656,15 @@ class LBSPool
     //HIGAN_CPU_FUNCTION_SCOPE();
     // check my own deque
     auto& p = data.data;
-    if (p.m_localQueueSize->load(std::memory_order::relaxed) > 0)
+    if (p.m_localQueueSize.load(std::memory_order::relaxed) > 0)
     {
       // try to take work from own deque, backside.
-      std::lock_guard<std::mutex> guard(data.mutex);
+      std::lock_guard<std::mutex> guard(*data.mutex);
       if (!p.m_localDeque.empty())
       {
         p.m_task = std::move(p.m_localDeque.front());
         p.m_localDeque.pop_front();
-        p.m_localQueueSize->store(p.m_localDeque.size(), std::memory_order_relaxed);
+        p.m_localQueueSize.store(p.m_localDeque.size(), std::memory_order_relaxed);
         tasks_to_do.fetch_sub(1, std::memory_order::relaxed);
         return true;
       }
@@ -740,51 +672,27 @@ class LBSPool
     // other deques
     
     //for (auto &it : m_threadData)
-    const int tdSize = static_cast<int>(m_threadData.size());
-    for (int i = 0; i < tdSize; ++i) 
+    const unsigned tdSize = static_cast<int>(m_threadData.size());
+    for (unsigned i = 0; i < tdSize; ++i) 
     {
       auto threadId = (i+p.m_ID) % tdSize;
       if (threadId == p.m_ID)
         continue;
       auto& it = m_threadData[threadId];
-      //if (it->data.m_l3group != p.m_l3group)
-      //  continue;
-      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
+      if (it.data.m_localQueueSize.load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
       {
-        std::unique_lock<std::mutex> guard(it->mutex);
-        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
+        std::unique_lock<std::mutex> guard(*it.mutex);
+        if (!it.data.m_localDeque.empty()) // double check as it might be empty now.
         {
-          p.m_task = it->data.m_localDeque.back();
+          p.m_task = it.data.m_localDeque.back();
           assert(p.m_task.m_iterations != 0);
-          it->data.m_localDeque.pop_back();
-          it->data.m_localQueueSize->store(it->data.m_localDeque.size(), std::memory_order::relaxed);
+          it.data.m_localDeque.pop_back();
+          it.data.m_localQueueSize.store(it.data.m_localDeque.size(), std::memory_order::relaxed);
           tasks_to_do.fetch_sub(1, std::memory_order::relaxed);
           return true;
         }
       }
     }
-#if 0
-    for (int i = 1; i < tdSize; ++i) 
-    {
-      auto& it = m_threadData[(i+p.m_ID)%tdSize];
-      if (it->data.m_l3group == p.m_l3group)
-        continue;
-      if (it->data.m_localQueueSize->load(std::memory_order::relaxed) > 0) // this should reduce unnecessary lock_guards, and cheap.
-      {
-        std::unique_lock<std::mutex> guard(it->mutex);
-        
-        if (!it->data.m_localDeque.empty()) // double check as it might be empty now.
-        {
-          p.m_task = it->data.m_localDeque.back();
-          assert(p.m_task.m_iterations != 0);
-          it->data.m_localDeque.pop_back();
-          it->data.m_localQueueSize->store(it->data.m_localDeque.size(), std::memory_order::relaxed);
-          tasks_to_do.fetch_sub(1, std::memory_order::relaxed);
-          return true;
-        }
-      }
-    }
-#endif
     // as last effort, check global queue
     if (tryTakeTaskFromGlobalQueue(data)) {
       return true;
@@ -793,17 +701,17 @@ class LBSPool
     // if all else fails, wait for more work.
     if (!StopCondition && allowedToSleep) // this probably doesn't fix the random deadlock
     {
-      if (p.m_localQueueSize->load(std::memory_order::relaxed) != 0 || tasks_to_do.load(std::memory_order::relaxed) > 0)
+      if (p.m_localQueueSize.load(std::memory_order::relaxed) != 0 || tasks_to_do.load(std::memory_order::relaxed) > 0)
       {
         return false;
       }
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
       HIGAN_CPU_BRACKET("try sleeping...");
 #endif
-      std::unique_lock<std::mutex> lk(data.mutex);
+      std::unique_lock<std::mutex> lk(*data.mutex);
       idle_threads.fetch_add(1, std::memory_order::relaxed);
-      data.cv.wait(lk, [&]{
-        if (tasks_to_do.load(std::memory_order::relaxed) > 0 || StopCondition.load(std::memory_order::relaxed))
+      data.cv->wait(lk, [&]{
+        if (tasks_to_do.load(std::memory_order::relaxed) > 0)
           return true;
         return false;
       }); // thread sleep
@@ -855,9 +763,9 @@ class LBSPool
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
       HIGAN_CPU_BRACKET("adding tasks to own queue");
 #endif
-      std::lock_guard<std::mutex> guard(data.mutex);
+      std::lock_guard<std::mutex> guard(*data.mutex);
       data.data.m_localDeque.insert(data.data.m_localDeque.end(), addable.begin(), addable.end());
-      data.data.m_localQueueSize->store(data.data.m_localDeque.size(), std::memory_order_relaxed);
+      data.data.m_localQueueSize.store(data.data.m_localDeque.size(), std::memory_order_relaxed);
       tasks_to_do += static_cast<int>(addable.size());
       notifyAll(data.data.m_ID);
       addable.clear();
@@ -930,7 +838,7 @@ class LBSPool
     bool spawnTask = !depends.empty() || !depsDone || queue_count <= 10;
     //tasksReadyToProcess() < threads_awake.load(std::memory_order::relaxed)
     spawnTask = !((depends.empty() || depsDone) && queue_count > 2);
-    return spawnTask;
+    return spawnTask || true;
   }
 
   template<typename Func>
@@ -959,9 +867,9 @@ class LBSPool
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
         HIGAN_CPU_BRACKET("own queue");
 #endif
-        std::unique_lock<std::mutex> u2(threadData->mutex);
-        threadData->data.m_localDeque.push_back(std::move(newTask));
-        threadData->data.m_localQueueSize->store(threadData->data.m_localDeque.size());
+        std::unique_lock<std::mutex> u2(*threadData.mutex);
+        threadData.data.m_localDeque.push_back(std::move(newTask));
+        threadData.data.m_localQueueSize.store(threadData.data.m_localDeque.size());
         tasks_to_do++;
       }
       else  // wtf add to WAITING FOR requi
@@ -985,7 +893,7 @@ class LBSPool
 #if defined(LBSPOOL_ENABLE_PROFILE_THREADS)
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
-    auto& p = *m_threadData.at(0);
+    auto& p = m_threadData.at(0);
     while (!observed.done())
     {
       if (p.data.m_task.m_id == 0)
@@ -994,12 +902,12 @@ class LBSPool
         // can we split work?
         if (p.data.m_task.canSplit())
         {
-          if (p.data.m_localQueueSize->load() == 0)
+          if (p.data.m_localQueueSize.load() == 0)
           { // Queue didn't have anything, adding.
             {
-              std::lock_guard<std::mutex> guard(p.mutex);
+              std::lock_guard<std::mutex> guard(*p.mutex);
               p.data.m_localDeque.push_back(p.data.m_task.split()); // push back
-              p.data.m_localQueueSize->store(p.data.m_localDeque.size());
+              p.data.m_localQueueSize.store(p.data.m_localDeque.size());
             }
             notifyAll(p.data.m_ID);
             continue;
@@ -1108,8 +1016,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = Barrier();
-    if (!my_pool) my_pool = std::make_shared<LBSPool>();
-    if (true || my_pool->wantToAddTask({})) {
+    if (my_pool->wantToAddTask({})) {
       handle_.promise().async = true;
       handle_.promise().bar = my_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         thread_check_value = handlePtr;
@@ -1289,12 +1196,11 @@ namespace {
 
 
 TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
-
-    
     CHECK(FibonacciOrig(0).get() == 1);
     // some more asserts..
     CHECK(FibonacciOrig(5).get() == 8);
     // some more asserts..
+    my_pool = std::make_shared<LBSPool>();
     CHECK(FibonacciCoro(0, 0).get() == 1);
     // some more asserts..
     CHECK(FibonacciCoro(5, 5).get() == 8);
