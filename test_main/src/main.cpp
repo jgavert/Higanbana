@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 #endif
     EntryPoint ep(params);
 
-    returnValue = ep.main();
+    returnValue = ep.main().get();
   }
 
 #ifdef HIGANBANA_PLATFORM_WINDOWS

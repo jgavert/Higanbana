@@ -10,7 +10,7 @@ cc_library(
           "//conditions:default": [],
   }),
   copts = select({
-          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "-ftime-trace"],
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX", "/permissive-", "/await", "-ftime-trace"],
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
   defines = [],
