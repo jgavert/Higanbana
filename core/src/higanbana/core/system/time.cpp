@@ -31,6 +31,7 @@ int64_t Timer::timeMicro()
 
 WTime::WTime() : start(HighPrecisionClock::now())
 {
+  frames = 0;
   frametime_high = 0;
   frametime_low = INT64_MAX;
   lastFrameTimes.forEach([](int64_t& data)

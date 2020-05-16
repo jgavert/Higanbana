@@ -3,7 +3,15 @@
 
 using namespace higanbana;
 
+
 InputBuffer::InputBuffer() : m_tail(0), m_head(0), m_frame(0), f_translator([](int i) {return i; })
+{
+  for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
+  {
+    m_inputs[i] = Input();
+  }
+}
+InputBuffer::InputBuffer(vector<wchar_t> chars) : m_tail(0), m_head(0), m_frame(0), f_translator([](int i) {return i; }), m_chars(chars)
 {
   for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
   {

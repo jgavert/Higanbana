@@ -129,7 +129,7 @@ namespace {
     async_awaitable<uint64_t> FibonacciOrig(uint64_t number) noexcept {
         co_return Fibonacci(number);
     }
-    higanbana::coro::task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel) noexcept {
+    higanbana::coro::Task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel) noexcept {
         if (number < 2)
             co_return 1;
         

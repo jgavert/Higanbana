@@ -215,11 +215,6 @@ namespace higanbana
       return int4(rect.left, rect.top, rect.right-rect.left, rect.bottom - rect.top);
     }
 
-    vector<wchar_t> charInputs()
-    {
-      return m_characterInput;
-    }
-
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam);
   };
@@ -242,7 +237,6 @@ namespace higanbana
 
     int64_t m_frame = 0;
     higanbana::InputBuffer m_inputs;
-    higanbana::vector<char> m_characterInput;
     MouseState m_mouse;
 
     void keyDown(int key);
@@ -274,11 +268,6 @@ namespace higanbana
     MouseState& mouse()
     {
       return m_mouse;
-    }
-
-    higanbana::vector<char> charInputs()
-    {
-      return m_characterInput;
     }
   };
 #endif

@@ -1,4 +1,5 @@
 #pragma once
+#include "higanbana/core/datastructures/proxy.hpp"
 #include "higanbana/core/system/ringbuffer.hpp"
 
 #include <stdint.h>
@@ -21,6 +22,7 @@ namespace higanbana
   {
   public:
     InputBuffer();
+    InputBuffer(vector<wchar_t> chars);
 
     void insert(int key, int action, int64_t frame);
     void readUntil(std::function<bool(int, int)> func);
@@ -42,6 +44,9 @@ namespace higanbana
     {
       return m_frame;
     }
+    vector<wchar_t>& charInputs() {
+      return m_chars;
+    }
 
   private:
     struct OldestIndex
@@ -55,6 +60,7 @@ namespace higanbana
     int m_head;
     int64_t m_frame;
     std::function<int(int)> f_translator;
+    vector<wchar_t> m_chars;
     // some kind of hashmap to map inputs ENUM -> actual input(probably system only)
   };
 }

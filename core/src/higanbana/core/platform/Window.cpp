@@ -137,7 +137,7 @@ namespace higanbana
         wchar_t ch = static_cast<wchar_t>(wParam);
         if (ch == wParam)
         {
-          me->m_characterInput.emplace_back(ch);
+          me->m_inputs.charInputs().emplace_back(ch);
         }
         return 0;
       }

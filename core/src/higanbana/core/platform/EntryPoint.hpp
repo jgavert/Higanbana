@@ -14,5 +14,5 @@ public:
 	}
 
 	// this is "main"
-	higanbana::coro::task<int> main();
+	int main();
 };
