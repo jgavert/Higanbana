@@ -21,6 +21,12 @@ int64_t Timer::timeFromLastReset()
   auto current = HighPrecisionClock::now();
   return std::chrono::duration_cast<std::chrono::nanoseconds>(current - start).count();
 }
+int64_t Timer::timeMicro()
+{
+  auto current = HighPrecisionClock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(current - start).count();
+}
+
 
 
 WTime::WTime() : start(HighPrecisionClock::now())

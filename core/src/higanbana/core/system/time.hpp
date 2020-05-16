@@ -17,6 +17,7 @@ namespace higanbana
     Timer();
     int64_t reset();
     int64_t timeFromLastReset();
+    int64_t timeMicro();
   private:
     timepoint start;
   };
