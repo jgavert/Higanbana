@@ -439,11 +439,11 @@ TEST_CASE("threaded awaitable")
 }
 */
 
-higanbana::coro::task<int> funfun5() noexcept {
+higanbana::coro::Task<int> funfun5() noexcept {
   co_return 1;
 }
 
-higanbana::coro::task<int> funfun6() noexcept {
+higanbana::coro::Task<int> funfun6() noexcept {
   int sum = 0;
   auto thing = funfun5();
   auto thing2 = funfun5();
@@ -458,7 +458,7 @@ int funfun7() {
   return funfun6().get();
 }
 
-higanbana::coro::task<int> addInTreeLBS(int treeDepth, int parallelDepth) noexcept {
+higanbana::coro::Task<int> addInTreeLBS(int treeDepth, int parallelDepth) noexcept {
   if (treeDepth <= 0)
     co_return 1;
   if (treeDepth > parallelDepth) {
@@ -478,7 +478,7 @@ higanbana::coro::task<int> addInTreeLBS(int treeDepth, int parallelDepth) noexce
 uint64_t Fibonacci(uint64_t number) noexcept {
   return number < 2 ? 1 : Fibonacci(number - 1) + Fibonacci(number - 2);
 }
-higanbana::coro::task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel) noexcept {
+higanbana::coro::Task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel) noexcept {
   if (number < 2)
       co_return 1;
   
@@ -493,7 +493,7 @@ higanbana::coro::task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel
 }
 
 
-higanbana::coro::task<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) noexcept {
+higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) noexcept {
   higanbana::Timer time2;
 
   size_t mint = 0, maxt = 0;
@@ -507,7 +507,7 @@ higanbana::coro::task<int> asyncLoopTest(int treeSize, int computeTree, size_t c
   auto oma = 0;
   //auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
-  for (int i = 0; i < 4000; i++) {
+  for (int i = 0; i < 6000; i++) {
     //my_pool->resetIDs();
     //if (i % 100 == 0) {
 
