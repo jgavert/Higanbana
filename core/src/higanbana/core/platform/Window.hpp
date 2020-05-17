@@ -201,7 +201,9 @@ namespace higanbana
 
     higanbana::InputBuffer inputs()
     {
-      return m_inputs;
+      auto inputs = m_inputs;
+      m_inputs.charInputs().clear();
+      return inputs;
     }
 
     MouseState mouse()

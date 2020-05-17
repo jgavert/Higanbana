@@ -6,6 +6,7 @@
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
+#include <higanbana/core/coroutine/task.hpp>
 #include <higanbana/core/system/LBS.hpp>
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
@@ -207,7 +208,7 @@ class Renderer
     int drawcalls;
     int drawsSplitInto;
   };
-  void renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments& args, higanbana::vector<InstanceDraw>& instances);
+  higanbana::coro::Task<void> renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments args, higanbana::vector<InstanceDraw>& instances);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
@@ -216,7 +217,7 @@ public:
   void ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
-  void renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
+  higanbana::coro::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);

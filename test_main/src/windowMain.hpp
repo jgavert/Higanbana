@@ -3,6 +3,7 @@
 #include <higanbana/core/platform/EntryPoint.hpp>
 #include <higanbana/core/system/LBS.hpp>
 #include <higanbana/core/coroutine/task.hpp>
+#include <higanbana/core/coroutine/parallel_task.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/platform/Window.hpp>
@@ -87,8 +88,8 @@ class RenderingApp {
   bool m_controllerConnected = false;
   bool m_autoRotateCamera = false;
 
-  std::atomic_bool m_toggleCaptureMouse;
-  std::atomic_bool m_toggleBorderlessFullscreen;
+  std::atomic_bool m_toggleCaptureMouse = false;
+  std::atomic_bool m_toggleBorderlessFullscreen = false;
 
   higanbana::AtomicBuffered<higanbana::InputBuffer> m_ainputs;
   higanbana::AtomicBuffered<higanbana::gamepad::X360LikePad> m_agamepad;

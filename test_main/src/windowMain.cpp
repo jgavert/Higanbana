@@ -771,7 +771,7 @@ higanbana::coro::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higa
     if (!m_renderOptions.renderImGui) {
       viewports = MemView(rendererViewports.data(), 1);
     }
-    rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, m_cubeCount, m_cubeCommandLists);
+    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, m_cubeCount, m_cubeCommandLists);
 
     m_logicAndRenderTime.tick();
     auto totalTime = m_logicAndRenderTime.getFrameTimeDelta();
@@ -1034,6 +1034,7 @@ void mainWindow(ProgramParams& params)
     HIGAN_LOGi("Bad commandline! reason: %s\n%s", e.what(), options.help({""}).c_str());
     return;
   }
+  
   RenderingApp app(inputs);
   app.runCoreLoop(params);
 }

@@ -2,6 +2,7 @@
 
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/graphics/common/image_loaders.hpp>
+#include <higanbana/core/coroutine/parallel_task.hpp>
 
 #include <imgui.h>
 #include <execution>
@@ -163,7 +164,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments& scene, higanbana::vector<InstanceDraw>& instances) {
+higanbana::coro::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
   HIGAN_CPU_FUNCTION_SCOPE();
   {
     auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
@@ -246,8 +247,8 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
           cubesDrawn += reverseDraw[i];
         } 
       }
-      std::for_each(std::execution::par_unseq, std::begin(nodes), std::end(nodes), [&](std::tuple<CommandGraphNode, int, int>& node)
-      {
+      vector<coro::Task<void>> passes;
+      for (auto& node : nodes) {
         HIGAN_CPU_BRACKET("draw cubes - inner pass");
         auto ldepth = depth;
         if (std::get<1>(node) == 0)
@@ -255,12 +256,17 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
         else
           ldepth.setOp(LoadOp::Load);
         
-        cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node));
-      });
-
-      for (auto& node : nodes)
-      {
-        tasks.addPass(std::move(std::get<0>(node)));
+        passes.emplace_back(cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node)));
+      }
+      int passId = 0;
+      if (!passes.empty())
+        co_await passes.back();
+      for (auto& pass : passes) {
+        if (!pass.is_ready())
+          co_await pass;
+        
+        tasks.addPass(std::move(std::get<0>(nodes[passId])));
+        passId++;
       }
     }
     else
@@ -287,6 +293,7 @@ void Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime
     particleSimulation.render(dev, node, scene.gbufferRTV, scene.depth, cameraArgs);
     tasks.addPass(std::move(node));
   }
+  co_return;
 }
 
 higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 swapchainRes) {
@@ -304,7 +311,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -390,17 +397,29 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   for (auto&& vpInfo : viewportsToRender) {
     nodeVecs.push_back(tasks.localThreadVector());
   }
-  //for (auto&& vpInfo : viewportsToRender) {
-  std::for_each(std::execution::par_unseq, std::begin(indexesToVP), std::end(indexesToVP), [&,materialCopy = materialArgs](int& index) {
+  vector<coro::Task<void>> sceneTasks;
+  for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
     auto& options = vpInfo.options;
     auto& localVec = nodeVecs[index];
 
-    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialCopy, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
+    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
 
-    renderScene(localVec, time, rendererOptions, sceneArgs, instances);
+    sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances));
+  }
 
+  //co_await sceneTasks.back();
+  for (auto& task : sceneTasks) {
+    co_await task;
+  }
+
+  for (auto&& index : indexesToVP) {
+    auto& vpInfo = viewportsToRender[index];
+    auto& vp = viewports[index];
+    auto& options = vpInfo.options;
+    auto& localVec = nodeVecs[index];
+    
     TextureSRV tsaaOutput = vp.gbufferSRV;
     TextureRTV tsaaOutputRTV = vp.gbufferRTV;
     if (options.tsaa)
@@ -433,7 +452,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
       node.endRenderpass();
       localVec.addPass(std::move(node));
     }
-  });
+  }
   for (auto&& nodeVec : nodeVecs)
     tasks.addVectorOfPasses(std::move(nodeVec));
 
@@ -445,7 +464,7 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
   {
     HIGAN_LOGi( "No backbuffer available...\n");
     dev.submit(tasks);
-    return;
+    co_return;
   }
   TextureRTV backbuffer = obackbuffer.value().second;
   backbuffer.setOp(LoadOp::Clear);
@@ -541,5 +560,6 @@ void Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, cons
     HIGAN_CPU_BRACKET("Present");
     dev.present(swapchain, obackbuffer.value().first);
   }
+  co_return;
 }
 }
