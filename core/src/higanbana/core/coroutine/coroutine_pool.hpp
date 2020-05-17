@@ -240,6 +240,7 @@ public:
   std::atomic<int> m_localQueueSize = {0};
   std::deque<Task> m_localDeque;
   std::atomic<bool> m_alive = {true};
+  bool m_failedToCheckGlobalQueue = false;
   int m_ID = 0;
 };
 
@@ -459,7 +460,7 @@ class LBSPool
     }
 
     // if all else fails, wait for more work.
-    if (!StopCondition && allowedToSleep) // this probably doesn't fix the random deadlock
+    if (!StopCondition && allowedToSleep && !data.data.m_failedToCheckGlobalQueue) // this probably doesn't fix the random deadlock
     {
       if (p.m_localQueueSize.load(std::memory_order::relaxed) != 0 || tasks_to_do.load(std::memory_order::relaxed) > 0)
       {
@@ -495,6 +496,7 @@ class LBSPool
       if (!addable.empty())
         addable.clear();
       std::unique_lock<std::mutex> guard(m_globalWorkMutex, std::defer_lock_t());
+      data.data.m_failedToCheckGlobalQueue = false;
       if (guard.try_lock()) {
         m_taskQueue.erase(std::remove_if(m_taskQueue.begin(), m_taskQueue.end(), [&](const std::pair<std::vector<BarrierObserver>, Task>& it){
           if (allDepsDone(it.first)) {
@@ -503,6 +505,8 @@ class LBSPool
           }
           return false;
         }), m_taskQueue.end());
+      } else {
+        data.data.m_failedToCheckGlobalQueue = true;
       }
       tasks_in_queue -= static_cast<int>(addable.size());
     }
@@ -525,13 +529,10 @@ class LBSPool
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
     data.data.m_task.m_id = 0;
-    BarrierObserver observs = data.data.m_task.m_blocks;
+    //BarrierObserver observs = data.data.m_task.m_blocks;
     data.data.m_task.m_blocks.kill();
-    data.data.m_task.m_blocks = Barrier();
-    if (observs.done())
-    {
-      tryTakeTaskFromGlobalQueue(data);
-    }
+    //data.data.m_task.m_blocks = Barrier();
+    tryTakeTaskFromGlobalQueue(data);
   }
 
   inline void didWorkFor(AllThreadData& data, size_t amount) noexcept // Task specific counter this time
