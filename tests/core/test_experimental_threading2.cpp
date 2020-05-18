@@ -542,7 +542,7 @@ TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
-    int computeTree = 6;
+    int computeTree = 7;
     int treeSize = 26;
     int a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
