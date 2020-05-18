@@ -62,7 +62,6 @@ public:
           copy.kill();
           return cont_handle;
         }
-        thread_coroutine_depth = 0;
         return noop_coroutine(std::move(h.promise().finalDependency));
       }
       void await_resume() noexcept {}
@@ -86,7 +85,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = experimental::Barrier();
-    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 2) {
+    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 1) {
       handle_.promise().async = true;
       handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         auto handle = coro_handle::from_address(handlePtr);
@@ -157,7 +156,6 @@ public:
       }
     }
 
-    //assert(!handle_.done() && !handle_.promise().finalDependency.done());
     handle_.promise().m_continuation = handle;
     thread_first_seen_coroutine = false;
     thread_coroutine_depth++;
@@ -224,8 +222,13 @@ public:
 
       template<typename U>
       std::experimental::coroutine_handle<> await_suspend(U h) noexcept {
-        if (h.promise().m_continuation.address() != nullptr){
-          return h.promise().m_continuation;
+        auto cont_handle = std::move(h.promise().m_continuation);
+        if (cont_handle.address() != nullptr){
+          thread_first_seen_coroutine = false;
+          thread_coroutine_depth++;
+          auto copy = std::move(h.promise().finalDependency);
+          copy.kill();
+          return cont_handle;
         }
         return noop_coroutine(std::move(h.promise().finalDependency));
       }
@@ -248,12 +251,18 @@ public:
   Task(coro_handle handle) noexcept : handle_(handle)
   {
     assert(handle);
-    handle_.promise().finalDependency = experimental::Barrier();
-    handle_.promise().async = true;
-    handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
-      auto handle = coro_handle::from_address(handlePtr); 
-      handle.resume();
-    });
+    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 1) {
+      handle_.promise().async = true;
+      handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
+        auto handle = coro_handle::from_address(handlePtr);
+        thread_first_seen_coroutine = false;
+        thread_inside_coroutine = true;
+        thread_coroutine_depth = 0; 
+        handle.resume();
+        thread_inside_coroutine = false;
+      });
+    }
+    thread_first_seen_coroutine = true;
   }
   Task(Task& other) noexcept {
     handle_ = other.handle_;
@@ -290,18 +299,31 @@ public:
       auto finalDep = handle_.promise().finalDependency;
       if (finalDep)
         obs = experimental::BarrierObserver(finalDep);
-      experimental::Barrier temp;
-      experimental::BarrierObserver tobs(temp);
-      handle.promise().async = true;
-      HIGAN_ASSERT(experimental::globals::s_pool, "thread pool not available, error");
-      handle.promise().bar = experimental::globals::s_pool->task({std::move(obs), handle.promise().bar, tobs}, [handlePtr = handle.address()](size_t) mutable {
-        auto handle = coro_handle::from_address(handlePtr);
-        assert(!handle.done());
-        handle.resume();
-      });
-      return noop_coroutine(temp);
+      if (!obs.done() || !handle_.done()) {
+        experimental::Barrier temp;
+        experimental::BarrierObserver tobs(temp);
+        handle.promise().async = true;
+        HIGAN_ASSERT(experimental::globals::s_pool, "thread pool not available, error");
+        handle.promise().bar = experimental::globals::s_pool->task({std::move(obs), handle.promise().bar, tobs}, [handlePtr = handle.address()](size_t) mutable {
+          auto handle = coro_handle::from_address(handlePtr);
+          thread_first_seen_coroutine = false; 
+          thread_inside_coroutine = true;
+          thread_coroutine_depth = 0;
+          handle.resume();
+          thread_inside_coroutine = false;
+        });
+        thread_coroutine_depth = 0;
+        return noop_coroutine(temp);
+      }
+      else
+      {
+        return handle;
+      }
     }
+
     handle_.promise().m_continuation = handle;
+    thread_first_seen_coroutine = false;
+    thread_coroutine_depth++;
     return handle_;
   }
   ~Task() noexcept {
