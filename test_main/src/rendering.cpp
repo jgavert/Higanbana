@@ -259,8 +259,6 @@ higanbana::coro::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& 
         passes.emplace_back(cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node)));
       }
       int passId = 0;
-      if (!passes.empty())
-        co_await passes.back();
       for (auto& pass : passes) {
         if (!pass.is_ready())
           co_await pass;

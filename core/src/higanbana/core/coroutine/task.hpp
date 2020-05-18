@@ -33,6 +33,9 @@ struct noop_task {
 std::experimental::coroutine_handle<> noop_coroutine() noexcept;
 std::experimental::coroutine_handle<> noop_coroutine(experimental::Barrier dep) noexcept;
 
+extern thread_local bool thread_first_seen_coroutine;
+extern thread_local bool thread_inside_coroutine;
+extern thread_local int thread_coroutine_depth;
 template<typename T>
 class Task {
 public:
@@ -52,8 +55,11 @@ public:
       template<typename U>
       std::experimental::coroutine_handle<> await_suspend(U h) noexcept {
         if (h.promise().m_continuation.address() != nullptr){
+          thread_first_seen_coroutine = false;
+          thread_coroutine_depth++;
           return h.promise().m_continuation;
         }
+        thread_coroutine_depth = 0;
         return noop_coroutine(std::move(h.promise().finalDependency));
       }
       void await_resume() noexcept {}
@@ -77,11 +83,18 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = experimental::Barrier();
-    handle_.promise().async = true;
-    handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
-      auto handle = coro_handle::from_address(handlePtr); 
-      handle.resume();
-    });
+    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 2) {
+      handle_.promise().async = true;
+      handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
+        auto handle = coro_handle::from_address(handlePtr);
+        thread_first_seen_coroutine = false;
+        thread_inside_coroutine = true;
+        thread_coroutine_depth = 0; 
+        handle.resume();
+        thread_inside_coroutine = false;
+      });
+    }
+    thread_first_seen_coroutine = true;
   }
   Task(Task& other) noexcept {
     handle_ = other.handle_;
@@ -126,11 +139,18 @@ public:
       handle.promise().bar = experimental::globals::s_pool->task({std::move(obs), handle.promise().bar, tobs}, [handlePtr = handle.address()](size_t) mutable {
         auto handle = coro_handle::from_address(handlePtr);
         assert(!handle.done());
+        thread_first_seen_coroutine = false; 
+        thread_inside_coroutine = true;
+        thread_coroutine_depth = 0;
         handle.resume();
+        thread_inside_coroutine = false;
       });
+      thread_coroutine_depth = 0;
       return noop_coroutine(temp);
     }
     handle_.promise().m_continuation = handle;
+    thread_first_seen_coroutine = false;
+    thread_coroutine_depth++;
     return handle_;
   }
   ~Task() noexcept {
@@ -152,7 +172,7 @@ public:
         if (!wasIAsync && handle_.promise().async)
         {
           wasIAsync = true;
-          printf("Am async now! \n");
+          //printf("Am async now! \n");
         }
       }
     }
@@ -293,7 +313,7 @@ public:
         if (!wasIAsync && handle_.promise().async)
         {
           wasIAsync = true;
-          printf("Am async now! \n");
+          //printf("Am async now! \n");
         }
       }
     }

@@ -324,6 +324,9 @@ class LBSPool
       return m_threadData[internal::thread_id].data.m_localQueueSize.load(std::memory_order::relaxed);
     return 0;
   }
+  bool am_i_from_pool() noexcept {
+    return internal::thread_from_pool;
+  }
   int my_thread_index() noexcept {
     if (internal::thread_from_pool)
       return internal::thread_id;

@@ -15,5 +15,8 @@ std::experimental::coroutine_handle<> noop_coroutine(experimental::Barrier dep) 
     co_return;
   }().coro;
 }
+thread_local bool thread_first_seen_coroutine = false;
+thread_local bool thread_inside_coroutine = false;
+thread_local int thread_coroutine_depth = 0;
 }
 }
