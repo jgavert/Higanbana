@@ -133,7 +133,7 @@ public:
     m_iterations(0),
     m_iterID(0),
     m_ppt(1),
-    m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>()))
+    m_sharedWorkCounter(nullptr)
   {
   };
   Task(size_t id, size_t start, size_t iterations, Barrier barrier) :
@@ -141,14 +141,13 @@ public:
     m_iterations(iterations),
     m_iterID(start),
     m_ppt(1),
-    m_sharedWorkCounter(std::shared_ptr<std::atomic<size_t>>(new std::atomic<size_t>())),
+    m_sharedWorkCounter(iterations == 1? nullptr : new std::atomic<size_t>(iterations)),
     m_blocks(std::move(barrier))
   {
-    m_sharedWorkCounter->store(m_iterations);
   };
 
 private:
-  Task(size_t id, size_t start, size_t iterations, std::shared_ptr<std::atomic<size_t>> sharedWorkCount, Barrier barrier) :
+  Task(size_t id, size_t start, size_t iterations, std::atomic<size_t>* sharedWorkCount, Barrier barrier) :
     m_id(id),
     m_iterations(iterations),
     m_iterID(start),
@@ -156,13 +155,14 @@ private:
     m_sharedWorkCounter(sharedWorkCount),
     m_blocks(std::move(barrier))
   {
+    HIGAN_ASSERT(sharedWorkCount != nullptr, "shared work count should exist.");
   };
 public:
 
   size_t m_id;
   size_t m_iterations;
   size_t m_iterID;
-  std::shared_ptr<std::atomic<size_t>> m_sharedWorkCounter;
+  std::atomic<size_t>* m_sharedWorkCounter;
   Barrier m_blocks; // maybe there is always one?...?
 
   std::function<bool(size_t&, size_t&)> f_work;
@@ -530,6 +530,8 @@ class LBSPool
 #endif
     data.data.m_task.m_id = 0;
     //BarrierObserver observs = data.data.m_task.m_blocks;
+    if (data.data.m_task.m_sharedWorkCounter)
+      delete data.data.m_task.m_sharedWorkCounter;
     data.data.m_task.m_blocks.kill();
     //data.data.m_task.m_blocks = Barrier();
     tryTakeTaskFromGlobalQueue(data);
@@ -545,7 +547,7 @@ class LBSPool
       assert(false);
       return;
     }
-    if (data.data.m_task.m_sharedWorkCounter->fetch_sub(amount) - amount <= 0) // be careful with the fetch_sub command
+    if (data.data.m_task.m_sharedWorkCounter == nullptr || data.data.m_task.m_sharedWorkCounter->fetch_sub(amount) - amount <= 0) // be careful with the fetch_sub command
     {
       informTaskFinished(data);
     }
