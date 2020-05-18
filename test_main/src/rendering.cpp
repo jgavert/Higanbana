@@ -309,7 +309,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime& time, const RendererOptions& rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -356,7 +356,7 @@ higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higan
       auto prevCamera = vp.previousCamera;
       auto newCamera = CameraSettings{ vp.perspective, float4(vpInfo.camera.position, 1.f)};
       vp.previousCamera = newCamera;
-      if (vpInfo.options.jitterEnabled){
+      if (vpInfo.options.jitterEnabled && vpInfo.options.tsaa){
         prevCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, prevCamera.perspective);
         newCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, newCamera.perspective);
       }
