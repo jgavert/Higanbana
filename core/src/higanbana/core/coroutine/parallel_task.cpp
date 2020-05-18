@@ -4,6 +4,10 @@ namespace higanbana
 {
 namespace coro
 {
+namespace lol
+{
+  thread_local experimental::BarrierObserver __barrierToWait;
+}
 namespace __internal
 {
 ParallelTask createEmptyStack(){

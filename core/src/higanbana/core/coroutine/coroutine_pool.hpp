@@ -230,11 +230,11 @@ public:
 class ThreadData
 {
 public:
-  ThreadData() : m_task(Task()), m_ID(0) { }
-  ThreadData(int id) : m_task(Task()), m_ID(id) {  }
+  ThreadData() : m_task(Task()), m_ID(0), m_wakeThreadID(0) { }
+  ThreadData(int id) : m_task(Task()), m_ID(id), m_wakeThreadID(id) {  }
 
-  ThreadData(const ThreadData& data) : m_task(Task()), m_ID(data.m_ID) {}
-  ThreadData(ThreadData&& data) : m_task(Task()), m_ID(data.m_ID) {}
+  ThreadData(const ThreadData& data) : m_task(Task()), m_ID(data.m_ID), m_wakeThreadID(data.m_ID) {}
+  ThreadData(ThreadData&& data) : m_task(Task()), m_ID(data.m_ID), m_wakeThreadID(data.m_ID) {}
 
   Task m_task;
   std::atomic<int> m_localQueueSize = {0};
@@ -242,6 +242,7 @@ public:
   std::atomic<bool> m_alive = {true};
   bool m_failedToCheckGlobalQueue = false;
   int m_ID = 0;
+  unsigned m_wakeThreadID = 0; // rolling number
 };
 
 
@@ -296,6 +297,7 @@ class LBSPool
       return;
     }
 
+#if 0
     auto doableTasks = tasks_to_do.load(std::memory_order::relaxed); 
     // 1 so that there is a task for this thread, +1 since it's likely that one thread will end up without a task. == 2
     unsigned offset = static_cast<unsigned>(std::max(0, whoNotified)+1);
@@ -314,6 +316,23 @@ class LBSPool
       tasks--;
       it.cv->notify_one();
     }
+#else
+    auto doableTasks = tasks_to_do.load(std::memory_order::relaxed); 
+    // 1 so that there is a task for this thread, +1 since it's likely that one thread will end up without a task. == 2
+    unsigned threadID = static_cast<unsigned>(std::max(0, whoNotified));
+    unsigned offset = m_threadData[threadID].data.m_wakeThreadID;
+    const unsigned tdSize = std::max(1u, static_cast<unsigned>(m_threadData.size()));
+    auto tasks = std::min(static_cast<int>(tdSize)-1, std::max(1, doableTasks - 2)); // slightly modify how many threads to actually wake up, 2 is deemed as good value
+    
+    for (int i = 0; i < tasks; i++) {
+      offset = (offset + 1) % tdSize;
+      if (offset == threadID)
+        offset = (offset + 1) % tdSize;
+      auto& it = m_threadData[offset];
+      it.cv->notify_one();
+    }
+    m_threadData[threadID].data.m_wakeThreadID = offset;
+#endif
   }
 
   public:
@@ -388,6 +407,7 @@ class LBSPool
     internal::thread_id = i;
     threads_awake++;
     std::string threadName = "Thread ";
+    auto threadCount = m_threadData.size() * 4;
     threadName += std::to_string(i);
     threadName += '\0';
     AllThreadData& p = m_threadData.at(i);
@@ -395,7 +415,7 @@ class LBSPool
       stealOrWait(p);
     }
     while (!StopCondition) {
-      if (p.data.m_task.canSplit() && tasks_to_do < 128) {
+      if (p.data.m_task.canSplit()) {
         if (p.data.m_localQueueSize.load(std::memory_order::relaxed) == 0) {
           {
             std::lock_guard<std::mutex> guard(*p.mutex);
@@ -404,7 +424,6 @@ class LBSPool
           }
           tasks_to_do++;
           notifyAll(p.data.m_ID);
-          continue;
         }
       }
       if (doWork(p))
@@ -532,11 +551,9 @@ class LBSPool
     HIGAN_CPU_FUNCTION_SCOPE();
 #endif
     data.data.m_task.m_id = 0;
-    //BarrierObserver observs = data.data.m_task.m_blocks;
     if (data.data.m_task.m_sharedWorkCounter)
       delete data.data.m_task.m_sharedWorkCounter;
     data.data.m_task.m_blocks.kill();
-    //data.data.m_task.m_blocks = Barrier();
     tryTakeTaskFromGlobalQueue(data);
   }
 
@@ -553,10 +570,10 @@ class LBSPool
     if (data.data.m_task.m_sharedWorkCounter == nullptr || data.data.m_task.m_sharedWorkCounter->fetch_sub(amount) - amount <= 0) // be careful with the fetch_sub command
     {
       informTaskFinished(data);
+      tasks_done++;
     }
     if (data.data.m_task.m_id == 0 || data.data.m_task.m_iterations == 0){
       data.data.m_task = Task();
-      tasks_done++;
     }
   }
 
@@ -652,8 +669,8 @@ class LBSPool
               p.data.m_localDeque.push_back(p.data.m_task.split()); // push back
               p.data.m_localQueueSize.store(p.data.m_localDeque.size());
             }
+            tasks_to_do++;
             notifyAll(p.data.m_ID);
-            continue;
           }
         }
         // we couldn't split or queue had something

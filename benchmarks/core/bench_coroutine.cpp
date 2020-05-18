@@ -2,6 +2,8 @@
 
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/coroutine/task.hpp>
+#include <higanbana/core/coroutine/parallel_task.hpp>
+#include <higanbana/core/system/LBS.hpp>
 
 #include <vector>
 #include <thread>
@@ -12,6 +14,8 @@
 #include <deque>
 #include <experimental/coroutine>
 #include <windows.h>
+#include <execution>
+#include <algorithm>
 
 
 struct suspend_never {
@@ -122,8 +126,21 @@ private:
 };
 
 namespace {
-    std::uint64_t Fibonacci(std::uint64_t number) noexcept {
+    uint64_t Fibonacci(uint64_t number) noexcept {
         return number < 2 ? 1 : Fibonacci(number - 1) + Fibonacci(number - 2);
+    }
+    
+    uint64_t fibonacciLoop(uint64_t nthNumber) noexcept {
+        uint64_t previouspreviousNumber, previousNumber = 0, currentNumber = 1;
+        for (uint64_t i = 1; i < nthNumber ; i++) {
+            previouspreviousNumber = previousNumber;
+            previousNumber = currentNumber;
+            currentNumber = previouspreviousNumber + previousNumber;
+        }
+        return currentNumber;
+    }
+    async_awaitable<uint64_t> FibonacciOrigIter(uint64_t number) noexcept {
+        co_return fibonacciLoop(number);
     }
 
     async_awaitable<uint64_t> FibonacciOrig(uint64_t number) noexcept {
@@ -141,6 +158,35 @@ namespace {
         auto fib0 = Fibonacci(number - 1);
         auto fib1 = Fibonacci(number - 2);
         co_return fib0 + fib1;
+    }
+
+    template <size_t ppt, typename RandomIter, typename Func>
+    higanbana::coro::Task<void> transform(RandomIter first, RandomIter last, Func&& f) noexcept {
+      ptrdiff_t size = last - first;
+      if (size <= ppt){
+        std::for_each(first, last, std::forward<decltype(f)>(f));
+        co_return;
+      }
+      auto pivot = first + size / 2;
+      if (size > ppt*2) {
+        auto smallSize = (size / 2) / 2;
+        auto anotherPivot = first + smallSize;
+        auto v0 = transform<ppt>(first, anotherPivot, std::forward<decltype(f)>(f));
+        auto v1 = transform<ppt>(anotherPivot+1, pivot, std::forward<decltype(f)>(f));
+        auto anotherPivot2 = pivot + smallSize;
+        auto v2 = transform<ppt>(pivot+1, anotherPivot2, std::forward<decltype(f)>(f));
+        auto v3 = transform<ppt>(anotherPivot2+1, last, std::forward<decltype(f)>(f));
+        co_await v0;
+        co_await v1;
+        co_await v2;
+        co_await v3;
+        co_return;
+      }
+      auto v0 = transform<ppt>(first, pivot, std::forward<decltype(f)>(f));
+      auto v1 = transform<ppt>(pivot+1, last, std::forward<decltype(f)>(f));
+      co_await v0;
+      co_await v1;
+      co_return;
     }
 
     async_awaitable<uint64_t> FibonacciAsync(uint64_t number, uint64_t parallel) noexcept {
@@ -168,11 +214,26 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     CHECK(FibonacciCoro(5, 5).get() == 8);
     // some more asserts..
     uint64_t parallel = 6;
+    /*
+    {
+      std::vector<uint64_t> vec(256, 10000ull);
+      std::for_each(std::execution::par_unseq, vec.begin(), vec.end(), [](uint64_t& value){
+        value = fibonacciLoop(value);
+      });
+      std::vector<uint64_t> vec0(256, 10000ull);
+      transform<4>(vec.begin(), vec.end(), [](uint64_t& value){
+        value = fibonacciLoop(value);
+      }).wait();
+      for (size_t i = 0; i < vec.size(); i++) {
+        CHECK(vec[i] == vec0[i]);
+      }
+    }/*
+    /*
     BENCHMARK("Fibonacci 25") {
         return FibonacciOrig(25).get();
     };
     BENCHMARK("Coroutine Fibonacci 25") {
-        return FibonacciCoro(25, 25-parallel).get();
+        return FibonacciCoro(25, 25-parallel+1).get();
     };
     BENCHMARK("Fibonacci 30") {
         return FibonacciOrig(30).get();
@@ -194,14 +255,58 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     BENCHMARK("Coroutine Fibonacci 36") {
         return FibonacciCoro(36,36-parallel-1).get();
     };
-
+    /*
     BENCHMARK("Fibonacci 38") {
         return FibonacciOrig(38).get();
     };
     BENCHMARK("Coroutine Fibonacci 38") {
-        return FibonacciCoro(38,38-parallel-2).get();
+        return FibonacciCoro(38,38-parallel-3).get();
+    };*/
+    BENCHMARK("Fibonacci base case 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        std::for_each(vec.begin(), vec.end(), [](uint64_t& value){
+          value = fibonacciLoop(value);
+        });
+        return vec[127];
     };
-    
+    BENCHMARK("Fibonacci par_unseq 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        std::for_each(std::execution::par_unseq, vec.begin(), vec.end(), [](uint64_t& value){
+          value = fibonacciLoop(value);
+        });
+        return vec[127];
+    };
+    BENCHMARK("Coroutine Fibonacci<16> 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        transform<8>(vec.begin(), vec.end(), [](uint64_t& value){
+          value = fibonacciLoop(value);
+        }).wait();
+        return vec[127];
+    };
+    BENCHMARK("coro parallel for <8> 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        higanbana::coro::parallelFor<4>(0, 512,[&](size_t index){
+          vec[index] = fibonacciLoop(vec[index]);
+        }).wait();
+        return vec[127];
+    };
+    higanbana::LBS lbs;
+    BENCHMARK("lbs parallel for <8> 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        higanbana::desc::Task task{"parallelFor", {}, {}}; 
+        lbs.addParallelFor<4>(task,0, 512,[&](size_t index){
+          vec[index] = fibonacciLoop(vec[index]);
+        });
+        lbs.sleepTillKeywords({"parallelFor"});
+        return vec[127];
+    };
+    BENCHMARK("Fibonacci par_unseq 50000ull * 512") {
+        std::vector<uint64_t> vec(512, 50000ull);
+        std::for_each(std::execution::par_unseq, vec.begin(), vec.end(), [](uint64_t& value){
+          value = fibonacciLoop(value);
+        });
+        return vec[127];
+    };
     
     //my_pool->~LBSPool();
 
