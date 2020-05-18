@@ -465,8 +465,8 @@ higanbana::coro::Task<int> addInTreeLBS(int treeDepth, int parallelDepth) noexce
     int result = 0;
     auto res0 = addInTreeLBS(treeDepth-1, parallelDepth);
     auto res1 = addInTreeLBS(treeDepth-1, parallelDepth);
-    result += co_await res1;
     result += co_await res0;
+    result += co_await res1;
     co_return result;
   }
   else {
@@ -507,7 +507,7 @@ higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t c
   auto oma = 0;
   //auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
-  for (int i = 0; i < 6000; i++) {
+  for (int i = 0; i < 2000; i++) {
     //my_pool->resetIDs();
     //if (i % 100 == 0) {
 

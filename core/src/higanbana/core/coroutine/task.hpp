@@ -83,7 +83,7 @@ public:
   {
     assert(handle);
     handle_.promise().finalDependency = experimental::Barrier();
-    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 2) {
+    if (!thread_inside_coroutine || thread_first_seen_coroutine || thread_coroutine_depth > 0) {
       handle_.promise().async = true;
       handle_.promise().bar = experimental::globals::s_pool->task({}, [handlePtr = handle_.address()](size_t) mutable {
         auto handle = coro_handle::from_address(handlePtr);
