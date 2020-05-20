@@ -5,6 +5,8 @@
 #include <higanbana/core/profiling/profiling.hpp>
 
 #include <higanbana/core/coroutine/task.hpp>
+#include <higanbana/core/coroutine/task_stealing_pool.hpp>
+#include <higanbana/core/coroutine/stolen_task.hpp>
 #include <higanbana/core/coroutine/task_st.hpp>
 
 #include <vector>
@@ -476,6 +478,23 @@ higanbana::coro::Task<int> addInTreeLBS(int treeDepth, int parallelDepth) noexce
     co_return res0 + res1;
   }
 }
+higanbana::coro::StolenTask<int> addInTreeTS(int treeDepth, int parallelDepth) noexcept {
+  if (treeDepth <= 0)
+    co_return 1;
+  if (treeDepth > parallelDepth) {
+    int result = 0;
+    auto res0 = addInTreeTS(treeDepth-1, parallelDepth);
+    auto res1 = addInTreeTS(treeDepth-1, parallelDepth);
+    result += co_await res0;
+    result += co_await res1;
+    co_return result;
+  }
+  else {
+    auto res0 = addInTreeNormal(treeDepth-1);
+    auto res1 = addInTreeNormal(treeDepth-1);
+    co_return res0 + res1;
+  }
+}
 uint64_t Fibonacci(uint64_t number) noexcept {
   return number < 2 ? 1 : Fibonacci(number - 1) + Fibonacci(number - 2);
 }
@@ -492,9 +511,22 @@ higanbana::coro::Task<uint64_t> FibonacciCoro(uint64_t number, uint64_t parallel
   auto fib1 = Fibonacci(number - 2);
   co_return fib0 + fib1;
 }
+higanbana::coro::StolenTask<uint64_t> FibonacciCoroS(uint64_t number, uint64_t parallel) noexcept {
+  if (number < 2)
+      co_return 1;
+  
+  if (number > parallel) {
+      auto v0 = FibonacciCoroS(number-1, parallel);
+      auto v1 = FibonacciCoroS(number-2, parallel);
+      co_return co_await v0 + co_await v1;
+  }
+  auto fib0 = Fibonacci(number - 1);
+  auto fib1 = Fibonacci(number - 2);
+  co_return fib0 + fib1;
+}
 
 
-higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) noexcept {
+higanbana::coro::StolenTask<int> asyncLoopTest(int treeSize, int computeTree, size_t compareTime) noexcept {
   higanbana::Timer time2;
 
   size_t mint = 0, maxt = 0;
@@ -508,14 +540,14 @@ higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t c
   auto oma = 0;
   //auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
-  for (int i = 0; i < 3000; i++) {
+  for (int i = 0; i < 2000; i++) {
     //my_pool->resetIDs();
     //if (i % 100 == 0) {
 
     //}
     //funfun6().get();
     //printf("start work\n");
-    auto another = addInTreeLBS(treeSize, treeSize-computeTree);
+    auto another = addInTreeTS(treeSize, treeSize-computeTree);
     //printf("doing work\n");//for (auto &it : m_threadData)
     int lbs = co_await another;//overlap;
     REQUIRE(a == lbs);
@@ -563,9 +595,9 @@ TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
-    int computeTree = 7;
+    int computeTree = 9;
     int treeSize = 26;
-    /*
+    
     int a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
@@ -573,18 +605,19 @@ TEST_CASE("threaded awaitable - lbs")
     auto time2 = higanbana::Timer();
     a = addInTreeNormal(treeSize);
     auto stTime = time2.reset();
-    higanbana::experimental::globals::createGlobalLBSPool();
+    //higanbana::experimental::globals::createGlobalLBSPool();
+    higanbana::taskstealer::globals::createTaskStealingPool();
     //my_pool = std::make_shared<LBSPool>();
-    auto fut = funfun5().get();
-    fut = funfun6().get();
+    //auto fut = funfun5().get();
+    //fut = funfun6().get();
     
-    REQUIRE(fut == 3);
-    */
-    higanbana::experimental::stts::globals::createGlobalLBSv2Pool();
+    //REQUIRE(fut == 3);
+    
+    higanbana::experimental::stts::globals::createSingleThreadPool();
 
-    auto newf = funst1().get();
+    //auto newf = funst1().get();
     //newf = funst.get();
-    REQUIRE(newf == 3);
+    //REQUIRE(newf == 3);
 
     /*
     for (int i = 0; i < 10000; i++) {
@@ -618,18 +651,19 @@ TEST_CASE("threaded awaitable - lbs")
     }
     overlap.get();
     */
-   /*
+   
     higanbana::Timer time;
     int result = asyncLoopTest(treeSize, computeTree, stTime).get();
     printf("long loop done in %.3fms\n", time.reset()/1000.f/1000.f);
     REQUIRE(a == result);
     
-    
+    /*
+    time.reset();
     int basecase = addInTreeNormal(treeSize);
     auto normalTime = time.reset();
     int asynced = basecase;//addInTreeAsync3(treeSize, treeSize-computeTree).get();
     time.reset();
-    //asynced = 0;// addInTreeAsync3(treeSize, treeSize-computeTree).get();
+    asynced = addInTreeTS(treeSize, treeSize-computeTree).get();
     REQUIRE(basecase == asynced);
     auto asyncTime = time.reset();
     //auto lbsed0 = addInTreeLBS(treeSize, treeSize-computeTree);
@@ -637,9 +671,9 @@ TEST_CASE("threaded awaitable - lbs")
     //lbsed0.get();
     REQUIRE(basecase == lbsed);
     auto lbsTime = time.reset();
-    //printf("normal %.3fms awaitable %.3fms %.2f speedup\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f, float(normalTime)/float(asyncTime));
+    printf("normal %.3fms awaitable %.3fms %.2f speedup\n", normalTime/1000.f/1000.f, asyncTime/1000.f/1000.f, float(normalTime)/float(asyncTime));
     printf("tasks done %zd normal %.3fms lbs %.3fms %.2f speedup\n", higanbana::experimental::globals::s_pool->tasksDone(), normalTime/1000.f/1000.f, lbsTime/1000.f/1000.f, float(normalTime)/float(lbsTime));
-    
+    */
     
     /*
     LBSPool& pool = *my_pool;

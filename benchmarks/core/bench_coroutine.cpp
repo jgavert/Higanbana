@@ -112,13 +112,6 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     higanbana::experimental::stts::globals::createSingleThreadPool();
     higanbana::experimental::reference::globals::createExecutor();
     
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 15);
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 16);
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 18);
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 19);
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 20);
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, 21);
-    
     CHECK(FibonacciReferenceIterative(0).get() == 1);
     CHECK(FibonacciReferenceIterative(5).get() == 8);
     CHECK(FibonacciReferenceRecursive(0).get() == 1);
@@ -133,6 +126,8 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     checkAllEmptyTasksSpawning(100);
     checkAllEmptyTasksSpawning(1000);
     checkAllEmptyTasksSpawning(65000);
+    checkAllEmptyTasksSpawning(100000);
+    checkAllEmptyTasksSpawning(200000);
     /*
     BENCHMARK("Coroutine Fibonacci 25") {
         return FibonacciCoro(25, 25-parallel+1).get();

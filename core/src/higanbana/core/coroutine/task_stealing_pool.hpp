@@ -8,6 +8,7 @@
 #include <thread>
 #include <algorithm>
 #include <experimental/coroutine>
+#include <windows.h>
 
 
 namespace higanbana
@@ -87,8 +88,8 @@ class TaskStealingPool
   std::atomic_size_t m_doable_tasks = 0;
   std::atomic_size_t m_thread_sleeping = 0;
   // a single variable to sleep on :shock:
-  //std::mutex sleepLock;
-  //std::condition_variable cv;
+  std::mutex sleepLock;
+  std::condition_variable cv;
 
   std::mutex m_global;
   std::vector<FreeLoot> m_nobodyOwnsTasks; // contains handles and atomic int if it's ready or not.
@@ -112,23 +113,34 @@ class TaskStealingPool
   ~TaskStealingPool() noexcept {
     m_poolAlive = false;
     m_doable_tasks = m_threads+1;
+    cv.notify_all();
+    /*
     for (size_t index = 0; index < m_threads; index++)
     {
       auto& enmy = m_data[index];
       enmy.cv.notify_one();
-    }
+    }*/
     for (auto& it : m_threadHandles)
       it.join();
   }
 
-  void wakeThread(const ThreadData& thread) noexcept {
+  void wakeThread(ThreadData& thread) noexcept {
+    //cv.notify_one();
     size_t countToWake = std::max(std::min(0ull, m_doable_tasks.load()), m_thread_sleeping.load());
-    for (size_t index = thread.m_wakeThread; index < thread.m_wakeThread + countToWake; index++)
+    if (countToWake == 1)
+      cv.notify_one();
+    if (countToWake > 1)
+      cv.notify_all();
+    //for (size_t index = thread.m_wakeThread; index < thread.m_wakeThread + countToWake; index++)
     {
+      //cv.notify_one();
+      /*
       if (index == 0 || thread.m_id)
         index = index+1;
       auto& enmy = m_data[index % m_threads];
       enmy.cv.notify_one();
+      thread.m_wakeThread = index % m_threads;
+      */
     }
   }
 
@@ -139,6 +151,7 @@ class TaskStealingPool
       std::unique_lock lock(ownQueue.lock, std::defer_lock_t{});
       if (!lock.try_lock())
         continue;
+      //std::unique_lock lock(ownQueue.lock);
       if (!ownQueue.loot.empty()) {
         auto freetask = ownQueue.loot.front();
         ownQueue.loot.pop_front();
@@ -186,6 +199,7 @@ class TaskStealingPool
       stealQueue.loot.push_back(std::move(loot));
       m_doable_tasks++;
     }
+    wakeThread(data);
   }
 
   // called by coroutine - when entering co_await, handle is what current coroutine is depending from.
@@ -206,7 +220,6 @@ class TaskStealingPool
     }
     assert(tracker != nullptr);
     data.m_coroStack.front().currentWaitJoin = std::make_pair(reinterpret_cast<uintptr_t>(handleNeeded.address()), tracker);
-    wakeThread(data);
   }
 
   void workOnTasks(ThreadData& myData, StealableQueue& myQueue) noexcept {
@@ -254,6 +267,7 @@ class TaskStealingPool
   void thread_loop(size_t threadIndex) noexcept {
     locals::thread_id = threadIndex;
     locals::thread_from_pool = true;
+    //SetThreadAffinityMask(GetCurrentThread(), 1<<threadIndex);
     m_thread_sleeping--;
     auto& myData = m_data[threadIndex];
     auto& myQueue = m_stealQueues[threadIndex];
@@ -265,10 +279,10 @@ class TaskStealingPool
         myData.m_coroStack.push_front(st);
         m_doable_tasks--;
         //wakeThread(myData);
-      } else {
-        std::unique_lock<std::mutex> lk(myData.lock);
+      } else if (myData.m_coroStack.empty()){
+        std::unique_lock<std::mutex> lk(sleepLock);
         m_thread_sleeping++;
-        myData.cv.wait(lk, [&](){
+        cv.wait(lk, [&](){
           return m_doable_tasks.load() > 0;
         });
         m_thread_sleeping--;
