@@ -5,6 +5,7 @@
 #include <higanbana/core/profiling/profiling.hpp>
 
 #include <higanbana/core/coroutine/task.hpp>
+#include <higanbana/core/coroutine/task_st.hpp>
 
 #include <vector>
 #include <thread>
@@ -507,7 +508,7 @@ higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t c
   auto oma = 0;
   //auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
-  for (int i = 0; i < 2000; i++) {
+  for (int i = 0; i < 3000; i++) {
     //my_pool->resetIDs();
     //if (i % 100 == 0) {
 
@@ -538,12 +539,33 @@ higanbana::coro::Task<int> asyncLoopTest(int treeSize, int computeTree, size_t c
   co_return a; //co_await overlap;
 }
 
+higanbana::corost::Task<int> funst() noexcept {
+  printf("I was done!\n");
+  co_return 1;
+}
+
+higanbana::corost::Task<int> funst1() noexcept {
+  int sum = 3;
+  auto thing = funst();
+  auto thing2 = funst();
+  auto thing3 = funst();
+  //sum += co_await thing;
+  //sum += co_await thing2;
+  //sum += co_await thing3;
+  co_return sum;
+}
+
+int funfunst() {
+  return funst1().get();
+}
+
 TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
     int computeTree = 7;
     int treeSize = 26;
+    /*
     int a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
     a = addInTreeNormal(treeSize);
@@ -557,6 +579,12 @@ TEST_CASE("threaded awaitable - lbs")
     fut = funfun6().get();
     
     REQUIRE(fut == 3);
+    */
+    higanbana::experimental::stts::globals::createGlobalLBSv2Pool();
+
+    auto newf = funst1().get();
+    //newf = funst.get();
+    REQUIRE(newf == 3);
 
     /*
     for (int i = 0; i < 10000; i++) {
@@ -590,6 +618,7 @@ TEST_CASE("threaded awaitable - lbs")
     }
     overlap.get();
     */
+   /*
     higanbana::Timer time;
     int result = asyncLoopTest(treeSize, computeTree, stTime).get();
     printf("long loop done in %.3fms\n", time.reset()/1000.f/1000.f);

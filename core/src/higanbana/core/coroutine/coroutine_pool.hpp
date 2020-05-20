@@ -685,8 +685,7 @@ namespace globals
 {
   void createGlobalLBSPool();
   extern std::unique_ptr<LBSPool> s_pool;
-  extern thread_local bool thread_from_pool;
-  extern thread_local int thread_id;
+
 }
 }
 }
