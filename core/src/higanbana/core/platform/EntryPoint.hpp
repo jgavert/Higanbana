@@ -1,6 +1,6 @@
 #pragma once
 #include "higanbana/core/platform/ProgramParams.hpp"
-#include "higanbana/core/coroutine/task.hpp"
+#include "higanbana/core/coroutine/stolen_task.hpp"
 
 class EntryPoint
 {
@@ -10,7 +10,7 @@ public:
 	EntryPoint(ProgramParams params)
 	: m_params(params)
 	{
-		higanbana::experimental::globals::createGlobalLBSPool();
+		higanbana::taskstealer::globals::createTaskStealingPool();
 	}
 
 	// this is "main"

@@ -79,6 +79,9 @@ public:
     handle_.destroy();
     return val; 
   }
+  bool is_ready() const {
+    return handle_.done();
+  }
   /*
   bool is_ready() const {
     return handle_ && handle_.done();
@@ -164,10 +167,11 @@ public:
     handle_.destroy();
   }
 
-/*
   bool is_ready() const {
-    return handle_ && handle_.done();
+    return handle_.done();
   }
+
+/*
   explicit operator bool() const {
     return !handle_.done();
   }*/

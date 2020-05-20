@@ -161,9 +161,9 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
     position = math::add(position, math::mul(dir, xy.y));
   });
 }
-higanbana::coro::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev) {
+higanbana::coro::StolenTask<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev) {
   //HIGAN_CPU_BRACKET("Logic&Render");
-  co_await coro::runAsync([&]{
+  co_await coro::run([&]{
     {
       HIGAN_CPU_BRACKET("Load meshes to gpu");
       auto& gpuBuffer = m_ecs.get<components::GpuBufferInstance>();
@@ -817,7 +817,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
   }
   ImGui::StyleColorsDark();
-  auto loadWorld = coro::runAsync([&]{ 
+  auto loadWorld = coro::run([&]{ 
     HIGAN_CPU_BRACKET("load world");
     m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
     {
@@ -948,8 +948,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
         auto sizeInfo = window.posAndSize();
         m_windowSize = int2(sizeInfo.z, sizeInfo.w);
         m_windowPos = sizeInfo.xy();
-        if (logicAndRenderAsync.is_ready())
-          break;
+        //if (logicAndRenderAsync.is_ready())
+        //  break;
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
       }
       m_renderActive = false;

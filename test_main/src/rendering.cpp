@@ -164,7 +164,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-higanbana::coro::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
+higanbana::coro::StolenTask<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
   HIGAN_CPU_FUNCTION_SCOPE();
   {
     auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
@@ -247,7 +247,7 @@ higanbana::coro::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& 
           cubesDrawn += reverseDraw[i];
         } 
       }
-      vector<coro::Task<void>> passes;
+      vector<coro::StolenTask<void>> passes;
       for (auto& node : nodes) {
         HIGAN_CPU_BRACKET("draw cubes - inner pass");
         auto ldepth = depth;
@@ -260,8 +260,7 @@ higanbana::coro::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& 
       }
       int passId = 0;
       for (auto& pass : passes) {
-        if (!pass.is_ready())
-          co_await pass;
+        co_await pass;
         
         tasks.addPass(std::move(std::get<0>(nodes[passId])));
         passId++;
@@ -309,7 +308,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+higanbana::coro::StolenTask<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -395,7 +394,7 @@ higanbana::coro::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higan
   for (auto&& vpInfo : viewportsToRender) {
     nodeVecs.push_back(tasks.localThreadVector());
   }
-  vector<coro::Task<void>> sceneTasks;
+  vector<coro::StolenTask<void>> sceneTasks;
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];

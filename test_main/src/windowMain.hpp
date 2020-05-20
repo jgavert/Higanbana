@@ -2,8 +2,7 @@
 
 #include <higanbana/core/platform/EntryPoint.hpp>
 #include <higanbana/core/system/LBS.hpp>
-#include <higanbana/core/coroutine/task.hpp>
-#include <higanbana/core/coroutine/parallel_task.hpp>
+#include <higanbana/core/coroutine/stolen_task.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/platform/Window.hpp>
@@ -97,7 +96,7 @@ class RenderingApp {
   std::atomic<int> m_inputsUpdated = 0;
   int m_inputsRead = 0;
 
-  higanbana::coro::Task<int> runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev); // while task not done, renders. Returns success, if quit, otherwise should be restarted.
+  higanbana::coro::StolenTask<int> runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev); // while task not done, renders. Returns success, if quit, otherwise should be restarted.
 
   public:
   RenderingApp(AppInputs inputs);
