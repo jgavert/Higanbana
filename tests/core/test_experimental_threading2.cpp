@@ -534,10 +534,11 @@ higanbana::coro::StolenTask<int> asyncLoopTest(int treeSize, int computeTree, si
   size_t aveCount = 0;
   int a = addInTreeNormal(treeSize);
   compareTime = time2.reset();
-  mint = compareTime;
+  mint = std::numeric_limits<size_t>::max();
   maxt = 0;
   auto omi = mint;
   auto oma = 0;
+  auto stats = higanbana::taskstealer::globals::s_stealPool->stats();
   //auto overlap = addInTreeLBS(treeSize, treeSize-computeTree);
   size_t aveg = 0;
   for (int i = 0; i < 2000; i++) {
@@ -561,7 +562,15 @@ higanbana::coro::StolenTask<int> asyncLoopTest(int treeSize, int computeTree, si
       avegMin = avegMin + mint;
       avegMax = avegMax + maxt;
       aveCount++;
-      printf("done %d ST:%.3fms %.2f ratio %.3fms %.3fms %.3fms\n",i, compareTime/1000.f/1000.f, float(compareTime) / float(aveg/100), aveg/100/1000.f/1000.f, mint/1000.f/1000.f, maxt/1000.f/1000.f);
+      auto newTasksDone = higanbana::taskstealer::globals::s_stealPool->stats();
+      auto diffDone = (newTasksDone.tasks_done - stats.tasks_done)/100;
+      auto diffStolen = newTasksDone.tasks_stolen - stats.tasks_stolen;
+      auto stealsWithinL3 = (newTasksDone.tasks_stolen_within_l3 - stats.tasks_stolen_within_l3) / float(diffStolen) * 100; 
+      diffStolen = diffStolen/100;
+      auto diffStealTries = (newTasksDone.steal_tries - stats.steal_tries)/100;
+      auto diffUnforked = (newTasksDone.tasks_unforked - stats.tasks_unforked)/100;
+      stats = newTasksDone;
+      printf("%d. aveg: %.3fms min: %.3fms max: %.3fms tasks done: %zu tasks stolen: %zu(from within L3 cache: %.1f%%) failed steals: %zu didn't steal: %zu\n",i, aveg/100/1000.f/1000.f, mint/1000.f/1000.f, maxt/1000.f/1000.f, diffDone, diffStolen, stealsWithinL3, diffStealTries, diffUnforked);
       aveg = 0;
       mint = omi;
       maxt = oma;
@@ -595,7 +604,7 @@ TEST_CASE("threaded awaitable - lbs")
 {
   {
     HIGAN_CPU_BRACKET("threaded awaitable - lbs");
-    int computeTree = 9;
+    int computeTree = 10;
     int treeSize = 26;
     
     int a = addInTreeNormal(treeSize);

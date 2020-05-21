@@ -69,7 +69,10 @@ public:
   ~StolenTask() noexcept {
     //HIGAN_ASSERT(handle_.done(), "coroutine was destroyed by the creator coroutine before coroutine was completed.");
     //assert(handle_.done());
-    //handle_.destroy();
+#if !defined(STEALER_DESTROY_HANDLES)
+    if (handle_)
+      handle_.destroy();
+#endif
   }
 
   T get() noexcept
@@ -77,7 +80,9 @@ public:
     if (!handle_.done())
       taskstealer::globals::s_stealPool->execute();
     auto val = handle_.promise().m_value;
+#if defined(STEALER_DESTROY_HANDLES)
     handle_.destroy();
+#endif
     return val; 
   }
   bool is_ready() const {
@@ -160,13 +165,19 @@ public:
     //HIGAN_ASSERT(handle_.done(), "coroutine was destroyed by the creator coroutine before coroutine was completed.");
     //assert(handle_.done());
     //handle_.destroy();
+#if !defined(STEALER_DESTROY_HANDLES)
+    if (handle_)
+      handle_.destroy();
+#endif
   }
 
   void wait() noexcept
   {
     if (!handle_.done())
       taskstealer::globals::s_stealPool->execute();
+#if defined(STEALER_DESTROY_HANDLES)
     handle_.destroy();
+#endif
   }
 
   bool is_ready() const {

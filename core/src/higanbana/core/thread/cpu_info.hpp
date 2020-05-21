@@ -19,8 +19,8 @@ struct Numa
 {
   DWORD number = 0;
   WORD processor = 0;
-  int cores = 0;
-  int threads = 0;
+  size_t cores = 0;
+  size_t threads = 0;
   std::vector<L3CacheCpuGroup> coreGroups;
 };
 

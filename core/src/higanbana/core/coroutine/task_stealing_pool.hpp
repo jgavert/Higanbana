@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/core/profiling/profiling.hpp"
+#include "higanbana/core/thread/cpu_info.hpp"
 #include <atomic>
 #include <vector>
 #include <mutex>
@@ -9,6 +10,15 @@
 #include <algorithm>
 #include <experimental/coroutine>
 #include <windows.h>
+
+#define STEALER_DESTROY_HANDLES
+#define STEALER_COLLECT_STATS
+
+#ifdef STEALER_COLLECT_STATS
+#define STEALER_STATS_IF if (1)
+#else
+#define STEALER_STATS_IF if (0)
+#endif
 
 
 namespace higanbana
@@ -54,11 +64,12 @@ struct FreeLoot
 
 struct StealableQueue
 {
+  size_t m_group_id = 0;
   std::deque<FreeLoot> loot; // get it if you can :smirk:
   std::mutex lock; // version 1 stealable queue works with mutex.
-  StealableQueue(){}
-  StealableQueue(StealableQueue&){}
-  StealableQueue(StealableQueue&&){}
+  StealableQueue(size_t group_id): m_group_id(group_id){}
+  StealableQueue(StealableQueue& other): m_group_id(other.m_group_id){}
+  StealableQueue(StealableQueue&& other): m_group_id(other.m_group_id){}
 };
 
 struct ThreadData
@@ -66,10 +77,12 @@ struct ThreadData
   std::deque<StackTask> m_coroStack;
   size_t m_id = 0;
   size_t m_wakeThread = 0;
+  size_t m_group_id = 0;
+  uint64_t m_group_mask = 0;
   ThreadData(){}
-  ThreadData(size_t id):m_id(id){}
-  ThreadData(ThreadData& other) : m_coroStack(other.m_coroStack), m_id(other.m_id){}
-  ThreadData(ThreadData&& other) : m_coroStack(std::move(other.m_coroStack)), m_id(other.m_id){}
+  ThreadData(size_t id, size_t group_id, uint64_t group_mask):m_id(id), m_group_id(group_id), m_group_mask(group_mask){}
+  ThreadData(ThreadData& other) : m_coroStack(other.m_coroStack), m_id(other.m_id), m_group_id(other.m_group_id), m_group_mask(other.m_group_mask){}
+  ThreadData(ThreadData&& other) : m_coroStack(std::move(other.m_coroStack)), m_id(other.m_id), m_group_id(other.m_group_id), m_group_mask(other.m_group_mask){}
   std::mutex lock;
   std::condition_variable cv;
 };
@@ -78,6 +91,17 @@ namespace locals
   extern thread_local bool thread_from_pool;
   extern thread_local int thread_id;
 }
+
+struct StealStats
+{
+  size_t tasks_done = 0;
+  size_t tasks_stolen = 0;
+  size_t steal_tries = 0;
+  size_t tasks_unforked = 0;
+  size_t tasks_stolen_within_l3 = 0;
+  size_t tasks_stolen_outside_l3 = 0;
+};
+
 class TaskStealingPool
 {
   // there is only single thread so this is simple
@@ -96,14 +120,30 @@ class TaskStealingPool
 
   std::atomic_bool m_poolAlive;
   std::vector<std::thread> m_threadHandles;
+  // statistics
+  std::atomic_size_t m_tasks_done = 0;
+  std::atomic_size_t m_tasks_stolen_within_l3 = 0;
+  std::atomic_size_t m_tasks_stolen_outside_l3 = 0;
+  std::atomic_size_t m_steal_fails = 0;
+  std::atomic_size_t m_tasks_unforked = 0;
   public:
+  StealStats stats() {
+    auto stolen = m_tasks_stolen_within_l3 + m_tasks_stolen_outside_l3;
+    return {m_tasks_done, stolen, m_steal_fails, m_tasks_unforked, m_tasks_stolen_within_l3, m_tasks_stolen_outside_l3};
+  }
 
   TaskStealingPool() noexcept {
     m_threads = std::thread::hardware_concurrency();
+    SystemCpuInfo info;
+    size_t l3threads = info.numas.front().threads / info.numas.front().coreGroups.size();
+
     m_poolAlive = true;
-    for (size_t t = 0; t < m_threads; t++) {
-      m_data.emplace_back(t);
-      m_stealQueues.emplace_back();
+    for (size_t group = 0; group < info.numas.front().coreGroups.size(); ++group){
+      for (size_t t = 0; t < l3threads; t++) {
+        auto index = group*l3threads + t;
+        m_data.emplace_back(index, group, info.numas.front().coreGroups[group].mask);
+        m_stealQueues.emplace_back(group);
+      }
     }
     m_thread_sleeping = m_threads-1;
     for (size_t t = 1; t < m_threads; t++) {
@@ -145,19 +185,36 @@ class TaskStealingPool
   }
 
   std::optional<FreeLoot> stealTask(const ThreadData& thread) noexcept {
-    for (size_t index = thread.m_id; index < thread.m_id + m_threads; index++)
+    //if (m_doable_tasks.load(std::memory_order::relaxed) > 0)
     {
-      auto& ownQueue = m_stealQueues[index % m_threads];
-      std::unique_lock lock(ownQueue.lock, std::defer_lock_t{});
-      if (!lock.try_lock())
-        continue;
-      //std::unique_lock lock(ownQueue.lock);
-      if (!ownQueue.loot.empty()) {
-        auto freetask = ownQueue.loot.front();
-        ownQueue.loot.pop_front();
-        return std::optional<FreeLoot>(freetask);
+      for (size_t index = thread.m_id; index < thread.m_id + m_threads; index++)
+      {
+        auto& ownQueue = m_stealQueues[index % m_threads];
+        if (ownQueue.m_group_id != thread.m_group_id)
+          continue;
+        std::unique_lock lock(ownQueue.lock);
+        if (!ownQueue.loot.empty()) {
+          auto freetask = ownQueue.loot.front();
+          ownQueue.loot.pop_front();
+          STEALER_STATS_IF m_tasks_stolen_within_l3++;
+          return std::optional<FreeLoot>(freetask);
+        }
+      }
+      for (size_t index = thread.m_id; index < thread.m_id + m_threads; index++)
+      {
+        auto& ownQueue = m_stealQueues[index % m_threads];
+        if (ownQueue.m_group_id == thread.m_group_id)
+          continue;
+        std::unique_lock lock(ownQueue.lock);
+        if (!ownQueue.loot.empty()) {
+          auto freetask = ownQueue.loot.front();
+          ownQueue.loot.pop_front();
+          STEALER_STATS_IF m_tasks_stolen_outside_l3++;
+          return std::optional<FreeLoot>(freetask);
+        }
       }
     }
+    STEALER_STATS_IF m_steal_fails++;
     return std::optional<FreeLoot>();
   }
 
@@ -168,6 +225,7 @@ class TaskStealingPool
       return std::optional<FreeLoot>();
     auto freetask = myStealQueue.loot.back();
     myStealQueue.loot.pop_back();
+    STEALER_STATS_IF m_tasks_unforked++;
     return std::optional<FreeLoot>(freetask);
   }
 
@@ -232,12 +290,15 @@ class TaskStealingPool
       if (task.done()) {
           auto* ptr = task.reportCompletion;
           for (auto&& it : myData.m_coroStack.front().childs) {
+#if defined(STEALER_DESTROY_HANDLES)
             auto handle = std::experimental::coroutine_handle<>::from_address(reinterpret_cast<void*>(it.first));
             handle.destroy();
+#endif
             delete it.second;
           }
           myData.m_coroStack.pop_front();
           ptr->store(0);
+          STEALER_STATS_IF m_tasks_done++;
       }
       else {
         if (auto task = unfork(myData)) {
@@ -267,9 +328,9 @@ class TaskStealingPool
   void thread_loop(size_t threadIndex) noexcept {
     locals::thread_id = threadIndex;
     locals::thread_from_pool = true;
-    //SetThreadAffinityMask(GetCurrentThread(), 1<<threadIndex);
-    m_thread_sleeping--;
     auto& myData = m_data[threadIndex];
+    SetThreadAffinityMask(GetCurrentThread(), myData.m_group_mask);
+    m_thread_sleeping--;
     auto& myQueue = m_stealQueues[threadIndex];
     while(m_poolAlive){
       if (auto task = stealTask(myData)) {
@@ -279,7 +340,7 @@ class TaskStealingPool
         myData.m_coroStack.push_front(st);
         m_doable_tasks--;
         //wakeThread(myData);
-      } else if (myData.m_coroStack.empty()){
+      } else if (myData.m_coroStack.empty() && m_doable_tasks.load() == 0){
         std::unique_lock<std::mutex> lk(sleepLock);
         m_thread_sleeping++;
         cv.wait(lk, [&](){
