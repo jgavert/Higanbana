@@ -21,7 +21,7 @@ public:
     constexpr coro::suspend_always final_suspend() noexcept {
       return {};
     }
-    void return_value(T value) noexcept {m_value = std::move(value);}
+    void return_value(T value) noexcept {m_value = value;}
     void unhandled_exception() noexcept {
       std::terminate();
     }
@@ -62,8 +62,9 @@ public:
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
   template <typename Type>
-  void await_suspend(Type handle) noexcept {
+  auto await_suspend(Type handle) noexcept {
     taskstealer::globals::s_stealPool->addDependencyToCurrentTask(handle, handle_);
+    return coro::noop_coroutine();
   }
   ~StolenTask() noexcept {
     //HIGAN_ASSERT(handle_.done(), "coroutine was destroyed by the creator coroutine before coroutine was completed.");
@@ -151,8 +152,9 @@ public:
 
   // enemy coroutine needs this coroutines result, therefore we compute it.
   template <typename Type>
-  void await_suspend(Type handle) noexcept {
+  auto await_suspend(Type handle) noexcept {
     taskstealer::globals::s_stealPool->addDependencyToCurrentTask(handle, handle_);
+    return coro::noop_coroutine();
   }
   ~StolenTask() noexcept {
     //HIGAN_ASSERT(handle_.done(), "coroutine was destroyed by the creator coroutine before coroutine was completed.");
