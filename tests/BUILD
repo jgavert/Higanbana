@@ -6,7 +6,7 @@ load(":macros.bzl", "src_core_test_with_header")
 cc_library(
     name = "catch-main",
     srcs = ["main.cpp"],
-    deps = ["//ext:Catch2"],
+    deps = ["//ext/Catch2:catch2"],
     linkstatic = True
 )
 
