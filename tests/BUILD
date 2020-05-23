@@ -12,6 +12,7 @@ cc_library(
 
 src_core_test("entity")
 src_core_test("tlsf")
+src_core_test("tlsf_heap")
 src_core_test("bitfield")
 src_core_test("delta_buffer")
 src_core_test("experimental_threading")
@@ -23,6 +24,7 @@ test_suite(
         "test_core_entity",
         "test_core_delta_buffer",
         "test_core_tlsf",
+        "test_core_tlsf_heap",
         "test_core_experimental_threading",
         "test_core_experimental_threading2",
         "test_core_bitfield"
