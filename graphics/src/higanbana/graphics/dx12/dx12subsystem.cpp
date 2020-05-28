@@ -43,6 +43,7 @@ namespace higanbana
 
     vector<GpuInfo> DX12Subsystem::availableGpus(VendorID vendor)
     {
+      std::unordered_set<UINT> filterDevices;
       HIGAN_CPU_FUNCTION_SCOPE();
       vAdapters.clear();
       UINT i = 0;
@@ -71,6 +72,14 @@ namespace higanbana
             i++;
             continue;
           }
+
+          if (filterDevices.find(desc.DeviceId) != filterDevices.end())
+          {
+            i++;
+            continue;
+          }
+
+          filterDevices.insert(desc.DeviceId);
 
           ComPtr<IDXGIAdapter3> wanted;
           hr = pAdapter->QueryInterface(IID_PPV_ARGS(&wanted));

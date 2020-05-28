@@ -41,7 +41,7 @@ cc_library(
 
 new_local_repository(
   name = "DirectInput8",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DirectInput8",
@@ -53,7 +53,7 @@ cc_import(
 )
 new_local_repository(
   name = "XInput",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "XInput",
@@ -66,7 +66,7 @@ cc_import(
 
 new_local_repository(
   name = "DX12",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DX12",
@@ -79,7 +79,7 @@ cc_import(
 
 new_local_repository(
   name = "DXGI",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DXGI",
@@ -92,7 +92,7 @@ cc_import(
 
 new_local_repository(
   name = "DXGUID",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64",
   build_file_content = """
 cc_import(
     name = "DXGUID",
@@ -105,7 +105,7 @@ cc_import(
 
 new_local_repository(
   name = "DXIL",
-  path = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.18362.0\\x64",
+  path = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64",
   build_file_content = """
 cc_import(
     name = "DXIL",

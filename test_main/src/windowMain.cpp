@@ -133,22 +133,10 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       {
         multiplier = 1000.f;
       }
-      if (inputs.isPressedThisFrame('W', 2))
-      {
-        xy.y = -1.f * multiplier;
-      }
-      if (inputs.isPressedThisFrame('S', 2))
-      {
-        xy.y = 1.f * multiplier;
-      }
-      if (inputs.isPressedThisFrame('D', 2))
-      {
-        xy.x = -1.f * multiplier;
-      }
-      if (inputs.isPressedThisFrame('A', 2))
-      {
-        xy.x = 1.f * multiplier;
-      }
+      if (inputs.isPressedThisFrame('W', 2)) xy.y = -1.f * multiplier;
+      if (inputs.isPressedThisFrame('S', 2)) xy.y = 1.f * multiplier;
+      if (inputs.isPressedThisFrame('D', 2)) xy.x = -1.f * multiplier;
+      if (inputs.isPressedThisFrame('A', 2)) xy.x = 1.f * multiplier;
       xy = math::mul(xy, std::max(delta, 0.001f));
     }
 
