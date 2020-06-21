@@ -1,11 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <higanbana/core/profiling/profiling.hpp>
-#include <higanbana/core/coroutine/task.hpp>
-#include <higanbana/core/coroutine/parallel_task.hpp>
-#include <higanbana/core/coroutine/task_st.hpp>
-#include <higanbana/core/coroutine/stolen_task.hpp>
-#include <higanbana/core/coroutine/reference_coroutine_task.hpp>
+#include <css/task.hpp>
 #include <higanbana/core/system/LBS.hpp>
 
 #include <vector>
@@ -94,16 +90,12 @@ namespace {
 
 
 #define checkAllEmptyTasksSpawning(argument) \
-    BenchFunctionWait(SpawnEmptyTasksInTree<reference::Task<void>>, argument); \
-    BenchFunctionWait(SpawnEmptyTasksInTree<corost::Task<void>>, argument); \
     BenchFunctionWait(SpawnEmptyTasksInTree<css::Task<void>>, argument)
 
 
 #define checkAllFibonacci(argument) \
     BenchFunction(FibonacciReferenceIterative, argument); \
     BenchFunction(FibonacciReferenceRecursive, argument); \
-    BenchFunction(FibonacciCoro<reference::Task<uint64_t>>, argument); \
-    BenchFunction(FibonacciCoro<corost::Task<uint64_t>>, argument); \
     BenchFunction(FibonacciCoro<css::Task<uint64_t>>, argument)
 
 TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
@@ -116,10 +108,6 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     CHECK(FibonacciReferenceIterative(5).get() == 8);
     CHECK(FibonacciReferenceRecursive(0).get() == 1);
     CHECK(FibonacciReferenceRecursive(5).get() == 8);
-    CHECK(FibonacciCoro<reference::Task<uint64_t>>(0).get() == 1);
-    CHECK(FibonacciCoro<reference::Task<uint64_t>>(5).get() == 8);
-    CHECK(FibonacciCoro<corost::Task<uint64_t>>(0).get() == 1);
-    CHECK(FibonacciCoro<corost::Task<uint64_t>>(5).get() == 8);
     CHECK(FibonacciCoro<css::Task<uint64_t>>(0).get() == 1);
     CHECK(FibonacciCoro<css::Task<uint64_t>>(5).get() == 8);
     checkAllFibonacci(20);

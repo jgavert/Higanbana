@@ -2,7 +2,6 @@
 
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/graphics/common/image_loaders.hpp>
-#include <higanbana/core/coroutine/parallel_task.hpp>
 
 #include <imgui.h>
 #include <execution>
