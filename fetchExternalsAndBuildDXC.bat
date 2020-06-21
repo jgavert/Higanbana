@@ -1,4 +1,8 @@
 @echo off
+REM my own libs
+rd /Q /S ext\higan_coroutines
+git clone https://github.com/jgavert/redesigned-giggle.git ext/higan_coroutines
+
 REM tests tests tests, not sure if maintained in the long run
 rd /Q /S ext\Catch2
 git clone https://github.com/catchorg/Catch2.git ext/Catch2

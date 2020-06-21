@@ -2,7 +2,7 @@
 
 #include "camera.hpp"
 #include <higanbana/graphics/GraphicsCore.hpp>
-#include <higanbana/core/coroutine/stolen_task.hpp>
+#include <css/task.hpp>
 
 namespace app::renderer
 {
@@ -41,8 +41,8 @@ public:
     higanbana::DynamicBufferView ind,
     higanbana::ShaderArguments& verts,
     int pixels, int xBegin, int xEnd);
-  void oldOpaquePass(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd);
-  higanbana::coro::StolenTask<void> oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV backbuffer, higanbana::TextureDSV depth, higanbana::DynamicBufferView ind,
+    void oldOpaquePass(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, int cubeCount, int xBegin, int xEnd);
+    css::Task<void> oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV backbuffer, higanbana::TextureDSV depth, higanbana::DynamicBufferView ind,
         higanbana::ShaderArguments& args, int cubeCount, int xBegin, int xEnd);
 };
 }

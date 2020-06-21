@@ -1,6 +1,6 @@
 #pragma once
 #include "higanbana/core/platform/ProgramParams.hpp"
-#include "higanbana/core/coroutine/stolen_task.hpp"
+#include <css/thread_pool.hpp>
 
 class EntryPoint
 {
@@ -10,7 +10,7 @@ public:
 	EntryPoint(ProgramParams params)
 	: m_params(params)
 	{
-		higanbana::taskstealer::globals::createTaskStealingPool();
+		css::createThreadPool();
 	}
 
 	// this is "main"

@@ -164,7 +164,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-higanbana::coro::StolenTask<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
+css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
   HIGAN_CPU_FUNCTION_SCOPE();
   {
     auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
@@ -247,7 +247,7 @@ higanbana::coro::StolenTask<void> Renderer::renderScene(higanbana::CommandNodeVe
           cubesDrawn += reverseDraw[i];
         } 
       }
-      vector<coro::StolenTask<void>> passes;
+      vector<css::Task<void>> passes;
       for (auto& node : nodes) {
         HIGAN_CPU_BRACKET("draw cubes - inner pass");
         auto ldepth = depth;
@@ -308,7 +308,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-higanbana::coro::StolenTask<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
   if (swapchain.outOfDate())
   {
     dev.adjustSwapchain(swapchain, scdesc);
@@ -394,7 +394,7 @@ higanbana::coro::StolenTask<void> Renderer::renderViewports(higanbana::LBS& lbs,
   for (auto&& vpInfo : viewportsToRender) {
     nodeVecs.push_back(tasks.localThreadVector());
   }
-  vector<coro::StolenTask<void>> sceneTasks;
+  vector<css::Task<void>> sceneTasks;
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];

@@ -149,9 +149,9 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
     position = math::add(position, math::mul(dir, xy.y));
   });
 }
-higanbana::coro::StolenTask<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev) {
+css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev) {
   //HIGAN_CPU_BRACKET("Logic&Render");
-  co_await coro::run([&]{
+  co_await css::async([&]{
     {
       HIGAN_CPU_BRACKET("Load meshes to gpu");
       auto& gpuBuffer = m_ecs.get<components::GpuBufferInstance>();
@@ -805,7 +805,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
   }
   ImGui::StyleColorsDark();
-  auto loadWorld = coro::run([&]{ 
+  auto loadWorld = css::async([&]{ 
     HIGAN_CPU_BRACKET("load world");
     m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
     {

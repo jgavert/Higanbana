@@ -280,7 +280,7 @@ void Cubes::oldOpaquePass(higanbana::GpuGroup& dev, float time, higanbana::Comma
   }
   node.endRenderpass();
 }
-higanbana::coro::StolenTask<void> Cubes::oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV backbuffer, higanbana::TextureDSV depth, higanbana::DynamicBufferView ind,
+css::Task<void> Cubes::oldOpaquePass2(higanbana::GpuGroup& dev, float time, higanbana::CommandGraphNode& node, float4x4 viewMat, higanbana::TextureRTV backbuffer, higanbana::TextureDSV depth, higanbana::DynamicBufferView ind,
     higanbana::ShaderArguments& args, int cubeCount, int xBegin, int xEnd){
   using namespace higanbana;
   float redcolor = std::sin(time)*.5f + .5f;

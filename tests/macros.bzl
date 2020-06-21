@@ -34,7 +34,7 @@ def src_core_test(target_name):
   native.cc_test(
     name = "test_core_" + target_name,
     srcs = ["core/test_" + target_name + ".cpp"],
-    deps = ["//core:core", "catch-main"],
+    deps = ["//core:core", "//ext:higan_coroutines", "catch-main"],
     copts = select({
       "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-", "/Z7", "/await"],
       "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64", "-pthread"],
@@ -50,7 +50,7 @@ def src_core_test_with_header(target_name):
   native.cc_test(
     name = "test_core_" + target_name,
     srcs = ["core/test_" + target_name + ".cpp", "core/test_" + target_name + ".hpp"],
-    deps = ["//core:core", "catch-main"],
+    deps = ["//core:core", "//ext:higan_coroutines", "catch-main"],
     copts = select({
       "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-", "/Z7", "/await"],
       "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],

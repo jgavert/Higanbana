@@ -2,7 +2,6 @@
 
 #include <higanbana/core/platform/EntryPoint.hpp>
 #include <higanbana/core/system/LBS.hpp>
-#include <higanbana/core/coroutine/stolen_task.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/platform/Window.hpp>
@@ -15,6 +14,7 @@
 #include <higanbana/core/input/gamepad.hpp>
 #include <higanbana/core/system/AtomicBuffered.hpp>
 #include <higanbana/graphics/GraphicsCore.hpp>
+#include <css/task.hpp>
 #include <random>
 #include <tuple>
 #include <imgui.h>
@@ -96,7 +96,7 @@ class RenderingApp {
   std::atomic<int> m_inputsUpdated = 0;
   int m_inputsRead = 0;
 
-  higanbana::coro::StolenTask<int> runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev); // while task not done, renders. Returns success, if quit, otherwise should be restarted.
+  css::Task<int> runVisualLoop(app::Renderer& rend, higanbana::GpuGroup& dev); // while task not done, renders. Returns success, if quit, otherwise should be restarted.
 
   public:
   RenderingApp(AppInputs inputs);

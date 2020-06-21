@@ -96,7 +96,7 @@ namespace {
 #define checkAllEmptyTasksSpawning(argument) \
     BenchFunctionWait(SpawnEmptyTasksInTree<reference::Task<void>>, argument); \
     BenchFunctionWait(SpawnEmptyTasksInTree<corost::Task<void>>, argument); \
-    BenchFunctionWait(SpawnEmptyTasksInTree<coro::StolenTask<void>>, argument)
+    BenchFunctionWait(SpawnEmptyTasksInTree<css::Task<void>>, argument)
 
 
 #define checkAllFibonacci(argument) \
@@ -104,7 +104,7 @@ namespace {
     BenchFunction(FibonacciReferenceRecursive, argument); \
     BenchFunction(FibonacciCoro<reference::Task<uint64_t>>, argument); \
     BenchFunction(FibonacciCoro<corost::Task<uint64_t>>, argument); \
-    BenchFunction(FibonacciCoro<coro::StolenTask<uint64_t>>, argument)
+    BenchFunction(FibonacciCoro<css::Task<uint64_t>>, argument)
 
 TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     //higanbana::experimental::globals::createGlobalLBSPool();
@@ -120,8 +120,8 @@ TEST_CASE("Benchmark Fibonacci", "[benchmark]") {
     CHECK(FibonacciCoro<reference::Task<uint64_t>>(5).get() == 8);
     CHECK(FibonacciCoro<corost::Task<uint64_t>>(0).get() == 1);
     CHECK(FibonacciCoro<corost::Task<uint64_t>>(5).get() == 8);
-    CHECK(FibonacciCoro<coro::StolenTask<uint64_t>>(0).get() == 1);
-    CHECK(FibonacciCoro<coro::StolenTask<uint64_t>>(5).get() == 8);
+    CHECK(FibonacciCoro<css::Task<uint64_t>>(0).get() == 1);
+    CHECK(FibonacciCoro<css::Task<uint64_t>>(5).get() == 8);
     checkAllFibonacci(20);
     checkAllEmptyTasksSpawning(100);
     checkAllEmptyTasksSpawning(1000);

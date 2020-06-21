@@ -4,7 +4,7 @@ cc_library(
   srcs = glob(["src/**/*.cpp"]),
   hdrs = glob(["src/**/*.hpp"]) + glob(["src/**/*.h"]),
   strip_include_prefix = "src",
-  deps = ["//ext:GSL", "//ext:nlohmann_json"] + select({
+  deps = ["//ext:GSL", "//ext:nlohmann_json", "//ext:higan_coroutines"] + select({
           "@bazel_tools//src/conditions:windows": 
               ["//ext:WinPixEventRuntime", "@DirectInput8//:DirectInput8", "@XInput//:XInput"],
           "//conditions:default": [],

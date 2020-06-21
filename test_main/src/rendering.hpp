@@ -6,8 +6,8 @@
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
-#include <higanbana/core/coroutine/stolen_task.hpp>
 #include <higanbana/core/system/LBS.hpp>
+#include <css/task.hpp>
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
 #include "renderer/mesh_test.hpp"
@@ -208,7 +208,7 @@ class Renderer
     int drawcalls;
     int drawsSplitInto;
   };
-  higanbana::coro::StolenTask<void> renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments args, higanbana::vector<InstanceDraw>& instances);
+  css::Task<void> renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments args, higanbana::vector<InstanceDraw>& instances);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
@@ -217,7 +217,7 @@ public:
   void ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
-  higanbana::coro::StolenTask<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
+  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);
