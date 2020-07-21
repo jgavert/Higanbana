@@ -43,6 +43,7 @@ namespace higanbana
       HandleVector<ResourceState>* m_bufferStates;
       HandleVector<TextureResourceState>* m_textureStates;
 
+      // todo, couldn't these be bitfields?
       unordered_set<ResourceHandle> m_uniqueBuffers;
       unordered_set<ResourceHandle> m_uniqueTextures;
 

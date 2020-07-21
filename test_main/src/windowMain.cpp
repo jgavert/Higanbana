@@ -907,7 +907,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       m_amouse.write(window.mouse());
 
       m_renderActive = true;
-      auto logicAndRenderAsync = runVisualLoop(rend, dev);
+      css::Task<int> logicAndRenderAsync = runVisualLoop(rend, dev);
       while (!window.simpleReadMessages(m_frame++))
       {
         HIGAN_CPU_BRACKET("update Inputs");
@@ -936,8 +936,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
         auto sizeInfo = window.posAndSize();
         m_windowSize = int2(sizeInfo.z, sizeInfo.w);
         m_windowPos = sizeInfo.xy();
-        //if (logicAndRenderAsync.is_ready())
-        //  break;
+        if (logicAndRenderAsync.is_ready())
+          break;
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
       }
       m_renderActive = false;
