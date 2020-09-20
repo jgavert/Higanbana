@@ -18,7 +18,7 @@ cc_library(
           "//conditions:default": ["@VulkanSDKLinux//:Vulkan"],
     }),
   copts = select({
-          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-", "/Z7", "-ftime-trace"],
+          "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-",  "/await", "/Z7", "-ftime-trace"],
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
   defines = ["_ENABLE_EXTENDED_ALIGNED_STORAGE"],

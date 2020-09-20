@@ -15,6 +15,7 @@
 #include <optional>
 #include <functional>
 #include <mutex>
+#include <css/task.hpp>
 
 namespace higanbana
 {
@@ -263,6 +264,7 @@ namespace higanbana
       void submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void submitST(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submitLBS(LBS& lbs, std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
+      css::Task<void> submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain, int backbufferIndex);
 
       // test

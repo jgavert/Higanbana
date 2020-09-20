@@ -2648,5 +2648,10 @@ namespace higanbana
         m_seqNumRequirements.emplace_back(m_seqTracker.lastSequence());
       }
     }
+
+    css::Task<void> DeviceGroupData::submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph) {
+
+      co_return;
+    }
   }
 }

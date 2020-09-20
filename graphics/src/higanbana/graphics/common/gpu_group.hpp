@@ -241,6 +241,13 @@ namespace higanbana
       S().submitLBS(lbs, std::optional<Swapchain>(), graph, threading);
     }
 
+    css::Task<void> submitCSS(Swapchain& swapchain, CommandGraph graph) {
+      return S().submitCSS(swapchain, graph);
+    }
+    css::Task<void> submitCSS(CommandGraph graph) {
+      return S().submitCSS(std::optional<Swapchain>(), graph);
+    }
+
     void present(Swapchain& swapchain, int backbufferIndex)
     {
       S().present(swapchain, backbufferIndex);
