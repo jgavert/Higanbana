@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <higanbana/core/platform/definitions.hpp>
 #include <higanbana/core/allocators/heap_allocator_raw.hpp>
+#include <css/utils/dynamic_allocator.hpp>
 
 TEST_CASE("some basic allocation tests") {
   constexpr size_t size = 1024;
@@ -38,6 +39,33 @@ TEST_CASE("some basic allocation tests 2") {
   block2 = tlsf.allocate(20000 - 32);
   REQUIRE(block2);
   free(heap);
+}
+
+TEST_CASE("some basic allocation tests 3") {
+  constexpr size_t size = 80000;
+  css::DynamicHeapAllocator tlsf(1, size);
+
+  auto writeTrash = [](void* ptr, size_t size) {
+    memset(ptr, 254, size);
+  };
+
+  for (int i = 0; i < 2; i++) {
+    auto block = tlsf.allocate(316);
+    writeTrash(block, 316);
+    REQUIRE(block);
+    {
+      std::vector<void*> ptrs;
+      for (int k = 0; k < 5; ++k)
+      {
+        auto ptr = tlsf.allocate(216);
+        writeTrash(ptr, 216);
+        ptrs.push_back(ptr);
+      }
+      for (int k = 0; k < 5; ++k)
+        tlsf.deallocate(ptrs[k]);
+    }
+    tlsf.deallocate(block);
+  }
 }
 
 /*

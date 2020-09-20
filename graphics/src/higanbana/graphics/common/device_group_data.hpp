@@ -220,6 +220,9 @@ namespace higanbana
       ComputePipeline createComputePipeline(ComputePipelineDescriptor desc);
       GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor desc);
 
+      // check resource descriptors and fix disrespancies silently.
+      void validateResourceDescriptor(ResourceDescriptor& desc);
+
       Buffer createBuffer(ResourceDescriptor desc);
       Texture createTexture(ResourceDescriptor desc);
 

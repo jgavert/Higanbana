@@ -2847,7 +2847,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       vk::CommandPoolCreateInfo poolInfo = vk::CommandPoolCreateInfo()
-        .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient))
+        .setFlags(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer))
         .setQueueFamilyIndex(queueIndex);
       auto pool = m_device.createCommandPool(poolInfo);
       VK_CHECK_RESULT(pool);

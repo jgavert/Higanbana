@@ -36,14 +36,17 @@ namespace higanbana
     {
       return m_state;
     }
+    
     Buffer createBuffer(ResourceDescriptor descriptor)
     {
+      S().validateResourceDescriptor(descriptor);
       auto buf = S().createBuffer(descriptor);
       return buf;
     }
 
     Texture createTexture(ResourceDescriptor descriptor)
     {
+      S().validateResourceDescriptor(descriptor);
       if (descriptor.desc.dimension == FormatDimension::Buffer
       || descriptor.desc.dimension == FormatDimension::Unknown)
       {
@@ -55,7 +58,7 @@ namespace higanbana
 
     Texture createTexture(CpuImage& image)
     {
-      auto tex = S().createTexture(image.desc());
+      auto tex = createTexture(image.desc());
       S().uploadInitialTexture(tex, image);
       return tex;
     }

@@ -945,10 +945,6 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       m_tempSets.resize(5);
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
-      nat->native().resetCommandPool(m_list->pool(), vk::CommandPoolResetFlagBits::eReleaseResources);
-
-      // preprocess to compile renderpasses/pipelines
-      //preprocess(nat.get(), buffers);
       
       m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)

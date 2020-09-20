@@ -246,7 +246,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
           cubesDrawn += reverseDraw[i];
         } 
       }
-      vector<css::Task<void>> passes;
+      std::unique_ptr<vector<css::Task<void>>> passes = std::make_unique<vector<css::Task<void>>>();
       for (auto& node : nodes) {
         HIGAN_CPU_BRACKET("draw cubes - inner pass");
         auto ldepth = depth;
@@ -255,11 +255,12 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
         else
           ldepth.setOp(LoadOp::Load);
         
-        passes.emplace_back(cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node)));
+        passes->emplace_back(cubes.oldOpaquePass2(dev, time.getFTime(), std::get<0>(node), scene.perspective, gbufferRTV, ldepth, ind, args, scene.drawcalls, std::get<1>(node),  std::get<1>(node)+std::get<2>(node)));
       }
       int passId = 0;
-      for (auto& pass : passes) {
-        co_await pass;
+      for (auto& pass : *passes) {
+        if (!pass.is_ready())
+          co_await pass;
         
         tasks.addPass(std::move(std::get<0>(nodes[passId])));
         passId++;
@@ -407,7 +408,8 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
 
   //co_await sceneTasks.back();
   for (auto& task : sceneTasks) {
-    co_await task;
+    if (!task.is_ready())
+      co_await task;
   }
 
   for (auto&& index : indexesToVP) {
@@ -508,7 +510,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    if (vpInfo.options.gpuToUse != 0) {
+    if (vpInfo.options.gpuToUse != 0) { // I cannot read the condition, needs better naming for variable.
       auto node = tasks.createPass("shared gpu transfer", QueueType::Graphics, vpInfo.options.gpuToUse);
       node.copy(vp.sharedViewport, size_t(0), vp.viewport, Subresource().mip(0).slice(0));
       tasks.addPass(std::move(node));
@@ -518,7 +520,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    if (vpInfo.options.gpuToUse != 0) {
+    if (vpInfo.options.gpuToUse != 0) { // I cannot read the condition, needs better naming for variable.
       auto node = tasks.createPass("receiving transfer", QueueType::Graphics, 0);
       node.copy(vp.viewport, Subresource().mip(0).slice(0), vp.sharedViewport, 0);
       tasks.addPass(std::move(node));

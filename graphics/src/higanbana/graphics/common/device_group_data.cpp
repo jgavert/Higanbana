@@ -536,6 +536,11 @@ namespace higanbana
       });
     }
 
+    void DeviceGroupData::validateResourceDescriptor(ResourceDescriptor& desc) {
+      auto crossAdapterPossible = m_devices.size() > 1;
+      if (!crossAdapterPossible) desc.desc.allowCrossAdapter = false;
+    }
+
     Buffer DeviceGroupData::createBuffer(ResourceDescriptor desc) {
       HIGAN_CPU_FUNCTION_SCOPE();
       desc = desc.setDimension(FormatDimension::Buffer);
@@ -821,6 +826,8 @@ namespace higanbana
       if (deviceMemory < allBytes) {
         waitGpuIdle(); 
       }
+      deviceMemory = m_devices[0].device->availableDynamicMemory();
+      HIGAN_ASSERT(deviceMemory > allBytes, "Don't have enough memory to begin with.");
 
       auto graph = startCommandGraph();
 
