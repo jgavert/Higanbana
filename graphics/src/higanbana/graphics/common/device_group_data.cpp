@@ -2673,6 +2673,30 @@ namespace higanbana
       co_return;
     }
 
+    template<size_t ppt, typename T, typename Func>
+    css::Task<void> parallel_forCSS2(T start, T end, Func&& f) {
+      size_t size = end - start;
+      while (size > 0) {
+        if (size > ppt) {
+          if (css::s_stealPool->localQueueSize() == 0) {
+            size_t splittedSize = size / 2;
+            auto a = parallel_forCSS2<ppt>(start, end - splittedSize, std::forward<decltype(f)>(f));
+            auto b = parallel_forCSS2<ppt>(end - splittedSize, end, std::forward<decltype(f)>(f));
+            co_await a;
+            co_await b;
+            co_return;
+          }
+        }
+        size_t doPPTWork = std::min(ppt, size);
+
+        for (T i = start; i != start+doPPTWork; ++i)
+          f(*i);
+        start += doPPTWork;
+        size = end - start;
+      }
+      co_return;
+    }
+
     css::Task<void> DeviceGroupData::submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph) {
       HIGAN_CPU_FUNCTION_SCOPE();
       SubmitTiming timing = graph.m_timing;
@@ -2719,7 +2743,7 @@ namespace higanbana
         //std::for_each(std::execution::par_unseq, std::begin(readyLists), std::end(readyLists), [&](backend::LiveCommandBuffer2& list) {
           HIGAN_CPU_BRACKET("OuterLoopFirstPass");
           int offset = list.listIDs[0];
-          co_await parallel_forCSS<1>(std::begin(list.listIDs), std::end(list.listIDs), [&](int id) -> css::Task<void> {
+          co_await parallel_forCSS2<1>(std::begin(list.listIDs), std::end(list.listIDs), [&](int id) {
           //std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
             HIGAN_CPU_BRACKET("InnerLoopFirstPass");
             auto& vdev = m_devices[list.deviceID];
@@ -2731,7 +2755,6 @@ namespace higanbana
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             firstPassBarrierSolve(vdev, buffersView, buffer.type, buffer.acquire, buffer.release, list.listTiming[id - offset], solver, list.readbacks[id - offset], id == offset);
-            co_return;
           });
           co_return;
         });
@@ -2756,7 +2779,7 @@ namespace higanbana
         {
           int offset = list.listIDs[0];
           HIGAN_CPU_BRACKET("OuterLoopFillNativeList");
-          co_await parallel_forCSS<1>(std::begin(list.listIDs), std::end(list.listIDs), [&](int id) -> css::Task<void> {
+          co_await parallel_forCSS2<1>(std::begin(list.listIDs), std::end(list.listIDs), [&](int id) {
           //std::for_each(std::execution::par_unseq, std::begin(list.listIDs), std::end(list.listIDs), [&](int id){
             auto& buffer = lists[id];
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
@@ -2764,7 +2787,6 @@ namespace higanbana
             auto& solver = *solvers[id];
             fillNativeList(list.lists[id-offset], vdev, buffersView, solver, list.listTiming[id - offset]);
             list.listTiming[id - offset].cpuBackendTime.stop();
-            co_return;
           });
           co_return;
         });

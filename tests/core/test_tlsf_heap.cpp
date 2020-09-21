@@ -102,7 +102,7 @@ TEST_CASE("some basic allocation tests 4") {
   auto block5 = tlsf.allocate(696);
   writeTrash(block5, 696);
   REQUIRE(block5);
-  tlsf.deallocate(block5);
+  //tlsf.deallocate(block5);
   auto block6 = tlsf.allocate(696);
   writeTrash(block6, 696);
   REQUIRE(block6);
@@ -139,6 +139,65 @@ TEST_CASE("some basic allocation tests 4") {
     }
     for (int k = 0; k < 4; ++k)
       tlsf.deallocate(ptrs[k]);
+  }
+}
+
+TEST_CASE("some basic allocation tests 5") {
+  constexpr size_t size = 80000;
+  css::DynamicHeapAllocator tlsf(1, size);
+
+  auto writeTrash = [](void* ptr, size_t size) {
+    memset(ptr, 254, size);
+  };
+
+  for (int i = 0; i < 3; ++i) {
+    auto block = tlsf.allocate(14912);
+    writeTrash(block, 14912);
+    REQUIRE(block);
+    auto block2 = tlsf.allocate(7240);
+    writeTrash(block2, 7240);
+    REQUIRE(block2);
+    {
+      std::vector<void*> ptrs;
+      for (int k = 0; k < 4; ++k)
+      {
+        auto ptr = tlsf.allocate(2168);
+        writeTrash(ptr, 2168);
+        ptrs.push_back(ptr);
+      }
+      for (int k = 0; k < 4; ++k)
+        tlsf.deallocate(ptrs[k]);
+    }
+    auto block3 = tlsf.allocate(3512);
+    writeTrash(block3, 3512);
+    REQUIRE(block3);
+    auto block4 = tlsf.allocate(104);
+    writeTrash(block4, 104);
+    REQUIRE(block4);
+    auto block5 = tlsf.allocate(696);
+    writeTrash(block5, 696);
+    REQUIRE(block5);
+    tlsf.deallocate(block5);
+    auto block6 = tlsf.allocate(696);
+    writeTrash(block6, 696);
+    REQUIRE(block6);
+    auto block7 = tlsf.allocate(368);
+    writeTrash(block7, 368);
+    REQUIRE(block7);
+    auto block8 = tlsf.allocate(696);
+    writeTrash(block8, 696);
+    REQUIRE(block8);
+    auto block9 = tlsf.allocate(128);
+    writeTrash(block9, 128);
+    REQUIRE(block9);
+    tlsf.deallocate(block9);
+    tlsf.deallocate(block8);
+    tlsf.deallocate(block7);
+    tlsf.deallocate(block6);
+    tlsf.deallocate(block4);
+    tlsf.deallocate(block3);
+    tlsf.deallocate(block2);
+    tlsf.deallocate(block);
   }
 }
 
