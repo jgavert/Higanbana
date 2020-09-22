@@ -548,7 +548,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   if (rendererOptions.submitSingleThread)
     dev.submitExperimental(swapchain, tasks, ThreadedSubmission::Sequenced);
   else if (rendererOptions.submitExperimental)
-    dev.submitExperimental(swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
+    co_await dev.submitCSSExp(swapchain, tasks);
   else if (rendererOptions.submitLBS)
     co_await dev.submitCSS(swapchain, tasks); // lbs, swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
   else

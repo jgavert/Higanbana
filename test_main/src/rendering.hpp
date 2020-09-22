@@ -30,7 +30,7 @@ struct RendererOptions
 {
   bool submitExperimental = false;
   bool submitSingleThread = false;
-  bool submitLBS = true;
+  bool submitLBS = false;
   bool particles = false;
   bool particlesSimulate = true;
   bool allowMeshShaders = false;
@@ -39,7 +39,7 @@ struct RendererOptions
   bool renderImGui = true;
   void drawImGuiOptions()
   {
-    //ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
+    ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);
     ImGui::Checkbox("Submit using CSS", &submitLBS);
     ImGui::Checkbox("Particles Enabled", &particles);

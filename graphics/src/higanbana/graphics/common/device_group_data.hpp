@@ -256,6 +256,8 @@ namespace higanbana
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
       void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
 
+      css::Task<void> localPass(css::Task<void>* previousLocalPass, PreparedCommandlist& buffer, std::shared_ptr<BarrierSolver>& solver, backend::LiveCommandBuffer2& list, int id, int offset);
+      css::Task<void> finalPass(css::Task<void>* localPass, css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin); 
 
       // commandgraph
       CommandGraph startCommandGraph();
@@ -265,6 +267,7 @@ namespace higanbana
       void submitST(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submitLBS(LBS& lbs, std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       css::Task<void> submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph);
+      css::Task<void> submitCSSExp(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain, int backbufferIndex);
 
       // test

@@ -110,8 +110,7 @@
     "editor.insertSpaces": true,
     "editor.renderWhitespace": "boundary",
     "C_Cpp.default.cppStandard": "c++20",
-    "C_Cpp.default.windowsSdkVersion": "10.0.18362.0",
-    "C_Cpp.experimentalFeatures": "Enabled",
+    "C_Cpp.default.windowsSdkVersion": "10.0.19041.0",
     "C_Cpp.updateChannel": "Insiders",
     "files.exclude": {
         "bazel*": true
@@ -121,5 +120,6 @@
     },
     "search.exclude": {
         "bazel*": true
-    }
+    },
+    "C_Cpp.default.intelliSenseMode": "clang-x64"
 }
