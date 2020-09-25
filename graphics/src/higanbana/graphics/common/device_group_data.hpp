@@ -256,6 +256,10 @@ namespace higanbana
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
       void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
 
+      void submitLiveCommandBuffer2(std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList);
+      css::Task<void> finalPass2(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
+      css::Task<std::shared_ptr<css::Task<void>>> localPass2(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
+
       css::Task<void> localPass(css::Task<void>* previousLocalPass, PreparedCommandlist& buffer, std::shared_ptr<BarrierSolver>& solver, backend::LiveCommandBuffer2& list, int id, int offset);
       css::Task<void> finalPass(css::Task<void>* localPass, css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin); 
 

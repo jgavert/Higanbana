@@ -387,7 +387,7 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       if (!block)
       {
-        auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 256, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 256 * 4, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
         m_freeResources->uploadBlocks.push_back(newBlock);
         m_constantsAllocator = UploadLinearAllocator(newBlock);
@@ -815,7 +815,7 @@ namespace higanbana
       m_buffer->closeList();
     }
 
-    void DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes)
+    bool DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       m_readback->map();
@@ -843,6 +843,7 @@ namespace higanbana
       m_readback->unmap();
       m_readback->reset();
       m_queryheap->reset();
+      return true;
     }
   }
 }

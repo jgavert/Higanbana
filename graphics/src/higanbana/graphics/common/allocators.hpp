@@ -15,7 +15,7 @@ namespace higanbana
 
     inline uintptr_t privateAlloc(size_t size)
     {
-	  int64_t alignedCurrent = roundUpMultipleInt(m_current, 16);
+	    int64_t alignedCurrent = static_cast<int64_t>(roundUpMultiplePowerOf2(m_current, 16ull));
       HIGAN_ASSERT(alignedCurrent + size < m_size, "No space in allocator");
       if (size == 0)
         return 0;

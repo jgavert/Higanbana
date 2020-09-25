@@ -334,7 +334,7 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
       if (!block)
       {
-        auto newBlock = m_constants->allocate(256 * 256);
+        auto newBlock = m_constants->allocate(256 * 256 * 4); // can save tons of cpu time. the larger less need to free these.
         HIGAN_ASSERT(newBlock, "What!");
         m_allocatedConstants.push_back(newBlock);
         m_constantsAllocator = VkUploadLinearAllocator(newBlock);
@@ -956,10 +956,10 @@ namespace higanbana
       m_list->list().end();
     }
 
-    void VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)
+    bool VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-
+      return false;
     }
   }
 }

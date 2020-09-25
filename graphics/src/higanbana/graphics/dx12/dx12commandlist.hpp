@@ -49,7 +49,7 @@ namespace higanbana
         DX12GPUDescriptor shaderDebugTable);
 
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
-      void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
+      bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       bool closed() const
       {

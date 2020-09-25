@@ -283,7 +283,7 @@ namespace higanbana
         UploadBlock b = block;
         b.block.offset += offset;
         HIGAN_ASSERT(b.block.offset % alignment == 0, "hupsies");
-        b.block.size = roundUpMultipleInt(bytes, alignment);
+        b.block.size = roundUpMultiplePowerOf2(bytes, alignment);
         HIGAN_ASSERT(b.block.size >= bytes, "hupsies v2");
         return b;
       }

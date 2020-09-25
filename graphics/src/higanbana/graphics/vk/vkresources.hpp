@@ -741,7 +741,7 @@ namespace higanbana
 
         VkUploadBlock b = block;
         b.block.offset += offset;
-        b.block.size = roundUpMultipleInt(bytes, alignment);
+        b.block.size = roundUpMultiplePowerOf2(bytes, alignment);
         return b;
       }
     };
@@ -971,7 +971,7 @@ namespace higanbana
 
         VkUploadBlock b = block;
         b.block.offset += offset;
-        b.block.size = roundUpMultipleInt(bytes, alignment);
+        b.block.size = roundUpMultiplePowerOf2(bytes, alignment);
         return b;
       }
     };
@@ -1114,7 +1114,7 @@ namespace higanbana
       VkUploadBlock allocateConstants(size_t size);
     public:
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
-      void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
+      bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       vk::CommandBuffer list()
       {

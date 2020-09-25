@@ -71,7 +71,7 @@ namespace higanbana
     {
     public:
       virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, higanbana::MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) = 0;
-      virtual void readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) = 0;
+      virtual bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) = 0;
       virtual ~CommandBufferImpl() = default;
     };
 

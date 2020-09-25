@@ -2859,6 +2859,7 @@ namespace higanbana
 
       auto ptr = std::shared_ptr<vk::CommandPool>(new vk::CommandPool(pool.value), [&](vk::CommandPool* ptr)
       {
+        HIGAN_CPU_BRACKET("kill command pool");
         m_device.destroyCommandPool(*ptr);
         delete ptr;
       });
@@ -2877,13 +2878,17 @@ namespace higanbana
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
+        HIGAN_CPU_BRACKET("destroy command buffer");
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
         }
-        for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant);
+          HIGAN_CPU_BRACKET("free constants");
+          for (auto&& constant : buffer->freeableConstants())
+          {
+            m_constantAllocators->release(constant);
+          }
         }
         delete buffer;
       });
@@ -2899,13 +2904,25 @@ namespace higanbana
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
+        HIGAN_CPU_BRACKET("destroy command buffer");
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
         }
-        for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant);
+          HIGAN_CPU_BRACKET("free constants");
+          for (auto&& constant : buffer->freeableConstants())
+          {
+            m_constantAllocators->release(constant);
+          }
+        }
+        {
+          HIGAN_CPU_BRACKET("free pipelines");
+          for (auto&& oldPipe : buffer->oldPipelines())
+          {
+            if (oldPipe)
+              m_device.destroyPipeline(oldPipe);
+          }
         }
         delete buffer;
       });
@@ -2921,18 +2938,25 @@ namespace higanbana
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
+        HIGAN_CPU_BRACKET("destroy command buffer");
         if (auto seqTracker = tracker.lock())
         {
           seqTracker->complete(seqNumber);
         }
-        for (auto&& constant : buffer->freeableConstants())
         {
-          m_constantAllocators->release(constant);
+          HIGAN_CPU_BRACKET("free constants");
+          for (auto&& constant : buffer->freeableConstants())
+          {
+            m_constantAllocators->release(constant);
+          }
         }
-        for (auto&& oldPipe : buffer->oldPipelines())
         {
-          if (oldPipe)
-            m_device.destroyPipeline(oldPipe);
+          HIGAN_CPU_BRACKET("free pipelines");
+          for (auto&& oldPipe : buffer->oldPipelines())
+          {
+            if (oldPipe)
+              m_device.destroyPipeline(oldPipe);
+          }
         }
         delete buffer;
       });

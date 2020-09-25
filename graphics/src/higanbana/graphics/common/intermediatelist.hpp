@@ -66,7 +66,7 @@ namespace higanbana
           int64_t refSize = 1024;
           if (static_cast<int64_t>(size) > refSize)
           {
-            refSize = roundUpMultipleInt(static_cast<int64_t>(size), 1024);
+            refSize = static_cast<int64_t>(roundUpMultiplePowerOf2(size, 1024ull));
           }
           activeMemory = static_cast<int>(memories.size());
           memories.emplace_back(std::make_unique<uint8_t[]>(refSize));
