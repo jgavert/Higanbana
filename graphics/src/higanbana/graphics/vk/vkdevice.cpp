@@ -1263,7 +1263,7 @@ namespace higanbana
 
     int VulkanDevice::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("Vulkan try AcquireImage");
       auto native = std::static_pointer_cast<VulkanSwapchain>(swapchain);
 
       if (native->outOfDate())
@@ -1290,7 +1290,7 @@ namespace higanbana
     // TODO: add fence here, so that we can detect that "we cannot render yet, do something else". Bonus thing honestly.
     int VulkanDevice::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> sc)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("Vulkan AcquireImage");
       auto native = std::static_pointer_cast<VulkanSwapchain>(sc);
       if (native->outOfDate())
         return -1;

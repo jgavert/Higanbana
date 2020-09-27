@@ -668,7 +668,7 @@ namespace higanbana
 
     int DX12Device::tryAcquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("DX12 try AcquireImage");
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       RECT rect{};
       if (!GetClientRect(native->surface().native(), &rect))
@@ -683,7 +683,7 @@ namespace higanbana
 
     int DX12Device::acquirePresentableImage(std::shared_ptr<prototypes::SwapchainImpl> swapchain)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("DX12 AcquireImage");
       auto native = std::static_pointer_cast<DX12Swapchain>(swapchain);
       RECT rect{};
       if (!GetClientRect(native->surface().native(), &rect))

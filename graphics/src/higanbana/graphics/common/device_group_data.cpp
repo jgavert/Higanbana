@@ -472,7 +472,7 @@ namespace higanbana
     }
 
     std::optional<std::pair<int, TextureRTV>> DeviceGroupData::acquirePresentableImage(Swapchain& swapchain) {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("acquirePresentableImage");
       std::lock_guard<std::mutex> guard(m_presentMutex);
       while (!m_asyns.empty())
       {
@@ -486,7 +486,7 @@ namespace higanbana
     }
 
     TextureRTV* DeviceGroupData::tryAcquirePresentableImage(Swapchain& swapchain) {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("try acquirePresentableImage");
       std::lock_guard<std::mutex> guard(m_presentMutex);
       while (!m_asyns.empty())
       {
@@ -3100,7 +3100,7 @@ namespace higanbana
 
     css::Task<void> DeviceGroupData::finalPass2(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin) {
       {
-        std::string fnlpass = "final pass ";
+        std::string fnlpass = "compile list ";
         fnlpass += std::to_string(listID);
         HIGAN_CPU_BRACKET(fnlpass.c_str());
         auto& buffer = lists[listID];
@@ -3110,8 +3110,10 @@ namespace higanbana
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
       // wait previous submit
-      if (previousFinalPass && !previousFinalPass->is_ready())
+      if (previousFinalPass && !previousFinalPass->is_ready()){
+        HIGAN_CPU_BRACKET("wait prev compilation(busy wait?)");
         co_await (*previousFinalPass);
+      }
 
       // submit
       if (listID == liveList.listIDs.back()) {
@@ -3127,7 +3129,7 @@ namespace higanbana
 
     css::Task<std::shared_ptr<css::Task<void>>> DeviceGroupData::localPass2(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin) {
       {
-        std::string localpss = "local pass ";
+        std::string localpss = "resolve barriers ";
         localpss += std::to_string(listID);
         HIGAN_CPU_BRACKET(localpss.c_str());
         auto& buffer = lists[listID];
@@ -3141,10 +3143,13 @@ namespace higanbana
       }
 
       // wait for previous local pass to complete before continuing to access global datas
-      if (before && !before->is_ready())
-        co_await (*before);
       {
-        HIGAN_CPU_BRACKET("global pass");
+        HIGAN_CPU_BRACKET("wait-in-line(busy wait?)");
+        if (before && !before->is_ready())
+          co_await (*before);
+      }
+      {
+        HIGAN_CPU_BRACKET("global barriers");
         // this is order dependant
         globalPassBarrierSolve(liveList.listTiming[listID - listIdBegin], *solver);
       }
@@ -3202,7 +3207,7 @@ namespace higanbana
     }
 
     css::Task<void> DeviceGroupData::submitCSSExp(std::optional<Swapchain> swapchain, CommandGraph& graph) {
-      HIGAN_CPU_BRACKET("Submit CommandGraph - coroutines ver");
+      HIGAN_CPU_BRACKET("Submit CommandGraph - coroutines version");
       SubmitTiming timing = graph.m_timing;
       timing.id = m_submitIDs++;
       timing.listsCount = 0;

@@ -808,10 +808,16 @@ namespace higanbana
     // implementations
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
-      m_buffer->resetList();
-      DX12Device* dev = static_cast<DX12Device*>(device.get());
-      addCommands(dev, m_buffer->list(), buffers, solver);
+      HIGAN_CPU_BRACKET("compile to DX12 CmdList");
+      {
+        HIGAN_CPU_BRACKET("reset");
+        m_buffer->resetList();
+      }
+      {
+        HIGAN_CPU_BRACKET("compile");
+        DX12Device* dev = static_cast<DX12Device*>(device.get());
+        addCommands(dev, m_buffer->list(), buffers, solver);
+      }
       m_buffer->closeList();
     }
 

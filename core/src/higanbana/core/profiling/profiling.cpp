@@ -22,17 +22,22 @@ std::atomic<int> s_myIndex;
 thread_local ThreadProfileData* my_profile_data = nullptr;
 thread_local int my_thread_id = 0;
 thread_local int64_t previousBegin = std::numeric_limits<int64_t>::min();
+thread_local int64_t seen = 0;
 thread_local int64_t nextDuration = 0;
 
 int64_t getCurrentTime() {
   int64_t value = std::chrono::time_point_cast<std::chrono::nanoseconds>(HighPrecisionClock::now()).time_since_epoch().count();
-  if (value <= previousBegin) {
-    value = previousBegin + 1000;
-    nextDuration -= 1000;
+  if (value == previousBegin) {
+    value = previousBegin + seen*100000;
+    seen++;
+    nextDuration = 0;
   }
   else {
     nextDuration = 0;
+    seen = 0;
+    previousBegin = value;
   }
+
   return value;
 }
 

@@ -942,16 +942,22 @@ namespace higanbana
     // implementations
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
-      HIGAN_CPU_FUNCTION_SCOPE();
+      HIGAN_CPU_BRACKET("compile to Vulkan CmdList");
       m_tempSets.resize(5);
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
       
-      m_list->list().begin(vk::CommandBufferBeginInfo()
-        .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
-        .setPInheritanceInfo(nullptr));
+      {
+        HIGAN_CPU_BRACKET("reset?");
+        m_list->list().begin(vk::CommandBufferBeginInfo()
+          .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
+          .setPInheritanceInfo(nullptr));
+      }
 
-      // add commands to list while also adding barriers
-      addCommands(nat.get(), m_list->list(), buffers, solver);
+      {
+        HIGAN_CPU_BRACKET("compile");
+        // add commands to list while also adding barriers
+        addCommands(nat.get(), m_list->list(), buffers, solver);
+      }
 
       m_list->list().end();
     }
