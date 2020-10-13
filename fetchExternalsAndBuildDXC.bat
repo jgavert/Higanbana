@@ -37,6 +37,10 @@ REM gltf loader, could be more efficient if it skipped few copies.
 rd /s /Q ext\tinygltf
 git clone https://github.com/syoyo/tinygltf.git ext/tinygltf
 
+REM cgltf parser, replace useless tinygltf and it's own stb stuff
+rd /s /Q ext\cgltf
+git clone https://github.com/jkuhlmann/cgltf.git ext/cgltf
+
 REM  https://www.nuget.org/api/v2/package/WinPixEventRuntime
 rd /s /Q ext\winpixeventruntime
 powershell -Command "Invoke-WebRequest https://www.nuget.org/api/v2/package/WinPixEventRuntime -OutFile ext\wper.zip"
