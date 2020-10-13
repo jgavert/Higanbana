@@ -6,6 +6,7 @@
 #include <dxc/Support/microcom.h>
 
 #include <higanbana/core/system/time.hpp>
+#include <higanbana/core/profiling/profiling.hpp>
 
 
 class DXCIncludeHandler : public IDxcIncludeHandler {
@@ -141,6 +142,10 @@ namespace higanbana
       auto d = info.desc;
       auto shaderPath = shaderSourcePath;
       auto dxilPath = shaderBinaryPath;
+
+      std::string bracket = "Compile: ";
+      bracket += dxilPath;
+      HIGAN_CPU_BRACKET(bracket.c_str());
 
       HIGAN_ASSERT(m_fs.fileExists(shaderPath), "Shader file doesn't exists in path %s\n", shaderPath.c_str());
       auto view = m_fs.viewToFile(shaderPath);

@@ -37,11 +37,11 @@ namespace higanbana
 
     void DX12CommandBuffer::resetList()
     {
-      if (!closedList)
-        commandList->Close();
-      commandListAllocator->Reset();
-      commandList->Reset(commandListAllocator.Get(), nullptr);
-      closedList = false;
+      if (closedList) {
+        commandListAllocator->Reset();
+        commandList->Reset(commandListAllocator.Get(), nullptr);
+        closedList = false;
+      }
     }
 
     bool DX12CommandBuffer::closed() const

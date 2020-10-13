@@ -33,6 +33,12 @@ void MaterialDB::update(higanbana::GpuGroup& gpu, higanbana::CommandGraphNode& n
   }
 }
 
+void MaterialDB::allUpdated() {
+for (auto&& it : views) {
+    it.dirty =  false;
+  }
+}
+
 void MaterialDB::free(int index) {
   freelist.release(index-1);
 }

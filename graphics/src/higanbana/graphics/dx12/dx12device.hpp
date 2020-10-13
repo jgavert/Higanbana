@@ -85,6 +85,7 @@ namespace higanbana
 
       friend class DX12CommandList;
 
+      void calibrateClockTimings();
       DX12PipelineStateStreamBuilder getDescStream(GraphicsPipelineDescriptor::Desc& d, gfxpacket::RenderPassBegin& subpass);
     public:
       DX12Device(GpuInfo info, ComPtr<ID3D12Device2> device, ComPtr<IDXGIFactory4> factory, FileSystem& fs, bool debugLayer);

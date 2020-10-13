@@ -133,6 +133,11 @@ std::string FileSystem::getBasePath()
   return m_resolvedFullPath;
 }
 
+
+std::string FileSystem::directoryPath(std::string filePath) {
+  return system_fs::path(filePath).parent_path().string();
+}
+
 bool FileSystem::fileExists(std::string path)
 {
   HIGAN_CPU_FUNCTION_SCOPE();

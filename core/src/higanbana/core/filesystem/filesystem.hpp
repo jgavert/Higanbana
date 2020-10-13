@@ -102,6 +102,8 @@ namespace higanbana
     vector<std::string> recursiveList(std::string path, std::string filter);
     size_t timeModified(std::string path);
 
+    std::string directoryPath(std::string filePath);
+
     bool writeFile(std::string path, const uint8_t* ptr, size_t size);
     bool writeFile(std::string path, higanbana::MemView<const uint8_t> view);
 

@@ -26,6 +26,13 @@ cc_library(
 )
 
 cc_library(
+    name = "cgltf",
+    hdrs = ["cgltf/cgltf.h", "cgltf/cgltf_write.h"],
+    includes = ["cgltf"],
+    visibility = ["//visibility:public"], 
+)
+
+cc_library(
     name = "GSL",
     hdrs = ["GSL/include/gsl/gsl",
     "GSL/include/gsl/gsl_algorithm",

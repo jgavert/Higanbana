@@ -164,7 +164,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
 }
 
 css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
-  HIGAN_CPU_FUNCTION_SCOPE();
+  HIGAN_CPU_BRACKET("renderScene");
   {
     auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
     float redcolor = std::sin(time.getFTime())*.5f + .5f;
@@ -268,6 +268,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
     }
     else
     {
+      HIGAN_CPU_BRACKET("opaquePass - ecs");
       auto node = tasks.createPass("opaquePass - ecs", QueueType::Graphics, scene.options.gpuToUse);
       auto gbufferRTV = scene.gbufferRTV;
       auto depth = scene.depth;
@@ -342,6 +343,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     materials.update(dev, ndoe);
     tasks.addPass(std::move(ndoe));
   }
+  materials.allUpdated();
   auto materialArgs = textures.bindlessArgs(dev, materials.srv());
 
   {

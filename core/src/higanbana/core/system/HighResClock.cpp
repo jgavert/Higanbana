@@ -32,7 +32,8 @@ namespace higanbana
   {
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
-    return time_point(duration(count * static_cast<rep>(period::den) / frequency.QuadPart));
+    LONGLONG dur = static_cast<LONGLONG>(count);
+    return time_point(duration(dur * static_cast<rep>(period::den) / frequency.QuadPart));
   }
 };
 #endif

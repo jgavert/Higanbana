@@ -22,6 +22,7 @@ class World
   higanbana::vector<TextureData> rawTextureData;
   public:
   void loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
+  void loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   MeshData& getMesh(int index); 
   BufferData& getBuffer(int index); 
   TextureData& getTexture(int index); 

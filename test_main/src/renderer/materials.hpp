@@ -30,6 +30,7 @@ public:
   }
   MaterialViews& operator[](int index) { return views[index]; }
   void update(higanbana::GpuGroup& gpu, higanbana::CommandGraphNode& node);
+  void allUpdated();
   higanbana::BufferSRV srv() { return m_materialsSRV; }
 };
 }

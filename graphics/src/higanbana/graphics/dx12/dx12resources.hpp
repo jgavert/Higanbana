@@ -653,7 +653,7 @@ namespace higanbana
     {
       ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
-      bool closedList = false;
+      bool closedList = true;
       bool dmaList;
     public:
       //DX12CommandBuffer() {}
