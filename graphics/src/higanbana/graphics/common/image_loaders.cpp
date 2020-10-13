@@ -28,7 +28,7 @@ namespace higanbana
         HIGAN_CPU_BRACKET("stbi_load_from_memory");
         asd = stbi_load_from_memory(view.data(), static_cast<int>(view.size()), &imgX, &imgY, &channels, 4);
       }
-      HIGAN_SLOG("CpuImage", "loaded %dx%d %d\n", imgX, imgY, channels);
+      //HIGAN_SLOG("CpuImage", "loaded %dx%d %d\n", imgX, imgY, channels);
 
       CpuImage image(ResourceDescriptor()
         .setSize(int2(imgX, imgY))
