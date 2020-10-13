@@ -17,6 +17,7 @@ namespace higanbana
     {
       std::string loadingFile = "loadImageFromFS " + path;
       HIGAN_CPU_BRACKET(loadingFile.c_str());
+      //HIGAN_LOGi("Lol %s\n", path.c_str());
       HIGAN_ASSERT(fs.fileExists(path), ":D");
 
       auto view = fs.viewToFile(path);
@@ -24,7 +25,7 @@ namespace higanbana
       stbi_set_flip_vertically_on_load(flipVertically);
       stbi_uc* asd = nullptr;
       {
-        HIGAN_CPU_BRACKET("memcpy");
+        HIGAN_CPU_BRACKET("stbi_load_from_memory");
         asd = stbi_load_from_memory(view.data(), static_cast<int>(view.size()), &imgX, &imgY, &channels, 4);
       }
       HIGAN_SLOG("CpuImage", "loaded %dx%d %d\n", imgX, imgY, channels);

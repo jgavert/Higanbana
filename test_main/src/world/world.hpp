@@ -9,6 +9,8 @@
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
 
+#include <css/task.hpp>
+
 namespace app
 {
 class World 
@@ -21,6 +23,7 @@ class World
   higanbana::FreelistAllocator freelistTexture;
   higanbana::vector<TextureData> rawTextureData;
   public:
+  css::Task<void> loadGLTFSceneCgltfTasked(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   void loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   void loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string path);
   MeshData& getMesh(int index); 

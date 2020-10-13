@@ -201,7 +201,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
     loadFileFromHDD(it, fileSize);
     allSize += fileSize;
   }
-  FS_ILOG("found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
+  HIGAN_ILOG("Filesystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
 }
 
 // SLOW

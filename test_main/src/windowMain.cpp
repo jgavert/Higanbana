@@ -811,9 +811,11 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
   }
   ImGui::StyleColorsDark();
+  auto preLoadWorld = m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/scenes");
+  preLoadWorld.wait();
   auto loadWorld = css::async([&]{ 
     HIGAN_CPU_BRACKET("load world");
-    m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
+    //m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
     {
       auto& name = m_ecs.get<components::Name>();
       auto& childs = m_ecs.get<components::Childs>();
