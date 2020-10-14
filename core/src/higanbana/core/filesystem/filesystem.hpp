@@ -88,11 +88,14 @@ namespace higanbana
     // 
     std::mutex m_lock;
 
+    bool m_initialLoadComplete = false;
+
     std::string getBasePath();
 
   public:
     FileSystem();
     FileSystem(std::string relativeOffset);
+    void initialLoad();
     bool fileExists(std::string path);
     MemoryBlob readFile(std::string path);
     higanbana::MemView<const uint8_t> viewToFile(std::string path);

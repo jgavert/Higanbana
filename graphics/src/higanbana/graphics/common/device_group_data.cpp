@@ -3239,11 +3239,12 @@ namespace higanbana
         auto readyLists = makeLiveCommandBuffers(*lists, timing.id);
         timing.listsCount = lists->size();
 
-        std::unique_ptr<css::Task<void>> gcComplete = std::make_unique<css::Task<void>>(css::async([&]
+        std::unique_ptr<css::Task<void>> gcComplete = std::make_unique<css::Task<void>>([&]() -> css::Task<void>
           {
             gc();
-          }
-        ));
+            co_return;
+          }()
+        );
 
         std::unique_ptr<vector<std::shared_ptr<BarrierSolver>>> solvers = std::make_unique<vector<std::shared_ptr<BarrierSolver>>>();
         solvers->resize(lists->size());

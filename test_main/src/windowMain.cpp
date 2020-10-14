@@ -799,23 +799,23 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
   WTime logicAndRenderTime;
 
   // IMGUI
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  {
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.IniFilename = nullptr;
-    if (m_fs.fileExists("/imgui.config")) {
-      auto file = m_fs.viewToFile("/imgui.config");
-      ImGui::LoadIniSettingsFromMemory(reinterpret_cast<const char*>(file.data()), file.size_bytes());
-    }
-    io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
-  }
-  ImGui::StyleColorsDark();
-  auto preLoadWorld = m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/scenes");
-  preLoadWorld.wait();
-  auto loadWorld = css::async([&]{ 
+  auto loadWorld = [&]()->css::Task<void> { 
     HIGAN_CPU_BRACKET("load world");
+    m_fs.initialLoad();
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    {
+      ImGuiIO& io = ImGui::GetIO(); (void)io;
+      io.IniFilename = nullptr;
+      if (m_fs.fileExists("/imgui.config")) {
+        auto file = m_fs.viewToFile("/imgui.config");
+        ImGui::LoadIniSettingsFromMemory(reinterpret_cast<const char*>(file.data()), file.size_bytes());
+      }
+      io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
+    }
+    ImGui::StyleColorsDark();
     //m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
+    co_await m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/scenes");
     {
       auto& name = m_ecs.get<components::Name>();
       auto& childs = m_ecs.get<components::Childs>();
@@ -836,8 +836,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       t_cameraSet.insert(cid, {90.f, 0.01f, 100.f});
       m_ecs.getTag<components::ActiveCamera>().insert(cid);
     }
-  });
-  loadWorld.wait();
+    co_return;
+  }();
 
   while (true)
   {
@@ -899,6 +899,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       if (allGpus[i].deviceId == m_chosenDeviceID)
         selectedDevice[i] = true;
     }
+    loadWorld.wait();
     app::Renderer rend(graphics, dev);
     rend.initWindow(window, physicalDevice);
 

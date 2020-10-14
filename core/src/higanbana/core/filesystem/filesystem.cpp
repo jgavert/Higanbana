@@ -115,7 +115,7 @@ const uint8_t* MemoryBlob::cdata() const noexcept
 FileSystem::FileSystem()
   : m_resolvedFullPath(system_fs::path(system_fs::current_path().string()).string())
 {
-  loadDirectoryContentsRecursive("");
+  //loadDirectoryContentsRecursive("");
   auto fullPath = system_fs::current_path().string();
   HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
 }
@@ -123,9 +123,15 @@ FileSystem::FileSystem()
 FileSystem::FileSystem(std::string relativeOffset)
   : m_resolvedFullPath(system_fs::path(system_fs::current_path().string() + relativeOffset).string())
 {
-  loadDirectoryContentsRecursive("");
+  //loadDirectoryContentsRecursive("");
   auto fullPath = getBasePath();
   HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
+}
+
+
+void FileSystem::initialLoad() {
+  loadDirectoryContentsRecursive("");
+  m_initialLoadComplete = true;
 }
 
 std::string FileSystem::getBasePath()
@@ -141,6 +147,8 @@ std::string FileSystem::directoryPath(std::string filePath) {
 bool FileSystem::fileExists(std::string path)
 {
   HIGAN_CPU_FUNCTION_SCOPE();
+  if (!m_initialLoadComplete)
+    initialLoad();
   std::lock_guard<std::mutex> guard(m_lock);
   //auto fullPath = system_fs::path(getBasePath() + path).string();
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -260,6 +268,8 @@ MemoryBlob FileSystem::readFile(std::string path)
 {
   HIGAN_CPU_FUNCTION_SCOPE();
   MemoryBlob blob;
+  if (!m_initialLoadComplete)
+    initialLoad();
   if (fileExists(path))
   {
     FS_ILOG("Reading... %s\n", path.c_str());
@@ -273,6 +283,8 @@ MemoryBlob FileSystem::readFile(std::string path)
 higanbana::MemView<const uint8_t> FileSystem::viewToFile(std::string path)
 {
   HIGAN_CPU_FUNCTION_SCOPE();
+  if (!m_initialLoadComplete)
+    initialLoad();
   higanbana::MemView<const uint8_t> view;
   if (fileExists(path))
   {
