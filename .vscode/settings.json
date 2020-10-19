@@ -105,7 +105,9 @@
         "cfenv": "cpp",
         "resumable": "cpp",
         "span_ext": "cpp",
-        "gsl_util": "cpp"
+        "gsl_util": "cpp",
+        "charconv": "cpp",
+        "compare": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

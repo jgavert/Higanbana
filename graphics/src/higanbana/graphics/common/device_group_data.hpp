@@ -273,6 +273,7 @@ namespace higanbana
       css::Task<void> submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph);
       css::Task<void> submitCSSExp(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain, int backbufferIndex);
+      css::Task<void> presentAsync(Swapchain& swapchain, int backbufferIndex);
 
       // test
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);

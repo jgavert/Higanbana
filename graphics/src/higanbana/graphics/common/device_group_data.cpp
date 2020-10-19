@@ -1832,6 +1832,16 @@ namespace higanbana
         m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
       }));
     }
+
+    css::Task<void> DeviceGroupData::presentAsync(Swapchain& swapchain, int backbufferIndex) {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      /*
+      std::lock_guard<std::mutex> guard(m_presentMutex);
+      m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl(), index = backbufferIndex]{
+        m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
+      }));*/
+      co_return;
+    }
     void DeviceGroupData::submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission multithreaded) {
       HIGAN_CPU_FUNCTION_SCOPE();
       std::launch policy = std::launch::async | std::launch::deferred;
@@ -2171,13 +2181,13 @@ namespace higanbana
         auto readyLists = makeLiveCommandBuffers(lists, timing.id);
         timing.listsCount = lists.size();
 
-        std::future<void> gcComplete;
+        //std::future<void> gcComplete;
         {
-          HIGAN_CPU_BRACKET("launch gc task");
-          gcComplete = std::async(std::launch::async, [&]
-          {
+          //HIGAN_CPU_BRACKET("launch gc task");
+          //gcComplete = std::async(std::launch::async, [&]
+          //{
             gc();
-          });
+          //});
         }
 
         vector<std::shared_ptr<BarrierSolver>> solvers;
@@ -2234,7 +2244,7 @@ namespace higanbana
         timing.submitSolve.start();
         // submit can be "multithreaded" also in the order everything finished, but not in current shape where readyLists is modified.
         //for (auto&& list : lists)
-        gcComplete.wait();
+        //gcComplete.wait();
         HIGAN_CPU_BRACKET("Submit Lists");
         while(!readyLists.empty())
         {

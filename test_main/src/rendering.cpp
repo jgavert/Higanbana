@@ -93,14 +93,12 @@ void Renderer::loadLogos(higanbana::FileSystem& fs) {
     return;
   
   // load dx12
-  /*
-  auto dx_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/dx12u_logo.png");
-  auto vk_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/vulkan_logo.png");
+  auto dx_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/dx12u_logo.png", false);
+  auto vk_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/vulkan_logo.png", false);
   m_logoDx12 = dev.createTexture(dx_logo);
   m_logoDx12Srv = dev.createTextureSRV(m_logoDx12);
   m_logoVulkan = dev.createTexture(vk_logo);
   m_logoVulkanSrv = dev.createTextureSRV(m_logoVulkan);
-  */
 }
 
 void Renderer::initWindow(higanbana::Window& window, higanbana::GpuInfo info) {
@@ -357,15 +355,17 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       auto prevCamera = vp.previousCamera;
       auto newCamera = CameraSettings{ vp.perspective, float4(vpInfo.camera.position, 1.f)};
       vp.previousCamera = newCamera;
+      auto frame = time.getFrame();
       if (vpInfo.options.jitterEnabled && vpInfo.options.tsaa){
-        prevCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, prevCamera.perspective);
-        newCamera.perspective = tsaa.jitterProjection(time.getFrame(), gbufferRes, newCamera.perspective);
+        prevCamera.perspective = tsaa.jitterProjection(frame, gbufferRes, prevCamera.perspective);
+        newCamera.perspective = tsaa.jitterProjection(frame, gbufferRes, newCamera.perspective);
       }
       vp.previousCameraIndex = static_cast<int>(sets.size());
       sets.push_back(prevCamera);
       vp.currentCameraIndex = static_cast<int>(sets.size());
       sets.push_back(newCamera);
-      vp.jitterOffset = tsaa.getJitterOffset(time.getFrame());
+      vp.jitterOffset = tsaa.getJitterOffset(frame);
+      vp.perspective = newCamera.perspective;
     }
     if (!sets.empty()) {
       auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
@@ -498,11 +498,11 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     if (dev.activeDevicesInfo()[vpInfo.options.gpuToUse].api == GraphicsApi::Vulkan)
       logo = m_logoVulkanSrv;
     
-    if (logo.texture().handle())
+    if (logo.texture().handle() && false)
     {
       auto node = tasks.createPass("drawLogo", QueueType::Graphics, vpInfo.options.gpuToUse);
       blitter.beginRenderpass(node, target);
-      blitter.blit(dev, node, target, logo, int2(10,10), int2(40,40));
+      blitter.blitScale(dev, node, target, logo, int2(10,20), 0.10f);
       node.endRenderpass();
       tasks.addPass(std::move(node));
     }

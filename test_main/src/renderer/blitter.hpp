@@ -22,6 +22,7 @@ public:
   void beginRenderpass(higanbana::CommandGraphNode& node, higanbana::TextureRTV target);
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureRTV target, higanbana::TextureSRV& source, float2 topleft, float2 size);
   void blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureRTV target, higanbana::TextureSRV& source, int2 topleft, int2 size);
+  void blitScale(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureRTV target, higanbana::TextureSRV& source, int2 itopleft, float scale);
   void blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node, higanbana::TextureRTV target, higanbana::TextureSRV& source, FitMode mode);
 };
 }

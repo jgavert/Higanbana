@@ -24,4 +24,5 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   rgbValue = ACESToACEScg(rgbValue);
 #endif
   output[id] = rgbValue; 
+  output[id] = float4(0,0,0,0);
 }

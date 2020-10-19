@@ -35,7 +35,7 @@ float4x4 ShittyTSAA::jitterProjection(int frame, int2 outputSize, float4x4 proje
   // Let's assume that we are using 8x
   constexpr static const int SAMPLE_COUNT = 8;
 
-  const unsigned SubsampleIdx = frame % SAMPLE_COUNT;
+  unsigned SubsampleIdx = frame % SAMPLE_COUNT;
     
   const float2 TexSize(div(1.0f, float2(outputSize))); // Texel size
   const float2 SubsampleSize = mul(TexSize, 2.0f); // That is the size of the subsample in NDC

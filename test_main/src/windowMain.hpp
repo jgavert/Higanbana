@@ -58,11 +58,11 @@ class RenderingApp {
   std::atomic_int64_t m_frame = 1;
   bool m_renderGltfScene = false;
   bool m_renderECS = false;
-  int m_cubeCount = 1000;
-  int m_cubeCommandLists = 1;
+  int m_cubeCount = 100000;
+  int m_cubeCommandLists = 64;
   int m_limitFPS = -1;
   int m_viewportCount = 1;
-  bool m_captureMouse = false;
+  std::atomic_bool m_captureMouse = false;
   bool m_advanceSimulation = true;
   bool m_stepOneFrameForward = false;
   bool m_stepOneFrameBackward = false;
@@ -81,11 +81,11 @@ class RenderingApp {
   higanbana::vector<bool> selectedDevice;
   higanbana::GpuInfo physicalDevice;
 
-  bool m_closeAnyway = false;
+  std::atomic_bool m_closeAnyway = false;
   std::atomic_bool m_renderActive = true;
   bool m_renderResize = false;
-  bool m_controllerConnected = false;
-  bool m_autoRotateCamera = false;
+  std::atomic_bool m_controllerConnected = false;
+  std::atomic_bool m_autoRotateCamera = false;
 
   std::atomic_bool m_toggleCaptureMouse = false;
   std::atomic_bool m_toggleBorderlessFullscreen = false;

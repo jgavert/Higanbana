@@ -49,11 +49,11 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
     float3 sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, direction));
 
     //controllerConnected = false;
-    if (input.alive)
+    if (input.alive && !captureMouse)
     {
       auto floatizeAxises = [](int16_t input, float& output)
       {
-        constexpr int16_t deadzone = 4500;
+        constexpr int16_t deadzone = 9000;
         if (std::abs(input) > deadzone)
         {
           constexpr float max = static_cast<float>(std::numeric_limits<int16_t>::max() - deadzone);
@@ -73,7 +73,7 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
 
       auto floatizeTriggers = [](uint16_t input, float& output)
       {
-        constexpr int16_t deadzone = 4000;
+        constexpr int16_t deadzone = 5000;
         if (std::abs(input) > deadzone)
         {
           constexpr float max = static_cast<float>(std::numeric_limits<uint16_t>::max() - deadzone);
@@ -85,7 +85,7 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       floatizeTriggers(input.lTrigger.value, l);
       floatizeTriggers(input.rTrigger.value, r);
 
-      rxyz.z = r - l;
+      rxyz.z = l - r;
 
       rxyz = math::mul(rxyz, std::max(delta, 0.001f));
       xy = math::mul(xy, std::max(delta, 0.001f));
@@ -235,7 +235,6 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
     }
   });
   float timeSinceLastInput = 0;
-  bool captureMouse = false;
   vector<InstanceDraw> allMeshesToDraw;
   vector<app::RenderViewportInfo> rendererViewports;
   rendererViewports.push_back({});
@@ -333,7 +332,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         m_renderActive = false;
       }
       auto timestep = timeSinceLastInput + m_time.getFrameTimeDelta();
-      handleInputs(m_ecs, pad, mouse, inputs, timestep, captureMouse);
+      handleInputs(m_ecs, pad, mouse, inputs, timestep, m_captureMouse);
       timeSinceLastInput = 0.f;
     } else {
       timeSinceLastInput += m_time.getFrameTimeDelta();
@@ -441,7 +440,9 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           ImGui::Text("max FPS %.2f (%.2fms)", 1000.f / m_time.getMaxFps(), m_time.getMaxFps());
           ImGui::DragInt("FPS limit", &m_limitFPS, 1, -1, 144);
           ImGui::Checkbox("Readback shader prints", &higanbana::globalconfig::graphics::GraphicsEnableShaderDebug);
-          ImGui::Checkbox("rotate camera", &m_autoRotateCamera);
+          bool rotateCam = m_autoRotateCamera;
+          ImGui::Checkbox("rotate camera", &rotateCam);
+          m_autoRotateCamera = rotateCam;
           ImGui::Checkbox("simulate", &m_advanceSimulation);
           if (!m_advanceSimulation) {
             ImGui::Checkbox("   Step Frame Forward", &m_stepOneFrameForward);
@@ -797,13 +798,13 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
 
   WTime time;
   WTime logicAndRenderTime;
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
 
   // IMGUI
   auto loadWorld = [&]()->css::Task<void> { 
     HIGAN_CPU_BRACKET("load world");
     m_fs.initialLoad();
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
     {
       ImGuiIO& io = ImGui::GetIO(); (void)io;
       io.IniFilename = nullptr;
@@ -902,6 +903,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     loadWorld.wait();
     app::Renderer rend(graphics, dev);
     rend.initWindow(window, physicalDevice);
+    rend.loadLogos(m_fs);
 
     // Load meshes to gpu
     //loadWorld.wait();
@@ -917,6 +919,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
 
       m_renderActive = true;
       css::Task<int> logicAndRenderAsync = runVisualLoop(rend, dev);
+      css::waitOwnQueueStolen();
+      //std::this_thread::sleep_for(std::chrono::milliseconds(200));
       while (!window.simpleReadMessages(m_frame++))
       {
         HIGAN_CPU_BRACKET("update Inputs");
@@ -947,7 +951,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
         m_windowPos = sizeInfo.xy();
         if (logicAndRenderAsync.is_ready())
           break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        css::executeFor(16000);
+        //std::this_thread::sleep_for(std::chrono::milliseconds(16));
       }
       m_renderActive = false;
       logicAndRenderAsync.get();
