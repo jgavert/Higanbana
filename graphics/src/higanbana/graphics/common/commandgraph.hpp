@@ -31,6 +31,7 @@ namespace higanbana
     int gpuId;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
+    size_t usedConstantMemory = 0;
 
     uint3 m_currentBaseGroups;
 
@@ -90,6 +91,10 @@ namespace higanbana
         const auto& thing2 = arg.refTextures();
         m_referencedTextures = m_referencedTextures.unionFields(thing2);
       }
+    }
+
+    void addConstantSize(size_t size) {
+      usedConstantMemory += ((size + 255) & (~255)); // 256 bytes sizes blocks
     }
 
   public:
@@ -190,6 +195,7 @@ namespace higanbana
       unsigned startInstance = 0)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
       list->draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
@@ -206,6 +212,7 @@ namespace higanbana
       unsigned StartInstanceLocation = 0)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
@@ -222,6 +229,7 @@ namespace higanbana
       unsigned StartInstanceLocation = 0)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
@@ -232,6 +240,7 @@ namespace higanbana
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(m_currentBaseGroups.x)));
       unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(m_currentBaseGroups.y)));
@@ -245,6 +254,7 @@ namespace higanbana
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       list->dispatch(groups);
@@ -254,6 +264,7 @@ namespace higanbana
     void dispatchMesh(ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       HIGAN_ASSERT(groups.y == 1 && groups.z == 1, "Only x group is read for now, because of vulkan limitations");

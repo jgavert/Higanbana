@@ -806,6 +806,12 @@ namespace higanbana
       }
     }
     // implementations
+    void DX12CommandList::reserveConstants(size_t expectedTotalBytes) {
+      auto newBlock = m_constants->allocate(expectedTotalBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+      HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
+      m_freeResources->uploadBlocks.push_back(newBlock);
+      m_constantsAllocator = UploadLinearAllocator(newBlock);
+    }
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_BRACKET("compile to DX12 CmdList");

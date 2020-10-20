@@ -7,9 +7,11 @@
 #include "lib/aces_odt.hlsl"
 #endif
 // this is trying to be Pixel shader file.
-struct VertexOut {   float2 uv : TEXCOORD0;
+struct VertexOut {
+ float2 uv : TEXCOORD0;
  float4 normal : NORMAL;
-  float4 color : COLOR;  float4 pos : SV_Position; };
+ float4 pos : SV_Position;
+};
 
 [RootSignature(ROOTSIG)]
 float4 main(VertexOut input) : SV_TARGET
@@ -20,7 +22,7 @@ float4 main(VertexOut input) : SV_TARGET
   float3 lightDir = float3(1, 1, 0);
 
   float light = max(0, dot(normal.xyz, lightDir));
-  float4 color = normal*(light+0.1)*input.color;
+  float4 color = normal*(light+0.1)*constants.color;
 
 #ifdef HIGANBANA_VULKAN
   //return color + float4(0.8,0.0,0.0,0.0);
@@ -28,12 +30,12 @@ float4 main(VertexOut input) : SV_TARGET
 #else
   //return color + float4(0.0,0.4,0.0,0.0);
 #endif
-  color = float4(1.f, 1.f, 1.f, 0.f) - input.color*8;
-  color = input.color*4;
+  //color = float4(1.f, 1.f, 1.f, 0.f) - input.color*8;
+  color = constants.color;
 #if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
   color.rgb = inverseODTRGB(color.rgb);
   color = inverseACESrrt(color);
   color = ACESToACEScg(color);
 #endif
-  return color*4;
+  return pow(color, 2)*400;
 }

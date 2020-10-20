@@ -97,19 +97,15 @@ PixelOut main(VertexOut input)
 
   PixelOut output;
   output.color = albedo * totalLight;
-  CameraSettings settings2 = cameras.Load(constants.prevCamera);
-  float4 prevPos = mul(float4(input.wPos.xyz,1), settings2.perspective);// input.prevPos;
+  CameraSettings previousCamera = cameras.Load(constants.prevCamera);
+  float4 prevPos = mul(float4(input.wPos.xyz,1), previousCamera.perspective);
   float4 curPos = input.pos;
   curPos.xy /=  constants.outputSize;
   curPos.xy -= float2(0.5, 0.5);
   curPos.xy *= float2(2,-2);
-  prevPos = prevPos / prevPos.w;
-  //prevPos.xy = prevPos.xy * float2(0.5,-0.5) + float2(0.5, 0.5);
-  //prevPos.xy = prevPos.xy * constants.outputSize;
   curPos.w = 1.f;
-
-
-  output.motion = prevPos - curPos; // so we need the previous wPos somehow... previous camera the least.
+  prevPos = prevPos / prevPos.w;
+  output.motion = prevPos - curPos; 
   output.motion.xy *= float2(1, -1);
   //output.motion.xy /= constants.outputSize;
 

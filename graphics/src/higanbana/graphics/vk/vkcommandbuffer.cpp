@@ -940,6 +940,14 @@ namespace higanbana
     }
 
     // implementations
+
+    void VulkanCommandBuffer::reserveConstants(size_t expectedTotalBytes) {
+      auto newBlock = m_constants->allocate(expectedTotalBytes); // can save tons of cpu time. the larger less need to free these.
+      HIGAN_ASSERT(newBlock, "What!");
+      m_allocatedConstants.push_back(newBlock);
+      m_constantsAllocator = VkUploadLinearAllocator(newBlock);
+    }
+
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {
       HIGAN_CPU_BRACKET("compile to Vulkan CmdList");

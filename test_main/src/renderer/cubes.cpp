@@ -29,9 +29,17 @@ Cubes::Cubes(higanbana::GpuGroup& device){
     .setPixelShader("opaquePass")
     .setInterface(opaquePassInterface)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
-    .setRTVFormat(0, FormatType::Unorm8BGRA)
+    .setRTVFormat(0, FormatType::Float16RGBA)
     .setDSVFormat(FormatType::Depth32)
     .setRenderTargetCount(1)
+    /*
+    .setBlend(BlendDescriptor().setRenderTarget(0, RTBlendDescriptor()
+        .setBlendEnable(true)
+        .setBlendOpAlpha(BlendOp::Add)
+        .setSrcBlend(Blend::SrcAlpha)
+        .setSrcBlendAlpha(Blend::One)
+        .setDestBlend(Blend::InvSrcAlpha)
+        .setDestBlendAlpha(Blend::One)))*/
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(true)
       .setDepthFunc(ComparisonFunc::Greater));

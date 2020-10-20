@@ -1325,6 +1325,7 @@ namespace higanbana
           i++; // only allowed here to progress list as all nodes have to be processed.
           auto addedNodeSize = node->list->list.sizeBytes(); 
           plist.bytesOfList += addedNodeSize;
+          plist.requiredConstantMemory += node->usedConstantMemory;
           plist.buffers.emplace_back(&node->list->list);
           //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
           plist.requirementsBuf = plist.requirementsBuf.unionFields(node->refBuf());
@@ -3116,7 +3117,9 @@ namespace higanbana
         auto& buffer = lists[listID];
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
-        fillNativeList(liveList.lists[listID - listIdBegin], vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
+        std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
+        nativeList->reserveConstants(buffer.requiredConstantMemory);
+        fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
       // wait previous submit
@@ -3197,7 +3200,9 @@ namespace higanbana
         auto& buffer = lists[listID];
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
-        fillNativeList(liveList.lists[listID - listIdBegin], vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
+        std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
+        nativeList->reserveConstants(buffer.requiredConstantMemory);
+        fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
 

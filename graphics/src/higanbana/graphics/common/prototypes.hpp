@@ -70,6 +70,7 @@ namespace higanbana
     class CommandBufferImpl
     {
     public:
+      virtual void reserveConstants(size_t expectedTotalBytes) = 0;
       virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, higanbana::MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) = 0;
       virtual bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) = 0;
       virtual ~CommandBufferImpl() = default;

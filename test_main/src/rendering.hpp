@@ -37,8 +37,10 @@ struct RendererOptions
   bool allowRaytracing = false;
   bool unbalancedCubes = false;
   bool renderImGui = true;
+  bool enableHDR = false;
   void drawImGuiOptions()
   {
+    ImGui::Checkbox("HDR", &enableHDR);
     ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);
     ImGui::Checkbox("Submit using CSS", &submitLBS);

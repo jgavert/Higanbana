@@ -308,7 +308,16 @@ void Renderer::ensureViewportCount(int size) {
 }
 
 css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
-  if (swapchain.outOfDate())
+  bool adjustSwapchain = false;
+  if (rendererOptions.enableHDR == true && scdesc.desc.colorSpace != Colorspace::BT2020)
+  {
+    adjustSwapchain = true;
+    scdesc = scdesc.formatType(FormatType::Unorm10RGB2A).colorspace(Colorspace::BT2020);
+  } else if (rendererOptions.enableHDR == false && scdesc.desc.colorSpace != Colorspace::BT709) {
+    adjustSwapchain = true;
+    scdesc = scdesc.formatType(FormatType::Unorm8RGBA).colorspace(Colorspace::BT709);
+  }
+  if (swapchain.outOfDate() || adjustSwapchain)
   {
     dev.adjustSwapchain(swapchain, scdesc);
     resizeExternal(swapchain.buffers().begin()->texture().desc());

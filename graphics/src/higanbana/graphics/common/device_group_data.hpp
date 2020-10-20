@@ -125,6 +125,7 @@ namespace higanbana
       DynamicBitfield requirementsTex;
       bool waitGraphics = false, waitCompute = false, waitDMA = false;
       bool signal = false; // signal own queue sema
+      size_t requiredConstantMemory = 0;
       std::shared_ptr<SemaphoreImpl> acquireSema;
       vector<int> sharedSignals;
       vector<int> sharedWaits;
@@ -132,7 +133,7 @@ namespace higanbana
       bool isLastList = false;
       vector<ReadbackPromise> readbacks;
       CommandListTiming timing;
-      size_t bytesOfList;
+      size_t bytesOfList = 0;
     };
 
     struct FirstUseResource

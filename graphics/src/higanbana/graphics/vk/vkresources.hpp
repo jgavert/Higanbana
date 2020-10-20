@@ -1113,6 +1113,7 @@ namespace higanbana
       void preprocess(VulkanDevice* device, MemView<backend::CommandBuffer*>& list);
       VkUploadBlock allocateConstants(size_t size);
     public:
+      void reserveConstants(size_t expectedTotalBytes) override;
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
       bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
