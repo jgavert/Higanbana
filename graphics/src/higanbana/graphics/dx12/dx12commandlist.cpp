@@ -387,6 +387,7 @@ namespace higanbana
       auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       if (!block)
       {
+        HIGAN_ASSERT(false, "never should come here");
         auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 256 * 4, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
         m_freeResources->uploadBlocks.push_back(newBlock);
@@ -811,6 +812,15 @@ namespace higanbana
       HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
       m_freeResources->uploadBlocks.push_back(newBlock);
       m_constantsAllocator = UploadLinearAllocator(newBlock);
+    }
+    void DX12CommandList::beginConstantsDmaList() {
+
+    }
+    void DX12CommandList::addConstants(CommandBufferImpl* ) {
+
+    }
+    void DX12CommandList::endConstantsDmaList() {
+      
     }
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {

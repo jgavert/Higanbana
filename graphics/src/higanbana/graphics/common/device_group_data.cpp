@@ -1371,6 +1371,7 @@ namespace higanbana
             }
         }
         if (finished || !seenInLastNodes) {
+
           lists.emplace_back(std::move(plist));
           plist = {};
         }
@@ -1485,6 +1486,11 @@ namespace higanbana
           HIGAN_ASSERT(!buffer.listIDs.empty(), "wtf!");
           readyLists.emplace_back(std::move(buffer));
           buffer = LiveCommandBuffer2{};
+
+          if (list.type == QueueType::Graphics || list.type == QueueType::Compute) {
+            // need dma list for constants
+            //buffer.dmaListConstants = vdev.device->createDMAList();
+          }
         }
         std::shared_ptr<CommandBufferImpl> nativeList;
         buffer.submitID = submitID;
@@ -1504,10 +1510,12 @@ namespace higanbana
             break;
           case QueueType::Compute:
             nativeList = vdev.device->createComputeList();
+            nativeList->reserveConstants(list.requiredConstantMemory);
             break;
           case QueueType::Graphics:
           default:
             nativeList = vdev.device->createGraphicsList();
+            nativeList->reserveConstants(list.requiredConstantMemory);
           }
         }
 
@@ -3118,7 +3126,7 @@ namespace higanbana
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
         std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
-        nativeList->reserveConstants(buffer.requiredConstantMemory);
+        //nativeList->reserveConstants(buffer.requiredConstantMemory);
         fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
@@ -3201,7 +3209,7 @@ namespace higanbana
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
         std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
-        nativeList->reserveConstants(buffer.requiredConstantMemory);
+        //nativeList->reserveConstants(buffer.requiredConstantMemory);
         fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
@@ -3252,6 +3260,7 @@ namespace higanbana
         timing.fillCommandLists.start();
 
         auto readyLists = makeLiveCommandBuffers(*lists, timing.id);
+        // CONSTANTS: I already know here which constant blocks will need copying to gpu. Could make DMA list here.
         timing.listsCount = lists->size();
 
         std::unique_ptr<css::Task<void>> gcComplete = std::make_unique<css::Task<void>>([&]() -> css::Task<void>
@@ -3264,22 +3273,6 @@ namespace higanbana
         std::unique_ptr<vector<std::shared_ptr<BarrierSolver>>> solvers = std::make_unique<vector<std::shared_ptr<BarrierSolver>>>();
         solvers->resize(lists->size());
 
-/*
-        std::vector<std::shared_ptr<css::Task<void>>> localPasses;
-        std::vector<std::shared_ptr<css::Task<void>>> finalPasses;
-        css::Task<void>* prevLocalPass = nullptr;
-        css::Task<void>* prevFinalPass = nullptr;
-
-        for (auto&& list : readyLists){
-          int offset = list.listIDs[0];
-          for (auto id : list.listIDs) {
-            localPasses.emplace_back(std::make_shared<css::Task<void>>(localPass(prevLocalPass, (*lists)[id], (*solvers)[id], list, id, offset)));
-            prevLocalPass = localPasses.back().get();
-            finalPasses.emplace_back(std::make_shared<css::Task<void>>(finalPass(prevLocalPass, prevFinalPass, gcComplete.get(), swapchain, *lists, list, (*solvers)[id], id, offset)));
-            prevFinalPass = finalPasses.back().get();
-          }
-        }
-        */
         std::vector<std::shared_ptr<css::Task<std::shared_ptr<css::Task<void>>>>> localPasses;
         css::Task<std::shared_ptr<css::Task<void>>>* prevLocalPass = nullptr;
         
@@ -3291,13 +3284,11 @@ namespace higanbana
             prevLocalPass = localPasses.back().get();
           }
         }
-        //if (!gcComplete->is_ready()) {gcComplete->wait();}
-        
-        //if (!prevFinalPass->is_ready()) {prevFinalPass->wait();}
-
-        //while(!prevFinalPass->is_ready()){}
         co_await (*prevLocalPass);
         co_await (*(prevLocalPass->get().get()));
+
+        // CONSTANTS: here the constants have been copied to cpu binned memory, ready for copying
+        // could launch dma here, before actual lists.
 
         timing.fillCommandLists.stop();
 

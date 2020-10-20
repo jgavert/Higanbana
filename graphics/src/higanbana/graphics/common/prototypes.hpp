@@ -73,6 +73,10 @@ namespace higanbana
       virtual void reserveConstants(size_t expectedTotalBytes) = 0;
       virtual void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, higanbana::MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) = 0;
       virtual bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) = 0;
+
+      virtual void beginConstantsDmaList() = 0;
+      virtual void addConstants(CommandBufferImpl* list) = 0;
+      virtual void endConstantsDmaList() = 0;
       virtual ~CommandBufferImpl() = default;
     };
 

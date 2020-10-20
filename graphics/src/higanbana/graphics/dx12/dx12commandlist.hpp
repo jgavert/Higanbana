@@ -52,6 +52,11 @@ namespace higanbana
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
       bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
+      // dma list specifics
+      void beginConstantsDmaList() override;
+      void addConstants(CommandBufferImpl* list) override;
+      void endConstantsDmaList() override;
+
       bool closed() const
       {
         return m_buffer->closed();
