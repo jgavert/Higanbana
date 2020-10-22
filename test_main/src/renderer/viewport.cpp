@@ -8,7 +8,7 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
   targetRes.x = std::max(targetRes.x, 8);
   targetRes.y = std::max(targetRes.y, 8);
   auto cis = viewport.desc().desc.size3D().xy();
-  if (cis.x != targetRes.x || cis.y != targetRes.y) {
+  if (cis.x != targetRes.x || cis.y != targetRes.y || viewport.desc().desc.format != backbufferFormat) {
     viewport = device.createTexture(ResourceDescriptor()
       .setName("viewport for imgui")
       .setFormat(backbufferFormat)

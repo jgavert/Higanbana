@@ -4,7 +4,7 @@
 #ifdef ACES_ENABLED 
 #include "lib/aces12.hlsl"
 #include "lib/aces_transforms.hlsl"
-#include "lib/aces_odt.hlsl"
+#include "lib/aces_odt_adv.hlsl"
 #endif
 struct VertexOut
 {
@@ -55,6 +55,11 @@ PixelOut main(VertexOut input)
   float4 albedo = float4(1,1,1,1);
   float3 normal = input.normal;
   float3 pixelNormal = input.normal;
+#if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
+  const float refWhite = ACESToACEScg(inverseACESrrt(invOdtSDR(float4(1,1,1,1)))).x;
+#else
+  const float refWhite = 1.f;
+#endif
   if (materialIndex > 0)
   {
     MaterialData mat = materials[constants.material-1];
@@ -62,9 +67,16 @@ PixelOut main(VertexOut input)
     if (albedoId > 0) { 
       albedo = materialTextures[albedoId-1].SampleLevel(bilinearSamplerWarp, input.uv, 0);
 #if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
-      albedo.rgb = inverseODTRGB(albedo.rgb);
-      albedo = inverseACESrrt(albedo);
-      albedo = ACESToACEScg(albedo);
+      //albedo = pow(albedo, 2.2);
+      albedo = sRGBToAcesCg(albedo);
+      //print(sRGBToAcesCg(float4(0.9,0.3,0,0)));
+      //albedo = invOdtSDR(albedo);
+      //albedo = inverseACESrrt(albedo);
+      //albedo = ACESToACEScg(albedo);
+      //print(albedo);
+      albedo = albedo / refWhite;
+      //print(albedo);
+      //albedo = albedo / 8;
 #endif
     }
 
@@ -80,9 +92,18 @@ PixelOut main(VertexOut input)
     }
   }
 
-  float4 totalLight = float4(1,1,1,1) * 0.1;
+  float4 totalLight = float4(1,1,1,1);
+#if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
+  totalLight = sRGBToAcesCg(totalLight);
+#endif
+  totalLight = totalLight * refWhite * 0.1;
 
-  float4 lColor = float4(1,1,1,1);
+  float4 lColor = float4(1,167.f/255.f,87.f/255.f,1);
+  //lColor = float4(1,1,1,1);
+#if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
+  //albedo = pow(albedo, 2.2);
+  lColor = sRGBToAcesCg(lColor);
+#endif
   float lStr = 1.f;
   float3 lPos = float3(0,0,0);//float3(90,100,110);
   // what does this mean that I have to completely reverse my camera pos...
@@ -90,13 +111,14 @@ PixelOut main(VertexOut input)
 
   // lightpass
   float4 lightPass = float4(0,0,0,0);
-  lightPass = CalcLightingColor(lPos, float3(0,1,0), lColor, float4(150*3, 200,0.5,1), input.wPos.xyz, pixelNormal);
+  lightPass = CalcLightingColor(lPos, float3(0,1,0), lColor, float4(500, 400,0.1,1), input.wPos.xyz, pixelNormal);
 
 
-  totalLight += lightPass*2;
+  totalLight += lightPass * refWhite;
 
   PixelOut output;
   output.color = albedo * totalLight;
+  //output.color = albedo * refWhite;
   CameraSettings previousCamera = cameras.Load(constants.prevCamera);
   float4 prevPos = mul(float4(input.wPos.xyz,1), previousCamera.perspective);
   float4 curPos = input.pos;

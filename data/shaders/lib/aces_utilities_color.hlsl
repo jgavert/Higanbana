@@ -1,6 +1,32 @@
 #ifndef __aces_utilities_color__
 #define __aces_utilities_color__
+// !!!!!!! None of this code has been checked against reference !!!!!!!!
+// use at your own risk
+// All modifications are purely mine and some errors might have slipped in while hand translating to hlsl
+// You have been warned.
+/*
+https://github.com/ampas/aces-dev
 
+Academy Color Encoding System (ACES) software and tools are provided by the Academy under the following terms and conditions: A worldwide, royalty-free, non-exclusive right to copy, modify, create derivatives, and use, in source and binary forms, is hereby granted, subject to acceptance of this license.
+
+Copyright 2019 Academy of Motion Picture Arts and Sciences (A.M.P.A.S.). Portions contributed by others as indicated. All rights reserved.
+
+Performance of any of the aforementioned acts indicates acceptance to be bound by the following terms and conditions:
+
+Copies of source code, in whole or in part, must retain the above copyright notice, this list of conditions and the Disclaimer of Warranty.
+
+Use in binary form must retain the above copyright notice, this list of conditions and the Disclaimer of Warranty in the documentation and/or other materials provided with the distribution.
+
+Nothing in this license shall be deemed to grant any rights to trademarks, copyrights, patents, trade secrets or any other intellectual property of A.M.P.A.S. or any contributors, except as expressly stated herein.
+
+Neither the name "A.M.P.A.S." nor the name of any other contributors to this software may be used to endorse or promote products derivative of or based on this software without express prior written permission of A.M.P.A.S. or the contributors, as appropriate.
+
+This license shall be construed pursuant to the laws of the State of California, and any disputes related thereto shall be subject to the jurisdiction of the courts therein.
+
+Disclaimer of Warranty: THIS SOFTWARE IS PROVIDED BY A.M.P.A.S. AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT ARE DISCLAIMED. IN NO EVENT SHALL A.M.P.A.S., OR ANY CONTRIBUTORS OR DISTRIBUTORS, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, RESITUTIONARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, THE ACADEMY SPECIFICALLY DISCLAIMS ANY REPRESENTATIONS OR WARRANTIES WHATSOEVER RELATED TO PATENT OR OTHER INTELLECTUAL PROPERTY RIGHTS IN THE ACADEMY COLOR ENCODING SYSTEM, OR APPLICATIONS THEREOF, HELD BY PARTIES OTHER THAN A.M.P.A.S.,WHETHER DISCLOSED OR UNDISCLOSED.
+*/
 static const float TINY = 0.00001f; //1e-10;
 
 struct Chromaticities
@@ -323,6 +349,203 @@ float3 fullRange_to_smpteRange_f3( float3 rgbIn)
     rgbOut[2] = fullRange_to_smpteRange( rgbIn[2]);
 
     return rgbOut;
+}
+
+// SMPTE 431-2 defines the DCDM color encoding equations. 
+// The equations for the decoding of the encoded color information are the 
+// inverse of the encoding equations
+// Note: Here the 4095 12-bit scalar is not used since the output of CTL is 0-1.
+float3 dcdm_decode( float3 XYZp)
+{
+    float3 XYZ;
+    XYZ[0] = (52.37/48.0) * pow( XYZp[0], 2.6);  
+    XYZ[1] = (52.37/48.0) * pow( XYZp[1], 2.6);  
+    XYZ[2] = (52.37/48.0) * pow( XYZp[2], 2.6);  
+
+    return XYZ;
+}
+
+float3 dcdm_encode( float3 XYZ)
+{
+    float3 XYZp;
+    XYZp[0] = pow( (48./52.37) * XYZ[0], 1./2.6);
+    XYZp[1] = pow( (48./52.37) * XYZ[1], 1./2.6);
+    XYZp[2] = pow( (48./52.37) * XYZ[2], 1./2.6);
+
+    return XYZp;
+}
+
+
+
+// Base functions from SMPTE ST 2084-2014
+
+// Constants from SMPTE ST 2084-2014
+static const float pq_m1 = 0.1593017578125; // ( 2610.0 / 4096.0 ) / 4.0;
+static const float pq_m2 = 78.84375; // ( 2523.0 / 4096.0 ) * 128.0;
+static const float pq_c1 = 0.8359375; // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+static const float pq_c2 = 18.8515625; // ( 2413.0 / 4096.0 ) * 32.0;
+static const float pq_c3 = 18.6875; // ( 2392.0 / 4096.0 ) * 32.0;
+
+static const float pq_C = 10000.0;
+
+// Converts from the non-linear perceptually quantized space to linear cd/m^2
+// Note that this is in float, and assumes normalization from 0 - 1
+// (0 - pq_C for linear) and does not handle the integer coding in the Annex 
+// sections of SMPTE ST 2084-2014
+float ST2084_2_Y( float N )
+{
+  // Note that this does NOT handle any of the signal range
+  // considerations from 2084 - this assumes full range (0 - 1)
+  float Np = pow( N, 1.0 / pq_m2 );
+  float L = Np - pq_c1;
+  if ( L < 0.0 )
+    L = 0.0;
+  L = L / ( pq_c2 - pq_c3 * Np );
+  L = pow( L, 1.0 / pq_m1 );
+  return L * pq_C; // returns cd/m^2
+}
+
+// Converts from linear cd/m^2 to the non-linear perceptually quantized space
+// Note that this is in float, and assumes normalization from 0 - 1
+// (0 - pq_C for linear) and does not handle the integer coding in the Annex 
+// sections of SMPTE ST 2084-2014
+float Y_2_ST2084( float C )
+//pq_r
+{
+  // Note that this does NOT handle any of the signal range
+  // considerations from 2084 - this returns full range (0 - 1)
+  float L = C / pq_C;
+  float Lm = pow( L, pq_m1 );
+  float N = ( pq_c1 + pq_c2 * Lm ) / ( 1.0 + pq_c3 * Lm );
+  N = pow( N, pq_m2 );
+  return N;
+}
+
+float3 Y_2_ST2084_f3( float3 input)
+{
+  // converts from linear cd/m^2 to PQ code values
+  
+  float3 output;
+  output[0] = Y_2_ST2084( input[0]);
+  output[1] = Y_2_ST2084( input[1]);
+  output[2] = Y_2_ST2084( input[2]);
+
+  return output;
+}
+
+float3 ST2084_2_Y_f3( float3 input)
+{
+  // converts from PQ code values to linear cd/m^2
+  
+  float3 output;
+  output[0] = ST2084_2_Y( input[0]);
+  output[1] = ST2084_2_Y( input[1]);
+  output[2] = ST2084_2_Y( input[2]);
+
+  return output;
+}
+
+
+// Conversion of PQ signal to HLG, as detailed in Section 7 of ITU-R BT.2390-0
+float3 ST2084_2_HLG_1000nits_f3( float3 PQ) 
+{
+    // ST.2084 EOTF (non-linear PQ to display light)
+    float3 displayLinear = ST2084_2_Y_f3( PQ);
+
+    // HLG Inverse EOTF (i.e. HLG inverse OOTF followed by the HLG OETF)
+    // HLG Inverse OOTF (display linear to scene linear)
+    float Y_d = 0.2627*displayLinear[0] + 0.6780*displayLinear[1] + 0.0593*displayLinear[2];
+    const float L_w = 1000.;
+    const float L_b = 0.;
+    const float alpha = (L_w-L_b);
+    const float beta = L_b;
+    const float gamma = 1.2;
+    
+    float3 sceneLinear;
+    if (Y_d == 0.) { 
+        /* This case is to protect against pow(0,-N)=Inf error. The ITU document
+        does not offer a recommendation for this corner case. There may be a 
+        better way to handle this, but for now, this works. 
+        */ 
+        sceneLinear[0] = 0.;
+        sceneLinear[1] = 0.;
+        sceneLinear[2] = 0.;        
+    } else {
+        sceneLinear[0] = pow( (Y_d-beta)/alpha, (1.-gamma)/gamma) * ((displayLinear[0]-beta)/alpha);
+        sceneLinear[1] = pow( (Y_d-beta)/alpha, (1.-gamma)/gamma) * ((displayLinear[1]-beta)/alpha);
+        sceneLinear[2] = pow( (Y_d-beta)/alpha, (1.-gamma)/gamma) * ((displayLinear[2]-beta)/alpha);
+    }
+
+    // HLG OETF (scene linear to non-linear signal value)
+    const float a = 0.17883277;
+    const float b = 0.28466892; // 1.-4.*a;
+    const float c = 0.55991073; // 0.5-a*log(4.*a);
+
+    float3 HLG;
+    if (sceneLinear[0] <= 1./12) {
+        HLG[0] = sqrt(3.*sceneLinear[0]);
+    } else {
+        HLG[0] = a*log(12.*sceneLinear[0]-b)+c;
+    }
+    if (sceneLinear[1] <= 1./12) {
+        HLG[1] = sqrt(3.*sceneLinear[1]);
+    } else {
+        HLG[1] = a*log(12.*sceneLinear[1]-b)+c;
+    }
+    if (sceneLinear[2] <= 1./12) {
+        HLG[2] = sqrt(3.*sceneLinear[2]);
+    } else {
+        HLG[2] = a*log(12.*sceneLinear[2]-b)+c;
+    }
+
+    return HLG;
+}
+
+
+// Conversion of HLG to PQ signal, as detailed in Section 7 of ITU-R BT.2390-0
+float3 HLG_2_ST2084_1000nits_f3( float3 HLG) 
+{
+    const float a = 0.17883277;
+    const float b = 0.28466892; // 1.-4.*a;
+    const float c = 0.55991073; // 0.5-a*log(4.*a);
+
+    const float L_w = 1000.;
+    const float L_b = 0.;
+    const float alpha = (L_w-L_b);
+    const float beta = L_b;
+    const float gamma = 1.2;
+
+    // HLG EOTF (non-linear signal value to display linear)
+    // HLG to scene-linear
+    float sceneLinear[3];
+    if ( HLG[0] >= 0. && HLG[0] <= 0.5) {
+        sceneLinear[0] = pow(HLG[0],2.)/3.;
+    } else {
+        sceneLinear[0] = (exp((HLG[0]-c)/a)+b)/12.;
+    }        
+    if ( HLG[1] >= 0. && HLG[1] <= 0.5) {
+        sceneLinear[1] = pow(HLG[1],2.)/3.;
+    } else {
+        sceneLinear[1] = (exp((HLG[1]-c)/a)+b)/12.;
+    }        
+    if ( HLG[2] >= 0. && HLG[2] <= 0.5) {
+        sceneLinear[2] = pow(HLG[2],2.)/3.;
+    } else {
+        sceneLinear[2] = (exp((HLG[2]-c)/a)+b)/12.;
+    }        
+    
+    float Y_s = 0.2627*sceneLinear[0] + 0.6780*sceneLinear[1] + 0.0593*sceneLinear[2];
+
+    // Scene-linear to display-linear
+    float3 displayLinear;
+    displayLinear[0] = alpha * pow( Y_s, gamma-1.) * sceneLinear[0] + beta;
+    displayLinear[1] = alpha * pow( Y_s, gamma-1.) * sceneLinear[1] + beta;
+    displayLinear[2] = alpha * pow( Y_s, gamma-1.) * sceneLinear[2] + beta;
+        
+    // ST.2084 Inverse EOTF
+    float3 PQ = Y_2_ST2084_f3( displayLinear);
+
+    return PQ;
 }
 
 #endif

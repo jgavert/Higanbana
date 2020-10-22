@@ -1,5 +1,34 @@
 #ifndef __aces12__
 #define __aces12__
+
+// !!!!!!! None of this code has been checked against reference !!!!!!!!
+// use at your own risk
+// All modifications are purely mine and some errors might have slipped in while hand translating to hlsl
+// You have been warned.
+/*
+https://github.com/ampas/aces-dev
+
+Academy Color Encoding System (ACES) software and tools are provided by the Academy under the following terms and conditions: A worldwide, royalty-free, non-exclusive right to copy, modify, create derivatives, and use, in source and binary forms, is hereby granted, subject to acceptance of this license.
+
+Copyright 2019 Academy of Motion Picture Arts and Sciences (A.M.P.A.S.). Portions contributed by others as indicated. All rights reserved.
+
+Performance of any of the aforementioned acts indicates acceptance to be bound by the following terms and conditions:
+
+Copies of source code, in whole or in part, must retain the above copyright notice, this list of conditions and the Disclaimer of Warranty.
+
+Use in binary form must retain the above copyright notice, this list of conditions and the Disclaimer of Warranty in the documentation and/or other materials provided with the distribution.
+
+Nothing in this license shall be deemed to grant any rights to trademarks, copyrights, patents, trade secrets or any other intellectual property of A.M.P.A.S. or any contributors, except as expressly stated herein.
+
+Neither the name "A.M.P.A.S." nor the name of any other contributors to this software may be used to endorse or promote products derivative of or based on this software without express prior written permission of A.M.P.A.S. or the contributors, as appropriate.
+
+This license shall be construed pursuant to the laws of the State of California, and any disputes related thereto shall be subject to the jurisdiction of the courts therein.
+
+Disclaimer of Warranty: THIS SOFTWARE IS PROVIDED BY A.M.P.A.S. AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT ARE DISCLAIMED. IN NO EVENT SHALL A.M.P.A.S., OR ANY CONTRIBUTORS OR DISTRIBUTORS, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, RESITUTIONARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, THE ACADEMY SPECIFICALLY DISCLAIMS ANY REPRESENTATIONS OR WARRANTIES WHATSOEVER RELATED TO PATENT OR OTHER INTELLECTUAL PROPERTY RIGHTS IN THE ACADEMY COLOR ENCODING SYSTEM, OR APPLICATIONS THEREOF, HELD BY PARTIES OTHER THAN A.M.P.A.S.,WHETHER DISCLOSED OR UNDISCLOSED.
+*/
+
 #include "aces_constants.hlsl"
 #include "aces_transforms.hlsl"
 // ACES Color Space Conversion - ACES to ACEScg
@@ -70,6 +99,19 @@ float4 ACESccToACES(float4 ACEScc)
   return float4(temp, ACEScc.a);
 }
 
+static const float3x3 rgbToAcesCG = float3x3(0.6131178129,0.3411819959,0.0457873443,
+                                              0.0699340823,0.9181030375,0.0119327755,
+                                              0.0204629926,0.1067686634,0.8727159106); 
+float4 sRGBToAcesCg(float4 input) {
+#if 1
+  float3 xyz = mult_f3_f44(input.rgb, RGBtoXYZ(REC709_PRI,1.0));
+  xyz = mult_f3_f44(xyz, XYZ_2_AP1_MAT);
+  return float4(xyz, input.a);
+#else
+  float3 xyz = mul(input.rgb, rgbToAcesCG);
+  return float4(xyz, input.a);
+#endif
+}
 //
 // Contains functions and constants shared by forward and inverse RRT transforms
 //

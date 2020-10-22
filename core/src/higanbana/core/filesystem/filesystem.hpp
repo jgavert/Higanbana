@@ -104,6 +104,7 @@ namespace higanbana
     vector<std::string> getFilesWithinDir(std::string path);
     vector<std::string> recursiveList(std::string path, std::string filter);
     size_t timeModified(std::string path);
+    bool tryLoadFile(std::string path);
 
     std::string directoryPath(std::string filePath);
 

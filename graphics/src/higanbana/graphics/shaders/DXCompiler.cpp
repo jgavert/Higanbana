@@ -71,7 +71,12 @@ public:
 
     std::string finalPath;
     finalPath = m_sourcePath + filename;
-    HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
+    if (!m_fs.fileExists(finalPath)) {
+      // try loading file...
+      if (!m_fs.tryLoadFile(finalPath))
+        return E_INVALIDARG; // rip
+    } 
+    //HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     if (m_fileIncluded)
     {

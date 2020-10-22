@@ -144,6 +144,17 @@ std::string FileSystem::directoryPath(std::string filePath) {
   return system_fs::path(filePath).parent_path().string();
 }
 
+bool FileSystem::tryLoadFile(std::string path) {
+  HIGAN_CPU_FUNCTION_SCOPE();
+  std::lock_guard<std::mutex> guard(m_lock);
+  auto fullPath = getBasePath() + path;
+  FileInfo info;
+  info.nativePath = fullPath;
+  info.withoutNative = path;
+  size_t lol = 0;
+  return loadFileFromHDD(info, lol);
+}
+
 bool FileSystem::fileExists(std::string path)
 {
   HIGAN_CPU_FUNCTION_SCOPE();

@@ -4,7 +4,7 @@
 #ifdef ACES_ENABLED 
 #include "lib/aces12.hlsl"
 #include "lib/aces_transforms.hlsl"
-#include "lib/aces_odt.hlsl"
+#include "lib/aces_odt_adv.hlsl"
 #endif
 
 [RootSignature(ROOTSIG)]
@@ -17,12 +17,14 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
 
   //if (id.x == 0 && id.y == 0)
   //	print(uint(10));
-  float4 rgbValue = float4(0.05f, 0.05f, 0.3f, 1.f);
-#if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
-  rgbValue.rgb = inverseODTRGB(rgbValue.rgb);
-  rgbValue = inverseACESrrt(rgbValue);
-  rgbValue = ACESToACEScg(rgbValue);
+  float4 rgbValue = float4(1.f, 1.f, 1.f, 1.f);
+#if 0 && defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
+  //rgbValue.rgb = inverseODTRGB(rgbValue.rgb);
+  //rgbValue = inverseACESrrt(rgbValue);
+  //rgbValue = ACESToACEScg(rgbValue);
 #endif
-  output[id] = rgbValue; 
-  output[id] = float4(0,0,0,0);
+  //rgbValue = sRGBToAcesCg(rgbValue);
+  //output[id] = pow(rgbValue*uv.xyyy*3, 3); 
+  output[id] = rgbValue*10; 
+  //output[id] = float4(0,0,0,0);
 }

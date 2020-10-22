@@ -1,6 +1,10 @@
 #ifndef __matrix_utils__
 #define __matrix_utils__
 
+// my own crappy untested inverse matrix functions
+// only verified by checking that v1 * matrix * inverse = v1
+// forget where I took the original code for 4x4, 3x3 version is my own
+
 static const float4x4 _identity = { 1.f, 0.f, 0.f, 0.f,
                             0.f, 1.f, 0.f, 0.f,
                             0.f, 0.f, 1.f, 0.f,

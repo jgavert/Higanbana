@@ -47,8 +47,13 @@ IMGui::IMGui(GpuGroup& device)
         .setBlendOpAlpha(BlendOp::Add)))
     ;
 
-  pipeline = device.createGraphicsPipeline(pipelineDescriptor);
-  renderpass = device.createRenderpass();
+  //pipeline = device.createGraphicsPipeline(pipelineDescriptor);
+  //renderpass = device.createRenderpass();
+  for (int i = 0; i < static_cast<int>(FormatType::Count); i++) {
+    auto formatInfo = formatSizeInfo(static_cast<FormatType>(i));
+    pipelines(formatInfo.fm) = device.createGraphicsPipeline(pipelineDescriptor.setRTVFormat(0, formatInfo.fm));
+    renderpasses(formatInfo.fm) = device.createRenderpass();
+  }
 
   uint8_t *pixels = nullptr;
   int x, y;
@@ -98,8 +103,13 @@ void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target,
   HIGAN_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
   target.setOp(higanbana::LoadOp::Load);
   target.setOp(higanbana::StoreOp::Store);
+  //node.renderpass(renderpass, target);
+  auto& renderpass = renderpasses(target.texture().desc().desc.format);
+  HIGAN_ASSERT(renderpass, "should be valid renderpass");
   node.renderpass(renderpass, target);
 
+  auto& pipeline = pipelines(target.desc().desc.format);
+  HIGAN_ASSERT(pipeline, "pipeline should be valid");
   auto binding = node.bind(pipeline);
 
   imguiConstants constants;

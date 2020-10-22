@@ -58,7 +58,7 @@ class RenderingApp {
   std::atomic_int64_t m_frame = 1;
   bool m_renderGltfScene = false;
   bool m_renderECS = false;
-  int m_cubeCount = 100000;
+  int m_cubeCount = 4096;
   int m_cubeCommandLists = 64;
   int m_limitFPS = -1;
   int m_viewportCount = 1;

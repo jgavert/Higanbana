@@ -4,7 +4,7 @@
 #ifdef ACES_ENABLED 
 #include "lib/aces12.hlsl"
 #include "lib/aces_transforms.hlsl"
-#include "lib/aces_odt.hlsl"
+#include "lib/aces_odt_adv.hlsl"
 #endif
 // this is trying to be Pixel shader file.
 struct VertexOut {
@@ -33,9 +33,9 @@ float4 main(VertexOut input) : SV_TARGET
   //color = float4(1.f, 1.f, 1.f, 0.f) - input.color*8;
   color = constants.color;
 #if defined(ACES_ENABLED) && defined(ACEScg_RENDERING) 
-  color.rgb = inverseODTRGB(color.rgb);
+  color = invOdtSDR(color);
   color = inverseACESrrt(color);
   color = ACESToACEScg(color);
 #endif
-  return pow(color, 2)*400;
+  return pow(color, 3)*400;
 }
