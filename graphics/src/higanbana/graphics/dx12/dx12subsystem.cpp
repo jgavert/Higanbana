@@ -146,6 +146,7 @@ namespace higanbana
           info.id = static_cast<int>(vAdapters.size()) - 1;
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;
+          info.gpuConstants = info.vendor != VendorID::Intel;
 
           infos.push_back(info);
         }
