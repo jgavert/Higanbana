@@ -22,7 +22,7 @@ namespace higanbana
     DX12CommandList::DX12CommandList(
       QueueType type,
       std::shared_ptr<DX12CommandBuffer> buffer,
-      std::shared_ptr<DX12UploadHeap> constants,
+      std::shared_ptr<DX12ConstantsHeap> constants,
       std::shared_ptr<DX12ReadbackHeap> readback,
       std::shared_ptr<DX12QueryHeap> queryheap,
       std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,
@@ -42,7 +42,7 @@ namespace higanbana
       m_readback->reset();
       m_queryheap->reset();
 
-      std::weak_ptr<DX12UploadHeap> consts = m_constants;
+      std::weak_ptr<DX12ConstantsHeap> consts = m_constants;
       std::weak_ptr<DX12DynamicDescriptorHeap> descriptrs = m_descriptors;
       std::weak_ptr<DX12ReadbackHeap> read = readback;
 
@@ -382,7 +382,7 @@ namespace higanbana
       buffer->Dispatch(packet.groups.x, packet.groups.y, packet.groups.z);
     }
 */
-    UploadBlock DX12CommandList::allocateConstants(size_t size)
+    UploadBlockGPU DX12CommandList::allocateConstants(size_t size)
     {
       auto block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       if (!block)
@@ -391,7 +391,7 @@ namespace higanbana
         auto newBlock = m_constants->allocate(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 256 * 4, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
         m_freeResources->uploadBlocks.push_back(newBlock);
-        m_constantsAllocator = UploadLinearAllocator(newBlock);
+        m_constantsAllocator = UploadLinearAllocatorGPU(newBlock);
         block = m_constantsAllocator.allocate(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       }
 
@@ -811,16 +811,24 @@ namespace higanbana
       auto newBlock = m_constants->allocate(expectedTotalBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
       HIGAN_ASSERT(newBlock && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
       m_freeResources->uploadBlocks.push_back(newBlock);
-      m_constantsAllocator = UploadLinearAllocator(newBlock);
+      m_constantsAllocator = UploadLinearAllocatorGPU(newBlock);
     }
     void DX12CommandList::beginConstantsDmaList() {
-
+      HIGAN_CPU_BRACKET("reset");
+      m_buffer->resetList();
     }
-    void DX12CommandList::addConstants(CommandBufferImpl* ) {
-
+    void DX12CommandList::addConstants(CommandBufferImpl* buffer) {
+      DX12CommandList* other = static_cast<DX12CommandList*>(buffer);
+      size_t copied = 0;
+      for (auto& constants : other->m_freeResources->uploadBlocks)
+      {
+        m_buffer->list()->CopyBufferRegion(constants.m_resGpuPtr, constants.block.offset, constants.m_resSrcPtr, constants.block.offset, constants.block.size);
+        copied += constants.block.size;
+      }
+      //HIGAN_LOGi("copy %zubytes to gpu\n", copied);
     }
     void DX12CommandList::endConstantsDmaList() {
-      
+      m_buffer->closeList();
     }
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
     {

@@ -45,7 +45,7 @@ namespace higanbana
       Rabbitpool2<DX12Fence> m_fencePool;
       Rabbitpool2<DX12Semaphore> m_semaPool;
 
-      std::shared_ptr<DX12UploadHeap> m_constantsUpload;
+      std::shared_ptr<DX12ConstantsHeap> m_constantsUpload;
       std::shared_ptr<DX12UploadHeap> m_dynamicUpload;
 
       std::shared_ptr<DX12DynamicDescriptorHeap> m_dynamicGpuDescriptors;

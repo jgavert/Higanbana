@@ -32,7 +32,7 @@ namespace higanbana
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1024)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1024)
-      , m_constantsUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_CONSTANT_BUFFER_AMOUNT))
+      , m_constantsUpload(std::make_shared<DX12ConstantsHeap>(device.Get(), HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? DX12ConstantsHeap::Type::CPUAndGPU : DX12ConstantsHeap::Type::OnlyCPU))
       , m_dynamicUpload(std::make_shared<DX12UploadHeap>(device.Get(), HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // we have room 64 / 4megs of dynamic buffers
       , m_dynamicGpuDescriptors(std::make_shared<DX12DynamicDescriptorHeap>(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32 * 1024))
     {

@@ -11,7 +11,7 @@ namespace higanbana
     {
       QueueType m_type;
       std::shared_ptr<DX12CommandBuffer> m_buffer;
-      std::shared_ptr<DX12UploadHeap> m_constants;
+      std::shared_ptr<DX12ConstantsHeap> m_constants;
       std::shared_ptr<DX12ReadbackHeap> m_readback;
       std::shared_ptr<DX12QueryHeap> m_queryheap;
       std::shared_ptr<DX12DynamicDescriptorHeap> m_descriptors;
@@ -20,7 +20,7 @@ namespace higanbana
       vector<DX12Query> queries;
       ReadbackBlock readback;
 
-      UploadLinearAllocator m_constantsAllocator;
+      UploadLinearAllocatorGPU m_constantsAllocator;
       LinearDescriptorAllocator m_descriptorAllocator;
       DX12GPUDescriptor m_shaderDebugTable;
 
@@ -30,7 +30,7 @@ namespace higanbana
 
       std::shared_ptr<FreeableResources> m_freeResources;
 
-      UploadBlock allocateConstants(size_t size);
+      UploadBlockGPU allocateConstants(size_t size);
       DynamicDescriptorBlock allocateDescriptors(size_t size);
       void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBinding& binding);
       //void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
@@ -40,7 +40,7 @@ namespace higanbana
       DX12CommandList(
         QueueType type,
         std::shared_ptr<DX12CommandBuffer> buffer,
-        std::shared_ptr<DX12UploadHeap> constants,
+        std::shared_ptr<DX12ConstantsHeap> constants,
         std::shared_ptr<DX12ReadbackHeap> readback,
         std::shared_ptr<DX12QueryHeap> queryheap,
         std::shared_ptr<DX12DynamicDescriptorHeap> descriptors,

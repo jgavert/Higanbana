@@ -950,13 +950,16 @@ namespace higanbana
     }
 
     void VulkanCommandBuffer::beginConstantsDmaList() {
-
+      HIGAN_CPU_BRACKET("reset?");
+      m_list->list().begin(vk::CommandBufferBeginInfo()
+        .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
+        .setPInheritanceInfo(nullptr));
     }
-    void VulkanCommandBuffer::addConstants(CommandBufferImpl* ) {
-
+    void VulkanCommandBuffer::addConstants(CommandBufferImpl* buffer) {
+      VulkanCommandBuffer* other = static_cast<VulkanCommandBuffer*>(buffer);
     }
     void VulkanCommandBuffer::endConstantsDmaList() {
-      
+      m_list->list().end();
     }
 
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)

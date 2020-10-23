@@ -3000,6 +3000,29 @@ namespace higanbana
       std::optional<TimelineSemaphoreInfo> timelineDma;
       vector<int> sharedSignals;
       vector<int> sharedWaits;
+
+      // Workout constant buffers to gpu memory before submit
+      // new commandbuffer from device
+      if (buffer.queue != QueueType::Dma && vdev.info.gpuConstants) {
+        auto list = vdev.device->createDMAList();
+        list->beginConstantsDmaList();
+        for (auto&& natList : buffer.lists)
+        {
+          list->addConstants(natList.get());
+        }
+        list->endConstantsDmaList();
+
+        ++vdev.dmaQueue;
+        vector<TimelineSemaphoreInfo> signalTimelines;
+        auto tlInfo = TimelineSemaphoreInfo{vdev.timelineDma.get(), vdev.dmaQueue};
+        signalTimelines.push_back(tlInfo);
+        buffer.dmaValue = vdev.dmaQueue;
+        vdev.device->submitDMA({list}, {}, {}, {}, signalTimelines, {});
+        buffer.dmaListConstants = list;
+        timelineDma = tlInfo;
+      }
+
+      // end 
       for (auto&& id : buffer.listIDs)
       {
         auto& list = lists[id];
@@ -3126,7 +3149,6 @@ namespace higanbana
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
         std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
-        //nativeList->reserveConstants(buffer.requiredConstantMemory);
         fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
@@ -3209,7 +3231,6 @@ namespace higanbana
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
         std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
-        //nativeList->reserveConstants(buffer.requiredConstantMemory);
         fillNativeList(nativeList, vdev, buffersView, *solver, liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }

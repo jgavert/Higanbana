@@ -63,6 +63,7 @@ namespace higanbana
     VendorID vendor = VendorID::Unknown;
     uint deviceId = 0; // used to match 2 devices together for interopt
     DeviceType type = DeviceType::Unknown;
+    bool gpuConstants = false;
     bool canPresent = false;
     bool canRaytrace = false;
     GraphicsApi api = GraphicsApi::All;
