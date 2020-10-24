@@ -816,6 +816,10 @@ namespace higanbana
     void DX12CommandList::beginConstantsDmaList() {
       HIGAN_CPU_BRACKET("reset");
       m_buffer->resetList();
+      PIXBeginEvent(m_buffer->list(), PIX_COLOR_INDEX(0), "Copy Constants");
+      auto timestamp = m_queryheap->allocate();
+      queries.push_back(timestamp);
+      m_buffer->list()->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.beginIndex);
     }
     void DX12CommandList::addConstants(CommandBufferImpl* buffer) {
       DX12CommandList* other = static_cast<DX12CommandList*>(buffer);
@@ -828,6 +832,10 @@ namespace higanbana
       //HIGAN_LOGi("copy %zubytes to gpu\n", copied);
     }
     void DX12CommandList::endConstantsDmaList() {
+      PIXEndEvent(m_buffer->list());
+      m_buffer->list()->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, queries.back().endIndex);
+      readback = m_readback->allocate(m_queryheap->size()*m_queryheap->counterSize());
+      m_buffer->list()->ResolveQueryData(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, 0, UINT(m_queryheap->size()), m_readback->native(), readback.offset);
       m_buffer->closeList();
     }
     void DX12CommandList::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
@@ -854,6 +862,10 @@ namespace higanbana
       auto properView = reinterpret_memView<uint64_t>(view);
       DX12Device* dev = static_cast<DX12Device*>(device.get());
       auto queueTimeOffset = dev->m_graphicsTimeOffset;
+      if (m_type == QueueType::Dma)
+        queueTimeOffset = dev->m_dmaTimeOffset;
+      else if (m_type == QueueType::Compute)
+        queueTimeOffset = dev->m_computeTimeOffset;
 
       if (nodes.size() >= queries.size())
       {

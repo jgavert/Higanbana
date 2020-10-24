@@ -418,6 +418,9 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             }
             ImGui::ListBoxFooter();
           }
+          ImGui::Checkbox("override gpu constants", &m_overrideGpuConstants);
+          if (m_overrideGpuConstants)
+            ImGui::Checkbox("gpu constants", &m_GpuConstants);
           ImGui::Checkbox("interopt", &m_interoptDevice);
           ImGui::SameLine();
           if (ImGui::Button("Reinit")) {
@@ -887,6 +890,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     }
 
     higanbana::GpuGroup dev;
+    if (m_overrideGpuConstants)
+      physicalDevice.gpuConstants = m_GpuConstants;
     if (m_interoptDevice && physicalDevice.api == GraphicsApi::All)
       dev = graphics.createInteroptDevice(m_fs, physicalDevice);
     else

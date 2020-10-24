@@ -45,12 +45,6 @@ namespace higanbana
         DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_debug));
         //m_debug->EnableLeakTrackingForThread();
       }
-      // figure out our device restrictions
-      D3D12_FEATURE_DATA_ARCHITECTURE1 archi = {};
-      if (SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &archi, sizeof(archi))))
-      {
-        info.type = archi.UMA ? DeviceType::IntegratedGpu : DeviceType::DiscreteGpu;
-      }
 
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS,  &m_features.opt0, sizeof(m_features.opt0));
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &m_features.opt1, sizeof(m_features.opt1));
@@ -247,38 +241,6 @@ namespace higanbana
       }
 
       // get queue to cpu calibrations...
-      /*
-      LARGE_INTEGER li;
-      QueryPerformanceFrequency(&li);
-      auto PCFreq = li.QuadPart;
-
-      UINT64 gpuTimestamp;
-      UINT64 cpuTimestamp;
-      UINT64 timestampFrequency;
-      m_graphicsQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
-
-      auto timepoint = higanbana::HighResClock::now();
-      auto countFromBeginning = std::chrono::time_point_cast<std::chrono::nanoseconds>(timepoint).time_since_epoch().count();
-      auto convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
-      auto timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
-      HIGAN_LOGi("%zd vs %zu = %zd\n", timeNow, countFromBeginning, timeNow - countFromBeginning);
-      m_graphicsQueue->GetTimestampFrequency(&timestampFrequency);
-      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
-      m_graphicsTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
-      m_computeQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
-      convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
-      timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
-      m_computeQueue->GetTimestampFrequency(&timestampFrequency);
-      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
-      m_computeTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
-      m_dmaQueue->GetClockCalibration(&gpuTimestamp, &cpuTimestamp);
-      convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
-      timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
-      m_dmaQueue->GetTimestampFrequency(&timestampFrequency);
-      gpuTimestamp = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
-      m_dmaTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp;
-      */
-
       calibrateClockTimings();
     }
 
@@ -293,9 +255,7 @@ namespace higanbana
       auto countFromBeginning = std::chrono::time_point_cast<std::chrono::nanoseconds>(timepoint).time_since_epoch().count();
       auto convertedFromCpu = higanbana::HighResClock::fromPerfCounter(cpuTimestamp);
       auto timeNow = std::chrono::time_point_cast<std::chrono::nanoseconds>(convertedFromCpu).time_since_epoch().count();
-      HIGAN_LOGi("%zd vs %zu = %zd\n", timeNow, countFromBeginning, timeNow - countFromBeginning);
-      // 1364692697791 vs 18446743593727842437 = 1844674406970
-      // 
+      //HIGAN_LOGi("%zd vs %zu = %zd\n", timeNow, countFromBeginning, timeNow - countFromBeginning);
       m_graphicsQueue->GetTimestampFrequency(&timestampFrequency);
       gpuTimestamp2 = int64_t((double(gpuTimestamp)/double(timestampFrequency))*1000000000ll);
       m_graphicsTimeOffset = static_cast<int64_t>(timeNow) - gpuTimestamp2;
@@ -345,11 +305,6 @@ namespace higanbana
         if (r.native())
           r.native()->Release();
       }
-      /*
-      for (auto&& r : m_allRes.heaps.view()) {
-        if (r.native())
-          r.native()->Release();
-      }*/
       
       if (m_debugLayer)
       {
@@ -518,7 +473,7 @@ namespace higanbana
       auto height = rect.bottom - rect.top;
       //HIGAN_SLOG("DX12", "creating swapchain to %ux%u\n", width, height);
       DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-      swapChainDesc.Width = width; // I wonder how to get sane sizes in beginning...
+      swapChainDesc.Width = width;
       swapChainDesc.Height = height;
       swapChainDesc.Format = formatTodxFormat(descriptor.desc.format).storage;
       swapChainDesc.Stereo = FALSE;

@@ -137,12 +137,24 @@ namespace higanbana
               }
               auto queueId = buffer.submitID;
               auto foundTiming = false;
+              vector<GraphNodeTiming> dmaTimings;
+              dmaTimings.push_back(GraphNodeTiming{});
               {
                 HIGAN_CPU_BRACKET("Collect gpu timestamps for profiling");
                 for (auto&& submit : timeOnFlightSubmits)
                 {
                   if (submit.id == queueId)
                   {
+                    // dma list first
+                    if (buffer.dmaListConstants) {
+                      if (buffer.dmaListConstants->readbackTimestamps(m_devices[buffer.deviceID].device, dmaTimings)) {
+                        //HIGAN_LOGi("Had constants!\n");
+                        auto& timing = dmaTimings.back();
+                        std::string copy = std::to_string(submit.id) + ": Copy Constants ";
+                        HIGAN_GPU_BRACKET_FULL(buffer.deviceID, QueueType::Dma, copy.c_str(), timing.gpuTime.begin, timing.gpuTime.nanoseconds());
+                      }
+                    }
+
                     int offset = buffer.listIDs.front();
                     for (auto&& id : buffer.listIDs)
                     {
@@ -152,7 +164,8 @@ namespace higanbana
                       if (list->readbackTimestamps(m_devices[buffer.deviceID].device, timing.nodes)) {
                         timing.gpuTime.begin = timing.nodes.front().gpuTime.begin;
                         timing.gpuTime.end = timing.nodes.back().gpuTime.end;
-                        HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, "Commandlist", timing.gpuTime.begin, timing.gpuTime.nanoseconds());
+                        std::string cmdListName = std::to_string(submit.id) + ": Commandlist " + std::to_string(id - offset);
+                        HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, cmdListName.c_str(), timing.gpuTime.begin, timing.gpuTime.nanoseconds());
                         for (auto&& block : timing.nodes)
                         {
                           HIGAN_GPU_BRACKET_FULL(buffer.deviceID, buffer.queue, block.nodeName, block.gpuTime.begin, block.gpuTime.nanoseconds());
