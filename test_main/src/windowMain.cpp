@@ -511,9 +511,24 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           ImGui::Text("RenderGraph statistics:");
           auto  rsi = si.value();
           float gpuTotal = 0.f;
+          Timestamp graphicsQueue;
+          Timestamp computeQueue;
+          Timestamp dmaQueue;
+          Timestamp totalgpuTime;
+          auto replaceIfBetter = [](Timestamp& compareAgainst, Timestamp newVal){
+              if (compareAgainst.begin == 0 || compareAgainst.begin > newVal.begin) compareAgainst.begin = newVal.begin;
+              if (compareAgainst.end == 1 || compareAgainst.end < newVal.end) compareAgainst.end = newVal.end;
+          };
           for (auto& list : rsi.lists) {
+            if (list.constantsDmaTime.begin != 0) replaceIfBetter(dmaQueue, list.constantsDmaTime);
+            if (list.type == QueueType::Graphics) replaceIfBetter(graphicsQueue, list.gpuTime);
+            if (list.type == QueueType::Compute) replaceIfBetter(computeQueue, list.gpuTime);
+            if (list.type == QueueType::Dma) replaceIfBetter(dmaQueue, list.gpuTime);
             gpuTotal += list.gpuTime.milliseconds();
           }
+          if (graphicsQueue.begin != 0) replaceIfBetter(totalgpuTime, graphicsQueue);
+          if (computeQueue.begin != 0) replaceIfBetter(totalgpuTime, computeQueue);
+          if (dmaQueue.begin != 0) replaceIfBetter(totalgpuTime, dmaQueue);
 
           uint64_t draws = 0, dispatches = 0;
           uint64_t bytesInCommandBuffersTotal = 0;
@@ -534,7 +549,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           auto allDraws = float(draws) * multiplier;
           int  dps = static_cast<int>(allDraws);
           ImGui::Text("Drawcalls per second %zu", dps);
-          ImGui::Text("GPU execution %.3fms", gpuTotal);
+          ImGui::Text("GPU execution %.3fms", totalgpuTime.milliseconds());
+          ImGui::Text("Dma %.3fms Compute %.3fms Graphics %.3fms", dmaQueue.milliseconds(), computeQueue.milliseconds(), graphicsQueue.milliseconds());
           ImGui::Text("CPU execution %.3fms", cpuTotal);
           ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
           ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal / 1024.f / 1024.f);

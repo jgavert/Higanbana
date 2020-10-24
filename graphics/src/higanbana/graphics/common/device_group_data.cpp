@@ -152,6 +152,8 @@ namespace higanbana
                         auto& timing = dmaTimings.back();
                         std::string copy = std::to_string(submit.id) + ": Copy Constants ";
                         HIGAN_GPU_BRACKET_FULL(buffer.deviceID, QueueType::Dma, copy.c_str(), timing.gpuTime.begin, timing.gpuTime.nanoseconds());
+                        buffer.listTiming.front().constantsDmaTime.begin = timing.gpuTime.begin;
+                        buffer.listTiming.front().constantsDmaTime.end = timing.gpuTime.end;
                       }
                     }
 
