@@ -958,9 +958,9 @@ namespace higanbana
 
     void VulkanCommandBuffer::beginConstantsDmaList() {
       HIGAN_CPU_BRACKET("reset?");
-      m_list->list().begin(vk::CommandBufferBeginInfo()
+      VK_CHECK_RESULT_RAW(m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
-        .setPInheritanceInfo(nullptr));
+        .setPInheritanceInfo(nullptr)));
     }
     void VulkanCommandBuffer::addConstants(CommandBufferImpl* buffer) {
       VulkanCommandBuffer* other = static_cast<VulkanCommandBuffer*>(buffer);
@@ -976,7 +976,7 @@ namespace higanbana
     void VulkanCommandBuffer::endConstantsDmaList() {
       vk::MemoryBarrier barrier = vk::MemoryBarrier().setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eUniformRead);
       m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {});
-      m_list->list().end();
+      VK_CHECK_RESULT_RAW(m_list->list().end());
     }
 
     void VulkanCommandBuffer::fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver)
@@ -987,9 +987,9 @@ namespace higanbana
       
       {
         HIGAN_CPU_BRACKET("reset?");
-        m_list->list().begin(vk::CommandBufferBeginInfo()
+        VK_CHECK_RESULT_RAW(m_list->list().begin(vk::CommandBufferBeginInfo()
           .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
-          .setPInheritanceInfo(nullptr));
+          .setPInheritanceInfo(nullptr)));
       }
 
       {
@@ -998,7 +998,7 @@ namespace higanbana
         addCommands(nat.get(), m_list->list(), buffers, solver);
       }
 
-      m_list->list().end();
+      VK_CHECK_RESULT_RAW(m_list->list().end());
     }
 
     bool VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)

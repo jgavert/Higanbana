@@ -58,12 +58,12 @@ void writeGpuBracketData(int gpuid, int queue, std::string_view view, int64_t ti
 void writeProfilingData(higanbana::FileSystem& fs);
 }
 }
-#if 1
+#if 0
 #define HIGAN_CONCAT(a, b) a ## b
 #define HIGAN_CONCAT_HELPER(a, b) HIGAN_CONCAT(a, b)
 #define HIGAN_CPU_BRACKET(name) auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(name)
-#define HIGAN_CPU_FUNCTION_SCOPE() auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(__FUNCTION__)
-//#define HIGAN_CPU_FUNCTION_SCOPE()
+//#define HIGAN_CPU_FUNCTION_SCOPE() auto HIGAN_CONCAT_HELPER(HIGAN_CONCAT_HELPER(profile_scope, __COUNTER__), __LINE__) = higanbana::profiling::ProfilingScope(__FUNCTION__)
+#define HIGAN_CPU_FUNCTION_SCOPE()
 #define HIGAN_GPU_BRACKET_FULL(gpuid, queue, view, time, dur) higanbana::profiling::writeGpuBracketData(gpuid, queue, view, time, dur)
 #else
 #define HIGAN_CPU_BRACKET(name)

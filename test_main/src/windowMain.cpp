@@ -464,11 +464,9 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
               if (rendererViewports[i].options.visible) activeViewports++;
             ImGui::Text("%d cubes * %d viewports", m_cubeCount, activeViewports);
             ImGui::Text("= %d draw calls / frame", m_cubeCount * activeViewports);
-            ImGui::Text("Preallocated constant memory of 380mb or so");
             ImGui::Text("Exceeding >350k of drawcalls / frame crashes.");
-            ImGui::Text("Thank you.");
             ImGui::DragInt("drawcalls/cubes", &m_cubeCount, 10, 0, 500000);
-            ImGui::DragInt("drawcalls split into", &m_cubeCommandLists, 1, 1, 128);
+            ImGui::DragInt("drawcalls split into", &m_cubeCommandLists, 1, 1, 1024);
           }
         }
         ImGui::End();
@@ -532,12 +530,14 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
 
           uint64_t draws = 0, dispatches = 0;
           uint64_t bytesInCommandBuffersTotal = 0;
+          uint64_t dmaconstantsBytes = 0;
           for (auto&& cmdlist : rsi.lists) {
             for (auto&& node : cmdlist.nodes) {
               draws += node.draws;
               dispatches += node.dispatches;
               bytesInCommandBuffersTotal += node.cpuSizeBytes;
             }
+            dmaconstantsBytes += cmdlist.constantsTransferredBytes;
           }
 
           float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
@@ -557,6 +557,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           ImGui::Text("Drawcalls per second %zu", dps);
           ImGui::Text("GPU execution %.3fms", realGpuTime.milliseconds());
           ImGui::Text("Dma %.3fms Compute %.3fms Graphics %.3fms", dmaQueue.milliseconds(), computeQueue.milliseconds(), graphicsQueue.milliseconds());
+          auto DMAbandwidth = (float(dmaconstantsBytes) / 1024.f / 1024.f) / dmaQueue.milliseconds() * 1000.f;
+          ImGui::Text("DMA bandwidth %.3fGB/s, %.3fMB constants", DMAbandwidth / 1024.f, float(dmaconstantsBytes) / 1024.f / 1024.f);
           ImGui::Text("CPU execution %.3fms", cpuTotal);
           ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
           ImGui::Text("GraphNode size %.3fMB", bytesInCommandBuffersTotal / 1024.f / 1024.f);

@@ -38,6 +38,7 @@ namespace higanbana
     Timestamp barrierSolveGlobal;
     Timestamp fillNativeList;
     Timestamp constantsDmaTime;
+    size_t constantsTransferredBytes;
     Timestamp gpuTime;
     Timestamp fromSubmitToFence;
     vector<GraphNodeTiming> nodes;

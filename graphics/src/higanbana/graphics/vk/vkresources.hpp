@@ -832,7 +832,8 @@ namespace higanbana
         auto allocRes = device.allocateMemory(allocInfo);
         VK_CHECK_RESULT(allocRes);
         m_memory = allocRes.value;
-        device.bindBufferMemory(m_buffer, m_memory, 0);
+        auto allocRes2 = device.bindBufferMemory(m_buffer, m_memory, 0);
+        VK_CHECK_RESULT_RAW(allocRes2);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
         auto mapResult = device.mapMemory(m_memory, 0, memorySize);
@@ -941,7 +942,8 @@ namespace higanbana
         auto allocRes = device.allocateMemory(allocInfo);
         VK_CHECK_RESULT(allocRes);
         m_cpuMemory = allocRes.value;
-        device.bindBufferMemory(m_cpuBuffer, m_cpuMemory, 0);
+        auto rr = device.bindBufferMemory(m_cpuBuffer, m_cpuMemory, 0);
+        VK_CHECK_RESULT_RAW(rr);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
         auto mapResult = device.mapMemory(m_cpuMemory, 0, memorySize);

@@ -17,7 +17,7 @@
                 "${workspaceFolder}/ext/nlohmann_json/include",
                 "${workspaceFolder}/ext/GSL/include",
                 "${workspaceFolder}/ext/higan_coroutines/scheduler/src",
-                "C:/VulkanSDK/1.2.131.1/Include",
+                "C:/VulkanSDK/1.2.154.1/Include",
                 "${workspaceFolder}/ext/Catch2/src"
             ],
             "defines": [

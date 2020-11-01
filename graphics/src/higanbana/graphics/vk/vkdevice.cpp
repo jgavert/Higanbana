@@ -594,7 +594,7 @@ namespace higanbana
         auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
         VK_CHECK_RESULT(res);
 
-        m_device.bindBufferMemory(buffer.value, res.value, 0);
+        VK_CHECK_RESULT_RAW(m_device.bindBufferMemory(buffer.value, res.value, 0));
 
         m_shaderDebugBuffer = VulkanBuffer(buffer.value, res.value);
       }
@@ -682,16 +682,16 @@ namespace higanbana
       int reqsIndex = 0;
 
       for (auto&& format : nullFormats) {
-        m_device.bindBufferMemory(nullBuffers(format).buffer, nullHeapBuffers, offsetBuffers);
+        VK_CHECK_RESULT_RAW(m_device.bindBufferMemory(nullBuffers(format).buffer, nullHeapBuffers, offsetBuffers));
         offsetBuffers += roundUpMultiple(reqs[reqsIndex].size, reqs[reqsIndex].alignment);
         reqsIndex++;
-        m_device.bindImageMemory(nullImages(format).nullImageCube, nullHeapImages, offset);
+        VK_CHECK_RESULT_RAW(m_device.bindImageMemory(nullImages(format).nullImageCube, nullHeapImages, offset));
         offset += roundUpMultiple(reqs[reqsIndex].size, reqs[reqsIndex].alignment);
         reqsIndex++;
-        m_device.bindImageMemory(nullImages(format).nullImage1d, nullHeapImages, offset);
+        VK_CHECK_RESULT_RAW(m_device.bindImageMemory(nullImages(format).nullImage1d, nullHeapImages, offset));
         offset += roundUpMultiple(reqs[reqsIndex].size, reqs[reqsIndex].alignment);
         reqsIndex++;
-        m_device.bindImageMemory(nullImages(format).nullImage3d, nullHeapImages, offset);
+        VK_CHECK_RESULT_RAW(m_device.bindImageMemory(nullImages(format).nullImage3d, nullHeapImages, offset));
         offset += roundUpMultiple(reqs[reqsIndex].size, reqs[reqsIndex].alignment);
         reqsIndex++;
       }
@@ -715,14 +715,14 @@ namespace higanbana
         // null texture views
         auto& ni = nullImages(format);
         vk::Format nullFormat2 = formatToVkFormat(format).view;
-        auto makeView = [&](vk::ImageViewType ivt, vk::Image image){
+        auto makeView = [&](vk::ImageViewType ivt, vk::Image image, bool isCube = false){
           vk::ImageAspectFlags imgFlags = vk::ImageAspectFlagBits::eColor;
           vk::ImageSubresourceRange subResourceRange = vk::ImageSubresourceRange()
             .setAspectMask(imgFlags)
             .setBaseArrayLayer(0)
             .setBaseMipLevel(0)
             .setLevelCount(1)
-            .setLayerCount(1);
+            .setLayerCount((isCube ? 6 : 1));
           vk::ComponentMapping cm = vk::ComponentMapping()
             .setA(vk::ComponentSwizzle::eIdentity)
             .setR(vk::ComponentSwizzle::eIdentity)
@@ -745,8 +745,8 @@ namespace higanbana
         ni.twoDim = makeView(vk::ImageViewType::e2D, ni.nullImageCube);
         ni.twoDimArray = makeView(vk::ImageViewType::e2DArray, ni.nullImageCube);
         ni.threeDim = makeView(vk::ImageViewType::e3D, ni.nullImage3d);
-        ni.cube = makeView(vk::ImageViewType::eCube, ni.nullImageCube);
-        ni.cubeArray = makeView(vk::ImageViewType::eCubeArray, ni.nullImageCube);
+        ni.cube = makeView(vk::ImageViewType::eCube, ni.nullImageCube, true);
+        ni.cubeArray = makeView(vk::ImageViewType::eCubeArray, ni.nullImageCube, true);
         vk::DescriptorImageInfo dii = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eGeneral).setImageView(ni.oneDim);
         ni.desc1D = dii;
         ni.desc1DArray = dii.setImageView(ni.oneDimArray);
@@ -758,7 +758,7 @@ namespace higanbana
       }
       // do vulkan command buffers and submit them...
       auto list = createCommandBuffer(m_freeQueueIndexes.universalIndex);
-      list.list().begin(vk::CommandBufferBeginInfo());
+      VK_CHECK_RESULT_RAW(list.list().begin(vk::CommandBufferBeginInfo()));
       vector<vk::ImageMemoryBarrier> barriers;
       for (auto&& format : nullFormats) {
         // null texture views
@@ -774,7 +774,7 @@ namespace higanbana
       }
 
       list.list().pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags(0), {}, {}, barriers);
-      list.list().end();
+      VK_CHECK_RESULT_RAW(list.list().end());
       vk::CommandBuffer buffer = list.list();
       auto si = vk::SubmitInfo()
         .setCommandBufferCount(1)
@@ -782,13 +782,13 @@ namespace higanbana
       vk::Fence fence;
       auto res = m_mainQueue.submit({si}, fence);
       VK_CHECK_RESULT_RAW(res);
-      m_device.waitIdle();
+      VK_CHECK_RESULT_RAW(m_device.waitIdle());
     }
 
     VulkanDevice::~VulkanDevice()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      m_device.waitIdle();
+      VK_CHECK_RESULT_RAW(m_device.waitIdle());
 
       m_device.destroyBuffer(m_shaderDebugBuffer.native());
       m_device.freeMemory(m_shaderDebugBuffer.sharedMem());
@@ -2020,7 +2020,7 @@ namespace higanbana
     void VulkanDevice::waitGpuIdle()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      m_device.waitIdle();
+      VK_CHECK_RESULT_RAW(m_device.waitIdle());
     }
 
     MemoryRequirements VulkanDevice::getReqs(ResourceDescriptor desc)
@@ -2159,7 +2159,7 @@ namespace higanbana
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
       m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers since this actually has been done already
-      m_device.bindBufferMemory(buffer.value, native.native(), size);
+      VK_CHECK_RESULT_RAW(m_device.bindBufferMemory(buffer.value, native.native(), size));
 
       VulkanBufferState state{};
       state.queueIndex = m_mainQueueIndex;
@@ -2323,7 +2323,7 @@ namespace higanbana
       vk::DeviceSize size = allocation.allocation.block.offset;
       m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
       HIGAN_ASSERT(size%allocation.allocation.alignment == 0, "hmm, wtf?");
-      m_device.bindImageMemory(image.value, native.native(), size);
+      VK_CHECK_RESULT_RAW(m_device.bindImageMemory(image.value, native.native(), size));
 
       m_allRes.tex[handle] = VulkanTexture(image.value, desc);
     }
@@ -2822,7 +2822,8 @@ namespace higanbana
       auto res = m_device.allocateMemory(vk::MemoryAllocateInfo().setPNext(&dediInfo).setAllocationSize(bufMemReq.memoryRequirements.size).setMemoryTypeIndex(index));
       VK_CHECK_RESULT(res);
 
-      m_device.bindBufferMemory(buffer.value, res.value, 0);
+      auto res2 = m_device.bindBufferMemory(buffer.value, res.value, 0);
+      VK_CHECK_RESULT_RAW(res2);
 
       m_allRes.rbBuf[readback] = VulkanReadback(res.value, buffer.value, 0, bytes);
     }
@@ -3167,7 +3168,7 @@ namespace higanbana
     {
       auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(tlSema);
       uint64_t value;
-      m_device.getSemaphoreCounterValueKHR(native->native(), &value, m_dynamicDispatch);
+      VK_CHECK_RESULT_RAW(m_device.getSemaphoreCounterValueKHR(native->native(), &value, m_dynamicDispatch));
       return value;
     }
 
@@ -3180,7 +3181,7 @@ namespace higanbana
         .setSemaphoreCount(1)
         .setPSemaphores(&sema)
         .setPValues(&value);
-      m_device.waitSemaphoresKHR(wi, UINT64_MAX, m_dynamicDispatch);
+      VK_CHECK_RESULT_RAW(m_device.waitSemaphoresKHR(wi, UINT64_MAX, m_dynamicDispatch));
     }
 
     void VulkanDevice::present(std::shared_ptr<prototypes::SwapchainImpl> swapchain, std::shared_ptr<SemaphoreImpl> renderingFinished, int indexb)
@@ -3426,7 +3427,7 @@ namespace higanbana
       //auto& native = m_allRes.heaps[allocation.heap.handle];
       //vk::DeviceSize size = 0;
       //auto req = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
-      m_device.bindImageMemory(image.value, memory.value, 0);
+      VK_CHECK_RESULT_RAW(m_device.bindImageMemory(image.value, memory.value, 0));
       m_allRes.tex[handle] = VulkanTexture(image.value, descriptor, memory.value);
 #endif
     }

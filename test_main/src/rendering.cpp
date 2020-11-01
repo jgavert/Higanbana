@@ -217,6 +217,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
       if (!rendererOptions.unbalancedCubes)
       {
         int stepSize = std::max(1, int((float(scene.drawcalls+1) / float(scene.drawsSplitInto))+0.5f));
+        //HIGAN_LOGi("%d / %d = %d\n", scene.drawcalls, scene.drawsSplitInto, stepSize);
         for (int i = 0; i < scene.drawcalls; i+=stepSize)
         {
           if (i+stepSize > scene.drawcalls)

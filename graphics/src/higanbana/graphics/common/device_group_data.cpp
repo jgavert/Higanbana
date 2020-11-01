@@ -147,6 +147,7 @@ namespace higanbana
                   {
                     // dma list first
                     if (buffer.dmaListConstants) {
+                      size_t bytes=0;
                       if (buffer.dmaListConstants->readbackTimestamps(m_devices[buffer.deviceID].device, dmaTimings)) {
                         //HIGAN_LOGi("Had constants!\n");
                         auto& timing = dmaTimings.back();
@@ -154,6 +155,7 @@ namespace higanbana
                         HIGAN_GPU_BRACKET_FULL(buffer.deviceID, QueueType::Dma, copy.c_str(), timing.gpuTime.begin, timing.gpuTime.nanoseconds());
                         buffer.listTiming.front().constantsDmaTime.begin = timing.gpuTime.begin;
                         buffer.listTiming.front().constantsDmaTime.end = timing.gpuTime.end;
+                        buffer.listTiming.front().constantsTransferredBytes = buffer.constantsBytes;
                       }
                     }
 
@@ -1311,14 +1313,16 @@ namespace higanbana
       for (auto&& list : nodes) {
         allListSize += list.list->list.sizeBytes();
       }
-      auto splitSize = std::max(allListSize / 32, static_cast<size_t>(higanbana::globalconfig::graphics::GraphicsHowManyBytesBeforeNewCommandBuffer));
+      unsigned int nodesSize = static_cast<unsigned int>(nodes.size());
+      auto atLeastNBuffers = std::min(nodesSize, std::thread::hardware_concurrency());
+      auto splitSize = std::max(allListSize / std::thread::hardware_concurrency(), static_cast<size_t>(higanbana::globalconfig::graphics::GraphicsHowManyBytesBeforeNewCommandBuffer));
+      //splitSize = static_cast<size_t>(higanbana::globalconfig::graphics::GraphicsHowManyBytesBeforeNewCommandBuffer);
       /*if (splitSize > 2 * 1024 * 1024ull) {
         splitSize = std::max(allListSize / 16ull, 2*1024*1024ull);
       }*/
 
       vector<ResourceHandle> writtenSharedResources;
 
-      int nodesSize = static_cast<int>(nodes.size());
       int i = 0;
       while (i < nodesSize)
       {
@@ -1336,7 +1340,11 @@ namespace higanbana
           plist.type = node->type;
           plist.timing.type = node->type;
         }
-        if (node->type == plist.type && (singleThreaded || plist.bytesOfList < splitSize)) {
+        auto nodesLeft = nodesSize - (i-1); // 24
+        auto readyLists = lists.size(); // 8
+        nodesLeft = nodesLeft + readyLists; //24 + 8 = 32
+        bool shouldMakeList = (nodesLeft >= atLeastNBuffers) || true;
+        if (node->type == plist.type && (singleThreaded || plist.bytesOfList < splitSize) && shouldMakeList) {
           i++; // only allowed here to progress list as all nodes have to be processed.
           auto addedNodeSize = node->list->list.sizeBytes(); 
           plist.bytesOfList += addedNodeSize;
@@ -1539,6 +1547,7 @@ namespace higanbana
         buffer.lists.emplace_back(nativeList);
         buffer.listIDs.push_back(listID);
         buffer.readbacks.emplace_back(std::move(list.readbacks));
+        buffer.constantsBytes += list.requiredConstantMemory;
 
         listID++;
       }

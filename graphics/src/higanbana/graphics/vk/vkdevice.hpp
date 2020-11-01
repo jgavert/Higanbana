@@ -128,11 +128,11 @@ namespace higanbana
       {
         if (m_dynamicDispatch.vkSetDebugUtilsObjectNameEXT)
         {
-          m_device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT()
+          VK_CHECK_RESULT_RAW(m_device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT()
           .setObjectType(VulkanObject::objectType)
           .setObjectHandle((uint64_t)(static_cast<typename VulkanObject::CType>(obj)))
           .setPObjectName(name)
-            , m_dynamicDispatch);
+            , m_dynamicDispatch));
         }
       }
 

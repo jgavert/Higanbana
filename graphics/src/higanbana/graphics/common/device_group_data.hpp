@@ -105,6 +105,7 @@ namespace higanbana
       std::optional<TimelineSemaphoreInfo> timelineDma;
       // beta, dma list
       std::shared_ptr<backend::CommandBufferImpl> dmaListConstants;
+      size_t constantsBytes = 0;
     };
 
     struct QueueTransfer 
