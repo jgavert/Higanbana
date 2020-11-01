@@ -465,9 +465,35 @@ namespace higanbana
       m_copyQueueIndex = m_copyQueueIndex != -1 ? m_copyQueueIndex : m_mainQueueIndex;
       m_computeQueueIndex = m_computeQueueIndex != -1 ? m_computeQueueIndex : m_mainQueueIndex;
 
+      // check timestamp query support.
+      HIGAN_ASSERT(m_queues[m_mainQueueIndex].timestampValidBits != 0, "doesn't support graphics timestamps");
+      HIGAN_ASSERT(m_queues[m_copyQueueIndex].timestampValidBits != 0, "doesn't support dma timestamps");
+      HIGAN_ASSERT(m_queues[m_computeQueueIndex].timestampValidBits != 0, "doesn't support compute timestamps");
+
       m_copyListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_copyQueueIndex); });
       m_computeListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_computeQueueIndex); });
       m_graphicsListPool = Rabbitpool2<VulkanCommandList>([&]() {return createCommandBuffer(m_mainQueueIndex); });
+
+      m_queryPoolPool = Rabbitpool2<VulkanQueryPool>([&]()
+      {
+        return createGraphicsQueryPool(1024);
+      });
+
+      m_computeQueryPoolPool = Rabbitpool2<VulkanQueryPool>([&]()
+      {
+        return createComputeQueryPool(1024);
+      });
+
+      m_dmaQueryPoolPool = Rabbitpool2<VulkanQueryPool>([&]()
+      {
+        return createDMAQueryPool(512);
+      });
+
+      m_readbackPool = Rabbitpool2<VulkanReadbackHeap>([&]()
+      {
+        return createReadback(256 * 10, 1024); // maybe 10 megs of readback?
+      });
+
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
       bool mainQueuePresents = m_physDevice.getWin32PresentationSupportKHR(m_mainQueueIndex);
@@ -901,6 +927,11 @@ namespace higanbana
       // rest
       m_fences.clear();
       m_semaphores.clear();
+
+      m_queryPoolPool.clear();
+      m_computeQueryPoolPool.clear();
+      m_dmaQueryPoolPool.clear();
+      m_readbackPool.clear();
       m_copyListPool.clear();
       m_computeListPool.clear();
       m_graphicsListPool.clear();
@@ -1654,6 +1685,26 @@ namespace higanbana
       getComputePipelineInformation(pipe.m_pipeline, pipe.m_computeDesc);
       HIGAN_ILOG("Vulkan", "Compute Pipeline \"%s\" created in %.2fms", pipe.m_computeDesc.shader(), float(pipelineRecreationTime.timeFromLastReset()) / 1000000.f);
       return oldPipe;
+    }
+
+    VulkanQueryPool VulkanDevice::createGraphicsQueryPool(unsigned counters)
+    {
+      return VulkanQueryPool(m_device, m_physDevice, m_limits, m_mainQueueIndex, vk::QueryType::eTimestamp, counters);
+    }
+
+    VulkanQueryPool VulkanDevice::createComputeQueryPool(unsigned counters)
+    {
+      return VulkanQueryPool(m_device, m_physDevice, m_limits, m_computeQueueIndex, vk::QueryType::eTimestamp, counters);
+    }
+
+    VulkanQueryPool VulkanDevice::createDMAQueryPool(unsigned counters)
+    {
+      return VulkanQueryPool(m_device, m_physDevice, m_limits, m_copyQueueIndex, vk::QueryType::eTimestamp, counters);
+    }
+
+    VulkanReadbackHeap VulkanDevice::createReadback(unsigned pages, unsigned pageSize)
+    {
+      return VulkanReadbackHeap(m_device, m_physDevice, pages, pageSize);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
@@ -2877,7 +2928,7 @@ namespace higanbana
 
       auto list = m_copyListPool.allocate();
       //resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_dmaQueryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");
@@ -2903,7 +2954,7 @@ namespace higanbana
 
       auto list = m_computeListPool.allocate();
       resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_computeQueryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");
@@ -2937,7 +2988,7 @@ namespace higanbana
 
       auto list = m_graphicsListPool.allocate();
       //resetListNative(*list);
-      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_shaderDebugBuffer.native(), m_dynamicDispatch),
+      return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_queryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
         [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");

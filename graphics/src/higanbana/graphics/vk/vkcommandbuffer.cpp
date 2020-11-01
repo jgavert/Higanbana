@@ -602,6 +602,7 @@ namespace higanbana
       bool beganLabel = false;
       bool hasReadback = false;
       auto barrierInfoIndex = 0;
+      VulkanQuery timestamp;
       auto& barrierInfos = solver.barrierInfos();
       auto barrierInfosSize = barrierInfos.size();
       backend::CommandBuffer::PacketHeader* rpbegin = nullptr;
@@ -630,6 +631,8 @@ namespace higanbana
               if (beganLabel)
               {
                 buffer.endDebugUtilsLabelEXT(m_dispatch);
+                buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, m_querypool->native(), timestamp.endIndex, m_dispatch);
+                m_queries.emplace_back(timestamp);
               }
               else
               {
@@ -637,6 +640,10 @@ namespace higanbana
               }
               vk::DebugUtilsLabelEXT label = vk::DebugUtilsLabelEXT().setPLabelName(view.data());
               buffer.beginDebugUtilsLabelEXT(label, m_dispatch);
+
+              timestamp = m_querypool->allocate();
+              buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, m_querypool->native(), timestamp.beginIndex, m_dispatch);
+              //buffer->EndQuery(m_queryheap->native(), , timestamp.beginIndex)
               //HIGAN_LOGi("renderblock: %s\n", currentBlock.c_str());
             }
             break;
@@ -890,10 +897,16 @@ namespace higanbana
       if (beganLabel)
       {
         buffer.endDebugUtilsLabelEXT(device->dispatcher());
+        buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, m_querypool->native(), timestamp.endIndex, m_dispatch);
+        m_queries.emplace_back(timestamp);
+
+        //readback = m_readback->allocate(m_querypool->size()*m_querypool->counterSize());
+        //vk::QueryResultFlags flags = vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait; 
+        //buffer.copyQueryPoolResults(m_querypool->native(), 0, uint32_t(m_querypool->size()), m_readback->buffer(), readback.offset, 8, flags, m_dispatch);
       }
       if (hasReadback) {
         vk::MemoryBarrier barrier = vk::MemoryBarrier().setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eHostRead);
-        m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {});
+        m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {}, m_dispatch);
       }
     }
 
@@ -956,11 +969,17 @@ namespace higanbana
       m_constantsAllocator = VkUploadLinearAllocatorGPU(newBlock);
     }
 
-    void VulkanCommandBuffer::beginConstantsDmaList() {
+    void VulkanCommandBuffer::beginConstantsDmaList(std::shared_ptr<prototypes::DeviceImpl> device) {
       HIGAN_CPU_BRACKET("reset?");
+      auto nat = std::static_pointer_cast<VulkanDevice>(device);
+      nat->native().resetQueryPool(m_querypool->native(), 0, uint32_t(m_querypool->max_size()), m_dispatch);
       VK_CHECK_RESULT_RAW(m_list->list().begin(vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
         .setPInheritanceInfo(nullptr)));
+
+      auto timestamp = m_querypool->allocate();
+      m_queries.push_back(timestamp);
+      m_list->list().writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, m_querypool->native(), timestamp.beginIndex, m_dispatch);
     }
     void VulkanCommandBuffer::addConstants(CommandBufferImpl* buffer) {
       VulkanCommandBuffer* other = static_cast<VulkanCommandBuffer*>(buffer);
@@ -973,9 +992,18 @@ namespace higanbana
         m_list->list().copyBuffer(constants.bufferCPU(), constants.bufferGPU(), copyInfo);
       }
     }
+//#define CHECK_DMA_COPY
     void VulkanCommandBuffer::endConstantsDmaList() {
       vk::MemoryBarrier barrier = vk::MemoryBarrier().setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eUniformRead);
       m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {});
+      m_list->list().writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, m_querypool->native(), m_queries.back().endIndex, m_dispatch);
+#ifdef CHECK_DMA_COPY
+      readback = m_readback->allocate(m_querypool->size()*m_querypool->counterSize());
+      vk::QueryResultFlags flags = vk::QueryResultFlagBits::e64;// | vk::QueryResultFlagBits::eWait; 
+      m_list->list().copyQueryPoolResults(m_querypool->native(), 0, uint32_t(m_querypool->size()), m_readback->buffer(), readback.offset, 8, flags);
+#else
+      //m_queries.clear();
+#endif
       VK_CHECK_RESULT_RAW(m_list->list().end());
     }
 
@@ -984,6 +1012,7 @@ namespace higanbana
       HIGAN_CPU_BRACKET("compile to Vulkan CmdList");
       m_tempSets.resize(5);
       auto nat = std::static_pointer_cast<VulkanDevice>(device);
+      nat->native().resetQueryPool(m_querypool->native(), 0, uint32_t(m_querypool->max_size()), m_dispatch);
       
       {
         HIGAN_CPU_BRACKET("reset?");
@@ -1001,10 +1030,50 @@ namespace higanbana
       VK_CHECK_RESULT_RAW(m_list->list().end());
     }
 
-    bool VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>&)
+    bool VulkanCommandBuffer::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes)
     {
+      if (m_queries.empty())
+        return false;
       HIGAN_CPU_FUNCTION_SCOPE();
-      return false;
+      VulkanDevice* dev = static_cast<VulkanDevice*>(device.get());
+      //m_readback->map(dev->native());
+      //auto view = m_readback->getView(readback);
+      auto ticksPerSecond = m_querypool->getGpuTicksPerSecond();
+      //auto properView = reinterpret_memView<uint64_t>(view);
+      auto queueTimeOffset = 0ull;
+
+      vk::QueryResultFlags flags = vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait; 
+      auto res = dev->native().getQueryPoolResults<uint64_t>(m_querypool->native(), 0, uint32_t(m_querypool->size()), uint32_t(m_querypool->size())*sizeof(uint64_t), sizeof(uint64_t), flags, m_dispatch);
+      VK_CHECK_RESULT(res);
+      auto properView = res.value;
+
+      /*
+      auto queueTimeOffset = dev->m_graphicsTimeOffset;
+      if (m_type == QueueType::Dma)
+        queueTimeOffset = dev->m_dmaTimeOffset;
+      else if (m_type == QueueType::Compute)
+        queueTimeOffset = dev->m_computeTimeOffset;
+        */
+
+      if (nodes.size() >= m_queries.size())
+      {
+        for (int i = 0; i < m_queries.size(); ++i)
+        {
+          auto query = m_queries[i];
+          auto countParts = [ticksPerSecond](uint64_t timestamp){
+            return uint64_t((double(timestamp)/double(ticksPerSecond))*1000000000ull);
+          };
+          uint64_t begin = countParts(properView[query.beginIndex]);
+          uint64_t end = countParts(properView[query.endIndex]);
+          auto& node = nodes[i];
+          node.gpuTime.begin = begin + queueTimeOffset;
+          node.gpuTime.end = end + queueTimeOffset;
+        }
+      }
+      //m_readback->unmap(dev->native());
+      m_readback->reset();
+      //m_queryheap->reset();
+      return true;
     }
   }
 }

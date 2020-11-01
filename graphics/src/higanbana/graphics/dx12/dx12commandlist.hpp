@@ -53,7 +53,7 @@ namespace higanbana
       bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
 
       // dma list specifics
-      void beginConstantsDmaList() override;
+      void beginConstantsDmaList(std::shared_ptr<prototypes::DeviceImpl>) override;
       void addConstants(CommandBufferImpl* list) override;
       void endConstantsDmaList() override;
 

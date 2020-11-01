@@ -38,6 +38,10 @@ namespace higanbana
 
       Rabbitpool2<VulkanSemaphore>    m_semaphores;
       Rabbitpool2<VulkanFence>        m_fences;
+      Rabbitpool2<VulkanQueryPool>    m_queryPoolPool;
+      Rabbitpool2<VulkanQueryPool>    m_computeQueryPoolPool;
+      Rabbitpool2<VulkanQueryPool>    m_dmaQueryPoolPool;
+      Rabbitpool2<VulkanReadbackHeap> m_readbackPool;
       Rabbitpool2<VulkanCommandList>  m_copyListPool;
       Rabbitpool2<VulkanCommandList>  m_computeListPool;
       Rabbitpool2<VulkanCommandList>  m_graphicsListPool;
@@ -151,6 +155,11 @@ namespace higanbana
 
       std::optional<vk::Pipeline> updatePipeline(ResourceHandle pipeline, gfxpacket::RenderPassBegin& renderpass);
       std::optional<vk::Pipeline> updatePipeline(ResourceHandle pipeline);
+      
+      VulkanQueryPool createGraphicsQueryPool(unsigned counters);
+      VulkanQueryPool createComputeQueryPool(unsigned counters);
+      VulkanQueryPool createDMAQueryPool(unsigned counters);
+      VulkanReadbackHeap createReadback(unsigned pages, unsigned pageSize);
 
       // implementation
       std::shared_ptr<prototypes::SwapchainImpl> createSwapchain(GraphicsSurface& surface, SwapchainDescriptor descriptor) override;

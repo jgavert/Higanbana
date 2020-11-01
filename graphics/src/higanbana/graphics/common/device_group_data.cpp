@@ -3029,7 +3029,7 @@ namespace higanbana
       // new commandbuffer from device
       if (buffer.queue != QueueType::Dma && vdev.info.gpuConstants) {
         auto list = vdev.device->createDMAList();
-        list->beginConstantsDmaList();
+        list->beginConstantsDmaList(vdev.device);
         for (auto&& natList : buffer.lists)
         {
           list->addConstants(natList.get());

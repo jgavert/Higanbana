@@ -59,6 +59,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackNew(
   auto filter = strcmp("VUID-VkSwapchainCreateInfoKHR-imageExtent-01274", pCallbackData->pMessageIdName);
   if (filter == 0) // ignore
     return false;
+  if (messageCode == -2080204129) // TODO: ignoring this causes validation layers to explode in memory usage with commandbuffers
+    return false;
 
   HIGAN_ILOG("Vulkan/DebugCallback", "{%d}b%dq%do%d: %s %s", messageCode, bufLabelsCount, queueLabelsCount, objectCount, msgType.c_str(), pMessage);
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -422,10 +424,8 @@ namespace higanbana
       //vk::PhysicalDeviceShaderClockFeaturesKHR,
       vk::PhysicalDeviceSamplerYcbcrConversionFeatures,
       vk::PhysicalDeviceProtectedMemoryFeatures,
-      vk::PhysicalDeviceBlendOperationAdvancedFeaturesEXT,
       vk::PhysicalDeviceConditionalRenderingFeaturesEXT,
       vk::PhysicalDeviceShaderDrawParametersFeatures,
-      vk::PhysicalDeviceMeshShaderFeaturesNV,
       vk::PhysicalDeviceDescriptorIndexingFeaturesEXT,
       vk::PhysicalDeviceVertexAttributeDivisorFeaturesEXT,
       vk::PhysicalDeviceASTCDecodeFeaturesEXT,
@@ -439,7 +439,12 @@ namespace higanbana
       //vk::PhysicalDeviceFragmentShaderBarycentricFeaturesNV,
       //vk::PhysicalDeviceShaderImageFootprintFeaturesNV,
       //vk::PhysicalDeviceShadingRateImageFeaturesNV,
-      //vk::PhysicalDeviceFragmentDensityMapFeaturesEXT,  renderdoc doesn't support
+#if 1 // collect renderdoc no likes here
+      vk::PhysicalDeviceMeshShaderFeaturesNV, 
+      vk::PhysicalDeviceBlendOperationAdvancedFeaturesEXT, 
+      vk::PhysicalDeviceFragmentDensityMapFeaturesEXT, 
+      vk::PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT, 
+#endif
       vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT,
       vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,
@@ -459,7 +464,6 @@ namespace higanbana
       vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR,
       vk::PhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT,
       vk::PhysicalDeviceTexelBufferAlignmentFeaturesEXT,
-      vk::PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT,
       vk::PhysicalDeviceLineRasterizationFeaturesEXT,
       vk::PhysicalDeviceSubgroupSizeControlFeaturesEXT
       //vk::PhysicalDeviceCoherentMemoryFeaturesAMD,

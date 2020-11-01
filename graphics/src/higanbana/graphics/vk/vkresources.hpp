@@ -972,8 +972,7 @@ namespace higanbana
           auto allocRes2 = device.allocateMemory(allocInfo);
           VK_CHECK_RESULT(allocRes2);
           m_gpuMemory = allocRes2.value;
-          device.bindBufferMemory(m_gpuBuffer, m_gpuMemory, 0);
-
+          VK_CHECK_RESULT_RAW(device.bindBufferMemory(m_gpuBuffer, m_gpuMemory, 0));
         }
       }
 
@@ -1087,6 +1086,129 @@ namespace higanbana
       }
     };
 
+    struct VkReadbackBlock
+    {
+      size_t offset;
+      size_t m_size;
+
+      size_t size() const
+      {
+        return m_size;
+      }
+      explicit operator bool() const
+      {
+        return size() > 0;
+      }
+    };
+
+    class VulkanReadbackHeap
+    {
+      LinearAllocator allocator;
+      vk::Buffer m_buffer;
+      std::shared_ptr<vk::DeviceMemory> m_memory;
+      unsigned fixedSize = 1;
+      unsigned m_size = 1;
+
+      uint8_t* data = nullptr;
+      ///D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
+
+      //D3D12_RANGE range{};
+    public:
+      VulkanReadbackHeap() : allocator(1) {}
+      VulkanReadbackHeap(vk::Device device, vk::PhysicalDevice physDevice, unsigned allocationSize, unsigned allocationCount)
+        : allocator(allocationSize * allocationCount)
+        , fixedSize(allocationSize)
+        , m_size(allocationSize*allocationCount)
+      {
+        auto bufDesc = ResourceDescriptor()
+          .setWidth(m_size)
+          .setFormat(FormatType::Uint8)
+          .setUsage(ResourceUsage::Readback)
+          .setName("timestamp readback");
+
+        auto natBufferInfo = fillBufferInfo(bufDesc);
+
+        auto result = device.createBuffer(natBufferInfo);
+        if (result.result == vk::Result::eSuccess)
+        {
+          m_buffer = result.value;
+        }
+
+        vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_buffer);
+        auto memProp = physDevice.getMemoryProperties();
+        auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
+        auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+        HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+
+        vk::MemoryAllocateInfo allocInfo;
+
+        allocInfo = vk::MemoryAllocateInfo()
+          .setAllocationSize(bufDesc.desc.width)
+          .setMemoryTypeIndex(index);
+
+        auto allocRes = device.allocateMemory(allocInfo);
+        VK_CHECK_RESULT(allocRes);
+        auto memory = allocRes.value;
+        auto rr = device.bindBufferMemory(m_buffer, memory, 0);
+        VK_CHECK_RESULT_RAW(rr);
+        //range.End = allocationSize * allocationCount;
+        m_memory = std::shared_ptr<vk::DeviceMemory>(new vk::DeviceMemory(memory), [dev = device, buf = m_buffer](vk::DeviceMemory* ptr)
+        {
+          dev.destroyBuffer(buf);
+          dev.freeMemory(*ptr);
+          delete ptr;
+        });
+      }
+
+      VkReadbackBlock allocate(size_t bytes)
+      {
+        auto dip = allocator.allocate(bytes, 512);
+        HIGAN_ASSERT(dip != -1, "No space left, make bigger VulkanReadbackHeap :) %d", bytes);
+        return VkReadbackBlock{ static_cast<size_t>(dip),  bytes };
+      }
+
+      void reset()
+      {
+        allocator = LinearAllocator(m_size);
+      }
+
+      void map(vk::Device device)
+      {
+        auto mapResult = device.mapMemory(*m_memory, 0, m_size);
+        VK_CHECK_RESULT(mapResult);
+        data = reinterpret_cast<uint8_t*>(mapResult.value);
+      }
+
+      void unmap(vk::Device device)
+      {
+        device.unmapMemory(*m_memory);
+      }
+
+      higanbana::MemView<uint8_t> getView(VkReadbackBlock block)
+      {
+        return higanbana::MemView<uint8_t>(data + block.offset, block.m_size);
+      }
+
+      vk::Buffer buffer()
+      {
+        return m_buffer;
+      }
+      vk::DeviceMemory memory()
+      {
+        return *m_memory;
+      }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
+      }
+    };
+
     class VulkanDescriptorPool
     {
       vk::DescriptorPool pool;
@@ -1126,6 +1248,100 @@ namespace higanbana
       explicit operator bool()
       {
         return pool;
+      }
+    };
+
+    struct VulkanQuery
+    {
+      unsigned beginIndex;
+      unsigned endIndex;
+    };
+
+    struct VulkanQueryBracket
+    {
+      VulkanQuery query;
+      std::string name;
+    };
+
+    class VulkanQueryPool
+    {
+      LinearAllocator allocator;
+      std::shared_ptr<vk::QueryPool> m_pool;
+      int m_size = 0;
+      uint64_t m_gpuTicksPerSecond = 0;
+    public:
+      VulkanQueryPool() : allocator(1) {}
+      VulkanQueryPool(vk::Device device
+                     , vk::PhysicalDevice physDevice
+                     , vk::PhysicalDeviceLimits limits
+                     , uint32_t queue_family_index
+                     , vk::QueryType type
+                     , unsigned counterCount)
+        : allocator(counterCount)
+        , m_size(counterCount)
+      {
+        auto res = device.createQueryPool(vk::QueryPoolCreateInfo().setQueryType(vk::QueryType::eTimestamp).setQueryCount(counterCount));
+        VK_CHECK_RESULT(res);
+
+        m_pool = std::shared_ptr<vk::QueryPool>(new vk::QueryPool(res.value), [=](vk::QueryPool* ptr)
+        {
+          device.destroyQueryPool(*ptr);
+          delete ptr;
+        });
+
+        m_gpuTicksPerSecond = static_cast<uint64_t>(1e9 / limits.timestampPeriod);
+
+        /*
+        static int queryHeapCount = 0;
+
+        D3D12_QUERY_HEAP_DESC desc{};
+        desc.Type = type;
+        desc.Count = counterCount;
+        desc.NodeMask = 0;
+
+        HIGANBANA_CHECK_HR(device->CreateQueryHeap(&desc, IID_PPV_ARGS(heap.ReleaseAndGetAddressOf())));
+        auto name = s2ws("QueryHeap" + std::to_string(queryHeapCount));
+        heap->SetName(name.c_str());
+
+        HIGANBANA_CHECK_HR(queue->GetTimestampFrequency(&m_gpuTicksPerSecond));
+        */
+      }
+
+      uint64_t getGpuTicksPerSecond() const
+      {
+        return m_gpuTicksPerSecond;
+      }
+
+      void reset()
+      {
+        allocator = LinearAllocator(m_size);
+      }
+
+      VulkanQuery allocate()
+      {
+        auto dip = allocator.allocate(2);
+        HIGAN_ASSERT(dip != -1, "Queryheap out of queries.");
+        return VulkanQuery{ static_cast<unsigned>(dip),  static_cast<unsigned>(dip + 1) };
+      }
+
+      vk::QueryPool native()
+      {
+        return *m_pool;
+      }
+
+      size_t size() const noexcept
+      {
+        return allocator.size();
+      }
+
+      size_t max_size() const noexcept
+      {
+        return allocator.max_size();
+      }
+
+      size_t counterSize()
+      {
+        return sizeof(uint64_t);
       }
     };
 
@@ -1202,7 +1418,11 @@ namespace higanbana
       vk::DispatchLoaderDynamic m_dispatch;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
       std::shared_ptr<VulkanConstantUploadHeap> m_constants;
+      std::shared_ptr<VulkanReadbackHeap> m_readback;
+      std::shared_ptr<VulkanQueryPool> m_querypool;
       vector<VkUploadBlockGPU> m_allocatedConstants;
+      vector<VulkanQuery> m_queries;
+      VkReadbackBlock readback;
       vector<vk::Pipeline> m_oldPipelines;
       vector<vk::DescriptorSet> m_tempSets;
       vk::Buffer m_shaderDebugBuffer;
@@ -1214,9 +1434,24 @@ namespace higanbana
       VkUploadLinearAllocatorGPU m_constantsAllocator;
 
     public:
-      VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators, vk::Buffer shaderDebug, vk::DispatchLoaderDynamic dispatch)
-        : m_list(list), m_dispatch(dispatch), m_constants(constantAllocators), m_shaderDebugBuffer(shaderDebug), m_constantAlignment(m_constants->allocationAlignment())
-      {}
+      VulkanCommandBuffer(
+        std::shared_ptr<VulkanCommandList> list,
+        std::shared_ptr<VulkanConstantUploadHeap> constantAllocators,
+        std::shared_ptr<VulkanReadbackHeap> readback,
+        std::shared_ptr<VulkanQueryPool> queryPool,
+        vk::Buffer shaderDebug,
+        vk::DispatchLoaderDynamic dispatch)
+        : m_list(list),
+        m_dispatch(dispatch),
+        m_constants(constantAllocators),
+        m_readback(readback),
+        m_querypool(queryPool),
+        m_shaderDebugBuffer(shaderDebug),
+        m_constantAlignment(m_constants->allocationAlignment())
+      {
+        m_querypool->reset();
+        m_readback->reset();
+      }
     private:
       void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver);
@@ -1225,11 +1460,11 @@ namespace higanbana
       VkUploadBlockGPU allocateConstants(size_t size);
     public:
       void reserveConstants(size_t expectedTotalBytes) override;
-      void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
-      bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl>, vector<GraphNodeTiming>& nodes) override;
+      void fillWith(std::shared_ptr<prototypes::DeviceImpl> device, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
+      bool readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes) override;
 
       // dma specifics
-      void beginConstantsDmaList() override;
+      void beginConstantsDmaList(std::shared_ptr<prototypes::DeviceImpl> device) override;
       void addConstants(CommandBufferImpl* list) override;
       void endConstantsDmaList() override;
 
@@ -1241,11 +1476,14 @@ namespace higanbana
       {
         return m_allocatedConstants;
       }
+      vector<VulkanQuery>& freeableQueries()
+      {
+        return m_queries;
+      }
       vector<vk::Pipeline>& oldPipelines()
       {
         return m_oldPipelines;
       }
     };
-
   }
 }

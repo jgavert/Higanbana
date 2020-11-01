@@ -813,7 +813,7 @@ namespace higanbana
       m_freeResources->uploadBlocks.push_back(newBlock);
       m_constantsAllocator = UploadLinearAllocatorGPU(newBlock);
     }
-    void DX12CommandList::beginConstantsDmaList() {
+    void DX12CommandList::beginConstantsDmaList(std::shared_ptr<prototypes::DeviceImpl>) {
       HIGAN_CPU_BRACKET("reset");
       m_buffer->resetList();
       PIXBeginEvent(m_buffer->list(), PIX_COLOR_INDEX(0), "Copy Constants");
@@ -855,6 +855,8 @@ namespace higanbana
 
     bool DX12CommandList::readbackTimestamps(std::shared_ptr<prototypes::DeviceImpl> device, vector<GraphNodeTiming>& nodes)
     {
+      if (queries.empty())
+        return false;
       HIGAN_CPU_FUNCTION_SCOPE();
       m_readback->map();
       auto view = m_readback->getView(readback);
