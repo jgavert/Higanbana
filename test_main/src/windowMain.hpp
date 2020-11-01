@@ -38,6 +38,7 @@ struct AppInputs {
   higanbana::GraphicsApi allowedApis = higanbana::GraphicsApi::All;
   bool rgpCapture = false;
   bool validationLayer = false;
+  bool powersave = false;
 };
 class RenderingApp {
   private:
@@ -70,8 +71,11 @@ class RenderingApp {
   uint m_chosenDeviceID = 0;
   higanbana::GraphicsApi m_chosenApi;
   bool m_interoptDevice = false;
-  bool m_overrideGpuConstants = true;
-  bool m_GpuConstants = true;
+  bool m_overrideGpuConstants = false;
+  bool m_GpuConstants = false;
+
+  // random profiling thing
+  higanbana::Timestamp m_lastTotalGpuTime;
   int2 m_windowSize = div(int2(1280, 720), 1);
   int2 m_windowPos = int2(300,400);
 

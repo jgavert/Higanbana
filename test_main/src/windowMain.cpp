@@ -541,15 +541,21 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           }
 
           float cpuTotal = rsi.timeBeforeSubmit.milliseconds() + rsi.submitCpuTime.milliseconds();
-          if (gpuTotal > cpuTotal || rend.acquireTimeTakenMs() > 0.1f)
+          if (m_lastTotalGpuTime.end > totalgpuTime.begin && m_lastTotalGpuTime.end != totalgpuTime.end)
+            ImGui::Text("Bottleneck: GPU(work overlapped)");
+          else if (gpuTotal > cpuTotal || rend.acquireTimeTakenMs() > 0.1f)
             ImGui::Text("Bottleneck: GPU");
           else
             ImGui::Text("Bottleneck: CPU");
+          
+          auto realGpuTime = totalgpuTime;
+          if (m_lastTotalGpuTime.end > totalgpuTime.begin)
+            realGpuTime.begin = m_lastTotalGpuTime.end; // cut overlapping portions off
           auto multiplier = 1000.f / m_time.getCurrentFps();
           auto allDraws = float(draws) * multiplier;
           int  dps = static_cast<int>(allDraws);
           ImGui::Text("Drawcalls per second %zu", dps);
-          ImGui::Text("GPU execution %.3fms", totalgpuTime.milliseconds());
+          ImGui::Text("GPU execution %.3fms", realGpuTime.milliseconds());
           ImGui::Text("Dma %.3fms Compute %.3fms Graphics %.3fms", dmaQueue.milliseconds(), computeQueue.milliseconds(), graphicsQueue.milliseconds());
           ImGui::Text("CPU execution %.3fms", cpuTotal);
           ImGui::Text("Acquire time taken %.3fms", rend.acquireTimeTakenMs());
@@ -563,6 +569,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           ImGui::Text("- Filling Lists %.3fms", rsi.fillCommandLists.milliseconds());
           ImGui::Text("- Submitting Lists %.3fms", rsi.submitSolve.milliseconds());
           ImGui::Text("- Submit total %.2fms", rsi.submitCpuTime.milliseconds());
+
+          m_lastTotalGpuTime = totalgpuTime;
 
           int listIndex = 0;
           for (auto& cmdlist : rsi.lists) {
@@ -808,8 +816,9 @@ RenderingApp::RenderingApp(AppInputs inputs)
   , m_preferredVendor(inputs.cmdlineVendorId)
   , m_fs("/../../data")
 {
-  m_renderOptions.submitSingleThread = false;
-
+  if (inputs.powersave) {
+    m_limitFPS = 20;
+  }
 }
 
 void RenderingApp::runCoreLoop(ProgramParams& params) {
@@ -1007,6 +1016,7 @@ void mainWindow(ProgramParams& params)
     ("nvidia", "priorizes NVidia GPU's")
     ("amd", "priorizes AMD GPU's")
     ("gfx_debug", "enables vulkan/dx12 api validation layer")
+    ("powersave", "sets fps limit to 20, encouraged on mobile use")
     ("h,help", "Print help and exit.")
     ;
 
@@ -1044,6 +1054,9 @@ void mainWindow(ProgramParams& params)
       inputs.cmdlineVendorId = VendorID::Amd;
       HIGAN_LOGi("Preparing for RGP capture...\n");
       inputs.allowedApis = inputs.cmdlineApiId;
+    }
+    if (results.count("powersave")) {
+      inputs.powersave = true;
     }
     if (results.count("help"))
     {

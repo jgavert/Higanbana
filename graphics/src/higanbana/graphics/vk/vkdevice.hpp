@@ -194,7 +194,7 @@ namespace higanbana
       void createBufferFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, HeapAllocation, ResourceDescriptor&) override;
       void createTextureFromHandle(ResourceHandle , std::shared_ptr<SharedHandle>, ResourceDescriptor&) override;
 
-      VulkanConstantBuffer allocateConstants(MemView<uint8_t> bytes);
+      //VulkanConstantBuffer allocateConstants(MemView<uint8_t> bytes);
 
       size_t availableDynamicMemory() override;
       void dynamic(ViewResourceHandle handle, MemView<uint8_t> bytes, FormatType format) override;

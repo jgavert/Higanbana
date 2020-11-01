@@ -305,7 +305,7 @@ namespace higanbana
       , m_freeQueueIndexes({})
       , m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, HIGANBANA_CONSTANT_BUFFER_AMOUNT, 1024)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
@@ -2674,6 +2674,7 @@ namespace higanbana
       m_device.updateDescriptorSets(writes, {});
     }
 
+    /*
     VulkanConstantBuffer VulkanDevice::allocateConstants(MemView<uint8_t> bytes)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
@@ -2688,7 +2689,7 @@ namespace higanbana
         .setRange(bytes.size());
 
       return VulkanConstantBuffer(info, upload);
-    }
+    }*/
 
     size_t VulkanDevice::availableDynamicMemory() {
       return m_dynamicUpload->size();

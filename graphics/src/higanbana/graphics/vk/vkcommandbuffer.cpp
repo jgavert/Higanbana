@@ -328,7 +328,7 @@ namespace higanbana
       buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe.m_pipeline);
     }
 
-    VkUploadBlock VulkanCommandBuffer::allocateConstants(size_t size)
+    VkUploadBlockGPU VulkanCommandBuffer::allocateConstants(size_t size)
     {
       const size_t VulkanConstantAlignment = m_constantAlignment;
       auto block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
@@ -338,7 +338,7 @@ namespace higanbana
         auto newBlock = m_constants->allocate(256 * 256 * 4); // can save tons of cpu time. the larger less need to free these.
         HIGAN_ASSERT(newBlock, "What!");
         m_allocatedConstants.push_back(newBlock);
-        m_constantsAllocator = VkUploadLinearAllocator(newBlock);
+        m_constantsAllocator = VkUploadLinearAllocatorGPU(newBlock);
         block = m_constantsAllocator.allocate(size, VulkanConstantAlignment);
       }
       HIGAN_ASSERT(block, "What!");
@@ -600,6 +600,7 @@ namespace higanbana
       ResourceHandle boundPipeline;
       std::string currentBlock;
       bool beganLabel = false;
+      bool hasReadback = false;
       auto barrierInfoIndex = 0;
       auto& barrierInfos = solver.barrierInfos();
       auto barrierInfosSize = barrierInfos.size();
@@ -851,6 +852,7 @@ namespace higanbana
               .setDstOffset(dst.offset())
               .setSize(params.numBytes);
             buffer.copyBuffer(src.native(), dst.native(), region);
+            hasReadback = true;
             break;
           }
           case PacketType::ReadbackShaderDebug:
@@ -876,6 +878,7 @@ namespace higanbana
                               .setDstAccessMask(translateAccessMask(AccessStage::Transfer, AccessUsage::Write));
             buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {barrier}, {});
             buffer.fillBuffer(m_shaderDebugBuffer, 0, HIGANBANA_SHADER_DEBUG_WIDTH, 0);
+            hasReadback = true;
             break;
           }
           default:
@@ -887,6 +890,10 @@ namespace higanbana
       if (beganLabel)
       {
         buffer.endDebugUtilsLabelEXT(device->dispatcher());
+      }
+      if (hasReadback) {
+        vk::MemoryBarrier barrier = vk::MemoryBarrier().setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eHostRead);
+        m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {});
       }
     }
 
@@ -946,7 +953,7 @@ namespace higanbana
       auto newBlock = m_constants->allocate(expectedTotalBytes); // can save tons of cpu time. the larger less need to free these.
       HIGAN_ASSERT(newBlock, "What!");
       m_allocatedConstants.push_back(newBlock);
-      m_constantsAllocator = VkUploadLinearAllocator(newBlock);
+      m_constantsAllocator = VkUploadLinearAllocatorGPU(newBlock);
     }
 
     void VulkanCommandBuffer::beginConstantsDmaList() {
@@ -957,8 +964,18 @@ namespace higanbana
     }
     void VulkanCommandBuffer::addConstants(CommandBufferImpl* buffer) {
       VulkanCommandBuffer* other = static_cast<VulkanCommandBuffer*>(buffer);
+      for (auto& constants : other->m_allocatedConstants)
+      {
+        vk::BufferCopy copyInfo = vk::BufferCopy()
+          .setSrcOffset(constants.block.offset)
+          .setSize(constants.block.size)
+          .setDstOffset(constants.block.offset);
+        m_list->list().copyBuffer(constants.bufferCPU(), constants.bufferGPU(), copyInfo);
+      }
     }
     void VulkanCommandBuffer::endConstantsDmaList() {
+      vk::MemoryBarrier barrier = vk::MemoryBarrier().setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eUniformRead);
+      m_list->list().pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, barrier, {}, {});
       m_list->list().end();
     }
 

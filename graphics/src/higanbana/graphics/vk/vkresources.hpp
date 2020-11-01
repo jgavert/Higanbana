@@ -489,6 +489,44 @@ namespace higanbana
       }
     };
 
+    struct VkUploadBlockGPU
+    {
+      uint8_t* m_data;
+      vk::Buffer m_cpuBuffer;
+      vk::Buffer m_gpuBuffer;
+      RangeBlock block;
+      int alignOffset;
+
+      uint8_t* data()
+      {
+        return m_data + block.offset + alignOffset;
+      }
+
+      vk::Buffer bufferCPU()
+      {
+        return m_cpuBuffer;
+      }
+      vk::Buffer bufferGPU()
+      {
+        return m_gpuBuffer;
+      }
+
+      size_t offset()
+      {
+        return block.offset + alignOffset;
+      }
+
+      size_t size()
+      {
+        return block.size;
+      }
+
+      explicit operator bool() const
+      {
+        return m_data != nullptr;
+      }
+    };
+
     class VulkanConstantBuffer
     {
       struct Info
@@ -841,10 +879,19 @@ namespace higanbana
 
     class VulkanConstantUploadHeap
     {
+    public:
+      enum class Mode {
+        CpuOnly,
+        CpuGpu
+      };
+    private:
       HeapAllocator allocator;
-      vk::Buffer m_buffer;
-      vk::DeviceMemory m_memory;
+      vk::Buffer m_cpuBuffer;
+      vk::DeviceMemory m_cpuMemory;
+      vk::Buffer m_gpuBuffer;
+      vk::DeviceMemory m_gpuMemory;
       vk::Device m_device;
+      Mode m_mode;
       unsigned minUniformBufferAlignment;
 
       uint8_t* data = nullptr;
@@ -853,10 +900,13 @@ namespace higanbana
       VulkanConstantUploadHeap() : allocator(1, 1) {}
       VulkanConstantUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
-                     , unsigned memorySize, unsigned unaccessibleMemoryAtEnd = 0)
+                     , unsigned memorySize
+                     , Mode mode
+                     , unsigned unaccessibleMemoryAtEnd = 0)
         : allocator(memorySize-unaccessibleMemoryAtEnd, physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
         , m_device(device)
         , minUniformBufferAlignment(physDevice.getProperties().limits.minUniformBufferOffsetAlignment)
+        , m_mode(mode)
       {
         auto bufDesc = ResourceDescriptor()
           .setWidth(memorySize)
@@ -865,15 +915,18 @@ namespace higanbana
           .setName("DynUpload");
 
         auto natBufferInfo = fillBufferInfo(bufDesc);
-        natBufferInfo = natBufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
+        vk::BufferUsageFlags vkUsage = vk::BufferUsageFlagBits::eUniformBuffer;
+        if (m_mode == Mode::CpuGpu)
+          vkUsage = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferSrc;
+        natBufferInfo = natBufferInfo.setUsage(vkUsage);
 
         auto result = device.createBuffer(natBufferInfo);
         if (result.result == vk::Result::eSuccess)
         {
-          m_buffer = result.value;
+          m_cpuBuffer = result.value;
         }
 
-        vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_buffer);
+        vk::MemoryRequirements requirements = device.getBufferMemoryRequirements(m_cpuBuffer);
         auto memProp = physDevice.getMemoryProperties();
         auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
         auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
@@ -887,37 +940,66 @@ namespace higanbana
 
         auto allocRes = device.allocateMemory(allocInfo);
         VK_CHECK_RESULT(allocRes);
-        m_memory = allocRes.value;
-        device.bindBufferMemory(m_buffer, m_memory, 0);
+        m_cpuMemory = allocRes.value;
+        device.bindBufferMemory(m_cpuBuffer, m_cpuMemory, 0);
         // we should have cpu UploadBuffer created above and bound, lets map it.
 
-        auto mapResult = device.mapMemory(m_memory, 0, memorySize);
+        auto mapResult = device.mapMemory(m_cpuMemory, 0, memorySize);
         VK_CHECK_RESULT(mapResult);
 
         data = reinterpret_cast<uint8_t*>(mapResult.value);
+        if (m_mode == Mode::CpuGpu) {
+          bufDesc = bufDesc.setUsage(ResourceUsage::GpuReadOnly);
+          natBufferInfo = fillBufferInfo(bufDesc);
+          natBufferInfo = natBufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst);
+          auto result2 = device.createBuffer(natBufferInfo);
+          if (result2.result == vk::Result::eSuccess)
+          {
+            m_gpuBuffer = result2.value;
+          }
+          requirements = device.getBufferMemoryRequirements(m_gpuBuffer);
+          auto memProp = physDevice.getMemoryProperties();
+          auto searchProperties = getMemoryProperties(bufDesc.desc.usage);
+          auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
+          HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
+
+          allocInfo = vk::MemoryAllocateInfo()
+            .setAllocationSize(bufDesc.desc.width)
+            .setMemoryTypeIndex(index);
+
+          auto allocRes2 = device.allocateMemory(allocInfo);
+          VK_CHECK_RESULT(allocRes2);
+          m_gpuMemory = allocRes2.value;
+          device.bindBufferMemory(m_gpuBuffer, m_gpuMemory, 0);
+
+        }
       }
 
       ~VulkanConstantUploadHeap()
       {
-        m_device.destroyBuffer(m_buffer);
-        m_device.freeMemory(m_memory);
+        m_device.destroyBuffer(m_cpuBuffer);
+        m_device.freeMemory(m_cpuMemory);
+        if (m_mode == Mode::CpuGpu) {
+          m_device.destroyBuffer(m_gpuBuffer);
+          m_device.freeMemory(m_gpuMemory);
+        }
       }
 
-      VkUploadBlock allocate(size_t bytes)
+      VkUploadBlockGPU allocate(size_t bytes)
       {
         std::lock_guard<std::mutex> guard(m_allocatorBlocker);
         auto dip = allocator.allocate(bytes, minUniformBufferAlignment);
         HIGAN_ASSERT(dip, "No space left, make bigger VulkanUploadHeap :) %d", allocator.max_size());
-        return VkUploadBlock{ data, m_buffer,  dip.value() };
+        return VkUploadBlockGPU{ data, m_cpuBuffer, m_gpuBuffer,  dip.value() };
       }
 
-      void release(VkUploadBlock desc)
+      void release(VkUploadBlockGPU desc)
       {
         std::lock_guard<std::mutex> guard(m_allocatorBlocker);
         allocator.free(desc.block);
       }
 
-      void releaseRange(vector<VkUploadBlock>& descs)
+      void releaseRange(vector<VkUploadBlockGPU>& descs)
       {
         std::lock_guard<std::mutex> guard(m_allocatorBlocker);
         for (auto&& desc : descs)
@@ -926,7 +1008,9 @@ namespace higanbana
 
       vk::Buffer buffer()
       {
-        return m_buffer;
+        if (m_mode == Mode::CpuGpu)
+          return m_gpuBuffer;
+        return m_cpuBuffer;
       }
 
       unsigned allocationAlignment() const noexcept
@@ -970,6 +1054,31 @@ namespace higanbana
           return VkUploadBlock{ nullptr, vk::Buffer{}, RangeBlock{} };
 
         VkUploadBlock b = block;
+        b.block.offset += offset;
+        b.block.size = roundUpMultiplePowerOf2(bytes, alignment);
+        return b;
+      }
+    };
+    class VkUploadLinearAllocatorGPU
+    {
+      LinearAllocator allocator;
+      VkUploadBlockGPU block;
+
+    public:
+      VkUploadLinearAllocatorGPU() {}
+      VkUploadLinearAllocatorGPU(VkUploadBlockGPU block)
+        : allocator(block.size())
+        , block(block)
+      {
+      }
+
+      VkUploadBlockGPU allocate(size_t bytes, size_t alignment)
+      {
+        auto offset = allocator.allocate(bytes, alignment);
+        if (offset < 0)
+          return VkUploadBlockGPU{ nullptr, vk::Buffer{}, vk::Buffer{}, RangeBlock{} };
+
+        VkUploadBlockGPU b = block;
         b.block.offset += offset;
         b.block.size = roundUpMultiplePowerOf2(bytes, alignment);
         return b;
@@ -1091,7 +1200,7 @@ namespace higanbana
       vk::DispatchLoaderDynamic m_dispatch;
       vector<std::shared_ptr<vk::Framebuffer>> m_framebuffers;
       std::shared_ptr<VulkanConstantUploadHeap> m_constants;
-      vector<VkUploadBlock> m_allocatedConstants;
+      vector<VkUploadBlockGPU> m_allocatedConstants;
       vector<vk::Pipeline> m_oldPipelines;
       vector<vk::DescriptorSet> m_tempSets;
       vk::Buffer m_shaderDebugBuffer;
@@ -1100,7 +1209,7 @@ namespace higanbana
       ViewResourceHandle m_boundIndexBuffer;
       unsigned m_constantAlignment;
 
-      VkUploadLinearAllocator m_constantsAllocator;
+      VkUploadLinearAllocatorGPU m_constantsAllocator;
 
     public:
       VulkanCommandBuffer(std::shared_ptr<VulkanCommandList> list, std::shared_ptr<VulkanConstantUploadHeap> constantAllocators, vk::Buffer shaderDebug, vk::DispatchLoaderDynamic dispatch)
@@ -1111,7 +1220,7 @@ namespace higanbana
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, MemView<backend::CommandBuffer*>& list);
-      VkUploadBlock allocateConstants(size_t size);
+      VkUploadBlockGPU allocateConstants(size_t size);
     public:
       void reserveConstants(size_t expectedTotalBytes) override;
       void fillWith(std::shared_ptr<prototypes::DeviceImpl>, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver) override;
@@ -1126,7 +1235,7 @@ namespace higanbana
       {
         return m_list->list();
       }
-      vector<VkUploadBlock>& freeableConstants()
+      vector<VkUploadBlockGPU>& freeableConstants()
       {
         return m_allocatedConstants;
       }
