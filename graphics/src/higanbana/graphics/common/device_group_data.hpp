@@ -273,7 +273,7 @@ namespace higanbana
 
       // css::Task versions
 #if 1 // start of css::Task
-      css::Task<void> finalPass(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
+      css::Task<void> finalPass(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin);
       css::Task<std::shared_ptr<css::Task<void>>> localPass(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin);
       css::Task<void> asyncSubmit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       css::Task<void> presentAsync(Swapchain& swapchain, int backbufferIndex);
