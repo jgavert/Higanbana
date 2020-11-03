@@ -1953,7 +1953,7 @@ namespace higanbana
       ComPtr<D3D12GraphicsCommandList> commandList;
       ComPtr<ID3D12CommandAllocator> commandListAllocator;
       HIGANBANA_CHECK_HR(m_device->CreateCommandAllocator(type, IID_PPV_ARGS(commandListAllocator.ReleaseAndGetAddressOf())));
-      HIGANBANA_CHECK_HR(m_device->CreateCommandList(1, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
+      HIGANBANA_CHECK_HR(m_device->CreateCommandList(0, type, commandListAllocator.Get(), NULL, IID_PPV_ARGS(commandList.GetAddressOf())));
 
       return DX12CommandBuffer(commandList, commandListAllocator, type == D3D12_COMMAND_LIST_TYPE_COPY);
     }

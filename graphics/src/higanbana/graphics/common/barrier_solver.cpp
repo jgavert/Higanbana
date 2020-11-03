@@ -22,12 +22,19 @@ namespace higanbana
       m_jobs.push_back(DependencyPacket{drawCallIndex, texture, access});
       m_uniqueTextures.insert(texture.resourceHandle());
     }
-    void BarrierSolver::reset()
+    void BarrierSolver::reset(HandleVector<ResourceState>* buffers, HandleVector<TextureResourceState>* textures)
     {
+      m_bufferStates = buffers;
+      m_textureStates = textures;
+      m_uniqueBuffers.clear();
+      m_uniqueTextures.clear();
       m_jobs.clear();
-      m_bufferCache.clear();
-      m_imageCache.clear();
       m_drawBarries.clear();
+      bufferBarriers.clear();
+      imageBarriers.clear();
+      //m_bufferCache.clear();
+      //m_imageCache.clear();
+      drawCallsAdded = 0;
     }
 
     void BarrierSolver::localBarrierPass1(bool allowCommonOptimization)

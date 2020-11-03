@@ -106,7 +106,7 @@ namespace higanbana
       // void printStuff(std::function<void(std::string)> func);
       void localBarrierPass1(bool allowCommonOptimization);
       void globalBarrierPass2();
-      void reset();
+      void reset(HandleVector<ResourceState>* buffers, HandleVector<TextureResourceState>* textures);
 
       MemoryBarriers runBarrier(const BarrierInfo& drawCall);
       vector<BarrierInfo>& barrierInfos()

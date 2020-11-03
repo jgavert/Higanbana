@@ -3,6 +3,7 @@
 #include "higanbana/graphics/dx12/util/formats.hpp"
 #include "higanbana/graphics/common/texture.hpp"
 #include "higanbana/graphics/common/command_buffer.hpp"
+#include <higanbana/core/profiling/profiling.hpp>
 
 #if 0
 #undef PROFILE
@@ -38,8 +39,14 @@ namespace higanbana
     void DX12CommandBuffer::resetList()
     {
       if (closedList) {
-        commandListAllocator->Reset();
-        commandList->Reset(commandListAllocator.Get(), nullptr);
+        {
+          HIGAN_CPU_BRACKET("Reset commandlist allocator");
+          commandListAllocator->Reset();
+        }
+        {
+          HIGAN_CPU_BRACKET("reset commandlist with allocator");
+          commandList->Reset(commandListAllocator.Get(), nullptr);
+        }
         closedList = false;
       }
     }

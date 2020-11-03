@@ -223,9 +223,12 @@ namespace higanbana
       buffers.pop_back();
       return buffer;
     }
+    std::lock_guard<std::mutex> lock() {
+      return std::lock_guard<std::mutex>(m_bufferLock);
+    }
     void free(backend::CommandBuffer&& buffer)
     {
-      std::lock_guard<std::mutex> lock(m_bufferLock);
+      //std::lock_guard<std::mutex> lock(m_bufferLock);
       buffers.emplace_back(std::move(buffer));
     }
   };

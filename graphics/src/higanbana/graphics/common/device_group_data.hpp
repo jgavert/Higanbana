@@ -10,12 +10,16 @@
 #include "higanbana/graphics/desc/timing.hpp"
 
 #include <higanbana/core/system/memview.hpp>
+#include <higanbana/core/system/MemoryPools.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
 #include <higanbana/core/system/LBS.hpp>
 #include <optional>
 #include <functional>
 #include <mutex>
+
+#if 1 // start of css::Task includes
 #include <css/task.hpp>
+#endif
 
 namespace higanbana
 {
@@ -98,6 +102,7 @@ namespace higanbana
       vector<vector<ReadbackPromise>> readbacks;
       // timings
       uint64_t submitID;
+      vector<std::shared_ptr<BarrierSolver>> solver;
       vector<CommandListTiming> listTiming;
       // submit related
       std::optional<TimelineSemaphoreInfo> timelineGfx;
@@ -162,15 +167,13 @@ namespace higanbana
         uint64_t gfxQueue;
         uint64_t cptQueue;
         uint64_t dmaQueue;
+        Rabbitpool2<BarrierSolver> m_solvers;
         HandleVector<GpuHeapAllocation> m_buffers;
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;
         HandleVector<TextureResourceState> m_textureStates;
         HandleVector<vector<ViewResourceHandle>> shaderArguments;
         QueueStates qStates;
-        //std::shared_ptr<SemaphoreImpl> graphicsQSema;
-        //std::shared_ptr<SemaphoreImpl> computeQSema;
-        //std::shared_ptr<SemaphoreImpl> dmaQSema;
         deque<LiveCommandBuffer2> m_gfxBuffers;
         deque<LiveCommandBuffer2> m_computeBuffers;
         deque<LiveCommandBuffer2> m_dmaBuffers;
@@ -183,6 +186,7 @@ namespace higanbana
       std::unique_ptr<DelayedRelease> m_delayer;
       HandleManager m_handles;
       deque<higanbana::ReadbackFuture> m_shaderDebugReadbacks;
+
       
 
       // used to free resources
@@ -259,25 +263,21 @@ namespace higanbana
       void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer*>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks, bool isFirstList);
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
       void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
-
-      void submitLiveCommandBuffer2(std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList);
-      css::Task<void> finalPass2(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
-      css::Task<std::shared_ptr<css::Task<void>>> localPass2(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
-
-      css::Task<void> localPass(css::Task<void>* previousLocalPass, PreparedCommandlist& buffer, std::shared_ptr<BarrierSolver>& solver, backend::LiveCommandBuffer2& list, int id, int offset);
-      css::Task<void> finalPass(css::Task<void>* localPass, css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin); 
+      void submitLiveCommandBuffer(std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList);
 
       // commandgraph
       CommandGraph startCommandGraph();
-      //void submit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void submit(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
-      void submitExperimental(std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
       void submitST(std::optional<Swapchain> swapchain, CommandGraph& graph);
-      void submitLBS(LBS& lbs, std::optional<Swapchain> swapchain, CommandGraph& graph, ThreadedSubmission config);
-      css::Task<void> submitCSS(std::optional<Swapchain> swapchain, CommandGraph& graph);
-      css::Task<void> submitCSSExp(std::optional<Swapchain> swapchain, CommandGraph& graph);
       void present(Swapchain& swapchain, int backbufferIndex);
+
+      // css::Task versions
+#if 1 // start of css::Task
+      css::Task<void> finalPass(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, std::shared_ptr<BarrierSolver>& solver, int listID, int listIdBegin);
+      css::Task<std::shared_ptr<css::Task<void>>> localPass(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin);
+      css::Task<void> asyncSubmit(std::optional<Swapchain> swapchain, CommandGraph& graph);
       css::Task<void> presentAsync(Swapchain& swapchain, int backbufferIndex);
+#endif
 
       // test
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);

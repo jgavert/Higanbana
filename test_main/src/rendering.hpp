@@ -191,6 +191,9 @@ class Renderer
   // temp, probably shouldnt be here
   //CameraSettings m_previousCamera;
 
+  // making submits more smooth
+  std::unique_ptr<css::Task<void>> presentTask; // stores last present call
+
   // info
   std::optional<higanbana::SubmitTiming> m_previousInfo;
   int64_t m_acquireTimeTaken;
@@ -230,5 +233,7 @@ public:
   void unloadTexture(int index);
   int loadMaterial(MaterialData& data);
   void unloadMaterial(int index);
+
+  css::Task<void> cleanup();
 };
 }

@@ -272,7 +272,7 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
   {
     meshbuffer = updateTarget;
   }
-  gpu.submitExperimental(graph, ThreadedSubmission::Sequenced);
+  gpu.submit(graph, ThreadedSubmission::Sequenced);
   sourceBuffers[val] = freeSpace.value();
 
   return val;

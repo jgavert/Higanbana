@@ -989,6 +989,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       m_renderActive = false;
       logicAndRenderAsync.get();
       dev.waitGpuIdle();
+      rend.cleanup().wait();
     }
     if (!m_reInit)
       break;

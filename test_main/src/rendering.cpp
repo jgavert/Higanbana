@@ -468,6 +468,10 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
 
   // If you acquire, you must submit it.
   Timer acquireTime;
+  if (presentTask.get() != nullptr) {
+    co_await *presentTask;
+    presentTask.reset();
+  }
   std::optional<std::pair<int,TextureRTV>> obackbuffer = dev.acquirePresentableImage(swapchain);
   m_acquireTimeTaken = acquireTime.timeFromLastReset();
   if (!obackbuffer.has_value())
@@ -558,18 +562,26 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   }
 
   if (rendererOptions.submitSingleThread)
-    dev.submitExperimental(swapchain, tasks, ThreadedSubmission::Sequenced);
+    dev.submit(swapchain, tasks, ThreadedSubmission::Sequenced);
   else if (rendererOptions.submitExperimental)
-    co_await dev.submitCSSExp(swapchain, tasks);
-  else if (rendererOptions.submitLBS)
-    co_await dev.submitCSS(swapchain, tasks); // lbs, swapchain, tasks, ThreadedSubmission::ParallelUnsequenced);
+    co_await dev.asyncSubmit(swapchain, tasks);
   else
-    dev.submit(swapchain, tasks);
+    dev.submit(swapchain, tasks, ThreadedSubmission::Parallel);
     
   {
     HIGAN_CPU_BRACKET("Present");
-    dev.present(swapchain, obackbuffer.value().first);
+    
+    if (rendererOptions.submitExperimental)
+      presentTask = std::make_unique<css::Task<void>>(dev.asyncPresent(swapchain, obackbuffer.value().first));
+    else
+      dev.present(swapchain, obackbuffer.value().first);
   }
   co_return;
 }
+  css::Task<void> Renderer::cleanup() {
+    if (presentTask.get() != nullptr) {
+      co_await *presentTask;
+      presentTask.reset();
+    }
+  }
 }

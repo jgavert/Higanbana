@@ -208,53 +208,21 @@ namespace higanbana
     }
     void submit(Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
-      S().submit(swapchain, graph, threading);
+      if (threading == ThreadedSubmission::Sequenced)
+        S().submitST(swapchain, graph);
+      else
+        S().submit(swapchain, graph, threading);
     }
 
     void submit(CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
     {
-      S().submit(std::optional<Swapchain>(), graph, threading);
-    }
-
-    void submitExperimental(Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
-    {
-      if (threading == ThreadedSubmission::Sequenced)
-        S().submitST(swapchain, graph);
-      else
-        S().submitExperimental(swapchain, graph, threading);
-    }
-
-    void submitExperimental(CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
-    {
       if (threading == ThreadedSubmission::Sequenced)
         S().submitST(std::optional<Swapchain>(), graph);
       else
-        S().submitExperimental(std::optional<Swapchain>(), graph, threading);
+        S().submit(std::optional<Swapchain>(), graph, threading);
     }
 
-    void submitLBS(LBS& lbs,Swapchain& swapchain, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
-    {
-      S().submitLBS(lbs, swapchain, graph, threading);
-    }
-    void submitLBS(LBS lbs, CommandGraph graph, ThreadedSubmission threading = ThreadedSubmission::ParallelUnsequenced)
-    {
-      S().submitLBS(lbs, std::optional<Swapchain>(), graph, threading);
-    }
-
-    css::Task<void> submitCSSExp(Swapchain& swapchain, CommandGraph graph) {
-      return S().submitCSSExp(swapchain, graph);
-    }
-    css::Task<void> submitCSSExp(CommandGraph graph) {
-      return S().submitCSSExp(std::optional<Swapchain>(), graph);
-    }
-
-    css::Task<void> submitCSS(Swapchain& swapchain, CommandGraph graph) {
-      return S().submitCSS(swapchain, graph);
-    }
-    css::Task<void> submitCSS(CommandGraph graph) {
-      return S().submitCSS(std::optional<Swapchain>(), graph);
-    }
-
+    // this is async present, just doesn't read like it :D
     void present(Swapchain& swapchain, int backbufferIndex)
     {
       S().present(swapchain, backbufferIndex);
@@ -264,6 +232,19 @@ namespace higanbana
     {
       S().garbageCollection();
     }
+
+#if 1 // start of css::Task includes
+    css::Task<void> asyncSubmit(Swapchain& swapchain, CommandGraph graph) {
+      return S().asyncSubmit(swapchain, graph);
+    }
+    css::Task<void> asyncSubmit(CommandGraph graph) {
+      return S().asyncSubmit(std::optional<Swapchain>(), graph);
+    }
+    css::Task<void> asyncPresent(Swapchain& swapchain, int backbufferIndex)
+    {
+      return S().presentAsync(swapchain, backbufferIndex);
+    }
+#endif
 
     void waitGpuIdle()
     {
