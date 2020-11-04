@@ -1,5 +1,7 @@
 #include "imgui.hpp"
 
+#include <higanbana/core/profiling/profiling.hpp>
+
 using namespace higanbana;
 
 SHADER_STRUCT(imguiConstants,
@@ -99,6 +101,7 @@ IMGui::IMGui(GpuGroup& device)
 
 void IMGui::render(GpuGroup& device, CommandGraphNode& node, TextureRTV& target, vector<TextureSRV>& viewports)
 {
+  HIGAN_CPU_BRACKET("Collect ImGui render commands");
   auto drawData = ::ImGui::GetDrawData();
   HIGAN_ASSERT(drawData->Valid, "ImGui draw data is invalid!");
   target.setOp(higanbana::LoadOp::Load);

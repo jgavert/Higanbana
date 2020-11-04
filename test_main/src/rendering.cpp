@@ -556,7 +556,6 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   
   {
     auto node = tasks.createPass("preparePresent");
-
     node.prepareForPresent(backbuffer);
     tasks.addPass(std::move(node));
   }
