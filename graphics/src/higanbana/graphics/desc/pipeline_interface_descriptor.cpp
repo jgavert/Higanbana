@@ -198,6 +198,9 @@ namespace higanbana
     "addressW = TEXTURE_ADDRESS_WRAP)\"\n\n";     \
 
     int gi = 0;
+    for (auto&& structDecl : m_structs) {
+      lol += structDecl + ";\n";
+    }
     if (!constantStructBody.empty())
     {
       gi++;

@@ -8,6 +8,7 @@ namespace higanbana
   class PipelineInterfaceDescriptor 
   {
   public:
+    vector<std::string> m_structs;
     std::string constantStructBody;
     vector<ShaderArgumentsLayout> m_sets;
     size_t constantsSizeOf;
@@ -17,6 +18,13 @@ namespace higanbana
     {
     }
   public:
+
+    template<typename Strct>
+    PipelineInterfaceDescriptor& structDecl() {
+      auto sd = "struct " + std::string(Strct::structNameAsString) + " { " + std::string(Strct::structMembersAsString) + " };";
+      m_structs.push_back(sd);
+      return *this;
+    }
 
     template<typename Strct>
     PipelineInterfaceDescriptor& constants()

@@ -567,8 +567,8 @@ namespace higanbana
       VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block)
         : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, vk::IndexType::eUint16, block, 0 }
       {}
-      VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView texelView, vk::DescriptorBufferInfo view, VkUploadBlock block)
-        : m{ buffer, texelView, view, vk::DescriptorType::eStorageBuffer, vk::IndexType::eUint16, block, 0 }
+      VulkanDynamicBufferView(vk::Buffer buffer, vk::BufferView texelView, vk::DescriptorBufferInfo view, VkUploadBlock block, vk::IndexType indextype)
+        : m{ buffer, texelView, view, vk::DescriptorType::eStorageBuffer, indextype, block, 0 }
       {}
       VulkanDynamicBufferView(vk::Buffer buffer, vk::DescriptorBufferInfo view, VkUploadBlock block, unsigned rowPitch)
         : m{ buffer, {}, view, vk::DescriptorType::eStorageBuffer, vk::IndexType::eUint16, block, rowPitch }

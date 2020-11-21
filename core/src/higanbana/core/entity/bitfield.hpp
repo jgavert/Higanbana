@@ -9,6 +9,15 @@
 
 namespace higanbana
 {
+  inline size_t calcCtzll(uint64_t v) {
+#if 1
+    unsigned long ret;
+    _BitScanForward64(&ret, v);
+    return static_cast<size_t>(ret);
+#else
+    return __builtin_ctzll(a);
+#endif
+  }
   namespace bitOps
   {
     bool checkbit(const __m128i& vec, int n);
@@ -150,14 +159,14 @@ namespace higanbana
       uint64_t a = ~(_mm_extract_epi64(m_table[block], 0));
       uint64_t b = ~(_mm_extract_epi64(m_table[block], 1));
       size_t offset = block * 128;
-      size_t inner_idx = __builtin_ctzll(a);
+      size_t inner_idx = calcCtzll(a);
       if (a)
       {
         return inner_idx + offset;
       }
       else if (b)
       {
-        inner_idx = __builtin_ctzll(b);
+        inner_idx = calcCtzll(b);
         return inner_idx + 64 + offset;
       }
       return -1;
@@ -180,7 +189,7 @@ namespace higanbana
         }
         if (b)
         {
-          inner_idx = __builtin_ctzll(b);
+          inner_idx = calcCtzll(b);
           return inner_idx + 64 + blockOffset;
         }
         return -1;
@@ -194,12 +203,12 @@ namespace higanbana
 
       if (a)
       {
-        inner_idx = __builtin_ctzll(a);
+        inner_idx = calcCtzll(a);
         return inner_idx + blockOffset;
       }
       else if (b)
       {
-        inner_idx = __builtin_ctzll(b);
+        inner_idx = calcCtzll(b);
         return inner_idx + 64 + blockOffset;
       }
       return -1;
@@ -212,19 +221,19 @@ namespace higanbana
       uint64_t b = _mm_extract_epi64(m_table[index], 1);
       size_t offset = index * 128;
       size_t idx = table_size;
-      size_t inner_idx = __builtin_ctzll(a);
+      size_t inner_idx = calcCtzll(a);
       while (a)
       {
         table[idx++] = inner_idx + offset;
         a &= ~(1LL << (inner_idx));
-        inner_idx = __builtin_ctzll(a);
+        inner_idx = calcCtzll(a);
       }
-      inner_idx = __builtin_ctzll(b);
+      inner_idx = calcCtzll(b);
       while (b)
       {
         table[idx++] = inner_idx + 64 + offset;
         b &= ~(1LL << (inner_idx));
-        inner_idx = __builtin_ctzll(b);
+        inner_idx = calcCtzll(b);
       }
       return idx;
     }
@@ -268,7 +277,7 @@ namespace higanbana
       uint64_t b = _mm_extract_epi64(m_table[index], 1);
       size_t offset = index * 128;
       size_t idx = table_size;
-      size_t inner_idx = __builtin_ctzll(a);
+      size_t inner_idx = calcCtzll(a);
       while (a)
       {
         size_t value = inner_idx + offset;
@@ -276,9 +285,9 @@ namespace higanbana
         ++idx;
         pre(value);
         a &= ~(1LL << (inner_idx));
-        inner_idx = __builtin_ctzll(a);
+        inner_idx = calcCtzll(a);
       }
-      inner_idx = __builtin_ctzll(b);
+      inner_idx = calcCtzll(b);
       while (b)
       {
         size_t value = inner_idx + offset + 64;
@@ -286,7 +295,7 @@ namespace higanbana
         ++idx;
         pre(value);
         b &= ~(1LL << (inner_idx));
-        inner_idx = __builtin_ctzll(b);
+        inner_idx = calcCtzll(b);
       }
       return idx;
     }
@@ -608,7 +617,7 @@ namespace higanbana
             }
             if (b)
             {
-              auto ctzll = __builtin_ctzll(b);
+              auto ctzll = calcCtzll(b);
               return ctzll + 64 + dataIndex * BitCount;
             }
           }
@@ -623,12 +632,12 @@ namespace higanbana
 
             if (a)
             {
-              auto ctzll = __builtin_ctzll(a);
+              auto ctzll = calcCtzll(a);
               return ctzll + dataIndex * BitCount;
             }
             else if (b)
             {
-              auto ctzll = __builtin_ctzll(b);
+              auto ctzll = calcCtzll(b);
               return ctzll + 64 + dataIndex * BitCount;
             }
           }

@@ -1152,9 +1152,26 @@ namespace higanbana
       timing.barrierSolveGlobal.stop();
     }
 
-    void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing) {
+    void DeviceGroupData::fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, QueueType type, size_t constantMemoryRequired, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing) {
       HIGAN_CPU_FUNCTION_SCOPE();
       timing.fillNativeList.start();
+      if (!nativeList) {
+        HIGAN_CPU_BRACKET("createNativeList");
+        switch (type)
+        {
+        case QueueType::Dma:
+          nativeList = vdev.device->createDMAList();
+          break;
+        case QueueType::Compute:
+          nativeList = vdev.device->createComputeList();
+          nativeList->reserveConstants(constantMemoryRequired);
+          break;
+        case QueueType::Graphics:
+        default:
+          nativeList = vdev.device->createGraphicsList();
+          nativeList->reserveConstants(constantMemoryRequired);
+        }
+      }
       nativeList->fillWith(vdev.device, buffers, solver);
       timing.fillNativeList.stop();
     }
@@ -1524,24 +1541,6 @@ namespace higanbana
         auto& vdev = m_devices[list.device];
         buffer.solver.push_back(vdev.m_solvers.allocate());
 
-        {
-          HIGAN_CPU_BRACKET("createNativeList");
-          switch (list.type)
-          {
-          case QueueType::Dma:
-            nativeList = vdev.device->createDMAList();
-            break;
-          case QueueType::Compute:
-            nativeList = vdev.device->createComputeList();
-            nativeList->reserveConstants(list.requiredConstantMemory);
-            break;
-          case QueueType::Graphics:
-          default:
-            nativeList = vdev.device->createGraphicsList();
-            nativeList->reserveConstants(list.requiredConstantMemory);
-          }
-        }
-
         buffer.deviceID = list.device;
         buffer.started.push_back(m_seqTracker.next());
         buffer.lists.emplace_back(nativeList);
@@ -1551,7 +1550,6 @@ namespace higanbana
 
         listID++;
       }
-      HIGAN_CPU_BRACKET("readyLists.emplace_back");
       readyLists.emplace_back(std::move(buffer));
       return readyLists;
     }
@@ -1640,7 +1638,7 @@ namespace higanbana
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
             auto& solver = *list.solver[id - offset];
-            fillNativeList(list.lists[id-offset], vdev, buffersView, solver, list.listTiming[id - offset]);
+            fillNativeList(list.lists[id-offset], vdev, buffer.type, buffer.requiredConstantMemory, buffersView, solver, list.listTiming[id - offset]);
             list.listTiming[id - offset].cpuBackendTime.stop();
           });
         });
@@ -1830,7 +1828,7 @@ namespace higanbana
             auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
             auto& vdev = m_devices[list.deviceID];
             auto& solver = *list.solver[id - offset];
-            fillNativeList(list.lists[id - offset], vdev, buffersView, solver, list.listTiming[id - offset]);
+            fillNativeList(list.lists[id - offset], vdev, buffer.type, buffer.requiredConstantMemory, buffersView, solver, list.listTiming[id - offset]);
             list.listTiming[id - offset].cpuBackendTime.stop();
           });
         });
@@ -2042,7 +2040,7 @@ namespace higanbana
         auto buffersView = makeMemView(buffer.buffers.data(), buffer.buffers.size());
         auto& vdev = m_devices[liveList.deviceID];
         std::shared_ptr<CommandBufferImpl>& nativeList = liveList.lists[listID - listIdBegin];
-        fillNativeList(nativeList, vdev, buffersView, *liveList.solver[listID - listIdBegin], liveList.listTiming[listID - listIdBegin]);
+        fillNativeList(nativeList, vdev, buffer.type, buffer.requiredConstantMemory, buffersView, *liveList.solver[listID - listIdBegin], liveList.listTiming[listID - listIdBegin]);
         liveList.listTiming[listID - listIdBegin].cpuBackendTime.stop();
       }
       // wait previous submit
@@ -2134,13 +2132,13 @@ namespace higanbana
         auto readyLists = makeLiveCommandBuffers(*lists, timing.id);
         // CONSTANTS: I already know here which constant blocks will need copying to gpu. Could make DMA list here.
         timing.listsCount = lists->size();
-
         std::unique_ptr<css::Task<void>> gcComplete = std::make_unique<css::Task<void>>([&]() -> css::Task<void>
           {
             gc();
             co_return;
           }()
         );
+
 
         //std::unique_ptr<vector<std::shared_ptr<BarrierSolver>>> solvers = std::make_unique<vector<std::shared_ptr<BarrierSolver>>>();
         //solvers->resize(lists->size());

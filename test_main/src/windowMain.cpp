@@ -795,7 +795,15 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
     if (!m_renderOptions.renderImGui) {
       viewports = MemView(rendererViewports.data(), 1);
     }
-    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, m_cubeCount, m_cubeCommandLists);
+    vector<ChunkBlockDraw> blocks;
+    if (m_renderOptions.renderBlocks) {
+      for (int i = 0; i < 64*64; ++i) {
+        int k = i % 64;
+        int j = i / 64;
+        blocks.push_back(ChunkBlockDraw{float3(k,j,0), static_cast<uint>(i)});
+      }
+    }
+    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
 
     m_logicAndRenderTime.tick();
     auto totalTime = m_logicAndRenderTime.getFrameTimeDelta();
@@ -809,6 +817,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
       // HIGAN_LOGi("delta to fps limit %.4f %.4f %.4f %.4f %.4f\n", howFarAreWe, totalTime*1000000.f, overTime, targetTime, ourTime);
     }
   }
+  co_await rend.cleanup();
   co_return 0;
 }
 
@@ -989,7 +998,6 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       m_renderActive = false;
       logicAndRenderAsync.get();
       dev.waitGpuIdle();
-      rend.cleanup().wait();
     }
     if (!m_reInit)
       break;

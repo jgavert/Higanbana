@@ -303,7 +303,7 @@ namespace higanbana
       , m_info(info)
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
-      , m_seqTracker(std::make_shared<SequenceTracker>())
+      //, m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
       , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
@@ -2799,7 +2799,7 @@ namespace higanbana
         .setOffset(upload.offset())
         .setRange(dataRange.size());
 
-      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), rview, info, upload);
+      m_allRes.dynBuf[handle] = VulkanDynamicBufferView(upload.buffer(), rview, info, upload, indextype);
     }
 
     void VulkanDevice::dynamic(ViewResourceHandle handle, MemView<uint8_t> dataRange, unsigned stride)
@@ -2923,19 +2923,13 @@ namespace higanbana
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createDMAList()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_copyListPool.allocate();
       //resetListNative(*list);
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_dmaQueryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
-        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
+        [&](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");
-        if (auto seqTracker = tracker.lock())
-        {
-          seqTracker->complete(seqNumber);
-        }
         {
           HIGAN_CPU_BRACKET("free constants");
           for (auto&& constant : buffer->freeableConstants())
@@ -2949,19 +2943,13 @@ namespace higanbana
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createComputeList()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_computeListPool.allocate();
-      resetListNative(*list);
+      //resetListNative(*list);
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_computeQueryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
-        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
+        [&](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");
-        if (auto seqTracker = tracker.lock())
-        {
-          seqTracker->complete(seqNumber);
-        }
         {
           HIGAN_CPU_BRACKET("free constants");
           for (auto&& constant : buffer->freeableConstants())
@@ -2983,19 +2971,13 @@ namespace higanbana
     std::shared_ptr<CommandBufferImpl> VulkanDevice::createGraphicsList()
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto seqNumber = m_seqTracker->next();
-      std::weak_ptr<SequenceTracker> tracker = m_seqTracker;
 
       auto list = m_graphicsListPool.allocate();
       //resetListNative(*list);
       return std::shared_ptr<VulkanCommandBuffer>(new VulkanCommandBuffer(list, m_constantAllocators, m_readbackPool.allocate(), m_queryPoolPool.allocate(), m_shaderDebugBuffer.native(), m_dynamicDispatch),
-        [&, tracker, seqNumber](VulkanCommandBuffer* buffer)
+        [&](VulkanCommandBuffer* buffer)
       {
         HIGAN_CPU_BRACKET("destroy command buffer");
-        if (auto seqTracker = tracker.lock())
-        {
-          seqTracker->complete(seqNumber);
-        }
         {
           HIGAN_CPU_BRACKET("free constants");
           for (auto&& constant : buffer->freeableConstants())

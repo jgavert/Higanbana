@@ -262,7 +262,7 @@ namespace higanbana
       deque<LiveCommandBuffer2> makeLiveCommandBuffers(vector<PreparedCommandlist>& lists, uint64_t submitID);
       void firstPassBarrierSolve(VirtualDevice& vdev, MemView<CommandBuffer*>& buffer, QueueType queue, vector<QueueTransfer>& acquire, vector<QueueTransfer>& release, CommandListTiming& timing, BarrierSolver& solver, vector<ReadbackPromise>& readbacks, bool isFirstList);
       void globalPassBarrierSolve(CommandListTiming& timing, BarrierSolver& solver);
-      void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
+      void fillNativeList(std::shared_ptr<CommandBufferImpl>& nativeList, VirtualDevice& vdev, QueueType type, size_t constantMemoryRequired, MemView<CommandBuffer*>& buffers, BarrierSolver& solver, CommandListTiming& timing);
       void submitLiveCommandBuffer(std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList);
 
       // commandgraph

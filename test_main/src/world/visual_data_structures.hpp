@@ -14,6 +14,11 @@ struct InstanceDraw
   int meshId;
   int materialId;
 };
+struct ChunkBlockDraw 
+{
+  float3 position;
+  unsigned int materialIndex;
+};
 
 struct ActiveCamera
 {

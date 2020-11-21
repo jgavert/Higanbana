@@ -15,6 +15,7 @@
 #include "renderer/tonemapper.hpp"
 #include "renderer/blitter.hpp"
 #include "renderer/cubes.hpp"
+#include "renderer/blocks.hpp"
 #include "renderer/meshes.hpp"
 #include "renderer/textures.hpp"
 #include "renderer/materials.hpp"
@@ -37,15 +38,18 @@ struct RendererOptions
   bool allowRaytracing = false;
   bool unbalancedCubes = false;
   bool renderImGui = true;
+  bool renderBlocks = true;
   bool enableHDR = false;
   void drawImGuiOptions()
   {
+    ImGui::Checkbox("render blocks", &renderBlocks);
     ImGui::Checkbox("HDR", &enableHDR);
     ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);
     ImGui::Checkbox("Submit using CSS", &submitLBS);
     ImGui::Checkbox("Particles Enabled", &particles);
     ImGui::Checkbox("Simulate Particles", &particlesSimulate);
+
     //ImGui::Checkbox("Allow Mesh Shaders", &allowMeshShaders);
     //ImGui::Checkbox("Allow Raytracing", &allowRaytracing);
     ImGui::Checkbox("Unbalanced cube drawlists", &unbalancedCubes);
@@ -172,6 +176,7 @@ class Renderer
   renderer::IMGui imgui;
   renderer::World worldRend;
   renderer::MeshTest worldMeshRend;
+  renderer::Blocks blockRend;
   // postprocess
   renderer::ShittyTSAA tsaa;
   renderer::Tonemapper tonemapper;
@@ -213,7 +218,7 @@ class Renderer
     int drawcalls;
     int drawsSplitInto;
   };
-  css::Task<void> renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments args, higanbana::vector<InstanceDraw>& instances);
+  css::Task<void> renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const SceneArguments args, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks);
 public:
   Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& dev);
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
@@ -222,7 +227,7 @@ public:
   void ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
-  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists);
+  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);

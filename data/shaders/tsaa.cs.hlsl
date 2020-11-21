@@ -64,6 +64,17 @@ void load3by3(int2 uv, out float3 minC, out float3 maxC)
   //maxC = sample;
 }
 
+float4 smartClamp(float4 reference, float4 color, float howClose) {
+  float4 maxClamp = reference + normalize(color-reference)*howClose;
+  return clamp(color, reference, maxClamp);
+}
+float3 smartClamp(float3 reference, float3 color, float howClose) {
+  float3 maxClamp = reference + normalize(color-reference)*howClose;
+  if (any(reference > maxClamp))
+    return clamp(color, maxClamp, reference);
+  return clamp(color, reference, maxClamp);
+}
+
 void debug3by3(int2 uv, float4 color)
 {
   debug[uv + int2(1,1)] = color;
@@ -205,7 +216,12 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   //float4 colorClamp = float4(historyWeight/2, historyWeight/2, historyWeight/2, 1);
   //if (motLen > 0.00001f) {
     //current += float3(1,1,1);
+  if (1)
     current.rgb = clamp(current.rgb, minC, maxC);
+  else {
+    float3 center = srcPixel.rgb;
+    current.rgb = smartClamp(center, current.rgb, 0.05);
+  }
   //}
   if (0)
   {

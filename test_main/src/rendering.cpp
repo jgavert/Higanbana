@@ -50,6 +50,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , imgui(dev)
   , worldRend(dev, m_camerasLayout, textures.bindlessLayout())
   , worldMeshRend(dev, m_camerasLayout, textures.bindlessLayout())
+  , blockRend(dev, m_camerasLayout, textures.bindlessLayout())
   , tsaa(dev)
   , tonemapper(dev)
   , blitter(dev)
@@ -161,7 +162,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
   node.endRenderpass();
 }
 
-css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances) {
+css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks) {
   HIGAN_CPU_BRACKET("renderScene");
   {
     auto node = tasks.createPass("composite", QueueType::Graphics, scene.options.gpuToUse);
@@ -205,7 +206,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
 
     auto args = dev.createShaderArguments(ShaderArgumentsDescriptor("Opaque Arguments", cubes.getLayout())
       .bind("vertexInput", vert));
-    if (instances.empty())
+    if (instances.empty() && blocks.empty())
     {
       HIGAN_CPU_BRACKET("draw cubes - outer loop");
       auto gbufferRTV = scene.gbufferRTV;
@@ -265,7 +266,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
         passId++;
       }
     }
-    else
+    else if (!instances.empty())
     {
       HIGAN_CPU_BRACKET("opaquePass - ecs");
       auto node = tasks.createPass("opaquePass - ecs", QueueType::Graphics, scene.options.gpuToUse);
@@ -279,6 +280,18 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
       else
         renderMeshes(node, gbufferRTV, moti, depth, scene.materials, scene.cameraIdx, scene.prevCameraIdx, instances);
       tasks.addPass(std::move(node));
+    }
+    else{
+      HIGAN_CPU_BRACKET("opaquePass - blocks");
+      auto node = tasks.createPass("opaquePass - blocks", QueueType::Graphics, scene.options.gpuToUse);
+      auto gbufferRTV = scene.gbufferRTV;
+      auto depth = scene.depth;
+      auto moti = scene.motionVectors;
+      HIGAN_ASSERT(scene.materials, "wtf!");
+      moti.clearOp(float4(0.f,0.f,0.f,0.f));
+      blockRend.renderBlocks(dev, node, gbufferRTV, moti, depth, cameraArgs, scene.materials, scene.cameraIdx, scene.prevCameraIdx, blocks);
+      tasks.addPass(std::move(node));
+      
     }
   }
 
@@ -308,7 +321,7 @@ void Renderer::ensureViewportCount(int size) {
     viewports.resize(size);
 }
 
-css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, int drawcalls, int drawsSplitInto) {
+css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
   bool adjustSwapchain = false;
   if (rendererOptions.enableHDR == true && scdesc.desc.colorSpace != Colorspace::BT2020)
   {
@@ -320,6 +333,10 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   }
   if (swapchain.outOfDate() || adjustSwapchain)
   {
+    if (presentTask.get() != nullptr) {
+      co_await *presentTask;
+      presentTask.reset();
+    }
     dev.adjustSwapchain(swapchain, scdesc);
     resizeExternal(swapchain.buffers().begin()->texture().desc());
   }
@@ -415,7 +432,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
 
     Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
 
-    sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances));
+    sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances, blocks));
   }
 
   //co_await sceneTasks.back();
@@ -577,10 +594,10 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   }
   co_return;
 }
-  css::Task<void> Renderer::cleanup() {
-    if (presentTask.get() != nullptr) {
-      co_await *presentTask;
-      presentTask.reset();
-    }
+css::Task<void> Renderer::cleanup() {
+  if (presentTask.get() != nullptr) {
+    co_await *presentTask;
+    presentTask.reset();
   }
+}
 }
