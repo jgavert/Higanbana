@@ -216,6 +216,9 @@ void main(uint2 id : SV_DispatchThreadID, uint2 gid : SV_GroupThreadID)
   //float4 colorClamp = float4(historyWeight/2, historyWeight/2, historyWeight/2, 1);
   //if (motLen > 0.00001f) {
     //current += float3(1,1,1);
+
+  // clamping here means we really discard possibly the AA effects also, have to be careful
+  // basically figure out if we are really outside the box... only then fix it.
   if (1)
     current.rgb = clamp(current.rgb, minC, maxC);
   else {

@@ -54,6 +54,8 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , tsaa(dev)
   , tonemapper(dev)
   , blitter(dev)
+  , mipper(dev)
+  , depthPyramid(dev)
   , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
   , particleSimulation(dev, m_camerasLayout) {
   HIGAN_CPU_FUNCTION_SCOPE();
@@ -160,6 +162,32 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
     worldMeshRend.renderMesh(node, mesh.indices, cameraArgs, mesh.meshArgs, materials, mesh.meshlets.desc().desc.width, cameraIndex);
   }
   node.endRenderpass();
+}
+
+void Renderer::testMipper(higanbana::CommandNodeVector& tasks, higanbana::Texture testTexture, higanbana::TextureRTV& backbuffer, higanbana::Texture someData) {
+  {
+    auto node = tasks.createPass("copy backbuffer as example");
+    node.copy(testTexture, Subresource().mip(0).slice(0), int3(0,0,0), someData, Subresource().mip(0).slice(0), Box());
+    tasks.addPass(std::move(node));
+  }
+  {
+    auto node = tasks.createPass("generate mips");
+    mipper.generateMipsCS(dev, node, testTexture);
+    tasks.addPass(std::move(node));
+  }
+  {
+    auto node = tasks.createPass("output mips");
+    auto mips = testTexture.desc().desc.miplevels;
+    blitter.beginRenderpass(node, backbuffer);
+    int offset = 0;
+    for (auto mip = 0; mip < mips; ++ mip) {
+      auto srv = dev.createTextureSRV(testTexture, ShaderViewDescriptor().setMostDetailedMip(mip).setMipLevels(1));
+      blitter.blitScale(dev, node, backbuffer, srv, int2(offset, 0), 0.5f);
+      offset += srv.size3D().x / 2;
+    }
+    node.endRenderpass();
+    tasks.addPass(std::move(node));
+  }
 }
 
 css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higanbana::WTime& time, const RendererOptions& rendererOptions, const Renderer::SceneArguments scene, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks) {
@@ -560,6 +588,15 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     }
   }
 
+  if (rendererOptions.testMipper)
+  {
+    auto node = tasks.localThreadVector();
+    for (auto&& viewport : viewports) {
+      testMipper(node, viewport.mipmaptest, viewport.viewportRTV, viewport.gbuffer);
+    }
+    tasks.addVectorOfPasses(std::move(node));
+  }
+
   // IMGUI
   if (rendererOptions.renderImGui)
   {
@@ -587,7 +624,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   {
     HIGAN_CPU_BRACKET("Present");
     
-    if (rendererOptions.submitExperimental)
+    if (rendererOptions.submitExperimental && !rendererOptions.submitSingleThread)
       presentTask = std::make_unique<css::Task<void>>(dev.asyncPresent(swapchain, obackbuffer.value().first));
     else
       dev.present(swapchain, obackbuffer.value().first);

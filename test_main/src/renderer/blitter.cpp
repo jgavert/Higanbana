@@ -96,8 +96,9 @@ void Blitter::blit(higanbana::GpuGroup& device, higanbana::CommandGraphNode& nod
 void Blitter::blitScale(higanbana::GpuGroup& device, higanbana::CommandGraphNode& node,higanbana::TextureRTV target,  higanbana::TextureSRV& source, int2 itopleft, float scale)
 {
   float relativeScale = float(target.desc().desc.width) / float(source.desc().desc.width);
-  float x = float(source.desc().desc.width) * scale * relativeScale;
-  float y = float(source.desc().desc.height) * scale * relativeScale;
+  auto src = source.size3D();
+  float x = float(src.x) * scale * relativeScale;
+  float y = float(src.y) * scale * relativeScale;
   blit(device, node, target, source, itopleft, int2(static_cast<int>(x), static_cast<int>(y)));
 }
 
@@ -217,7 +218,6 @@ void Blitter::blitImage(higanbana::GpuGroup& device, higanbana::CommandGraphNode
     .bind("source", source)
     .bind("sourceInt", TextureSRV()));
   auto& pipeline = pipelines(target.desc().desc.format);
-  HIGAN_ASSERT(pipeline, "pipeline should be valid");
   auto binding = node.bind(pipeline);
   binding.arguments(0, args);
   binding.constants(consts);

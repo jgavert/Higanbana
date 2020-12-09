@@ -105,6 +105,7 @@ namespace higanbana
       }
 
       int mipLevels = desc.miplevels;
+      HIGAN_ASSERT(mipLevels != ResourceDescriptor::AllMips, "shouldn't be wrong");
 
       vk::ImageUsageFlags usage;
       usage |= vk::ImageUsageFlagBits::eTransferDst;
@@ -197,7 +198,7 @@ namespace higanbana
         .setFormat(formatToVkFormat(desc.format).storage)
         .setImageType(ivt)
         .setInitialLayout(vk::ImageLayout::eUndefined)
-        .setMipLevels(desc.miplevels)
+        .setMipLevels(mipLevels)
         .setSamples(sampleFlags)
         .setTiling(vk::ImageTiling::eOptimal) // TODO: hmm
         .setUsage(usage)

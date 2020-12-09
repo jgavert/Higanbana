@@ -89,18 +89,16 @@ namespace higanbana
       MemView<ShaderArguments> resources,
       MemView<uint8_t> constants)
     {
-      list.insert<gfxpacket::ResourceBinding>(
-        gfxpacket::ResourceBinding::BindingType::Graphics
-        , constants, resources);
+      list.insert<gfxpacket::ResourceBindingGraphics>(
+        constants, resources);
     }
 
     void bindComputeResources(
       MemView<ShaderArguments> resources,
       MemView<uint8_t> constants)
     {
-      list.insert<gfxpacket::ResourceBinding>(
-        gfxpacket::ResourceBinding::BindingType::Compute
-        , constants, resources);
+      list.insert<gfxpacket::ResourceBindingCompute>(
+        constants, resources);
     }
 
     void setScissorRect(int2 topLeft, int2 bottomRight)
@@ -155,9 +153,9 @@ namespace higanbana
       //list.insert<gfxpacket::TextureToBufferCopy>(target.dependency(), targetOffset, source.dependency(), subresource, srcbox);
     }
 
-    void copy(Texture& target, int3 dstPos, Texture& source, Subresource subresource, Box srcbox)
+    void copy(Texture& target, Subresource dstSubresource, int3 dstPos, Texture& source, Subresource srcSubresource, Box srcbox)
     {
-      //list.insert<gfxpacket::TextureAdvCopy>(target.dependency(), dstPos, source.dependency(), subresource, srcbox);
+      list.insert<gfxpacket::TextureToTextureCopy>(target.handle(), target.desc().desc.miplevels, dstSubresource, dstPos, source.handle(), source.desc().desc.miplevels, srcSubresource, srcbox);
     }
 
     void copy(Texture& target, Texture& source, SubresourceRange range)

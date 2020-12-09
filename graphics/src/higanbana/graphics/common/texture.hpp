@@ -5,7 +5,7 @@
 #include "higanbana/graphics/common/resource_descriptor.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/common/handle.hpp"
-
+#include <algorithm>
 namespace higanbana
 {
   class Texture
@@ -39,6 +39,14 @@ namespace higanbana
       return *m_desc;
     }
 
+    uint3 size3D() {
+      return desc().desc.size3D();
+    }
+
+    FormatType format() {
+      return desc().desc.format;
+    }
+
     ResourceHandle handle() const
     {
       if (m_id)
@@ -69,10 +77,27 @@ namespace higanbana
       return tex.desc();
     }
 
-
     Texture& texture()
     {
       return tex;
+    }
+
+    uint mip() {
+      return m_id->startMip();
+    }
+
+    uint slice() {
+      return m_id->startArr();
+    }
+
+    uint3 size3D() {
+      auto smip = mip();
+      auto size = texture().size3D();
+      while (smip > 0) {
+        size = uint3(std::max(1u, size.x / 2), std::max(1u, size.y / 2), std::max(1u, size.z / 2));
+        smip--;
+      }
+      return size;
     }
 
     ViewResourceHandle handle() const

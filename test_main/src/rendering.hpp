@@ -20,6 +20,8 @@
 #include "renderer/textures.hpp"
 #include "renderer/materials.hpp"
 #include "renderer/generate_image.hpp"
+#include "renderer/generate_mips.hpp"
+#include "renderer/depth_pyramid.hpp"
 #include "renderer/particles.hpp"
 #include "renderer/viewport.hpp"
 #include "world/visual_data_structures.hpp"
@@ -30,7 +32,7 @@ namespace app
 struct RendererOptions
 {
   bool submitExperimental = true;
-  bool submitSingleThread = false;
+  bool submitSingleThread = true;
   bool submitLBS = false;
   bool particles = false;
   bool particlesSimulate = true;
@@ -38,11 +40,13 @@ struct RendererOptions
   bool allowRaytracing = false;
   bool unbalancedCubes = false;
   bool renderImGui = true;
+  bool testMipper = true;
   bool renderBlocks = true;
   bool enableHDR = false;
   void drawImGuiOptions()
   {
     ImGui::Checkbox("render blocks", &renderBlocks);
+    ImGui::Checkbox("test generate mipmaps", &testMipper);
     ImGui::Checkbox("HDR", &enableHDR);
     ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);
@@ -181,6 +185,8 @@ class Renderer
   renderer::ShittyTSAA tsaa;
   renderer::Tonemapper tonemapper;
   renderer::Blitter blitter;
+  renderer::GenerateMips mipper;
+  renderer::DepthPyramid depthPyramid;
   renderer::GenerateImage genImage;
   renderer::Particles particleSimulation;
 
@@ -204,6 +210,8 @@ class Renderer
   int64_t m_acquireTimeTaken;
   void renderMeshes(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureRTV& motionVecs, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, int prevCamera, higanbana::vector<InstanceDraw>& instances);
   void renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, higanbana::TextureRTV& backbuffer, higanbana::TextureDSV& depth, higanbana::ShaderArguments materials, int cameraIndex, higanbana::vector<InstanceDraw>& instances);
+
+  void testMipper(higanbana::CommandNodeVector& tasks, higanbana::Texture testTexture, higanbana::TextureRTV& backbuffer, higanbana::Texture someData);
 
   struct SceneArguments {
     higanbana::TextureRTV gbufferRTV;

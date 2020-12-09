@@ -11,7 +11,7 @@ cc_library(
     hdrs = glob(["higan_coroutines/scheduler/src/**/*.cpp"]) + glob(["higan_coroutines/scheduler/src/**/*.hpp"]),
     strip_include_prefix = "higan_coroutines/scheduler/src",
     copts = select({
-            "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-", "/await", "/Z7", "-ftime-trace"],
+            "@bazel_tools//src/conditions:windows": ["/std:c++latest", "/arch:AVX2", "/permissive-", "/Z7", "-ftime-trace"],
             "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
     }),
     defines = [],

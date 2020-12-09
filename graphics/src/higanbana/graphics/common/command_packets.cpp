@@ -22,8 +22,10 @@ namespace higanbana
         return "GraphicsPipelineBind";
       case backend::PacketType::ComputePipelineBind:
         return "ComputePipelineBind";
-      case backend::PacketType::ResourceBinding:
-        return "ResourceBinding";
+      case backend::PacketType::ResourceBindingGraphics:
+        return "ResourceBindingGraphics";
+      case backend::PacketType::ResourceBindingCompute:
+        return "ResourceBindingCompute";
       case backend::PacketType::Draw:
         return "Draw";
       case backend::PacketType::RenderBlock:

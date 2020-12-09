@@ -40,6 +40,13 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
   {
     auto desc = ResourceDescriptor(gbuffer.desc()).setSize(currentRes);
 
+    mipmaptest = device.createTexture(higanbana::ResourceDescriptor()
+      .setSize(desc.desc.size3D())
+      .setFormat(FormatType::Float16RGBA)
+      .setMiplevels(higanbana::ResourceDescriptor::AllMips)
+      .setUsage(ResourceUsage::RenderTargetRW)
+      .setName("mipmaptest"));
+
     gbuffer = device.createTexture(higanbana::ResourceDescriptor()
       .setSize(desc.desc.size3D())
       .setFormat(FormatType::Float16RGBA)

@@ -385,6 +385,7 @@ namespace higanbana
   {
   public:
     // keep the order
+    static const unsigned AllMips = unsigned(-1);
     struct descriptor
     {
       std::string     name = "Unnamed Resource";
@@ -522,7 +523,7 @@ namespace higanbana
       return *this;
     }
 
-    ResourceDescriptor& setMiplevels(unsigned levels)
+    ResourceDescriptor& setMiplevels(unsigned levels = 1)
     {
       desc.miplevels = levels;
       return *this;

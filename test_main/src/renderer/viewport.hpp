@@ -21,6 +21,8 @@ class Viewport
   higanbana::TextureUAV tsaaDebugUAV;
 
   // resources sharing resolution with gbuffer
+  higanbana::Texture    mipmaptest;
+
   higanbana::Texture    gbuffer;
   higanbana::TextureSRV gbufferSRV;
   higanbana::TextureRTV gbufferRTV;

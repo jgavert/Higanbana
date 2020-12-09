@@ -414,55 +414,97 @@ namespace higanbana
       HIGAN_ASSERT(block, "What!");
       return block;
     }
-
-    void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBinding& ding)
+    void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBindingGraphics& ding)
     {
-      auto pconstants = ding.constants.convertToMemView();
+      auto pconstants = ding.constantsView();
       if (pconstants.size() > 0)
       {
         auto block = allocateConstants(pconstants.size());
         memcpy(block.data(), pconstants.data(), pconstants.size());
-        if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-        {
-          buffer->SetGraphicsRootConstantBufferView(0, block.gpuVirtualAddress());
-        }
-        else
-        {
-          buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
-        }
+        buffer->SetGraphicsRootConstantBufferView(0, block.gpuVirtualAddress());
       }
-      auto tables = ding.resources.convertToMemView();
+      auto tables = ding.resourcesView();
       UINT rootIndex = 2; // 0 is constants, 1 is shader debug uav table, starting from 2 is normal tables
       // just bind shader debug always to root slot 1 ...?
-      if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
-        buffer->SetGraphicsRootDescriptorTable(1, m_shaderDebugTable.gpu);
-      else
-        buffer->SetComputeRootDescriptorTable(1, m_shaderDebugTable.gpu);
+      buffer->SetGraphicsRootDescriptorTable(1, m_shaderDebugTable.gpu);
       int tableIndex = 0;
-      if (ding.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics)
+      for (auto& table : tables)
       {
-        for (auto& table : tables)
+        if (m_boundSets[tableIndex] != table)
         {
-          if (m_boundSets[tableIndex] != table)
-          {
-            buffer->SetGraphicsRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-            m_boundSets[tableIndex] = table; 
-          }
-          rootIndex++; tableIndex++;
+          auto& btable = dev->allResources().shaArgs[table];
+          buffer->SetGraphicsRootDescriptorTable(rootIndex, btable.descriptorTable.offset(0).gpu);
+          m_boundSets[tableIndex] = table; 
         }
+        rootIndex++; tableIndex++;
       }
-      else
+    }
+
+    void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBindingCompute& ding)
+    {
+      auto pconstants = ding.constantsView();
+      if (pconstants.size() > 0)
       {
-        for (auto& table : tables)
-        {
-          if (m_boundSets[tableIndex] != table)
-          {
-            buffer->SetComputeRootDescriptorTable(rootIndex, dev->allResources().shaArgs[table].descriptorTable.offset(0).gpu);
-            m_boundSets[tableIndex] = table; 
-          }
-          rootIndex++; tableIndex++;
-        }
+        auto block = allocateConstants(pconstants.size());
+        memcpy(block.data(), pconstants.data(), pconstants.size());
+        buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
       }
+      auto tables = ding.resourcesView();
+      UINT rootIndex = 2; // 0 is constants, 1 is shader debug uav table, starting from 2 is normal tables
+      // just bind shader debug always to root slot 1 ...?
+      buffer->SetComputeRootDescriptorTable(1, m_shaderDebugTable.gpu);
+      int tableIndex = 0;
+      for (auto& table : tables)
+      {
+        if (m_boundSets[tableIndex] != table)
+        {
+          auto& btable = dev->allResources().shaArgs[table];
+          buffer->SetComputeRootDescriptorTable(rootIndex, btable.descriptorTable.offset(0).gpu);
+          m_boundSets[tableIndex] = table; 
+        }
+        rootIndex++; tableIndex++;
+      }
+    }
+
+    std::string stateToString(D3D12_RESOURCE_STATES state) {
+      std::string resultingString = "";
+      if (state == D3D12_RESOURCE_STATE_COMMON) return "D3D12_RESOURCE_STATE_COMMON";
+      if (state == D3D12_RESOURCE_STATE_GENERIC_READ) return "D3D12_RESOURCE_STATE_GENERIC_READ";
+      if ((state & D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+        resultingString += "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | ";
+      if ((state & D3D12_RESOURCE_STATE_INDEX_BUFFER) == D3D12_RESOURCE_STATE_INDEX_BUFFER)
+        resultingString += "D3D12_RESOURCE_STATE_INDEX_BUFFER | ";
+      if ((state & D3D12_RESOURCE_STATE_RENDER_TARGET) == D3D12_RESOURCE_STATE_RENDER_TARGET)
+        resultingString += "D3D12_RESOURCE_STATE_RENDER_TARGET | ";
+      if ((state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        resultingString += "D3D12_RESOURCE_STATE_UNORDERED_ACCESS | ";
+      if ((state & D3D12_RESOURCE_STATE_DEPTH_WRITE) == D3D12_RESOURCE_STATE_DEPTH_WRITE)
+        resultingString += "D3D12_RESOURCE_STATE_DEPTH_WRITE | ";
+      if ((state & D3D12_RESOURCE_STATE_DEPTH_READ) == D3D12_RESOURCE_STATE_DEPTH_READ)
+        resultingString += "D3D12_RESOURCE_STATE_DEPTH_READ | ";
+      if ((state & D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) == D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+        resultingString += "D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | ";
+      if ((state & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+        resultingString += "D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | ";
+      if ((state & D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT) == D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
+        resultingString += "D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT | ";
+      auto WTF = state & D3D12_RESOURCE_STATE_COPY_DEST;
+      auto WTF2 = WTF == D3D12_RESOURCE_STATE_COPY_DEST;
+      if (WTF2)
+        resultingString += "D3D12_RESOURCE_STATE_COPY_DEST | ";
+      if ((state & D3D12_RESOURCE_STATE_COPY_SOURCE) == D3D12_RESOURCE_STATE_COPY_SOURCE)
+        resultingString += "D3D12_RESOURCE_STATE_COPY_SOURCE | ";
+      if ((state & D3D12_RESOURCE_STATE_RESOLVE_DEST) == D3D12_RESOURCE_STATE_RESOLVE_DEST)
+        resultingString += "D3D12_RESOURCE_STATE_RESOLVE_DEST | ";
+      if ((state & D3D12_RESOURCE_STATE_RESOLVE_SOURCE) == D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
+        resultingString += "D3D12_RESOURCE_STATE_RESOLVE_SOURCE | ";
+      if ((state & D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE) == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+        resultingString += "D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE | ";
+      if ((state & D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE) == D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE)
+        resultingString += "D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE | ";
+      if ((state & D3D12_RESOURCE_STATE_PREDICATION) == D3D12_RESOURCE_STATE_PREDICATION)
+        resultingString += "D3D12_RESOURCE_STATE_PREDICATION | ";
+      return resultingString;
     }
 
     D3D12_RESOURCE_STATES translateAccessMask(AccessStage stage, AccessUsage usage)
@@ -532,19 +574,27 @@ namespace higanbana
           auto flag = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           auto beforeState = translateAccessMask(image.before.stage, image.before.usage);
           auto afterState = translateAccessMask(image.after.stage, image.after.usage);
-          if (beforeState == afterState)
+          auto barrierBef = stateToString(beforeState);
+          auto barrierAft = stateToString(afterState);
+          
+          //HIGAN_LOGi("tex: %zd m: %d-%d s: %d-%d transition: %s -> %s...", image.handle.id, image.startMip, image.mipSize, image.startArr, image.arrSize, barrierBef.c_str(), barrierAft.c_str());
+          if (beforeState == afterState) {
+            //HIGAN_LOGi("skipped\n");
             continue;
+          }
+          //HIGAN_LOGi("doing \n");
           D3D12_RESOURCE_TRANSITION_BARRIER transition;
           transition.pResource = tex.native();
           transition.StateBefore = beforeState;
           transition.StateAfter = afterState;
 
-          for (auto slice = image.startArr; slice < image.arrSize; ++slice)
+          for (auto slice = image.startArr; slice < image.startArr+image.arrSize; ++slice)
           {
-            for (auto mip = image.startMip; mip < image.mipSize; ++mip)
+            for (auto mip = image.startMip; mip < image.startMip+image.mipSize; ++mip)
             {
               auto subresource = slice * maxMip + mip;
               transition.Subresource = subresource;
+              //HIGAN_LOGi("tex: %zd m: %d s: %d transition: %s -> %s\n", image.handle.id, mip, slice, barrierBef.c_str(), barrierAft.c_str());
               barriers.emplace_back(D3D12_RESOURCE_BARRIER{type, flag, transition});
             }
           }
@@ -612,6 +662,7 @@ namespace higanbana
             
             timestamp = m_queryheap->allocate();
             buffer->EndQuery(m_queryheap->native(), D3D12_QUERY_TYPE_TIMESTAMP, timestamp.beginIndex);
+            //HIGAN_LOGi("RenderBlock %s\n", block.data());
             break;
           }
           case PacketType::PrepareForPresent:
@@ -673,9 +724,15 @@ namespace higanbana
             }
             break;
           }
-          case PacketType::ResourceBinding:
+          case PacketType::ResourceBindingGraphics:
           {
-            gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
+            gfxpacket::ResourceBindingGraphics& packet = header->data<gfxpacket::ResourceBindingGraphics>();
+            handleBindings(device, buffer, packet);
+            break;
+          }
+          case PacketType::ResourceBindingCompute:
+          {
+            gfxpacket::ResourceBindingCompute& packet = header->data<gfxpacket::ResourceBindingCompute>();
             handleBindings(device, buffer, packet);
             break;
           }
@@ -760,6 +817,17 @@ namespace higanbana
             D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromBuffer(srcBuf.native(), params.srcOffset, rowPitch, params.width, params.height, params.format);
             D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dstTex.native(), params.allMips, params.mip, params.slice);
             buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            break;
+          }
+          case PacketType::TextureToTextureCopy:
+          {
+            auto params = header->data<gfxpacket::TextureToTextureCopy>();
+            auto dst = device->allResources().tex[params.dst];
+            auto src = device->allResources().tex[params.src];
+
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(src.native(), params.srcMaxMips, params.srcMip, params.srcSlice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dst.native(), params.dstMaxMips, params.dstMip, params.dstSlice);
+            buffer->CopyTextureRegion(&dstLoc, params.dstPos.x, params.dstPos.y, params.dstPos.z, &srcLoc, nullptr);
             break;
           }
           case PacketType::RenderpassEnd:

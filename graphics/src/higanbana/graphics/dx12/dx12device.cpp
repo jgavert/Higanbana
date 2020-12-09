@@ -54,6 +54,8 @@ namespace higanbana
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &m_features.opt5, sizeof(m_features.opt5));
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &m_features.opt6, sizeof(m_features.opt6));
 
+      HIGAN_ASSERT(m_features.opt3.CopyQueueTimestampQueriesSupported, "should be supported");
+
 
       D3D12_COMMAND_QUEUE_DESC desc{};
       desc.Type = D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -381,7 +383,9 @@ namespace higanbana
       dxdesc.Width = desc.width;
       dxdesc.Height = desc.height;
       dxdesc.DepthOrArraySize = static_cast<uint16_t>(desc.arraySize);
-      dxdesc.MipLevels = static_cast<uint16_t>(desc.miplevels);
+      uint mips = desc.miplevels;
+      HIGAN_ASSERT(mips != ResourceDescriptor::AllMips, "shouldn't be wrong");
+      dxdesc.MipLevels = static_cast<uint16_t>(mips);
       dxdesc.Alignment = 0; // D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
       dxdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
       dxdesc.Format = formatTodxFormat(desc.format).raw;
@@ -1560,7 +1564,8 @@ namespace higanbana
 
       m_device->CreateCommittedResource(&prop, flags, &dxDesc, startState, nullptr, IID_PPV_ARGS(&texture));
 
-      auto wstr = s2ws(desc.desc.name);
+      std::string lol = std::to_string(handle.id) + ": " + desc.desc.name;
+      auto wstr = s2ws(lol);
       texture->SetName(wstr.c_str());
 
       m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
@@ -1625,7 +1630,8 @@ namespace higanbana
       ID3D12Resource* texture;
       HIGANBANA_CHECK_HR(m_device->CreatePlacedResource(native.native(), allocation.allocation.block.offset, &dxDesc, startState, clearPtr, IID_PPV_ARGS(&texture)));
 
-      auto wstr = s2ws(desc.desc.name);
+      std::string lol = std::to_string(handle.id) + ": " + desc.desc.name;
+      auto wstr = s2ws(lol);
       texture->SetName(wstr.c_str());
 
       m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
@@ -2072,8 +2078,9 @@ namespace higanbana
           natList.emplace_back(native->list());
         }
       }
-      if (!natList.empty())
+      if (!natList.empty()) {
         queue->ExecuteCommandLists(static_cast<UINT>(natList.size()), natList.data());
+      }
 
       if (!signal.empty())
       {

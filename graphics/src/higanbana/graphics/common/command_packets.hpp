@@ -16,12 +16,11 @@ namespace higanbana
 
       // constructors
       static constexpr const backend::PacketType type = backend::PacketType::RenderBlock;
-      static void constructor(backend::CommandBuffer& buffer, RenderBlock* packet, MemView<char> inputName)
+      static void constructor(backend::CommandBuffer& buffer, RenderBlock& packet, MemView<char> inputName)
       {
-        packet = buffer.allocateElements<char>(packet->name, inputName.size()+1, packet);
-        auto spn = packet->name.convertToMemView();
-        memcpy(spn.data(), inputName.data(), inputName.size_bytes());
-        spn[inputName.size_bytes()] = '\0';
+        auto ptr = buffer.allocateElements<char>(packet.name, inputName.size()+1, packet);
+        memcpy(ptr, inputName.data(), inputName.size_bytes());
+        memset(ptr+inputName.size(), '\0', sizeof(char));
       }
     };
 
@@ -29,7 +28,7 @@ namespace higanbana
     {
       // constructors
       static constexpr const backend::PacketType type = backend::PacketType::ReleaseFromQueue;
-      static void constructor(backend::CommandBuffer& buffer, ReleaseFromQueue* packet)
+      static void constructor(backend::CommandBuffer& buffer, ReleaseFromQueue& packet)
       {
       }
     };
@@ -39,9 +38,9 @@ namespace higanbana
       ResourceHandle texture;
 
       static constexpr const backend::PacketType type = backend::PacketType::PrepareForPresent;
-      static void constructor(backend::CommandBuffer& buffer, PrepareForPresent* packet, ResourceHandle texture)
+      static void constructor(backend::CommandBuffer& buffer, PrepareForPresent& packet, ResourceHandle texture)
       {
-        packet->texture = texture;
+        packet.texture = texture;
       }
     };
 
@@ -57,28 +56,22 @@ namespace higanbana
       int fbHeight;
 
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
-      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin* packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepth)
+      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin& packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepth)
       {
-        packet->renderpass = renderpass;
-        packet = buffer.allocateElements<ViewResourceHandle>(packet->rtvs, rtvs.size(), packet);
-        {
-          auto spn = packet->rtvs.convertToMemView();
-          memcpy(spn.data(), rtvs.data(), rtvs.size_bytes());
-        }
-        packet->dsv = dsv;
-        packet = buffer.allocateElements<float4>(packet->clearValues, clearVals.size(), packet);
-        {
-          auto spn = packet->clearValues.convertToMemView();
-          memcpy(spn.data(), clearVals.data(), clearVals.size_bytes());
-        }
-        packet->clearDepth = clearDepth;
+        packet.renderpass = renderpass;
+        uint8_t* ptr = buffer.allocateElements<ViewResourceHandle>(packet.rtvs, rtvs.size(), packet);
+        memcpy(ptr, rtvs.data(), rtvs.size_bytes());
+        packet.dsv = dsv;
+        ptr = buffer.allocateElements<float4>(packet.clearValues, clearVals.size(), packet);
+        memcpy(ptr, clearVals.data(), clearVals.size_bytes());
+        packet.clearDepth = clearDepth;
       }
     };
 
     struct RenderPassEnd
     {
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassEnd;
-      static void constructor(backend::CommandBuffer& , RenderPassEnd* )
+      static void constructor(backend::CommandBuffer& , RenderPassEnd& )
       {
       }
     };
@@ -88,9 +81,9 @@ namespace higanbana
       ResourceHandle pipeline;
 
       static constexpr const backend::PacketType type = backend::PacketType::GraphicsPipelineBind;
-      static void constructor(backend::CommandBuffer& , GraphicsPipelineBind* packet, ResourceHandle pipeline)
+      static void constructor(backend::CommandBuffer& , GraphicsPipelineBind& packet, ResourceHandle pipeline)
       {
-        packet->pipeline = pipeline;
+        packet.pipeline = pipeline;
       }
     };
 
@@ -99,40 +92,79 @@ namespace higanbana
       ResourceHandle pipeline;
 
       static constexpr const backend::PacketType type = backend::PacketType::ComputePipelineBind;
-      static void constructor(backend::CommandBuffer& , ComputePipelineBind* packet, ResourceHandle pipeline)
+      static void constructor(backend::CommandBuffer& , ComputePipelineBind& packet, ResourceHandle pipeline)
       {
-        packet->pipeline = pipeline;
+        packet.pipeline = pipeline;
       }
     };
 
-    
-    struct ResourceBinding
+    struct ResourceBindingCompute
     {
-      enum class BindingType : unsigned char
-      {
-        Graphics,
-        Compute,
-        Raytracing
-      };
+      uint16_t constantsSize;
+      uint16_t resourcesSize;
 
-      BindingType graphicsBinding;
-      backend::PacketVectorHeader<uint8_t> constants;
-      backend::PacketVectorHeader<ResourceHandle> resources;
-
-      static constexpr const backend::PacketType type = backend::PacketType::ResourceBinding;
-      static void constructor(backend::CommandBuffer& buffer, ResourceBinding* packet, BindingType type, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
+      static constexpr const backend::PacketType type = backend::PacketType::ResourceBindingCompute;
+      static void constructor(backend::CommandBuffer& buffer, ResourceBindingCompute& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
       {
-        packet->graphicsBinding = type;
-        packet = buffer.allocateElements<uint8_t>(packet->constants, constants.size(), packet);
-        auto spn = packet->constants.convertToMemView();
-        memcpy(spn.data(), constants.data(), constants.size_bytes());
-        packet = buffer.allocateElements<ResourceHandle>(packet->resources, views.size(), packet);
-        auto spn2 = packet->resources.convertToMemView();
+        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        packet.resourcesSize = static_cast<uint16_t>(views.size());
+        uint8_t* ptr = buffer.allocateElements2<uint8_t>(constants.size());
+        memcpy(ptr, constants.data(), constants.size_bytes());
+        ptr = buffer.allocateElements2<ResourceHandle>(views.size());
         for (int i = 0; i < views.size(); ++i)
         {
-          spn2[i] = views[i].handle();
+          auto h = views[i].handle();
+          memcpy(ptr+i*sizeof(h), &h, sizeof(h));
         }
-        static_assert(sizeof(ResourceBinding) <= sizeof(uint8_t)*10);
+        static_assert(sizeof(ResourceBindingCompute) <= sizeof(uint32_t));
+      }
+
+      MemView<uint8_t> constantsView() const
+      {
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingCompute));
+        if (constantsSize == 0) return MemView<uint8_t>(nullptr, 0);
+        return MemView<uint8_t>(ptr, constantsSize);
+      }
+      MemView<ResourceHandle> resourcesView() const
+      {
+        ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingCompute) + constantsSize*sizeof(uint8_t));
+        if (resourcesSize == 0) return MemView<ResourceHandle>(nullptr, 0);
+        return MemView<ResourceHandle>(ptr, resourcesSize);
+      }
+    };
+    
+    struct ResourceBindingGraphics
+    {
+      uint16_t constantsSize;
+      uint16_t resourcesSize;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ResourceBindingGraphics;
+      static void constructor(backend::CommandBuffer& buffer, ResourceBindingGraphics& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
+      {
+        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        packet.resourcesSize = static_cast<uint16_t>(views.size());
+        uint8_t* ptr = buffer.allocateElements2<uint8_t>(constants.size());
+        memcpy(ptr, constants.data(), constants.size_bytes());
+        ptr = buffer.allocateElements2<ResourceHandle>(views.size());
+        for (int i = 0; i < views.size(); ++i)
+        {
+          auto h = views[i].handle();
+          memcpy(ptr+i*sizeof(h), &h, sizeof(h));
+        }
+        static_assert(sizeof(ResourceBindingGraphics) <= sizeof(uint32_t));
+      }
+
+      MemView<uint8_t> constantsView() const
+      {
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingGraphics));
+        if (constantsSize == 0) return MemView<uint8_t>(nullptr, 0);
+        return MemView<uint8_t>(ptr, constantsSize);
+      }
+      MemView<ResourceHandle> resourcesView() const
+      {
+        ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingGraphics) + constantsSize*sizeof(uint8_t));
+        if (resourcesSize == 0) return MemView<ResourceHandle>(nullptr, 0);
+        return MemView<ResourceHandle>(ptr, resourcesSize);
       }
     };
 
@@ -141,9 +173,9 @@ namespace higanbana
       uint3 groups;
 
       static constexpr const backend::PacketType type = backend::PacketType::Dispatch;
-      static void constructor(backend::CommandBuffer& buffer, Dispatch* packet, uint3 groups)
+      static void constructor(backend::CommandBuffer& buffer, Dispatch& packet, uint3 groups)
       {
-        packet->groups = groups;
+        packet.groups = groups;
         static_assert(std::is_standard_layout<Dispatch>::value, "this is trivial packet");
       }
     };
@@ -156,12 +188,12 @@ namespace higanbana
       uint32_t startInstance;
 
       static constexpr const backend::PacketType type = backend::PacketType::Draw;
-      static void constructor(backend::CommandBuffer& , Draw* packet, uint32_t vertexCountPerInstance, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
+      static void constructor(backend::CommandBuffer& , Draw& packet, uint32_t vertexCountPerInstance, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
       {
-        packet->vertexCountPerInstance = vertexCountPerInstance;
-        packet->instanceCount = instanceCount;
-        packet->startVertex = startVertex;
-        packet->startInstance = startInstance;
+        packet.vertexCountPerInstance = vertexCountPerInstance;
+        packet.instanceCount = instanceCount;
+        packet.startVertex = startVertex;
+        packet.startInstance = startInstance;
         static_assert(sizeof(Draw) <= sizeof(uint8_t)*16);
       }
     };
@@ -176,14 +208,14 @@ namespace higanbana
       uint32_t StartInstanceLocation;
 
       static constexpr const backend::PacketType type = backend::PacketType::DrawIndexed;
-      static void constructor(backend::CommandBuffer& , DrawIndexed* packet, ViewResourceHandle indexbuffer, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLoc, int baseVertexLoc, uint32_t startInstance)
+      static void constructor(backend::CommandBuffer& , DrawIndexed& packet, ViewResourceHandle indexbuffer, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLoc, int baseVertexLoc, uint32_t startInstance)
       {
-        packet->indexbuffer = indexbuffer;
-        packet->IndexCountPerInstance = indexCountPerInstance;
-        packet->instanceCount = instanceCount;
-        packet->StartIndexLocation = startIndexLoc;
-        packet->BaseVertexLocation = baseVertexLoc;
-        packet->StartInstanceLocation = startInstance;
+        packet.indexbuffer = indexbuffer;
+        packet.IndexCountPerInstance = indexCountPerInstance;
+        packet.instanceCount = instanceCount;
+        packet.StartIndexLocation = startIndexLoc;
+        packet.BaseVertexLocation = baseVertexLoc;
+        packet.StartInstanceLocation = startInstance;
         static_assert(sizeof(DrawIndexed) <= sizeof(uint8_t)*40);
       }
     };
@@ -193,9 +225,9 @@ namespace higanbana
       uint xDim;
 
       static constexpr const backend::PacketType type = backend::PacketType::DispatchMesh;
-      static void constructor(backend::CommandBuffer& , DispatchMesh* packet, uint xDim)
+      static void constructor(backend::CommandBuffer& , DispatchMesh& packet, uint xDim)
       {
-        packet->xDim = xDim;
+        packet.xDim = xDim;
         static_assert(std::is_standard_layout<DispatchMesh>::value, "this is trivial packet");
       }
     };
@@ -208,12 +240,12 @@ namespace higanbana
       uint32_t numBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::DynamicBufferCopy;
-      static void constructor(backend::CommandBuffer& , DynamicBufferCopy* packet, ResourceHandle dst, uint32_t dstOffset, ViewResourceHandle src, uint32_t numBytes)
+      static void constructor(backend::CommandBuffer& , DynamicBufferCopy& packet, ResourceHandle dst, uint32_t dstOffset, ViewResourceHandle src, uint32_t numBytes)
       {
-        packet->dst = dst;
-        packet->dstOffset = dstOffset;
-        packet->src = src; 
-        packet->numBytes = numBytes;
+        packet.dst = dst;
+        packet.dstOffset = dstOffset;
+        packet.src = src; 
+        packet.numBytes = numBytes;
       }
     };
 
@@ -226,13 +258,13 @@ namespace higanbana
       uint32_t numBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::BufferCopy;
-      static void constructor(backend::CommandBuffer& , BufferCopy* packet, ResourceHandle dst, uint32_t dstOffset, ResourceHandle src, uint32_t srcOffset, uint32_t numBytes)
+      static void constructor(backend::CommandBuffer& , BufferCopy& packet, ResourceHandle dst, uint32_t dstOffset, ResourceHandle src, uint32_t srcOffset, uint32_t numBytes)
       {
-        packet->dst = dst;
-        packet->dstOffset = dstOffset;
-        packet->src = src; 
-        packet->srcOffset = srcOffset; 
-        packet->numBytes = numBytes;
+        packet.dst = dst;
+        packet.dstOffset = dstOffset;
+        packet.src = src; 
+        packet.srcOffset = srcOffset; 
+        packet.numBytes = numBytes;
       }
     };
 
@@ -247,15 +279,15 @@ namespace higanbana
       int height;
 
       static constexpr const backend::PacketType type = backend::PacketType::UpdateTexture;
-      static void constructor(backend::CommandBuffer& , UpdateTexture* packet, ResourceHandle tex, ViewResourceHandle dynamic, int allMips, int mip, int slice, int width, int height)
+      static void constructor(backend::CommandBuffer& , UpdateTexture& packet, ResourceHandle tex, ViewResourceHandle dynamic, int allMips, int mip, int slice, int width, int height)
       {
-        packet->tex = tex;
-        packet->dynamic = dynamic;
-        packet->allMips = allMips;
-        packet->mip = mip; 
-        packet->slice = slice;
-        packet->width = width;
-        packet->height = height;
+        packet.tex = tex;
+        packet.dynamic = dynamic;
+        packet.allMips = allMips;
+        packet.mip = mip; 
+        packet.slice = slice;
+        packet.width = width;
+        packet.height = height;
       }
     };
 
@@ -273,19 +305,19 @@ namespace higanbana
       FormatType format;
 
       static constexpr const backend::PacketType type = backend::PacketType::TextureToBufferCopy;
-      static void constructor(backend::CommandBuffer& , TextureToBufferCopy* packet,
+      static void constructor(backend::CommandBuffer& , TextureToBufferCopy& packet,
         ResourceHandle dstBuffer, uint32_t dstOffset, 
         ResourceHandle srcTex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format)
       {
-        packet->dstBuffer = dstBuffer;
-        packet->dstOffset = dstOffset;
-        packet->srcTexture = srcTex;
-        packet->allMips = allMips;
-        packet->mip = mip;
-        packet->slice = slice;
-        packet->width = width;
-        packet->height = height;
-        packet->format = format;
+        packet.dstBuffer = dstBuffer;
+        packet.dstOffset = dstOffset;
+        packet.srcTexture = srcTex;
+        packet.allMips = allMips;
+        packet.mip = mip;
+        packet.slice = slice;
+        packet.width = width;
+        packet.height = height;
+        packet.format = format;
       }
     };
 
@@ -304,19 +336,19 @@ namespace higanbana
       uint32_t numBytes; 
 
       static constexpr const backend::PacketType type = backend::PacketType::BufferToTextureCopy;
-      static void constructor(backend::CommandBuffer& , BufferToTextureCopy* packet,
+      static void constructor(backend::CommandBuffer& , BufferToTextureCopy& packet,
         ResourceHandle tex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format,
         ResourceHandle sourceBuffer, uint32_t srcOffset)
       {
-        packet->dstTexture = tex;
-        packet->allMips = allMips;
-        packet->mip = mip;
-        packet->slice = slice;
-        packet->width = width;
-        packet->height = height;
-        packet->format = format;
-        packet->srcBuffer = sourceBuffer;
-        packet->srcOffset = srcOffset;
+        packet.dstTexture = tex;
+        packet.allMips = allMips;
+        packet.mip = mip;
+        packet.slice = slice;
+        packet.width = width;
+        packet.height = height;
+        packet.format = format;
+        packet.srcBuffer = sourceBuffer;
+        packet.srcOffset = srcOffset;
       }
     };
 
@@ -326,10 +358,10 @@ namespace higanbana
       int2 bottomright;
 
       static constexpr const backend::PacketType type = backend::PacketType::ScissorRect;
-      static void constructor(backend::CommandBuffer& , ScissorRect* packet, int2 topleft, int2 bottomright)
+      static void constructor(backend::CommandBuffer& , ScissorRect& packet, int2 topleft, int2 bottomright)
       {
-        packet->topleft = topleft;
-        packet->bottomright = bottomright;
+        packet.topleft = topleft;
+        packet.bottomright = bottomright;
       }
     };
 
@@ -341,12 +373,41 @@ namespace higanbana
       uint32_t numBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::ReadbackBuffer;
-      static void constructor(backend::CommandBuffer& , ReadbackBuffer* packet, ResourceHandle src, uint64_t srcOffset, uint64_t numBytes)
+      static void constructor(backend::CommandBuffer& , ReadbackBuffer& packet, ResourceHandle src, uint64_t srcOffset, uint64_t numBytes)
       {
-        packet->src = src; 
-        packet->srcOffset = srcOffset; 
-        packet->numBytes = numBytes;
-        packet->dst = ResourceHandle(); // invalid handle for now
+        packet.src = src; 
+        packet.srcOffset = srcOffset; 
+        packet.numBytes = numBytes;
+        packet.dst = ResourceHandle(); // invalid handle for now
+      }
+    };
+
+    struct TextureToTextureCopy
+    {
+      ResourceHandle dst;
+      ResourceHandle src;
+      int3 dstPos;
+      uint8_t dstMaxMips;
+      uint8_t dstMip;
+      uint8_t dstSlice;
+      uint8_t srcMaxMips;
+      uint8_t srcMip;
+      uint8_t srcSlice;
+      Box srcbox;
+
+      static constexpr const backend::PacketType type = backend::PacketType::TextureToTextureCopy;
+      static void constructor(backend::CommandBuffer& , TextureToTextureCopy& packet, ResourceHandle target, uint dstMaxMips, Subresource dstSub, int3 dst, ResourceHandle source, uint srcMaxMips, Subresource srcSub, Box srcbox)
+      {
+        packet.dst = target;
+        packet.src = source;
+        packet.dstPos = dst;
+        packet.dstMaxMips = dstMaxMips;
+        packet.dstMip = dstSub.mipLevel;
+        packet.dstSlice = dstSub.arraySlice;
+        packet.srcMaxMips = srcMaxMips;
+        packet.srcMip = srcSub.mipLevel;
+        packet.srcSlice = srcSub.arraySlice;
+        packet.srcbox = srcbox;
       }
     };
 
@@ -355,342 +416,13 @@ namespace higanbana
       ResourceHandle dst;
 
       static constexpr const backend::PacketType type = backend::PacketType::ReadbackShaderDebug;
-      static void constructor(backend::CommandBuffer& , ReadbackShaderDebug* packet, ResourceHandle dst)
+      static void constructor(backend::CommandBuffer& , ReadbackShaderDebug& packet, ResourceHandle dst)
       {
-        packet->dst = dst;
+        packet.dst = dst;
       }
     };
     /*
     // helpers
-
-    template <typename Type>
-    CommandListVector<Type> toCmdVector(backend::ListAllocator& allocator, MemView<Type>& view)
-    {
-      if (view.size() == 0)
-        return CommandListVector<Type>();
-
-      CommandListVector<Type> fnl(MemView<Type>(allocator.allocate<Type>(view.size()), view.size()));
-
-      if (std::is_pod<Type>::value)
-      {
-        memcpy(fnl.data(), view.data(), view.size() * sizeof(Type));
-      }
-      else
-      {
-        for (size_t i = 0; i < view.size(); ++i)
-        {
-          fnl[i] = view[i];
-        }
-      }
-
-      return fnl;
-    }
-
-    // packets
-
-    class RenderBlock : public backend::CommandPacket
-    {
-    public:
-      std::string name;
-
-      RenderBlock(backend::ListAllocator, std::string name)
-        : name(name)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::RenderBlock;
-      }
-    };
-
-
-    class ClearRT : public backend::CommandPacket
-    {
-    public:
-      TextureRTV rtv;
-      float4 color;
-
-      ClearRT(backend::ListAllocator, TextureRTV rtv, float4 color)
-        : rtv(rtv)
-        , color(color)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::ClearRT;
-      }
-    };
-
-    class PrepareForPresent : public backend::CommandPacket
-    {
-    public:
-      Texture texture;
-
-      PrepareForPresent(backend::ListAllocator, Texture& texture)
-        :texture(texture)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::PrepareForPresent;
-      }
-    };
-
-    class PrepareForQueueSwitch : public backend::CommandPacket
-    {
-    public:
-      unordered_set<backend::TrackedState> deps;
-
-      PrepareForQueueSwitch(backend::ListAllocator, unordered_set<backend::TrackedState>& deps)
-        : deps(deps)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::PrepareForQueueSwitch;
-      }
-    };
-
-    // renderpass related packets
-
-    class RenderpassBegin : public backend::CommandPacket
-    {
-    public:
-      Renderpass renderpass;
-      size_t hash;
-      CommandListVector<TextureRTV> rtvs;
-      CommandListVector<TextureDSV> dsvs;
-      int fbWidth, fbHeight;
-
-      RenderpassBegin(backend::ListAllocator allocator, Renderpass pass, MemView<TextureRTV> inputRtvs, MemView<TextureDSV> inputDsvs)
-        : renderpass(pass)
-        , rtvs(toCmdVector(allocator, inputRtvs))
-        , dsvs(toCmdVector(allocator, inputDsvs))
-      {
-        std::vector<FormatType> views;
-        for (auto&& it : rtvs)
-        {
-          views.emplace_back(it.format());
-        }
-        for (auto&& it : dsvs)
-        {
-          views.emplace_back(it.format());
-        }
-        hash = HashMemory(views.data(), views.size() * sizeof(FormatType));
-      }
-
-      PacketType type() override
-      {
-        return PacketType::RenderpassBegin;
-      }
-    };
-
-    class RenderpassEnd : public backend::CommandPacket
-    {
-    public:
-
-      RenderpassEnd(backend::ListAllocator)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::RenderpassEnd;
-      }
-    };
-
-    class GraphicsPipelineBind : public backend::CommandPacket
-    {
-    public:
-      GraphicsPipeline pipeline;
-
-      GraphicsPipelineBind(backend::ListAllocator, const GraphicsPipeline& pipeline)
-        : pipeline(pipeline)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::GraphicsPipelineBind;
-      }
-    };
-
-    class ComputePipelineBind : public backend::CommandPacket
-    {
-    public:
-      ComputePipeline pipeline;
-
-      ComputePipelineBind(backend::ListAllocator, const ComputePipeline& pipeline)
-        : pipeline(pipeline)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::ComputePipelineBind;
-      }
-    };
-
-    class ResourceBinding : public backend::CommandPacket
-    {
-    public:
-      enum class BindingType : unsigned char
-      {
-        Graphics,
-        Compute
-      };
-
-      BindingType graphicsBinding;
-      CommandListVector<backend::TrackedState> resources;
-      CommandListVector<uint8_t> constants;
-      CommandListVector<backend::RawView> views;
-
-      ResourceBinding(
-        backend::ListAllocator allocator,
-        BindingType graphicsBinding,
-        MemView<backend::TrackedState>& resources,
-        MemView<uint8_t>& constants,
-        MemView<backend::RawView>& views)
-        : graphicsBinding(graphicsBinding)
-        , resources(toCmdVector(allocator, resources))
-        , constants(toCmdVector(allocator, constants))
-        , views(toCmdVector(allocator, views))
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::ResourceBinding;
-      }
-    };
-
-    class SetScissorRect : public backend::CommandPacket
-    {
-    public:
-      int2 topleft;
-      int2 bottomright;
-
-      SetScissorRect(backend::ListAllocator, int2 topleft, int2 bottomright)
-        : topleft(topleft)
-        , bottomright(bottomright)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::SetScissorRect;
-      }
-    };
-
-    class Draw : public backend::CommandPacket
-    {
-    public:
-      unsigned vertexCountPerInstance;
-      unsigned instanceCount;
-      unsigned startVertex;
-      unsigned startInstance;
-
-      Draw(backend::ListAllocator,
-        unsigned vertexCountPerInstance,
-        unsigned instanceCount,
-        unsigned startVertex,
-        unsigned startInstance)
-        : vertexCountPerInstance(vertexCountPerInstance)
-        , instanceCount(instanceCount)
-        , startVertex(startVertex)
-        , startInstance(startInstance)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::Draw;
-      }
-    };
-
-    class DrawIndexed : public backend::CommandPacket
-    {
-    public:
-      BufferIBV ib;
-      unsigned IndexCountPerInstance;
-      unsigned instanceCount;
-      unsigned StartIndexLocation;
-      int BaseVertexLocation;
-      unsigned StartInstanceLocation;
-
-      DrawIndexed(backend::ListAllocator,
-        BufferIBV ib,
-        unsigned IndexCountPerInstance,
-        unsigned instanceCount,
-        unsigned StartIndexLocation,
-        int BaseVertexLocation,
-        unsigned StartInstanceLocation)
-        : ib(ib)
-        , IndexCountPerInstance(IndexCountPerInstance)
-        , instanceCount(instanceCount)
-        , StartIndexLocation(StartIndexLocation)
-        , BaseVertexLocation(BaseVertexLocation)
-        , StartInstanceLocation(StartInstanceLocation)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::DrawIndexed;
-      }
-    };
-
-    class DrawDynamicIndexed : public backend::CommandPacket
-    {
-    public:
-      DynamicBufferView ib;
-      unsigned IndexCountPerInstance;
-      unsigned instanceCount;
-      unsigned StartIndexLocation;
-      int BaseVertexLocation;
-      unsigned StartInstanceLocation;
-
-      DrawDynamicIndexed(backend::ListAllocator,
-        DynamicBufferView ib,
-        unsigned IndexCountPerInstance,
-        unsigned instanceCount,
-        unsigned StartIndexLocation,
-        int BaseVertexLocation,
-        unsigned StartInstanceLocation)
-        : ib(ib)
-        , IndexCountPerInstance(IndexCountPerInstance)
-        , instanceCount(instanceCount)
-        , StartIndexLocation(StartIndexLocation)
-        , BaseVertexLocation(BaseVertexLocation)
-        , StartInstanceLocation(StartInstanceLocation)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::DrawDynamicIndexed;
-      }
-    };
-
-    class Dispatch : public backend::CommandPacket
-    {
-    public:
-      uint3 groups;
-
-      Dispatch(backend::ListAllocator, uint3 groups)
-        : groups(groups)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::Dispatch;
-      }
-    };
 
     class ReadbackTexture : public backend::CommandPacket
     {
@@ -738,41 +470,6 @@ namespace higanbana
       }
     };
 
-    class QueryCounters : public backend::CommandPacket
-    {
-    public:
-      std::function<void(MemView<std::pair<std::string, double>>)> func;
-
-      QueryCounters(backend::ListAllocator, std::function<void(MemView<std::pair<std::string, double>>)>& func)
-        : func(func)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::QueryCounters;
-      }
-    };
-
-    class BufferCpuToGpuCopy : public backend::CommandPacket
-    {
-    public:
-      backend::TrackedState target;
-      uint64_t offset;
-      uint64_t size;
-
-      BufferCpuToGpuCopy(backend::ListAllocator, Buffer& target, DynamicBufferView& source)
-        : target(target.dependency())
-        , offset(static_cast<uint64_t>(source.native()->offset()))
-        , size(std::min(static_cast<uint64_t>(target.desc().desc.width * target.desc().desc.stride), source.native()->size()))
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::BufferCpuToGpuCopy;
-      }
-    };
 
     class TextureToBufferCopy : public backend::CommandPacket
     {
@@ -798,67 +495,6 @@ namespace higanbana
       }
     };
 
-    class TextureCopy : public backend::CommandPacket
-    {
-    public:
-      backend::TrackedState target;
-      backend::TrackedState source;
-      SubresourceRange range;
-
-      TextureCopy(backend::ListAllocator, backend::TrackedState target, backend::TrackedState source, SubresourceRange range)
-        : target(target)
-        , source(source)
-        , range(range)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::TextureCopy;
-      }
-    };
-
-    class TextureAdvCopy : public backend::CommandPacket
-    {
-    public:
-      backend::TrackedState target;
-      int3 dstPos;
-      backend::TrackedState source;
-      Subresource subresource;
-      Box srcbox;
-
-      TextureAdvCopy(backend::ListAllocator, backend::TrackedState target, int3 dst, backend::TrackedState source, Subresource subresource, Box srcbox)
-        : target(target)
-        , dstPos(dst)
-        , source(source)
-        , subresource(subresource)
-        , srcbox(srcbox)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::TextureAdvCopy;
-      }
-    };
-
-    class BufferCopy : public backend::CommandPacket
-    {
-    public:
-      backend::TrackedState target;
-      backend::TrackedState source;
-
-      BufferCopy(backend::ListAllocator, backend::TrackedState target, backend::TrackedState source)
-        : target(target)
-        , source(source)
-      {
-      }
-
-      PacketType type() override
-      {
-        return PacketType::BufferCopy;
-      }
-    };
     */
   }
 }

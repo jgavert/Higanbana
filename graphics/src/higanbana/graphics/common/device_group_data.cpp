@@ -354,6 +354,9 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       for (auto&& vdev : m_devices)
       {
+        vdev.device->waitTimeline(vdev.timelineGfx, vdev.gfxQueue);
+        vdev.device->waitTimeline(vdev.timelineCompute, vdev.cptQueue);
+        vdev.device->waitTimeline(vdev.timelineDma, vdev.dmaQueue);
         vdev.device->waitGpuIdle();
       }
       gc();
@@ -579,6 +582,10 @@ namespace higanbana
     void DeviceGroupData::validateResourceDescriptor(ResourceDescriptor& desc) {
       auto crossAdapterPossible = m_devices.size() > 1;
       if (!crossAdapterPossible) desc.desc.allowCrossAdapter = false;
+
+      if (desc.desc.miplevels == ResourceDescriptor::AllMips) {
+        desc.desc.miplevels = static_cast<uint>(std::floor(std::log2(std::max(desc.desc.width, desc.desc.height)))) + 1u;
+      }
     }
 
     Buffer DeviceGroupData::createBuffer(ResourceDescriptor desc) {
@@ -695,7 +702,7 @@ namespace higanbana
           vdev.m_textureStates[handle].states = vector<ResourceState>(subresources, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown));
         }
       }
-
+      //HIGAN_LOGi("created Texture: %zd: %s\n", handle.id, desc.desc.name.c_str());
       return Texture(sharedHandle(handle), std::make_shared<ResourceDescriptor>(desc));
     }
 
@@ -926,7 +933,8 @@ namespace higanbana
       int drawIndexBeginRenderpass = 0;
       int currentReadback = 0;
 
-      gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
+      //gfxpacket::ResourceBinding::BindingType currentBoundType = gfxpacket::ResourceBinding::BindingType::Graphics;
+      backend::AccessStage currentBoundType = backend::AccessStage::Graphics;
       ResourceHandle boundSets[HIGANBANA_USABLE_SHADER_ARGUMENT_SETS] = {};
 
       for (auto&& buffer : buffers)
@@ -980,18 +988,17 @@ namespace higanbana
               }
               break;
             }
-            case PacketType::ResourceBinding:
+            case PacketType::ResourceBindingGraphics:
             {
-              auto& packet = header->data<gfxpacket::ResourceBinding>();
-              auto stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Graphics ? backend::AccessStage::Graphics : backend::AccessStage::Compute;
-              stage = packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing ? backend::AccessStage::Raytrace : stage;
-              if (packet.graphicsBinding != currentBoundType)
+              auto& packet = header->data<gfxpacket::ResourceBindingGraphics>();
+              auto stage = backend::AccessStage::Graphics;
+              if (stage != currentBoundType)
               {
                 boundSets[0] = {};
                 boundSets[1] = {};
                 boundSets[2] = {};
                 boundSets[3] = {};
-                currentBoundType = packet.graphicsBinding;
+                currentBoundType = stage;
               }
 
               auto usedDrawIndex = drawIndex;
@@ -1000,7 +1007,7 @@ namespace higanbana
                 usedDrawIndex = drawIndexBeginRenderpass;
               }
               int i = 0;
-              for (auto&& handle : packet.resources.convertToMemView())
+              for (auto&& handle : packet.resourcesView())
               {
                 if (boundSets[i] != handle)
                 {
@@ -1028,6 +1035,69 @@ namespace higanbana
                 }
                 ++i;
               }
+              break;
+            }
+            case PacketType::ResourceBindingCompute:
+            {
+              auto& packet = header->data<gfxpacket::ResourceBindingCompute>();
+              auto stage = backend::AccessStage::Compute;
+              if (stage != currentBoundType)
+              {
+                boundSets[0] = {};
+                boundSets[1] = {};
+                boundSets[2] = {};
+                boundSets[3] = {};
+                currentBoundType = stage;
+              }
+
+              auto usedDrawIndex = drawIndex;
+              HIGAN_ASSERT(!insideRenderpass, "not allowed");
+              if (insideRenderpass)
+              {
+                usedDrawIndex = drawIndexBeginRenderpass;
+              }
+              int i = 0;
+              for (auto&& handle : packet.resourcesView())
+              {
+                if (boundSets[i] != handle)
+                {
+                  boundSets[i] = handle;
+                  const auto& views = vdev.shaderArguments[handle];
+                  for (auto&& resource : views)
+                  {
+                    if (resource.type == ViewResourceType::BufferSRV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::BufferUAV)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::Undefined, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureSRV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::ShaderReadOnly, queue));
+                    }
+                    else if (resource.type == ViewResourceType::TextureUAV)
+                    {
+                      solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                    }
+                  }
+                }
+                ++i;
+              }
+              break;
+            }
+            case PacketType::TextureToTextureCopy:
+            {
+              auto& packet = header->data<gfxpacket::TextureToTextureCopy>();
+              ViewResourceHandle src;
+              src.resource = packet.src.rawValue;
+              src.subresourceRange(packet.srcMaxMips, packet.srcMip, 1, packet.srcSlice, 1);
+              ViewResourceHandle dst;
+              dst.resource = packet.dst.rawValue;
+              dst.subresourceRange(packet.dstMaxMips, packet.dstMip, 1, packet.dstSlice, 1);
+              solver.addTexture(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
+              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
               break;
             }
             case PacketType::BufferCopy:

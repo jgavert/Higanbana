@@ -345,30 +345,52 @@ namespace higanbana
       return block;
     }
     // new handle binding, recycle constant+sampler sets, only update constants, bind descriptor sets directly
-
-    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline)
+    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBindingGraphics& packet, ResourceHandle pipeline)
     {
       auto& pipe = device->allResources().pipelines[pipeline];
       auto staticSet = pipe.m_staticSet;
       auto pipeLayout = pipe.m_pipelineLayout;
-      auto pconstants = packet.constants.convertToMemView();
+      auto pconstants = packet.constantsView();
       auto block = allocateConstants(pconstants.size());
       HIGAN_ASSERT(block.block.size <= 1024, "Constants larger than 1024bytes not supported...");
       memcpy(block.data(), pconstants.data(), pconstants.size());
 
       vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eGraphics;
-      if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Compute)
-      {
-        bindpoint = vk::PipelineBindPoint::eCompute;
-      }
-      else if (packet.graphicsBinding == gfxpacket::ResourceBinding::BindingType::Raytracing)
-      {
-        bindpoint = vk::PipelineBindPoint::eRayTracingNV;
-      }
       auto firstSet = 0;
       auto i = 0;
       bool canSkip = true;
-      for (auto&& shaderArguments : packet.resources.convertToMemView())
+      for (auto&& shaderArguments : packet.resourcesView())
+      {
+        if (canSkip && m_boundDescriptorSets[i] == shaderArguments)
+        {
+          firstSet++; i++;
+          continue;
+        }
+        canSkip = false;
+        m_tempSets[i] = device->allResources().shaArgs[shaderArguments].native();
+        m_boundDescriptorSets[i] = shaderArguments;
+        i++;
+      }
+      m_tempSets[i] = pipe.m_staticSet;
+      vk::ArrayProxy<const vk::DescriptorSet> sets(i+1 - firstSet, m_tempSets.data() + firstSet);
+      buffer.bindDescriptorSets(bindpoint, pipeLayout, firstSet, sets, {static_cast<uint32_t>(block.offset())}, m_dispatch);
+    }
+
+    void VulkanCommandBuffer::handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBindingCompute& packet, ResourceHandle pipeline)
+    {
+      auto& pipe = device->allResources().pipelines[pipeline];
+      auto staticSet = pipe.m_staticSet;
+      auto pipeLayout = pipe.m_pipelineLayout;
+      auto pconstants = packet.constantsView();
+      auto block = allocateConstants(pconstants.size());
+      HIGAN_ASSERT(block.block.size <= 1024, "Constants larger than 1024bytes not supported...");
+      memcpy(block.data(), pconstants.data(), pconstants.size());
+
+      vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eCompute;
+      auto firstSet = 0;
+      auto i = 0;
+      bool canSkip = true;
+      for (auto&& shaderArguments : packet.resourcesView())
       {
         if (canSkip && m_boundDescriptorSets[i] == shaderArguments)
         {
@@ -697,9 +719,15 @@ namespace higanbana
 
             break;
           }
-          case PacketType::ResourceBinding:
+          case PacketType::ResourceBindingGraphics:
           {
-            gfxpacket::ResourceBinding& packet = header->data<gfxpacket::ResourceBinding>();
+            gfxpacket::ResourceBindingGraphics& packet = header->data<gfxpacket::ResourceBindingGraphics>();
+            handleBinding(device, buffer, packet, boundPipeline);
+            break;
+          }
+          case PacketType::ResourceBindingCompute:
+          {
+            gfxpacket::ResourceBindingCompute& packet = header->data<gfxpacket::ResourceBindingCompute>();
             handleBinding(device, buffer, packet, boundPipeline);
             break;
           }
@@ -828,6 +856,21 @@ namespace higanbana
               .setImageSubresource(layers);
             
             buffer.copyBufferToImage(srcBuf.native(), dstTex.native(), vk::ImageLayout::eTransferDstOptimal, {info});
+            break;
+          }
+          case PacketType::TextureToTextureCopy:
+          {
+            auto params = header->data<gfxpacket::TextureToTextureCopy>();
+            auto dst = device->allResources().tex[params.dst];
+            auto src = device->allResources().tex[params.src];
+
+            vk::ImageCopy icopy = vk::ImageCopy()
+              .setDstOffset(vk::Offset3D().setX(params.dstPos.x).setY(params.dstPos.y).setZ(params.dstPos.z))
+              .setDstSubresource(vk::ImageSubresourceLayers().setMipLevel(params.dstMip).setLayerCount(1).setBaseArrayLayer(params.dstSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
+              .setSrcSubresource(vk::ImageSubresourceLayers().setMipLevel(params.srcMip).setLayerCount(1).setBaseArrayLayer(params.srcSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
+              .setExtent(vk::Extent3D().setDepth(1));
+
+            buffer.copyImage(src.native(), vk::ImageLayout::eTransferSrcOptimal, dst.native(), vk::ImageLayout::eTransferDstOptimal, {icopy});
             break;
           }
           case PacketType::RenderpassEnd:

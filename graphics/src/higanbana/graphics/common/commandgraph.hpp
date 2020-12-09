@@ -295,6 +295,15 @@ namespace higanbana
       */
     }
 
+    void copy(Texture target, Subresource dstSub, int3 dstPos, Texture source, Subresource srcSub, Box srcBox)
+    {
+      addWriteShared(target.handle());
+      addReadShared(source.handle());
+      m_referencedTextures.setBit(target.handle().id);
+      m_referencedTextures.setBit(source.handle().id);
+      list->copy(target, dstSub, dstPos, source, srcSub, srcBox);
+    }
+
     void copy(Buffer target, Buffer source)
     {
       addWriteShared(target.handle());

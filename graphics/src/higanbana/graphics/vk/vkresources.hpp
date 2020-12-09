@@ -1453,7 +1453,8 @@ namespace higanbana
         m_readback->reset();
       }
     private:
-      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBinding& packet, ResourceHandle pipeline);
+      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBindingGraphics& packet, ResourceHandle pipeline);
+      void handleBinding(VulkanDevice* device, vk::CommandBuffer buffer, gfxpacket::ResourceBindingCompute& packet, ResourceHandle pipeline);
       void addCommands(VulkanDevice* device, vk::CommandBuffer buffer, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver);
       void handleRenderpass(VulkanDevice* device, gfxpacket::RenderPassBegin& renderpasspacket);
       void preprocess(VulkanDevice* device, MemView<backend::CommandBuffer*>& list);
