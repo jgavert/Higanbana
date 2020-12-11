@@ -18,7 +18,9 @@ namespace higanbana
     {
       const ResourceState exampleState = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
       auto& states = m_imageCache[texture.resourceHandle()].states;
-      auto size = (*m_textureStates)[texture.resourceHandle()].states.size();
+      auto& gstate = (*m_textureStates)[texture.resourceHandle()];
+      auto size = gstate.states.size();
+      m_imageCache[texture.resourceHandle()].mips = gstate.mips;
       if (states.size() != size)
         states.resize(size);
       for (auto&& state : states) {
@@ -136,7 +138,7 @@ namespace higanbana
                   // how does I all subresources
                   // so just need mip size, can calculate arraysize then
                   auto allSubresources = resource.states.size();
-                  uint32_t mips = job.resource.fullMipSize();
+                  uint32_t mips = resource.mips;
                   uint32_t arrSize = static_cast<uint32_t>(allSubresources) / mips;
                   bool acquire = jobResAccess.usage == AccessUsage::Read;
                   if (acquire)
@@ -152,6 +154,7 @@ namespace higanbana
                     dst.stage = AccessStage::Common;
                     dst.usage = AccessUsage::Read;
 
+                    // todo: check all states to fix them correctly
                     imageBarriers.emplace_back(ImageBarrier{src, transitionToCommon, job.resource.resourceHandle(), 0, mips, 0, arrSize});
                     ++imageBarrierOffsets;
                     src.stage = AccessStage::Common;
@@ -192,14 +195,11 @@ namespace higanbana
                   dst.queue_index = QueueType::Unknown;
                   imageBarriers.emplace_back(ImageBarrier{src, dst, job.resource.resourceHandle(), range.startMip, range.mipSize, range.startArr, range.arrSize});
                   ++imageBarrierOffsets;
-                  /*
-                  HIGAN_LOGi("barrier %zd mip %d-%d slice %d-%d layouts %s -> %s\n", job.resource.resourceHandle().id, range.startMip, range.mipSize, range.startArr, range.arrSize, toString(src.layout), toString(dst.layout));
-                  if (range.startMip == 0 && range.mipSize == 9) {
-                    HIGAN_LOGi("lol\n");
-                  }*/
+                  
+                  //HIGAN_LOGi("barrier %zd mip %d-%d slice %d-%d layouts %s -> %s\n", job.resource.resourceHandle().id, range.startMip, range.mipSize, range.startArr, range.arrSize, toString(src.layout), toString(dst.layout));
                 };
                 RangePerAccessType current{};
-                auto mipLevels = job.resource.fullMipSize();
+                auto mipLevels = resource.mips;
                 unsigned subresourceIndex;
 
                 for (auto mip = job.resource.startMip(); mip < job.resource.startMip() + job.resource.mipSize(); ++mip)

@@ -36,7 +36,7 @@ namespace higanbana
       auto size = tex.desc().desc.size3D();
       size.x = size.x << mip;
       size.y = size.y << mip;
-      list.insert<gfxpacket::UpdateTexture>(tex.handle(), dynBuffer.handle(), tex.desc().desc.miplevels, mip, slice, size.x, size.y);
+      list.insert<gfxpacket::UpdateTexture>(tex.handle(), dynBuffer.handle(), mip, slice, size.x, size.y);
     }
 
     void clearRT(TextureRTV& rtv, float4 color)
@@ -155,7 +155,7 @@ namespace higanbana
 
     void copy(Texture& target, Subresource dstSubresource, int3 dstPos, Texture& source, Subresource srcSubresource, Box srcbox)
     {
-      list.insert<gfxpacket::TextureToTextureCopy>(target.handle(), target.desc().desc.miplevels, dstSubresource, dstPos, source.handle(), source.desc().desc.miplevels, srcSubresource, srcbox);
+      list.insert<gfxpacket::TextureToTextureCopy>(target.handle(), dstSubresource, dstPos, source.handle(), srcSubresource, srcbox);
     }
 
     void copy(Texture& target, Texture& source, SubresourceRange range)
@@ -166,13 +166,13 @@ namespace higanbana
     void copy(Buffer target, size_t targetOffsetBytes, Texture source, Subresource sub) {
       auto size = source.desc().desc.size3D().xy();
       auto type = source.desc().desc.format;
-      list.insert<gfxpacket::TextureToBufferCopy>(target.handle(), targetOffsetBytes, source.handle(), source.desc().desc.miplevels, sub.mipLevel, sub.arraySlice, size.x, size.y, type);
+      list.insert<gfxpacket::TextureToBufferCopy>(target.handle(), targetOffsetBytes, source.handle(), sub.mipLevel, sub.arraySlice, size.x, size.y, type);
     }
 
     void copy(Texture target, Subresource sub, Buffer source, size_t srcOffsetBytes) {
       auto size = target.desc().desc.size3D().xy();
       auto type = target.desc().desc.format;
-      list.insert<gfxpacket::BufferToTextureCopy>(target.handle(), target.desc().desc.miplevels, sub.mipLevel, sub.arraySlice, size.x, size.y, type, source.handle(), srcOffsetBytes);
+      list.insert<gfxpacket::BufferToTextureCopy>(target.handle(),  sub.mipLevel, sub.arraySlice, size.x, size.y, type, source.handle(), srcOffsetBytes);
     }
 
     void copy(Buffer& target, uint dstStart, Buffer& source, uint srcStart, uint elements)

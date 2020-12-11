@@ -541,12 +541,12 @@ namespace higanbana
       return flags;
     }
 
-    void addBarrier(DX12Device* device, D3D12GraphicsCommandList* buffer, MemoryBarriers mbarriers)
+    void DX12CommandList::addBarrier(DX12Device* device, D3D12GraphicsCommandList* buffer, MemoryBarriers mbarriers)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       if (!mbarriers.buffers.empty() || !mbarriers.textures.empty())
       {
-        vector<D3D12_RESOURCE_BARRIER> barriers;
+        m_barriers.clear();
         for (auto& buffer : mbarriers.buffers)
         {
           D3D12_RESOURCE_BARRIER_TYPE type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -563,7 +563,7 @@ namespace higanbana
           transition.StateAfter = afterState;
           transition.Subresource = 0;
 
-          barriers.emplace_back(D3D12_RESOURCE_BARRIER{type, flag, transition});
+          m_barriers.emplace_back(D3D12_RESOURCE_BARRIER{type, flag, transition});
         }
         for (auto& image : mbarriers.textures)
         {
@@ -595,7 +595,7 @@ namespace higanbana
               auto subresource = slice * maxMip + mip;
               transition.Subresource = subresource;
               //HIGAN_LOGi("tex: %zd m: %d s: %d transition: %s -> %s\n", image.handle.id, mip, slice, barrierBef.c_str(), barrierAft.c_str());
-              barriers.emplace_back(D3D12_RESOURCE_BARRIER{type, flag, transition});
+              m_barriers.emplace_back(D3D12_RESOURCE_BARRIER{type, flag, transition});
             }
           }
         }
@@ -606,8 +606,8 @@ namespace higanbana
           buffer->ResourceBarrier(1, &barrier);
         }
 #else
-        if (!barriers.empty())
-          buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+        if (!m_barriers.empty())
+          buffer->ResourceBarrier(static_cast<UINT>(m_barriers.size()), m_barriers.data());
 #endif
       }
     }
@@ -790,7 +790,7 @@ namespace higanbana
             auto texture = device->allResources().tex[params.tex];
             auto dynamic = device->allResources().dynSRV[params.dynamic];
 
-            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.allMips, params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.tex.fullMipSize(), params.mip, params.slice);
             D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
             buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
             break;
@@ -802,7 +802,7 @@ namespace higanbana
             auto srcTex = device->allResources().tex[params.srcTexture];
             auto rowPitch = sizeFormatRowPitch(int2(params.width, params.height), params.format);
 
-            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(srcTex.native(), params.allMips, params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(srcTex.native(), params.srcTexture.fullMipSize(), params.mip, params.slice);
             D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromBuffer(dstBuf.native(), params.dstOffset, rowPitch, params.width, params.height, params.format);
             buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
             break;
@@ -815,7 +815,7 @@ namespace higanbana
             auto rowPitch = sizeFormatRowPitch(int2(params.width, params.height), params.format);
 
             D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromBuffer(srcBuf.native(), params.srcOffset, rowPitch, params.width, params.height, params.format);
-            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dstTex.native(), params.allMips, params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dstTex.native(), params.dstTexture.fullMipSize(), params.mip, params.slice);
             buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
             break;
           }
@@ -825,8 +825,8 @@ namespace higanbana
             auto dst = device->allResources().tex[params.dst];
             auto src = device->allResources().tex[params.src];
 
-            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(src.native(), params.srcMaxMips, params.srcMip, params.srcSlice);
-            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dst.native(), params.dstMaxMips, params.dstMip, params.dstSlice);
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(src.native(), params.src.fullMipSize(), params.srcMip, params.srcSlice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(dst.native(), params.dst.fullMipSize(), params.dstMip, params.dstSlice);
             buffer->CopyTextureRegion(&dstLoc, params.dstPos.x, params.dstPos.y, params.dstPos.z, &srcLoc, nullptr);
             break;
           }

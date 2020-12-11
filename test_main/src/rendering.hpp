@@ -32,7 +32,7 @@ namespace app
 struct RendererOptions
 {
   bool submitExperimental = true;
-  bool submitSingleThread = true;
+  bool submitSingleThread = false;
   bool submitLBS = false;
   bool particles = false;
   bool particlesSimulate = true;

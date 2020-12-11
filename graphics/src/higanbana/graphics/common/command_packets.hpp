@@ -272,18 +272,16 @@ namespace higanbana
     {
       ResourceHandle tex;
       ViewResourceHandle dynamic;
-      int allMips;
       int mip;
       int slice;
       int width;
       int height;
 
       static constexpr const backend::PacketType type = backend::PacketType::UpdateTexture;
-      static void constructor(backend::CommandBuffer& , UpdateTexture& packet, ResourceHandle tex, ViewResourceHandle dynamic, int allMips, int mip, int slice, int width, int height)
+      static void constructor(backend::CommandBuffer& , UpdateTexture& packet, ResourceHandle tex, ViewResourceHandle dynamic, int mip, int slice, int width, int height)
       {
         packet.tex = tex;
         packet.dynamic = dynamic;
-        packet.allMips = allMips;
         packet.mip = mip; 
         packet.slice = slice;
         packet.width = width;
@@ -297,7 +295,6 @@ namespace higanbana
       uint32_t dstOffset;
       
       ResourceHandle srcTexture;
-      uint32_t allMips;
       uint32_t mip;
       uint32_t slice;
       uint32_t width;  
@@ -307,12 +304,11 @@ namespace higanbana
       static constexpr const backend::PacketType type = backend::PacketType::TextureToBufferCopy;
       static void constructor(backend::CommandBuffer& , TextureToBufferCopy& packet,
         ResourceHandle dstBuffer, uint32_t dstOffset, 
-        ResourceHandle srcTex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format)
+        ResourceHandle srcTex, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format)
       {
         packet.dstBuffer = dstBuffer;
         packet.dstOffset = dstOffset;
         packet.srcTexture = srcTex;
-        packet.allMips = allMips;
         packet.mip = mip;
         packet.slice = slice;
         packet.width = width;
@@ -324,7 +320,6 @@ namespace higanbana
     struct BufferToTextureCopy
     {
       ResourceHandle dstTexture;
-      uint32_t allMips;
       uint32_t mip;
       uint32_t slice;
       uint32_t width;  
@@ -337,11 +332,10 @@ namespace higanbana
 
       static constexpr const backend::PacketType type = backend::PacketType::BufferToTextureCopy;
       static void constructor(backend::CommandBuffer& , BufferToTextureCopy& packet,
-        ResourceHandle tex, uint32_t allMips, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format,
+        ResourceHandle tex, uint32_t mip, uint32_t slice, uint32_t width, uint32_t height, FormatType format,
         ResourceHandle sourceBuffer, uint32_t srcOffset)
       {
         packet.dstTexture = tex;
-        packet.allMips = allMips;
         packet.mip = mip;
         packet.slice = slice;
         packet.width = width;
@@ -387,24 +381,20 @@ namespace higanbana
       ResourceHandle dst;
       ResourceHandle src;
       int3 dstPos;
-      uint8_t dstMaxMips;
       uint8_t dstMip;
       uint8_t dstSlice;
-      uint8_t srcMaxMips;
       uint8_t srcMip;
       uint8_t srcSlice;
       Box srcbox;
 
       static constexpr const backend::PacketType type = backend::PacketType::TextureToTextureCopy;
-      static void constructor(backend::CommandBuffer& , TextureToTextureCopy& packet, ResourceHandle target, uint dstMaxMips, Subresource dstSub, int3 dst, ResourceHandle source, uint srcMaxMips, Subresource srcSub, Box srcbox)
+      static void constructor(backend::CommandBuffer& , TextureToTextureCopy& packet, ResourceHandle target, Subresource dstSub, int3 dst, ResourceHandle source, Subresource srcSub, Box srcbox)
       {
         packet.dst = target;
         packet.src = source;
         packet.dstPos = dst;
-        packet.dstMaxMips = dstMaxMips;
         packet.dstMip = dstSub.mipLevel;
         packet.dstSlice = dstSub.arraySlice;
-        packet.srcMaxMips = srcMaxMips;
         packet.srcMip = srcSub.mipLevel;
         packet.srcSlice = srcSub.arraySlice;
         packet.srcbox = srcbox;

@@ -78,6 +78,7 @@ namespace higanbana
 
       struct SmallTexture
       {
+        uint mips;
         vector<ResourceState> states;
       };
 

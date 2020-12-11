@@ -59,7 +59,8 @@ namespace higanbana
         uint64_t gpuid : 16; // this should just be a bitfield, one bit for gpu, starting with modest 16 gpu's =D
         uint64_t m_usage : 4;
         uint64_t sharedResource : 1;
-        uint64_t unused : 9; // honestly could be more bits here, lets just see how things go on 
+        uint64_t m_allMips : 4; // needed so often, just store it here
+        uint64_t unused : 5; // honestly could be more bits here, lets just see how things go on 
       };
       uint64_t rawValue;
     };
@@ -69,6 +70,7 @@ namespace higanbana
       , type(ResourceType::Unknown)
       , gpuid(0)
       , sharedResource(0)
+      , m_allMips(0)
       , unused(0)
       {}
     ResourceHandle(uint64_t id, uint64_t generation, ResourceType type, uint64_t gpuID, bool isShared)
@@ -77,12 +79,16 @@ namespace higanbana
       , type(type)
       , gpuid(gpuID)
       , sharedResource(isShared ? 1 : 0)
+      , m_allMips(0)
       , unused(0)
     {
       static_assert(std::is_standard_layout<ResourceHandle>::value,  "ResourceHandle should be trivial to destroy.");
       static_assert(sizeof(ResourceHandle) == 8,  "ResourceHandle should be 64bits");
     }
 
+    void setMipCount(uint fullMipSize) {
+      m_allMips = static_cast<uint64_t>(fullMipSize - 1);
+    }
     // returns positive value when single gpu
     // -1 when every gpu owns its own
     // -2 is mysterious error situation.
@@ -122,6 +128,11 @@ namespace higanbana
       m_usage = static_cast<uint64_t>(usage);
     }
 
+    unsigned fullMipSize() const
+    {
+      return static_cast<unsigned>(m_allMips+1);
+    }
+
     ResourceUsage usage() const
     {
       return static_cast<ResourceUsage>(m_usage);
@@ -154,14 +165,13 @@ namespace higanbana
         uint64_t id : 14;
         uint64_t generation : 8;
         ViewResourceType type : 4;
-        uint64_t m_allMips : 4;
         uint64_t m_startMip : 4;
         uint64_t m_mipSize : 4;
         uint64_t m_startArr : 11;
         uint64_t m_arrSize : 11;
         uint64_t m_loadop : 2;
         uint64_t m_storeop : 1;
-        uint64_t unused : 1;
+        uint64_t unused : 5;
         uint64_t resource : 64;
       };
       struct 
@@ -188,19 +198,14 @@ namespace higanbana
 
     ResourceHandle resourceHandle() const { ResourceHandle h; h.rawValue = resource; return h;}
 
-    void subresourceRange(int fullMipSize, int startMip, int mipSize, int startArr, int arrSize)
+    void subresourceRange(int startMip, int mipSize, int startArr, int arrSize)
     {
-      m_allMips = static_cast<uint64_t>(fullMipSize - 1);
       m_startMip = static_cast<uint64_t>(startMip);
       m_mipSize = static_cast<uint64_t>(mipSize - 1);
       m_startArr = static_cast<uint64_t>(startArr);
       m_arrSize = static_cast<uint64_t>(arrSize - 1);
     }
 
-    unsigned fullMipSize() const
-    {
-      return static_cast<unsigned>(m_allMips+1);
-    }
     unsigned startMip() const
     {
       return static_cast<unsigned>(m_startMip);

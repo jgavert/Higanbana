@@ -388,7 +388,7 @@ namespace higanbana
       {
         mipLevels = 1;
       }
-      handle.subresourceRange(desc.desc.miplevels, mipOffset, mipLevels, sliceOffset, arraySize);
+      handle.subresourceRange(mipOffset, mipLevels, sliceOffset, arraySize);
     }
 
     void DeviceGroupData::configureBackbufferViews(Swapchain& sc) {
@@ -655,6 +655,7 @@ namespace higanbana
     Texture DeviceGroupData::createTexture(ResourceDescriptor desc) {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto handle = m_handles.allocateResource(ResourceType::Texture);
+      handle.setMipCount(desc.desc.miplevels);
 
       if (desc.desc.allowCrossAdapter) // only interopt supported for now
       {
@@ -854,7 +855,7 @@ namespace higanbana
       for (auto& vdev : m_devices) // uh oh :D TODO: maybe not dynamic buffers for all gpus? close eyes for now
       {
         vdev.device->createShaderArguments(handle, binding);
-        vdev.shaderArguments[handle] = binding.bResources();
+        vdev.shaderArguments[handle] = ShaderArgumentVectors{ binding.bResources(), binding.bBindless() };
       }
       return ShaderArguments(sharedHandle(handle), binding.bResources());
     }
@@ -954,7 +955,7 @@ namespace higanbana
               h.type = acq.type;
               ViewResourceHandle view;
               view.resource = h.rawValue;
-              view.subresourceRange(1, 0, 1, 0, 1);
+              view.subresourceRange(0, 1, 0, 1);
               if (h.type == ResourceType::Buffer)
               {
                 solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::Undefined, acq.fromOrTo));
@@ -1013,8 +1014,7 @@ namespace higanbana
                 {
                   boundSets[i] = handle;
                   const auto& views = vdev.shaderArguments[handle];
-                  for (auto&& resource : views)
-                  {
+                  auto addType = [&solver, &stage, &queue, &usedDrawIndex](ViewResourceHandle resource) {
                     if (resource.type == ViewResourceType::BufferSRV)
                     {
                       solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
@@ -1031,6 +1031,14 @@ namespace higanbana
                     {
                       solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
                     }
+                  };
+                  for (auto&& resource : views.resources)
+                  {
+                    addType(resource);
+                  }
+                  for (auto&& resource : views.bindless)
+                  {
+                    addType(resource);
                   }
                 }
                 ++i;
@@ -1063,8 +1071,7 @@ namespace higanbana
                 {
                   boundSets[i] = handle;
                   const auto& views = vdev.shaderArguments[handle];
-                  for (auto&& resource : views)
-                  {
+                  auto addType = [&solver, stage, queue, usedDrawIndex](ViewResourceHandle resource) {
                     if (resource.type == ViewResourceType::BufferSRV)
                     {
                       solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, stage, backend::TextureLayout::Undefined, queue));
@@ -1081,23 +1088,18 @@ namespace higanbana
                     {
                       solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
                     }
+                  };
+                  for (auto&& resource : views.resources)
+                  {
+                    addType(resource);
+                  }
+                  for (auto&& resource : views.bindless)
+                  {
+                    addType(resource);
                   }
                 }
                 ++i;
               }
-              break;
-            }
-            case PacketType::TextureToTextureCopy:
-            {
-              auto& packet = header->data<gfxpacket::TextureToTextureCopy>();
-              ViewResourceHandle src;
-              src.resource = packet.src.rawValue;
-              src.subresourceRange(packet.srcMaxMips, packet.srcMip, 1, packet.srcSlice, 1);
-              ViewResourceHandle dst;
-              dst.resource = packet.dst.rawValue;
-              dst.subresourceRange(packet.dstMaxMips, packet.dstMip, 1, packet.dstSlice, 1);
-              solver.addTexture(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
-              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
               break;
             }
             case PacketType::BufferCopy:
@@ -1141,7 +1143,7 @@ namespace higanbana
               auto& packet = header->data<gfxpacket::UpdateTexture>();
               ViewResourceHandle viewhandle{};
               viewhandle.resource = packet.tex.rawValue;
-              viewhandle.subresourceRange(packet.allMips, packet.mip, 1, packet.slice, 1);
+              viewhandle.subresourceRange(packet.mip, 1, packet.slice, 1);
               solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
               break;
             }
@@ -1153,7 +1155,7 @@ namespace higanbana
               solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
               ViewResourceHandle src;
               src.resource = packet.srcTexture.rawValue;
-              src.subresourceRange(packet.allMips, packet.mip, 1, packet.slice, 1);
+              src.subresourceRange(packet.mip, 1, packet.slice, 1);
               solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
               break;
             }
@@ -1162,11 +1164,24 @@ namespace higanbana
               auto& packet = header->data<gfxpacket::BufferToTextureCopy>();
               ViewResourceHandle dst;
               dst.resource = packet.dstTexture.rawValue;
-              dst.subresourceRange(packet.allMips, packet.mip, 1, packet.slice, 1);
+              dst.subresourceRange(packet.mip, 1, packet.slice, 1);
               solver.addTexture(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
               ViewResourceHandle src;
               src.resource = packet.srcBuffer.rawValue;
               solver.addBuffer(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
+              break;
+            }
+            case PacketType::TextureToTextureCopy:
+            {
+              auto& packet = header->data<gfxpacket::TextureToTextureCopy>();
+              ViewResourceHandle src;
+              src.resource = packet.src.rawValue;
+              src.subresourceRange(packet.srcMip, 1, packet.srcSlice, 1);
+              ViewResourceHandle dst;
+              dst.resource = packet.dst.rawValue;
+              dst.subresourceRange(packet.dstMip, 1, packet.dstSlice, 1);
+              solver.addTexture(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
+              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
               break;
             }
             case PacketType::PrepareForPresent:
@@ -1174,7 +1189,7 @@ namespace higanbana
               auto& packet = header->data<gfxpacket::PrepareForPresent>();
               ViewResourceHandle viewhandle{};
               viewhandle.resource = packet.texture.rawValue;
-              viewhandle.subresourceRange(1, 0, 1, 0, 1);
+              viewhandle.subresourceRange(0, 1, 0, 1);
               solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, queue));
               break;
             }
@@ -1196,7 +1211,7 @@ namespace higanbana
           h.type = rel.type;
           ViewResourceHandle view;
           view.resource = h.rawValue;
-          view.subresourceRange(1, 0, 1, 0, 1);
+          view.subresourceRange(0, 1, 0, 1);
           if (h.type == ResourceType::Buffer)
           {
             solver.addBuffer(drawIndex, view, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Common, backend::TextureLayout::Undefined, rel.fromOrTo));

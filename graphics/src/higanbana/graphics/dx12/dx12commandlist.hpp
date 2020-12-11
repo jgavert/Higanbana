@@ -7,6 +7,7 @@ namespace higanbana
 {
   namespace backend
   {
+    struct MemoryBarriers;
     class DX12CommandList : public CommandBufferImpl
     {
       QueueType m_type;
@@ -29,6 +30,8 @@ namespace higanbana
       D3D12_INDEX_BUFFER_VIEW m_ib = {};
 
       std::shared_ptr<FreeableResources> m_freeResources;
+      
+      vector<D3D12_RESOURCE_BARRIER> m_barriers;
 
       UploadBlockGPU allocateConstants(size_t size);
       DynamicDescriptorBlock allocateDescriptors(size_t size);
@@ -36,6 +39,7 @@ namespace higanbana
       void handleBindings(DX12Device* dev, D3D12GraphicsCommandList*, gfxpacket::ResourceBindingCompute& binding);
       //void addDepedencyDataAndSolve(DX12DependencySolver* solver, backend::IntermediateList& list);
       void addCommands(DX12Device* device, D3D12GraphicsCommandList* buffer, MemView<backend::CommandBuffer*>& buffers, BarrierSolver& solver);
+      void addBarrier(DX12Device* device, D3D12GraphicsCommandList* buffer, MemoryBarriers mbarriers);
 
     public:
       DX12CommandList(

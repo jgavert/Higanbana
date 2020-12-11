@@ -152,6 +152,11 @@ namespace higanbana
       QueueType queue;
     };
 
+    struct ShaderArgumentVectors 
+    {
+      vector<ViewResourceHandle> resources;
+      vector<ViewResourceHandle> bindless;
+    };
     struct DeviceGroupData : std::enable_shared_from_this<DeviceGroupData>
     {
       // consist of device specific/grouped classes
@@ -172,7 +177,7 @@ namespace higanbana
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;
         HandleVector<TextureResourceState> m_textureStates;
-        HandleVector<vector<ViewResourceHandle>> shaderArguments;
+        HandleVector<ShaderArgumentVectors> shaderArguments;
         QueueStates qStates;
         deque<LiveCommandBuffer2> m_gfxBuffers;
         deque<LiveCommandBuffer2> m_computeBuffers;
