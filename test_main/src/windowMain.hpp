@@ -76,6 +76,8 @@ class RenderingApp {
 
   // random profiling thing
   higanbana::Timestamp m_lastTotalGpuTime;
+  higanbana::vector<higanbana::RingBuffer<float, 200>> m_threadsLog; 
+  higanbana::RingBuffer<float, 200> m_cpuUseLog; 
   int2 m_windowSize = div(int2(1280, 720), 1);
   int2 m_windowPos = int2(300,400);
 

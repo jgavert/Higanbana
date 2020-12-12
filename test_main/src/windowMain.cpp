@@ -632,6 +632,18 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           }
         }
         ImGui::End();
+
+        ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("CPU Histogram")) {
+          auto stats = css::s_stealPool->threadUsage();
+          m_cpuUseLog.push_back(stats.totalCpuPercentage());
+          //float use = stats.totalCpuPercentage();
+          ImGui::PlotHistogram("cpu use", [](void* data, int i) -> float {
+            RingBuffer<float, 200>* buffer = reinterpret_cast<RingBuffer<float, 200>*>(data);
+            return buffer->operator[](i);
+          },&m_cpuUseLog, m_cpuUseLog.size(), m_cpuUseLog.start_ind(), 0, 0.f, 1.f, ImVec2(300, 100));
+        }
+        ImGui::End();
         ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Camera")) {
           auto& t_pos = m_ecs.get<components::Position>();
@@ -830,6 +842,8 @@ RenderingApp::RenderingApp(AppInputs inputs)
   if (inputs.powersave) {
     m_limitFPS = 20;
   }
+  auto threadCount = css::s_stealPool->threadUsage().size();
+  m_threadsLog.resize(threadCount);
 }
 
 void RenderingApp::runCoreLoop(ProgramParams& params) {
