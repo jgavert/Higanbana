@@ -36,7 +36,7 @@ struct AppInputs {
   higanbana::GraphicsApi cmdlineApiId = higanbana::GraphicsApi::DX12;
   higanbana::VendorID cmdlineVendorId = higanbana::VendorID::Amd;
   higanbana::GraphicsApi allowedApis = higanbana::GraphicsApi::All;
-  bool rgpCapture = false;
+  bool onlyVendor = false;
   bool validationLayer = false;
   bool powersave = false;
 };

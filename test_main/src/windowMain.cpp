@@ -636,8 +636,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("CPU Histogram")) {
           auto stats = css::s_stealPool->threadUsage();
-          m_cpuUseLog.push_back(stats.totalCpuPercentage());
-          //float use = stats.totalCpuPercentage();
+          auto val = stats.totalCpuPercentage();
+          m_cpuUseLog.push_back(val);
           ImGui::PlotHistogram("cpu use", [](void* data, int i) -> float {
             RingBuffer<float, 200>* buffer = reinterpret_cast<RingBuffer<float, 200>*>(data);
             return buffer->operator[](i);
@@ -900,14 +900,14 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     window.open();
 
     GraphicsSubsystem graphics(m_cmdline.allowedApis, "higanbana", m_cmdline.validationLayer);
-    if (m_cmdline.rgpCapture)
+    if (m_cmdline.onlyVendor)
     {
-      allGpus = graphics.availableGpus(m_api, VendorID::Amd);
+      allGpus = graphics.availableGpus(m_api, m_preferredVendor);
       if (!allGpus.empty()) {
         physicalDevice = allGpus[0];
       }
       else
-        HIGAN_LOGi("Failed to find AMD RGP compliant device in %s api", toString(m_api));
+        HIGAN_LOGi("Failed to find %s compliant device in %s api", toString(m_preferredVendor), toString(m_api));
     }
     else
     {
@@ -1034,7 +1034,7 @@ void mainWindow(ProgramParams& params)
 {
   cxxopts::Options options("TestMain", "TestMain tests some practical functionality of Higanbana.");
   options.add_options()
-    ("rgp", "forces Radeon GPU Profiler, allows only AMD gpu's.")
+    ("restrict", "forces the api and vendor and hides others. Use with other commandline args.")
     ("vulkan", "priorizes Vulkan API")
     ("dx12", "priorizes DirectX 12 API")
     ("intel", "priorizes Intel GPU's")
@@ -1073,11 +1073,11 @@ void mainWindow(ProgramParams& params)
     {
       inputs.validationLayer = true;
     }
-    if (results.count("rgp"))
+    if (results.count("restrict"))
     {
-      inputs.rgpCapture = true;
-      inputs.cmdlineVendorId = VendorID::Amd;
-      HIGAN_LOGi("Preparing for RGP capture...\n");
+      inputs.onlyVendor = true;
+      //inputs.cmdlineVendorId = VendorID::Amd;
+      //HIGAN_LOGi("Preparing for RGP capture...\n");
       inputs.allowedApis = inputs.cmdlineApiId;
     }
     if (results.count("powersave")) {
