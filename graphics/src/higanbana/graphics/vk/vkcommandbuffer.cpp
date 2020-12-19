@@ -868,7 +868,7 @@ namespace higanbana
               .setDstOffset(vk::Offset3D().setX(params.dstPos.x).setY(params.dstPos.y).setZ(params.dstPos.z))
               .setDstSubresource(vk::ImageSubresourceLayers().setMipLevel(params.dstMip).setLayerCount(1).setBaseArrayLayer(params.dstSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
               .setSrcSubresource(vk::ImageSubresourceLayers().setMipLevel(params.srcMip).setLayerCount(1).setBaseArrayLayer(params.srcSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
-              .setExtent(vk::Extent3D().setDepth(1));
+              .setExtent(vk::Extent3D().setWidth(params.srcbox.rightBottomBack.x).setHeight(params.srcbox.rightBottomBack.y).setDepth(params.srcbox.rightBottomBack.z));
 
             buffer.copyImage(src.native(), vk::ImageLayout::eTransferSrcOptimal, dst.native(), vk::ImageLayout::eTransferDstOptimal, {icopy});
             break;

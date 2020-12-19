@@ -167,7 +167,7 @@ void Renderer::renderMeshesWithMeshShaders(higanbana::CommandGraphNode& node, hi
 void Renderer::testMipper(higanbana::CommandNodeVector& tasks, higanbana::Texture testTexture, higanbana::TextureRTV& backbuffer, higanbana::Texture someData) {
   {
     auto node = tasks.createPass("copy backbuffer as example", QueueType::Graphics);
-    node.copy(testTexture, Subresource().mip(0).slice(0), int3(0,0,0), someData, Subresource().mip(0).slice(0), Box());
+    node.copy(testTexture, Subresource().mip(0).slice(0), int3(0,0,0), someData, Subresource().mip(0).slice(0), Box(uint3(0,0,0), someData.size3D()));
     tasks.addPass(std::move(node));
   }
   {
