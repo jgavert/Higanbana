@@ -1121,6 +1121,27 @@ namespace higanbana
               solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write,  backend::AccessStage::Transfer, backend::TextureLayout::Undefined, queue));
               break;
             }
+            case PacketType::ReadbackTexture:
+            {
+              auto& packet = header->data<gfxpacket::ReadbackTexture>();
+              ViewResourceHandle src;
+              src.resource = packet.src.rawValue;
+              src.subresourceRange(packet.mip, 1, packet.slice, 1);
+              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
+              {
+                // READBACKS HANDLED HERE, sneakily put here.
+                auto handle = m_handles.allocateResource(ResourceType::ReadbackBuffer);
+                handle.setGpuId(vdev.id);
+                readbacks[currentReadback].promiseId = sharedHandle(handle);
+                // calculate how much needed for bytes 
+                auto mipSize = calculateMipDim(packet.srcbox.size(), packet.mip);
+                auto formatSize = sizeFormatSlicePitch(mipSize, packet.format);
+                vdev.device->readbackBuffer(handle, formatSize);
+                packet.dst = handle;
+                currentReadback++;
+              }
+              break;
+            }
             case PacketType::ReadbackBuffer:
             {
               auto& packet = header->data<gfxpacket::ReadbackBuffer>();

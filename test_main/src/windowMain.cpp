@@ -372,7 +372,9 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             windowOffset = ImGui::GetWindowPos();
             ws.y -= 36;
             rendererViewports[i].options.visible = true;
-            ImGui::Image(reinterpret_cast<void*>(enabledViewport + 1), ws);
+            uint8_t* ptr = nullptr;
+            ptr = ptr+enabledViewport+1;
+            ImGui::Image(static_cast<void*>(ptr), ws);
             rendererViewports[i].viewportSize = int2(ws.x, ws.y);
             rendererViewports[i].viewportIndex = enabledViewport + 1;
             enabledViewport++;
@@ -490,10 +492,14 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           ImGui::BeginTabBar("viewports");
           for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++) {
             std::string index = std::string("viewport ") + std::to_string(i);
+            rendererViewports[i].screenshot = false;
             auto&       vp = rendererViewports[i];
             if (ImGui::BeginTabItem(index.c_str())) {
               int2 currentRes = math::mul(vp.options.resolutionScale, float2(vp.viewportSize));
               ImGui::Text("resolution %dx%d", currentRes.x, currentRes.y);  // ImGui::SameLine();
+              if (ImGui::Button("screenshot")) {
+                vp.screenshot = true;
+              }
               vp.options.drawImGuiOptions(activeDevices);
               ImGui::EndTabItem();
             }
@@ -815,6 +821,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         blocks.push_back(ChunkBlockDraw{float3(k,j,0), static_cast<uint>(i)});
       }
     }
+    rend.handleReadbacks(m_fs);
     co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
 
     m_logicAndRenderTime.tick();
@@ -973,6 +980,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       m_amouse.write(window.mouse());
 
       m_renderActive = true;
+      // starts rendering loop here on another thread
       css::Task<int> logicAndRenderAsync = runVisualLoop(rend, dev);
       css::waitOwnQueueStolen();
       //std::this_thread::sleep_for(std::chrono::milliseconds(200));

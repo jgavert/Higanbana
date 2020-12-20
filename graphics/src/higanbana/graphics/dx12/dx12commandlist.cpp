@@ -835,6 +835,19 @@ namespace higanbana
             buffer->EndRenderPass();
             break;
           }
+          case PacketType::ReadbackTexture:
+          {
+            auto params = header->data<gfxpacket::ReadbackTexture>();
+            auto dstBuf = device->allResources().rbbuf[params.dst];
+            auto srcTex = device->allResources().tex[params.src];
+            auto ss = params.srcbox.size();
+            auto rowPitch = sizeFormatRowPitch(ss, params.format);
+
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromTexture(srcTex.native(), params.src.fullMipSize(), params.mip, params.slice);
+            D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromBuffer(dstBuf.native(), 0, rowPitch, ss.x, ss.y, params.format);
+            buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            break;
+          }
           case PacketType::ReadbackBuffer:
           {
             // TODO: dst offset for not buffers

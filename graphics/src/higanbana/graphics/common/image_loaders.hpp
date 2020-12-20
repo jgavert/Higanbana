@@ -8,5 +8,6 @@ namespace higanbana
   namespace textureUtils
   {
     CpuImage loadImageFromFilesystem(FileSystem& fs, std::string path, bool flipVertically = true);
+    void saveImageFromFilesystemPNG(FileSystem& fs, std::string path, CpuImage& toSave);
   }
 }

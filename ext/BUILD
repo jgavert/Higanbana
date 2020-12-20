@@ -1,6 +1,6 @@
 cc_library(
     name = "STB",
-    hdrs = ["stb/stb.h", "stb/stb_image.h"],
+    hdrs = ["stb/stb.h", "stb/stb_image.h", "stb/stb_image_write.h"],
     includes = ["stb"],
     visibility = ["//visibility:public"], 
 )

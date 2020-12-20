@@ -8,6 +8,8 @@
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 namespace higanbana
 {
@@ -46,6 +48,31 @@ namespace higanbana
       stbi_image_free(asd);
 
       return image;
+    }
+
+    struct FileSystemAndTargetLocation
+    {
+      FileSystem* fs;
+      const char* path;
+    };
+
+    void saveImageFromFilesystemPNG(FileSystem& fs, std::string path, CpuImage& toSave) {
+      std::string loadingFile = "saveImageFS_PNG " + path;
+      HIGAN_CPU_BRACKET(loadingFile.c_str());
+
+      int imgX, imgY, channels;
+      int size = 0;
+      stbi_uc* asd = nullptr;
+      {
+        HIGAN_CPU_BRACKET("stbi_save_to_memory");
+        auto dat = toSave.subresource(0,0);
+        FileSystemAndTargetLocation asd = {&fs, path.c_str()};
+        stbi_write_png_to_func([](void *context, void *data, int size){
+          FileSystemAndTargetLocation* ptr = reinterpret_cast<FileSystemAndTargetLocation*>(context);
+          ptr->fs->writeFile(ptr->path, MemView<const uint8_t>(reinterpret_cast<uint8_t*>(data), size));
+          HIGAN_LOGi("png! %d\n", size);
+        }, &asd, toSave.desc().size().x, toSave.desc().size().y, 4, dat.data(), dat.rowPitch());
+      }
     }
   }
 }

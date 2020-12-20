@@ -892,6 +892,36 @@ namespace higanbana
             buffer.copyBuffer(src.native().buffer, dst, info);
             break;
           }
+          case PacketType::ReadbackTexture:
+          {
+            auto params = header->data<gfxpacket::ReadbackTexture>();
+            auto srcTex = device->allResources().tex[params.src];
+            auto dstBuf = device->allResources().rbBuf[params.dst];
+
+            auto ss = params.srcbox.size();
+            auto rows = ss.y;
+
+            vk::ImageSubresourceLayers layers = vk::ImageSubresourceLayers()
+              .setMipLevel(params.mip)
+              .setLayerCount(params.slice)
+              .setLayerCount(1)
+              .setAspectMask(srcTex.aspectFlags());
+
+            auto rowLength = sizeFormatRowPitch(ss, params.format) / formatSizeInfo(params.format).pixelSize;
+
+            auto start = params.srcbox.leftTopFront;
+
+            vk::BufferImageCopy info = vk::BufferImageCopy()
+              .setBufferOffset(0)
+              .setBufferRowLength(rowLength)
+              .setBufferImageHeight(ss.y)
+              .setImageOffset(vk::Offset3D(start.x, start.y, start.z))
+              .setImageExtent(vk::Extent3D(ss.x, ss.y, ss.z))
+              .setImageSubresource(layers);
+            
+            buffer.copyImageToBuffer(srcTex.native(), vk::ImageLayout::eTransferSrcOptimal, dstBuf.native(), {info});
+            break;
+          }
           case PacketType::ReadbackBuffer:
           {
             auto params = header->data<gfxpacket::ReadbackBuffer>();

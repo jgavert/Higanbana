@@ -1221,13 +1221,12 @@ namespace higanbana
         :pool(pool)
       {
       }
-      std::vector<vk::DescriptorSet> allocate(vk::Device device, vk::DescriptorSetLayout layout, int count)
+      std::vector<vk::DescriptorSet> allocate(vk::Device device, vk::DescriptorSetAllocateInfo allocateInfo)
       {
         std::lock_guard<std::mutex> poolLock(descriptorLock);
-        auto res = device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo()
-          .setDescriptorPool(pool)
-          .setDescriptorSetCount(count)
-          .setPSetLayouts(&layout));
+
+        auto res = device.allocateDescriptorSets(allocateInfo
+          .setDescriptorPool(pool));
         VK_CHECK_RESULT(res);
         return res.value;
       }

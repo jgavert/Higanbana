@@ -964,8 +964,12 @@ namespace higanbana
       : leftTopFront(start)
       , rightBottomBack(add(start, size))
     {}
+
+    int3 size() {
+      return int3(sub(rightBottomBack, leftTopFront));
+    }
   };
-}
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
+}
 #pragma warning( pop )
 #endif

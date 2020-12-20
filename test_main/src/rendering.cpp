@@ -180,10 +180,12 @@ void Renderer::testMipper(higanbana::CommandNodeVector& tasks, higanbana::Textur
     auto mips = testTexture.desc().desc.miplevels;
     blitter.beginRenderpass(node, backbuffer);
     int offset = 0;
+    auto startSize = backbuffer.size3D().x;
     for (auto mip = 0; mip < mips; ++ mip) {
       auto srv = dev.createTextureSRV(testTexture, ShaderViewDescriptor().setMostDetailedMip(mip).setMipLevels(1));
       blitter.blitScale(dev, node, backbuffer, srv, int2(offset, 0), 0.5f);
-      offset += srv.size3D().x / 2;
+      startSize = startSize / 2;
+      offset += startSize;
     }
     node.endRenderpass();
     tasks.addPass(std::move(node));
@@ -347,6 +349,31 @@ higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 
 void Renderer::ensureViewportCount(int size) {
   if (viewports.size() != static_cast<size_t>(size))
     viewports.resize(size);
+}
+
+void Renderer::handleReadbacks(higanbana::FileSystem& fs) {
+  while (!readbacks.empty()) {
+    if (readbacks.front().readback.ready()){
+      auto rb = readbacks.front().readback.get();
+      auto v = rb.view<uint8_t>();
+      HIGAN_LOGi("Something was readback %d bytes\n", v.size());
+      auto desc = readbacks.front().tex;
+      CpuImage image(desc);
+      auto subRes = image.subresource(0,0);
+      auto dstRowPitch = subRes.rowPitch();
+      auto srcRowPitch = sizeFormatRowPitch(desc.size(), desc.desc.format);
+      for (size_t y = 0; y < desc.size().y; ++y) {
+        auto dstOffset = y*dstRowPitch;
+        auto srcOffset = y*srcRowPitch;
+        memcpy(subRes.data() + dstOffset, v.data() + srcOffset, dstRowPitch);
+      }
+      textureUtils::saveImageFromFilesystemPNG(fs, readbacks.front().filepath, image);
+      readbacks.pop_front();
+    }
+    else{
+      break;
+    }
+  }
 }
 
 css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
@@ -595,6 +622,23 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       testMipper(node, viewport.mipmaptest, viewport.viewportRTV, viewport.gbuffer);
     }
     tasks.addVectorOfPasses(std::move(node));
+  }
+
+  // screenshot
+  {
+    for (auto&& index : indexesToVP) {
+      auto& vpInfo = viewportsToRender[index];
+      auto& vp = viewports[index];
+      if (vpInfo.screenshot) {
+        auto node = tasks.createPass("screenshot");
+        auto rb = node.readback(vp.viewport);
+        std::string filename = "/test";
+        filename += std::to_string(index);
+        filename += ".png";
+        readbacks.push_back(ReadbackTexture{filename, vp.viewport.desc(), rb});
+        tasks.addPass(std::move(node));
+      }
+    }
   }
 
   // IMGUI

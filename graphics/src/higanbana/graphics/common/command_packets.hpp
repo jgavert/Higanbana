@@ -359,6 +359,27 @@ namespace higanbana
       }
     };
 
+    struct ReadbackTexture
+    {
+      ResourceHandle dst; // patched later when we know it. Buffer
+      ResourceHandle src;
+      uint32_t mip;
+      uint32_t slice;
+      Box srcbox;
+      FormatType format;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ReadbackTexture;
+      static void constructor(backend::CommandBuffer& , ReadbackTexture& packet, ResourceHandle src, Subresource srcSub, Box box, FormatType format)
+      {
+        packet.src = src; 
+        packet.mip = srcSub.mipLevel;
+        packet.slice = srcSub.arraySlice;
+        packet.srcbox = box;
+        packet.format = format;
+        packet.dst = ResourceHandle(); // invalid handle for now
+      }
+    };
+
     struct ReadbackBuffer
     {
       ResourceHandle dst; // patched later when we know it.

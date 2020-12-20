@@ -193,7 +193,7 @@ namespace higanbana
 
     void readback(Texture& texture, Subresource range, Box srcbox)
     {
-      //list.insert<gfxpacket::ReadbackTexture>(texture, range, srcbox, texture.desc().desc.format);
+      list.insert<gfxpacket::ReadbackTexture>(texture.handle(), range, srcbox, texture.desc().desc.format);
     }
 
     void readback(Buffer& buffer, uint startElement, uint size)

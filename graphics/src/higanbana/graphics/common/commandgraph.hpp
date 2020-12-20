@@ -377,7 +377,7 @@ namespace higanbana
       list->copy(dst, sub, src, srcOffset);
     }
 
-    ReadbackFuture readback(Texture tex, Subresource resource)
+    ReadbackFuture readback(Texture tex, Subresource resource = Subresource())
     {
       addReadShared(tex.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});

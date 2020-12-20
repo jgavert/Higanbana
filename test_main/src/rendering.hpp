@@ -144,6 +144,13 @@ struct RenderViewportInfo {
   int2 viewportSize;
   ViewportOptions options;
   ActiveCamera camera;
+  bool screenshot;
+};
+
+struct ReadbackTexture {
+  std::string filepath;
+  higanbana::ResourceDescriptor tex;
+  higanbana::ReadbackFuture readback;
 };
 
 class Renderer
@@ -202,6 +209,9 @@ class Renderer
   // temp, probably shouldnt be here
   //CameraSettings m_previousCamera;
 
+  // readbacks
+  higanbana::deque<ReadbackTexture> readbacks;
+
   // making submits more smooth
   std::unique_ptr<css::Task<void>> presentTask; // stores last present call
 
@@ -247,6 +257,7 @@ public:
   int loadMaterial(MaterialData& data);
   void unloadMaterial(int index);
 
+  void handleReadbacks(higanbana::FileSystem& fs);
   css::Task<void> cleanup();
 };
 }

@@ -23,6 +23,7 @@ namespace higanbana
       ReleaseFromQueue,
       BufferCopy,
       ReadbackBuffer,
+      ReadbackTexture,
       DynamicBufferCopy,
       UpdateTexture,
       TextureToBufferCopy,

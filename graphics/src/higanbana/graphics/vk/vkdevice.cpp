@@ -1725,7 +1725,12 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.desc.shaders.front().second.c_str());
 
-      auto set = m_descriptors->allocate(m_device, defaultDescLayout(), 1);
+      auto defLayout = defaultDescLayout();
+      auto aainfo = vk::DescriptorSetAllocateInfo()
+        .setDescriptorSetCount(1)
+        .setPSetLayouts(&defLayout);
+
+      auto set = m_descriptors->allocate(m_device, aainfo);
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(m_constantAllocators->buffer())
@@ -1774,7 +1779,12 @@ namespace higanbana
 
       setDebugUtilsObjectNameEXT(pipelineLayout.value, desc.shader());
 
-      auto set = m_descriptors->allocate(m_device, defaultDescLayout(), 1);
+      auto defLayout = defaultDescLayout();
+      auto aainfo = vk::DescriptorSetAllocateInfo()
+        .setDescriptorSetCount(1)
+        .setPSetLayouts(&defLayout);
+
+      auto set = m_descriptors->allocate(m_device, aainfo);
       m_descriptorSetsInUse++;
 
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
@@ -2210,7 +2220,7 @@ namespace higanbana
       VK_CHECK_RESULT(buffer);
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers since this actually has been done already
+      auto emptyVal = m_device.getBufferMemoryRequirements(buffer.value); // Only to silence the debug layers since this actually has been done already
       VK_CHECK_RESULT_RAW(m_device.bindBufferMemory(buffer.value, native.native(), size));
 
       VulkanBufferState state{};
@@ -2373,7 +2383,7 @@ namespace higanbana
       VK_CHECK_RESULT(image);
       auto& native = m_allRes.heaps[allocation.heap.handle];
       vk::DeviceSize size = allocation.allocation.block.offset;
-      m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
+      auto emptyVal = m_device.getImageMemoryRequirements(image.value); // Only to silence the debug layers, we've already done this with same description.
       HIGAN_ASSERT(size%allocation.allocation.alignment == 0, "hmm, wtf?");
       VK_CHECK_RESULT_RAW(m_device.bindImageMemory(image.value, native.native(), size));
 
@@ -2527,7 +2537,19 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto desclayout = allResources().shaArgsLayouts[binding.layout()].native();
-      auto set = m_descriptors->allocate(native(), desclayout, 1)[0];
+      
+      vk::DescriptorSetVariableDescriptorCountAllocateInfo extInfo{};
+      uint32_t val = static_cast<uint32_t>(binding.bBindless().size());
+      extInfo = extInfo.setDescriptorCounts(val);
+      auto res = vk::DescriptorSetAllocateInfo()
+        .setDescriptorSetCount(1)
+        .setPSetLayouts(&desclayout);
+      
+      if (!binding.bBindlessDesc().name.empty()) {
+        res = res.setPNext(&extInfo);
+      }
+
+      auto set = m_descriptors->allocate(native(), res)[0];
       setDebugUtilsObjectNameEXT(set, binding.name().c_str());
       m_allRes.shaArgs[handle] = VulkanShaderArguments(set);
       //m_allocatedSets.push_back(set);
@@ -2843,7 +2865,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       ResourceDescriptor desc = ResourceDescriptor()
         .setCount(bytes)
-        .setFormat(FormatType::Unorm8)
+        .setFormat(FormatType::Uint8)
         .setUsage(ResourceUsage::Readback);
 
       auto vkdesc = fillBufferInfo(desc);
