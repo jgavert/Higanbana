@@ -272,20 +272,20 @@ namespace higanbana
     {
       ResourceHandle tex;
       ViewResourceHandle dynamic;
-      int mip;
-      int slice;
-      int width;
-      int height;
+      int3 dstPos;
+      uint8_t mip;
+      uint8_t slice;
+      Box srcbox;
 
       static constexpr const backend::PacketType type = backend::PacketType::UpdateTexture;
-      static void constructor(backend::CommandBuffer& , UpdateTexture& packet, ResourceHandle tex, ViewResourceHandle dynamic, int mip, int slice, int width, int height)
+      static void constructor(backend::CommandBuffer& , UpdateTexture& packet, ResourceHandle tex, Subresource dstSub, int3 dst, ViewResourceHandle dynamic, Box srcbox)
       {
         packet.tex = tex;
         packet.dynamic = dynamic;
-        packet.mip = mip; 
-        packet.slice = slice;
-        packet.width = width;
-        packet.height = height;
+        packet.dstPos = dst;
+        packet.mip = dstSub.mipLevel;
+        packet.slice = dstSub.arraySlice;
+        packet.srcbox = srcbox;
       }
     };
 
@@ -346,6 +346,31 @@ namespace higanbana
       }
     };
 
+    struct TextureToTextureCopy
+    {
+      ResourceHandle dst;
+      ResourceHandle src;
+      int3 dstPos;
+      uint8_t dstMip;
+      uint8_t dstSlice;
+      uint8_t srcMip;
+      uint8_t srcSlice;
+      Box srcbox;
+
+      static constexpr const backend::PacketType type = backend::PacketType::TextureToTextureCopy;
+      static void constructor(backend::CommandBuffer& , TextureToTextureCopy& packet, ResourceHandle target, Subresource dstSub, int3 dst, ResourceHandle source, Subresource srcSub, Box srcbox)
+      {
+        packet.dst = target;
+        packet.src = source;
+        packet.dstPos = dst;
+        packet.dstMip = dstSub.mipLevel;
+        packet.dstSlice = dstSub.arraySlice;
+        packet.srcMip = srcSub.mipLevel;
+        packet.srcSlice = srcSub.arraySlice;
+        packet.srcbox = srcbox;
+      }
+    };
+
     struct ScissorRect
     {
       int2 topleft;
@@ -397,30 +422,6 @@ namespace higanbana
       }
     };
 
-    struct TextureToTextureCopy
-    {
-      ResourceHandle dst;
-      ResourceHandle src;
-      int3 dstPos;
-      uint8_t dstMip;
-      uint8_t dstSlice;
-      uint8_t srcMip;
-      uint8_t srcSlice;
-      Box srcbox;
-
-      static constexpr const backend::PacketType type = backend::PacketType::TextureToTextureCopy;
-      static void constructor(backend::CommandBuffer& , TextureToTextureCopy& packet, ResourceHandle target, Subresource dstSub, int3 dst, ResourceHandle source, Subresource srcSub, Box srcbox)
-      {
-        packet.dst = target;
-        packet.src = source;
-        packet.dstPos = dst;
-        packet.dstMip = dstSub.mipLevel;
-        packet.dstSlice = dstSub.arraySlice;
-        packet.srcMip = srcSub.mipLevel;
-        packet.srcSlice = srcSub.arraySlice;
-        packet.srcbox = srcbox;
-      }
-    };
 
     struct ReadbackShaderDebug
     {

@@ -1,5 +1,6 @@
 #include "windowMain.hpp"
 
+
 using namespace higanbana;
 using namespace higanbana::math;
 
@@ -1040,8 +1041,10 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
 }
 void mainWindow(ProgramParams& params)
 {
+  using namespace higanbana;
   cxxopts::Options options("TestMain", "TestMain tests some practical functionality of Higanbana.");
   options.add_options()
+    ("test", "tests code in development")
     ("restrict", "forces the api and vendor and hides others. Use with other commandline args.")
     ("vulkan", "priorizes Vulkan API")
     ("dx12", "priorizes DirectX 12 API")
@@ -1080,6 +1083,10 @@ void mainWindow(ProgramParams& params)
     if (results.count("gfx_debug"))
     {
       inputs.validationLayer = true;
+    }
+    if (results.count("test"))
+    {
+      return;
     }
     if (results.count("restrict"))
     {

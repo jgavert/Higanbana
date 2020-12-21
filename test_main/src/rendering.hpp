@@ -40,13 +40,15 @@ struct RendererOptions
   bool allowRaytracing = false;
   bool unbalancedCubes = false;
   bool renderImGui = true;
-  bool testMipper = true;
+  bool testMipper = false;
+  bool renderCpuRaytrace = true;
   bool renderBlocks = true;
   bool enableHDR = false;
   void drawImGuiOptions()
   {
     ImGui::Checkbox("render blocks", &renderBlocks);
     ImGui::Checkbox("test generate mipmaps", &testMipper);
+    ImGui::Checkbox("cpu raytracer", &renderCpuRaytrace);
     ImGui::Checkbox("HDR", &enableHDR);
     ImGui::Checkbox("Submit with experimental mt", &submitExperimental);
     ImGui::Checkbox("Submit Singlethread", &submitSingleThread);

@@ -17,7 +17,8 @@ float4 main(VertexOut input) : SV_TARGET
   float4 color = source.SampleLevel(bilinearSamplerWarp, input.uv, 0);
 #ifdef TEMP_TONEMAP
   //color = saturate(color);
-  color = inverse_reinhard(color);
+  if (constants.tsaaActive)
+    color = inverse_reinhard(color);
 #else
   //color = max(0, color);
 #endif

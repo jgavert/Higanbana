@@ -90,6 +90,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setSize(uint3(1280, 720, 1))
     .setFormat(FormatType::Unorm8BGRA);
   resizeExternal(desc);
+
 }
 void Renderer::loadLogos(higanbana::FileSystem& fs) {
   if (!fs.fileExists("/misc/dx12u_logo.png") || !fs.fileExists("/misc/vulkan_logo.png"))
@@ -377,6 +378,7 @@ void Renderer::handleReadbacks(higanbana::FileSystem& fs) {
 }
 
 css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
+
   bool adjustSwapchain = false;
   if (rendererOptions.enableHDR == true && scdesc.desc.colorSpace != Colorspace::BT2020)
   {
@@ -485,9 +487,35 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     auto& options = vpInfo.options;
     auto& localVec = nodeVecs[index];
 
-    Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
+    if (!vpInfo.options.useRaytracing) {
+      Renderer::SceneArguments sceneArgs{vp.gbufferRTV, vp.depthDSV, vp.motionVectorsRTV, materialArgs, options, vp.currentCameraIndex, vp.previousCameraIndex, vp.perspective, vpInfo.camera.position, drawcalls, drawsSplitInto};
 
-    sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances, blocks));
+      sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances, blocks));
+    } else {
+      // raytrace first
+      auto tile = vp.cpuRaytrace.tile(vp.nextTileToRaytrace);
+      vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
+
+      float2 offset = float2(tile.offset);
+      for (size_t y = 0; y < tile.size.y; y++) {
+        for (size_t x = 0; x < tile.size.x; x++) {
+          auto pixel = tile.load<float4>(uint2(x, y));
+          auto uv = div(add(float2(x,y), offset), float2(vpInfo.viewportSize)); 
+          pixel = float4(uv, sin(time.getFTime())*0.5f+0.5f, 1.f);
+          tile.save<float4>(uint2(x, y), pixel);
+        }
+      }
+      auto goesOver = add(tile.offset, tile.size);
+      //if (goesOver.x < vpInfo.viewportSize.x && goesOver.y < vpInfo.viewportSize.y) {
+        auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4)*tile.size.x);
+        auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
+        node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
+        blitter.beginRenderpass(node, vp.gbufferRTV);
+        blitter.blitImage(dev, node, vp.gbufferRTV, vp.gbufferRaytracingSRV, app::renderer::Blitter::FitMode::Fill);
+        node.endRenderpass();
+        localVec.addPass(std::move(node));
+      //}
+    }
   }
 
   //co_await sceneTasks.back();
@@ -501,38 +529,39 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     auto& vp = viewports[index];
     auto& options = vpInfo.options;
     auto& localVec = nodeVecs[index];
-    
-    TextureSRV tsaaOutput = vp.gbufferSRV;
-    TextureRTV tsaaOutputRTV = vp.gbufferRTV;
-    if (options.tsaa)
-    {
-      auto tsaaNode = localVec.createPass("Temporal Supersampling AA", QueueType::Graphics, options.gpuToUse);
-      vp.tsaaResolved.next(time.getFrame());
-      auto motionVectors = instances.empty() ? TextureSRV() : vp.motionVectorsSRV;
-      tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), motionVectors, vp.gbufferSRV, vp.tsaaDebugUAV});
-      localVec.addPass(std::move(tsaaNode));
-      tsaaOutput = vp.tsaaResolved.srv();
-      tsaaOutputRTV = vp.tsaaResolved.rtv();
-    }
-
-    if (options.debugTextures)
-    {
-      auto node = localVec.createPass("debug textures", QueueType::Graphics, options.gpuToUse);
-      blitter.beginRenderpass(node, tsaaOutputRTV);
-      int2 curPos = int2(0,0);
-      int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
-      int2 times = int2(target.x/72, target.y/72);
-      for (int y = 0; y < times.y; y++) {
-        for (int x = 0; x < times.x; x++) {
-          curPos = int2(72*x, 72*y);
-          auto index = y*times.x + x;
-          if (index >= textures.size())
-            break;
-          blitter.blit(dev, node, tsaaOutputRTV, textures[index], curPos, int2(64,64));
-        }
+    if (!vpInfo.options.useRaytracing){
+      TextureSRV tsaaOutput = vp.gbufferSRV;
+      TextureRTV tsaaOutputRTV = vp.gbufferRTV;
+      if (options.tsaa)
+      {
+        auto tsaaNode = localVec.createPass("Temporal Supersampling AA", QueueType::Graphics, options.gpuToUse);
+        vp.tsaaResolved.next(time.getFrame());
+        auto motionVectors = instances.empty() ? TextureSRV() : vp.motionVectorsSRV;
+        tsaa.resolve(dev, tsaaNode, vp.tsaaResolved.uav(), renderer::TSAAArguments{vp.jitterOffset, vp.gbufferSRV, vp.tsaaResolved.previousSrv(), motionVectors, vp.gbufferSRV, vp.tsaaDebugUAV});
+        localVec.addPass(std::move(tsaaNode));
+        tsaaOutput = vp.tsaaResolved.srv();
+        tsaaOutputRTV = vp.tsaaResolved.rtv();
       }
-      node.endRenderpass();
-      localVec.addPass(std::move(node));
+
+      if (options.debugTextures)
+      {
+        auto node = localVec.createPass("debug textures", QueueType::Graphics, options.gpuToUse);
+        blitter.beginRenderpass(node, tsaaOutputRTV);
+        int2 curPos = int2(0,0);
+        int2 target = tsaaOutputRTV.desc().desc.size3D().xy();
+        int2 times = int2(target.x/72, target.y/72);
+        for (int y = 0; y < times.y; y++) {
+          for (int x = 0; x < times.x; x++) {
+            curPos = int2(72*x, 72*y);
+            auto index = y*times.x + x;
+            if (index >= textures.size())
+              break;
+            blitter.blit(dev, node, tsaaOutputRTV, textures[index], curPos, int2(64,64));
+          }
+        }
+        node.endRenderpass();
+        localVec.addPass(std::move(node));
+      }
     }
   }
   for (auto&& nodeVec : nodeVecs)
@@ -569,14 +598,14 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     if (!rendererOptions.renderImGui && vpInfo.options.gpuToUse == 0)
       target = backbuffer;
     TextureSRV tsaaOutput = vp.gbufferSRV;
-    if (vpInfo.options.tsaa)
+    if (vpInfo.options.tsaa && !vpInfo.options.useRaytracing)
       tsaaOutput = vp.tsaaResolved.srv();
     if (vpInfo.options.tsaaDebug)
       tsaaOutput = vp.tsaaDebugSRV;
 
     {
       auto node = tasks.createPass("tonemapper", QueueType::Graphics, vpInfo.options.gpuToUse);
-      tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput});
+      tonemapper.tonemap(dev, node, target, renderer::TonemapperArguments{tsaaOutput, vpInfo.options.tsaa && !vpInfo.options.useRaytracing});
       tasks.addPass(std::move(node));
     }
 

@@ -30,14 +30,14 @@ namespace higanbana
     {
       list.insert<gfxpacket::RenderBlock>(name);
     }
-
+/*
     void updateTexture(Texture& tex, DynamicBufferView& dynBuffer, int mip, int slice)
     {
       auto size = tex.desc().desc.size3D();
       size.x = size.x << mip;
       size.y = size.y << mip;
       list.insert<gfxpacket::UpdateTexture>(tex.handle(), dynBuffer.handle(), mip, slice, size.x, size.y);
-    }
+    }*/
 
     void clearRT(TextureRTV& rtv, float4 color)
     {
@@ -147,6 +147,12 @@ namespace higanbana
     {
       list.insert<gfxpacket::DispatchMesh>(xGroups);
     }
+
+    void updateTexture(Texture& tex, Subresource dstSubresource, int3 dstPos, DynamicBufferView& dynBuffer, Box srcbox)
+    {
+      list.insert<gfxpacket::UpdateTexture>(tex.handle(), dstSubresource, dstPos, dynBuffer.handle(), srcbox);
+    }
+
 
     void copy(Buffer& target, int64_t targetOffset, Texture& source, Subresource subresource, Box srcbox)
     {

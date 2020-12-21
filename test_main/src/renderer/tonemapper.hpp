@@ -10,6 +10,7 @@ namespace app::renderer
 struct TonemapperArguments
 {
   higanbana::TextureSRV source;
+  bool tsaa;
 };
 class Tonemapper
 {

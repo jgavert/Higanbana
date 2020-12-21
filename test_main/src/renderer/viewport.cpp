@@ -69,6 +69,15 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
       .setName("motion vectors"));
     motionVectorsSRV = device.createTextureSRV(motionVectors);
     motionVectorsRTV = device.createTextureRTV(motionVectors);
+
+    gbufferRaytracing = device.createTexture(higanbana::ResourceDescriptor()
+      .setSize(desc.desc.size3D())
+      .setFormat(FormatType::Float32RGBA)
+      .setUsage(ResourceUsage::GpuReadOnly)
+      .setName("gbuffer cpu raytracing"));
+    gbufferRaytracingSRV = device.createTextureSRV(gbufferRaytracing);
+
+    cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(32, 32), FormatType::Float32RGBA);
   }
 }
 }

@@ -791,8 +791,8 @@ namespace higanbana
             auto dynamic = device->allResources().dynSRV[params.dynamic];
 
             D3D12_TEXTURE_COPY_LOCATION dstLoc = locationFromTexture(texture.native(), params.tex.fullMipSize(), params.mip, params.slice);
-            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.width, params.height, texture.desc().desc.format);
-            buffer->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+            D3D12_TEXTURE_COPY_LOCATION srcLoc = locationFromDynamic(dynamic.nativePtr(), dynamic, params.srcbox.size().x, params.srcbox.size().y, texture.desc().desc.format);
+            buffer->CopyTextureRegion(&dstLoc, params.dstPos.x, params.dstPos.y, params.dstPos.z, &srcLoc, nullptr);
             break;
           }
           case PacketType::TextureToBufferCopy:

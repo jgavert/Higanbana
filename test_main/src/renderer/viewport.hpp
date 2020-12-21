@@ -2,6 +2,7 @@
 
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
+#include <higanbana/graphics/common/tiled_image.hpp>
 #include "camera.hpp"
 namespace app
 {
@@ -31,6 +32,12 @@ class Viewport
   higanbana::Texture    motionVectors;
   higanbana::TextureSRV motionVectorsSRV;
   higanbana::TextureRTV motionVectorsRTV;
+
+  higanbana::Texture    gbufferRaytracing;
+  higanbana::TextureSRV gbufferRaytracingSRV;
+
+  higanbana::TiledImage cpuRaytrace;
+  size_t nextTileToRaytrace=0;
 
   // hmm, misc things
   CameraSettings previousCamera;

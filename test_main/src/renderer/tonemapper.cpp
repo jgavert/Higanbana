@@ -2,6 +2,7 @@
 SHADER_STRUCT(TonemapperConstants,
   uint2 outputSize;
   uint eotf;
+  uint tsaaActive;
 );
 
 namespace app::renderer
@@ -49,6 +50,7 @@ void Tonemapper::tonemap(higanbana::GpuGroup& device, higanbana::CommandGraphNod
   TonemapperConstants consts{};
   consts.outputSize = output.texture().desc().desc.size3D().xy();
   consts.eotf = (output.texture().desc().desc.format == FormatType::Unorm10RGB2A) ? 1 : 0;
+  consts.tsaaActive = (args.tsaa) ? 1 : 0;
   binding.constants(consts);
 
   node.draw(binding, 3);

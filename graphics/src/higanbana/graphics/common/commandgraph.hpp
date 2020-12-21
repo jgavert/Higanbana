@@ -358,7 +358,15 @@ namespace higanbana
     {
       addWriteShared(target.handle());
       m_referencedTextures.setBit(target.handle().id);
-      list->updateTexture(target, source, sub.mipLevel, sub.arraySlice);
+      auto size = target.size3D();
+      list->updateTexture(target, sub, int3(0,0,0), source, Box(uint3(0,0,0), uint3(size)));
+    }
+
+    void copy(Texture target, Subresource dstSub, int3 dstPos, DynamicBufferView source, Box srcBox)
+    {
+      addWriteShared(target.handle());
+      m_referencedTextures.setBit(target.handle().id);
+      list->updateTexture(target, dstSub, dstPos, source, srcBox);
     }
 
     void copy(Buffer dst, size_t dstOffset, Texture src, Subresource sub) {

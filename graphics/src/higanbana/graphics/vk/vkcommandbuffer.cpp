@@ -797,10 +797,10 @@ namespace higanbana
 
             vk::BufferImageCopy info = vk::BufferImageCopy()
               .setBufferOffset(dynamic.block.block.offset)
-              .setBufferRowLength(params.width)
-              .setBufferImageHeight(params.height)
-              .setImageOffset(vk::Offset3D(0, 0, 0))
-              .setImageExtent(vk::Extent3D(params.width, params.height, 1))
+              .setBufferRowLength(params.srcbox.size().x)
+              .setBufferImageHeight(params.srcbox.size().y)
+              .setImageOffset(vk::Offset3D(params.dstPos.x, params.dstPos.y, params.dstPos.z))
+              .setImageExtent(vk::Extent3D(params.srcbox.size().x, params.srcbox.size().y, params.srcbox.size().z))
               .setImageSubresource(layers);
 
             buffer.copyBufferToImage(dynamic.buffer, texture.native(), vk::ImageLayout::eTransferDstOptimal, {info});
