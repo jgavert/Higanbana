@@ -493,28 +493,42 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances, blocks));
     } else {
       // raytrace first
-      auto tile = vp.cpuRaytrace.tile(vp.nextTileToRaytrace);
-      vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
+      vector<css::Task<void>> tiles;
+      size_t startTile = vp.nextTileToRaytrace;
+      size_t tilesToCompute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
+      for (int tileCount = 0; tileCount < tilesToCompute; ++tileCount) {
+        auto tilev = vp.cpuRaytrace.tile(vp.nextTileToRaytrace % vp.cpuRaytrace.size());
+        vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-      float2 offset = float2(tile.offset);
-      for (size_t y = 0; y < tile.size.y; y++) {
-        for (size_t x = 0; x < tile.size.x; x++) {
-          auto pixel = tile.load<float4>(uint2(x, y));
-          auto uv = div(add(float2(x,y), offset), float2(vpInfo.viewportSize)); 
-          pixel = float4(uv, sin(time.getFTime())*0.5f+0.5f, 1.f);
-          tile.save<float4>(uint2(x, y), pixel);
-        }
+        auto tileTask = [](TileView tile, float time, float2 vpsize)->css::Task<void>{
+          float2 offset = float2(tile.offset);
+          for (size_t y = 0; y < tile.size.y; y++) {
+            for (size_t x = 0; x < tile.size.x; x++) {
+              auto pixel = tile.load<float4>(uint2(x, y));
+              auto uv = div(add(float2(x,y), offset), vpsize); 
+              pixel = float4(uv, sin(time)*0.5f+0.5f, 1.f);
+              tile.save<float4>(uint2(x, y), pixel);
+            }
+          }
+          co_return;
+        };
+
+        tiles.push_back(tileTask(tilev, time.getFTime(), float2(vpInfo.viewportSize)));
       }
-      auto goesOver = add(tile.offset, tile.size);
-      //if (goesOver.x < vpInfo.viewportSize.x && goesOver.y < vpInfo.viewportSize.y) {
+      for (auto& task : tiles) {
+        if (!task.is_ready())
+          co_await task;
+      }
+      auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
+      for (size_t tidx = startTile; tidx < startTile+tilesToCompute; ++tidx) {
+        auto tile = vp.cpuRaytrace.tile(tidx % vp.cpuRaytrace.size());
         auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4)*tile.size.x);
-        auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
         node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
-        blitter.beginRenderpass(node, vp.gbufferRTV);
-        blitter.blitImage(dev, node, vp.gbufferRTV, vp.gbufferRaytracingSRV, app::renderer::Blitter::FitMode::Fill);
-        node.endRenderpass();
-        localVec.addPass(std::move(node));
-      //}
+      }
+      blitter.beginRenderpass(node, vp.gbufferRTV);
+      blitter.blitImage(dev, node, vp.gbufferRTV, vp.gbufferRaytracingSRV, app::renderer::Blitter::FitMode::Fill);
+      node.endRenderpass();
+      localVec.addPass(std::move(node));
     }
   }
 

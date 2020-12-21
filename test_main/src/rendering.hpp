@@ -66,13 +66,14 @@ struct ViewportOptions
   bool visible = false;
   int gpuToUse = 0;
   bool useMeshShaders = false;
-  bool useRaytracing = false;
+  bool useRaytracing = true;
   bool syncResolutionToSwapchain = false;
   bool jitterEnabled = true;
   bool particlesDraw = true;
   bool tsaa = true;
   bool tsaaDebug = false;
   bool debugTextures = false;
+  int tilesToComputePerFrame = 1;
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
 
@@ -138,6 +139,9 @@ struct ViewportOptions
     ImGui::Checkbox("Draw particles", &particlesDraw);
     ImGui::Checkbox("Mesh Shaders", &useMeshShaders);
     ImGui::Checkbox("Raytracing", &useRaytracing);
+    if (useRaytracing) {
+      ImGui::DragInt("tiles to compute per frame", &tilesToComputePerFrame, 1, 0, 10000);
+    }
   }
 };
 
