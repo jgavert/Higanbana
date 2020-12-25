@@ -4,6 +4,7 @@
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/graphics/common/tiled_image.hpp>
 #include "camera.hpp"
+#include "../raytrace/camera.hpp"
 namespace app
 {
 // viewport stores all viewport specific resources
@@ -45,6 +46,8 @@ class Viewport
   int previousCameraIndex;
   int currentCameraIndex;
   int2 jitterOffset;
+
+  rt::Camera rtCam;
   
   void resize(higanbana::GpuGroup& device, int2 viewport, float internalScale, higanbana::FormatType backbufferFormat);
 };

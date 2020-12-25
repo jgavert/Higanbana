@@ -73,8 +73,6 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .setDepthStencil(DepthStencilDescriptor()
       .setDepthEnable(false));
 
-  size_t textureSize = 1280 * 720;
-
   cameras = dev.createBuffer(ResourceDescriptor()
   .setCount(8*4)
   .setStructured<CameraSettings>()
@@ -500,13 +498,19 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         auto tilev = vp.cpuRaytrace.tile(vp.nextTileToRaytrace % vp.cpuRaytrace.size());
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [](TileView tile, float time, float2 vpsize)->css::Task<void>{
+        auto tileTask = [&](TileView tile, float time, float2 vpsize)->css::Task<void>{
           float2 offset = float2(tile.offset);
           for (size_t y = 0; y < tile.size.y; y++) {
             for (size_t x = 0; x < tile.size.x; x++) {
               auto pixel = tile.load<float4>(uint2(x, y));
-              auto uv = div(add(float2(x,y), offset), vpsize); 
-              pixel = float4(uv, sin(time)*0.5f+0.5f, 1.f);
+              auto uvv = div(add(float2(x,y), offset), vpsize);
+              double2 uv = uvv;
+              double3 dir = vp.rtCam.lower_left_corner;
+              dir = add(add(dir,mul(uv.x, vp.rtCam.horizontal)), mul(uv.y, vp.rtCam.vertical));
+              dir = sub(dir, vp.rtCam.origin);
+              rt::Ray ray(double3(0,0,0), dir);
+              auto color = vp.rtCam.ray_color(ray);
+              pixel = float4(color.x, color.y, color.z, 1.f);
               tile.save<float4>(uint2(x, y), pixel);
             }
           }
