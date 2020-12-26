@@ -3,7 +3,7 @@
 
 namespace app
 {
-void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float internalScale, higanbana::FormatType backbufferFormat) {
+css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float internalScale, higanbana::FormatType backbufferFormat) {
   using namespace higanbana;
   int2 targetRes = targetViewport; 
   targetRes.x = std::max(targetRes.x, 8);
@@ -79,11 +79,20 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
     gbufferRaytracingSRV = device.createTextureSRV(gbufferRaytracing);
 
     // rt weekend
+    while(!workersTiles.empty()) {
+      auto& work = *workersTiles.front();
+      co_await work;
+      HIGAN_ASSERT(work.is_ready(), "lol");
+      workersTiles.pop_front();
+    }
     cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(32, 32), FormatType::Float32RGBA);
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
     rtCam = rt::Camera(aspect);
+    world.clear();
     world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));
     world.add(std::make_shared<rt::Sphere>(double3(0,-100.5,-1), 100));
+    nextTileToRaytrace = 0;
   }
+  co_return;
 }
 }

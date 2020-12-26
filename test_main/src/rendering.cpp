@@ -393,6 +393,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       presentTask.reset();
     }
     dev.adjustSwapchain(swapchain, scdesc);
+
     resizeExternal(swapchain.buffers().begin()->texture().desc());
   }
 
@@ -408,7 +409,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     if (!rendererOptions.renderImGui) {
       vpInfo.viewportSize = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
     }
-    vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
+    co_await vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
     vpsHandled++;
   }
   for (; vpsHandled < static_cast<int>(viewports.size()); ++vpsHandled) {
@@ -491,49 +492,53 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       sceneTasks.emplace_back(renderScene(localVec, time, rendererOptions, sceneArgs, instances, blocks));
     } else {
       // raytrace first
-      vector<css::Task<void>> tiles;
-      size_t startTile = vp.nextTileToRaytrace;
-      size_t tilesToCompute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
-      for (int tileCount = 0; tileCount < tilesToCompute; ++tileCount) {
-        auto tilev = vp.cpuRaytrace.tile(vp.nextTileToRaytrace % vp.cpuRaytrace.size());
+      auto& tiles = vp.workersTiles;
+      // new
+      auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
+      size_t activeNodes = tiles.size();
+      while (!tiles.empty() && tiles.front()->is_ready()) {
+        auto tileIdx = tiles.front()->get();
+        auto tile = vp.cpuRaytrace.tile(tileIdx);
+        auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
+        node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
+        tiles.pop_front();
+        activeNodes--;
+      }
+
+      size_t max_tiles_compute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
+      size_t tiles_to_compute = max_tiles_compute - activeNodes;
+      for (int tileCount = 0; tileCount < tiles_to_compute; tileCount++) {
+        auto tileIdx = vp.nextTileToRaytrace % vp.cpuRaytrace.size();
+        auto tilev = vp.cpuRaytrace.tile(tileIdx);
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [&](TileView tile, float time, double2 vpsize) -> css::Task<void> {
+        auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, rt::Camera& rtCam, rt::HittableList& list) -> css::Task<size_t> {
           double2 offset = double2(tile.offset);
           for (size_t y = 0; y < tile.size.y; y++) {
             for (size_t x = 0; x < tile.size.x; x++) {
               auto pixel = double3(tile.load<float4>(uint2(x, y)).xyz());
               pixel = double3(0.0);
-              for (size_t sample = 0; sample < vpInfo.options.samplesPerPixel; sample++) {
+              for (size_t sample = 0; sample < samples; sample++) {
                 auto uvv = div(add(double2(x+rt::random_double(),y+rt::random_double()), offset), vpsize);
                 double2 uv = double2(uvv.x, 1.0-uvv.y);
                 // Calculate direction
-                auto ray = vp.rtCam.get_ray(uv);
+                auto ray = rtCam.get_ray(uv);
                 // color
-                auto color = vp.rtCam.ray_color(ray, vp.world);
+                auto color = rtCam.ray_color(ray, list);
                 pixel = add(pixel, double3(color.x, color.y, color.z));
               }
-              pixel = rt::color_samples(pixel, vpInfo.options.samplesPerPixel);
+              pixel = rt::color_samples(pixel, samples);
               tile.save<float4>(uint2(x, y), float4(pixel, 1.0f));
               //HIGAN_LOGi("%.3f %.3f %.3f\n", color.x, color.y, color.z);
               //tile.save<float4>(uint2(x, y), float4(uv.x, uv.y, 0.25f, 1.f));
             }
           }
-          co_return;
+          co_return tileIdx;
         };
 
-        tiles.push_back(tileTask(tilev, time.getFTime(), double2(vp.gbufferRaytracing.size3D().xy())));
+        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, vpInfo.options.samplesPerPixel, vp.rtCam, vp.world)));
       }
-      for (auto& task : tiles) {
-        if (!task.is_ready())
-          co_await task;
-      }
-      auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
-      for (size_t tidx = startTile; tidx < startTile+tilesToCompute; ++tidx) {
-        auto tile = vp.cpuRaytrace.tile(tidx % vp.cpuRaytrace.size());
-        auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4)*tile.size.x);
-        node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
-      }
+
       blitter.beginRenderpass(node, vp.gbufferRTV);
       blitter.blitImage(dev, node, vp.gbufferRTV, vp.gbufferRaytracingSRV, app::renderer::Blitter::FitMode::Fill);
       node.endRenderpass();
