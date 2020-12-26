@@ -1,4 +1,5 @@
 #include "viewport.hpp"
+#include "../raytrace/sphere.hpp"
 
 namespace app
 {
@@ -77,9 +78,12 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
       .setName("gbuffer cpu raytracing"));
     gbufferRaytracingSRV = device.createTextureSRV(gbufferRaytracing);
 
+    // rt weekend
     cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(32, 32), FormatType::Float32RGBA);
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
     rtCam = rt::Camera(aspect);
+    world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));
+    world.add(std::make_shared<rt::Sphere>(double3(0,-100.5,-1), 100));
   }
 }
 }

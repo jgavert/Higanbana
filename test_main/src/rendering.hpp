@@ -74,6 +74,8 @@ struct ViewportOptions
   bool tsaaDebug = false;
   bool debugTextures = false;
   int tilesToComputePerFrame = 1;
+  //int tileSize = 32;
+  int samplesPerPixel = 1;
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
 
@@ -140,7 +142,9 @@ struct ViewportOptions
     ImGui::Checkbox("Mesh Shaders", &useMeshShaders);
     ImGui::Checkbox("Raytracing", &useRaytracing);
     if (useRaytracing) {
-      ImGui::DragInt("tiles to compute per frame", &tilesToComputePerFrame, 1, 0, 10000);
+      ImGui::DragInt("Tiles per frame", &tilesToComputePerFrame, 1, 1, 10000);
+      //ImGui::DragInt("Tile size", &tileSize, 1, 2, 256);
+      ImGui::DragInt("Samples per pixel", &samplesPerPixel, 1, 1, 1000);
     }
   }
 };

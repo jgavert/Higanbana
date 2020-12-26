@@ -498,23 +498,23 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         auto tilev = vp.cpuRaytrace.tile(vp.nextTileToRaytrace % vp.cpuRaytrace.size());
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [&](TileView tile, float time, float2 vpsize) -> css::Task<void> {
-          float2 offset = float2(tile.offset);
+        auto tileTask = [&](TileView tile, float time, double2 vpsize) -> css::Task<void> {
+          double2 offset = double2(tile.offset);
           for (size_t y = 0; y < tile.size.y; y++) {
             for (size_t x = 0; x < tile.size.x; x++) {
-              auto pixel = tile.load<float4>(uint2(x, y));
-              auto uvv = div(add(float2(x,y), offset), vpsize);
-              double2 uv = double2(uvv.x, 1.0-uvv.y);
-              // Calculate direction
-              double3 t2 = mul(uv.x, vp.rtCam.horizontal);
-              double3 t3 = mul(uv.y, vp.rtCam.vertical);
-              auto dir = sub(add(add(vp.rtCam.lower_left_corner, t2), t3), vp.rtCam.origin);
-              // ray
-              rt::Ray ray(vp.rtCam.origin, dir);
-              // color
-              auto color = vp.rtCam.ray_color(ray);
-              pixel = float4(color.x, color.y, color.z, 1.f);
-              tile.save<float4>(uint2(x, y), pixel);
+              auto pixel = double3(tile.load<float4>(uint2(x, y)).xyz());
+              pixel = double3(0.0);
+              for (size_t sample = 0; sample < vpInfo.options.samplesPerPixel; sample++) {
+                auto uvv = div(add(double2(x+rt::random_double(),y+rt::random_double()), offset), vpsize);
+                double2 uv = double2(uvv.x, 1.0-uvv.y);
+                // Calculate direction
+                auto ray = vp.rtCam.get_ray(uv);
+                // color
+                auto color = vp.rtCam.ray_color(ray, vp.world);
+                pixel = add(pixel, double3(color.x, color.y, color.z));
+              }
+              pixel = rt::color_samples(pixel, vpInfo.options.samplesPerPixel);
+              tile.save<float4>(uint2(x, y), float4(pixel, 1.0f));
               //HIGAN_LOGi("%.3f %.3f %.3f\n", color.x, color.y, color.z);
               //tile.save<float4>(uint2(x, y), float4(uv.x, uv.y, 0.25f, 1.f));
             }
@@ -522,7 +522,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           co_return;
         };
 
-        tiles.push_back(tileTask(tilev, time.getFTime(), float2(vpInfo.viewportSize)));
+        tiles.push_back(tileTask(tilev, time.getFTime(), double2(vp.gbufferRaytracing.size3D().xy())));
       }
       for (auto& task : tiles) {
         if (!task.is_ready())

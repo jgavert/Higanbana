@@ -1,7 +1,8 @@
 #pragma once
 
 #include <higanbana/core/math/math.hpp>
-#include "ray.hpp"
+#include "hittable.hpp"
+#include "rtweekend.hpp"
 
 namespace rt {
 class Camera {
@@ -30,28 +31,34 @@ double3 horizontal;
 double3 vertical;
 double3 lower_left_corner;
 
+inline Ray get_ray(const double2 uv) {
+  double3 t2 = mul(uv.x, horizontal);
+  double3 t3 = mul(uv.y, vertical);
+  auto dir = sub(add(add(lower_left_corner, t2), t3), origin);
+  return rt::Ray(origin, dir);
+}
+
 inline double hit_sphere(const double3& center, double radius, const Ray& r) {
   double3 oc = sub(r.origin(), center);
-  auto a = dot(r.direction(), r.direction());
-  auto b = 2.0 * dot(oc, r.direction());
-  auto c = dot(oc, oc) - radius*radius;
-  auto discriminant = b*b - 4*a*c;
+  auto a = length_squared(r.direction());
+  auto half_b = dot(oc, r.direction());
+  auto c = length_squared(oc) - radius * radius;
+  auto discriminant = half_b*half_b - a*c;
   if (discriminant < 0) {
     return -1.0;
   } else {
-    return (-b - sqrt(discriminant) ) / (2.0*a);
+    return (-half_b - sqrt(discriminant) ) / a;
   }
 }
 
-inline double3 ray_color(const Ray& r) {
-  auto t = hit_sphere(double3(0,0,-1), 0.5, r);
-  if (t > 0.0) {
-    double3 N = normalize(sub(r.at(t), double3(0,0,-1)));
-    return mul(0.5, double3(N.x+1, N.y+1, N.z+1));
+inline double3 ray_color(const Ray& r, const Hittable& world) {
+  HitRecord rec;
+  if (world.hit(r, 0, infinity, rec)) {
+    return mul(0.5, add(rec.normal, double3(1,1,1)));
   }
-  double3 unit_direction = higanbana::math::normalize(r.direction());
-  t = 0.5*(unit_direction.y + 1.0);
-  return add(mul((1.0-t),double3(1.0, 1.0, 1.0)), mul(t,double3(0.5, 0.7, 1.0)));
+  double3 unit_direction = normalize(r.direction());
+  auto t = 0.5*(unit_direction.y + 1.0);
+  return add(mul((1.0-t),double3(1.0, 1.0, 1.0)), mul(t, double3(0.5, 0.7, 1.0)));
 }
 };
 }
