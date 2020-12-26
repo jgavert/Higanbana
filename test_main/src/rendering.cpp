@@ -498,20 +498,25 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         auto tilev = vp.cpuRaytrace.tile(vp.nextTileToRaytrace % vp.cpuRaytrace.size());
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [&](TileView tile, float time, float2 vpsize)->css::Task<void>{
+        auto tileTask = [&](TileView tile, float time, float2 vpsize) -> css::Task<void> {
           float2 offset = float2(tile.offset);
           for (size_t y = 0; y < tile.size.y; y++) {
             for (size_t x = 0; x < tile.size.x; x++) {
               auto pixel = tile.load<float4>(uint2(x, y));
               auto uvv = div(add(float2(x,y), offset), vpsize);
-              double2 uv = uvv;
-              double3 dir = vp.rtCam.lower_left_corner;
-              dir = add(add(dir,mul(uv.x, vp.rtCam.horizontal)), mul(uv.y, vp.rtCam.vertical));
-              dir = sub(dir, vp.rtCam.origin);
-              rt::Ray ray(double3(0,0,0), dir);
+              double2 uv = double2(uvv.x, 1.0-uvv.y);
+              // Calculate direction
+              double3 t2 = mul(uv.x, vp.rtCam.horizontal);
+              double3 t3 = mul(uv.y, vp.rtCam.vertical);
+              auto dir = sub(add(add(vp.rtCam.lower_left_corner, t2), t3), vp.rtCam.origin);
+              // ray
+              rt::Ray ray(vp.rtCam.origin, dir);
+              // color
               auto color = vp.rtCam.ray_color(ray);
               pixel = float4(color.x, color.y, color.z, 1.f);
               tile.save<float4>(uint2(x, y), pixel);
+              //HIGAN_LOGi("%.3f %.3f %.3f\n", color.x, color.y, color.z);
+              //tile.save<float4>(uint2(x, y), float4(uv.x, uv.y, 0.25f, 1.f));
             }
           }
           co_return;

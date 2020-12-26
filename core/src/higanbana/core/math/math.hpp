@@ -178,14 +178,20 @@ namespace higanbana
     using uint4 = Vector<4, unsigned>;*/
 
     template<int ELEMENT_COUNT, typename vType>
-    inline vType length(Vector<ELEMENT_COUNT, vType> a)
+    inline vType length_squared(Vector<ELEMENT_COUNT, vType> a)
     {
       vType val{};
       for (int i = 0; i < ELEMENT_COUNT; ++i)
       {
         val += a(i) * a(i);
       }
-      return std::sqrt(val);
+      return val;
+    }
+
+    template<int ELEMENT_COUNT, typename vType>
+    inline vType length(Vector<ELEMENT_COUNT, vType> a)
+    {
+      return std::sqrt(length_squared(a));
     }
 
     template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>

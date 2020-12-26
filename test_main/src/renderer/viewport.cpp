@@ -78,7 +78,7 @@ void Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float in
     gbufferRaytracingSRV = device.createTextureSRV(gbufferRaytracing);
 
     cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(32, 32), FormatType::Float32RGBA);
-    double aspect = desc.desc.size3D().x / desc.desc.size3D().y;
+    double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
     rtCam = rt::Camera(aspect);
   }
 }
