@@ -3,7 +3,7 @@
 
 namespace app
 {
-css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float internalScale, higanbana::FormatType backbufferFormat) {
+css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewport, float internalScale, higanbana::FormatType backbufferFormat, uint tileSize) {
   using namespace higanbana;
   int2 targetRes = targetViewport; 
   targetRes.x = std::max(targetRes.x, 8);
@@ -71,6 +71,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     motionVectorsSRV = device.createTextureSRV(motionVectors);
     motionVectorsRTV = device.createTextureRTV(motionVectors);
 
+    // rt weekend
     gbufferRaytracing = device.createTexture(higanbana::ResourceDescriptor()
       .setSize(desc.desc.size3D())
       .setFormat(FormatType::Float32RGBA)
@@ -78,15 +79,29 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
       .setName("gbuffer cpu raytracing"));
     gbufferRaytracingSRV = device.createTextureSRV(gbufferRaytracing);
 
-    // rt weekend
     while(!workersTiles.empty()) {
       auto& work = *workersTiles.front();
       co_await work;
       HIGAN_ASSERT(work.is_ready(), "lol");
       workersTiles.pop_front();
     }
-    cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(32, 32), FormatType::Float32RGBA);
+    cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(tileSize, tileSize), FormatType::Float32RGBA);
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
+    rtCam = rt::Camera(aspect);
+    world.clear();
+    world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));
+    world.add(std::make_shared<rt::Sphere>(double3(0,-100.5,-1), 100));
+    nextTileToRaytrace = 0;
+  }
+  if (cpuRaytrace.tileSize().x != tileSize) {
+    while(!workersTiles.empty()) {
+      auto& work = *workersTiles.front();
+      co_await work;
+      HIGAN_ASSERT(work.is_ready(), "lol");
+      workersTiles.pop_front();
+    }
+    cpuRaytrace = TiledImage(currentRes, uint2(tileSize, tileSize), FormatType::Float32RGBA);
+    double aspect = double(currentRes.x) / double(currentRes.y);
     rtCam = rt::Camera(aspect);
     world.clear();
     world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));

@@ -75,7 +75,7 @@ struct ViewportOptions
   bool debugTextures = false;
   int tilesToComputePerFrame = 4;
   bool raytraceRealtime = false;
-  //int tileSize = 32;
+  int tileSize = 32;
   int samplesPerPixel = 1;
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
@@ -145,7 +145,7 @@ struct ViewportOptions
     if (useRaytracing) {
       ImGui::Checkbox("realtime", &raytraceRealtime);
       ImGui::DragInt("Tiles per frame", &tilesToComputePerFrame, 1, 1, 10000);
-      //ImGui::DragInt("Tile size", &tileSize, 1, 2, 256);
+      ImGui::DragInt("Tile size", &tileSize, 1, 16, 256);
       ImGui::DragInt("Samples per pixel", &samplesPerPixel, 1, 1, 1000);
     }
   }

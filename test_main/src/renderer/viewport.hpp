@@ -53,6 +53,6 @@ class Viewport
   rt::Camera rtCam;
   rt::HittableList world;
   
-  css::Task<void> resize(higanbana::GpuGroup& device, int2 viewport, float internalScale, higanbana::FormatType backbufferFormat);
+  css::Task<void> resize(higanbana::GpuGroup& device, int2 viewport, float internalScale, higanbana::FormatType backbufferFormat, uint tileSize);
 };
 }

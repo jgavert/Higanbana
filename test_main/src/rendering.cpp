@@ -409,12 +409,13 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
     if (!rendererOptions.renderImGui) {
       vpInfo.viewportSize = swapchain.buffers().begin()->texture().desc().desc.size3D().xy();
     }
-    co_await vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, swapchain.buffers().begin()->texture().desc().desc.format);
+    auto format = swapchain.buffers().begin()->texture().desc().desc.format;
+    co_await vp.resize(dev, vpInfo.viewportSize, vpInfo.options.resolutionScale, format, vpInfo.options.tileSize);
     vpsHandled++;
   }
   for (; vpsHandled < static_cast<int>(viewports.size()); ++vpsHandled) {
     auto& vp = viewports[vpsHandled];
-    vp.resize(dev, int2(16, 16), 1.f, swapchain.buffers().begin()->texture().desc().desc.format);
+    co_await vp.resize(dev, int2(16, 16), 1.f, swapchain.buffers().begin()->texture().desc().desc.format, 32);
   }
 
   CommandGraph tasks = dev.createGraph();
