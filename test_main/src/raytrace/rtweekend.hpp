@@ -21,6 +21,39 @@ inline double random_double() {
   return distribution(generator);
 }
 
+inline double random_double(double min, double max) {
+  // Returns a random real in [min,max).
+  return min + (max-min)*random_double();
+}
+
+inline double3 random_vec() {
+  return double3(random_double(), random_double(), random_double());
+}
+
+inline double3 random_vec(double min, double max) {
+  return double3(random_double(min,max), random_double(min,max), random_double(min,max));
+}
+
+inline double3 random_in_unit_sphere() {
+  while (true) {
+    auto p = random_vec(-1,1);
+    if (length_squared(p) >= 1) continue;
+    return p;
+  }
+}
+
+inline double3 random_unit_vector() {
+    return normalize(random_in_unit_sphere());
+}
+
+inline double3 random_in_hemisphere(const double3& normal) {
+  double3 in_unit_sphere = random_in_unit_sphere();
+  if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+    return in_unit_sphere;
+  else
+    return mul(in_unit_sphere, -1.0);
+}
+
 inline double clamp(double x, double min, double max) {
   if (x < min) return min;
   if (x > max) return max;

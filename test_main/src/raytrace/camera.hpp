@@ -51,10 +51,14 @@ inline double hit_sphere(const double3& center, double radius, const Ray& r) {
   }
 }
 
-inline double3 ray_color(const Ray& r, const Hittable& world) {
+inline double3 ray_color(const Ray& r, const Hittable& world, int depth) {
   HitRecord rec;
-  if (world.hit(r, 0, infinity, rec)) {
-    return mul(0.5, add(rec.normal, double3(1,1,1)));
+  if (depth <= 0)
+    return double3(0,0,0);
+  if (world.hit(r, 0.001, infinity, rec)) {
+    //double3 target = add(add(rec.p, rec.normal), random_unit_vector());
+    double3 target = add(rec.p, random_in_hemisphere(rec.normal));
+    return mul(0.5, ray_color(Ray(rec.p, sub(target, rec.p)), world, depth-1));
   }
   double3 unit_direction = normalize(r.direction());
   auto t = 0.5*(unit_direction.y + 1.0);

@@ -524,7 +524,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         auto tilev = vp.cpuRaytrace.tile(tileIdx);
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, rt::Camera& rtCam, rt::HittableList& list) -> css::Task<size_t> {
+        auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, int sampleDepth, rt::Camera& rtCam, rt::HittableList& list) -> css::Task<size_t> {
           double2 offset = double2(tile.offset);
           for (size_t y = 0; y < tile.size.y; y++) {
             for (size_t x = 0; x < tile.size.x; x++) {
@@ -536,7 +536,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
                 // Calculate direction
                 auto ray = rtCam.get_ray(uv);
                 // color
-                auto color = rtCam.ray_color(ray, list);
+                auto color = rtCam.ray_color(ray, list, sampleDepth);
                 pixel = add(pixel, double3(color.x, color.y, color.z));
               }
               pixel = rt::color_samples(pixel, samples);
@@ -548,7 +548,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           co_return tileIdx;
         };
 
-        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, vpInfo.options.samplesPerPixel, vp.rtCam, vp.world)));
+        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, vpInfo.options.samplesPerPixel, vpInfo.options.sampleDepth, vp.rtCam, vp.world)));
       }
 
       blitter.beginRenderpass(node, vp.gbufferRTV);
@@ -745,6 +745,12 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   co_return;
 }
 css::Task<void> Renderer::cleanup() {
+  for (auto& vp : viewports) {
+    while(!vp.workersTiles.empty()) {
+      co_await *vp.workersTiles.front();
+      vp.workersTiles.pop_front();
+    }
+  }
   if (presentTask.get() != nullptr) {
     co_await *presentTask;
     presentTask.reset();

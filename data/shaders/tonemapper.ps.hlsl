@@ -45,6 +45,7 @@ float4 main(VertexOut input) : SV_TARGET
   //if (all(modUv > 0.2048) && all(modUv < 0.21 ))
   //  print(tonemap);
 #else
+  tonemap.rgb = pow(tonemap.rgb, 1/2.0);
   //tonemap.rgb = reinhard(tonemap.rgb); 
   //tonemap.rgb = ACESFitted(tonemap.rgb); 
 #endif
