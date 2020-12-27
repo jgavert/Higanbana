@@ -25,6 +25,7 @@ bool Sphere::hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const
 
     double3 outward_normal = div(sub(rec.p, center), radius);
     rec.set_face_normal(r, outward_normal);
+    rec.mat_ptr = mat_ptr.get();
 
     return true;
 }

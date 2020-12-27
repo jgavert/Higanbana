@@ -60,6 +60,23 @@ inline double clamp(double x, double min, double max) {
   return x;
 }
 
+inline bool near_zero(const double3 e) {
+  // Return true if the vector is close to zero in all dimensions.
+  const auto s = 1e-8;
+  return (fabs(e(0)) < s) && (fabs(e(1)) < s) && (fabs(e(2)) < s);
+}
+
+inline double3 reflect(const double3& v, const double3& n) {
+    return sub(v, mul(2.0,mul(dot(v,n),n)));
+}
+
+inline double3 refract(const double3& uv, const double3& n, double etai_over_etat) {
+    auto cos_theta = fmin(dot(mul(-1.0, uv), n), 1.0);
+    double3 r_out_perp = mul(etai_over_etat, add(uv, mul(cos_theta,n)));
+    double3 r_out_parallel = mul(-sqrt(fabs(1.0 - length_squared(r_out_perp))), n);
+    return add(r_out_perp, r_out_parallel);
+}
+
 inline double3 color_samples(double3 pixel_color, int samples_per_pixel) {
   auto scale = 1.0 / samples_per_pixel;
   // Divide the color by the number of samples.

@@ -1,5 +1,7 @@
 #include "viewport.hpp"
+
 #include "../raytrace/sphere.hpp"
+#include "../raytrace/material.hpp"
 
 namespace app
 {
@@ -89,8 +91,16 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
     rtCam = rt::Camera(aspect);
     world.clear();
-    world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));
-    world.add(std::make_shared<rt::Sphere>(double3(0,-100.5,-1), 100));
+    auto material_ground = std::make_shared<rt::Lambertian>(double3(0.8, 0.8, 0.0));
+    auto material_center = std::make_shared<rt::Lambertian>(double3(0.1, 0.2, 0.5));
+    auto material_left   = std::make_shared<rt::Dielectric>(1.5);
+    auto material_right  = std::make_shared<rt::Metal>(double3(0.8, 0.6, 0.2), 1.0);
+
+    world.add(std::make_shared<rt::Sphere>(double3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(std::make_shared<rt::Sphere>(double3( 0.0,    0.0, -1.0),   0.5, material_center));
+    world.add(std::make_shared<rt::Sphere>(double3(-1.0,    0.0, -1.0),   0.5, material_left));
+    world.add(std::make_shared<rt::Sphere>(double3(-1.0,    0.0, -1.0),  -0.4, material_left));
+    world.add(std::make_shared<rt::Sphere>(double3( 1.0,    0.0, -1.0),   0.5, material_right));
     nextTileToRaytrace = 0;
   }
   if (cpuRaytrace.tileSize().x != tileSize) {
@@ -104,8 +114,16 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     double aspect = double(currentRes.x) / double(currentRes.y);
     rtCam = rt::Camera(aspect);
     world.clear();
-    world.add(std::make_shared<rt::Sphere>(double3(0,0,-1), 0.5));
-    world.add(std::make_shared<rt::Sphere>(double3(0,-100.5,-1), 100));
+    auto material_ground = std::make_shared<rt::Lambertian>(double3(0.8, 0.8, 0.0));
+    auto material_center = std::make_shared<rt::Lambertian>(double3(0.1, 0.2, 0.5));
+    auto material_left   = std::make_shared<rt::Dielectric>(1.5);
+    auto material_right  = std::make_shared<rt::Metal>(double3(0.8, 0.6, 0.2), 1.0);
+
+    world.add(std::make_shared<rt::Sphere>(double3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(std::make_shared<rt::Sphere>(double3( 0.0,    0.0, -1.0),   0.5, material_center));
+    world.add(std::make_shared<rt::Sphere>(double3(-1.0,    0.0, -1.0),   0.5, material_left));
+    world.add(std::make_shared<rt::Sphere>(double3(-1.0,    0.0, -1.0),  -0.4, material_left));
+    world.add(std::make_shared<rt::Sphere>(double3( 1.0,    0.0, -1.0),   0.5, material_right));
     nextTileToRaytrace = 0;
   }
   co_return;

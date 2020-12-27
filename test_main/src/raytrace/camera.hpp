@@ -2,6 +2,7 @@
 
 #include <higanbana/core/math/math.hpp>
 #include "hittable.hpp"
+#include "material.hpp"
 #include "rtweekend.hpp"
 
 namespace rt {
@@ -56,9 +57,11 @@ inline double3 ray_color(const Ray& r, const Hittable& world, int depth) {
   if (depth <= 0)
     return double3(0,0,0);
   if (world.hit(r, 0.001, infinity, rec)) {
-    //double3 target = add(add(rec.p, rec.normal), random_unit_vector());
-    double3 target = add(rec.p, random_in_hemisphere(rec.normal));
-    return mul(0.5, ray_color(Ray(rec.p, sub(target, rec.p)), world, depth-1));
+    Ray scattered;
+    double3 attenuation;
+    if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+        return mul(attenuation, ray_color(scattered, world, depth-1));
+    return double3(0,0,0);
   }
   double3 unit_direction = normalize(r.direction());
   auto t = 0.5*(unit_direction.y + 1.0);

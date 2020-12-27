@@ -4,9 +4,12 @@
 
 namespace rt
 {
+class Material;
+
 struct HitRecord {
   double3 p;
   double3 normal;
+  Material* mat_ptr;
   double t;
   bool front_face;
 
