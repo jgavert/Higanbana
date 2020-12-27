@@ -506,7 +506,9 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       }
 
       size_t max_tiles_compute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
-      size_t tiles_to_compute = max_tiles_compute - activeNodes;
+      size_t tiles_to_compute = 0;
+      if (max_tiles_compute > activeNodes)
+        tiles_to_compute = max_tiles_compute - activeNodes;
       for (int tileCount = 0; tileCount < tiles_to_compute; tileCount++) {
         auto tileIdx = vp.nextTileToRaytrace % vp.cpuRaytrace.size();
         auto tilev = vp.cpuRaytrace.tile(tileIdx);

@@ -73,7 +73,7 @@ struct ViewportOptions
   bool tsaa = true;
   bool tsaaDebug = false;
   bool debugTextures = false;
-  int tilesToComputePerFrame = 1;
+  int tilesToComputePerFrame = 4;
   //int tileSize = 32;
   int samplesPerPixel = 1;
   float resolutionScale = 1.f;
