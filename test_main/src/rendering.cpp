@@ -497,6 +497,12 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       auto node = localVec.createPass("copy raytracing to gbuffer", QueueType::Graphics, options.gpuToUse);
       size_t activeNodes = tiles.size();
       while (!tiles.empty() && tiles.front()->is_ready()) {
+        if (!vpInfo.options.raytraceRealtime) {
+          if (!tiles.front()->is_ready())
+            break;
+        } else {
+          co_await *tiles.front();
+        }
         auto tileIdx = tiles.front()->get();
         auto tile = vp.cpuRaytrace.tile(tileIdx);
         auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
@@ -505,10 +511,13 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         activeNodes--;
       }
 
+
       size_t max_tiles_compute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
       size_t tiles_to_compute = 0;
       if (max_tiles_compute > activeNodes)
         tiles_to_compute = max_tiles_compute - activeNodes;
+      if (vpInfo.options.raytraceRealtime)
+        tiles_to_compute = vp.cpuRaytrace.size();
       for (int tileCount = 0; tileCount < tiles_to_compute; tileCount++) {
         auto tileIdx = vp.nextTileToRaytrace % vp.cpuRaytrace.size();
         auto tilev = vp.cpuRaytrace.tile(tileIdx);
