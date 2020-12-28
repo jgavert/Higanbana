@@ -43,7 +43,7 @@ inline double3 random_in_unit_sphere() {
 }
 
 inline double3 random_unit_vector() {
-    return normalize(random_in_unit_sphere());
+  return normalize(random_in_unit_sphere());
 }
 
 inline double3 random_in_hemisphere(const double3& normal) {
@@ -52,6 +52,14 @@ inline double3 random_in_hemisphere(const double3& normal) {
     return in_unit_sphere;
   else
     return mul(in_unit_sphere, -1.0);
+}
+
+inline double3 random_in_unit_disk() {
+  while (true) {
+    auto p = double3(random_double(-1,1), random_double(-1,1), 0);
+    if (length_squared(p) >= 1.0) continue;
+    return p;
+  }
 }
 
 inline double clamp(double x, double min, double max) {

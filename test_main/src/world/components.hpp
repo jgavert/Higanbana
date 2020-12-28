@@ -33,6 +33,8 @@ struct CameraSettings
   float fov;
   float minZ;
   float maxZ;
+  float aperture;
+  float focusDist;
 };
 
 struct Name

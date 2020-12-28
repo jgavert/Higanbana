@@ -27,6 +27,8 @@ struct ActiveCamera
   float fov;
   float minZ;
   float maxZ;
+  float aperture;
+  float focusDist;
 };
 
 struct TextureData

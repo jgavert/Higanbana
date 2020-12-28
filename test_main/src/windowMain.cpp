@@ -677,6 +677,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
                   ImGui::DragFloat("fov", &set.fov, 0.1f);
                   ImGui::DragFloat("minZ", &set.minZ, 0.1f);
                   ImGui::DragFloat("maxZ", &set.maxZ, 1.f);
+                  ImGui::DragFloat("aperture", &set.aperture, 0.001f, 0.001f);
+                  ImGui::DragFloat("focusDist", &set.focusDist, 0.001f, 0.001f);
                   quaternion yaw = math::rotateAxis(updir, xyz.x);
                   quaternion pitch = math::rotateAxis(sideVec, xyz.y);
                   quaternion roll = math::rotateAxis(dir, xyz.z);
@@ -799,6 +801,8 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             ac.fov = set.fov;
             ac.minZ = set.minZ;
             ac.maxZ = set.maxZ;
+            ac.aperture = set.aperture;
+            ac.focusDist = set.focusDist;
           });
     HIGAN_CPU_BRACKET("Render");
     rend.ensureViewportCount(m_viewportCount);
@@ -895,7 +899,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       auto cid = m_ecs.createEntity();
       t_pos.insert(cid, {float3(0, 0, 0)});
       t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
-      t_cameraSet.insert(cid, {90.f, 0.01f, 100.f});
+      t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 2.0f, 2.0f});
       m_ecs.getTag<components::ActiveCamera>().insert(cid);
     }
     co_return;

@@ -146,9 +146,12 @@ struct ViewportOptions
     if (useRaytracing) {
       ImGui::Checkbox("realtime", &raytraceRealtime);
       ImGui::DragInt("Tiles per frame", &tilesToComputePerFrame, 1, 1, 10000);
-      ImGui::DragInt("Tile size", &tileSize, 1, 16, 256);
+      ImGui::DragInt("Tile size", &tileSize, 1, 4, 256);
       ImGui::DragInt("Samples per pixel", &samplesPerPixel, 1, 1, 1000);
       ImGui::DragInt("Sample recursion", &sampleDepth, 1, 1, 100);
+      if (raytraceRealtime) {
+        tileSize = std::max(32, tileSize);
+      }
     }
   }
 };

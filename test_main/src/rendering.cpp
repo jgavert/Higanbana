@@ -455,7 +455,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, vpInfo.camera.direction));
       float3 sidedir = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, vpInfo.camera.direction));
       double aspectRatio = double(gbufferRes.x) / double(gbufferRes.y);
-      vp.rtCam = rt::Camera(vpInfo.camera.position, dir, updir, sidedir, vpInfo.camera.fov, aspectRatio);
+      vp.rtCam = rt::Camera(vpInfo.camera.position, dir, updir, sidedir, vpInfo.camera.fov, aspectRatio, vpInfo.camera.aperture, vpInfo.camera.focusDist);
     }
     if (!sets.empty()) {
       auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
@@ -529,6 +529,13 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         tiles_to_compute = vp.cpuRaytrace.size();
         vp.nextTileToRaytrace = 0;
       }
+      auto tileSize = vpInfo.options.tileSize;
+      auto samplesPerPixel = vpInfo.options.samplesPerPixel;
+      auto sampleDepth = vpInfo.options.sampleDepth;
+      if (vpInfo.options.raytraceRealtime) {
+        samplesPerPixel = std::min(1, samplesPerPixel);
+        sampleDepth = std::min(4, sampleDepth);
+      }
       for (int tileCount = 0; tileCount < tiles_to_compute; tileCount++) {
         auto tileIdx = vp.nextTileToRaytrace % vp.cpuRaytrace.size();
         auto tilev = vp.cpuRaytrace.tile(tileIdx);
@@ -558,7 +565,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           co_return tileIdx;
         };
 
-        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, vpInfo.options.samplesPerPixel, vpInfo.options.sampleDepth, vp.rtCam, vp.world)));
+        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, samplesPerPixel, sampleDepth, vp.rtCam, vp.world)));
       }
 
       {

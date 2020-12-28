@@ -9,9 +9,12 @@ namespace rt {
 class Camera {
 public:
 Camera(){}
-Camera(double3 pos, double3 dir, double3 up, double3 side, double vfov, double aspect_ratio)
+Camera(double3 pos, double3 dir, double3 up, double3 side, double vfov, double aspect_ratio, double aperture, double focus_dist)
   : origin(pos)
   , lower_left_corner(origin)
+  , u(side)
+  , v(up)
+  , w(dir)
 {
   using namespace higanbana::math;
   auto theta = degrees_to_radians(vfov);
@@ -21,14 +24,13 @@ Camera(double3 pos, double3 dir, double3 up, double3 side, double vfov, double a
 
   auto focal_length = 1.0;
 
-  auto w = normalize(dir);
-  auto u = normalize(side);
-  auto v = normalize(up);
-  horizontal = mul(viewport_width, u);
-  vertical = mul(viewport_height, v);
+  horizontal = mul(viewport_width*focus_dist, u);
+  vertical = mul(viewport_height*focus_dist, v);
   auto th = div(horizontal, 2.0);
   auto tv = div(vertical, 2.0);
-  lower_left_corner = sub(sub(sub(origin, th), tv), w);
+  lower_left_corner = sub(sub(sub(origin, th), tv), mul(w, focus_dist));
+
+  lens_radius = aperture / 2.0;
 }
 //double viewport_height;
 //double viewport_width;
@@ -38,12 +40,17 @@ double3 origin;
 double3 horizontal;
 double3 vertical;
 double3 lower_left_corner;
+double3 u,v,w;
+double lens_radius;
 
 inline Ray get_ray(const double2 uv) {
+  double3 rd = mul(lens_radius, random_in_unit_disk());
+  double3 offset = add(mul(u, rd.x), mul(v, rd.y));
+
   double3 t2 = mul(uv.x, horizontal);
   double3 t3 = mul(uv.y, vertical);
-  auto dir = sub(add(add(lower_left_corner, t2), t3), origin);
-  return rt::Ray(origin, dir);
+  auto dir = sub(sub(add(add(lower_left_corner, t2), t3), origin), offset);
+  return rt::Ray(add(origin, offset), dir);
 }
 
 inline double hit_sphere(const double3& center, double radius, const Ray& r) {
