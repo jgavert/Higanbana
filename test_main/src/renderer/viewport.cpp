@@ -89,7 +89,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     }
     cpuRaytrace = TiledImage(desc.desc.size3D().xy(), uint2(tileSize, tileSize), FormatType::Float32RGBA);
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
-    rtCam = rt::Camera(aspect);
+    //rtCam = rt::Camera(aspect);
     world.clear();
     auto material_ground = std::make_shared<rt::Lambertian>(double3(0.8, 0.8, 0.0));
     auto material_center = std::make_shared<rt::Lambertian>(double3(0.1, 0.2, 0.5));
@@ -112,7 +112,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     }
     cpuRaytrace = TiledImage(currentRes, uint2(tileSize, tileSize), FormatType::Float32RGBA);
     double aspect = double(currentRes.x) / double(currentRes.y);
-    rtCam = rt::Camera(aspect);
+    //rtCam = rt::Camera(aspect);
     world.clear();
     auto material_ground = std::make_shared<rt::Lambertian>(double3(0.8, 0.8, 0.0));
     auto material_center = std::make_shared<rt::Lambertian>(double3(0.1, 0.2, 0.5));

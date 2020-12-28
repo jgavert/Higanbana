@@ -105,7 +105,7 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       {
         constexpr float max = static_cast<float>(100);
         output = std::min(static_cast<float>(std::abs(input)) / max, max);
-        output *= (input < 0) ? 1 : -1;
+        output *= (input < 0) ? -1 : 1;
       };
 
       floatizeMouse(p.x, rxyz.x);
@@ -136,8 +136,8 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       }
       if (inputs.isPressedThisFrame('W', 2)) xy.y = -1.f * multiplier;
       if (inputs.isPressedThisFrame('S', 2)) xy.y = 1.f * multiplier;
-      if (inputs.isPressedThisFrame('D', 2)) xy.x = -1.f * multiplier;
-      if (inputs.isPressedThisFrame('A', 2)) xy.x = 1.f * multiplier;
+      if (inputs.isPressedThisFrame('D', 2)) xy.x = 1.f * multiplier;
+      if (inputs.isPressedThisFrame('A', 2)) xy.x = -1.f * multiplier;
       xy = math::mul(xy, std::max(delta, 0.001f));
     }
 
@@ -659,7 +659,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
           query(pack(t_pos, t_rot, t_cameraSet),
                 pack(m_ecs.getTag<components::ActiveCamera>()),
                 [&](higanbana::Id id, components::Position& pos, components::Rotation& rot, components::CameraSettings& set) {
-                  float3 dir = math::normalize(rotateVector({0.f, 0.f, -1.f}, rot.rot));
+                  float3 dir = math::normalize(rotateVector({0.f, 0.f, 1.f}, rot.rot));
                   float3 updir = math::normalize(rotateVector({0.f, 1.f, 0.f}, rot.rot));
                   float3 sideVec = math::normalize(rotateVector({1.f, 0.f, 0.f}, rot.rot));
                   float3 xyz{};
@@ -893,7 +893,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
 
       auto cid = m_ecs.createEntity();
-      t_pos.insert(cid, {float3(0, 0 , 4)});
+      t_pos.insert(cid, {float3(0, 0, 0)});
       t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
       t_cameraSet.insert(cid, {90.f, 0.01f, 100.f});
       m_ecs.getTag<components::ActiveCamera>().insert(cid);

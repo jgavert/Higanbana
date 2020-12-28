@@ -9,23 +9,30 @@ namespace rt {
 class Camera {
 public:
 Camera(){}
-Camera(double aspect_ratio)
-  : viewport_height(2.0)
-  , viewport_width(aspect_ratio * viewport_height)
-  , focal_length(1.0)
-  , origin(double3(0,0,0))
-  , horizontal(double3(viewport_width, 0, 0))
-  , vertical(double3(0, viewport_height, 0))
+Camera(double3 pos, double3 dir, double3 up, double3 side, double vfov, double aspect_ratio)
+  : origin(pos)
   , lower_left_corner(origin)
 {
   using namespace higanbana::math;
-  auto t0 = div(horizontal, 2.0);
-  auto t1 = div(vertical, 2.0);
-  lower_left_corner = sub(sub(sub(origin, t0), t1), double3(0, 0, focal_length));
+  auto theta = degrees_to_radians(vfov);
+  auto h = tan(theta/2.0);
+  auto viewport_height = 2.0 * h;
+  auto viewport_width = aspect_ratio * viewport_height;
+
+  auto focal_length = 1.0;
+
+  auto w = normalize(dir);
+  auto u = normalize(side);
+  auto v = normalize(up);
+  horizontal = mul(viewport_width, u);
+  vertical = mul(viewport_height, v);
+  auto th = div(horizontal, 2.0);
+  auto tv = div(vertical, 2.0);
+  lower_left_corner = sub(sub(sub(origin, th), tv), w);
 }
-double viewport_height;
-double viewport_width;
-double focal_length;
+//double viewport_height;
+//double viewport_width;
+//double focal_length;
 
 double3 origin;
 double3 horizontal;
@@ -60,7 +67,7 @@ inline double3 ray_color(const Ray& r, const Hittable& world, int depth) {
     Ray scattered;
     double3 attenuation;
     if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
-        return mul(attenuation, ray_color(scattered, world, depth-1));
+      return mul(attenuation, ray_color(scattered, world, depth-1));
     return double3(0,0,0);
   }
   double3 unit_direction = normalize(r.direction());
