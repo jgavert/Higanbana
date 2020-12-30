@@ -640,6 +640,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         }
         ImGui::End();
 
+
         ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("CPU Histogram")) {
           auto stats = css::s_stealPool->threadUsage();
@@ -892,14 +893,15 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       sceneRoot.insert(e);
     }
     {
+      // create camera!
       auto& t_pos = m_ecs.get<components::Position>();
       auto& t_rot = m_ecs.get<components::Rotation>();
       auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
 
       auto cid = m_ecs.createEntity();
-      t_pos.insert(cid, {float3(0, 0, 0)});
+      t_pos.insert(cid, {float3(0, 1, 0)});
       t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
-      t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 2.0f, 2.0f});
+      t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 0.1f, 2.0f});
       m_ecs.getTag<components::ActiveCamera>().insert(cid);
     }
     co_return;

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cmath>
+#include <compare>
 #include "higanbana/core/platform/definitions.hpp"
 
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
@@ -84,6 +85,7 @@ namespace higanbana
       {
         return data[index];
       }
+      constexpr auto operator<=>(const Vector<2, vType>&) const = default;
     };
 
     template<typename vType>
@@ -119,6 +121,7 @@ namespace higanbana
       {
         return Vector<2, vType>(x, y);
       }
+      constexpr auto operator<=>(const Vector<3, vType>&) const = default;
     };
 
     template<typename vType>
@@ -159,6 +162,8 @@ namespace higanbana
       {
         return Vector<2, vType>(x, y);
       }
+
+      constexpr auto operator<=>(const Vector<4, vType>&) const = default;
     };
     /*
     using float2 = Vector<2, float>;
@@ -424,6 +429,8 @@ namespace higanbana
         }
         return m;
       }
+
+      constexpr auto operator<=>(const Matrix<rowCount, columnCount, vType>&) const = default;
     };
 
     struct Quaternion
@@ -445,6 +452,7 @@ namespace higanbana
       {
         return data[index];
       }
+      constexpr auto operator<=>(const Quaternion&) const = default;
     };
 
     //std::string toString(Quaternion a);
@@ -955,6 +963,11 @@ namespace higanbana
       : leftTop(start)
       , rightBottom(add(start, size))
     {}
+    uint2 size() {
+      return uint2(sub(rightBottom, leftTop));
+    }
+
+    constexpr auto operator<=>(const Rect&) const = default;
   };
 
   struct Box
@@ -974,6 +987,7 @@ namespace higanbana
     int3 size() {
       return int3(sub(rightBottomBack, leftTopFront));
     }
+    constexpr auto operator<=>(const Box&) const = default;
   };
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 }

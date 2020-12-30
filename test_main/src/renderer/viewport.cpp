@@ -138,6 +138,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     double aspect = double(desc.desc.size3D().x) / double(desc.desc.size3D().y);
     //rtCam = rt::Camera(aspect);
     world = random_scene();
+    worldChanged = true;
     nextTileToRaytrace = 0;
   }
   if (cpuRaytrace.tileSize().x != tileSize) {
@@ -151,6 +152,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     double aspect = double(currentRes.x) / double(currentRes.y);
     //rtCam = rt::Camera(aspect);
     world = random_scene();
+    worldChanged = true;
     nextTileToRaytrace = 0;
   }
   co_return;

@@ -50,8 +50,11 @@ class Viewport
   int currentCameraIndex;
   int2 jitterOffset;
 
+  rt::Camera prevCam;
   rt::Camera rtCam;
+  
   rt::HittableList world;
+  bool worldChanged;
   
   css::Task<void> resize(higanbana::GpuGroup& device, int2 viewport, float internalScale, higanbana::FormatType backbufferFormat, uint tileSize);
 };

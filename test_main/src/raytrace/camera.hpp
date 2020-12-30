@@ -43,6 +43,9 @@ double3 lower_left_corner;
 double3 u,v,w;
 double lens_radius;
 
+
+constexpr auto operator<=>(const Camera&) const = default;
+
 inline Ray get_ray(const double2 uv) {
   double3 rd = mul(lens_radius, random_in_unit_disk());
   double3 offset = add(mul(u, rd.x), mul(v, rd.y));

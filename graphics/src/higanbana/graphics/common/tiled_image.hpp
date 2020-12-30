@@ -4,6 +4,8 @@
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <higanbana/core/system/memview.hpp>
+#include <higanbana/core/ranges/rectangle.hpp>
+#include <higanbana/core/ranges/number_spiral.hpp>
 #include <higanbana/core/global_debug.hpp>
 
 namespace higanbana
@@ -13,6 +15,7 @@ struct TileView{
   size_t pixelSize;
   uint2 offset;
   uint2 size;
+  size_t* iterations;
 
   template <typename Pixel>
   Pixel load(uint2 pos) const {
@@ -38,11 +41,13 @@ class TiledImage
     vector<uint8_t> m_pixels;
     uint2 offset;
     uint2 tileSize;
+    size_t iterations;
   };
   uint2 m_size;
   uint2 m_tileSize;
   size_t m_pixelSize;
   vector<Tile> m_tiles;
+  vector<size_t> m_tileRemap;
 
   public:
   TiledImage(): m_size(uint2(0,0)), m_pixelSize(0){}
@@ -51,31 +56,34 @@ class TiledImage
     , m_tileSize(tileSize)
     , m_pixelSize(formatSizeInfo(format).pixelSize)
   {
-    uint2 pos = uint2(0,0);
-    while(pos.y < m_size.y && pos.x < m_size.x) {
-      uint2 ctileSize = add(pos, m_tileSize);
-      ctileSize.x = ctileSize.x > m_size.x ? m_size.x : ctileSize.x;
-      ctileSize.y = ctileSize.y > m_size.y ? m_size.y : ctileSize.y;
-      ctileSize.x -= pos.x;
-      ctileSize.y -= pos.y;
-      if (ctileSize.x != 0 && ctileSize.y != 0)
-        m_tiles.push_back(Tile{vector<uint8_t>(m_pixelSize*ctileSize.x*ctileSize.y, 0), pos, ctileSize});
-
-      if (pos.x+ctileSize.x < m_size.x) {
-        pos.x += ctileSize.x;
-      } else if (pos.y+ctileSize.y < m_size.y){
-        pos.y += ctileSize.y;
-        pos.x = 0;
-      } else {
-        break;
-      }
+    for (auto rect : ranges::Range2D(size, tileSize)) {
+      uint2 ctileSize = rect.size();
+      m_tiles.push_back(Tile{vector<uint8_t>(m_pixelSize*ctileSize.x*ctileSize.y, 0), rect.leftTop, ctileSize, 0});
     }
     HIGAN_LOGi("made %zd tiles\n", m_tiles.size());
+
+    int tiles = m_tiles.size();
+    int2 ssize = int2((size.x / tileSize.x)+1, (size.y / tileSize.y)+1);
+    int i = 0;
+    while (tiles > 0) {
+      auto lol = ranges::numberSpiralReverse(ssize, i);
+      i++;
+      if (lol >= m_tiles.size() || lol < 0) {
+        continue;
+      }
+      --tiles;
+      m_tileRemap.push_back(lol);
+    }
   }
 
   TileView tile(size_t idx) {
     auto&& tile = m_tiles[idx];
-    return TileView{MemView<uint8_t>(tile.m_pixels.data(), tile.m_pixels.size()), m_pixelSize, tile.offset, tile.tileSize};
+    return TileView{MemView<uint8_t>(tile.m_pixels.data(), tile.m_pixels.size()), m_pixelSize, tile.offset, tile.tileSize, &tile.iterations};
+  }
+
+  TileView tileRemap(size_t idx) {
+    auto&& tile = m_tiles.at(m_tileRemap[idx]);
+    return TileView{MemView<uint8_t>(tile.m_pixels.data(), tile.m_pixels.size()), m_pixelSize, tile.offset, tile.tileSize, &tile.iterations};
   }
 
   size_t size() const {

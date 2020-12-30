@@ -349,7 +349,7 @@ namespace higanbana
     {
       addWriteShared(target.handle());
       addReadShared(source.handle());
-      m_referencedBuffers.setBit(target.handle().id);
+      m_referencedTextures.setBit(target.handle().id);
       m_referencedBuffers.setBit(source.handle().id);
       HIGAN_ASSERT(false, "Not implemented");
     }
@@ -373,14 +373,14 @@ namespace higanbana
       addWriteShared(dst.handle());
       addReadShared(src.handle());
       m_referencedBuffers.setBit(dst.handle().id);
-      m_referencedBuffers.setBit(src.handle().id);
+      m_referencedTextures.setBit(src.handle().id);
       list->copy(dst, dstOffset, src, sub);
     }
 
     void copy(Texture dst, Subresource sub, Buffer src, size_t srcOffset) {
       addWriteShared(dst.handle());
       addReadShared(src.handle());
-      m_referencedBuffers.setBit(dst.handle().id);
+      m_referencedTextures.setBit(dst.handle().id);
       m_referencedBuffers.setBit(src.handle().id);
       list->copy(dst, sub, src, srcOffset);
     }

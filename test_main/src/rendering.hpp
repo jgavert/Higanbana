@@ -73,11 +73,12 @@ struct ViewportOptions
   bool tsaa = true;
   bool tsaaDebug = false;
   bool debugTextures = false;
-  int tilesToComputePerFrame = 4;
   bool raytraceRealtime = false;
+  int tilesToComputePerFrame = 4;
+  bool rtIncremental = false;
   int tileSize = 32;
   int samplesPerPixel = 1;
-  int sampleDepth = 2;
+  int sampleDepth = 4;
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
 
@@ -144,11 +145,12 @@ struct ViewportOptions
     ImGui::Checkbox("Mesh Shaders", &useMeshShaders);
     ImGui::Checkbox("Raytracing", &useRaytracing);
     if (useRaytracing) {
-      ImGui::Checkbox("realtime", &raytraceRealtime);
-      ImGui::DragInt("Tiles per frame", &tilesToComputePerFrame, 1, 1, 10000);
-      ImGui::DragInt("Tile size", &tileSize, 1, 4, 256);
-      ImGui::DragInt("Samples per pixel", &samplesPerPixel, 1, 1, 1000);
-      ImGui::DragInt("Sample recursion", &sampleDepth, 1, 1, 100);
+      ImGui::Checkbox("- realtime", &raytraceRealtime);
+      ImGui::Checkbox("- incremental", &rtIncremental);
+      ImGui::DragInt("- Tiles per frame", &tilesToComputePerFrame, 1, 1, 10000);
+      ImGui::DragInt("- Tile size", &tileSize, 1, 4, 256);
+      ImGui::DragInt("- Samples per pixel", &samplesPerPixel, 1, 1, 1000);
+      ImGui::DragInt("- Sample recursion", &sampleDepth, 1, 1, 100);
       if (raytraceRealtime) {
         tileSize = std::max(32, tileSize);
       }
