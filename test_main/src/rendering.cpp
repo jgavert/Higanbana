@@ -376,6 +376,23 @@ void Renderer::handleReadbacks(higanbana::FileSystem& fs) {
   }
 }
 
+size_t Renderer::raytraceSampleCount(int viewportIdx) {
+  if (viewportIdx < 0)
+    return 0;
+  if (viewportIdx >= viewports.size())
+    return 0;
+  return *viewports[viewportIdx].cpuRaytrace.tileRemap(0).iterations;
+}
+
+// seconds per iteration
+double Renderer::raytraceSecondsPerIteration(int viewportIdx) {
+  if (viewportIdx < 0)
+    return 0;
+  if (viewportIdx >= viewports.size())
+    return 0;
+  return viewports[viewportIdx].cpuRaytraceTime.getAverageFps();
+}
+
 css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
 
   bool adjustSwapchain = false;
@@ -505,7 +522,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       // new
       size_t activeNodes = tiles.size();
       {
-        if ((vpInfo.options.rtIncremental && vp.rtCam != vp.prevCam) || vp.worldChanged) {
+        if ((vpInfo.options.rtIncremental && vp.rtCam != vp.prevCam) || vp.worldChanged || vp.currentSampleDepth != vpInfo.options.sampleDepth) {
           auto node = localVec.createPass("clear rt texture", QueueType::Graphics, options.gpuToUse);
           //HIGAN_LOGi("camera was different!\n");
           //node.clear(vp.gbufferRaytracing);
@@ -526,6 +543,8 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           for (int tileCount = 0; tileCount < vp.cpuRaytrace.size(); tileCount++) {
             *vp.cpuRaytrace.tile(tileCount).iterations = 0;
           }
+          vp.cpuRaytraceTime.firstTick();
+          vp.currentSampleDepth = vpInfo.options.sampleDepth;
           vp.worldChanged = false;
         }
         auto node = localVec.createPass("copy raytracing to gpu", QueueType::Graphics, options.gpuToUse);
@@ -538,6 +557,9 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           }
           auto tileIdx = tiles.front()->get();
           auto tile = vp.cpuRaytrace.tileRemap(tileIdx);
+          if (tileIdx == vp.cpuRaytrace.size()-1) {
+            vp.cpuRaytraceTime.tick();
+          }
           auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
           node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
           tiles.pop_front();

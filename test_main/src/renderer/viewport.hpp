@@ -7,6 +7,8 @@
 #include "camera.hpp"
 #include "../raytrace/camera.hpp"
 #include "../raytrace/hittable_list.hpp"
+#include <higanbana/core/system/time.hpp>
+
 namespace app
 {
 // viewport stores all viewport specific resources
@@ -41,6 +43,7 @@ class Viewport
 
   higanbana::deque<std::shared_ptr<css::Task<size_t>>> workersTiles;
   higanbana::TiledImage cpuRaytrace;
+  higanbana::WTime      cpuRaytraceTime;
   size_t nextTileToRaytrace = 0;
 
   // hmm, misc things
@@ -52,6 +55,7 @@ class Viewport
 
   rt::Camera prevCam;
   rt::Camera rtCam;
+  size_t currentSampleDepth = 1;
   
   rt::HittableList world;
   bool worldChanged;

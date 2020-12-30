@@ -400,6 +400,17 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
                                 ImGuiWindowFlags_NoNav)) {
             std::string gpu = std::string(toString(gpInfo.api)) + ": " + gpInfo.name;
             ImGui::Text(gpu.c_str());
+            if (rendererViewports[i].options.useRaytracing) {
+              auto iterations = rend.raytraceSampleCount(i);
+              std::string raytrace = std::to_string(iterations);
+              raytrace += " samples";
+              ImGui::Text(raytrace.c_str());
+
+              auto fps = rend.raytraceSecondsPerIteration(i);
+              std::string raytraceFPS = std::to_string(fps);
+              raytraceFPS += " fps";
+              ImGui::Text(raytraceFPS.c_str());
+            }
             /*
             ImGui::Separator();
             if (ImGui::IsMousePosValid())

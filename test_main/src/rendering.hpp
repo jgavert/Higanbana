@@ -278,5 +278,9 @@ public:
 
   void handleReadbacks(higanbana::FileSystem& fs);
   css::Task<void> cleanup();
+
+  // info 
+  size_t raytraceSampleCount(int viewportIdx);
+  double raytraceSecondsPerIteration(int viewportIdx);
 };
 }
