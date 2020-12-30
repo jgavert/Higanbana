@@ -8,6 +8,8 @@
 #include <higanbana/core/ranges/number_spiral.hpp>
 #include <higanbana/core/global_debug.hpp>
 
+#include <cmath>
+
 namespace higanbana
 {
 struct TileView{
@@ -63,7 +65,7 @@ class TiledImage
     HIGAN_LOGi("made %zd tiles\n", m_tiles.size());
 
     int tiles = m_tiles.size();
-    int2 ssize = int2((size.x / tileSize.x)+1, (size.y / tileSize.y)+1);
+    int2 ssize = int2(std::round(size.x / double(tileSize.x)), std::round(size.y / double(tileSize.y)));
     int i = 0;
     while (tiles > 0) {
       auto lol = ranges::numberSpiralReverse(ssize, i);
