@@ -7,6 +7,7 @@ cc_binary(
           "//conditions:default": ["-std=c++2a", "-msse4.2", "-m64"],
         }),
         defines = ["_WIN64"],
+        data = ["//data:mapping"],
         linkopts = select({
         "@bazel_tools//src/conditions:windows": ["/subsystem:WINDOWS", "/DEBUG"],
         "//conditions:default": ["-pthread"],

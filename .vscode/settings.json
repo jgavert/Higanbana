@@ -107,7 +107,8 @@
         "span_ext": "cpp",
         "gsl_util": "cpp",
         "charconv": "cpp",
-        "compare": "cpp"
+        "compare": "cpp",
+        "coroutine": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

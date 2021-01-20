@@ -92,9 +92,17 @@ namespace higanbana
 
     std::string getBasePath();
 
+    std::optional<std::string> tryReadMappingFile(const char* filename);
+
   public:
+    enum class MappingMode {
+      NoMapping,
+      TryFirstMappingFile,
+      UseMappingFile
+    };
+
     FileSystem();
-    FileSystem(std::string relativeOffset);
+    FileSystem(std::string relativeOffset, MappingMode mode, const char* mappingFileName = "");
     void initialLoad();
     bool fileExists(std::string path);
     MemoryBlob readFile(std::string path);

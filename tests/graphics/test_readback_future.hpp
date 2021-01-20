@@ -4,17 +4,17 @@
 #include <memory>
 #include <future>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 using namespace higanbana;
 using namespace higanbana::backend;
 
-class ReadbackTexture
+class ReadbackTextureTest
 {
   //std::shared_ptr<ViewResourceHandle> m_id;
   bool cool_value;
   public:
-  ReadbackTexture(bool value = false): cool_value(value){}
+  ReadbackTextureTest(bool value = false): cool_value(value){}
 
   explicit operator bool() const
   {
@@ -24,21 +24,21 @@ class ReadbackTexture
 
 class GiveFutures
 {
-  deque<std::promise<ReadbackTexture>> promises;
+  deque<std::promise<ReadbackTextureTest>> promises;
   public:
 
   GiveFutures() {}
 
-  std::future<ReadbackTexture> giveFuture()
+  std::future<ReadbackTextureTest> giveFuture()
   {
-    std::promise<ReadbackTexture> promise;
+    std::promise<ReadbackTextureTest> promise;
     promises.emplace_back(std::move(promise));
     return promises.back().get_future();
   }
   void activateFuture()
   {
-    std::promise<ReadbackTexture> promise = std::move(promises.front());
+    std::promise<ReadbackTextureTest> promise = std::move(promises.front());
     promises.pop_front();
-    promise.set_value(ReadbackTexture(promises.empty()));
+    promise.set_value(ReadbackTextureTest(promises.empty()));
   }
 };

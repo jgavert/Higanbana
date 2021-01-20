@@ -2,7 +2,7 @@
 #include "tests/graphics/graphics_config.hpp"
 
 TEST_CASE("returning own future") {
-  vector<std::future<ReadbackTexture>> allFutures;
+  vector<std::future<ReadbackTextureTest>> allFutures;
   GiveFutures provider;
 
   for (int i = 0; i < 10; ++i)

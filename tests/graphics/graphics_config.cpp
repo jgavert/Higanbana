@@ -2,7 +2,7 @@
 
 SResources::SResources()
   : subsystem("higanbana", true)
-  , fileSystem(TESTS_FILESYSTEM_PATH)
+  , fileSystem(TESTS_FILESYSTEM_PATH, FileSystem::MappingMode::TryFirstMappingFile, "tests\\data\\mapping")
 {
   auto gpus = subsystem.getVendorDevice(GraphicsApi::Vulkan); // TODO: make it so that it always tests both api at once
   gpu = subsystem.createDevice(fileSystem, gpus);

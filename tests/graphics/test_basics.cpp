@@ -1,5 +1,5 @@
 #include "tests/graphics/graphics_config.hpp"
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 SHADER_STRUCT(TestConsts,
   float value;
@@ -108,7 +108,7 @@ TEST_CASE_METHOD(GraphicsFixture, "basic multi queue") {
   auto graph = gpu().createGraph();
 
   {
-    auto node = graph.createPass("add values", QueueType::Compute);
+    auto node = graph.createPass("add values");
 
     auto upload = gpu().dynamicBuffer(MemView<float>(&dynamicBufferInput, 1), FormatType::Float32);
 
@@ -129,7 +129,7 @@ TEST_CASE_METHOD(GraphicsFixture, "basic multi queue") {
     graph.addPass(std::move(node));
   }
 
-  auto readbackNode = graph.createPass("read values", QueueType::Dma);
+  auto readbackNode = graph.createPass("read values");
   auto asyncReadback = readbackNode.readback(outputBuffer.buffer());
   graph.addPass(std::move(readbackNode));
 

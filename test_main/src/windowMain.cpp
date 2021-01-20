@@ -861,7 +861,7 @@ RenderingApp::RenderingApp(AppInputs inputs)
   : m_cmdline(inputs)
   , m_api(inputs.cmdlineApiId)
   , m_preferredVendor(inputs.cmdlineVendorId)
-  , m_fs("/../../data")
+  , m_fs("/../../data", FileSystem::MappingMode::TryFirstMappingFile, "data\\mapping")
 {
   if (inputs.powersave) {
     m_limitFPS = 20;

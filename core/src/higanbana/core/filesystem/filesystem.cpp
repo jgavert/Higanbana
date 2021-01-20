@@ -112,6 +112,38 @@ const uint8_t* MemoryBlob::cdata() const noexcept
   return m_data.data();
 }
 
+std::vector<uint8_t> readFileNative(const char* path) {
+  auto fp = fopen(path, "rb");
+  fseek(fp, 0L, SEEK_END);
+  auto fsize = ftell(fp);
+  fseek(fp, 0L, SEEK_SET);
+  std::vector<uint8_t> contents(fsize);
+  size_t leftToRead = fsize;
+  size_t offset = 0;
+  while (leftToRead > 0)
+  {
+    offset = fread(contents.data() + offset, sizeof(uint8_t), leftToRead, fp);
+    if (offset == 0)
+      break;
+    leftToRead -= offset;
+  }
+  fclose(fp);
+  return contents;
+}
+
+std::optional<std::string> FileSystem::tryReadMappingFile(const char* filename) {
+  if (system_fs::exists(filename)) {
+    auto data = readFileNative(filename);
+    std::string str = std::string(reinterpret_cast<const char*>(data.data()));
+    auto newlinePos = str.find(' ');
+    if (newlinePos != std::string::npos)
+      str = str.substr(0, newlinePos);
+    HIGAN_LOGi("found mapping, data => \"%s\"\n", str.c_str());
+    return str;
+  }
+  return std::optional<std::string>();
+}
+
 FileSystem::FileSystem()
   : m_resolvedFullPath(system_fs::path(system_fs::current_path().string()).string())
 {
@@ -120,9 +152,21 @@ FileSystem::FileSystem()
   HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
 }
 
-FileSystem::FileSystem(std::string relativeOffset)
+FileSystem::FileSystem(std::string relativeOffset, MappingMode mode, const char* mappingFileName)
   : m_resolvedFullPath(system_fs::path(system_fs::current_path().string() + relativeOffset).string())
 {
+  std::optional<std::string> dataDir = tryReadMappingFile(mappingFileName);
+  if (mode == MappingMode::TryFirstMappingFile) {
+    if (dataDir) {
+      m_resolvedFullPath = *dataDir;
+      HIGAN_ILOG("FileSystem", "Found Mapping file, using it. \"%s\"", m_resolvedFullPath.c_str());
+    } else {
+      HIGAN_ILOG("FileSystem", "Mapping file wasn't found. \"%s\"", mappingFileName);
+    }
+  } else if (mode == MappingMode::UseMappingFile) {
+    HIGAN_ASSERT(dataDir, "Mapping file has to exist \"%s\"\n", mappingFileName);
+    m_resolvedFullPath = *dataDir;
+  }
   //loadDirectoryContentsRecursive("");
   auto fullPath = getBasePath();
   HIGAN_ILOG("FileSystem", "Working directory: \"%s\"", fullPath.c_str());
@@ -182,26 +226,12 @@ bool FileSystem::loadFileFromHDD(FileInfo& path, size_t& size)
   auto last5 = path.withoutNative.substr(path.withoutNative.size()-5);
   if (strcmp("trace", last5.c_str()) == 0)
     return false;
-  auto fp = fopen(path.nativePath.c_str(), "rb");
-  fseek(fp, 0L, SEEK_END);
-  auto fsize = ftell(fp);
-  fseek(fp, 0L, SEEK_SET);
-  std::vector<uint8_t> contents(fsize);
-  size_t leftToRead = fsize;
-  size_t offset = 0;
-  while (leftToRead > 0)
-  {
-    offset = fread(contents.data() + offset, sizeof(uint8_t), leftToRead, fp);
-    if (offset == 0)
-      break;
-    leftToRead -= offset;
-  }
-  fclose(fp);
+  std::vector<uint8_t> contents = readFileNative(path.nativePath.c_str());
   //contents.resize(size - leftToRead);
   auto time = static_cast<size_t>(system_fs::last_write_time(path.nativePath).time_since_epoch().count());
   FS_ILOG("found file %s(%zu), loading %.2fMB(%ld)...", path.nativePath.c_str(), time, static_cast<float>(fsize) / 1024.f / 1024.f, fsize);
   m_files[path.withoutNative] = FileObj{ time, contents };
-  size = fsize;
+  size = contents.size();
   return true;
 }
 

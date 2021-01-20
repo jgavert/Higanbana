@@ -1,7 +1,7 @@
 #include <higanbana/graphics/common/command_buffer.hpp>
 #include <higanbana/graphics/common/command_packets.hpp>
 #include <string>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 using namespace higanbana;
 using namespace higanbana::backend;
@@ -29,7 +29,7 @@ TEST_CASE("insert 1 and copy") {
   std::string text = "testBlock";
   buffer.insert<gfxpacket::RenderBlock>(makeMemView(text));
 
-  CommandBuffer buffer2 = buffer;
+  CommandBuffer buffer2 = std::move(buffer);
 
   auto itr = buffer2.begin();
   auto* header = (*itr);

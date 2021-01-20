@@ -3,13 +3,6 @@ load(":macros.bzl", "src_core_test")
 load(":macros.bzl", "src_graphics_test_with_header")
 load(":macros.bzl", "src_core_test_with_header")
 
-cc_library(
-    name = "catch-main",
-    srcs = ["main.cpp"],
-    deps = ["//ext/Catch2:catch2"],
-    linkstatic = True
-)
-
 src_core_test("entity")
 src_core_test("tlsf")
 src_core_test("tlsf_heap")
