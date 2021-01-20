@@ -3,7 +3,7 @@
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/entity/database.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 struct Position
 {

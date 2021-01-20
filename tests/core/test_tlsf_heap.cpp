@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <higanbana/core/platform/definitions.hpp>
 #include <higanbana/core/allocators/heap_allocator_raw.hpp>
 #include <css/utils/dynamic_allocator.hpp>

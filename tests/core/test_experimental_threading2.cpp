@@ -1,5 +1,5 @@
 #define CATCH_CONFIG_DISABLE_EXCEPTIONS
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
@@ -13,7 +13,6 @@
 #include <cstdio>
 #include <iostream>
 #include <deque>
-#include <experimental/coroutine>
 #include <atomic>
 
 #include <windows.h>
