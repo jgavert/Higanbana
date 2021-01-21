@@ -1,5 +1,6 @@
 #pragma once
 
+#include "higanbana/graphics/common/backend.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
 #include <memory>
 

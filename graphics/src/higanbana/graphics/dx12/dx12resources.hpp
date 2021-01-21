@@ -9,6 +9,7 @@
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/common/allocators.hpp"
 #include "higanbana/graphics/definitions.hpp"
+#include "higanbana/graphics/common/pipeline_descriptor.hpp"
 #include <higanbana/core/system/MemoryPools.hpp>
 #include <higanbana/core/system/MovePtr.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>

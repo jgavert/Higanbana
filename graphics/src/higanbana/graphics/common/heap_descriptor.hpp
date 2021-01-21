@@ -1,31 +1,10 @@
 #pragma once
 #include <string>
 #include <array>
+#include "higanbana/graphics/common/resources/graphics_api.hpp"
 
 namespace higanbana
 {
-  enum class CPUPageProperty
-  {
-    Unknown,
-    NotAvailable,
-    WriteCombine,
-    WriteBack
-  };
-
-  enum class HeapType
-  {
-    Default,
-    Upload,
-    Readback,
-    Custom
-  };
-
-  enum class MemoryPoolHint
-  {
-    Host,
-    Device
-  };
-
   class HeapDescriptor
   {
   public:

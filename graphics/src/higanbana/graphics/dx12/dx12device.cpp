@@ -8,6 +8,10 @@
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/common/handle.hpp"
+#include "higanbana/graphics/common/helpers/memory_requirements.hpp"
+#include "higanbana/graphics/common/helpers/heap_allocation.hpp"
+#include "higanbana/graphics/common/helpers/shared_handle.hpp"
+#include "higanbana/graphics/common/heap_descriptor.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/global_debug.hpp>

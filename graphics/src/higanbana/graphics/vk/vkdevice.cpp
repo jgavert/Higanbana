@@ -6,6 +6,10 @@
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 #include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/vk/util/pipeline_helpers.hpp"
+#include "higanbana/graphics/common/helpers/memory_requirements.hpp"
+#include "higanbana/graphics/common/helpers/heap_allocation.hpp"
+#include "higanbana/graphics/common/helpers/shared_handle.hpp"
+#include "higanbana/graphics/common/heap_descriptor.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/profiling/profiling.hpp>

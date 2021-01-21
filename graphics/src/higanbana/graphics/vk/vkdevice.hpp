@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/vk/vkresources.hpp"
+#include "higanbana/graphics/common/resources/gpu_info.hpp"
 #include <higanbana/core/datastructures/enum_array.hpp>
 #include <optional>
 #include <mutex>

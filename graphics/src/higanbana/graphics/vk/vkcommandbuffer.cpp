@@ -2,6 +2,7 @@
 #include "higanbana/graphics/vk/vkdevice.hpp"
 #include "higanbana/graphics/common/command_buffer.hpp"
 #include "higanbana/graphics/common/barrier_solver.hpp"
+#include "higanbana/graphics/desc/timing.hpp"
 #include "higanbana/graphics/desc/resource_state.hpp"
 
 #include <higanbana/core/profiling/profiling.hpp>

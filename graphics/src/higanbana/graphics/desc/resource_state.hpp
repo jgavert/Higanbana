@@ -1,6 +1,7 @@
 #pragma once
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/common/resources.hpp"
+#include "higanbana/graphics/common/resources/graphics_api.hpp"
 #include <cstdint>
 #include <higanbana/core/datastructures/proxy.hpp>
 

@@ -1,9 +1,13 @@
-#include "higanbana/graphics/common/resources.hpp"
-#include "higanbana/graphics/common/graphicssurface.hpp"
-#include "higanbana/graphics/common/implementation.hpp"
-#include "higanbana/graphics/common/semaphore.hpp"
-#include "higanbana/graphics/common/cpuimage.hpp"
+#include "higanbana/graphics/common/heap_manager.hpp"
+#include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/common/heap_descriptor.hpp"
+#include "higanbana/graphics/common/helpers/memory_requirements.hpp"
+#include "higanbana/graphics/common/helpers/heap_allocation.hpp"
+//#include "higanbana/graphics/common/graphicssurface.hpp"
+///#include "higanbana/graphics/common/implementation.hpp"
+//#include "higanbana/graphics/common/semaphore.hpp"
+//#include "higanbana/graphics/common/cpuimage.hpp"
+//#include "higanbana/graphics/common/heap_descriptor.hpp"
 
 #include <higanbana/core/math/utils.hpp>
 

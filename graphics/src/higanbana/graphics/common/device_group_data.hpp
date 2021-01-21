@@ -2,11 +2,11 @@
 
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/handle.hpp"
-#include "higanbana/graphics/desc/formats.hpp"
-#include "higanbana/graphics/desc/resource_state.hpp"
-#include "higanbana/graphics/common/barrier_solver.hpp"
-#include "higanbana/graphics/common/command_buffer.hpp"
-#include "higanbana/graphics/common/commandgraph.hpp"
+#include "higanbana/graphics/common/prototypes.hpp"
+#include "higanbana/graphics/common/readback.hpp"
+#include "higanbana/graphics/common/commandlist.hpp"
+#include "higanbana/graphics/common/heap_manager.hpp"
+#include "higanbana/graphics/common/resources/gpu_info.hpp"
 #include "higanbana/graphics/desc/timing.hpp"
 
 #include <higanbana/core/system/memview.hpp>

@@ -1,4 +1,5 @@
 #pragma once
+#include "higanbana/graphics/common/backend.hpp"
 #include "higanbana/graphics/common/command_buffer.hpp"
 #include "higanbana/graphics/common/buffer.hpp"
 #include "higanbana/graphics/common/texture.hpp"
@@ -39,10 +40,11 @@ namespace higanbana
       list.insert<gfxpacket::UpdateTexture>(tex.handle(), dynBuffer.handle(), mip, slice, size.x, size.y);
     }*/
 
+/*
     void clearRT(TextureRTV& rtv, float4 color)
     {
       //list.insert<gfxpacket::ClearRT>(rtv, color);
-    }
+    }*/
 
     void prepareForPresent(TextureRTV& rtv)
     {
@@ -50,10 +52,11 @@ namespace higanbana
       list.insert<gfxpacket::PrepareForPresent>(tex.handle());
     }
 
+/*
     void prepareForQueueSwitch(unordered_set<backend::TrackedState>& deps)
     {
       //list.insert<gfxpacket::PrepareForQueueSwitch>(deps);
-    }
+    }*/
 
     void renderpass(Renderpass& pass, MemView<TextureRTV> rtvs, TextureDSV dsv)
     {
@@ -156,6 +159,7 @@ namespace higanbana
 
     void copy(Buffer& target, int64_t targetOffset, Texture& source, Subresource subresource, Box srcbox)
     {
+      HIGAN_ASSERT(false, "");
       //list.insert<gfxpacket::TextureToBufferCopy>(target.dependency(), targetOffset, source.dependency(), subresource, srcbox);
     }
 
@@ -164,10 +168,13 @@ namespace higanbana
       list.insert<gfxpacket::TextureToTextureCopy>(target.handle(), dstSubresource, dstPos, source.handle(), srcSubresource, srcbox);
     }
 
+
     void copy(Texture& target, Texture& source, SubresourceRange range)
     {
+      HIGAN_ASSERT(false, "");
       //list.insert<gfxpacket::TextureCopy>(target.dependency(), source.dependency(), range);
     }
+    
 
     void copy(Buffer target, size_t targetOffsetBytes, Texture source, Subresource sub) {
       auto size = source.desc().desc.size3D().xy();
@@ -232,7 +239,6 @@ namespace higanbana
     }
     void free(backend::CommandBuffer&& buffer)
     {
-      //std::lock_guard<std::mutex> lock(m_bufferLock);
       buffers.emplace_back(std::move(buffer));
     }
   };

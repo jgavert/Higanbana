@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/desc/formats.hpp"
+#include "higanbana/graphics/common/resources/graphics_api.hpp"
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/core/system/memview.hpp>
 #include <string>
@@ -227,32 +228,6 @@ namespace higanbana
     auto slicePitch = rowPitch * dim.y;
     return slicePitch * dim.z;
   }
-
-  enum class PresentMode
-  {
-    Unknown,
-    Immediate, // Fullscreen Immediate - ?? Use for Windowed
-    Mailbox, // Fullscreen Mailbox - hack ?? also suggested for Windowed
-    Fifo, // fallback for Relaxed
-    FifoRelaxed // Fullscreen V-Sync
-  };
-
-  enum class Colorspace
-  {
-    BT709,
-    BT2020
-  };
-
-  enum DisplayCurve
-  {
-    sRGB = 0,	// The display expects an sRGB signal.
-    ST2084,		// The display expects an HDR10 signal.
-    None		// The display expects a linear signal.
-  };
-
-  const char* presentModeToStr(PresentMode mode);
-  const char* colorspaceToStr(Colorspace mode);
-  const char* displayCurveToStr(DisplayCurve mode);
 
   class SwapchainDescriptor
   {

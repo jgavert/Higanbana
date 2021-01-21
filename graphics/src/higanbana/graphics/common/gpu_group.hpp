@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/graphics/common/device_group_data.hpp"
+#include "higanbana/graphics/common/helpers/shared_state.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
 #include "higanbana/graphics/common/buffer.hpp"
 #include "higanbana/graphics/common/texture.hpp"

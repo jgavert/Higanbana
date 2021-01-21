@@ -7,37 +7,6 @@
 
 namespace higanbana
 {
-  const char* toString(GraphicsApi api)
-  {
-    if (api == GraphicsApi::DX12)
-      return "DX12";
-    return "Vulkan";
-  }
-
-  const char* toString(VendorID id)
-  {
-    if (id == VendorID::Amd)
-      return "AMD";
-    if (id == VendorID::Nvidia)
-      return "Nvidia";
-    if (id == VendorID::Intel)
-      return "Intel";
-    return "Any";
-  }
-
-  const char* toString(QueueType id)
-  {
-    if (id == QueueType::Graphics)
-      return "Graphics";
-    if (id == QueueType::Compute)
-      return "Compute";
-    if (id == QueueType::Dma)
-      return "Dma";
-    if (id == QueueType::External)
-      return "External";
-    return "Unknown";
-  }
-
   namespace backend
   {
     SubsystemData::SubsystemData(GraphicsApi allowedApi, const char* appName, bool debugLayer, unsigned appVersion, const char* engineName, unsigned engineVersion)

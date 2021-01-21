@@ -4,6 +4,7 @@
 #include "higanbana/graphics/dx12/util/pipeline_stream_builder.hpp"
 #include "higanbana/graphics/dx12/dx12commandlist.hpp"
 #include "higanbana/graphics/common/command_packets.hpp"
+#include "higanbana/graphics/common/resources/gpu_info.hpp"
 
 #include <optional>
 

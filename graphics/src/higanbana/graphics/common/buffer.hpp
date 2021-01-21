@@ -1,9 +1,7 @@
 #pragma once
 
-#include "higanbana/graphics/common/backend.hpp"
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
-#include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 
 namespace higanbana

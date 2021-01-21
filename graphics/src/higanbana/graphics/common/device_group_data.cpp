@@ -8,6 +8,9 @@
 #include "higanbana/graphics/common/commandgraph.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
+#include "higanbana/graphics/common/helpers/memory_requirements.hpp"
+#include "higanbana/graphics/common/heap_descriptor.hpp"
+#include "higanbana/graphics/common/barrier_solver.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 
 #include <higanbana/core/math/utils.hpp>

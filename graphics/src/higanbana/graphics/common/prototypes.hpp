@@ -1,8 +1,7 @@
 #pragma once
-#include "higanbana/graphics/common/heap_descriptor.hpp"
-#include "higanbana/graphics/common/resource_descriptor.hpp"
-#include "higanbana/graphics/common/pipeline_descriptor.hpp"
-#include "higanbana/graphics/desc/timing.hpp"
+//#include "higanbana/graphics/desc/timing.hpp"
+#include "higanbana/graphics/common/resources.hpp"
+#include "higanbana/graphics/common/resources/graphics_api.hpp"
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/datastructures/proxy.hpp>
 #include <string>
@@ -11,6 +10,7 @@
 
 namespace higanbana
 {
+  struct GraphNodeTiming;
   struct GpuInfo;
   class GpuDevice;
   class GraphicsSurface;
