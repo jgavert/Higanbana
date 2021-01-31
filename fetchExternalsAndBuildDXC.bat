@@ -33,11 +33,7 @@ REM For all json needs, api looks clean and usable
 rd /s /Q ext\nlohmann_json
 git clone https://github.com/nlohmann/json.git ext/nlohmann_json
 
-REM gltf loader, could be more efficient if it skipped few copies.
-rd /s /Q ext\tinygltf
-git clone https://github.com/syoyo/tinygltf.git ext/tinygltf
-
-REM cgltf parser, replace useless tinygltf and it's own stb stuff
+REM cgltf parser
 rd /s /Q ext\cgltf
 git clone https://github.com/jkuhlmann/cgltf.git ext/cgltf
 

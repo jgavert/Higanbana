@@ -19,13 +19,6 @@ cc_library(
 )
 
 cc_library(
-    name = "tinygltf",
-    hdrs = ["tinygltf/stb_image.h", "tinygltf/stb_image_write.h", "tinygltf/json.hpp", "tinygltf/tiny_gltf.h"],
-    includes = ["tinygltf"],
-    visibility = ["//visibility:public"], 
-)
-
-cc_library(
     name = "cgltf",
     hdrs = ["cgltf/cgltf.h", "cgltf/cgltf_write.h"],
     includes = ["cgltf"],
@@ -39,7 +32,6 @@ cc_library(
     "GSL/include/gsl/gsl_assert",
     "GSL/include/gsl/gsl_byte",
     "GSL/include/gsl/gsl_util",
-    "GSL/include/gsl/multi_span",
     "GSL/include/gsl/pointers",
     "GSL/include/gsl/span",
     "GSL/include/gsl/string_span"],
@@ -123,7 +115,7 @@ cc_library(
 
 cc_library(
     name = "IMGui",
-    srcs = ["imgui/imgui.cpp", "imgui/imgui_widgets.cpp", "imgui/imgui_draw.cpp", "imgui/imgui_demo.cpp"],
+    srcs = ["imgui/imgui.cpp", "imgui/imgui_widgets.cpp", "imgui/imgui_draw.cpp", "imgui/imgui_demo.cpp", "imgui/imgui_tables.cpp"],
     hdrs = ["imgui/imgui.h", "imgui/imconfig.h", "imgui/imgui_internal.h", "imgui/imstb_rectpack.h", "imgui/imstb_textedit.h", "imgui/imstb_truetype.h"],
     includes = ["imgui"],
     visibility = ["//visibility:public"], 
