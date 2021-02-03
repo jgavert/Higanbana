@@ -588,7 +588,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         auto tilev = vp.cpuRaytrace.tileRemap(tileIdx);
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
-        auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, int sampleDepth, rt::Camera rtCam, rt::HittableList& list, bool incremental) -> css::Task<size_t> {
+        auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, int sampleDepth, rt::Camera rtCam, rt::HittableList& list, bool incremental) -> css::LowPrioTask<size_t> {
           double2 offset = double2(tile.offset);
           size_t iterations = *tile.iterations;
           auto total = double(samples+iterations);
@@ -624,7 +624,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           co_return tileIdx;
         };
 
-        tiles.push_back(std::make_shared<css::Task<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, samplesPerPixel, sampleDepth, vp.rtCam, vp.world, vpInfo.options.rtIncremental)));
+        tiles.push_back(std::make_shared<css::LowPrioTask<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, samplesPerPixel, sampleDepth, vp.rtCam, vp.world, vpInfo.options.rtIncremental)));
       }
 
       {

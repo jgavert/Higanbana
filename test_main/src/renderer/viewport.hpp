@@ -3,7 +3,7 @@
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/graphics/common/tiled_image.hpp>
-#include <css/task.hpp>
+#include <css/low_prio_task.hpp>
 #include "camera.hpp"
 #include "../raytrace/camera.hpp"
 #include "../raytrace/hittable_list.hpp"
@@ -41,7 +41,7 @@ class Viewport
   higanbana::Texture    gbufferRaytracing;
   higanbana::TextureSRV gbufferRaytracingSRV;
 
-  higanbana::deque<std::shared_ptr<css::Task<size_t>>> workersTiles;
+  higanbana::deque<std::shared_ptr<css::LowPrioTask<size_t>>> workersTiles;
   higanbana::TiledImage cpuRaytrace;
   higanbana::WTime      cpuRaytraceTime;
   size_t nextTileToRaytrace = 0;

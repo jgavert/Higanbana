@@ -8,6 +8,7 @@
 #include <higanbana/core/system/FreelistAllocator.hpp>
 #include <higanbana/core/system/LBS.hpp>
 #include <css/task.hpp>
+#include <css/low_prio_task.hpp>
 #include "renderer/imgui.hpp"
 #include "renderer/world_renderer.hpp"
 #include "renderer/mesh_test.hpp"
