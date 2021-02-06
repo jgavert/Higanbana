@@ -107,7 +107,7 @@ PixelOut main(VertexOut input)
   float lStr = 1.f;
   float3 lPos = float3(0,0,0);//float3(90,100,110);
   // what does this mean that I have to completely reverse my camera pos...
-  lPos = cameras[constants.camera].position.xyz * float3(-1,-1,-1);
+  lPos = cameras[constants.camera].position.xyz;
 
   // lightpass
   float4 lightPass = float4(0,0,0,0);
