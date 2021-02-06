@@ -339,14 +339,22 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
 higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 swapchainRes) {
   using namespace higanbana;
   auto aspect = float(swapchainRes.y)/float(swapchainRes.x);
-  float4x4 pers = math::perspectivelh(camera.fov, aspect, camera.minZ, camera.maxZ);
-  float4x4 rot = math::rotationMatrixLH(camera.direction);
+  float4x4 pers = math::perspectiveLHInverseZ(camera.fov, aspect, camera.minZ, camera.maxZ);
+  float4x4 rot = math::rotationMatrixLH(math::normalize(camera.direction));
   float4x4 pos = math::translation(camera.position);
   float4x4 perspective = math::mul(pos, math::mul(rot, pers));
   return perspective;
 }
 
-void Renderer::ensureViewportCount(int size) {
+css::Task<void> Renderer::ensureViewportCount(int size) {
+  if (viewports.size() > static_cast<size_t>(size))
+  {
+    for (size_t iter = static_cast<size_t>(size); iter < viewports.size(); iter++) {
+      for (auto&& tile : viewports[iter].workersTiles) {
+        co_await *tile;
+      }
+    }
+  }
   if (viewports.size() != static_cast<size_t>(size))
     viewports.resize(size);
 }
@@ -393,7 +401,7 @@ double Renderer::raytraceSecondsPerIteration(int viewportIdx) {
   return viewports[viewportIdx].cpuRaytraceTime.getAverageFps();
 }
 
-css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
+css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& rtworld, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
 
   bool adjustSwapchain = false;
   if (rendererOptions.enableHDR == true && scdesc.desc.colorSpace != Colorspace::BT2020)
@@ -469,7 +477,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       vp.jitterOffset = tsaa.getJitterOffset(frame);
       vp.perspective = newCamera.perspective;
 
-      float3 dir = math::normalize(rotateVector({ 0.f, 0.f, 1.f }, vpInfo.camera.direction));
+      float3 dir = math::normalize(rotateVector({ 0.f, 0.f, -1.f }, vpInfo.camera.direction));
       float3 updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, vpInfo.camera.direction));
       float3 sidedir = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, vpInfo.camera.direction));
       double aspectRatio = double(gbufferRes.x) / double(gbufferRes.y);
@@ -505,6 +513,15 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   for (auto&& vpInfo : viewportsToRender) {
     nodeVecs.push_back(tasks.localThreadVector());
   }
+
+  // reset viewports rt world
+  for (auto&& vp : viewportsToRender) {
+    if (rtworld.worldChanged){
+      vp.options.worldChanged = true;
+    }
+  }
+  rtworld.worldChanged = false;
+
   vector<css::Task<void>> sceneTasks;
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
@@ -522,50 +539,63 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       // new
       size_t activeNodes = tiles.size();
       {
-        if ((vpInfo.options.rtIncremental && vp.rtCam != vp.prevCam) || vp.worldChanged || vp.currentSampleDepth != vpInfo.options.sampleDepth) {
-          auto node = localVec.createPass("clear rt texture", QueueType::Graphics, options.gpuToUse);
-          //HIGAN_LOGi("camera was different!\n");
-          //node.clear(vp.gbufferRaytracing);
-          vector<float4> empty;
-          for (size_t i = 0; i < 64*64; ++i) {
-            empty.push_back(float4(0.f));
-          }
-          auto dyn = dev.dynamicImage(makeByteView<float4>(empty.data(), empty.size() * sizeof(float4)), sizeof(float4) * 64);
-          for (auto tile : ranges::Range2D(vp.gbufferRaytracing.size3D().xy(), {64, 64})) {
-            node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.leftTop, 0), dyn, Box(uint3(0,0,0), uint3(tile.size(), 1)));
+        if (vp.rtCam != vp.prevCam || vpInfo.options.worldChanged || vp.currentSampleDepth != vpInfo.options.sampleDepth) {
+          if (false && !vpInfo.options.rtIncremental) {
+            auto node = localVec.createPass("clear rt texture", QueueType::Graphics, options.gpuToUse);
+            //HIGAN_LOGi("camera was different!\n");
+            //node.clear(vp.gbufferRaytracing);
+            vector<float4> empty;
+            for (size_t i = 0; i < 64*64; ++i) {
+              empty.push_back(float4(0.f));
+            }
+            auto dyn = dev.dynamicImage(makeByteView<float4>(empty.data(), empty.size() * sizeof(float4)), sizeof(float4) * 64);
+            for (auto tile : ranges::Range2D(vp.gbufferRaytracing.size3D().xy(), {64, 64})) {
+              node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.leftTop, 0), dyn, Box(uint3(0,0,0), uint3(tile.size(), 1)));
+            }
+            localVec.addPass(std::move(node));
           }
           vp.nextTileToRaytrace = 0;
-          localVec.addPass(std::move(node));
-          while (!tiles.empty()) {
-            co_await *tiles.front();
-            tiles.pop_front();
+          for (auto&& tile : tiles) {
+            co_await *tile;
           }
           for (int tileCount = 0; tileCount < vp.cpuRaytrace.size(); tileCount++) {
             *vp.cpuRaytrace.tile(tileCount).iterations = 0;
           }
           vp.cpuRaytraceTime.firstTick();
           vp.currentSampleDepth = vpInfo.options.sampleDepth;
-          vp.worldChanged = false;
+          vpInfo.options.worldChanged = false;
         }
-        auto node = localVec.createPass("copy raytracing to gpu", QueueType::Graphics, options.gpuToUse);
-        while (!tiles.empty()) {
-          if (!vpInfo.options.raytraceRealtime) {
-            if (!tiles.front()->is_ready())
-              break;
-          } else {
-            co_await *tiles.front();
+        int readyTiles = 0;
+        for (auto&& tile : tiles) {
+          if (tile->is_ready()){
+            readyTiles++;
+            continue;
           }
-          auto tileIdx = tiles.front()->get();
-          auto tile = vp.cpuRaytrace.tileRemap(tileIdx);
-          if (tileIdx == vp.cpuRaytrace.size()-1) {
-            vp.cpuRaytraceTime.tick();
-          }
-          auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
-          node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
-          tiles.pop_front();
-          activeNodes--;
+          break;
         }
-        localVec.addPass(std::move(node));
+        
+        if (readyTiles > 0 || vpInfo.options.raytraceRealtime) {
+          auto node = localVec.createPass("copy raytracing to gpu", QueueType::Graphics, options.gpuToUse);
+          while (!tiles.empty()) {
+            if (!vpInfo.options.raytraceRealtime) {
+              if (!tiles.front()->is_ready())
+                break;
+            } else {
+              co_await *tiles.front();
+            }
+            auto tileIdx = tiles.front()->get();
+            auto tile = vp.cpuRaytrace.tileRemap(tileIdx);
+            if (tileIdx == vp.cpuRaytrace.size()-1) {
+              vp.cpuRaytraceTime.tick();
+            }
+            auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
+            node.copy(vp.gbufferRaytracing, Subresource(), uint3(tile.offset, 0), dyn, Box(uint3(0,0,0), uint3(tile.size, 1)));
+            //HIGAN_LOGi("%ux%u %ux%u\n", tile.offset.x, tile.offset.y, tile.size.x, tile.size.y);
+            tiles.pop_front();
+            activeNodes--;
+          }
+          localVec.addPass(std::move(node));
+        }
       }
 
       size_t max_tiles_compute = std::min(static_cast<size_t>(vpInfo.options.tilesToComputePerFrame), vp.cpuRaytrace.size());
@@ -583,9 +613,15 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         samplesPerPixel = std::min(1, samplesPerPixel);
         sampleDepth = std::min(4, sampleDepth);
       }
+      //HIGAN_LOGi("%d: %dx%d vs %dx%d\n", index, vpInfo.viewportSize.x, vpInfo.viewportSize.y, vp.cpuRaytrace.size2D().x, vp.cpuRaytrace.size2D().y);
       for (int tileCount = 0; tileCount < tiles_to_compute; tileCount++) {
         auto tileIdx = vp.nextTileToRaytrace % vp.cpuRaytrace.size();
-        auto tilev = vp.cpuRaytrace.tileRemap(tileIdx);
+        //HIGAN_LOGi("index -> %d ", tileIdx);
+        higanbana::TileView tilev;
+        if (vpInfo.options.raytraceRealtime)
+          tilev = vp.cpuRaytrace.tile(tileIdx);
+        else
+          tilev = vp.cpuRaytrace.tileRemap(tileIdx);
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
         auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, int sampleDepth, rt::Camera rtCam, rt::HittableList& list, bool incremental) -> css::LowPrioTask<size_t> {
@@ -624,7 +660,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           co_return tileIdx;
         };
 
-        tiles.push_back(std::make_shared<css::LowPrioTask<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, samplesPerPixel, sampleDepth, vp.rtCam, vp.world, vpInfo.options.rtIncremental)));
+        tiles.push_back(std::make_shared<css::LowPrioTask<size_t>>(tileTask(tilev, time.getFTime(), sub(double2(vp.gbufferRaytracing.size3D().xy()), double2(-1.0, -1.0)), tileIdx, samplesPerPixel, sampleDepth, vp.rtCam, rtworld.world, vpInfo.options.rtIncremental)));
       }
 
       {
@@ -794,8 +830,12 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
   {
     auto node = tasks.createPass("IMGui");
     vector<TextureSRV> allViewports;
-    for (auto&& viewport : viewports)
-      allViewports.push_back(viewport.viewportSRV);
+    allViewports.resize(viewports.size());
+    int i = 0;
+    for (auto&& vp : viewports) {
+      allViewports[i] = vp.viewportSRV;
+      i++;
+    }
     imgui.render(dev, node, backbuffer, allViewports);
     tasks.addPass(std::move(node));
   }

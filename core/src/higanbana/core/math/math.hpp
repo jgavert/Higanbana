@@ -793,44 +793,84 @@ namespace higanbana
     inline float4x4 translation(Vector<3, float> vec)
     {
       float4x4 result = float4x4::identity();
-      result(0, 3) = vec.x; result(1, 3) = vec.y; result(2, 3) = vec.z;
+      result(0, 3) = -vec.x; result(1, 3) = -vec.y; result(2, 3) = -vec.z;
       return result;
     }
     inline float4x4 translation(Vector<4, float> vec)
     {
       float4x4 result = float4x4::identity();
-      result(0, 3) = vec.x; result(1, 3) = vec.y; result(2, 3) = vec.z; 
+      result(0, 3) = -vec.x; result(1, 3) = -vec.y; result(2, 3) = -vec.z; 
       return result;
+    }
+
+    inline Vector<2, float> first2termsOfPerspective(float fov, float aspect) {
+      if (fov <= 0 || aspect == 0)
+      {
+        return Vector<2, float>{};
+      }
+
+      float b = 1.0f / std::tan(fov*(PI / 180.f)*0.5f);
+      return Vector<2, float>(aspect*b, b);
     }
 
     // x&y -> [-1, 1], z -> [0, 1], OK! Don't know which, rh or lh. but works now.
     // seems like this is left handed, see result(2,3) and (3,2)
-    inline float4x4 perspectivelh(float fov, float aspect, float NearZ, float FarZ)
+    inline float4x4 perspectiveLH(float fov, float aspect, float NearZ, float FarZ)
     {
-      if (fov <= 0 || aspect == 0)
-      {
-        return float4x4{};
-      }
-
-      float b = 1.0f / std::tan(fov*(PI / 180.f)*0.5f);
+      auto terms = first2termsOfPerspective(fov, aspect);
 
       float4x4 result{};
-      result(0, 0) = aspect * b;
-      result(1, 1) = b;
-      result(2, 2) = ((-FarZ / (NearZ - FarZ)) - 1);
-      //result(2, 2) = 0.f;
+      result(0, 0) = terms(0);
+      result(1, 1) = terms(1);
+      result(2, 2) = FarZ / (FarZ - NearZ); 
       result(3, 2) = 1.f;
-      result(2, 3) = -1.f * ((NearZ*FarZ)/(NearZ - FarZ));
-      //result(2, 3) = NearZ;
+      result(2, 3) = NearZ * FarZ / (NearZ - FarZ);
       return result;
     }
 
-    inline float4x4 perspectiverh(float fov, float aspect, float NearZ, float FarZ)
+    inline float4x4 perspectiveRH(float fov, float aspect, float NearZ, float FarZ)
     {
-      auto kek = perspectivelh(fov, aspect, NearZ, FarZ);
-      //kek(2,2) = -1 * kek(2,2);
-      kek(3, 2) = -1.f * kek(3,2);
-      //kek(2, 3) = -1.f * kek(2,3);
+      auto kek = perspectiveLH(fov, aspect, NearZ, FarZ);
+      kek(2, 2) = FarZ / (NearZ - FarZ);
+      kek(3, 2) = -1.f;
+      return kek;
+    }
+
+    inline float4x4 perspectiveLHInverseZ(float fov, float aspect, float NearZ, float FarZ)
+    {
+      auto terms = first2termsOfPerspective(fov, aspect);
+      float4x4 result = {};
+      result(0, 0) = terms(0);
+      result(1, 1) = terms(1);
+      result(2, 2) = -1.f * (NearZ / (FarZ - NearZ));
+      result(3, 2) = 1.f;
+      result(2, 3) = (FarZ * NearZ) / (FarZ - NearZ);
+      return result;
+    }
+
+    inline float4x4 perspectiveRHInverseZ(float fov, float aspect, float NearZ, float FarZ)
+    {
+      auto kek = perspectiveLHInverseZ(fov, aspect, NearZ, FarZ);
+      kek(2, 2) = NearZ / (FarZ - NearZ);
+      kek(3, 2) = -1.f;
+      return kek;
+    }
+
+    inline float4x4 perspectiveLHInverseInfZ(float fov, float aspect, float NearZ)
+    {
+      auto terms = first2termsOfPerspective(fov, aspect);
+      float4x4 result = {};
+      result(0, 0) = terms(0);
+      result(1, 1) = terms(1);
+      result(2, 2) = 0.f;
+      result(3, 2) = 1.f;
+      result(2, 3) = NearZ;
+      return result;
+    }
+
+    inline float4x4 perspectiveRHInverseInfZ(float fov, float aspect, float NearZ) {
+      auto kek = perspectiveLHInverseInfZ(fov, aspect, NearZ);
+      kek(3, 2) = -1.f;
       return kek;
     }
 
@@ -909,19 +949,23 @@ namespace higanbana
 
     inline float4x4 rotationMatrixLH(Quaternion q)
     {
+      q = normalize(q);
       auto r = float4x4::identity();
       float xx = std::pow(q.x, 2.f);
       float yy = std::pow(q.y, 2.f);
       float zz = std::pow(q.z, 2.f);
-      r(0, 0) = 1.f - 2.f*yy - 2.f*zz;
-      r(1, 1) = 1.f - 2.f*xx - 2.f*zz;
-      r(2, 2) = 1.f - 2.f*xx - 2.f*yy;
-      r(0, 1) = 2.f*q.x * q.y + 2.f*q.w * q.z;
-      r(1, 0) = 2.f*q.x * q.y - 2.f*q.w * q.z;
-      r(2, 0) = 2.f*q.x * q.z + 2.f*q.w * q.y;
-      r(0, 2) = 2.f*q.x * q.z - 2.f*q.w * q.y;
-      r(1, 2) = 2.f*q.y * q.z + 2.f*q.w * q.x;
-      r(2, 1) = 2.f*q.y * q.z - 2.f*q.w * q.x;
+      r(0, 0) = 1.f - 2.f * yy - 2.f * zz;
+      r(1, 1) = 1.f - 2.f * xx - 2.f * zz;
+      r(2, 2) = 1.f - 2.f * xx - 2.f * yy;
+      r(0, 1) = 2.f * q.x * q.y + 2.f * q.w * q.z;
+      r(1, 0) = 2.f * q.x * q.y - 2.f * q.w * q.z;
+      r(2, 0) = 2.f * q.x * q.z + 2.f * q.w * q.y;
+      r(0, 2) = 2.f * q.x * q.z - 2.f * q.w * q.y;
+      r(1, 2) = 2.f * q.y * q.z + 2.f * q.w * q.x;
+      r(2, 1) = 2.f * q.y * q.z - 2.f * q.w * q.x;
+      #if 1
+      //r = math::transpose(r);
+      #endif
       return r;
     }
   }

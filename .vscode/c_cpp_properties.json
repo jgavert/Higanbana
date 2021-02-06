@@ -11,7 +11,6 @@
                 "${workspaceFolder}/ext/winpixeventruntime/include",
                 "${workspaceFolder}/ext/imgui",
                 "${workspaceFolder}/ext/stb",
-                "${workspaceFolder}/ext/tinygltf",
                 "${workspaceFolder}/ext/cgltf",
                 "${workspaceFolder}/ext/cxxopts/include",
                 "${workspaceFolder}/ext/nlohmann_json/include",

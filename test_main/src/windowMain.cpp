@@ -66,11 +66,15 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       floatizeAxises(input.lstick[0].value, xy.x);
       floatizeAxises(input.lstick[1].value, xy.y);
 
+
       floatizeAxises(input.rstick[0].value, rxyz.x);
       floatizeAxises(input.rstick[1].value, rxyz.y);
 
+      HIGAN_LOGi("%.2f %.2f // %.2f %.2f \n", xy.y, xy.x, rxyz.y, rxyz.x);
+
+      // reverse up/down lookup
       rxyz = mul(rxyz, float3(1.f, -1.f, 0));
-      xy = mul(xy, float2(-1, -1));
+      //xy = mul(xy, float2(1, -1));
 
       auto floatizeTriggers = [](uint16_t input, float& output)
       {
@@ -145,6 +149,10 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
     // yaw, pitch, roll
 
     direction = math::normalize(direction);
+
+    dir = math::normalize(rotateVector({ 0.f, 0.f, 1.f }, direction));
+    //updir = math::normalize(rotateVector({ 0.f, 1.f, 0.f }, direction));
+    sideVec = math::normalize(rotateVector({ 1.f, 0.f, 0.f }, direction));
 
     position = math::add(position, math::mul(sideVec, xy.x));
     position = math::add(position, math::mul(dir, xy.y));
@@ -239,6 +247,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
   vector<InstanceDraw> allMeshesToDraw;
   vector<app::RenderViewportInfo> rendererViewports;
   rendererViewports.push_back({});
+  std::unique_ptr<rt::World> rtworld = std::make_unique<rt::World>();
   while(m_renderActive) {
     HIGAN_CPU_BRACKET("render thread iteration");
     ImGuiIO& io = ::ImGui::GetIO();
@@ -691,10 +700,18 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
                   ImGui::DragFloat("maxZ", &set.maxZ, 1.f);
                   ImGui::DragFloat("aperture", &set.aperture, 0.001f, 0.001f);
                   ImGui::DragFloat("focusDist", &set.focusDist, 0.001f, 0.001f);
-                  quaternion yaw = math::rotateAxis(updir, xyz.x);
-                  quaternion pitch = math::rotateAxis(sideVec, xyz.y);
-                  quaternion roll = math::rotateAxis(dir, xyz.z);
-                  rot.rot = math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot);
+
+                  float4x4 rotmat = math::rotationMatrixLH(rot.rot);
+                  ImGui::DragFloat4("rotmat0", rotmat.row(0).data, 0.01f);
+                  ImGui::DragFloat4("rotmat1", rotmat.row(1).data, 0.01f);
+                  ImGui::DragFloat4("rotmat2", rotmat.row(2).data, 0.01f);
+                  ImGui::DragFloat4("rotmat3", rotmat.row(3).data, 0.01f);
+
+
+                  quaternion yaw = math::normalize(math::rotateAxis(updir, xyz.x));
+                  quaternion pitch = math::normalize(math::rotateAxis(sideVec, xyz.y));
+                  quaternion roll = math::normalize(math::rotateAxis(dir, xyz.z));
+                  rot.rot = math::normalize(math::mul(math::mul(math::mul(yaw, pitch), roll), rot.rot));
                 });
         }
         ImGui::End();
@@ -817,7 +834,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             ac.focusDist = set.focusDist;
           });
     HIGAN_CPU_BRACKET("Render");
-    rend.ensureViewportCount(m_viewportCount);
+    co_await rend.ensureViewportCount(m_viewportCount);
     vector<app::RenderViewportInfo> activeViewports;
     for (auto&& vp : rendererViewports) {
       vp.camera = ac;
@@ -839,7 +856,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
       }
     }
     rend.handleReadbacks(m_fs);
-    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
+    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, *rtworld, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
 
     m_logicAndRenderTime.tick();
     auto totalTime = m_logicAndRenderTime.getFrameTimeDelta();

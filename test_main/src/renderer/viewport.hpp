@@ -41,6 +41,7 @@ class Viewport
   higanbana::Texture    gbufferRaytracing;
   higanbana::TextureSRV gbufferRaytracingSRV;
 
+  higanbana::deque<std::shared_ptr<css::Task<size_t>>> realtimeTiles;
   higanbana::deque<std::shared_ptr<css::LowPrioTask<size_t>>> workersTiles;
   higanbana::TiledImage cpuRaytrace;
   higanbana::WTime      cpuRaytraceTime;
@@ -56,9 +57,6 @@ class Viewport
   rt::Camera prevCam;
   rt::Camera rtCam;
   size_t currentSampleDepth = 1;
-  
-  rt::HittableList world;
-  bool worldChanged;
   
   css::Task<void> resize(higanbana::GpuGroup& device, int2 viewport, float internalScale, higanbana::FormatType backbufferFormat, uint tileSize);
 };

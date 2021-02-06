@@ -10,6 +10,7 @@ src_core_test("bitfield")
 src_core_test("delta_buffer")
 src_core_test("experimental_threading")
 src_core_test("experimental_threading2")
+src_core_test("camera_math")
 
 test_suite(
     name = "all-core-tests",
@@ -20,7 +21,8 @@ test_suite(
         "test_core_tlsf_heap",
         "test_core_experimental_threading",
         "test_core_experimental_threading2",
-        "test_core_bitfield"
+        "test_core_bitfield",
+        "test_core_camera_math"
     ]
 )
 

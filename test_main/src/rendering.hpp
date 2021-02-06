@@ -26,6 +26,7 @@
 #include "renderer/particles.hpp"
 #include "renderer/viewport.hpp"
 #include "world/visual_data_structures.hpp"
+#include "raytrace/rtworld.hpp"
 
 
 namespace app
@@ -82,6 +83,8 @@ struct ViewportOptions
   int sampleDepth = 4;
   float resolutionScale = 1.f;
   bool writeStraightToBackbuffer = false;
+
+  bool worldChanged = false;
 
   void ToggleButton(const char* hidden_id, bool* v)
   {
@@ -153,7 +156,7 @@ struct ViewportOptions
       ImGui::DragInt("- Samples per pixel", &samplesPerPixel, 1, 1, 1000);
       ImGui::DragInt("- Sample recursion", &sampleDepth, 1, 1, 100);
       if (raytraceRealtime) {
-        tileSize = std::max(32, tileSize);
+        tileSize = std::max(4, tileSize);
       }
     }
   }
@@ -262,10 +265,10 @@ public:
   void initWindow(higanbana::Window& window, higanbana::GpuInfo info);
   void loadLogos(higanbana::FileSystem& fs);
   int2 windowSize();
-  void ensureViewportCount(int size);
+  css::Task<void> ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
-  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int cubeCount, int cubeCommandLists);
+  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& world, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);

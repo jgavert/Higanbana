@@ -12,6 +12,8 @@ app/external/imgui/
 msbuild/
 data/scenes
 
+rendering/
+
 .bazelrc
 
 data/*.jpg
