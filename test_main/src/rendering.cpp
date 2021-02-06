@@ -339,7 +339,7 @@ css::Task<void> Renderer::renderScene(higanbana::CommandNodeVector& tasks, higan
 higanbana::math::float4x4 calculatePerspective(const ActiveCamera& camera, int2 swapchainRes) {
   using namespace higanbana;
   auto aspect = float(swapchainRes.y)/float(swapchainRes.x);
-  float4x4 pers = math::perspectiveLHInverseZ(camera.fov, aspect, camera.minZ, camera.maxZ);
+  float4x4 pers = math::perspectiveLHInverseInfZ(camera.fov, aspect, camera.minZ);//, camera.maxZ);
   float4x4 rot = math::rotationMatrixLH(math::normalize(camera.direction));
   float4x4 pos = math::translation(camera.position);
   float4x4 perspective = math::mul(pos, math::mul(rot, pers));

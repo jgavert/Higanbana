@@ -167,6 +167,7 @@ struct RenderViewportInfo {
   int2 viewportSize;
   ViewportOptions options;
   ActiveCamera camera;
+  higanbana::Id cameraEntity;
   bool screenshot;
 };
 

@@ -114,6 +114,7 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
 
       floatizeMouse(p.x, rxyz.x);
       floatizeMouse(p.y, rxyz.y);
+      rxyz = mul(rxyz, float3(-1.f, -1.f, 0));
 
       if (inputs.isPressedThisFrame('Q', 2))
       {
@@ -138,8 +139,8 @@ void handleInputs(Database<2048>& ecs, gamepad::X360LikePad& input, MouseState& 
       {
         multiplier = 1000.f;
       }
-      if (inputs.isPressedThisFrame('W', 2)) xy.y = -1.f * multiplier;
-      if (inputs.isPressedThisFrame('S', 2)) xy.y = 1.f * multiplier;
+      if (inputs.isPressedThisFrame('W', 2)) xy.y = 1.f * multiplier;
+      if (inputs.isPressedThisFrame('S', 2)) xy.y = -1.f * multiplier;
       if (inputs.isPressedThisFrame('D', 2)) xy.x = 1.f * multiplier;
       if (inputs.isPressedThisFrame('A', 2)) xy.x = -1.f * multiplier;
       xy = math::mul(xy, std::max(delta, 0.001f));
@@ -245,8 +246,13 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
   });
   float timeSinceLastInput = 0;
   vector<InstanceDraw> allMeshesToDraw;
+
+  higanbana::Id defaultCameraID = 0;
+  queryTag<2048>(pack(m_ecs.getTag<components::DefaultCamera>()), [&](higanbana::Id id) {
+    defaultCameraID = id;
+  });
   vector<app::RenderViewportInfo> rendererViewports;
-  rendererViewports.push_back({});
+  rendererViewports.push_back(app::RenderViewportInfo{1, int2(16, 16), {}, {}, defaultCameraID, false});
   std::unique_ptr<rt::World> rtworld = std::make_unique<rt::World>();
   while(m_renderActive) {
     HIGAN_CPU_BRACKET("render thread iteration");
@@ -266,6 +272,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
     auto                 currentInput = inputs.frame();
     auto                 diffSinceLastInput = currentInput - lastRead;
     auto                 diffWithWriter = m_inputsUpdated.load() - currentInput;
+
     if (diffSinceLastInput > 0) {
       HIGAN_CPU_BRACKET("reacting to new input");
       m_inputsRead = currentInput;
@@ -509,7 +516,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Renderer options for viewports")) {
           ImGui::SliderInt("viewport count", &m_viewportCount, 1, 16);
-          rendererViewports.resize(m_viewportCount, app::RenderViewportInfo{1, int2(16, 16), {}, {}});
+          rendererViewports.resize(m_viewportCount, app::RenderViewportInfo{1, int2(16, 16), {}, {}, defaultCameraID, false});
           ImGui::BeginTabBar("viewports");
           for (int i = 0; i < static_cast<int>(rendererViewports.size()); i++) {
             std::string index = std::string("viewport ") + std::to_string(i);
@@ -521,6 +528,32 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
               if (ImGui::Button("screenshot")) {
                 vp.screenshot = true;
               }
+              {
+                auto matNameC = m_ecs.get<components::Name>().tryGet(vp.cameraEntity);
+                std::string name = (matNameC && !matNameC->str.empty()) ? matNameC->str : std::to_string(vp.cameraEntity);
+                name += "##camera" + std::to_string(vp.cameraEntity);
+                ImGui::Text("Camera: "); ImGui::SameLine();
+                if (ImGui::Button(name.c_str()))
+                  ImGui::OpenPopup("ViewportCameraSelection##camera");
+                if (ImGui::BeginPopup("ViewportCameraSelection##camera")) {
+                  auto& name = m_ecs.get<components::Name>();
+                  auto& t_pos = m_ecs.get<components::Position>();
+                  auto& t_rot = m_ecs.get<components::Rotation>();
+                  auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
+                  auto& entityObjects = m_ecs.getTag<components::EntityObject>();
+                  ImGui::Text("Cameras");
+                  ImGui::Separator();
+                  query(pack(name, t_pos, t_rot, t_cameraSet), pack(entityObjects), [&](higanbana::Id id, components::Name& name, components::Position, components::Rotation, components::CameraSettings) {
+                    std::string mname = name.str + " " + std::to_string(id);
+                    mname += "##" + std::to_string(id);
+                    if (ImGui::Selectable(mname.c_str())){
+                      vp.cameraEntity = id;
+                    }
+                  });
+                  ImGui::EndPopup();
+                }
+              }
+
               vp.options.drawImGuiOptions(activeDevices);
               ImGui::EndTabItem();
             }
@@ -674,6 +707,47 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
         ImGui::End();
         ImGui::SetNextWindowDockID(gid, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Camera")) {
+          higanbana::Id activeCameraEntity = 0;
+          bool hadCamera = false;
+          queryTag<2048>(pack(m_ecs.getTag<components::ActiveCamera>()),
+                [&](higanbana::Id id) {
+                  activeCameraEntity = id;
+                  hadCamera = true;
+                  });
+          {
+            auto matNameC = m_ecs.get<components::Name>().tryGet(activeCameraEntity);
+            std::string name = (matNameC && !matNameC->str.empty()) ? matNameC->str : std::to_string(activeCameraEntity);
+            name += "##camera" + std::to_string(activeCameraEntity);
+            ImGui::Text("Camera: "); ImGui::SameLine();
+            if (ImGui::Button(name.c_str()))
+              ImGui::OpenPopup("ActiveCamera##camera");
+            if (ImGui::BeginPopup("ActiveCamera##camera")) {
+              higanbana::Id foundEntity = 0;
+              bool foundNewCamera = false;
+              
+              auto& name = m_ecs.get<components::Name>();
+              auto& t_pos = m_ecs.get<components::Position>();
+              auto& t_rot = m_ecs.get<components::Rotation>();
+              auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
+              ImGui::Text("Cameras");
+              ImGui::Separator();
+              query(pack(name, t_pos, t_rot, t_cameraSet), [&](higanbana::Id id, components::Name& name, components::Position, components::Rotation, components::CameraSettings) {
+                std::string mname = name.str + " " + std::to_string(id);
+                mname += "##" + std::to_string(id);
+                if (ImGui::Selectable(mname.c_str())){
+                  foundEntity = id;
+                  foundNewCamera = true;
+                }
+              });
+              if (foundNewCamera){
+                if (hadCamera)
+                  m_ecs.getTag<components::ActiveCamera>().remove(activeCameraEntity);
+                m_ecs.getTag<components::ActiveCamera>().insert(foundEntity);
+              }
+              ImGui::EndPopup();
+            }
+          }
+
           auto& t_pos = m_ecs.get<components::Position>();
           auto& t_rot = m_ecs.get<components::Rotation>();
           auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
@@ -816,12 +890,10 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             });
     }
 
+    /*
     auto& t_pos = m_ecs.get<components::Position>();
     auto& t_rot = m_ecs.get<components::Rotation>();
     auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
-
-    ActiveCamera ac{};
-
     query(pack(t_pos, t_rot, t_cameraSet),
           pack(m_ecs.getTag<components::ActiveCamera>()),
           [&](higanbana::Id id, components::Position& pos, components::Rotation& rot, components::CameraSettings& set) {
@@ -833,11 +905,25 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
             ac.aperture = set.aperture;
             ac.focusDist = set.focusDist;
           });
+          */
     HIGAN_CPU_BRACKET("Render");
     co_await rend.ensureViewportCount(m_viewportCount);
     vector<app::RenderViewportInfo> activeViewports;
     for (auto&& vp : rendererViewports) {
-      vp.camera = ac;
+      {
+        ActiveCamera& ac = vp.camera;
+        auto pos = m_ecs.get<components::Position>().get(vp.cameraEntity);
+        ac.position = pos.pos;
+        auto rot = m_ecs.get<components::Rotation>().get(vp.cameraEntity);
+        ac.direction = rot.rot;
+        auto set = m_ecs.get<components::CameraSettings>().get(vp.cameraEntity);
+        ac.fov = set.fov;
+        ac.minZ = set.minZ;
+        ac.maxZ = set.maxZ;
+        ac.aperture = set.aperture;
+        ac.focusDist = set.focusDist;
+      }
+
       if (vp.options.visible) {
         activeViewports.push_back(vp);
       }
@@ -911,26 +997,45 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     ImGui::StyleColorsDark();
     //m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
     co_await m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/scenes");
+
+    higanbana::Id sceneRootEntity;
     {
       auto& name = m_ecs.get<components::Name>();
       auto& childs = m_ecs.get<components::Childs>();
       auto& sceneRoot = m_ecs.getTag<components::SceneEntityRoot>();
-      auto e = m_ecs.createEntity();
-      name.insert(e, components::Name{"Scene Root"});
-      childs.insert(e, components::Childs{});
-      sceneRoot.insert(e);
+      sceneRootEntity = m_ecs.createEntity();
+      name.insert(sceneRootEntity, components::Name{"Scene Root"});
+      childs.insert(sceneRootEntity, components::Childs{});
+      sceneRoot.insert(sceneRootEntity);
     }
     {
       // create camera!
+      auto& name = m_ecs.get<components::Name>();
       auto& t_pos = m_ecs.get<components::Position>();
       auto& t_rot = m_ecs.get<components::Rotation>();
       auto& t_cameraSet = m_ecs.get<components::CameraSettings>();
+      auto& entityObjects = m_ecs.getTag<components::EntityObject>();
 
       auto cid = m_ecs.createEntity();
       t_pos.insert(cid, {float3(0, 1, 0)});
       t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
       t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 0.1f, 2.0f});
-      m_ecs.getTag<components::ActiveCamera>().insert(cid);
+      name.insert(cid, components::Name{"Default Camera"});
+      entityObjects.insert(cid);
+
+      auto& childs = m_ecs.get<components::Childs>();
+      childs.get(sceneRootEntity).childs.push_back(cid);
+
+      // hidden default camera
+      {
+        cid = m_ecs.createEntity();
+        t_pos.insert(cid, {float3(0, 1, 0)});
+        t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
+        t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 0.1f, 2.0f});
+        name.insert(cid, components::Name{"hidden default camera"});
+        m_ecs.getTag<components::DefaultCamera>().insert(cid);
+        m_ecs.getTag<components::ActiveCamera>().insert(cid);
+      }
     }
     co_return;
   }();

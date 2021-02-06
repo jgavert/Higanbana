@@ -28,7 +28,8 @@ void SceneEditor::render(Database<2048>& ecs)
     });
 
     bool spawnEntityInSelected = ImGui::Button("Create"); ImGui::SameLine();
-    bool deleteEntitySelected = ImGui::Button("Delete");
+    bool deleteEntitySelected = ImGui::Button("Delete"); ImGui::SameLine();
+    bool createCameraInSelected = ImGui::Button("Camera");
     
     if (spawnEntityInSelected) {
       query(pack(childsTable), pack(selected), [&](higanbana::Id id, components::Childs& childs) {
@@ -72,6 +73,26 @@ void SceneEditor::render(Database<2048>& ecs)
       for (auto&& ent : entitiesToDelete) {
         ecs.deleteEntity(ent);
       }
+    }
+
+    if (createCameraInSelected) {
+      // create camera!
+      query(pack(childsTable), pack(selected), [&](higanbana::Id id, components::Childs& childs) {
+        auto& name = ecs.get<components::Name>();
+        auto& t_pos = ecs.get<components::Position>();
+        auto& t_rot = ecs.get<components::Rotation>();
+        auto& t_cameraSet = ecs.get<components::CameraSettings>();
+        auto& entityObjects = ecs.getTag<components::EntityObject>();
+
+        auto cid = ecs.createEntity();
+        t_pos.insert(cid, {float3(0, 1, 0)});
+        t_rot.insert(cid, {quaternion{ 1.f, 0.f, 0.f, 0.f }});
+        t_cameraSet.insert(cid, {90.f, 0.01f, 100.f, 0.1f, 2.0f});
+        name.insert(cid, components::Name{"Camera"});
+        entityObjects.insert(cid);
+
+        childs.childs.push_back(cid);
+      });
     }
 
     auto forSingleId = [&](higanbana::Id id) -> std::optional<components::Childs>

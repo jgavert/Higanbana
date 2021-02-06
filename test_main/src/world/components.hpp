@@ -131,7 +131,8 @@ struct CameraNode; // camera node in a gltf scene
 struct MeshNode; // gltf mesh consists of many RawMeshData childs
 struct Scene; // this entity is base node of a scene
 struct SceneNode; // represents a node under a scene
-struct ActiveCamera; // viewport renders this camera
+struct ActiveCamera; // viewport renders this camera... inputs goes to this camera
+struct DefaultCamera; // some camera which always exists
 
 // runtime
 struct SceneEntityRoot; // scene root

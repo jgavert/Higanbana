@@ -83,7 +83,6 @@ css::Task<void> loadImageAsync(higanbana::FileSystem& fs, TextureData& rtd, std:
 }
 
 css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir) {
-#ifdef HIGAN_USE_CGLTF
   HIGAN_CPU_FUNCTION_SCOPE();
   for (auto&& file : fs.recursiveList(dir, ".gltf"))
   {
@@ -426,13 +425,11 @@ css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& datab
       HIGAN_LOGi("cgltf: failed to open %s\n", file.c_str());
     }
   }
-  #endif
   co_return;
 }
 
 void World::loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
-#ifdef HIGAN_USE_CGLTF
   HIGAN_CPU_FUNCTION_SCOPE();
   for (auto&& file : fs.recursiveList(dir, ".gltf"))
   {
@@ -774,7 +771,6 @@ void World::loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::F
       HIGAN_LOGi("cgltf: failed to open %s\n", file.c_str());
     }
   }
-  #endif
 }
 void World::loadGLTFScene(higanbana::Database<2048>& database, higanbana::FileSystem& fs, std::string dir)
 {
