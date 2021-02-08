@@ -94,6 +94,18 @@
             "args": [
                 "clean", "--expunge"
             ]
+        },
+        {
+            "label": "build rendering tests(dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+              "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

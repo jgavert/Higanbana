@@ -12,7 +12,7 @@ app/external/imgui/
 msbuild/
 data/scenes
 
-rendering/
+rendering/*
 
 .bazelrc
 

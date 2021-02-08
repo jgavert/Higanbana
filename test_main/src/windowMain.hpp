@@ -39,6 +39,7 @@ struct AppInputs {
   bool onlyVendor = false;
   bool validationLayer = false;
   bool powersave = false;
+  bool forceGpuConstantsOff = false;
 };
 class RenderingApp {
   private:

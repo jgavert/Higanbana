@@ -278,7 +278,7 @@ namespace higanbana
         GpuInfo info{};
         auto stuff = m_devices[devId].getProperties();
         info.id = devId;
-        info.name = *stuff.deviceName;
+        info.name = std::string(stuff.deviceName.data(), stuff.deviceName.size());
         info.vendor = VendorID::Unknown;
         info.deviceId = stuff.deviceID;
         if (stuff.vendorID == 4098)
@@ -306,6 +306,7 @@ namespace higanbana
           break;
         case vk::PhysicalDeviceType::eDiscreteGpu:
           info.type = DeviceType::DiscreteGpu;
+          info.gpuConstants = true;
           break;
         case vk::PhysicalDeviceType::eVirtualGpu:
           info.type = DeviceType::VirtualGpu;

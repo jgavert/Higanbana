@@ -8,7 +8,7 @@
 class ProgramParams
 {
 public:
-  ProgramParams(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+  ProgramParams(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow, bool extraConsole = true)
     : m_hInstance(hInstance)
     , m_hPrevInstance(hPrevInstance)
     , m_lpCmdLine(lpCmdLine)
@@ -17,16 +17,18 @@ public:
     , m_argv(__argv)
   {
 	  // super cool!
-	  AllocConsole();
-	  freopen("CONIN$", "r", stdin);
-	  freopen("CONOUT$", "w", stdout);
-	  freopen("CONOUT$", "w", stderr);
-	  std::wcout.clear();
-	  std::cout.clear();
-	  std::wcerr.clear();
-	  std::cerr.clear();
-	  std::wcin.clear();
-	  std::cin.clear();
+    if (extraConsole) {
+      AllocConsole();
+      freopen("CONIN$", "r", stdin);
+      freopen("CONOUT$", "w", stdout);
+      freopen("CONOUT$", "w", stderr);
+      std::wcout.clear();
+      std::cout.clear();
+      std::wcerr.clear();
+      std::cerr.clear();
+      std::wcin.clear();
+      std::cin.clear();
+    }
   }
 
   HINSTANCE m_hInstance;

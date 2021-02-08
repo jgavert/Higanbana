@@ -12,6 +12,12 @@ namespace higanbana
         return "BufferCopy";
       case backend::PacketType::Dispatch:
         return "Dispatch";
+      case backend::PacketType::TextureToTextureCopy:
+        return "TextyreToTextureCopy";
+      case backend::PacketType::BufferToTextureCopy:
+        return "BufferToTextureCopy";
+      case backend::PacketType::TextureToBufferCopy:
+        return "TextureToBufferCopy";
       case backend::PacketType::PrepareForPresent:
         return "PrepareForPresent";
       case backend::PacketType::RenderpassBegin:

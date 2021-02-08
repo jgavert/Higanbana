@@ -1855,10 +1855,12 @@ namespace higanbana
 
     void DeviceGroupData::present(Swapchain & swapchain, int backbufferIndex) {
       HIGAN_CPU_FUNCTION_SCOPE();
+      /*
       std::lock_guard<std::mutex> guard(m_presentMutex);
       m_asyns.emplace_back(std::async(std::launch::async, [&, sc = swapchain.impl(), index = backbufferIndex]{
         m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
-      }));
+      }));*/
+      m_devices[SwapchainDeviceID].device->present(swapchain.impl(), swapchain.impl()->renderSemaphore(), backbufferIndex);
     }
 
     void DeviceGroupData::submitST(std::optional<Swapchain> swapchain, CommandGraph& graph) {

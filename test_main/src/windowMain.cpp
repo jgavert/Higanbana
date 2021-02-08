@@ -969,6 +969,10 @@ RenderingApp::RenderingApp(AppInputs inputs)
   if (inputs.powersave) {
     m_limitFPS = 20;
   }
+  if (inputs.forceGpuConstantsOff){
+    m_GpuConstants = false;
+    m_overrideGpuConstants = true;
+  }
   auto threadCount = css::s_stealPool->threadUsage().size();
   m_threadsLog.resize(threadCount);
 }
@@ -1185,6 +1189,7 @@ void mainWindow(ProgramParams& params)
   options.add_options()
     ("test", "tests code in development")
     ("restrict", "forces the api and vendor and hides others. Use with other commandline args.")
+    ("noGpuConstants", "force disables dma queue use for uploading constant buffers")
     ("vulkan", "priorizes Vulkan API")
     ("dx12", "priorizes DirectX 12 API")
     ("intel", "priorizes Intel GPU's")
@@ -1199,36 +1204,31 @@ void mainWindow(ProgramParams& params)
   try
   {
     auto results = options.parse(params.m_argc, params.m_argv);
-    if (results.count("vulkan"))
-    {
+    if (results.count("vulkan")) {
       inputs.cmdlineApiId = GraphicsApi::Vulkan;
     }
-    if (results.count("dx12"))
-    {
+    if (results.count("dx12")) {
       inputs.cmdlineApiId = GraphicsApi::DX12;
     }
-    if (results.count("amd"))
-    {
+    if (results.count("amd")) {
       inputs.cmdlineVendorId = VendorID::Amd;
     }
-    if (results.count("intel"))
-    {
+    if (results.count("intel")) {
       inputs.cmdlineVendorId = VendorID::Intel;
     }
-    if (results.count("nvidia"))
-    {
+    if (results.count("nvidia")) {
       inputs.cmdlineVendorId = VendorID::Nvidia;
     }
-    if (results.count("gfx_debug"))
-    {
+    if (results.count("gfx_debug")) {
       inputs.validationLayer = true;
     }
-    if (results.count("test"))
-    {
+    if (results.count("noGpuConstants")) {
+      inputs.forceGpuConstantsOff = true;
+    }
+    if (results.count("test")) {
       return;
     }
-    if (results.count("restrict"))
-    {
+    if (results.count("restrict")) {
       inputs.onlyVendor = true;
       //inputs.cmdlineVendorId = VendorID::Amd;
       //HIGAN_LOGi("Preparing for RGP capture...\n");
@@ -1237,8 +1237,7 @@ void mainWindow(ProgramParams& params)
     if (results.count("powersave")) {
       inputs.powersave = true;
     }
-    if (results.count("help"))
-    {
+    if (results.count("help")) {
       HIGAN_LOGi("%s\n", options.help({""}).c_str());
       return;
     }
