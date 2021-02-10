@@ -42,6 +42,11 @@ namespace higanbana
       DispatchMesh,
       ScissorRect,
       ReadbackShaderDebug,
+      // special raytracing
+      RaytracingWriteGpuAddrToInstanceCPU,
+      RaytracingWriteGpuAddrToInstanceGPU,
+      BuildBLASTriangle,
+      BuildTLAS,
       EndOfPackets,
     };
 

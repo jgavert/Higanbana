@@ -12,6 +12,7 @@
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
+#include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/desc/device_stats.hpp"
 
@@ -298,6 +299,12 @@ namespace higanbana
         allMemoryUsed.push_back(stat);
       }
       return allMemoryUsed;
+    }
+
+    // raytracing 
+
+    desc::RaytracingASPreBuildInfo accelerationStructurePrebuildInfo(desc::RaytracingAccelerationStructureInputs desc) {
+      return S().accelerationStructurePrebuildInfo(desc);
     }
   };
 };

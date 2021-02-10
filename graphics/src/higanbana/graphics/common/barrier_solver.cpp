@@ -82,6 +82,10 @@ namespace higanbana
             auto lastWriting = lastAccess.usage == AccessUsage::ReadWrite || lastAccess.usage == AccessUsage::Write;
             auto nextWriting = jobResAccess.usage == AccessUsage::ReadWrite || jobResAccess.usage == AccessUsage::Write;
             auto uavFlush = lastAccess.stage != AccessStage::Rendertarget && lastWriting == nextWriting;
+            if (lastAccess.stage == AccessStage::AccelerationStructure && jobResAccess.stage == lastAccess.stage)
+              uavFlush = true;
+            if (lastAccess.stage == AccessStage::AccelerationStructure)
+              HIGAN_ASSERT(jobResAccess.stage == lastAccess.stage, "not allowed to change accelerationstructure from acceleration structure");
             auto isDifferentFromCommon = (lastAccess.usage != AccessUsage::Unknown && lastAccess.stage != AccessStage::Common) || !allowCommonOptimization;
 
             if (lastAccess.queue_index != jobResAccess.queue_index && jobResAccess.stage == AccessStage::Common)
@@ -108,7 +112,7 @@ namespace higanbana
                 ++bufferBarrierOffsets;
               }
             }
-            else if (isDifferentFromCommon && (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage || uavFlush))
+            else if (isDifferentFromCommon &&  (jobResAccess.stage != lastAccess.stage || jobResAccess.usage != lastAccess.usage || uavFlush))
             {
               auto src = lastAccess;
               src.queue_index = QueueType::Unknown;

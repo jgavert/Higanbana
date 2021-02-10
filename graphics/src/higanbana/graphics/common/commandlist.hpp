@@ -214,6 +214,19 @@ namespace higanbana
       list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
     }
 
+    void raytracingWriteGPUAddrToInstanceDescCPU(DynamicBufferView& dst, Buffer& addrToWrite, uint instanceIndex) {
+      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceCPU>(dst.handle(), addrToWrite.handle(), instanceIndex);
+    }
+    void raytracingWriteGPUAddrToInstanceDescGPU(Buffer& dst, Buffer& addrToWrite, uint instanceIndex) {
+      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceGPU>(dst.handle(), addrToWrite.handle(), instanceIndex);
+    }
+    void buildBottomLevelAccelerationStructure(Buffer& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
+      list.insert<gfxpacket::BuildBLASTriangle>(dst.handle(), asInputs, scratch.handle());
+    }
+    void buildTopLevelAccelerationStructure(Buffer& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
+      list.insert<gfxpacket::BuildTLAS>(dst.handle(), asInputs, scratch.handle());
+    }
+
     size_t sizeBytesUsed() const noexcept
     {
       return list.sizeBytes();

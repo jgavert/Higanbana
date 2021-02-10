@@ -9,6 +9,7 @@
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
 #include "higanbana/graphics/common/helpers/memory_requirements.hpp"
+#include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/common/heap_descriptor.hpp"
 #include "higanbana/graphics/common/barrier_solver.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
@@ -648,7 +649,13 @@ namespace higanbana
           }); // get heap corresponding to requirements
           vdev.device->createBuffer(handle, allo, desc); // assign and create buffer
           vdev.m_buffers[handle] = allo.allocation;
-          vdev.m_bufferStates[handle] = ResourceState(backend::AccessUsage::Read, backend::AccessStage::Common, backend::TextureLayout::General, QueueType::Unknown);
+          backend::AccessStage access = backend::AccessStage::Common;
+          backend::AccessUsage usage = backend::AccessUsage::Read;
+          if (desc.desc.usage == ResourceUsage::RTAccelerationStructure) {
+            access = backend::AccessStage::AccelerationStructure;
+            usage = backend::AccessUsage::ReadWrite;
+          }
+          vdev.m_bufferStates[handle] = ResourceState(usage, access, backend::TextureLayout::General, QueueType::Unknown);
         }
       }
 
@@ -1217,7 +1224,43 @@ namespace higanbana
               solver.addTexture(drawIndex, viewhandle, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Present, backend::TextureLayout::Present, queue));
               break;
             }
+            case PacketType::RaytracingWriteGpuAddrToInstanceCPU:
+              break;
+            case PacketType::BuildBLASTriangle:
+            {
+              auto& packet = header->data<gfxpacket::BuildBLASTriangle>();
+              ViewResourceHandle dst;
+              dst.resource = packet.dst.rawValue;
+              ViewResourceHandle scratch;
+              scratch.resource = packet.scratch.rawValue;
+              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::AccelerationStructure, backend::TextureLayout::General, queue));
+              solver.addBuffer(drawIndex, scratch, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+              for (auto&& view : packet.triangles.convertToMemView()) {
+                ViewResourceHandle index;
+                index.resource = view.indexBuffer.rawValue;
+                solver.addBuffer(drawIndex, index, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                ViewResourceHandle vertex;
+                vertex.resource = view.vertexBuffer.rawValue;
+                solver.addBuffer(drawIndex, vertex, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                //ViewResourceHandle transform;
+                //transform.resource = view.transformBuffer.rawValue;
+                //solver.addBuffer(drawIndex, transform, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::RenderBlock:
+            case PacketType::GraphicsPipelineBind:
+            case PacketType::ComputePipelineBind:
+            case PacketType::Dispatch:
+            case PacketType::DispatchMesh:
+            case PacketType::Draw:
+            case PacketType::DrawIndexed:
+            case PacketType::ScissorRect:
+            case PacketType::EndOfPackets:
+            case PacketType::ReadbackShaderDebug:
+              break;
             default:
+              HIGAN_ASSERT(false, "unhandled case \"%s\"", gfxpacket::packetTypeToString(header->type));
               break;
           }
 
@@ -2313,5 +2356,9 @@ namespace higanbana
       co_return;
     }
 #endif // end of css::Task
+    desc::RaytracingASPreBuildInfo DeviceGroupData::accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc) {
+      // supports only first gpu for now
+      return m_devices[0].device->accelerationStructurePrebuildInfo(desc);
+    }
   }
 }

@@ -871,6 +871,72 @@ namespace higanbana
             buffer->ClearUnorderedAccessViewUint(m_shaderDebugTable.gpu, device->m_shaderDebugTableCPU.cpu, device->m_shaderDebugBuffer.native(), clearVals, 0, nullptr);
             break;
           }
+          //raytracing
+
+          // reason for this packet is possible temporary buffer implementation later, have to delay address asking.
+          case PacketType::RaytracingWriteGpuAddrToInstanceCPU:
+          {
+            auto params = header->data<gfxpacket::RaytracingWriteGpuAddrToInstanceCPU>();
+            auto dst = device->allResources().dynSRV[params.dst];
+            auto& addrToWrite = device->allResources().buf[params.addrToWrite];
+            // just copy on cpu timeline the data to correct place
+            uint structSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+            uint offsetToGPUAddr = structSize - sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+            uint offset = params.instanceId * structSize + offsetToGPUAddr;
+            auto ptr = addrToWrite.native()->GetGPUVirtualAddress();
+            memcpy(dst.data()+offset, &ptr, sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
+            break;
+          }
+          case PacketType::RaytracingWriteGpuAddrToInstanceGPU:
+          {
+            HIGAN_ASSERT(false, "unimplemented");
+            break;
+          }
+          case PacketType::BuildBLASTriangle:
+          {
+            auto& params = header->data<gfxpacket::BuildBLASTriangle>();
+            vector<D3D12_RAYTRACING_GEOMETRY_DESC> descs;
+            for (auto&& view : params.triangles.convertToMemView()) {
+              D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};
+              geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+              auto ibuffer = device->allResources().buf[view.indexBuffer];
+              geometryDesc.Triangles.IndexBuffer = ibuffer.native()->GetGPUVirtualAddress()+view.indexByteOffset;
+              geometryDesc.Triangles.IndexCount = view.indexCount;
+              geometryDesc.Triangles.IndexFormat = formatTodxFormat(view.indexFormat).view;
+              //geometryDesc.Triangles.Transform3x4 = device->allResources().buf[view.transformBuffer].native()->GetGPUVirtualAddress()+view.transformByteOffset;
+              geometryDesc.Triangles.Transform3x4 = 0;
+              geometryDesc.Triangles.VertexFormat = formatTodxFormat(view.vertexFormat).view;
+              geometryDesc.Triangles.VertexCount = view.vertexCount;
+              auto vbuffer = device->allResources().buf[view.vertexBuffer];
+              geometryDesc.Triangles.VertexBuffer.StartAddress = vbuffer.native()->GetGPUVirtualAddress()+view.vertexByteOffset;
+              geometryDesc.Triangles.VertexBuffer.StrideInBytes = view.vertexStride;
+              if ((view.flags == desc::RaytracingGeometryFlag::Opaque))
+                geometryDesc.Flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+              if ((view.flags == desc::RaytracingGeometryFlag::NoDuplicateAnyHitInvocation))
+                geometryDesc.Flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION;
+              descs.push_back(geometryDesc);
+            }
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blinputs = {};
+            blinputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+            blinputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+            blinputs.NumDescs = descs.size();
+            blinputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+            blinputs.pGeometryDescs = descs.data();
+             D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+            {
+                bottomLevelBuildDesc.Inputs = blinputs;
+                bottomLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
+                bottomLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
+            }
+            buffer->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+            break;
+          }
+          case PacketType::BuildTLAS:
+          {
+            auto params = header->data<gfxpacket::BuildTLAS>();
+            HIGAN_ASSERT(false, "unimplemented");
+            break;
+          }
           default:
             break;
           }

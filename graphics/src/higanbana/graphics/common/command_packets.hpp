@@ -1,6 +1,7 @@
 #pragma once
 #include "higanbana/graphics/common/command_buffer.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
+#include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include <higanbana/core/math/math.hpp>
 
@@ -419,6 +420,71 @@ namespace higanbana
         packet.srcOffset = srcOffset; 
         packet.numBytes = numBytes;
         packet.dst = ResourceHandle(); // invalid handle for now
+      }
+    };
+
+    struct RaytracingWriteGpuAddrToInstanceCPU
+    {
+      ViewResourceHandle dst;
+      ResourceHandle addrToWrite;
+      uint32_t instanceId;
+
+      static constexpr const backend::PacketType type = backend::PacketType::RaytracingWriteGpuAddrToInstanceCPU;
+      static void constructor(backend::CommandBuffer& , RaytracingWriteGpuAddrToInstanceCPU& packet, ViewResourceHandle dst, ResourceHandle addrToWrite, uint32_t instanceId )
+      {
+        packet.dst = dst; 
+        packet.addrToWrite = addrToWrite; 
+        packet.instanceId = instanceId;
+      }
+    };
+
+    struct RaytracingWriteGpuAddrToInstanceGPU
+    {
+      ResourceHandle dst;
+      ResourceHandle addrToWrite;
+      uint32_t instanceId;
+
+      static constexpr const backend::PacketType type = backend::PacketType::RaytracingWriteGpuAddrToInstanceGPU;
+      static void constructor(backend::CommandBuffer& , RaytracingWriteGpuAddrToInstanceGPU& packet, ResourceHandle dst, ResourceHandle addrToWrite, uint32_t instanceId )
+      {
+        packet.dst = dst; 
+        packet.addrToWrite = addrToWrite; 
+        packet.instanceId = instanceId;
+      }
+    };
+
+    struct BuildBLASTriangle
+    {
+      ResourceHandle dst;
+      ResourceHandle scratch;
+      backend::PacketVectorHeader<desc::RaytracingTriangleDescription> triangles;
+
+      static constexpr const backend::PacketType type = backend::PacketType::BuildBLASTriangle;
+      static void constructor(backend::CommandBuffer& buffer, BuildBLASTriangle& packet, ResourceHandle dst, desc::RaytracingAccelerationStructureInputs& asInputs, ResourceHandle scratch)
+      {
+        packet.dst = dst; 
+        packet.scratch = scratch; 
+        uint structs = asInputs.desc.triangles.size();
+        uint bytes = structs * sizeof(desc::RaytracingTriangleDescription);
+        uint8_t* ptr = buffer.allocateElements<desc::RaytracingTriangleDescription>(packet.triangles, structs, packet);
+        //auto view = packet.triangles.convertToMemView();
+        memcpy(ptr, &asInputs.desc.triangles[0], bytes);
+        //memcpy(ptr, &asInputs.desc.triangles[0], bytes);
+        //auto view = packet.triangles.convertToMemView();
+        MemView<desc::RaytracingTriangleDescription> view = MemView<desc::RaytracingTriangleDescription>(reinterpret_cast<desc::RaytracingTriangleDescription*>(ptr), 1);
+        HIGAN_ASSERT(view[0].indexBuffer == asInputs.desc.triangles[0].indexBuffer, "should be same");
+      }
+    };
+    struct BuildTLAS
+    {
+      ResourceHandle scratch;
+      ResourceHandle dst;
+
+      static constexpr const backend::PacketType type = backend::PacketType::BuildTLAS;
+      static void constructor(backend::CommandBuffer& , BuildTLAS& packet, ResourceHandle dst, desc::RaytracingAccelerationStructureInputs& asInputs, ResourceHandle scratch)
+      {
+        packet.dst = dst; 
+        packet.scratch = scratch; 
       }
     };
 

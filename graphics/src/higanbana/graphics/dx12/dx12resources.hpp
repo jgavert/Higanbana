@@ -1268,6 +1268,10 @@ namespace higanbana
       {
         return static_cast<uint64_t>(block.block.offset);
       }
+      uint8_t* data()
+      {
+        return block.data();
+      }
     };
 
     class DX12Heap

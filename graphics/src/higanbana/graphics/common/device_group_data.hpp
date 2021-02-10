@@ -286,6 +286,9 @@ namespace higanbana
 
       // test
       vector<FirstUseResource> checkQueueDependencies(vector<PreparedCommandlist>& lists);
+
+      // raytracing
+      desc::RaytracingASPreBuildInfo accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc);
     };
   }
 }

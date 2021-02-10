@@ -42,7 +42,6 @@ namespace higanbana
         "VK_KHR_vulkan_memory_model",
         "VK_KHR_win32_keyed_mutex",
         "VK_EXT_blend_operation_advanced",
-        //"VK_EXT_buffer_device_address",
         "VK_EXT_conditional_rendering",
         "VK_EXT_conservative_rasterization",
         "VK_EXT_depth_clip_enable",
@@ -66,7 +65,14 @@ namespace higanbana
         "VK_EXT_transform_feedback",
         "VK_EXT_vertex_attribute_divisor",
         "VK_KHR_timeline_semaphore",
-        "VK_NV_mesh_shader"
+        "VK_NV_mesh_shader",
+        // raytracing 
+        "VK_KHR_ray_tracing",
+        "VK_KHR_acceleration_structure",
+        "VK_KHR_ray_tracing_pipeline",
+        "VK_KHR_deferred_host_operations",
+        "VK_KHR_buffer_device_address",
+        "VK_KHR_spirv_1_4"
       };
 
       std::vector<const char*> dev1_1Exts = {

@@ -989,6 +989,7 @@ using uint4 = higanbana::math::Vector<4, unsigned>;
 
 using float3x3 = higanbana::math::Matrix<3, 3, float>;
 using float4x4 = higanbana::math::Matrix<4, 4, float>;
+using float3x4 = higanbana::math::Matrix<3, 4, float>;
 
 using quaternion = higanbana::math::Quaternion;
 

@@ -427,6 +427,32 @@ namespace higanbana
       list->readback(buffer, startElement, size);
       return promise.future();
     }
+
+    void raytracingWriteGPUAddrToInstanceDesc(DynamicBufferView dst, Buffer addrToWrite, uint instanceIndex) {
+      list->raytracingWriteGPUAddrToInstanceDescCPU(dst, addrToWrite, instanceIndex);
+    }
+
+    void raytracingWriteGPUAddrToInstanceDesc(Buffer dst, Buffer addrToWrite, uint instanceIndex) {
+      addWriteShared(dst.handle());
+      m_referencedBuffers.setBit(dst.handle().id);
+      list->raytracingWriteGPUAddrToInstanceDescGPU(dst, addrToWrite, instanceIndex);
+    }
+
+    void buildAccelerationStructure(Buffer dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer scratchBuffer) {
+      addWriteShared(scratchBuffer.handle());
+      m_referencedBuffers.setBit(scratchBuffer.handle().id);
+      addWriteShared(dst.handle());
+      m_referencedBuffers.setBit(dst.handle().id);
+      if (asInputs.desc.type == desc::AccelerationStructureType::BottomLevel) {
+        list->buildBottomLevelAccelerationStructure(dst, asInputs, scratchBuffer);
+      }
+      else if (asInputs.desc.type == desc::AccelerationStructureType::TopLevel) {
+        list->buildTopLevelAccelerationStructure(dst, asInputs, scratchBuffer);
+      }
+      else {
+        HIGAN_ASSERT(false, "unimplemented");
+      }
+    }
   };
 
   class CommandNodeVector

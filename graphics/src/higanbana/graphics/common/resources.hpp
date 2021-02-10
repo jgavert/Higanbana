@@ -4,6 +4,11 @@
 
 namespace higanbana
 {
+namespace desc
+{
+  class RaytracingAccelerationStructureInputs;
+}
+
   struct GpuInfo;
 
   struct MemoryRequirements;

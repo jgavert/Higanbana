@@ -3,6 +3,7 @@
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
+#include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/desc/shader_arguments_layout_descriptor.hpp"
 #include "higanbana/graphics/desc/device_stats.hpp"
 #include "higanbana/graphics/vk/util/pipeline_helpers.hpp"
@@ -46,6 +47,7 @@ namespace higanbana
       // testing multiple flags
       usageBits = vk::BufferUsageFlagBits::eUniformTexelBuffer;
       usageBits |= vk::BufferUsageFlagBits::eStorageBuffer;
+      usageBits |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
 
       if (desc.usage == ResourceUsage::GpuRW)
       {
@@ -610,8 +612,9 @@ namespace higanbana
         auto buffer = m_device.createBuffer(vkdesc);
         VK_CHECK_RESULT(buffer);
         
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
         vk::MemoryDedicatedAllocateInfoKHR dediInfo;
-        dediInfo.setBuffer(buffer.value);
+        dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
         auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
 
         auto dedReq = chain.get<vk::MemoryDedicatedRequirementsKHR>();
@@ -691,7 +694,9 @@ namespace higanbana
       auto index = FindProperties(memProp, sampleBitsBuffer, searchProperties.optimal);
       HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.de
 
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
       allocInfo = vk::MemoryAllocateInfo()
+        .setPNext(&flags)
         .setAllocationSize(allocateMemoryBuffers)
         .setMemoryTypeIndex(index);
 
@@ -702,6 +707,7 @@ namespace higanbana
       HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.de
 
       allocInfo = vk::MemoryAllocateInfo()
+        .setPNext(&flags)
         .setAllocationSize(allocateMemoryImages)
         .setMemoryTypeIndex(index);
 
@@ -2145,9 +2151,12 @@ namespace higanbana
       int32_t index, bits;
       unpackInt64(desc.customType, index, bits);
 
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+
       vk::MemoryAllocateInfo allocInfo;
 
       allocInfo = vk::MemoryAllocateInfo()
+        .setPNext(&flags)
         .setAllocationSize(desc.sizeInBytes)
         .setMemoryTypeIndex(index);
 
@@ -3490,6 +3499,65 @@ namespace higanbana
       VK_CHECK_RESULT_RAW(m_device.bindImageMemory(image.value, memory.value, 0));
       m_allRes.tex[handle] = VulkanTexture(image.value, descriptor, memory.value);
 #endif
+    }
+
+    desc::RaytracingASPreBuildInfo VulkanDevice::accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc) {
+      vector<uint> primitiveCounts;
+      vector<vk::AccelerationStructureGeometryTrianglesDataKHR> triangles;
+      for (auto&& geo : desc.desc.triangles) {
+        vk::AccelerationStructureGeometryTrianglesDataKHR data;
+        auto& desc = geo;
+        if (desc.indexBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.indexBuffer];
+          auto bufferaddr = m_device.getBufferAddress(vk::BufferDeviceAddressInfo().setBuffer(nat.native()), m_dynamicDispatch);
+          data = data.setIndexData(bufferaddr + desc.indexByteOffset);
+        }
+        if (desc.transformBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.transformBuffer];
+          auto bufferaddr = m_device.getBufferAddress(vk::BufferDeviceAddressInfo().setBuffer(nat.native()), m_dynamicDispatch);
+          data = data.setTransformData(bufferaddr + desc.transformByteOffset);
+        }
+        if (desc.indexBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.indexBuffer];
+          auto bufferaddr = m_device.getBufferAddress(vk::BufferDeviceAddressInfo().setBuffer(nat.native()), m_dynamicDispatch);
+          data = data.setVertexData(bufferaddr + desc.vertexByteOffset)
+                    .setVertexStride(desc.vertexStride);
+        }
+        vk::IndexType indextype = vk::IndexType::eUint16;
+        if (formatBitDepth(desc.indexFormat) == 16)
+        {
+          indextype = vk::IndexType::eUint16;
+        }
+        else if(formatBitDepth(desc.indexFormat) == 32)
+        {
+          indextype = vk::IndexType::eUint32;
+        }
+        data = data.setIndexType(indextype)
+          .setMaxVertex(desc.vertexCount)
+          .setVertexFormat(formatToVkFormat(desc.vertexFormat).view)
+          .setVertexStride(desc.vertexStride);
+        triangles.emplace_back(data);
+        primitiveCounts.push_back(desc.indexCount/3);
+      }
+
+      vector<vk::AccelerationStructureGeometryKHR> geometries;
+      for (auto&& tris : triangles) {
+        geometries.push_back(vk::AccelerationStructureGeometryKHR()
+          .setGeometry(vk::AccelerationStructureGeometryDataKHR().setTriangles(tris))
+          .setGeometryType(vk::GeometryTypeKHR::eTriangles)
+          .setFlags(vk::GeometryFlagBitsKHR::eOpaque));
+      }
+
+      vk::AccelerationStructureBuildGeometryInfoKHR info = vk::AccelerationStructureBuildGeometryInfoKHR()
+        .setGeometries(geometries)
+        .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+        .setType(vk::AccelerationStructureTypeKHR::eBottomLevel);
+      vk::AccelerationStructureBuildSizesInfoKHR sizes = m_device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, info, primitiveCounts, m_dynamicDispatch);
+      desc::RaytracingASPreBuildInfo ret{};
+      ret.ResultDataMaxSizeInBytes = sizes.accelerationStructureSize;
+      ret.ScratchDataSizeInBytes = sizes.buildScratchSize;
+      ret.UpdateScratchDataSizeInBytes = sizes.updateScratchSize;
+      return ret;
     }
   }
 }

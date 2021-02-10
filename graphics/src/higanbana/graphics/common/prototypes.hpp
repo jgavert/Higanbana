@@ -20,6 +20,13 @@ namespace higanbana
   class ShaderArgumentsDescriptor;
   class SwapchainDescriptor;
   class ResourceDescriptor;
+
+namespace desc
+{
+  class RaytracingAccelerationStructureInputs;
+  struct RaytracingASPreBuildInfo;
+}
+
   class Binding;
   class FileSystem;
   class Window;
@@ -200,6 +207,9 @@ namespace higanbana
         virtual void waitTimeline(std::shared_ptr<backend::TimelineSemaphoreImpl> tlSema, uint64_t value) = 0;
 
         virtual void present(std::shared_ptr<SwapchainImpl> swapchain, std::shared_ptr<backend::SemaphoreImpl> renderingFinished, int index) = 0;
+
+        // raytracing
+        virtual desc::RaytracingASPreBuildInfo accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc) = 0;
       };
 
       class SubsystemImpl

@@ -3,6 +3,7 @@
 #include "higanbana/graphics/dx12/util/formats.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/dx12/view_descriptor.hpp"
+#include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/dx12/util/pipeline_helpers.hpp"
 #include "higanbana/graphics/common/shader_arguments_descriptor.hpp"
@@ -12,6 +13,7 @@
 #include "higanbana/graphics/common/helpers/heap_allocation.hpp"
 #include "higanbana/graphics/common/helpers/shared_handle.hpp"
 #include "higanbana/graphics/common/heap_descriptor.hpp"
+#include "higanbana/graphics/dx12/util/raytracing_helpers.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -344,6 +346,10 @@ namespace higanbana
       D3D12_RESOURCE_DESC dxdesc{};
 
       dxdesc.Width = desc.width * desc.stride;
+      if (descriptor.desc.usage == ResourceUsage::RTAccelerationStructure) {
+        dxdesc.Width = desc.width;
+        HIGAN_ASSERT(dxdesc.Width > 0, "has to be bigger than 0");
+      }
       dxdesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
       dxdesc.Height = 1;
       dxdesc.DepthOrArraySize = 1;
@@ -366,6 +372,7 @@ namespace higanbana
       {
         break;
       }
+      case ResourceUsage::RTAccelerationStructure:
       case ResourceUsage::GpuRW:
       {
         dxdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -1320,6 +1327,9 @@ namespace higanbana
       state.commonStateOptimisation = true;
       state.flags.emplace_back(startState);
       ID3D12Resource* buffer;
+      if (desc.desc.usage == ResourceUsage::RTAccelerationStructure){
+        startState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+      }
 
       D3D12_HEAP_PROPERTIES prop{};
       prop.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -1350,6 +1360,11 @@ namespace higanbana
       case ResourceUsage::Readback:
       {
         startState = D3D12_RESOURCE_STATE_COPY_DEST;
+        break;
+      }
+      case ResourceUsage::RTAccelerationStructure:
+      {
+        startState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
         break;
       }
       default:
@@ -2346,6 +2361,48 @@ namespace higanbana
       texture->SetName(wstr.c_str());
 
       m_allRes.tex[handle] = DX12Texture(texture, desc, desc.desc.miplevels);
+    }
+
+    desc::RaytracingASPreBuildInfo DX12Device::accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc) {
+      vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometries;
+      for (auto&& geo : desc.desc.triangles) {
+        D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};
+        geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+        auto& desc = geo;
+        if (desc.indexBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.indexBuffer];
+          geometryDesc.Triangles.IndexBuffer = nat.native()->GetGPUVirtualAddress() + desc.indexByteOffset;
+        }
+        if (desc.transformBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.transformBuffer];
+          geometryDesc.Triangles.Transform3x4 = nat.native()->GetGPUVirtualAddress() + desc.transformByteOffset;
+        }
+        if (desc.indexBuffer.id != ResourceHandle::InvalidId) {
+          auto& nat = allResources().buf[desc.indexBuffer];
+          geometryDesc.Triangles.IndexBuffer = nat.native()->GetGPUVirtualAddress() + desc.indexByteOffset;
+          geometryDesc.Triangles.VertexBuffer.StartAddress = nat.native()->GetGPUVirtualAddress() + desc.indexByteOffset;
+          geometryDesc.Triangles.VertexBuffer.StrideInBytes = desc.vertexStride;
+        }
+        geometryDesc.Triangles.IndexCount = desc.indexCount;
+        geometryDesc.Triangles.IndexFormat = formatTodxFormat(desc.indexFormat).view;
+        geometryDesc.Triangles.VertexCount = desc.vertexCount;
+        geometryDesc.Triangles.VertexFormat = formatTodxFormat(desc.vertexFormat).view;
+        geometries.emplace_back(geometryDesc);
+      }
+      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = rtASBuildMode(desc.desc.mode);
+      D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = {};
+      bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+      bottomLevelInputs.Flags = buildFlags;
+      bottomLevelInputs.NumDescs = geometries.size();
+      bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+      bottomLevelInputs.pGeometryDescs = geometries.data();
+      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
+      m_dxrdevice->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
+      desc::RaytracingASPreBuildInfo info{};
+      info.ResultDataMaxSizeInBytes = bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes;
+      info.ScratchDataSizeInBytes = bottomLevelPrebuildInfo.ScratchDataSizeInBytes;
+      info.UpdateScratchDataSizeInBytes = bottomLevelPrebuildInfo.UpdateScratchDataSizeInBytes;
+      return info;
     }
   }
 }

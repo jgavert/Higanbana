@@ -446,6 +446,15 @@ namespace higanbana
       vk::PhysicalDeviceFragmentDensityMapFeaturesEXT, 
       vk::PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT, 
 #endif
+#if 1 // raytracing 
+      vk::PhysicalDeviceRayQueryFeaturesKHR,
+      vk::PhysicalDeviceRayTracingPipelineFeaturesKHR,
+      //vk::PhysicalDeviceRayTracingPipelinePropertiesKHR,
+      vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
+      //vk::PhysicalDeviceAccelerationStructurePropertiesKHR,
+      vk::PhysicalDeviceBufferDeviceAddressFeatures,
+
+#endif
       vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT,
       vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,

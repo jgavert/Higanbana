@@ -96,6 +96,7 @@ namespace higanbana
     DepthStencil,
     RenderTargetRW,
     DepthStencilRW,
+    RTAccelerationStructure,
     Count
   };
 
