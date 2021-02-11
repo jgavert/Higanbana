@@ -552,6 +552,9 @@ namespace higanbana
 
     typedef Matrix<3, 3, float> float3x3;
     typedef Matrix<4, 4, float> float4x4;
+    typedef Matrix<3, 4, float> float3x4;
+    typedef Vector<3, float> float3;
+    typedef Vector<4, float> float4;
 
     template <typename vType, int rows, int cols>
     inline Matrix<cols, rows, vType> transpose(Matrix<rows, cols, vType> value)
@@ -783,6 +786,25 @@ namespace higanbana
       return scale(whole.x, whole.y, whole.z);
     }
 
+    inline float3x4 translation3x4(float x, float y, float z)
+    {
+      float3x4 result = float3x4::identity();
+      result(3, 0) = -x; result(3, 1) = -y; result(3, 2) = -z;
+      return result;
+    }
+    inline float3x4 translation3x4(Vector<3, float> vec)
+    {
+      float3x4 result = float3x4::identity();
+      result(3, 0) = -vec.x; result(3, 1) = -vec.y; result(3, 2) = -vec.z;
+      return result;
+    }
+    inline float3x4 translation3x4(Vector<4, float> vec)
+    {
+      float3x4 result = float3x4::identity();
+      result(3, 0) = -vec.x; result(3, 1) = -vec.y; result(3, 2) = -vec.z; 
+      return result;
+    }
+
     inline float4x4 translation(float x, float y, float z)
     {
       float4x4 result = float4x4::identity();
@@ -967,6 +989,54 @@ namespace higanbana
       //r = math::transpose(r);
       #endif
       return r;
+    }
+    
+    inline float3x4 rotationMatrixLH3x4(Quaternion q)
+    {
+      q = normalize(q);
+      auto r = float3x4::identity();
+      float xx = std::pow(q.x, 2.f);
+      float yy = std::pow(q.y, 2.f);
+      float zz = std::pow(q.z, 2.f);
+      r(0, 0) = 1.f - 2.f * yy - 2.f * zz;
+      r(1, 1) = 1.f - 2.f * xx - 2.f * zz;
+      r(2, 2) = 1.f - 2.f * xx - 2.f * yy;
+      r(0, 1) = 2.f * q.x * q.y + 2.f * q.w * q.z;
+      r(1, 0) = 2.f * q.x * q.y - 2.f * q.w * q.z;
+      r(2, 0) = 2.f * q.x * q.z + 2.f * q.w * q.y;
+      r(0, 2) = 2.f * q.x * q.z - 2.f * q.w * q.y;
+      r(1, 2) = 2.f * q.y * q.z + 2.f * q.w * q.x;
+      r(2, 1) = 2.f * q.y * q.z - 2.f * q.w * q.x;
+      #if 1
+      //r = math::transpose(r);
+      #endif
+      return r;
+    }
+
+    inline float3x4 combine(Quaternion q, float3 pos) {
+      q = normalize(q);
+      auto r = float3x4::identity();
+      float xx = std::pow(q.x, 2.f);
+      float yy = std::pow(q.y, 2.f);
+      float zz = std::pow(q.z, 2.f);
+      r(0, 0) = 1.f - 2.f * yy - 2.f * zz;
+      r(1, 1) = 1.f - 2.f * xx - 2.f * zz;
+      r(2, 2) = 1.f - 2.f * xx - 2.f * yy;
+      r(0, 1) = 2.f * q.x * q.y + 2.f * q.w * q.z;
+      r(1, 0) = 2.f * q.x * q.y - 2.f * q.w * q.z;
+      r(2, 0) = 2.f * q.x * q.z + 2.f * q.w * q.y;
+      r(0, 2) = 2.f * q.x * q.z - 2.f * q.w * q.y;
+      r(1, 2) = 2.f * q.y * q.z + 2.f * q.w * q.x;
+      r(2, 1) = 2.f * q.y * q.z - 2.f * q.w * q.x;
+
+      r(3, 0) = -pos.x;
+      r(3, 1) = -pos.y;
+      r(3, 2) = -pos.z;
+      #if 1
+      //r = math::transpose(r);
+      #endif
+      return r;
+
     }
   }
 }

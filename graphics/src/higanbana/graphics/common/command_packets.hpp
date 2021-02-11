@@ -457,6 +457,7 @@ namespace higanbana
     {
       ResourceHandle dst;
       ResourceHandle scratch;
+      desc::RaytracingASBuildFlags buildFlag;
       backend::PacketVectorHeader<desc::RaytracingTriangleDescription> triangles;
 
       static constexpr const backend::PacketType type = backend::PacketType::BuildBLASTriangle;
@@ -464,6 +465,7 @@ namespace higanbana
       {
         packet.dst = dst; 
         packet.scratch = scratch; 
+        packet.buildFlag = asInputs.desc.mode;
         uint structs = asInputs.desc.triangles.size();
         uint bytes = structs * sizeof(desc::RaytracingTriangleDescription);
         uint8_t* ptr = buffer.allocateElements<desc::RaytracingTriangleDescription>(packet.triangles, structs, packet);
@@ -477,14 +479,22 @@ namespace higanbana
     };
     struct BuildTLAS
     {
-      ResourceHandle scratch;
       ResourceHandle dst;
+      ResourceHandle scratch;
+      ResourceHandle instances;
+      uint byteOffset;
+      uint instanceCount;
+      desc::RaytracingASBuildFlags buildFlag;
 
       static constexpr const backend::PacketType type = backend::PacketType::BuildTLAS;
       static void constructor(backend::CommandBuffer& , BuildTLAS& packet, ResourceHandle dst, desc::RaytracingAccelerationStructureInputs& asInputs, ResourceHandle scratch)
       {
         packet.dst = dst; 
-        packet.scratch = scratch; 
+        packet.scratch = scratch;
+        packet.instances = asInputs.desc.instances;
+        packet.byteOffset = asInputs.desc.instancesOffset;
+        packet.instanceCount = asInputs.desc.instanceCount;
+        packet.buildFlag = asInputs.desc.mode;
       }
     };
 

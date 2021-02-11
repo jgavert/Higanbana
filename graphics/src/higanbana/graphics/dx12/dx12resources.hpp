@@ -1346,6 +1346,7 @@ namespace higanbana
       HandleVector<DX12BufferView> bufSRV;
       HandleVector<DX12BufferView> bufUAV;
       HandleVector<DX12BufferView> bufIBV;
+      HandleVector<DX12BufferView> bufRTAS;
       HandleVector<DX12TextureView> texSRV;
       HandleVector<DX12TextureView> texUAV;
       HandleVector<DX12TextureView> texDSV;

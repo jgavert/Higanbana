@@ -35,17 +35,17 @@ namespace higanbana
         switch (type)
         {
         case ShaderType::Vertex:
-          return L"/Tvs_6_4";
+          return L"/Tvs_6_5";
         case ShaderType::Pixel:
-          return L"/Tps_6_4";
+          return L"/Tps_6_5";
         case ShaderType::Compute:
-          return L"/Tcs_6_4";
+          return L"/Tcs_6_5";
         case ShaderType::Geometry:
-          return L"/Tgs_6_4";
+          return L"/Tgs_6_5";
         case ShaderType::Hull: // hs_6_0 ??
-          return L"/Ths_6_4";
+          return L"/Ths_6_5";
         case ShaderType::Domain: // ds_6_0 ??
-          return L"/Tds_6_4";
+          return L"/Tds_6_5";
         case ShaderType::Amplification: //
           return L"/Tas_6_5";
         case ShaderType::Mesh: //

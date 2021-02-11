@@ -36,6 +36,7 @@ namespace higanbana
     BufferUAV,
     BufferIBV,
     DynamicBufferSRV,
+    RaytracingAccelerationStructure,
     TextureSRV,
     TextureUAV,
     TextureRTV,

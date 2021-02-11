@@ -747,6 +747,17 @@ namespace higanbana
       return BufferUAV(buffer, sharedViewHandle(handle), std::make_shared<ShaderViewDescriptor>(viewDesc));
     }
 
+    BufferRTAS DeviceGroupData::createAccelerationStructure(Buffer buffer) {
+      HIGAN_CPU_FUNCTION_SCOPE();
+      ShaderViewDescriptor viewDesc = ShaderViewDescriptor().setType(ResourceShaderType::RaytracingAccelerationStructure);
+      auto handle = m_handles.allocateViewResource(ViewResourceType::RaytracingAccelerationStructure, buffer.handle());
+      for (auto& vdev : m_devices)
+      {
+        vdev.device->createBufferView(handle, buffer.handle(), buffer.desc(), viewDesc.setType(ResourceShaderType::RaytracingAccelerationStructure));
+      }
+      return BufferRTAS(buffer, sharedViewHandle(handle), std::make_shared<ShaderViewDescriptor>(viewDesc));
+    }
+
     TextureSRV DeviceGroupData::createTextureSRV(Texture texture, ShaderViewDescriptor viewDesc) {
       HIGAN_CPU_FUNCTION_SCOPE();
       if (viewDesc.m_format == FormatType::Unknown)
@@ -1041,6 +1052,10 @@ namespace higanbana
                     {
                       solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
                     }
+                    else if (resource.type == ViewResourceType::RaytracingAccelerationStructure)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, backend::AccessStage::AccelerationStructure, backend::TextureLayout::Undefined, queue));
+                    }
                   };
                   for (auto&& resource : views.resources)
                   {
@@ -1097,6 +1112,10 @@ namespace higanbana
                     else if (resource.type == ViewResourceType::TextureUAV)
                     {
                       solver.addTexture(usedDrawIndex, resource, ResourceState(backend::AccessUsage::ReadWrite, stage, backend::TextureLayout::General, queue));
+                    }
+                    else if (resource.type == ViewResourceType::RaytracingAccelerationStructure)
+                    {
+                      solver.addBuffer(usedDrawIndex, resource, ResourceState(backend::AccessUsage::Read, backend::AccessStage::AccelerationStructure, backend::TextureLayout::Undefined, queue));
                     }
                   };
                   for (auto&& resource : views.resources)
@@ -1229,23 +1248,51 @@ namespace higanbana
             case PacketType::BuildBLASTriangle:
             {
               auto& packet = header->data<gfxpacket::BuildBLASTriangle>();
+              HIGAN_ASSERT(packet.dst.id != ResourceHandle::InvalidId, "Must be valid handle.");
               ViewResourceHandle dst;
               dst.resource = packet.dst.rawValue;
+              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::AccelerationStructure, backend::TextureLayout::General, queue));
+
+              HIGAN_ASSERT(packet.scratch.id != ResourceHandle::InvalidId, "Must be valid handle.");
               ViewResourceHandle scratch;
               scratch.resource = packet.scratch.rawValue;
-              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::AccelerationStructure, backend::TextureLayout::General, queue));
               solver.addBuffer(drawIndex, scratch, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+
               for (auto&& view : packet.triangles.convertToMemView()) {
-                ViewResourceHandle index;
-                index.resource = view.indexBuffer.rawValue;
-                solver.addBuffer(drawIndex, index, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                if (view.indexBuffer.id != ResourceHandle::InvalidId){
+                  ViewResourceHandle index;
+                  index.resource = view.indexBuffer.rawValue;
+                  solver.addBuffer(drawIndex, index, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                }
+                HIGAN_ASSERT(view.vertexBuffer.id != ResourceHandle::InvalidId, "Must be valid handle.");
                 ViewResourceHandle vertex;
                 vertex.resource = view.vertexBuffer.rawValue;
                 solver.addBuffer(drawIndex, vertex, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
-                //ViewResourceHandle transform;
-                //transform.resource = view.transformBuffer.rawValue;
-                //solver.addBuffer(drawIndex, transform, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                if (view.transformBuffer.id != ResourceHandle::InvalidId){
+                  ViewResourceHandle transform;
+                  transform.resource = view.transformBuffer.rawValue;
+                  solver.addBuffer(drawIndex, transform, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+                }
               }
+              break;
+            }
+            case PacketType::BuildTLAS:
+            {
+              auto& packet = header->data<gfxpacket::BuildTLAS>();
+              HIGAN_ASSERT(packet.dst.id != ResourceHandle::InvalidId, "Must be valid handle.");
+              ViewResourceHandle dst;
+              dst.resource = packet.dst.rawValue;
+              solver.addBuffer(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::AccelerationStructure, backend::TextureLayout::General, queue));
+
+              HIGAN_ASSERT(packet.scratch.id != ResourceHandle::InvalidId, "Must be valid handle.");
+              ViewResourceHandle scratch;
+              scratch.resource = packet.scratch.rawValue;
+              solver.addBuffer(drawIndex, scratch, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
+
+              HIGAN_ASSERT(packet.instances.id != ResourceHandle::InvalidId, "Must be valid handle.");
+              ViewResourceHandle instances;
+              instances.resource = packet.instances.rawValue;
+              solver.addBuffer(drawIndex, instances, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
               break;
             }
             case PacketType::RenderBlock:

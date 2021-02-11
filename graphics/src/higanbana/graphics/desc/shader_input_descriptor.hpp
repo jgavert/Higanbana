@@ -17,6 +17,7 @@ namespace higanbana
     Texture3D,
     TextureCube,
     TextureCubeArray,
+    RaytracingAccelerationStructure
   };
 
   enum class ShaderElementType

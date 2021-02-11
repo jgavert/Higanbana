@@ -105,6 +105,16 @@ namespace higanbana
     }
   };
 
+  class BufferRTAS : public BufferView
+  {
+  public:
+    BufferRTAS() = default;
+    BufferRTAS(Buffer buf, std::shared_ptr<ViewResourceHandle> id, std::shared_ptr<ShaderViewDescriptor> desc)
+      : BufferView(buf, id, desc)
+    {
+    }
+  };
+
   class DynamicBufferView
   {
     ViewResourceHandle m_id;

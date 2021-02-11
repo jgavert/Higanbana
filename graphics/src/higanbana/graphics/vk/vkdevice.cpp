@@ -2046,6 +2046,11 @@ namespace higanbana
           m_allRes.bufUAV[handle] = VulkanBufferView();
           break;
         }
+        case ViewResourceType::RaytracingAccelerationStructure:
+        {
+          HIGAN_ASSERT(false, "unimplemented");
+          break;
+        }
         case ViewResourceType::TextureSRV:
         {
           m_device.destroyImageView(m_allRes.texSRV[handle].native().view);
@@ -2297,6 +2302,9 @@ namespace higanbana
         else {
           m_allRes.bufSRV[handle] = VulkanBufferView(info, type);
         }
+      }
+      if (handle.type == ViewResourceType::RaytracingAccelerationStructure){
+        HIGAN_ASSERT(false, "unimplemented");
       }
       if (handle.type == ViewResourceType::BufferUAV) {
         if (type == vk::DescriptorType::eStorageTexelBuffer) {
@@ -2618,6 +2626,11 @@ namespace higanbana
               writeSet = writeSet.setDescriptorType(vk::DescriptorType::eStorageBuffer);
               writeSet = writeSet.setPBufferInfo(&desc.bufferInfo);
             }
+            break;
+          }
+          case ViewResourceType::RaytracingAccelerationStructure:
+          {
+            HIGAN_ASSERT(false, "unimplemented");
             break;
           }
           case ViewResourceType::TextureSRV:

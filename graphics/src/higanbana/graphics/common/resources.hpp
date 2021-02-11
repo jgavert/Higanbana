@@ -35,6 +35,7 @@ namespace desc
 
   class BufferSRV;
   class BufferUAV;
+  class AccelerationStructure;
   class TextureSRV;
   class TextureUAV;
   class TextureRTV;

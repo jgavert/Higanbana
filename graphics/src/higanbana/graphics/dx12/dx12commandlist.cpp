@@ -553,9 +553,26 @@ namespace higanbana
           auto flag = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           auto beforeState = translateAccessMask(buffer.before.stage, buffer.before.usage);
           auto afterState = translateAccessMask(buffer.after.stage, buffer.after.usage);
+
+          auto& vbuffer = device->allResources().buf[buffer.handle];
+          if (beforeState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS && beforeState == afterState) {
+            D3D12_RESOURCE_UAV_BARRIER uav;
+            uav.pResource = vbuffer.native();
+            D3D12_RESOURCE_BARRIER barrier {D3D12_RESOURCE_BARRIER_TYPE_UAV, flag};
+            barrier.UAV = uav;
+            m_barriers.emplace_back(barrier);
+            continue;
+          }
+          if (beforeState == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE && beforeState == afterState) {
+            D3D12_RESOURCE_UAV_BARRIER uav;
+            uav.pResource = vbuffer.native();
+            D3D12_RESOURCE_BARRIER barrier {D3D12_RESOURCE_BARRIER_TYPE_UAV, flag};
+            barrier.UAV = uav;
+            m_barriers.emplace_back(barrier);
+            continue;
+          }
           if (beforeState == afterState)
             continue;
-          auto& vbuffer = device->allResources().buf[buffer.handle];
 
           D3D12_RESOURCE_TRANSITION_BARRIER transition;
           transition.pResource = vbuffer.native();
@@ -578,6 +595,14 @@ namespace higanbana
           auto barrierAft = stateToString(afterState);
           
           //HIGAN_LOGi("tex: %zd m: %d-%d s: %d-%d transition: %s -> %s...", image.handle.id, image.startMip, image.mipSize, image.startArr, image.arrSize, barrierBef.c_str(), barrierAft.c_str());
+          if (beforeState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS && beforeState == afterState) {
+            D3D12_RESOURCE_UAV_BARRIER uav;
+            uav.pResource = tex.native();
+            D3D12_RESOURCE_BARRIER barrier {D3D12_RESOURCE_BARRIER_TYPE_UAV, flag};
+            barrier.UAV = uav;
+            m_barriers.emplace_back(barrier);
+            continue;
+          }
           if (beforeState == afterState) {
             //HIGAN_LOGi("skipped\n");
             continue;
@@ -899,42 +924,65 @@ namespace higanbana
             for (auto&& view : params.triangles.convertToMemView()) {
               D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};
               geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-              auto ibuffer = device->allResources().buf[view.indexBuffer];
-              geometryDesc.Triangles.IndexBuffer = ibuffer.native()->GetGPUVirtualAddress()+view.indexByteOffset;
-              geometryDesc.Triangles.IndexCount = view.indexCount;
-              geometryDesc.Triangles.IndexFormat = formatTodxFormat(view.indexFormat).view;
-              //geometryDesc.Triangles.Transform3x4 = device->allResources().buf[view.transformBuffer].native()->GetGPUVirtualAddress()+view.transformByteOffset;
+              if (view.indexBuffer.id != ResourceHandle::InvalidId) {
+                auto ibuffer = device->allResources().buf[view.indexBuffer];
+                geometryDesc.Triangles.IndexBuffer = ibuffer.native()->GetGPUVirtualAddress()+view.indexByteOffset;
+                geometryDesc.Triangles.IndexCount = view.indexCount;
+                geometryDesc.Triangles.IndexFormat = formatTodxFormat(view.indexFormat).view;
+              }
+              else {
+                geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
+                geometryDesc.Triangles.IndexBuffer = 0;
+                geometryDesc.Triangles.IndexCount = 0;
+
+              }
               geometryDesc.Triangles.Transform3x4 = 0;
+              if (view.transformBuffer.id != ResourceHandle::InvalidId) {
+                geometryDesc.Triangles.Transform3x4 = device->allResources().buf[view.transformBuffer].native()->GetGPUVirtualAddress()+view.transformByteOffset;
+              }
               geometryDesc.Triangles.VertexFormat = formatTodxFormat(view.vertexFormat).view;
               geometryDesc.Triangles.VertexCount = view.vertexCount;
               auto vbuffer = device->allResources().buf[view.vertexBuffer];
               geometryDesc.Triangles.VertexBuffer.StartAddress = vbuffer.native()->GetGPUVirtualAddress()+view.vertexByteOffset;
               geometryDesc.Triangles.VertexBuffer.StrideInBytes = view.vertexStride;
-              if ((view.flags == desc::RaytracingGeometryFlag::Opaque))
+              //geometryDesc.Flags = 0;
+              if (view.flags == desc::RaytracingGeometryFlag::Opaque)
                 geometryDesc.Flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-              if ((view.flags == desc::RaytracingGeometryFlag::NoDuplicateAnyHitInvocation))
+              if (view.flags == desc::RaytracingGeometryFlag::NoDuplicateAnyHitInvocation)
                 geometryDesc.Flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION;
               descs.push_back(geometryDesc);
             }
             D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blinputs = {};
             blinputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-            blinputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+            blinputs.Flags = static_cast<D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS>(params.buildFlag);
             blinputs.NumDescs = descs.size();
             blinputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
             blinputs.pGeometryDescs = descs.data();
-             D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
-            {
-                bottomLevelBuildDesc.Inputs = blinputs;
-                bottomLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
-                bottomLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
-            }
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+            bottomLevelBuildDesc.Inputs = blinputs;
+            bottomLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
+            bottomLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
+
             buffer->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
             break;
           }
           case PacketType::BuildTLAS:
           {
             auto params = header->data<gfxpacket::BuildTLAS>();
-            HIGAN_ASSERT(false, "unimplemented");
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
+            topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+            topLevelInputs.Flags = static_cast<D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS>(params.buildFlag);
+            topLevelInputs.NumDescs = params.instanceCount;
+            topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+            topLevelInputs.InstanceDescs = device->allResources().buf[params.instances].native()->GetGPUVirtualAddress() + params.byteOffset;
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
+            topLevelBuildDesc.Inputs = topLevelInputs;
+            topLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
+            topLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
+
+            buffer->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
             break;
           }
           default:

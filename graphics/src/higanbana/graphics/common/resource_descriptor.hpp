@@ -278,7 +278,8 @@ namespace higanbana
     ReadWrite,
     IndexBuffer,
     RenderTarget,
-    DepthStencil
+    DepthStencil,
+    RaytracingAccelerationStructure
   };
 
   class ShaderViewDescriptor

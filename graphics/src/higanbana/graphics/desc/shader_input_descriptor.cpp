@@ -14,6 +14,7 @@ namespace higanbana
     "Texture3D",
     "TextureCube",
     "TextureCubeArray",
+    "RaytracingAccelerationStructure",
   };
 
   const char* toString(ShaderResourceType type)

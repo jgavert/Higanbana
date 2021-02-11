@@ -155,5 +155,22 @@ namespace higanbana
       HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
       return *this;
     }
+
+    ShaderArgumentsDescriptor& bind(const char* name, const BufferRTAS& res)
+    {
+      int id = 0;
+      for (auto&& it : m_resources)
+      {
+        if (it.name.compare(name) == 0)
+        {
+          HIGAN_ASSERT(it.readonly, "Trying to bind BufferRTAS \"%s\" as ReadWrite.", name);
+          m_handles[id] = res.handle();
+          return *this;
+        }
+        id++;
+      }
+      HIGAN_ASSERT(false, "No such resource declared as \"%s\". Look at shaderinputs.", name);
+      return *this;
+    }
   };
 }

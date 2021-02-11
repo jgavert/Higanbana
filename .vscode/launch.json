@@ -37,7 +37,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/test_main/test_main.exe",
-            "args": ["--vulkan", "--noGpuConstants"],
+            "args": ["--dx12"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bazel-bin/test_main",
             "environment": [],
