@@ -106,6 +106,18 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "build rendering tests(opt)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+              "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

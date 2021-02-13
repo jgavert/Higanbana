@@ -1,1 +1,1 @@
-exports_files(["mapping"])
+exports_files(["mapping.json"])

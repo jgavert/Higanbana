@@ -12,7 +12,10 @@ namespace higanbana
   class RingBuffer
   {
   public:
-    RingBuffer() : m_buffer(ArraySize), m_ptr(0), m_filledSize(0) {}
+    RingBuffer()
+      : m_buffer(ArraySize)
+      , m_ptr(0)
+      , m_filledSize(0) {m_buffer.resize(ArraySize);}
     ~RingBuffer() {}
 
     void push_back(T value)

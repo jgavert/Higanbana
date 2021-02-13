@@ -11,6 +11,7 @@ releaseDir*
 app/external/imgui/
 msbuild/
 data/scenes
+data/data/*
 
 rendering/*
 

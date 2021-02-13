@@ -21,7 +21,7 @@ DepthPyramid::DepthPyramid(higanbana::GpuGroup& device) {
 
   auto pipelineDescriptor = ComputePipelineDescriptor()
     .setInterface(instancePipeline)
-    .setShader("depthpyramid")
+    .setShader("/shaders/depthpyramid")
     .setThreadGroups(uint3(8,8,1));
 
   pipeline = device.createComputePipeline(pipelineDescriptor);

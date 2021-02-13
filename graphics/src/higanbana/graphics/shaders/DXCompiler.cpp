@@ -69,8 +69,8 @@ public:
       removeExtraSlashes(filename);
     }
 
-    std::string finalPath;
-    finalPath = m_sourcePath + filename;
+    std::string finalPath = m_sourcePath + "/";
+    finalPath += filename;
     if (!m_fs.fileExists(finalPath)) {
       // try loading file...
       if (!m_fs.tryLoadFile(finalPath))
@@ -167,7 +167,7 @@ namespace higanbana
       DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
       pLibrary->CreateBlobWithEncodingFromPinned(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
-      CComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_sourcePath, d.rootSignature, pLibrary, includeCallback));
+      CComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_fs.mountPoint(shaderSourcePath), d.rootSignature, pLibrary, includeCallback));
 
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;

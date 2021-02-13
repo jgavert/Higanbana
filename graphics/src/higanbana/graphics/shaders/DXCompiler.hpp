@@ -28,7 +28,6 @@ namespace higanbana
     class DXCompiler : public ShaderCompiler
     {
       higanbana::FileSystem& m_fs;
-      std::string m_sourcePath;
 
       const wchar_t* shaderFeatureDXC(ShaderType type)
       {
@@ -56,9 +55,8 @@ namespace higanbana
         return L"";
       }
     public:
-      DXCompiler(FileSystem& files, std::string sourcePath)
+      DXCompiler(FileSystem& files)
         : m_fs(files)
-        , m_sourcePath(sourcePath)
       {}
 
       virtual bool compileShader(

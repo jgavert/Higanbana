@@ -30,8 +30,8 @@ World::World(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout camer
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
-    .setVertexShader("world")
-    .setPixelShader("world")
+    .setVertexShader("/shaders/world")
+    .setPixelShader("/shaders/world")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRTVFormat(0, FormatType::Unorm16RGBA)
     .setRTVFormat(1, FormatType::Float16RGBA)

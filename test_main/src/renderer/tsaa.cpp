@@ -23,7 +23,7 @@ ShittyTSAA::ShittyTSAA(higanbana::GpuGroup& device) {
 
   auto pipelineDescriptor = ComputePipelineDescriptor()
     .setInterface(instancePipeline)
-    .setShader("tsaa")
+    .setShader("/shaders/tsaa")
     .setThreadGroups(uint3(8,8,1));
 
   m_pipeline = device.createComputePipeline(pipelineDescriptor);

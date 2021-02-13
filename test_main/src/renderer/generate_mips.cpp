@@ -20,7 +20,7 @@ GenerateMips::GenerateMips(higanbana::GpuGroup& dev) {
 
   auto pipelineDescriptor = ComputePipelineDescriptor()
     .setInterface(instancePipeline)
-    .setShader("generate_mips")
+    .setShader("/shaders/generate_mips")
     .setThreadGroups(uint3(8,8,1));
 
   pipeline = dev.createComputePipeline(pipelineDescriptor);

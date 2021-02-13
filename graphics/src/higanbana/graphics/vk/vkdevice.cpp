@@ -308,7 +308,7 @@ namespace higanbana
       , m_dmaQueues(false)
       , m_graphicQueues(false)
       , m_info(info)
-      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::SPIRV)
+      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)), "/shader_binaries", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       //, m_seqTracker(std::make_shared<SequenceTracker>())
       , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted

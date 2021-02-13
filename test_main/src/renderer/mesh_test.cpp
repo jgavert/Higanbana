@@ -28,9 +28,9 @@ MeshTest::MeshTest(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
-    .setAmplificationShader("testMeshShaders")
-    .setMeshShader("testMeshShaders")
-    .setPixelShader("testMeshShaders")
+    .setAmplificationShader("/shaders/testMeshShaders")
+    .setMeshShader("/shaders/testMeshShaders")
+    .setPixelShader("/shaders/testMeshShaders")
     .setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(false))
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setDSVFormat(FormatType::Depth32)

@@ -32,7 +32,7 @@ namespace higanbana
       , m_device(device)
       , m_factory(factory)
       , m_fs(fs)
-      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs, "/shaders/")), "shaders", "shaders/bin", ShaderBinaryType::DXIL)
+      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)),"/shader_binaries", ShaderBinaryType::DXIL)
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 10240) // lol 1024, right.
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
@@ -2401,6 +2401,7 @@ namespace higanbana
     }
 
     desc::RaytracingASPreBuildInfo DX12Device::accelerationStructurePrebuildInfo(const desc::RaytracingAccelerationStructureInputs& desc) {
+      HIGAN_CPU_FUNCTION_SCOPE();
       vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometries;
       for (auto&& geo : desc.desc.triangles) {
         D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};

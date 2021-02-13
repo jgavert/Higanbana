@@ -6,6 +6,7 @@
                 "${workspaceFolder}/test_main/src",
                 "${workspaceFolder}/core/src",
                 "${workspaceFolder}/graphics/src",
+                "${workspaceFolder}/rendering/src",
                 "${workspaceFolder}/benchmarks",
                 "${workspaceFolder}/ext/dxc-bin/include",
                 "${workspaceFolder}/ext/winpixeventruntime/include",

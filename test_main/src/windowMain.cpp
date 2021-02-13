@@ -964,7 +964,7 @@ RenderingApp::RenderingApp(AppInputs inputs)
   : m_cmdline(inputs)
   , m_api(inputs.cmdlineApiId)
   , m_preferredVendor(inputs.cmdlineVendorId)
-  , m_fs("/../../data", FileSystem::MappingMode::TryFirstMappingFile, "data\\mapping")
+  , m_fs("/../../data", FileSystem::MappingMode::TryFirstMappingFile, "mapping.json")
 {
   if (inputs.powersave) {
     m_limitFPS = 20;
@@ -992,15 +992,15 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
     {
       ImGuiIO& io = ImGui::GetIO(); (void)io;
       io.IniFilename = nullptr;
-      if (m_fs.fileExists("/imgui.config")) {
-        auto file = m_fs.viewToFile("/imgui.config");
+      if (m_fs.fileExists("/data/imgui.config")) {
+        auto file = m_fs.viewToFile("/data/imgui.config");
         ImGui::LoadIniSettingsFromMemory(reinterpret_cast<const char*>(file.data()), file.size_bytes());
       }
       io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
     }
     ImGui::StyleColorsDark();
     //m_world.loadGLTFScene(m_ecs, m_fs, "/scenes");
-    co_await m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/scenes");
+    co_await m_world.loadGLTFSceneCgltfTasked(m_ecs, m_fs, "/data/scenes");
 
     higanbana::Id sceneRootEntity;
     {
@@ -1178,8 +1178,8 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
   vector<uint8_t> out;
   out.resize(amountToWrite);
   memcpy(out.data(), data, amountToWrite);
-  m_fs.writeFile("/imgui.config", makeMemView(out));
-  higanbana::profiling::writeProfilingData(m_fs);
+  m_fs.writeFile("/data/imgui.config", makeMemView(out));
+  //higanbana::profiling::writeProfilingData(m_fs);
   m_log.update();
 }
 void mainWindow(ProgramParams& params)

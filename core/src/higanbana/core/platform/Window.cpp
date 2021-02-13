@@ -360,6 +360,14 @@ namespace higanbana
     return true;
   }
 
+  void Window::title(std::string newString)
+  {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+    std::wstring cnw = s2ws(newString);
+    SetWindowText(m_window->hWnd, cnw.c_str());
+#endif
+  }
+
   void Window::close()
   {
 #if defined(HIGANBANA_PLATFORM_WINDOWS)

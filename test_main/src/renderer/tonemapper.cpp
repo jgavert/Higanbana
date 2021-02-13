@@ -19,8 +19,8 @@ Tonemapper::Tonemapper(higanbana::GpuGroup& device) {
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
-    .setVertexShader("tonemapper")
-    .setPixelShader("tonemapper")
+    .setVertexShader("/shaders/tonemapper")
+    .setPixelShader("/shaders/tonemapper")
     .setRenderTargetCount(1)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setDepthStencil(DepthStencilDescriptor()

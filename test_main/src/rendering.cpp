@@ -57,7 +57,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   , blitter(dev)
   , mipper(dev)
   , depthPyramid(dev)
-  , genImage(dev, "simpleEffectAssyt", uint3(8,8,1))
+  , genImage(dev, "/shaders/simpleEffectAssyt", uint3(8,8,1))
   , particleSimulation(dev, m_camerasLayout) {
   HIGAN_CPU_FUNCTION_SCOPE();
   scdesc = SwapchainDescriptor()
@@ -66,8 +66,8 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
     .bufferCount(3).presentMode(PresentMode::Mailbox);
 
   auto basicDescriptor = GraphicsPipelineDescriptor()
-    .setVertexShader("Triangle")
-    .setPixelShader("Triangle")
+    .setVertexShader("/shaders/Triangle")
+    .setPixelShader("/shaders/Triangle")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRTVFormat(0, FormatType::Unorm8BGRA)
     .setRenderTargetCount(1)
@@ -92,12 +92,12 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
 
 }
 void Renderer::loadLogos(higanbana::FileSystem& fs) {
-  if (!fs.fileExists("/misc/dx12u_logo.png") || !fs.fileExists("/misc/vulkan_logo.png"))
+  if (!fs.fileExists("/data/misc/dx12u_logo.png") || !fs.fileExists("/data/misc/vulkan_logo.png"))
     return;
   
   // load dx12
-  auto dx_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/dx12u_logo.png", false);
-  auto vk_logo = textureUtils::loadImageFromFilesystem(fs, "/misc/vulkan_logo.png", false);
+  auto dx_logo = textureUtils::loadImageFromFilesystem(fs, "/data/misc/dx12u_logo.png", false);
+  auto vk_logo = textureUtils::loadImageFromFilesystem(fs, "/data/misc/vulkan_logo.png", false);
   m_logoDx12 = dev.createTexture(dx_logo);
   m_logoDx12Srv = dev.createTextureSRV(m_logoDx12);
   m_logoVulkan = dev.createTexture(vk_logo);
@@ -398,7 +398,8 @@ double Renderer::raytraceSecondsPerIteration(int viewportIdx) {
     return 0;
   if (viewportIdx >= viewports.size())
     return 0;
-  return viewports[viewportIdx].cpuRaytraceTime.getAverageFps();
+  auto averageTimePerFrameMS = viewports[viewportIdx].cpuRaytraceTime.analyzeFrames().x;
+  return 1000.f / averageTimePerFrameMS;
 }
 
 css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& rtworld, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
@@ -561,7 +562,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
           for (int tileCount = 0; tileCount < vp.cpuRaytrace.size(); tileCount++) {
             *vp.cpuRaytrace.tile(tileCount).iterations = 0;
           }
-          vp.cpuRaytraceTime.firstTick();
+          //vp.cpuRaytraceTime.firstTick();
           vp.currentSampleDepth = vpInfo.options.sampleDepth;
           vpInfo.options.worldChanged = false;
         }
@@ -585,7 +586,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
             }
             auto tileIdx = tiles.front()->get();
             auto tile = vp.cpuRaytrace.tileRemap(tileIdx);
-            if (tileIdx == vp.cpuRaytrace.size()-1) {
+            if (tileIdx == 0 && !vpInfo.options.raytraceRealtime) {
               vp.cpuRaytraceTime.tick();
             }
             auto dyn = dev.dynamicImage(tile.pixels, sizeof(float4) * tile.size.x);
@@ -595,6 +596,9 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
             activeNodes--;
           }
           localVec.addPass(std::move(node));
+        }
+        if (vpInfo.options.raytraceRealtime) {
+          vp.cpuRaytraceTime.tick();
         }
       }
 
@@ -625,6 +629,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
         vp.nextTileToRaytrace = (vp.nextTileToRaytrace +1) % vp.cpuRaytrace.size();
 
         auto tileTask = [&](TileView tile, float time, double2 vpsize, size_t tileIdx, int samples, int sampleDepth, rt::Camera rtCam, rt::HittableList& list, bool incremental) -> css::LowPrioTask<size_t> {
+          HIGAN_CPU_BRACKET("raytracing tile");
           double2 offset = double2(tile.offset);
           size_t iterations = *tile.iterations;
           auto total = double(samples+iterations);
@@ -816,7 +821,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       if (vpInfo.screenshot) {
         auto node = tasks.createPass("screenshot");
         auto rb = node.readback(vp.viewport);
-        std::string filename = "/test";
+        std::string filename = "/screenshot/test";
         filename += std::to_string(index);
         filename += ".png";
         readbacks.push_back(ReadbackTexture{filename, vp.viewport.desc(), rb});

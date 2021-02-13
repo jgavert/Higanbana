@@ -76,7 +76,7 @@ namespace higanbana
       size_t timeModified;
       vector<uint8_t> data;
     };
-    std::string m_resolvedFullPath;
+    //std::string m_resolvedFullPath;
     std::unordered_map<std::string, FileObj> m_files;
     std::unordered_set<std::string> m_dirs;
 
@@ -90,10 +90,12 @@ namespace higanbana
 
     bool m_initialLoadComplete = false;
 
-    std::string getBasePath();
+    std::string mountPointOSPath(std::string_view filepath);
+    std::optional<std::string> resolveNativePath(std::string_view filepath);
 
-    std::optional<std::string> tryReadMappingFile(const char* filename);
 
+    std::optional<std::unordered_map<std::string, std::string>> tryExtractMappings(std::string mappingjsonpath);
+    std::unordered_map<std::string, std::string> m_mappings;
   public:
     enum class MappingMode {
       NoMapping,
@@ -115,6 +117,7 @@ namespace higanbana
     bool tryLoadFile(std::string path);
 
     std::string directoryPath(std::string filePath);
+    std::string mountPoint(std::string_view filepath);
 
     bool writeFile(std::string path, const uint8_t* ptr, size_t size);
     bool writeFile(std::string path, higanbana::MemView<const uint8_t> view);
@@ -123,7 +126,7 @@ namespace higanbana
     void addWatchDependency(std::string watchedPath, std::string notifyPath);
     void updateWatchedFiles();
   private:
-    bool loadFileFromHDD(FileInfo& path, size_t& size);
+    bool loadFileFromHDD(FileInfo& path, std::string mountpoint, size_t& size);
   };
 
 }

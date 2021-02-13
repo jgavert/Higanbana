@@ -40,8 +40,8 @@ Particles::Particles(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayo
     .shaderArguments(1, cameras);
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
-    .setVertexShader("draw_particles")
-    .setPixelShader("draw_particles")
+    .setVertexShader("/shaders/draw_particles")
+    .setPixelShader("/shaders/draw_particles")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRasterizer(RasterizerDescriptor().setFrontCounterClockwise(false))
     .setRTVFormat(0, FormatType::Unorm8BGRA)

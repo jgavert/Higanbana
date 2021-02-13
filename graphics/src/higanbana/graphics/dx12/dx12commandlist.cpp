@@ -964,6 +964,7 @@ namespace higanbana
             bottomLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
             bottomLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
 
+            // We know exactly our dependencies for BLAS, don't need blind UAV barriers here.
             buffer->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
             break;
           }
@@ -981,6 +982,12 @@ namespace higanbana
             topLevelBuildDesc.Inputs = topLevelInputs;
             topLevelBuildDesc.ScratchAccelerationStructureData = device->allResources().buf[params.scratch].native()->GetGPUVirtualAddress();
             topLevelBuildDesc.DestAccelerationStructureData = device->allResources().buf[params.dst].native()->GetGPUVirtualAddress();
+
+            // API doesn't know if there should be UAV barrier or not, so emitting one just in case
+            // Might want to optimize later.
+            D3D12_RESOURCE_BARRIER barr{};
+            barr.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            buffer->ResourceBarrier(1, &barr);
 
             buffer->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
             break;

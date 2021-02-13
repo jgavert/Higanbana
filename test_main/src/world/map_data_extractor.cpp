@@ -40,9 +40,9 @@ namespace app
 
   std::optional<higanbana::CpuImage> readInfoFromOpenMapDataASC(higanbana::FileSystem& fs)
   {
-    if (fs.fileExists("/maps/L4133A/L4133A.asc"))
+    if (fs.fileExists("/data/maps/L4133A/L4133A.asc"))
     {
-      auto file = fs.readFile("/maps/L4133A/L4133A.asc");
+      auto file = fs.readFile("/data/maps/L4133A/L4133A.asc");
       std::string firstLine = "";
       std::string_view view(reinterpret_cast<char*>(file.data()), file.size());
       auto lineSplitted = splitToLines(view);

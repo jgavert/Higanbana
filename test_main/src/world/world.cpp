@@ -89,14 +89,14 @@ css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& datab
     std::string tryL = "trying to load gltf: " + file;
     HIGAN_CPU_BRACKET(tryL.c_str());
 
-    if (!fs.fileExists(dir+file))
+    if (!fs.fileExists(file))
       continue;
 
     cgltf_options options = {};
     cgltf_data* data = nullptr;
-    auto fdata = fs.viewToFile(dir+file);
+    auto fdata = fs.viewToFile(file);
 
-    auto parentDir = fs.directoryPath(dir+file) + "/";
+    auto parentDir = fs.directoryPath(file) + "/";
     std::unique_ptr<std::string> parentDirPtr = std::make_unique<std::string>(parentDir);
     
     cgltf_size fsize = fdata.size_bytes();

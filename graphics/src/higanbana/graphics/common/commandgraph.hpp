@@ -228,6 +228,8 @@ namespace higanbana
       int BaseVertexLocation = 0,
       unsigned StartInstanceLocation = 0)
     {
+      HIGAN_ASSERT(IndexCountPerInstance > 0, "index count 0 doesn't draw anything");
+      HIGAN_ASSERT(instanceCount > 0, "instance count 0 doesn't draw anything");
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());

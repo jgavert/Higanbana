@@ -188,6 +188,7 @@ namespace higanbana
     Window(ProgramParams params, std::string windowName, int width, int height, int offsetX = 0, int offsetY = 0);
     bool open();
     void close();
+    void title(std::string newString);
     void cursorHidden(bool enabled);
     WindowInternal& getInternalWindow() { return *m_window; }
     bool simpleReadMessages(int64_t frame);

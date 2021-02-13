@@ -18,8 +18,8 @@ Blocks::Blocks(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayout cam
 
   auto pipelineDescriptor = GraphicsPipelineDescriptor()
     .setInterface(instancePipeline)
-    .setVertexShader("blocksSimple")
-    .setPixelShader("blocksSimple")
+    .setVertexShader("/shaders/blocksSimple")
+    .setPixelShader("/shaders/blocksSimple")
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRTVFormat(0, FormatType::Float16RGBA)
     .setRTVFormat(1, FormatType::Float16RGBA)

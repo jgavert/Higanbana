@@ -25,8 +25,8 @@ Cubes::Cubes(higanbana::GpuGroup& device){
     .shaderArguments(0, triangleLayout);
 
   auto opaqueDescriptor = GraphicsPipelineDescriptor()
-    .setVertexShader("opaquePass")
-    .setPixelShader("opaquePass")
+    .setVertexShader("/shaders/opaquePass")
+    .setPixelShader("/shaders/opaquePass")
     .setInterface(opaquePassInterface)
     .setPrimitiveTopology(PrimitiveTopology::Triangle)
     .setRTVFormat(0, FormatType::Float16RGBA)
