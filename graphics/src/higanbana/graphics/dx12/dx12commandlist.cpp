@@ -507,7 +507,7 @@ namespace higanbana
       return resultingString;
     }
 
-    D3D12_RESOURCE_STATES translateAccessMask(AccessStage stage, AccessUsage usage)
+    D3D12_RESOURCE_STATES translateAccessMask(uint32_t stage, AccessUsage usage)
     {
       D3D12_RESOURCE_STATES flags = D3D12_RESOURCE_STATE_COMMON;
       if (AccessUsage::Read == usage)
@@ -667,6 +667,7 @@ namespace higanbana
           //HIGAN_ILOG("addCommandsVK", "type header %d", header->type);
           if (barrierInfoIndex < barrierInfosSize && barrierInfos[barrierInfoIndex].drawcall == drawIndex)
           {
+            //HIGAN_LOGi("barrier chance!\n");
             addBarrier(device, buffer, solver.runBarrier(barrierInfos[barrierInfoIndex]));
             barrierInfoIndex++;
           }

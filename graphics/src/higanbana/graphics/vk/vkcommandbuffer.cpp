@@ -475,7 +475,7 @@ namespace higanbana
       return allStages;
     }
 
-    vk::AccessFlags translateAccessMask(AccessStage stage, AccessUsage usage)
+    vk::AccessFlags translateAccessMask(uint32_t stage, AccessUsage usage)
     {
       vk::AccessFlags flags;
       if (AccessUsage::Read == usage || AccessUsage::ReadWrite == usage)
@@ -564,16 +564,24 @@ namespace higanbana
 
           auto& vbuffer = device->allResources().buf[buffer.handle];
 
+          auto srcQueue = idx.queue(buffer.before.queue_index);
+          auto dstQueue = idx.queue(buffer.after.queue_index);
+          if (srcQueue == VK_QUEUE_FAMILY_IGNORED || dstQueue == VK_QUEUE_FAMILY_IGNORED){
+            //HIGAN_ASSERT(srcQueue != dstQueue, "wtf!?");
+            srcQueue = VK_QUEUE_FAMILY_IGNORED;
+            dstQueue = VK_QUEUE_FAMILY_IGNORED;
+          }
+
           bufferbar.emplace_back(vk::BufferMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(buffer.before.stage, buffer.before.usage))
             .setDstAccessMask(translateAccessMask(buffer.after.stage, buffer.after.usage))
-            .setSrcQueueFamilyIndex(idx.queue(buffer.before.queue_index))
-            .setDstQueueFamilyIndex(idx.queue(buffer.after.queue_index))
+            .setSrcQueueFamilyIndex(srcQueue)
+            .setDstQueueFamilyIndex(dstQueue)
             .setBuffer(vbuffer.native())
             .setOffset(0)
             .setSize(VK_WHOLE_SIZE));
-          if (buffer.after.queue_index != buffer.after.queue_index)
-            HIGAN_ILOG("vulkan", "Woah nelly there! buffer %d -> %d", idx.queue(buffer.before.queue_index), idx.queue(buffer.after.queue_index));
+          //if (buffer.before.queue_index != buffer.after.queue_index)
+          //  HIGAN_ILOG("vulkan", "Woah nelly there! buffer %d -> %d", idx.queue(buffer.before.queue_index), idx.queue(buffer.after.queue_index));
         }
         for (auto& image : barriers.textures)
         {
@@ -589,7 +597,7 @@ namespace higanbana
             .setBaseArrayLayer(image.startArr)
             .setLayerCount(image.arrSize);
 
-          if (image.after.queue_index != image.after.queue_index)
+          if (image.before.queue_index != image.after.queue_index)
             HIGAN_ILOG("vulkan", "Woah nelly there! Texture %d -> %d", idx.queue(image.before.queue_index), idx.queue(image.after.queue_index));
           imagebar.emplace_back(vk::ImageMemoryBarrier()
             .setSrcAccessMask(translateAccessMask(image.before.stage, image.before.usage))

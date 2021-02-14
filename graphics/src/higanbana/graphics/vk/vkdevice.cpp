@@ -2898,8 +2898,9 @@ namespace higanbana
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
       vk::MemoryDedicatedAllocateInfoKHR dediInfo;
-      dediInfo.setBuffer(buffer.value);
+      dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
 
       //auto bufMemReq = m_device.getBufferMemoryRequirements(buffer.value);
       auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);

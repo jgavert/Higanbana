@@ -67,7 +67,7 @@ namespace higanbana
       struct
       {
         backend::AccessUsage usage : 2;
-        backend::AccessStage stage : 16;
+        uint32_t stage : 16;
         backend::TextureLayout layout : 4;
         QueueType queue_index : 10;
       };

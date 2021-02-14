@@ -11,6 +11,7 @@ namespace higanbana
     void BarrierSolver::addBuffer(int drawCallIndex, ViewResourceHandle buffer, ResourceState access)
     {
       m_bufferCache[buffer.resourceHandle()].state = ResourceState(backend::AccessUsage::Unknown, backend::AccessStage::Common, backend::TextureLayout::Undefined, QueueType::Unknown);
+      m_bufferCache[buffer.resourceHandle()].lastBarrierIndex = -1; 
       m_jobs.push_back(DependencyPacket{drawCallIndex, buffer, access});
       m_uniqueBuffers.insert(buffer.resourceHandle());
     }
@@ -81,12 +82,18 @@ namespace higanbana
             auto lastAccess = resource.state;
             auto lastWriting = lastAccess.usage == AccessUsage::ReadWrite || lastAccess.usage == AccessUsage::Write;
             auto nextWriting = jobResAccess.usage == AccessUsage::ReadWrite || jobResAccess.usage == AccessUsage::Write;
+            auto readread = !lastWriting && !nextWriting;
             auto uavFlush = lastAccess.stage != AccessStage::Rendertarget && lastWriting == nextWriting;
             if (lastAccess.stage == AccessStage::AccelerationStructure && lastAccess.stage == jobResAccess.stage && lastWriting)
               uavFlush = true;
             if (lastAccess.stage == AccessStage::AccelerationStructure)
               HIGAN_ASSERT(jobResAccess.stage == lastAccess.stage, "not allowed to change accelerationstructure from acceleration structure");
             auto isDifferentFromCommon = (lastAccess.usage != AccessUsage::Unknown && lastAccess.stage != AccessStage::Common) || !allowCommonOptimization;
+
+            if (readread) {
+              // combine
+              jobResAccess.stage = lastAccess.stage | jobResAccess.stage;
+            }
 
             if (lastAccess.queue_index != jobResAccess.queue_index && jobResAccess.stage == AccessStage::Common)
             {
@@ -118,9 +125,18 @@ namespace higanbana
               src.queue_index = QueueType::Unknown;
               auto dst = jobResAccess;
               dst.queue_index = QueueType::Unknown;
-              bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resourceHandle()});
-              ++bufferBarrierOffsets;
-              resource.state = job.nextAccess;
+              bool handled = false;
+              if (readread && resource.lastBarrierIndex != -1) {
+                auto& b = bufferBarriers[resource.lastBarrierIndex];
+                b.after = dst;
+                handled = true;
+              }
+              if (!handled) {
+                bufferBarriers.emplace_back(BufferBarrier{src, dst, job.resource.resourceHandle()});
+                resource.lastBarrierIndex = bufferBarrierOffsets;
+                ++bufferBarrierOffsets;
+              }
+              resource.state = dst;
             }
             else
             {

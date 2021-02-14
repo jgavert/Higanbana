@@ -74,6 +74,7 @@ namespace higanbana
       struct SmallBuffer
       {
         ResourceState state;
+        int lastBarrierIndex;
       };
 
       struct SmallTexture

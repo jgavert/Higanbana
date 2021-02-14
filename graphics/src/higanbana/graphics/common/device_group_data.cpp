@@ -246,22 +246,22 @@ namespace higanbana
           // uint types
           case 1:
           {
-            HIGAN_SLOG("Shader Debug", "uint  %u\n", rb[offset+1]);
+            HIGAN_ILOG("Shader Debug", "uint  %u", rb[offset+1]);
             break;
           }
           case 2:
           {
-            HIGAN_SLOG("Shader Debug", "uint2 %u %u\n", rb[offset+1], rb[offset+2]);
+            HIGAN_ILOG("Shader Debug", "uint2 %u %u", rb[offset+1], rb[offset+2]);
             break;
           }
           case 3:
           {
-            HIGAN_SLOG("Shader Debug", "uint3 %u %u %u\n", rb[offset+1], rb[offset+2], rb[offset+3]);
+            HIGAN_ILOG("Shader Debug", "uint3 %u %u %u", rb[offset+1], rb[offset+2], rb[offset+3]);
             break;
           }
           case 4:
           {
-            HIGAN_SLOG("Shader Debug", "uint4 %u %u %u %u\n", rb[offset+1], rb[offset+2], rb[offset+3], rb[offset+4]);
+            HIGAN_ILOG("Shader Debug", "uint4 %u %u %u %u", rb[offset+1], rb[offset+2], rb[offset+3], rb[offset+4]);
             break;
           }
           // int types
@@ -269,28 +269,28 @@ namespace higanbana
           {
             int val;
             memcpy(&val, &rb[offset+1], sizeof(int));
-            HIGAN_SLOG("Shader Debug", "int  %d\n", val);
+            HIGAN_ILOG("Shader Debug", "int  %d", val);
             break;
           }
           case 6:
           {
             int val[2];
             memcpy(&val, &rb[offset+1], sizeof(int)*2);
-            HIGAN_SLOG("Shader Debug", "int2 %d %d\n", val[0], val[1]);
+            HIGAN_ILOG("Shader Debug", "int2 %d %d", val[0], val[1]);
             break;
           }
           case 7:
           {
             int val[3];
             memcpy(&val, &rb[offset+1], sizeof(int)*3);
-            HIGAN_SLOG("Shader Debug", "int3 %d %d %d\n", val[0], val[1], val[2]);
+            HIGAN_ILOG("Shader Debug", "int3 %d %d %d", val[0], val[1], val[2]);
             break;
           }
           case 8:
           {
             int val[4];
             memcpy(&val, &rb[offset+1], sizeof(int)*4);
-            HIGAN_SLOG("Shader Debug", "int4 %d %d %d %d\n", val[0], val[1], val[2], val[3]);
+            HIGAN_ILOG("Shader Debug", "int4 %d %d %d %d", val[0], val[1], val[2], val[3]);
             break;
           }
           // float types
@@ -298,28 +298,28 @@ namespace higanbana
           {
             float val;
             memcpy(&val, &rb[offset+1], sizeof(float));
-            HIGAN_SLOG("Shader Debug", "float  %f\n", val);
+            HIGAN_ILOG("Shader Debug", "float  %f", val);
             break;
           }
           case 10:
           {
             float val[2];
             memcpy(&val, &rb[offset+1], sizeof(float)*2);
-            HIGAN_SLOG("Shader Debug", "float2 %f %f\n", val[0], val[1]);
+            HIGAN_ILOG("Shader Debug", "float2 %f %f", val[0], val[1]);
             break;
           }
           case 11:
           {
             float val[3];
             memcpy(&val, &rb[offset+1], sizeof(float)*3);
-            HIGAN_SLOG("Shader Debug", "float3 %f %f %f\n", val[0], val[1], val[2]);
+            HIGAN_ILOG("Shader Debug", "float3 %f %f %f", val[0], val[1], val[2]);
             break;
           }
           case 12:
           {
             float val[4];
             memcpy(&val, &rb[offset+1], sizeof(float)*4);
-            HIGAN_SLOG("Shader Debug", "float4 %f %f %f %f\n", val[0], val[1], val[2], val[3]);
+            HIGAN_ILOG("Shader Debug", "float4 %f %f %f %f", val[0], val[1], val[2], val[3]);
             break;
           }
           default:
@@ -1010,6 +1010,21 @@ namespace higanbana
               }
               break;
             }
+            case PacketType::DrawIndexed:
+            {
+              HIGAN_ASSERT(insideRenderpass, "Has to be inside renderpass");
+              auto usedDrawIndex = drawIndex;
+              if (insideRenderpass)
+              {
+                usedDrawIndex = drawIndexBeginRenderpass;
+              }
+              auto& packet = header->data<gfxpacket::DrawIndexed>();
+              HIGAN_ASSERT(packet.indexbuffer.id != ResourceHandle::InvalidId, "Must be valid handle.");
+              if (packet.indexbuffer.type == ViewResourceType::BufferIBV) {
+                solver.addBuffer(usedDrawIndex, packet.indexbuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Index, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
             case PacketType::ResourceBindingGraphics:
             {
               auto& packet = header->data<gfxpacket::ResourceBindingGraphics>();
@@ -1133,6 +1148,7 @@ namespace higanbana
             }
             case PacketType::BufferCopy:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::BufferCopy>();
               ViewResourceHandle src;
               src.resource = packet.src.rawValue;
@@ -1144,6 +1160,7 @@ namespace higanbana
             }
             case PacketType::DynamicBufferCopy:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::DynamicBufferCopy>();
               ViewResourceHandle dst;
               dst.resource = packet.dst.rawValue;
@@ -1152,6 +1169,7 @@ namespace higanbana
             }
             case PacketType::ReadbackTexture:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::ReadbackTexture>();
               ViewResourceHandle src;
               src.resource = packet.src.rawValue;
@@ -1173,6 +1191,7 @@ namespace higanbana
             }
             case PacketType::ReadbackBuffer:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::ReadbackBuffer>();
               ViewResourceHandle src;
               src.resource = packet.src.rawValue;
@@ -1190,6 +1209,7 @@ namespace higanbana
             }
             case PacketType::UpdateTexture:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::UpdateTexture>();
               ViewResourceHandle viewhandle{};
               viewhandle.resource = packet.tex.rawValue;
@@ -1199,6 +1219,7 @@ namespace higanbana
             }
             case PacketType::TextureToBufferCopy:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::TextureToBufferCopy>();
               ViewResourceHandle dst;
               dst.resource = packet.dstBuffer.rawValue;
@@ -1211,6 +1232,7 @@ namespace higanbana
             }
             case PacketType::BufferToTextureCopy:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::BufferToTextureCopy>();
               ViewResourceHandle dst;
               dst.resource = packet.dstTexture.rawValue;
@@ -1223,19 +1245,22 @@ namespace higanbana
             }
             case PacketType::TextureToTextureCopy:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::TextureToTextureCopy>();
               ViewResourceHandle src;
               src.resource = packet.src.rawValue;
               src.subresourceRange(packet.srcMip, 1, packet.srcSlice, 1);
+              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
+              
               ViewResourceHandle dst;
               dst.resource = packet.dst.rawValue;
               dst.subresourceRange(packet.dstMip, 1, packet.dstSlice, 1);
               solver.addTexture(drawIndex, dst, ResourceState(backend::AccessUsage::Write, backend::AccessStage::Transfer, backend::TextureLayout::TransferDst, queue));
-              solver.addTexture(drawIndex, src, ResourceState(backend::AccessUsage::Read,  backend::AccessStage::Transfer, backend::TextureLayout::TransferSrc, queue));
               break;
             }
             case PacketType::PrepareForPresent:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::PrepareForPresent>();
               ViewResourceHandle viewhandle{};
               viewhandle.resource = packet.texture.rawValue;
@@ -1247,6 +1272,7 @@ namespace higanbana
               break;
             case PacketType::BuildBLASTriangle:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::BuildBLASTriangle>();
               HIGAN_ASSERT(packet.dst.id != ResourceHandle::InvalidId, "Must be valid handle.");
               ViewResourceHandle dst;
@@ -1278,6 +1304,7 @@ namespace higanbana
             }
             case PacketType::BuildTLAS:
             {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
               auto& packet = header->data<gfxpacket::BuildTLAS>();
               HIGAN_ASSERT(packet.dst.id != ResourceHandle::InvalidId, "Must be valid handle.");
               ViewResourceHandle dst;
@@ -1295,13 +1322,20 @@ namespace higanbana
               solver.addBuffer(drawIndex, instances, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Compute, backend::TextureLayout::General, queue));
               break;
             }
+            case PacketType::Dispatch:
+            {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
+              break;
+            }
+            case PacketType::Draw:
+            {
+              HIGAN_ASSERT(insideRenderpass, "Has to be outside renderpass");
+              break;
+            }
+            case PacketType::DispatchMesh:
             case PacketType::RenderBlock:
             case PacketType::GraphicsPipelineBind:
             case PacketType::ComputePipelineBind:
-            case PacketType::Dispatch:
-            case PacketType::DispatchMesh:
-            case PacketType::Draw:
-            case PacketType::DrawIndexed:
             case PacketType::ScissorRect:
             case PacketType::EndOfPackets:
             case PacketType::ReadbackShaderDebug:
