@@ -793,6 +793,12 @@ namespace higanbana
             buffer->Dispatch(params.groups.x, params.groups.y, params.groups.z);
             break;
           }
+          case PacketType::DispatchMesh:
+          {
+            auto params = header->data<gfxpacket::DispatchMesh>();
+            buffer->DispatchMesh(params.xDim, 1, 1);
+            break;
+          }
           case PacketType::DynamicBufferCopy:
           {
             auto params = header->data<gfxpacket::DynamicBufferCopy>();

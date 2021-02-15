@@ -1168,11 +1168,13 @@ namespace higanbana
         }
         case ShaderType::Amplification:
         {
-          HIGAN_ASSERT(false, "Insert amplification shaders support");
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, bytecode);
+          break;
         }
         case ShaderType::Mesh:
         {
-          HIGAN_ASSERT(false, "Insert mesh shaders support");
+          desc.shader(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, bytecode);
+          break;
         }
         default:
           break;
@@ -1415,7 +1417,7 @@ namespace higanbana
         elementCount = bufferDesc.desc.width;
         if (viewDesc.m_format != FormatType::Unknown)
         {
-          elementCount = elementCount * elementSize;
+          elementCount = elementCount / elementSize;
         }
       }
 

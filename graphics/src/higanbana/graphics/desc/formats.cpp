@@ -49,6 +49,15 @@ namespace higanbana
     { FormatType::Depth32_Stencil8, 8, 1, FormatTypeIdentifier::Unknown },
   };
 
+  FormatType formatToSRGB(FormatType format) {
+    if (format == FormatType::Unorm8RGBA){
+      return FormatType::Unorm8SRGBA;
+    }else if (format == FormatType::Unorm8BGRA) {
+      return FormatType::Unorm8SBGRA;
+    }
+    return format;
+  }
+
   FormatType findFormat(int components, int bits, FormatTypeIdentifier pixelType)
   {
     auto wantedPixelSize = (bits / 8) * components;
