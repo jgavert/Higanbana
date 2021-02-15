@@ -233,6 +233,80 @@ namespace higanbana
       }
     };
 
+    struct DrawIndirect
+    {
+      uint maxCommands;
+      ViewResourceHandle indirectBuffer;
+      ViewResourceHandle countBuffer;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DrawIndirect;
+      static void constructor(backend::CommandBuffer& , DrawIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      {
+        packet.maxCommands = commands;
+        packet.indirectBuffer = handle;
+        packet.countBuffer = count;
+        static_assert(std::is_standard_layout<DrawIndirect>::value, "this is trivial packet");
+      }
+    };
+    struct DrawIndexedIndirect
+    {
+      ViewResourceHandle indexbuffer;
+      uint maxCommands;
+      ViewResourceHandle indirectBuffer;
+      ViewResourceHandle countBuffer;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DrawIndexedIndirect;
+      static void constructor(backend::CommandBuffer& , DrawIndexedIndirect& packet, ViewResourceHandle ibv, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      {
+        packet.indexbuffer = ibv;
+        packet.maxCommands = commands;
+        packet.indirectBuffer = handle;
+        packet.countBuffer = count;
+        static_assert(std::is_standard_layout<DrawIndexedIndirect>::value, "this is trivial packet");
+      }
+    };
+    struct DispatchIndirect
+    {
+      ViewResourceHandle indirectBuffer;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DispatchIndirect;
+      static void constructor(backend::CommandBuffer& , DispatchIndirect& packet, ViewResourceHandle handle)
+      {
+        packet.indirectBuffer = handle;
+        static_assert(std::is_standard_layout<DispatchIndirect>::value, "this is trivial packet");
+      }
+    };
+    struct DispatchRaysIndirect
+    {
+      uint maxCommands;
+      ViewResourceHandle indirectBuffer;
+      ViewResourceHandle countBuffer;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DispatchRaysIndirect;
+      static void constructor(backend::CommandBuffer& , DispatchRaysIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      {
+        packet.maxCommands = commands;
+        packet.indirectBuffer = handle;
+        packet.countBuffer = count;
+        static_assert(std::is_standard_layout<DispatchRaysIndirect>::value, "this is trivial packet");
+      }
+    };
+    struct DispatchMeshIndirect
+    {
+      uint maxCommands;
+      ViewResourceHandle indirectBuffer;
+      ViewResourceHandle countBuffer;
+
+      static constexpr const backend::PacketType type = backend::PacketType::DispatchMeshIndirect;
+      static void constructor(backend::CommandBuffer& , DispatchMeshIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      {
+        packet.maxCommands = commands;
+        packet.indirectBuffer = handle;
+        packet.countBuffer = count;
+        static_assert(std::is_standard_layout<DispatchMeshIndirect>::value, "this is trivial packet");
+      }
+    };
+
     struct DynamicBufferCopy
     {
       ResourceHandle dst;

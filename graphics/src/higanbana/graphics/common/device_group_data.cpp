@@ -696,8 +696,9 @@ namespace higanbana
       else
       {
         for (auto& vdev : m_devices)
-        {
+        { 
           auto memRes = vdev.device->getReqs(desc); // memory requirements
+          //HIGAN_LOGi("format: \"%s\"\t dim:%zux%zu size: %zu bytes alignment: %zu bytes\n", formatToString(desc.desc.format), desc.desc.width, desc.desc.height, memRes.bytes, memRes.alignment);
           auto allo = vdev.heaps.allocate(memRes, [&](HeapDescriptor desc)
           {
             auto memHandle = m_handles.allocateResource(ResourceType::MemoryHeap);
@@ -1013,15 +1014,82 @@ namespace higanbana
             case PacketType::DrawIndexed:
             {
               HIGAN_ASSERT(insideRenderpass, "Has to be inside renderpass");
-              auto usedDrawIndex = drawIndex;
-              if (insideRenderpass)
-              {
-                usedDrawIndex = drawIndexBeginRenderpass;
-              }
+              auto usedDrawIndex = drawIndexBeginRenderpass;
               auto& packet = header->data<gfxpacket::DrawIndexed>();
-              HIGAN_ASSERT(packet.indexbuffer.id != ResourceHandle::InvalidId, "Must be valid handle.");
+              HIGAN_ASSERT(packet.indexbuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
               if (packet.indexbuffer.type == ViewResourceType::BufferIBV) {
                 solver.addBuffer(usedDrawIndex, packet.indexbuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Index, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::DrawIndirect:
+            {
+              HIGAN_ASSERT(insideRenderpass, "Has to be inside renderpass");
+              auto usedDrawIndex = drawIndexBeginRenderpass;
+              auto& packet = header->data<gfxpacket::DrawIndirect>();
+              HIGAN_ASSERT(packet.indirectBuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indirectBuffer.type == ViewResourceType::BufferSRV) {
+                solver.addBuffer(usedDrawIndex, packet.indirectBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              if (packet.countBuffer.id != ViewResourceHandle::InvalidViewId) {
+                solver.addBuffer(usedDrawIndex, packet.countBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::DrawIndexedIndirect:
+            {
+              HIGAN_ASSERT(insideRenderpass, "Has to be inside renderpass");
+              auto usedDrawIndex = drawIndexBeginRenderpass;
+              auto& packet = header->data<gfxpacket::DrawIndexedIndirect>();
+              HIGAN_ASSERT(packet.indexbuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indexbuffer.type == ViewResourceType::BufferIBV) {
+                solver.addBuffer(usedDrawIndex, packet.indexbuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Index, backend::TextureLayout::General, queue));
+              }
+              HIGAN_ASSERT(packet.indirectBuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indirectBuffer.type == ViewResourceType::BufferSRV) {
+                solver.addBuffer(usedDrawIndex, packet.indirectBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              if (packet.countBuffer.id != ViewResourceHandle::InvalidViewId) {
+                solver.addBuffer(usedDrawIndex, packet.countBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::DispatchIndirect:
+            {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
+              auto usedDrawIndex = drawIndex;
+              auto& packet = header->data<gfxpacket::DispatchIndirect>();
+              HIGAN_ASSERT(packet.indirectBuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indirectBuffer.type == ViewResourceType::BufferSRV) {
+                solver.addBuffer(usedDrawIndex, packet.indirectBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::DispatchRaysIndirect:
+            {
+              HIGAN_ASSERT(!insideRenderpass, "Has to be outside renderpass");
+              auto usedDrawIndex = drawIndex;
+              auto& packet = header->data<gfxpacket::DispatchRaysIndirect>();
+              HIGAN_ASSERT(packet.indirectBuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indirectBuffer.type == ViewResourceType::BufferSRV) {
+                solver.addBuffer(usedDrawIndex, packet.indirectBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              if (packet.countBuffer.id != ViewResourceHandle::InvalidViewId) {
+                solver.addBuffer(usedDrawIndex, packet.countBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              break;
+            }
+            case PacketType::DispatchMeshIndirect:
+            {
+              HIGAN_ASSERT(insideRenderpass, "Has to be inside renderpass");
+              auto usedDrawIndex = drawIndexBeginRenderpass;
+              auto& packet = header->data<gfxpacket::DispatchMeshIndirect>();
+              HIGAN_ASSERT(packet.indirectBuffer.id != ViewResourceHandle::InvalidViewId, "Must be valid handle.");
+              if (packet.indirectBuffer.type == ViewResourceType::BufferSRV) {
+                solver.addBuffer(usedDrawIndex, packet.indirectBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
+              }
+              if (packet.countBuffer.id != ViewResourceHandle::InvalidViewId) {
+                solver.addBuffer(usedDrawIndex, packet.countBuffer, ResourceState(backend::AccessUsage::Read, backend::AccessStage::Indirect, backend::TextureLayout::General, queue));
               }
               break;
             }
@@ -1374,7 +1442,7 @@ namespace higanbana
       timing.barrierAdd.stop();
 
       timing.barrierSolveLocal.start();
-      solver.localBarrierPass1(isFirstList);
+      solver.localBarrierPass1(isFirstList && vdev.info.api == GraphicsApi::DX12);
       timing.barrierSolveLocal.stop();
     }
 

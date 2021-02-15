@@ -183,6 +183,10 @@ namespace higanbana
 			return "Unorm10RGB2A";
 		case FormatType::Raw32:
 			return "Raw32";
+		case FormatType::Depth24:
+			return "Depth24";
+		case FormatType::Depth24_Stencil8:
+			return "Depth24_Stencil8";
 		case FormatType::Depth32:
 			return "Depth32";
 		case FormatType::Depth32_Stencil8:

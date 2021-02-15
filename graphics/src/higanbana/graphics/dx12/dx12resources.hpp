@@ -1178,28 +1178,35 @@ namespace higanbana
     {
     private:
       DX12CPUDescriptor resource;
+      uint byteOffsetFromBeginning = 0;
       ID3D12Resource* refResource;
       D3D12_INDEX_BUFFER_VIEW m_ibv;
 
     public:
       DX12BufferView()
       {}
-      DX12BufferView(DX12CPUDescriptor resource)
+      DX12BufferView(DX12CPUDescriptor resource, unsigned byteOffsetFromBeginning)
         : resource(resource)
+        , byteOffsetFromBeginning(byteOffsetFromBeginning)
         , refResource(nullptr)
       {}
-      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes)
+      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes, unsigned byteOffsetFromBeginning)
         : resource(resource)
+        , byteOffsetFromBeginning(byteOffsetFromBeginning)
         , refResource(refRes)
       {}
-      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes, D3D12_INDEX_BUFFER_VIEW ibv)
+      DX12BufferView(DX12CPUDescriptor resource, ID3D12Resource* refRes, D3D12_INDEX_BUFFER_VIEW ibv, unsigned byteOffsetFromBeginning)
         : resource(resource)
+        , byteOffsetFromBeginning(byteOffsetFromBeginning)
         , refResource(refRes)
         , m_ibv(ibv)
       {}
       DX12CPUDescriptor native()
       {
         return resource;
+      }
+      unsigned byteOffset() const {
+        return byteOffsetFromBeginning;
       }
       ID3D12Resource* ref()
       {

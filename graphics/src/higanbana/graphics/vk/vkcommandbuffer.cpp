@@ -776,6 +776,89 @@ namespace higanbana
             buffer.dispatch(params.groups.x, params.groups.y, params.groups.z, m_dispatch);
             break;
           }
+          case PacketType::DrawIndirect:
+          {
+            auto params = header->data<gfxpacket::DrawIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
+              buffer.drawIndirectCount(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DrawParams), m_dispatch);
+            }
+            else {
+              buffer.drawIndirect(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DrawParams), m_dispatch);
+            }
+            break;
+          }
+          case PacketType::DrawIndexedIndirect:
+          {
+            auto params = header->data<gfxpacket::DrawIndexedIndirect>();
+            if (params.indexbuffer.type == ViewResourceType::BufferIBV && params.indexbuffer != m_boundIndexBuffer)
+            {
+              auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+              buffer.bindIndexBuffer(ibv.native().indexBuffer, ibv.native().offset, ibv.native().indexType, m_dispatch);
+              m_boundIndexBuffer = params.indexbuffer;
+            }
+            else if (params.indexbuffer != m_boundIndexBuffer)
+            {
+              auto& ibv = device->allResources().dynBuf[params.indexbuffer];
+              buffer.bindIndexBuffer(ibv.native().buffer, ibv.native().block.block.offset, ibv.native().index, m_dispatch);
+              m_boundIndexBuffer = params.indexbuffer;
+            }
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
+              buffer.drawIndexedIndirectCount(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DrawIndexedParams), m_dispatch);
+            }
+            else {
+              buffer.drawIndexedIndirect(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DrawIndexedParams), m_dispatch);
+            }
+            break;
+          }
+          case PacketType::DispatchIndirect:
+          {
+            auto params = header->data<gfxpacket::DispatchIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
+            buffer.dispatchIndirect(buf.native(), srv.native().offset, m_dispatch);
+            break;
+          }
+          case PacketType::DispatchRaysIndirect:
+          {
+            HIGAN_ASSERT(false, "unimplemented");
+            /*
+            auto params = header->data<gfxpacket::DrawIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
+              buffer.drawIndirectCount(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DispatchRaysParams), m_dispatch);
+            }
+            else {
+              buffer.traceRaysIndirectKHR(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DispatchRaysParams), m_dispatch);
+            }
+            */
+            break;
+          }
+          case PacketType::DispatchMeshIndirect:
+          {
+            auto params = header->data<gfxpacket::DispatchMeshIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
+              buffer.drawMeshTasksIndirectCountNV(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DispatchParams), m_dispatch);
+            }
+            else {
+              buffer.drawMeshTasksIndirectNV(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DispatchParams), m_dispatch);
+            }
+            break;
+          }
           case PacketType::BufferCopy:
           {
             auto params = header->data<gfxpacket::BufferCopy>();

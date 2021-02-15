@@ -86,19 +86,14 @@ namespace higanbana
 
           {
             ComPtr<ID3D12Device> testDevice;
-            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
 
-            auto success = SUCCEEDED(D3D12CreateDevice(wanted.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
-                        && SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)));
+            auto success = SUCCEEDED(D3D12CreateDevice(wanted.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)));
             if (!success)
             {
               i++;
               continue;
             }
             GFX_LOG("Gpu: %s\n", info.name.c_str());
-            info.canRaytrace = featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
-            GFX_LOG("Raytracing Tier %d\n", featureSupportData.RaytracingTier);
-            GFX_LOG("Renderpasses Tier %d\n", featureSupportData.RenderPassesTier);
 
             D3D12_FEATURE_DATA_ARCHITECTURE1 archi = {};
             if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &archi, sizeof(archi))))
@@ -123,11 +118,24 @@ namespace higanbana
             {
               GFX_LOG("Native 16bit Shader Ops %s\n", opt4.Native16BitShaderOpsSupported ? "Supported" : "Unsupported");
             }
-
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 opt5 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &opt5, sizeof(opt5))))
+            {
+              info.canRaytrace = opt5.RaytracingTier == D3D12_RAYTRACING_TIER_1_1;
+              GFX_LOG("Raytracing tier 1.1 %s\n", info.canRaytrace ? "Supported" : "Unsupported");
+              GFX_LOG("Renderpasses Tier %d\n", featureSupportData.RenderPassesTier);
+            }
             D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
             if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opt6, sizeof(opt6))))
             {
               GFX_LOG("Variable Shading Tier %d\n", opt6.VariableShadingRateTier);
+              info.canVariableRate = opt6.VariableShadingRateTier != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED;
+            }
+            D3D12_FEATURE_DATA_D3D12_OPTIONS7 opt7 = {};
+            if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &opt7, sizeof(opt7))))
+            {
+              GFX_LOG("Mesh Shader Tier %d\n", opt7.MeshShaderTier);
+              info.canMeshshader = opt7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
             }
           }
 
@@ -252,9 +260,7 @@ namespace higanbana
             D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
-            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
-            D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
-            D3D12_MESSAGE_ID_COPY_DESCRIPTORS_INVALID_RANGES
+            D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH,
           };
 
           D3D12_INFO_QUEUE_FILTER filter = {};

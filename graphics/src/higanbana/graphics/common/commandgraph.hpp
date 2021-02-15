@@ -232,6 +232,10 @@ namespace higanbana
       HIGAN_ASSERT(instanceCount > 0, "instance count 0 doesn't draw anything");
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
+
+      addReadShared(view.handle().resourceHandle());
+      m_referencedBuffers.setBit(view.handle().id);
+
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
@@ -271,6 +275,82 @@ namespace higanbana
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       HIGAN_ASSERT(groups.y == 1 && groups.z == 1, "Only x group is read for now, because of vulkan limitations");
       list->dispatchMesh(groups.x);
+    }
+
+    void drawIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      if (count.buffer().handle().id != ResourceHandle::InvalidId){
+        addReadShared(count.buffer().handle());
+        m_referencedBuffers.setBit(count.buffer().handle().id);
+      }
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->drawIndirect(maxCommands, indirect, count);
+    }
+
+    void drawIndexedIndirect(ShaderArgumentsBinding& binding, DynamicBufferView& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      if (count.buffer().handle().id != ResourceHandle::InvalidId){
+        addReadShared(count.buffer().handle());
+        m_referencedBuffers.setBit(count.buffer().handle().id);
+      }
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->drawIndexedIndirect(ibv, maxCommands, indirect, count);
+    }
+
+    void drawIndexedIndirect(ShaderArgumentsBinding& binding, BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(ibv.buffer().handle());
+      m_referencedBuffers.setBit(ibv.buffer().handle().id);
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      if (count.buffer().handle().id != ResourceHandle::InvalidId){
+        addReadShared(count.buffer().handle());
+        m_referencedBuffers.setBit(count.buffer().handle().id);
+      }
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->drawIndexedIndirect(ibv, maxCommands, indirect, count);
+    }
+
+    void dispatchIndirect(ShaderArgumentsBinding& binding, const BufferSRV& indirect) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->dispatchIndirect(indirect);
+    }
+
+    void dispatchRaysIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      if (count.buffer().handle().id != ResourceHandle::InvalidId){
+        m_referencedBuffers.setBit(count.buffer().handle().id);
+        addReadShared(count.buffer().handle());
+      }
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->dispatchRaysIndirect(maxCommands, indirect, count);
+    }
+
+    void dispatchMeshIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+      addRefArgs(binding.bShaderArguments());
+      addConstantSize(binding.bConstants().size_bytes());
+      addReadShared(indirect.buffer().handle());
+      m_referencedBuffers.setBit(indirect.buffer().handle().id);
+      if (count.buffer().handle().id != ResourceHandle::InvalidId){
+        m_referencedBuffers.setBit(count.buffer().handle().id);
+        addReadShared(count.buffer().handle());
+      }
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->dispatchMeshIndirect(maxCommands, indirect, count);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)

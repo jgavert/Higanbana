@@ -40,6 +40,11 @@ namespace higanbana
       Draw,
       DrawIndexed,
       DispatchMesh,
+      DrawIndirect,
+      DrawIndexedIndirect,
+      DispatchIndirect,
+      DispatchRaysIndirect,
+      DispatchMeshIndirect,
       ScissorRect,
       ReadbackShaderDebug,
       // special raytracing

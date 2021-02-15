@@ -2253,20 +2253,25 @@ namespace higanbana
 
       auto& desc = resDesc.desc;
 
-      auto elementSize = desc.stride; // TODO: actually 0 most of the time. FIX SIZE FROM FORMAT.
+      uint elementSize = desc.stride;
       FormatType format = viewDesc.m_format;
       if (format == FormatType::Unknown)
         format = desc.format;
       else {
         elementSize = formatSizeInfo(format).pixelSize;
+      } 
+      auto elementCount = viewDesc.m_elementCount;
+      if (elementCount == -1)
+      {
+        elementCount = desc.width;
+        if (viewDesc.m_format != FormatType::Unknown)
+        {
+          elementCount = elementCount / elementSize;
+        }
       }
 
-      auto sizeInElements = desc.width;
       auto firstElement = viewDesc.m_firstElement * elementSize;
-      //HIGAN_ASSERT(viewDesc.m_firstElement == firstElement, "first element should be something else element %u vs byteoffset %u", viewDesc.m_firstElement, firstElement);
-      auto maxRange = viewDesc.m_elementCount * elementSize;
-      if (viewDesc.m_elementCount <= 0)
-        maxRange = elementSize * sizeInElements; // VK_WHOLE_SIZE
+      auto maxRange = elementCount * elementSize;
 
       vk::DescriptorType type = vk::DescriptorType::eStorageBuffer;
       if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)

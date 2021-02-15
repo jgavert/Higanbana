@@ -59,7 +59,7 @@ namespace higanbana
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &m_features.opt4, sizeof(m_features.opt4));
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &m_features.opt5, sizeof(m_features.opt5));
       if (m_features.opt5.RaytracingTier == D3D12_RAYTRACING_TIER_1_1) {
-        HIGAN_LOGi("supports DXR1.1 !!");
+        HIGAN_LOGi("supports DXR1.1 !!\n");
       }
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &m_features.opt6, sizeof(m_features.opt6));
 
@@ -250,6 +250,27 @@ namespace higanbana
         m_shaderDebugTableCPU = m_generics.allocate();
         m_device->CreateUnorderedAccessView(bufferS, nullptr, &natDesc, m_shaderDebugTableCPU.cpu);
       }
+      // command signature tiem
+      // Each command consists of a CBV update and a DrawInstanced call.
+      auto createIndirect = [&](D3D12_INDIRECT_ARGUMENT_TYPE type, uint stride)
+      {
+        D3D12_INDIRECT_ARGUMENT_DESC argumentDescs[1] = {};
+        argumentDescs[0].Type = type;
+
+        D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
+        commandSignatureDesc.pArgumentDescs = argumentDescs;
+        commandSignatureDesc.NumArgumentDescs = _countof(argumentDescs);
+        commandSignatureDesc.ByteStride = stride; sizeof(D3D12_DRAW_ARGUMENTS);
+        ComPtr<ID3D12CommandSignature> m_commandSignature;
+
+        HIGANBANA_CHECK_HR(m_device->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&m_commandSignature)));
+        return m_commandSignature;
+      };
+      m_drawSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,sizeof(D3D12_DRAW_ARGUMENTS));
+      m_drawIndexedSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED,sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
+      m_dispatchSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,sizeof(D3D12_DISPATCH_ARGUMENTS));
+      m_dispatchRaysSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS,sizeof(D3D12_DISPATCH_RAYS_DESC));
+      m_dispatchMeshSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH,sizeof(D3D12_DISPATCH_MESH_ARGUMENTS));
 
       // get queue to cpu calibrations...
       calibrateClockTimings();
@@ -340,6 +361,21 @@ namespace higanbana
     DX12Resources& DX12Device::allResources()
     {
       return m_allRes;
+    }
+    ID3D12CommandSignature* DX12Device::drawSignature() const {
+      return m_drawSignature.Get();
+    }
+    ID3D12CommandSignature* DX12Device::drawIndexedSignature() const {
+      return m_drawIndexedSignature.Get();
+    }
+    ID3D12CommandSignature* DX12Device::dispatchSignature() const {
+      return m_dispatchSignature.Get();
+    }
+    ID3D12CommandSignature* DX12Device::dispatchRaysSignature() const {
+      return m_dispatchRaysSignature.Get();
+    }
+    ID3D12CommandSignature* DX12Device::dispatchMeshSignature() const {
+      return m_dispatchMeshSignature.Get();
     }
 
     D3D12_RESOURCE_DESC DX12Device::fillPlacedBufferInfo(ResourceDescriptor descriptor)
@@ -892,6 +928,7 @@ namespace higanbana
       reqs.alignment = requirements.Alignment;
       reqs.bytes = requirements.SizeInBytes;
 
+
       type = HeapType::Default;
       if (desc.desc.usage == ResourceUsage::Upload)
         type = HeapType::Upload;
@@ -1420,6 +1457,7 @@ namespace higanbana
           elementCount = elementCount / elementSize;
         }
       }
+      uint startInBytes = viewDesc.m_firstElement * elementCount * elementSize;
 
       if (viewDesc.m_viewType == ResourceShaderType::IndexBuffer)
       {
@@ -1427,7 +1465,7 @@ namespace higanbana
         view.BufferLocation = native.native()->GetGPUVirtualAddress() + viewDesc.m_firstElement * elementSize;
         view.Format = formatTodxFormat(format).view;
         view.SizeInBytes = elementCount * elementSize;
-        m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native(), view);
+        m_allRes.bufIBV[handle] = DX12BufferView(DX12CPUDescriptor{}, native.native(), view, startInBytes);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::RaytracingAccelerationStructure) {
         D3D12_SHADER_RESOURCE_VIEW_DESC natDesc{};
@@ -1447,7 +1485,7 @@ namespace higanbana
         natDesc.Buffer.Flags =  D3D12_BUFFER_SRV_FLAG_RAW;
         m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
 #endif
-        m_allRes.bufRTAS[handle] = DX12BufferView(descriptor);
+        m_allRes.bufRTAS[handle] = DX12BufferView(descriptor, native.native(), startInBytes);
       }
       else if (viewDesc.m_viewType == ResourceShaderType::ReadOnly)
       {
@@ -1460,7 +1498,7 @@ namespace higanbana
         natDesc.Buffer.StructureByteStride = (format == FormatType::Unknown) ? elementSize : 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
         m_device->CreateShaderResourceView(native.native(), &natDesc, descriptor.cpu);
-        m_allRes.bufSRV[handle] = DX12BufferView(descriptor);
+        m_allRes.bufSRV[handle] = DX12BufferView(descriptor, native.native(), startInBytes);
       }
       else
       {
@@ -1473,7 +1511,7 @@ namespace higanbana
         natDesc.Buffer.CounterOffsetInBytes = 0;
         natDesc.Buffer.Flags = (format == FormatType::Raw32) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
         m_device->CreateUnorderedAccessView(native.native(), nullptr, &natDesc, descriptor.cpu);
-        m_allRes.bufUAV[handle] = DX12BufferView(descriptor);
+        m_allRes.bufUAV[handle] = DX12BufferView(descriptor, native.native(), startInBytes);
       }
 
     }
@@ -1655,7 +1693,7 @@ namespace higanbana
       }
 
       D3D12_CLEAR_VALUE clear;
-      clear.Format = formatTodxFormat(desc.desc.format).view;
+      clear.Format = formatTodxFormat(desc.desc.format).storage;
       D3D12_CLEAR_VALUE* clearPtr = nullptr;
       switch (desc.desc.usage)
       {

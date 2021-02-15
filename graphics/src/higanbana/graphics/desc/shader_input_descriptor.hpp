@@ -1,10 +1,61 @@
 #pragma once
 #include <string>
 #include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/math/math.hpp>
 #include <string_view>
+
+#define STRINGIFY(a) #a
+#define SHADER_STRUCT(name, args) \
+struct name \
+{ \
+  args \
+  static constexpr const char* structAsString = "struct " STRINGIFY(name) "{ " STRINGIFY(args) " };"; \
+  static constexpr const char* structNameAsString = STRINGIFY(name); \
+  static constexpr const char* structMembersAsString = STRINGIFY(args); \
+};
 
 namespace higanbana
 {
+  namespace Indirect
+  {
+    SHADER_STRUCT(DrawParams,
+      uint VertexCountPerInstance;
+      uint InstanceCount;
+      uint StartVertexLocation;
+      uint StartInstanceLocation;
+    );
+
+    SHADER_STRUCT(DrawIndexedParams,
+      uint IndexCountPerInstance;
+      uint InstanceCount;
+      uint StartIndexLocation;
+      int  BaseVertexLocation;
+      uint StartInstanceLocation;
+    );
+
+    SHADER_STRUCT(DispatchParams,
+      uint ThreadGroupCountX;
+      uint ThreadGroupCountY;
+      uint ThreadGroupCountZ;
+    );
+
+    SHADER_STRUCT(DispatchRaysParams,
+      uint64_t RayGenerationShaderRecordStartAddress;
+      uint64_t RayGenerationShaderRecordSizeInBytes;
+      uint64_t MissShaderTableStartAddress;
+      uint64_t MissShaderTableSizeInBytes;
+      uint64_t MissShaderTableStrideInBytes;
+      uint64_t HitGroupTableStartAddress;
+      uint64_t HitGroupTableSizeInBytes;
+      uint64_t HitGroupTableStrideInBytes;
+      uint64_t CallableShaderTableStartAddress;
+      uint64_t CallableShaderTableSizeInBytes;
+      uint64_t CallableShaderTableStrideInBytes;
+      uint Width;
+      uint Height;
+      uint Depth;
+    );
+  }
   enum class ShaderResourceType
   {
     Buffer,
@@ -62,17 +113,6 @@ namespace higanbana
     }
   };
 };
-
-
-#define STRINGIFY(a) #a
-#define SHADER_STRUCT(name, args) \
-struct name \
-{ \
-  args \
-  static constexpr const char* structAsString = "struct " STRINGIFY(name) "{ " STRINGIFY(args) " };"; \
-  static constexpr const char* structNameAsString = STRINGIFY(name); \
-  static constexpr const char* structMembersAsString = STRINGIFY(args); \
-};
 /*  
 STRUCT_DECL(kewl,
     int a;
@@ -90,3 +130,5 @@ int main()
     std::cout << interface << std::endl;
 }
 */
+
+

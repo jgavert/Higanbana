@@ -73,6 +73,10 @@ namespace higanbana
     {
       return buf;
     }
+    const Buffer& buffer() const 
+    {
+      return buf;
+    }
   };
 
   class BufferSRV : public BufferView

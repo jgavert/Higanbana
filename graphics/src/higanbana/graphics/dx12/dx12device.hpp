@@ -31,6 +31,13 @@ namespace higanbana
       ComPtr<ID3D12CommandQueue> m_computeQueue;
       DX12Fence m_deviceFence;
 
+      // indirect draw signatures
+      ComPtr<ID3D12CommandSignature> m_drawSignature;
+      ComPtr<ID3D12CommandSignature> m_drawIndexedSignature;
+      ComPtr<ID3D12CommandSignature> m_dispatchSignature;
+      ComPtr<ID3D12CommandSignature> m_dispatchRaysSignature;
+      ComPtr<ID3D12CommandSignature> m_dispatchMeshSignature;
+
       StagingDescriptorHeap m_generics;
       //StagingDescriptorHeap m_samplers;
       StagingDescriptorHeap m_rtvs;
@@ -97,6 +104,12 @@ namespace higanbana
       DeviceStatistics statsOfResourcesInUse() override;
 
       DX12Resources& allResources();
+
+      ID3D12CommandSignature* drawSignature() const;
+      ID3D12CommandSignature* drawIndexedSignature() const;
+      ID3D12CommandSignature* dispatchSignature() const;
+      ID3D12CommandSignature* dispatchRaysSignature() const;
+      ID3D12CommandSignature* dispatchMeshSignature() const;
 
       D3D12_RESOURCE_DESC fillPlacedBufferInfo(ResourceDescriptor descriptor);
       D3D12_RESOURCE_DESC fillPlacedTextureInfo(ResourceDescriptor descriptor);

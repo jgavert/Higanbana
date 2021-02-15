@@ -32,14 +32,14 @@ namespace higanbana
     {
       if (m_cachedInfos.empty() || mode == QueryDevicesMode::SlowQuery) {
         m_cachedInfos.clear();
-        if (implVulkan)
+        if (implVulkan && (api == GraphicsApi::Vulkan ||api == GraphicsApi::All))
         {
-          m_cachedInfos = implVulkan->availableGpus(VendorID::All); // I might have killed RGP with this
+          m_cachedInfos = implVulkan->availableGpus(VendorID::All);
           for (auto&& it : m_cachedInfos) it.api = GraphicsApi::Vulkan;
         }
-        if (implDX12)
+        if (implDX12 && (api == GraphicsApi::DX12 ||api == GraphicsApi::All))
         {
-          vector<GpuInfo> dx12Gpus = implDX12->availableGpus(VendorID::All); // TODO: test rgp
+          vector<GpuInfo> dx12Gpus = implDX12->availableGpus(VendorID::All);
           for (auto&& it : dx12Gpus) {
             it.api = GraphicsApi::DX12;
             bool merged = false;
@@ -61,8 +61,9 @@ namespace higanbana
       // craft filtered version of all devices here as per request
       vector<GpuInfo> infos;
       for (auto&& info : m_cachedInfos) {
-        if (api == GraphicsApi::All || info.api == api) {
+        if (info.api == GraphicsApi::All || info.api == api) {
           if (id == VendorID::All || id == info.vendor) {
+            info.api = api;
             infos.push_back(info);
           }
         }

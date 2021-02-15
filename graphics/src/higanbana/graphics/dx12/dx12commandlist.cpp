@@ -799,6 +799,77 @@ namespace higanbana
             buffer->DispatchMesh(params.xDim, 1, 1);
             break;
           }
+          case PacketType::DrawIndirect:
+          {
+            auto params = header->data<gfxpacket::DrawIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              buffer->ExecuteIndirect(device->drawSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+            }
+            else {
+              buffer->ExecuteIndirect(device->drawSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
+            }
+            break;
+          }
+          case PacketType::DrawIndexedIndirect:
+          {
+            auto params = header->data<gfxpacket::DrawIndexedIndirect>();
+            if (m_boundIndexBufferHandle != params.indexbuffer) {
+              if (params.indexbuffer.type == ViewResourceType::BufferIBV) {
+                auto& ibv = device->allResources().bufIBV[params.indexbuffer];
+                m_ib = *ibv.ibv();
+              }
+              else {
+                auto& ibv = device->allResources().dynSRV[params.indexbuffer];
+                m_ib = ibv.indexBufferView();
+              }
+              buffer->IASetIndexBuffer(&m_ib);
+              m_boundIndexBufferHandle = params.indexbuffer;
+            }
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              buffer->ExecuteIndirect(device->drawIndexedSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+            }
+            else {
+              buffer->ExecuteIndirect(device->drawIndexedSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
+            }
+            break;
+          }
+          case PacketType::DispatchIndirect:
+          {
+            auto params = header->data<gfxpacket::DispatchIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            buffer->ExecuteIndirect(device->dispatchSignature(), 1, srv.ref(), srv.byteOffset(), nullptr, 0);
+            break;
+          }
+          case PacketType::DispatchRaysIndirect:
+          {
+            auto params = header->data<gfxpacket::DispatchRaysIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              buffer->ExecuteIndirect(device->dispatchRaysSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+            }
+            else {
+              buffer->ExecuteIndirect(device->dispatchRaysSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
+            }
+            break;
+          }
+          case PacketType::DispatchMeshIndirect:
+          {
+            auto params = header->data<gfxpacket::DispatchMeshIndirect>();
+            auto& srv = device->allResources().bufSRV[params.indirectBuffer];
+            if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
+              auto& csrv = device->allResources().bufSRV[params.countBuffer];
+              buffer->ExecuteIndirect(device->dispatchMeshSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+            }
+            else {
+              buffer->ExecuteIndirect(device->dispatchMeshSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
+            }
+            break;
+          }
           case PacketType::DynamicBufferCopy:
           {
             auto params = header->data<gfxpacket::DynamicBufferCopy>();
