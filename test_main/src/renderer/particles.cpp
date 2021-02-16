@@ -18,7 +18,7 @@ Particles::Particles(higanbana::GpuGroup& device, higanbana::ShaderArgumentsLayo
 
   m_particles.resize(device, ResourceDescriptor()
     .setStructured<Particles::Particle>()
-    .setCount(2000)
+    .setElementsCount(2000)
     .setUsage(ResourceUsage::GpuRW)
     .setDimension(FormatDimension::Buffer));
 

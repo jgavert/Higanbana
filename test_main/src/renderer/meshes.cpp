@@ -235,7 +235,7 @@ int MeshSystem::allocateBuffer(higanbana::GpuGroup& gpu, BufferData& data) {
     //meshbufferAllocator.resize(meshbufferAllocator.size() + data.data.size());
     updateTarget = gpu.createBuffer(ResourceDescriptor()
       .setName("meshbuffer")
-      .setCount(meshbufferAllocator.max_size())
+      .setElementsCount(meshbufferAllocator.max_size())
       .setFormat(FormatType::Unorm8)
       .setUsage(ResourceUsage::GpuReadOnly)
       .setIndexBuffer());

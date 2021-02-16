@@ -75,7 +75,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
       .setDepthEnable(false));
 
   cameras = dev.createBuffer(ResourceDescriptor()
-  .setCount(8*4)
+  .setElementsCount(8*4)
   .setStructured<CameraSettings>()
   .setName("Cameras")
   .setUsage(ResourceUsage::GpuRW));

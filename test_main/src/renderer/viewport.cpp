@@ -22,7 +22,7 @@ css::Task<void> Viewport::resize(higanbana::GpuGroup& device, int2 targetViewpor
     sharedViewport = device.createBuffer(ResourceDescriptor()
       .setName("shared buffer")
       .setFormat(FormatType::Raw32)
-      .setCount(sizeFormatSlicePitch(viewport.desc().desc.size3D(), viewport.desc().desc.format) / sizeof(uint32_t))
+      .setElementsCount(sizeFormatSlicePitch(viewport.desc().desc.size3D(), viewport.desc().desc.format) / sizeof(uint32_t))
       .allowCrossAdapter());
     
     tsaaResolved.resize(device, ResourceDescriptor()

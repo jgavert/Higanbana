@@ -699,12 +699,13 @@ namespace higanbana
           {
             handleRenderpass(device, header->data<gfxpacket::RenderPassBegin>());
             handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+            /*
             if (m_dispatch.vkCmdSetFragmentShadingRateKHR) {
               vk::FragmentShadingRateCombinerOpKHR ops[2];
               ops[0] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
               ops[1] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
               buffer.setFragmentShadingRateKHR(vk::Extent2D().setHeight(1).setWidth(1), ops, m_dispatch);
-            }
+            }*/
             rpbegin = header;
             framebuffer++;
             break;
@@ -719,6 +720,8 @@ namespace higanbana
           }
           case PacketType::ShadingRate:
           {
+            HIGAN_ASSERT(false, "asd");
+            /*
             gfxpacket::SetShadingRate& packet = header->data<gfxpacket::SetShadingRate>();
             vk::Extent2D rect = vk::Extent2D().setWidth(1).setHeight(1);
             switch (packet.shadingRate) {
@@ -752,6 +755,7 @@ namespace higanbana
             ops[0] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
             ops[1] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passt
             buffer.setFragmentShadingRateKHR(rect, ops, m_dispatch);
+            */
             break;
           }
           case PacketType::GraphicsPipelineBind:

@@ -27,7 +27,7 @@ DepthPyramid::DepthPyramid(higanbana::GpuGroup& device) {
   pipeline = device.createComputePipeline(pipelineDescriptor);
 
   m_counters = device.createBuffer(ResourceDescriptor()
-    .setCount(64*64)
+    .setElementsCount(64*64)
     .setUsage(ResourceUsage::GpuRW)
     .setFormat(FormatType::Raw32));
   m_countersUAV = device.createBufferUAV(m_counters);
