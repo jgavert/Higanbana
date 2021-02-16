@@ -1427,6 +1427,7 @@ namespace higanbana
       vector<VulkanQuery> m_queries;
       VkReadbackBlock readback;
       vector<vk::Pipeline> m_oldPipelines;
+      vk::PipelineBindPoint m_bindpoint;
       vector<vk::DescriptorSet> m_tempSets;
       vk::Buffer m_shaderDebugBuffer;
 

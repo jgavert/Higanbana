@@ -357,6 +357,12 @@ namespace higanbana
       memcpy(block.data(), pconstants.data(), pconstants.size());
 
       vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eGraphics;
+      if (m_bindpoint != bindpoint){
+        for (auto&& set : m_boundDescriptorSets) {
+          set = ResourceHandle();
+        }
+        m_bindpoint = bindpoint;
+      }
       auto firstSet = 0;
       auto i = 0;
       bool canSkip = true;
@@ -388,6 +394,12 @@ namespace higanbana
       memcpy(block.data(), pconstants.data(), pconstants.size());
 
       vk::PipelineBindPoint bindpoint = vk::PipelineBindPoint::eCompute;
+      if (m_bindpoint != bindpoint){
+        for (auto&& set : m_boundDescriptorSets) {
+          set = ResourceHandle();
+        }
+        m_bindpoint = bindpoint;
+      }
       auto firstSet = 0;
       auto i = 0;
       bool canSkip = true;
@@ -464,7 +476,7 @@ namespace higanbana
       checkStage(stage, AccessStage::Compute, vk::PipelineStageFlagBits::eComputeShader);
       checkStage(stage, AccessStage::Graphics, vk::PipelineStageFlagBits::eAllGraphics);
       checkStage(stage, AccessStage::Transfer, vk::PipelineStageFlagBits::eTransfer);
-      checkStage(stage, AccessStage::Index, vk::PipelineStageFlagBits::eVertexShader);
+      checkStage(stage, AccessStage::Index, vk::PipelineStageFlagBits::eVertexInput);
       checkStage(stage, AccessStage::Indirect, vk::PipelineStageFlagBits::eDrawIndirect);
       checkStage(stage, AccessStage::Rendertarget, vk::PipelineStageFlagBits::eColorAttachmentOutput);
       checkStage(stage, AccessStage::DepthStencil, vk::PipelineStageFlagBits::eLateFragmentTests);
