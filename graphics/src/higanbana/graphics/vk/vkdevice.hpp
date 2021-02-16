@@ -121,6 +121,7 @@ namespace higanbana
         vk::Device device,
         vk::PhysicalDevice physDev,
         vk::DispatchLoaderDynamic dynamicDispatch,
+        vk::MemoryAllocateFlags memoryAllocateFlags,
         FileSystem& fs,
         std::vector<vk::QueueFamilyProperties> queues,
         GpuInfo info,

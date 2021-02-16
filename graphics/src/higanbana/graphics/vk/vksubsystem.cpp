@@ -497,6 +497,10 @@ namespace higanbana
       HIGAN_ASSERT(dev2prop.bufferDeviceAddress, "has to be");
       //auto& pipelineExeProp = features2.get<vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR>();
       //auto& descIndexing = features2.get<vk::PhysicalDeviceDescriptorIndexingFeaturesEXT>();
+      if (gpu.vendor == VendorID::Intel)
+        dev2prop.bufferDeviceAddress = false;
+
+      vk::MemoryAllocateFlags memAllocateFlags = dev2prop.bufferDeviceAddress ? vk::MemoryAllocateFlagBits::eDeviceAddress : vk::MemoryAllocateFlags(0);
 
       auto device_info = vk::DeviceCreateInfo()
         .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))
@@ -513,7 +517,8 @@ namespace higanbana
       vk::DispatchLoaderDynamic loader;
       loader.init(*m_instance, dev);
 
-      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, loader, fs, queueProperties, gpu, false);
+
+      std::shared_ptr<VulkanDevice> impl = std::make_shared<VulkanDevice>(dev, physDev, loader, memAllocateFlags, fs, queueProperties, gpu, false);
 
       return impl;
     }

@@ -293,6 +293,7 @@ namespace higanbana
       vk::Device device,
       vk::PhysicalDevice physDev,
       vk::DispatchLoaderDynamic dynamicDispatch,
+      vk::MemoryAllocateFlags memoryAllocateFlags,
       FileSystem& fs,
       std::vector<vk::QueueFamilyProperties> queues,
       GpuInfo info,
@@ -301,7 +302,7 @@ namespace higanbana
       , m_physDevice(physDev)
       , m_limits(physDev.getProperties().limits)
       , m_dynamicDispatch(dynamicDispatch)
-      , m_memoryAllocateFlags(physDev.getFeatures2<vk::PhysicalDeviceFeatures2,vk::PhysicalDeviceVulkan12Features>().get<vk::PhysicalDeviceVulkan12Features>().bufferDeviceAddress ? vk::MemoryAllocateFlagBits::eDeviceAddress : vk::MemoryAllocateFlags(0))
+      , m_memoryAllocateFlags(memoryAllocateFlags) 
       , m_debugLayer(debugLayer)
       , m_queues(queues)
       , m_singleQueue(false)
