@@ -12,7 +12,7 @@ new_git_repository(
 
 new_local_repository(
   name = "VulkanSDKWin",
-  path = "C:\\VulkanSDK\\1.2.162.0",
+  path = "C:\\VulkanSDK\\1.2.162.1",
   build_file_content = """
 cc_library(
     name = "Vulkan_headers",
