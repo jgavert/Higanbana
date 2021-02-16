@@ -1450,7 +1450,6 @@ namespace higanbana
         elementSize = formatSizeInfo(format).pixelSize;
       } 
 
-      //auto pixelSize = formatSizeInfo(format).pixelSize;
       auto descriptor = m_generics.allocate();
 
       auto elementCount = viewDesc.m_elementCount;
