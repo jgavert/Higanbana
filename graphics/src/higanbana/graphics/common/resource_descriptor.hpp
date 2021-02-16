@@ -475,9 +475,9 @@ namespace higanbana
       return *this;
     }
 
-    ResourceDescriptor& setCount(unsigned size)
+    ResourceDescriptor& setElementsCount(unsigned elements)
     {
-      desc.width = size;
+      desc.width = elements;
       return *this;
     }
 

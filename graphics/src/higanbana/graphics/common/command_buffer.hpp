@@ -45,6 +45,7 @@ namespace higanbana
       DispatchIndirect,
       DispatchRaysIndirect,
       DispatchMeshIndirect,
+      ShadingRate,
       ScissorRect,
       ReadbackShaderDebug,
       // special raytracing

@@ -1407,6 +1407,7 @@ namespace higanbana
             case PacketType::ScissorRect:
             case PacketType::EndOfPackets:
             case PacketType::ReadbackShaderDebug:
+            case PacketType::ShadingRate:
               break;
             default:
               HIGAN_ASSERT(false, "unhandled case \"%s\"", gfxpacket::packetTypeToString(header->type));

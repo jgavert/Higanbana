@@ -90,8 +90,13 @@ namespace higanbana
       return S().createBufferUAV(texture, viewDesc);
     }
 
-    BufferRTAS createBufferRTAS(Buffer as) {
-      return S().createAccelerationStructure(as);
+    BufferRTAS createBufferRTAS(std::string name, size_t sizeBytes) {
+      auto descriptor = ResourceDescriptor()
+        .setName(name)
+        .setElementsCount(sizeBytes)
+        .setFormat(FormatType::Unknown)
+        .setUsage(ResourceUsage::RTAccelerationStructure);
+      return S().createAccelerationStructure(createBuffer(descriptor));
     }
 
     BufferUAV createBufferUAV(ResourceDescriptor descriptor, ShaderViewDescriptor viewDesc = ShaderViewDescriptor())

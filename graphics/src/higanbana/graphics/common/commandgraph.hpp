@@ -185,6 +185,11 @@ namespace higanbana
       list->setScissorRect(tl, br);
     }
 
+    void setShadingRate(ShadingRate rate)
+    {
+      list->setShadingRate(rate);
+    }
+
     // draws/dispatches
 
     void draw(
@@ -303,7 +308,7 @@ namespace higanbana
       list->drawIndexedIndirect(ibv, maxCommands, indirect, count, countOffsetBytes);
     }
 
-    void drawIndexedIndirect(ShaderArgumentsBinding& binding, BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
+    void drawIndexedIndirect(ShaderArgumentsBinding& binding, const BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(ibv.buffer().handle());
@@ -323,7 +328,7 @@ namespace higanbana
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       list->dispatchIndirect(indirect);
     }
 
@@ -336,7 +341,7 @@ namespace higanbana
         m_referencedBuffers.setBit(count.buffer().handle().id);
         addReadShared(count.buffer().handle());
       }
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
       list->dispatchRaysIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
@@ -510,21 +515,21 @@ namespace higanbana
       return promise.future();
     }
 
-    void raytracingWriteGPUAddrToInstanceDesc(DynamicBufferView dst, Buffer addrToWrite, uint instanceIndex) {
+    void raytracingWriteGPUAddrToInstanceDesc(DynamicBufferView dst, const BufferRTAS& addrToWrite, uint instanceIndex) {
       list->raytracingWriteGPUAddrToInstanceDescCPU(dst, addrToWrite, instanceIndex);
     }
 
-    void raytracingWriteGPUAddrToInstanceDesc(Buffer dst, Buffer addrToWrite, uint instanceIndex) {
+    void raytracingWriteGPUAddrToInstanceDesc(Buffer& dst, const BufferRTAS& addrToWrite, uint instanceIndex) {
       addWriteShared(dst.handle());
       m_referencedBuffers.setBit(dst.handle().id);
       list->raytracingWriteGPUAddrToInstanceDescGPU(dst, addrToWrite, instanceIndex);
     }
 
-    void buildAccelerationStructure(Buffer dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer scratchBuffer) {
+    void buildAccelerationStructure(BufferRTAS& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratchBuffer) {
       addWriteShared(scratchBuffer.handle());
       m_referencedBuffers.setBit(scratchBuffer.handle().id);
-      addWriteShared(dst.handle());
-      m_referencedBuffers.setBit(dst.handle().id);
+      addWriteShared(dst.buffer().handle());
+      m_referencedBuffers.setBit(dst.buffer().handle().id);
       if (asInputs.desc.type == desc::AccelerationStructureType::BottomLevel) {
         list->buildBottomLevelAccelerationStructure(dst, asInputs, scratchBuffer);
       }

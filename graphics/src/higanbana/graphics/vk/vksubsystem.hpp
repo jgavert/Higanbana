@@ -72,7 +72,8 @@ namespace higanbana
         "VK_KHR_ray_tracing_pipeline",
         "VK_KHR_deferred_host_operations",
         "VK_KHR_buffer_device_address",
-        "VK_KHR_spirv_1_4"
+        "VK_KHR_spirv_1_4",
+        "VK_KHR_fragment_shading_rate"
       };
 
       std::vector<const char*> dev1_1Exts = {

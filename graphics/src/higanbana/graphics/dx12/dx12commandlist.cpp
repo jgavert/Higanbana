@@ -698,6 +698,9 @@ namespace higanbana
           case PacketType::RenderpassBegin:
           {
             handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
+            if (device->m_features.opt6.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1) {
+              buffer->RSSetShadingRate(D3D12_SHADING_RATE_1X1, nullptr);
+            }
             rpbegin = header;
             framebuffer++;
             break;
@@ -711,6 +714,22 @@ namespace higanbana
             rect.top = packet.topleft.y;
             rect.left = packet.topleft.x;
             buffer->RSSetScissorRects(1, &rect);
+            break;
+          }
+          case PacketType::ShadingRate:
+          {
+            gfxpacket::SetShadingRate& packet = header->data<gfxpacket::SetShadingRate>();
+            D3D12_SHADING_RATE rate = static_cast<D3D12_SHADING_RATE>(packet.shadingRate);
+            if (device->m_features.opt6.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1) {
+              if (device->m_features.opt6.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2) {
+                D3D12_SHADING_RATE_COMBINER combiners[2];
+                combiners[0] = D3D12_SHADING_RATE_COMBINER_PASSTHROUGH;
+                combiners[1] = D3D12_SHADING_RATE_COMBINER_PASSTHROUGH;
+                buffer->RSSetShadingRate(rate, combiners);
+              } else {
+                buffer->RSSetShadingRate(rate, nullptr);
+              }
+            }
             break;
           }
           case PacketType::GraphicsPipelineBind:

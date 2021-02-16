@@ -687,6 +687,12 @@ namespace higanbana
           {
             handleRenderpass(device, header->data<gfxpacket::RenderPassBegin>());
             handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+            if (m_dispatch.vkCmdSetFragmentShadingRateKHR) {
+              vk::FragmentShadingRateCombinerOpKHR ops[2];
+              ops[0] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
+              ops[1] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
+              buffer.setFragmentShadingRateKHR(vk::Extent2D().setHeight(1).setWidth(1), ops, m_dispatch);
+            }
             rpbegin = header;
             framebuffer++;
             break;
@@ -697,6 +703,43 @@ namespace higanbana
             auto extent = math::sub(packet.bottomright, packet.topleft);
             auto scissorRect = vk::Rect2D(vk::Offset2D(packet.topleft.x, packet.topleft.y), vk::Extent2D(extent.x, extent.y));
             buffer.setScissor(0, {scissorRect}, m_dispatch);
+            break;
+          }
+          case PacketType::ShadingRate:
+          {
+            gfxpacket::SetShadingRate& packet = header->data<gfxpacket::SetShadingRate>();
+            vk::Extent2D rect = vk::Extent2D().setWidth(1).setHeight(1);
+            switch (packet.shadingRate) {
+              case ShadingRate::Rate_1x2:{
+                rect = rect.setHeight(2);
+                break;
+              }
+              case ShadingRate::Rate_2x1:{
+                rect = rect.setWidth(2);
+                break;
+              }
+              case ShadingRate::Rate_2x2:{
+                rect = rect.setWidth(2).setHeight(2);
+                break;
+              }
+              case ShadingRate::Rate_2x4:{
+                rect = rect.setWidth(2).setHeight(4);
+                break;
+              }
+              case ShadingRate::Rate_4x2:{
+                rect = rect.setWidth(4).setHeight(2);
+                break;
+              }
+              case ShadingRate::Rate_4x4:
+                rect = rect.setWidth(4).setHeight(4);
+              case ShadingRate::Rate_1x1:
+              default:
+                break;
+            }
+            vk::FragmentShadingRateCombinerOpKHR ops[2];
+            ops[0] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passthrough
+            ops[1] = vk::FragmentShadingRateCombinerOpKHR::eKeep; // passt
+            buffer.setFragmentShadingRateKHR(rect, ops, m_dispatch);
             break;
           }
           case PacketType::GraphicsPipelineBind:

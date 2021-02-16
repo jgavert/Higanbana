@@ -4,6 +4,18 @@
 
 namespace higanbana
 {
+  enum class ShadingRate
+  {
+    Rate_1x1,
+    Rate_1x2,
+    Rate_2x1,
+    Rate_2x2,
+    Rate_2x4,
+    Rate_4x2,
+    Rate_4x4,
+    Count
+  };
+
   enum class FormatDimension
   {
     Unknown,

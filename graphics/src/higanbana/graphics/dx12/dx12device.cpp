@@ -386,6 +386,9 @@ namespace higanbana
       auto& desc = descriptor.desc;
       D3D12_RESOURCE_DESC dxdesc{};
 
+      if (desc.stride == 0){
+        desc.stride = 1;
+      }
       dxdesc.Width = desc.width * desc.stride;
       if (descriptor.desc.usage == ResourceUsage::RTAccelerationStructure) {
         dxdesc.Width = desc.width;
@@ -1999,8 +2002,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       // get description of source and allocate readback memory based on the bytes required
       ResourceDescriptor desc = ResourceDescriptor()
-        .setCount(bytes)
-        .setFormat(FormatType::Unorm8)
+        .setElementsCount(bytes)
         .setUsage(ResourceUsage::Readback);
 
       auto dxDesc = fillPlacedBufferInfo(desc);

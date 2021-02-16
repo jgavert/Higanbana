@@ -423,37 +423,16 @@ namespace higanbana
       }
 
 
-      //auto features = physDev.getFeatures(); // ALL OF THEM FEATURES.
-      //vk::PhysicalDeviceVulkan11Features,
-      //vk::PhysicalDeviceVulkan12Features,
       auto features2 = physDev.getFeatures2<
       vk::PhysicalDeviceFeatures2,
       vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features,
-      //vk::PhysicalDeviceVariablePointersFeatures, 1.1
-      //vk::PhysicalDeviceMultiviewFeatures, 1.1
-      //vk::PhysicalDeviceShaderAtomicInt64FeaturesKHR, 1.2
-      // vk::PhysicalDevice8BitStorageFeaturesKHR, 1.2
-      // vk::PhysicalDevice16BitStorageFeatures, 1.1
-      //vk::PhysicalDeviceShaderFloat16Int8FeaturesKHR,1.2
-      //vk::PhysicalDeviceShaderClockFeaturesKHR,
-      // vk::PhysicalDeviceSamplerYcbcrConversionFeatures, 1.1
-      //vk::PhysicalDeviceProtectedMemoryFeatures, 1.1
       vk::PhysicalDeviceConditionalRenderingFeaturesEXT,
-      // vk::PhysicalDeviceShaderDrawParametersFeatures, 1.1
-      //vk::PhysicalDeviceDescriptorIndexingFeaturesEXT, 1.2
       vk::PhysicalDeviceVertexAttributeDivisorFeaturesEXT,
       vk::PhysicalDeviceASTCDecodeFeaturesEXT,
       vk::PhysicalDeviceTransformFeedbackFeaturesEXT,
-      //vk::PhysicalDeviceVulkanMemoryModelFeaturesKHR,1.2
       vk::PhysicalDeviceInlineUniformBlockFeaturesEXT,
-      //vk::PhysicalDeviceRepresentativeFragmentTestFeaturesNV,
-      //vk::PhysicalDeviceExclusiveScissorFeaturesNV,
-      //vk::PhysicalDeviceCornerSampledImageFeaturesNV,
-      //vk::PhysicalDeviceComputeShaderDerivativesFeaturesNV,
-      //vk::PhysicalDeviceFragmentShaderBarycentricFeaturesNV,
-      //vk::PhysicalDeviceShaderImageFootprintFeaturesNV,
-      //vk::PhysicalDeviceShadingRateImageFeaturesNV,
+      vk::PhysicalDeviceFragmentShadingRateFeaturesKHR,
 #if 1 // collect renderdoc no likes here
       vk::PhysicalDeviceMeshShaderFeaturesNV, 
       vk::PhysicalDeviceBlendOperationAdvancedFeaturesEXT, 
@@ -463,34 +442,19 @@ namespace higanbana
 #if 1 // raytracing 
       vk::PhysicalDeviceRayQueryFeaturesKHR,
       vk::PhysicalDeviceRayTracingPipelineFeaturesKHR,
-      //vk::PhysicalDeviceRayTracingPipelinePropertiesKHR,
       vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
-      //vk::PhysicalDeviceAccelerationStructurePropertiesKHR,
-      //vk::PhysicalDeviceBufferDeviceAddressFeatures, 1.2
 
 #endif
-      // vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT, 1.2
-      //vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR, 1.2
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
-      //vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
-      //vk::PhysicalDeviceImagelessFramebufferFeaturesKHR, 1.2
       vk::PhysicalDeviceFragmentShaderInterlockFeaturesEXT,
-      //vk::PhysicalDeviceCooperativeMatrixFeaturesNV,
       vk::PhysicalDeviceYcbcrImageArraysFeaturesEXT,
-      //vk::PhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR,
-      //vk::PhysicalDeviceHostQueryResetFeaturesEXT, 1.2
-      //vk::PhysicalDeviceCoverageReductionModeFeaturesNV,
-      // vk::PhysicalDeviceTimelineSemaphoreFeatures, 1.2
       vk::PhysicalDeviceIndexTypeUint8FeaturesEXT,
-      //vk::PhysicalDeviceShaderSMBuiltinsFeaturesNV,
-      //vk::PhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR,
       vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR,
       vk::PhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT,
       vk::PhysicalDeviceTexelBufferAlignmentFeaturesEXT,
       vk::PhysicalDeviceLineRasterizationFeaturesEXT,
       vk::PhysicalDeviceSubgroupSizeControlFeaturesEXT
-      //vk::PhysicalDeviceCoherentMemoryFeaturesAMD,
       >(vk::DispatchLoaderStatic());
 
       auto& dev2prop = features2.get<vk::PhysicalDeviceVulkan12Features>();

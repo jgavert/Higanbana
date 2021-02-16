@@ -108,6 +108,10 @@ namespace higanbana
     {
       list.insert<gfxpacket::ScissorRect>(topLeft, bottomRight);
     }
+    void setShadingRate(ShadingRate rate)
+    {
+      list.insert<gfxpacket::SetShadingRate>(rate);
+    }
 
     void draw(
       unsigned vertexCountPerInstance,
@@ -157,7 +161,7 @@ namespace higanbana
     void drawIndexedIndirect(DynamicBufferView& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
       list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
-    void drawIndexedIndirect(BufferIBV& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+    void drawIndexedIndirect(const BufferIBV& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
       list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
     void dispatchIndirect(const BufferSRV& indirectParams) {
@@ -233,17 +237,17 @@ namespace higanbana
       list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
     }
 
-    void raytracingWriteGPUAddrToInstanceDescCPU(DynamicBufferView& dst, Buffer& addrToWrite, uint instanceIndex) {
-      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceCPU>(dst.handle(), addrToWrite.handle(), instanceIndex);
+    void raytracingWriteGPUAddrToInstanceDescCPU(DynamicBufferView& dst, const BufferRTAS& addrToWrite, uint instanceIndex) {
+      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceCPU>(dst.handle(), addrToWrite.buffer().handle(), instanceIndex);
     }
-    void raytracingWriteGPUAddrToInstanceDescGPU(Buffer& dst, Buffer& addrToWrite, uint instanceIndex) {
-      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceGPU>(dst.handle(), addrToWrite.handle(), instanceIndex);
+    void raytracingWriteGPUAddrToInstanceDescGPU(Buffer& dst, const BufferRTAS& addrToWrite, uint instanceIndex) {
+      list.insert<gfxpacket::RaytracingWriteGpuAddrToInstanceGPU>(dst.handle(), addrToWrite.buffer().handle(), instanceIndex);
     }
-    void buildBottomLevelAccelerationStructure(Buffer& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
-      list.insert<gfxpacket::BuildBLASTriangle>(dst.handle(), asInputs, scratch.handle());
+    void buildBottomLevelAccelerationStructure(BufferRTAS& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
+      list.insert<gfxpacket::BuildBLASTriangle>(dst.buffer().handle(), asInputs, scratch.handle());
     }
-    void buildTopLevelAccelerationStructure(Buffer& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
-      list.insert<gfxpacket::BuildTLAS>(dst.handle(), asInputs, scratch.handle());
+    void buildTopLevelAccelerationStructure(BufferRTAS& dst, desc::RaytracingAccelerationStructureInputs& asInputs, Buffer& scratch) {
+      list.insert<gfxpacket::BuildTLAS>(dst.buffer().handle(), asInputs, scratch.handle());
     }
 
     size_t sizeBytesUsed() const noexcept

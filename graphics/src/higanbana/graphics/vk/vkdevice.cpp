@@ -37,6 +37,8 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = descriptor.desc;
+      if (desc.stride == 0)
+        desc.stride = 1;
       auto bufSize = desc.stride*desc.width;
       HIGAN_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
       vk::BufferCreateInfo info = vk::BufferCreateInfo()
@@ -2904,8 +2906,7 @@ namespace higanbana
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       ResourceDescriptor desc = ResourceDescriptor()
-        .setCount(bytes)
-        .setFormat(FormatType::Uint8)
+        .setElementsCount(bytes)
         .setUsage(ResourceUsage::Readback);
 
       auto vkdesc = fillBufferInfo(desc);

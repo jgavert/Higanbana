@@ -454,6 +454,17 @@ namespace higanbana
       }
     };
 
+    struct SetShadingRate
+    {
+      ShadingRate shadingRate;
+
+      static constexpr const backend::PacketType type = backend::PacketType::ShadingRate;
+      static void constructor(backend::CommandBuffer& , SetShadingRate& packet, ShadingRate shadingRate)
+      {
+        packet.shadingRate = shadingRate;
+      }
+    };
+
     struct ScissorRect
     {
       int2 topleft;
