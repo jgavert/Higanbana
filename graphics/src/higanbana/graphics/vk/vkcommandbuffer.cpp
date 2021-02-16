@@ -782,9 +782,8 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
-              auto& csrv = device->allResources().bufSRV[params.countBuffer];
               auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
-              buffer.drawIndirectCount(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DrawParams), m_dispatch);
+              buffer.drawIndirectCount(buf.native(), srv.native().offset, cbuf.native(), params.offsetCountBytes, params.maxCommands, sizeof(Indirect::DrawParams), m_dispatch);
             }
             else {
               buffer.drawIndirect(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DrawParams), m_dispatch);
@@ -809,9 +808,8 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
-              auto& csrv = device->allResources().bufSRV[params.countBuffer];
               auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
-              buffer.drawIndexedIndirectCount(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DrawIndexedParams), m_dispatch);
+              buffer.drawIndexedIndirectCount(buf.native(), srv.native().offset, cbuf.native(), params.offsetCountBytes, params.maxCommands, sizeof(Indirect::DrawIndexedParams), m_dispatch);
             }
             else {
               buffer.drawIndexedIndirect(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DrawIndexedParams), m_dispatch);
@@ -850,9 +848,8 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             auto& buf = device->allResources().buf[params.indirectBuffer.resourceHandle()];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
-              auto& csrv = device->allResources().bufSRV[params.countBuffer];
               auto& cbuf = device->allResources().buf[params.countBuffer.resourceHandle()];
-              buffer.drawMeshTasksIndirectCountNV(buf.native(), srv.native().offset, cbuf.native(), csrv.native().offset, params.maxCommands, sizeof(Indirect::DispatchParams), m_dispatch);
+              buffer.drawMeshTasksIndirectCountNV(buf.native(), srv.native().offset, cbuf.native(), params.offsetCountBytes, params.maxCommands, sizeof(Indirect::DispatchParams), m_dispatch);
             }
             else {
               buffer.drawMeshTasksIndirectNV(buf.native(), srv.native().offset, params.maxCommands, sizeof(Indirect::DispatchParams), m_dispatch);

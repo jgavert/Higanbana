@@ -151,23 +151,23 @@ namespace higanbana
       list.insert<gfxpacket::DispatchMesh>(xGroups);
     }
 
-    void drawIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count) {
-      list.insert<gfxpacket::DrawIndirect>(maxCommands, indirectParams.handle(), count.handle());
+    void drawIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+      list.insert<gfxpacket::DrawIndirect>(maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
-    void drawIndexedIndirect(DynamicBufferView& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count) {
-      list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle());
+    void drawIndexedIndirect(DynamicBufferView& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+      list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
-    void drawIndexedIndirect(BufferIBV& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count) {
-      list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle());
+    void drawIndexedIndirect(BufferIBV& buffer, uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+      list.insert<gfxpacket::DrawIndexedIndirect>(buffer.handle(), maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
     void dispatchIndirect(const BufferSRV& indirectParams) {
       list.insert<gfxpacket::DispatchIndirect>(indirectParams.handle());
     }
-    void dispatchRaysIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count) {
-      list.insert<gfxpacket::DispatchRaysIndirect>(maxCommands, indirectParams.handle(), count.handle());
+    void dispatchRaysIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+      list.insert<gfxpacket::DispatchRaysIndirect>(maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
-    void dispatchMeshIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count) {
-      list.insert<gfxpacket::DispatchMeshIndirect>(maxCommands, indirectParams.handle(), count.handle());
+    void dispatchMeshIndirect(uint maxCommands, const BufferSRV& indirectParams, const BufferSRV& count, uint countOffsetBytes) {
+      list.insert<gfxpacket::DispatchMeshIndirect>(maxCommands, indirectParams.handle(), count.handle(), countOffsetBytes);
     }
 
     void updateTexture(Texture& tex, Subresource dstSubresource, int3 dstPos, DynamicBufferView& dynBuffer, Box srcbox)

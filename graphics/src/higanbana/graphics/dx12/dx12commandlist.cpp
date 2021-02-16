@@ -805,7 +805,7 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
               auto& csrv = device->allResources().bufSRV[params.countBuffer];
-              buffer->ExecuteIndirect(device->drawSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+              buffer->ExecuteIndirect(device->drawSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), params.offsetCountBytes);
             }
             else {
               buffer->ExecuteIndirect(device->drawSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
@@ -830,7 +830,7 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
               auto& csrv = device->allResources().bufSRV[params.countBuffer];
-              buffer->ExecuteIndirect(device->drawIndexedSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+              buffer->ExecuteIndirect(device->drawIndexedSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), params.offsetCountBytes);
             }
             else {
               buffer->ExecuteIndirect(device->drawIndexedSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
@@ -850,7 +850,7 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
               auto& csrv = device->allResources().bufSRV[params.countBuffer];
-              buffer->ExecuteIndirect(device->dispatchRaysSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+              buffer->ExecuteIndirect(device->dispatchRaysSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(),params.offsetCountBytes);
             }
             else {
               buffer->ExecuteIndirect(device->dispatchRaysSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);
@@ -863,7 +863,7 @@ namespace higanbana
             auto& srv = device->allResources().bufSRV[params.indirectBuffer];
             if (params.countBuffer.resourceHandle().id != ResourceHandle::InvalidId) {
               auto& csrv = device->allResources().bufSRV[params.countBuffer];
-              buffer->ExecuteIndirect(device->dispatchMeshSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), csrv.byteOffset());
+              buffer->ExecuteIndirect(device->dispatchMeshSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), csrv.ref(), params.offsetCountBytes);
             }
             else {
               buffer->ExecuteIndirect(device->dispatchMeshSignature(), params.maxCommands, srv.ref(), srv.byteOffset(), nullptr, 0);

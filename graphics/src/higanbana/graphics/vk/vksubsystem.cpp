@@ -378,7 +378,7 @@ namespace higanbana
         }
 #endif
         // lunargvalidation list order
-        //GFX_ILOG("Enabled Vulkan extensions for device:");
+        GFX_ILOG("Enabled Vulkan extensions for device:");
 
         for (auto&& it : devExtOrder)
         {
@@ -390,7 +390,7 @@ namespace higanbana
           {
             extensions.push_back(it.c_str());
             m_extensions.push_back(*found);
-            //GFX_ILOG("\t\t%s", found->extensionName);
+            GFX_ILOG("\t\t%s", found->extensionName);
           }
         }
 
@@ -428,6 +428,8 @@ namespace higanbana
       //vk::PhysicalDeviceVulkan12Features,
       auto features2 = physDev.getFeatures2<
       vk::PhysicalDeviceFeatures2,
+      vk::PhysicalDeviceVulkan11Features,
+      vk::PhysicalDeviceVulkan12Features,
       vk::PhysicalDeviceVariablePointersFeatures,
       vk::PhysicalDeviceMultiviewFeatures,
       vk::PhysicalDeviceShaderAtomicInt64FeaturesKHR,
@@ -491,6 +493,8 @@ namespace higanbana
       //vk::PhysicalDeviceCoherentMemoryFeaturesAMD,
       >(vk::DispatchLoaderStatic());
 
+      auto& dev2prop = features2.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+      HIGAN_ASSERT(dev2prop.bufferDeviceAddress, "has to be");
       auto& pipelineExeProp = features2.get<vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR>();
       auto& descIndexing = features2.get<vk::PhysicalDeviceDescriptorIndexingFeaturesEXT>();
 

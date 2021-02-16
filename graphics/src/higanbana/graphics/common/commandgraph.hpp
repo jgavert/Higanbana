@@ -277,7 +277,7 @@ namespace higanbana
       list->dispatchMesh(groups.x);
     }
 
-    void drawIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+    void drawIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(indirect.buffer().handle());
@@ -287,10 +287,10 @@ namespace higanbana
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
-      list->drawIndirect(maxCommands, indirect, count);
+      list->drawIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
-    void drawIndexedIndirect(ShaderArgumentsBinding& binding, DynamicBufferView& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+    void drawIndexedIndirect(ShaderArgumentsBinding& binding, DynamicBufferView& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(indirect.buffer().handle());
@@ -300,10 +300,10 @@ namespace higanbana
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
-      list->drawIndexedIndirect(ibv, maxCommands, indirect, count);
+      list->drawIndexedIndirect(ibv, maxCommands, indirect, count, countOffsetBytes);
     }
 
-    void drawIndexedIndirect(ShaderArgumentsBinding& binding, BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+    void drawIndexedIndirect(ShaderArgumentsBinding& binding, BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(ibv.buffer().handle());
@@ -315,7 +315,7 @@ namespace higanbana
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
-      list->drawIndexedIndirect(ibv, maxCommands, indirect, count);
+      list->drawIndexedIndirect(ibv, maxCommands, indirect, count, countOffsetBytes);
     }
 
     void dispatchIndirect(ShaderArgumentsBinding& binding, const BufferSRV& indirect) {
@@ -327,7 +327,7 @@ namespace higanbana
       list->dispatchIndirect(indirect);
     }
 
-    void dispatchRaysIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+    void dispatchRaysIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(indirect.buffer().handle());
@@ -337,10 +337,10 @@ namespace higanbana
         addReadShared(count.buffer().handle());
       }
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
-      list->dispatchRaysIndirect(maxCommands, indirect, count);
+      list->dispatchRaysIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
-    void dispatchMeshIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV()) {
+    void dispatchMeshIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
       addConstantSize(binding.bConstants().size_bytes());
       addReadShared(indirect.buffer().handle());
@@ -350,7 +350,7 @@ namespace higanbana
         addReadShared(count.buffer().handle());
       }
       list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
-      list->dispatchMeshIndirect(maxCommands, indirect, count);
+      list->dispatchMeshIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
     void copy(Buffer target, int64_t elementOffset, Texture source, Subresource sub)

@@ -2156,12 +2156,12 @@ namespace higanbana
       int32_t index, bits;
       unpackInt64(desc.customType, index, bits);
 
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+      //vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
 
       vk::MemoryAllocateInfo allocInfo;
 
       allocInfo = vk::MemoryAllocateInfo()
-        .setPNext(&flags)
+        //.setPNext(&flags)
         .setAllocationSize(desc.sizeInBytes)
         .setMemoryTypeIndex(index);
 
@@ -2268,6 +2268,7 @@ namespace higanbana
         {
           elementCount = elementCount / elementSize;
         }
+        elementCount = elementCount - viewDesc.m_firstElement;
       }
 
       auto firstElement = viewDesc.m_firstElement * elementSize;

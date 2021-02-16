@@ -238,13 +238,15 @@ namespace higanbana
       uint maxCommands;
       ViewResourceHandle indirectBuffer;
       ViewResourceHandle countBuffer;
+      uint offsetCountBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::DrawIndirect;
-      static void constructor(backend::CommandBuffer& , DrawIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      static void constructor(backend::CommandBuffer& , DrawIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count, uint countOffsetBytes)
       {
         packet.maxCommands = commands;
         packet.indirectBuffer = handle;
         packet.countBuffer = count;
+        packet.offsetCountBytes = countOffsetBytes;
         static_assert(std::is_standard_layout<DrawIndirect>::value, "this is trivial packet");
       }
     };
@@ -254,14 +256,16 @@ namespace higanbana
       uint maxCommands;
       ViewResourceHandle indirectBuffer;
       ViewResourceHandle countBuffer;
+      uint offsetCountBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::DrawIndexedIndirect;
-      static void constructor(backend::CommandBuffer& , DrawIndexedIndirect& packet, ViewResourceHandle ibv, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      static void constructor(backend::CommandBuffer& , DrawIndexedIndirect& packet, ViewResourceHandle ibv, uint commands, ViewResourceHandle handle, ViewResourceHandle count, uint countOffsetBytes)
       {
         packet.indexbuffer = ibv;
         packet.maxCommands = commands;
         packet.indirectBuffer = handle;
         packet.countBuffer = count;
+        packet.offsetCountBytes = countOffsetBytes;
         static_assert(std::is_standard_layout<DrawIndexedIndirect>::value, "this is trivial packet");
       }
     };
@@ -281,13 +285,15 @@ namespace higanbana
       uint maxCommands;
       ViewResourceHandle indirectBuffer;
       ViewResourceHandle countBuffer;
+      uint offsetCountBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::DispatchRaysIndirect;
-      static void constructor(backend::CommandBuffer& , DispatchRaysIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      static void constructor(backend::CommandBuffer& , DispatchRaysIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count, uint countOffsetBytes)
       {
         packet.maxCommands = commands;
         packet.indirectBuffer = handle;
         packet.countBuffer = count;
+        packet.offsetCountBytes = countOffsetBytes;
         static_assert(std::is_standard_layout<DispatchRaysIndirect>::value, "this is trivial packet");
       }
     };
@@ -296,13 +302,15 @@ namespace higanbana
       uint maxCommands;
       ViewResourceHandle indirectBuffer;
       ViewResourceHandle countBuffer;
+      uint offsetCountBytes;
 
       static constexpr const backend::PacketType type = backend::PacketType::DispatchMeshIndirect;
-      static void constructor(backend::CommandBuffer& , DispatchMeshIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count)
+      static void constructor(backend::CommandBuffer& , DispatchMeshIndirect& packet, uint commands, ViewResourceHandle handle, ViewResourceHandle count, uint countOffsetBytes)
       {
         packet.maxCommands = commands;
         packet.indirectBuffer = handle;
         packet.countBuffer = count;
+        packet.offsetCountBytes = countOffsetBytes;
         static_assert(std::is_standard_layout<DispatchMeshIndirect>::value, "this is trivial packet");
       }
     };

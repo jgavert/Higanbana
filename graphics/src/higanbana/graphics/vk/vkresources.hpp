@@ -1140,11 +1140,11 @@ namespace higanbana
         auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
         HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
 
-        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+        //vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
         vk::MemoryAllocateInfo allocInfo;
 
         allocInfo = vk::MemoryAllocateInfo()
-          .setPNext(&flags)
+//          .setPNext(&flags)
           .setAllocationSize(bufDesc.desc.width)
           .setMemoryTypeIndex(index);
 

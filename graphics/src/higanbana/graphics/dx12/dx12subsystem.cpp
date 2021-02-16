@@ -123,7 +123,7 @@ namespace higanbana
             {
               info.canRaytrace = opt5.RaytracingTier == D3D12_RAYTRACING_TIER_1_1;
               GFX_LOG("Raytracing tier 1.1 %s\n", info.canRaytrace ? "Supported" : "Unsupported");
-              GFX_LOG("Renderpasses Tier %d\n", featureSupportData.RenderPassesTier);
+              GFX_LOG("Renderpasses Tier %d\n", opt5.RenderPassesTier);
             }
             D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
             if (SUCCEEDED(testDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opt6, sizeof(opt6))))

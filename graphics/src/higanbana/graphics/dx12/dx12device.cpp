@@ -269,8 +269,10 @@ namespace higanbana
       m_drawSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,sizeof(D3D12_DRAW_ARGUMENTS));
       m_drawIndexedSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED,sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
       m_dispatchSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,sizeof(D3D12_DISPATCH_ARGUMENTS));
-      m_dispatchRaysSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS,sizeof(D3D12_DISPATCH_RAYS_DESC));
-      m_dispatchMeshSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH,sizeof(D3D12_DISPATCH_MESH_ARGUMENTS));
+      if (m_info.canRaytrace)
+        m_dispatchRaysSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS,sizeof(D3D12_DISPATCH_RAYS_DESC));
+      if (m_info.canMeshshader)
+        m_dispatchMeshSignature = createIndirect( D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH,sizeof(D3D12_DISPATCH_MESH_ARGUMENTS));
 
       // get queue to cpu calibrations...
       calibrateClockTimings();
@@ -1456,8 +1458,9 @@ namespace higanbana
         {
           elementCount = elementCount / elementSize;
         }
+        elementCount -= viewDesc.m_firstElement;
       }
-      uint startInBytes = viewDesc.m_firstElement * elementCount * elementSize;
+      uint startInBytes = viewDesc.m_firstElement * elementSize;
 
       if (viewDesc.m_viewType == ResourceShaderType::IndexBuffer)
       {

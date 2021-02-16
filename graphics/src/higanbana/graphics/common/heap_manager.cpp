@@ -137,7 +137,7 @@ namespace higanbana
           {
             emptyHeaps.emplace_back(iter->heap);
             m_totalMemory -= iter->allocator.size();
-            GFX_LOG("Destroyed heap \"%dHeap%zda%d\" size %zu. Total memory in heaps %.2fMB\n", iter->index, it.type, it.alignment, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
+            GFX_LOG("Destroyed heap \"%dHeap%zd\" size %zu. Total memory in heaps %.2fMB\n", iter->index, it.type, iter->allocator.size(), float(m_totalMemory) / 1024.f / 1024.f);
           }
         }
         for (;;)
