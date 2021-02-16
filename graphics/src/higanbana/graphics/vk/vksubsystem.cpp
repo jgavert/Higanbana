@@ -344,9 +344,11 @@ namespace higanbana
         auto physDev = m_devices[devId];
         auto features2 = physDev.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceMeshShaderFeaturesNV, vk::PhysicalDeviceShadingRateImageFeaturesNV, vk::PhysicalDeviceRayQueryFeaturesKHR>(vk::DispatchLoaderStatic());
         auto meshfeatures = features2.get<vk::PhysicalDeviceMeshShaderFeaturesNV>();
-        info.canMeshshader = meshfeatures.taskShader && meshfeatures.taskShader;
         auto shadingRateFeatures = features2.get<vk::PhysicalDeviceShadingRateImageFeaturesNV>();
-        info.canVariableRate = shadingRateFeatures.shadingRateImage;
+        if (info.vendor == VendorID::Nvidia) {
+          info.canMeshshader = meshfeatures.taskShader && meshfeatures.taskShader;
+          info.canVariableRate = shadingRateFeatures.shadingRateImage;
+        }
         auto rayqueryFeatures = features2.get<vk::PhysicalDeviceRayQueryFeaturesKHR>();
         info.canRaytrace = rayqueryFeatures.rayQuery;
 
