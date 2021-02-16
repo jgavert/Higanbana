@@ -433,13 +433,13 @@ namespace higanbana
     public:
       VulkanBufferView()
       {}
-      VulkanBufferView(vk::BufferView view, vk::DescriptorType type)
-        : m{ view , {}, type, {}, {}, {}}
+      VulkanBufferView(vk::BufferView view, vk::DescriptorType type, vk::DeviceSize offset)
+        : m{ view , {}, type, {}, offset, {}}
       {}
-      VulkanBufferView(vk::DescriptorBufferInfo view, vk::DescriptorType type)
-        : m{ {} , view, type, {}, {}, {}}
+      VulkanBufferView(vk::DescriptorBufferInfo view, vk::DescriptorType type, vk::DeviceSize offset)
+        : m{ {} , view, type, {}, offset, {}}
       {}
-      VulkanBufferView(vk::Buffer buffer, vk::DeviceSize offset, vk::IndexType type)
+      VulkanBufferView(vk::Buffer buffer, vk::IndexType type, vk::DeviceSize offset)
         : m{ {} , {}, {}, buffer, offset, type}
       {}
       Info& native()
@@ -793,6 +793,7 @@ namespace higanbana
       VulkanUploadHeap() : allocator(1, 1) {}
       VulkanUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
+                     , vk::MemoryAllocateFlags memoryFlags
                      , unsigned memorySize
                      , unsigned unaccessibleMemoryAtEnd = 0)
         : allocator(memorySize-unaccessibleMemoryAtEnd)
@@ -821,7 +822,7 @@ namespace higanbana
 
         vk::MemoryAllocateInfo allocInfo;
 
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryFlags);
         allocInfo = vk::MemoryAllocateInfo()
           .setPNext(&flags)
           .setAllocationSize(bufDesc.desc.width)
@@ -899,6 +900,7 @@ namespace higanbana
       VulkanConstantUploadHeap() : allocator(1, 1) {}
       VulkanConstantUploadHeap(vk::Device device
                      , vk::PhysicalDevice physDevice
+                     , vk::MemoryAllocateFlags memoryFlags
                      , unsigned memorySize
                      , Mode mode
                      , unsigned unaccessibleMemoryAtEnd = 0)
@@ -933,7 +935,7 @@ namespace higanbana
 
         vk::MemoryAllocateInfo allocInfo;
 
-        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryFlags);
         allocInfo = vk::MemoryAllocateInfo()
           .setPNext(&flags)
           .setAllocationSize(bufDesc.desc.width)
@@ -1115,7 +1117,7 @@ namespace higanbana
       //D3D12_RANGE range{};
     public:
       VulkanReadbackHeap() : allocator(1) {}
-      VulkanReadbackHeap(vk::Device device, vk::PhysicalDevice physDevice, unsigned allocationSize, unsigned allocationCount)
+      VulkanReadbackHeap(vk::Device device, vk::PhysicalDevice physDevice, vk::MemoryAllocateFlags memoryFlags, unsigned allocationSize, unsigned allocationCount)
         : allocator(allocationSize * allocationCount)
         , fixedSize(allocationSize)
         , m_size(allocationSize*allocationCount)
@@ -1140,11 +1142,11 @@ namespace higanbana
         auto index = FindProperties(memProp, requirements.memoryTypeBits, searchProperties.optimal);
         HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?");
 
-        //vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryFlags);
         vk::MemoryAllocateInfo allocInfo;
 
         allocInfo = vk::MemoryAllocateInfo()
-//          .setPNext(&flags)
+          .setPNext(&flags)
           .setAllocationSize(bufDesc.desc.width)
           .setMemoryTypeIndex(index);
 

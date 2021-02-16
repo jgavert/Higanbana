@@ -301,6 +301,7 @@ namespace higanbana
       , m_physDevice(physDev)
       , m_limits(physDev.getProperties().limits)
       , m_dynamicDispatch(dynamicDispatch)
+      , m_memoryAllocateFlags(physDev.getFeatures2<vk::PhysicalDeviceFeatures2,vk::PhysicalDeviceVulkan12Features>().get<vk::PhysicalDeviceVulkan12Features>().bufferDeviceAddress ? vk::MemoryAllocateFlagBits::eDeviceAddress : vk::MemoryAllocateFlags(0))
       , m_debugLayer(debugLayer)
       , m_queues(queues)
       , m_singleQueue(false)
@@ -311,12 +312,17 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)), "/shader_binaries", ShaderBinaryType::SPIRV)
       , m_freeQueueIndexes({})
       //, m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, m_memoryAllocateFlags, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, m_memoryAllocateFlags, HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
       HIGAN_CPU_FUNCTION_SCOPE();
+      auto features2 = physDev.getFeatures2<
+      vk::PhysicalDeviceFeatures2,
+      vk::PhysicalDeviceVulkan11Features,
+      vk::PhysicalDeviceVulkan12Features>();
+      auto& features12 = features2.get<vk::PhysicalDeviceVulkan12Features>();
       // try to figure out unique queues, abort or something when finding unsupported count.
       // universal
       // graphics+compute
@@ -612,7 +618,7 @@ namespace higanbana
         auto buffer = m_device.createBuffer(vkdesc);
         VK_CHECK_RESULT(buffer);
         
-        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
         vk::MemoryDedicatedAllocateInfoKHR dediInfo;
         dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
         auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
@@ -694,7 +700,7 @@ namespace higanbana
       auto index = FindProperties(memProp, sampleBitsBuffer, searchProperties.optimal);
       HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.de
 
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
       allocInfo = vk::MemoryAllocateInfo()
         .setPNext(&flags)
         .setAllocationSize(allocateMemoryBuffers)
@@ -1715,7 +1721,7 @@ namespace higanbana
 
     VulkanReadbackHeap VulkanDevice::createReadback(unsigned pages, unsigned pageSize)
     {
-      return VulkanReadbackHeap(m_device, m_physDevice, pages, pageSize);
+      return VulkanReadbackHeap(m_device, m_physDevice,m_memoryAllocateFlags, pages, pageSize);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
@@ -2156,12 +2162,12 @@ namespace higanbana
       int32_t index, bits;
       unpackInt64(desc.customType, index, bits);
 
-      //vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
 
       vk::MemoryAllocateInfo allocInfo;
 
       allocInfo = vk::MemoryAllocateInfo()
-        //.setPNext(&flags)
+        .setPNext(&flags)
         .setAllocationSize(desc.sizeInBytes)
         .setMemoryTypeIndex(index);
 
@@ -2271,7 +2277,6 @@ namespace higanbana
         elementCount = elementCount - viewDesc.m_firstElement;
       }
 
-      auto firstElement = viewDesc.m_firstElement * elementSize;
       auto maxRange = elementCount * elementSize;
 
       vk::DescriptorType type = vk::DescriptorType::eStorageBuffer;
@@ -2290,9 +2295,11 @@ namespace higanbana
         }
       }
 
+
+      auto offsetBytes = viewDesc.m_firstElement * elementSize;
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(native.native())
-        .setOffset(firstElement)
+        .setOffset(offsetBytes)
         .setRange(maxRange);
 
       if (handle.type == ViewResourceType::BufferSRV) {
@@ -2300,13 +2307,13 @@ namespace higanbana
           auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
             .setBuffer(native.native())
             .setFormat(formatToVkFormat(format).view)
-            .setOffset(firstElement)
+            .setOffset(offsetBytes)
             .setRange(maxRange));
           VK_CHECK_RESULT(viewRes);
-          m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value, type);
+          m_allRes.bufSRV[handle] = VulkanBufferView(viewRes.value, type, offsetBytes);
         }
         else {
-          m_allRes.bufSRV[handle] = VulkanBufferView(info, type);
+          m_allRes.bufSRV[handle] = VulkanBufferView(info, type, offsetBytes);
         }
       }
       if (handle.type == ViewResourceType::RaytracingAccelerationStructure){
@@ -2317,18 +2324,18 @@ namespace higanbana
           auto viewRes = m_device.createBufferView(vk::BufferViewCreateInfo()
             .setBuffer(native.native())
             .setFormat(formatToVkFormat(format).view)
-            .setOffset(firstElement)
+            .setOffset(offsetBytes)
             .setRange(maxRange));
           VK_CHECK_RESULT(viewRes);
-          m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value, type);
+          m_allRes.bufUAV[handle] = VulkanBufferView(viewRes.value, type, offsetBytes);
         }
         else {
-          m_allRes.bufUAV[handle] = VulkanBufferView(info, type);
+          m_allRes.bufUAV[handle] = VulkanBufferView(info, type, offsetBytes);
         }
       }
       if (handle.type == ViewResourceType::BufferIBV) {
         vk::IndexType type = (format == FormatType::Uint16) ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
-        m_allRes.bufIBV[handle] = VulkanBufferView(native.native(), firstElement, type);
+        m_allRes.bufIBV[handle] = VulkanBufferView(native.native(), type, offsetBytes);
       }
     }
 
@@ -2904,7 +2911,7 @@ namespace higanbana
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
       vk::MemoryDedicatedAllocateInfoKHR dediInfo;
       dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
 

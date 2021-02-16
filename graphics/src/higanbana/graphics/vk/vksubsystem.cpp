@@ -198,7 +198,7 @@ namespace higanbana
         .setApplicationVersion(appVersion)
         .setPEngineName(engineName)
         .setEngineVersion(engineVersion)
-        .setApiVersion(VK_API_VERSION_1_1);
+        .setApiVersion(VK_API_VERSION_1_2);
 
       instance_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&app_info)
@@ -430,22 +430,22 @@ namespace higanbana
       vk::PhysicalDeviceFeatures2,
       vk::PhysicalDeviceVulkan11Features,
       vk::PhysicalDeviceVulkan12Features,
-      vk::PhysicalDeviceVariablePointersFeatures,
-      vk::PhysicalDeviceMultiviewFeatures,
-      vk::PhysicalDeviceShaderAtomicInt64FeaturesKHR,
-      vk::PhysicalDevice8BitStorageFeaturesKHR,
-      vk::PhysicalDevice16BitStorageFeatures,
-      vk::PhysicalDeviceShaderFloat16Int8FeaturesKHR,
+      //vk::PhysicalDeviceVariablePointersFeatures, 1.1
+      //vk::PhysicalDeviceMultiviewFeatures, 1.1
+      //vk::PhysicalDeviceShaderAtomicInt64FeaturesKHR, 1.2
+      // vk::PhysicalDevice8BitStorageFeaturesKHR, 1.2
+      // vk::PhysicalDevice16BitStorageFeatures, 1.1
+      //vk::PhysicalDeviceShaderFloat16Int8FeaturesKHR,1.2
       //vk::PhysicalDeviceShaderClockFeaturesKHR,
-      vk::PhysicalDeviceSamplerYcbcrConversionFeatures,
-      vk::PhysicalDeviceProtectedMemoryFeatures,
+      // vk::PhysicalDeviceSamplerYcbcrConversionFeatures, 1.1
+      //vk::PhysicalDeviceProtectedMemoryFeatures, 1.1
       vk::PhysicalDeviceConditionalRenderingFeaturesEXT,
-      vk::PhysicalDeviceShaderDrawParametersFeatures,
-      vk::PhysicalDeviceDescriptorIndexingFeaturesEXT,
+      // vk::PhysicalDeviceShaderDrawParametersFeatures, 1.1
+      //vk::PhysicalDeviceDescriptorIndexingFeaturesEXT, 1.2
       vk::PhysicalDeviceVertexAttributeDivisorFeaturesEXT,
       vk::PhysicalDeviceASTCDecodeFeaturesEXT,
       vk::PhysicalDeviceTransformFeedbackFeaturesEXT,
-      vk::PhysicalDeviceVulkanMemoryModelFeaturesKHR,
+      //vk::PhysicalDeviceVulkanMemoryModelFeaturesKHR,1.2
       vk::PhysicalDeviceInlineUniformBlockFeaturesEXT,
       //vk::PhysicalDeviceRepresentativeFragmentTestFeaturesNV,
       //vk::PhysicalDeviceExclusiveScissorFeaturesNV,
@@ -466,22 +466,22 @@ namespace higanbana
       //vk::PhysicalDeviceRayTracingPipelinePropertiesKHR,
       vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
       //vk::PhysicalDeviceAccelerationStructurePropertiesKHR,
-      vk::PhysicalDeviceBufferDeviceAddressFeatures,
+      //vk::PhysicalDeviceBufferDeviceAddressFeatures, 1.2
 
 #endif
-      vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT,
-      vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
+      // vk::PhysicalDeviceScalarBlockLayoutFeaturesEXT, 1.2
+      //vk::PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR, 1.2
       vk::PhysicalDeviceDepthClipEnableFeaturesEXT,
       vk::PhysicalDeviceMemoryPriorityFeaturesEXT,
       //vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
-      vk::PhysicalDeviceImagelessFramebufferFeaturesKHR,
+      //vk::PhysicalDeviceImagelessFramebufferFeaturesKHR, 1.2
       vk::PhysicalDeviceFragmentShaderInterlockFeaturesEXT,
       //vk::PhysicalDeviceCooperativeMatrixFeaturesNV,
       vk::PhysicalDeviceYcbcrImageArraysFeaturesEXT,
       //vk::PhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR,
-      vk::PhysicalDeviceHostQueryResetFeaturesEXT,
+      //vk::PhysicalDeviceHostQueryResetFeaturesEXT, 1.2
       //vk::PhysicalDeviceCoverageReductionModeFeaturesNV,
-      vk::PhysicalDeviceTimelineSemaphoreFeatures,
+      // vk::PhysicalDeviceTimelineSemaphoreFeatures, 1.2
       vk::PhysicalDeviceIndexTypeUint8FeaturesEXT,
       //vk::PhysicalDeviceShaderSMBuiltinsFeaturesNV,
       //vk::PhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR,
@@ -493,10 +493,10 @@ namespace higanbana
       //vk::PhysicalDeviceCoherentMemoryFeaturesAMD,
       >(vk::DispatchLoaderStatic());
 
-      auto& dev2prop = features2.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+      auto& dev2prop = features2.get<vk::PhysicalDeviceVulkan12Features>();
       HIGAN_ASSERT(dev2prop.bufferDeviceAddress, "has to be");
-      auto& pipelineExeProp = features2.get<vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR>();
-      auto& descIndexing = features2.get<vk::PhysicalDeviceDescriptorIndexingFeaturesEXT>();
+      //auto& pipelineExeProp = features2.get<vk::PhysicalDevicePipelineExecutablePropertiesFeaturesKHR>();
+      //auto& descIndexing = features2.get<vk::PhysicalDeviceDescriptorIndexingFeaturesEXT>();
 
       auto device_info = vk::DeviceCreateInfo()
         .setQueueCreateInfoCount(static_cast<uint32_t>(queueInfos.size()))

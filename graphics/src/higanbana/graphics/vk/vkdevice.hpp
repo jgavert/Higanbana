@@ -16,6 +16,7 @@ namespace higanbana
       vk::PhysicalDevice          m_physDevice;
       vk::PhysicalDeviceLimits    m_limits;
       vk::DispatchLoaderDynamic   m_dynamicDispatch;
+      vk::MemoryAllocateFlags     m_memoryAllocateFlags;
       bool                        m_debugLayer;
       std::vector<vk::QueueFamilyProperties> m_queues;
       bool                        m_singleQueue;
