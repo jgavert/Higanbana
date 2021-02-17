@@ -76,7 +76,6 @@ public:
       if (!m_fs.tryLoadFile(finalPath))
         return E_INVALIDARG; // rip
     } 
-    //HIGAN_ASSERT(m_fs.fileExists(finalPath), "Shader file doesn't exists in path %s\n", finalPath.c_str());
 
     if (m_fileIncluded)
     {
@@ -209,12 +208,10 @@ namespace higanbana
       if (binType == ShaderBinaryType::DXIL)
       {
         ppArgs.push_back(L"/DHIGANBANA_DX12");
-        //defs.push_back(DxcDefine{ L"HIGANBANA_DX12", nullptr });
       }
       else
       {
         ppArgs.push_back(L"/DHIGANBANA_VULKAN");
-        //defs.push_back(DxcDefine{ L"HIGANBANA_VULKAN", nullptr});
       }
 
       std::wstring tx, ty, tz;
@@ -229,9 +226,6 @@ namespace higanbana
         ppArgs.push_back(tx.c_str());
         ppArgs.push_back(ty.c_str());
         ppArgs.push_back(tz.c_str());
-        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_X", TGS_X.c_str() });
-        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Y", TGS_Y.c_str() });
-        //defs.push_back(DxcDefine{ L"HIGANBANA_THREADGROUP_Z", TGS_Z.c_str() });
       }
 
       std::vector<std::wstring> convertedDefs;

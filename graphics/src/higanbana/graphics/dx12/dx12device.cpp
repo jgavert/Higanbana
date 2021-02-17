@@ -32,7 +32,7 @@ namespace higanbana
       , m_device(device)
       , m_factory(factory)
       , m_fs(fs)
-      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)),"/shader_binaries", ShaderBinaryType::DXIL)
+      , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)),"/shader_binaries", ShaderBinaryType::DXIL, info.forceCompileShaders)
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 10240) // lol 1024, right.
       //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)

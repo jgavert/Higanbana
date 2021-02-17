@@ -18,6 +18,7 @@ struct GpuInfo
   bool canRaytrace = false;
   bool canMeshshader = false;
   bool canVariableRate = false;
+  bool forceCompileShaders = false;
   GraphicsApi api = GraphicsApi::All;
   uint32_t apiVersion = 0;
   std::string apiVersionStr = "";

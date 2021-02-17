@@ -6,10 +6,11 @@ namespace higanbana
 {
   namespace backend
   {    
-    ShaderStorage::ShaderStorage(FileSystem& fs, std::shared_ptr<ShaderCompiler> compiler, std::string binaryPath, ShaderBinaryType type)
+    ShaderStorage::ShaderStorage(FileSystem& fs, std::shared_ptr<ShaderCompiler> compiler, std::string binaryPath, ShaderBinaryType type, bool forceCompileFirstTime)
       : m_fs(fs)
       , compiledPath(binaryPath + "/")
       , m_type(type)
+      , m_compileFirstTime(forceCompileFirstTime)
       , m_compiler(compiler)
     {
       //m_fs.loadDirectoryContentsRecursive(sourcePath);
@@ -226,7 +227,7 @@ namespace higanbana
           shaderInterfaceTime = m_fs.timeModified(shaderInterfacePath);
         }
 
-        if (m_compiler && (info.desc.forceCompile || shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
+        if (m_compiler && (m_compileFirstTime || info.desc.forceCompile || shaderTime > dxilTime || shaderInterfaceTime > dxilTime))
         {
           // HIGAN_ILOG("ShaderStorage", "Spirv was old, compiling: \"%s\"", shaderName.c_str());
           bool result = m_compiler->compileShader(

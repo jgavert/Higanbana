@@ -220,9 +220,10 @@ bool FileSystem::tryLoadFile(std::string path) {
   auto fullPath = resolveNativePath(path).value();
   FileInfo info;
   info.nativePath = fullPath;
-  info.withoutNative = path;
+  auto mp = mountPoint(path);
+  info.withoutNative = path.substr(mp.size());
   size_t lol = 0;
-  return loadFileFromHDD(info, mountPointOSPath(path), lol);
+  return loadFileFromHDD(info, mp, lol);
 }
 
 bool FileSystem::fileExists(std::string path)
