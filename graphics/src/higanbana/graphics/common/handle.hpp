@@ -491,7 +491,7 @@ namespace higanbana
 
     MemView<Type> view()
     {
-      return makeMemView(objects);
+      return MemView(objects);
     }
 
     void clear()

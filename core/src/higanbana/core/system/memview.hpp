@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <iterator>
+#include <span>
 
 namespace higanbana
 {
@@ -32,16 +33,16 @@ namespace higanbana
     }
 
     template <typename RndIter>
-    MemView(RndIter first, size_t size)
+    MemView(RndIter* first, size_t size)
       : m_size(size)
       , m_ptr(first)
     {
     }
 
     template <typename RndIter>
-    MemView(RndIter first, RndIter last)
+    MemView(RndIter* first, RndIter* last)
       : m_size(last - first)
-      , m_ptr(m_size == 0 ? nullptr : std::addressof(*first))
+      , m_ptr(m_size == 0 ? nullptr : std::addressof(first))
     {
     }
 
@@ -126,10 +127,11 @@ namespace higanbana
   }
 
   // actually quite useful
-  template <template <typename, typename ...> class Container, typename Elem, typename ...Args>
-  MemView<Elem> makeMemView(Container<Elem, Args...>& s)
+  template <class Container>
+  auto memViewFromContainer(Container& s)
   {
-    return MemView<Elem>(s.begin(), s.end());
+    using value_type = typename Container::value_type;
+    return MemView<value_type>(s.data(), s.size());
   }
 
   template <typename T>
@@ -147,7 +149,7 @@ namespace higanbana
   template <typename T>
   MemView<uint8_t> makeByteView(T& obj)
   {
-    return MemView<uint8_t>(&obj, 1);
+    return MemView<uint8_t>(reinterpret_cast<uint8_t*>(&obj), sizeof(T));
   }
 
   // actually quite useful

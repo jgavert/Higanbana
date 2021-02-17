@@ -232,9 +232,9 @@ namespace higanbana
       list.insert<gfxpacket::ReadbackTexture>(texture.handle(), range, srcbox, texture.desc().desc.format);
     }
 
-    void readback(Buffer& buffer, uint startElement, uint size)
+    void readback(Buffer& buffer, uint byteOffset, uint sizeBytes)
     {
-      list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), startElement * buffer.desc().desc.stride, size * buffer.desc().desc.stride);
+      list.insert<gfxpacket::ReadbackBuffer>(buffer.handle(), byteOffset, sizeBytes);
     }
 
     void raytracingWriteGPUAddrToInstanceDescCPU(DynamicBufferView& dst, const BufferRTAS& addrToWrite, uint instanceIndex) {

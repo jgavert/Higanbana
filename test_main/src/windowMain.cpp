@@ -1178,7 +1178,7 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
   vector<uint8_t> out;
   out.resize(amountToWrite);
   memcpy(out.data(), data, amountToWrite);
-  m_fs.writeFile("/data/imgui.config", makeMemView(out));
+  m_fs.writeFile("/data/imgui.config", memViewFromContainer(out));
   //higanbana::profiling::writeProfilingData(m_fs);
   m_log.update();
 }

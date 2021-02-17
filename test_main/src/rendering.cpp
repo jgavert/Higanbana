@@ -486,7 +486,7 @@ css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime 
       vp.rtCam = rt::Camera(vpInfo.camera.position, dir, updir, sidedir, vpInfo.camera.fov, aspectRatio, vpInfo.camera.aperture, vpInfo.camera.focusDist);
     }
     if (!sets.empty()) {
-      auto matUpdate = dev.dynamicBuffer<CameraSettings>(makeMemView(sets));
+      auto matUpdate = dev.dynamicBuffer<CameraSettings>(memViewFromContainer(sets));
       for (int i = 0; i < dev.deviceCount(); i++) {
         auto ndoe = tasks.createPass("copy cameras", QueueType::Graphics, i);
         ndoe.copy(cameras, matUpdate);

@@ -368,7 +368,7 @@ namespace higanbana
       FormatType      format = FormatType::Unknown;
       ResourceUsage   usage = ResourceUsage::GpuReadOnly;
       FormatDimension dimension = FormatDimension::Unknown;
-      unsigned        stride = 0;
+      unsigned        stride = 1;
       unsigned        miplevels = 1;
       unsigned        width = 1;
       unsigned        height = 1;

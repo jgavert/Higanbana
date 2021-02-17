@@ -52,11 +52,15 @@ namespace higanbana
 
     void wait() const
     {
+      if (!m_future)
+        return;
       m_future->wait();
     }
 
     bool ready() const
     {
+      if (!m_future)
+        return false;
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
       return m_future->_Is_ready();
 #else

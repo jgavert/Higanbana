@@ -484,7 +484,7 @@ namespace higanbana
       return promise.future();
     }
 
-    ReadbackFuture readback(Buffer buffer, int offset = -1, int size = -1)
+    ReadbackFuture readback(Buffer buffer, int offset = -1, int elements = -1)
     {
       addReadShared(buffer.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
@@ -496,22 +496,32 @@ namespace higanbana
         offset = 0;
       }
 
-      if (size == -1)
+      if (elements == -1)
       {
-        size = buffer.desc().desc.width;
+        elements = buffer.desc().desc.width - offset;
       }
 
-      list->readback(buffer, offset, size);
+      HIGAN_ASSERT(offset+elements <= buffer.desc().desc.width, "elements should be less than total elements");
+
+      auto stride = buffer.desc().desc.stride;
+      list->readback(buffer, offset*stride, elements*stride);
       return promise.future();
     }
 
-    ReadbackFuture readback(Buffer buffer, unsigned startElement, unsigned size)
+    ReadbackFuture readbackBytes(Buffer buffer, unsigned offsetBytes, unsigned sizeBytes = 0)
     {
       addReadShared(buffer.handle());
       auto promise = ReadbackPromise({nullptr, std::make_shared<std::promise<ReadbackData>>()});
       m_readbackPromises.push_back(promise);
       m_referencedBuffers.setBit(buffer.handle().id);
-      list->readback(buffer, startElement, size);
+      auto stride = buffer.desc().desc.stride;
+      if (sizeBytes == 0)
+      {
+        sizeBytes = buffer.desc().desc.width*stride - offsetBytes;
+      }
+      HIGAN_ASSERT(offsetBytes+sizeBytes <= buffer.desc().desc.width*stride, "totalBytes should't exceed buffer. offset: %u size: %u, max size: %u", offsetBytes, sizeBytes, buffer.desc().desc.width*stride);
+
+      list->readback(buffer, offsetBytes, sizeBytes);
       return promise.future();
     }
 
