@@ -35,7 +35,6 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)),"/shader_binaries", ShaderBinaryType::DXIL, info.forceCompileShaders)
       , m_nodeMask(0) // sli/crossfire index
       , m_generics(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 10240) // lol 1024, right.
-      //, m_samplers(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16)
       , m_rtvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1024)
       , m_dsvs(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1024)
       , m_constantsUpload(std::make_shared<DX12ConstantsHeap>(device.Get(), HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? DX12ConstantsHeap::Type::CPUAndGPU : DX12ConstantsHeap::Type::OnlyCPU))
@@ -62,6 +61,11 @@ namespace higanbana
         HIGAN_LOGi("supports DXR1.1 !!\n");
       }
       m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &m_features.opt6, sizeof(m_features.opt6));
+      m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &m_features.opt7, sizeof(m_features.opt7));
+      if (m_features.opt7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED) {
+        HIGAN_LOGi("supports meshshaders !!\n");
+      }
+
 
       HIGAN_ASSERT(m_features.opt3.CopyQueueTimestampQueriesSupported, "should be supported");
 

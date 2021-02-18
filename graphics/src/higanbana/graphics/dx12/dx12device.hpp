@@ -39,7 +39,6 @@ namespace higanbana
       ComPtr<ID3D12CommandSignature> m_dispatchMeshSignature;
 
       StagingDescriptorHeap m_generics;
-      //StagingDescriptorHeap m_samplers;
       StagingDescriptorHeap m_rtvs;
       StagingDescriptorHeap m_dsvs;
 
@@ -76,6 +75,7 @@ namespace higanbana
         D3D12_FEATURE_DATA_D3D12_OPTIONS4 opt4 = {};
         D3D12_FEATURE_DATA_D3D12_OPTIONS5 opt5 = {};
         D3D12_FEATURE_DATA_D3D12_OPTIONS6 opt6 = {};
+        D3D12_FEATURE_DATA_D3D12_OPTIONS7 opt7 = {};
       } m_features;
 
       // locks and stuff
