@@ -166,7 +166,9 @@ namespace higanbana
       DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&pLibrary);
       pLibrary->CreateBlobWithEncodingFromPinned(text.c_str(), static_cast<uint32_t>(text.size()), CP_UTF8, &pSource);
 
-      CComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, m_fs.mountPoint(shaderSourcePath), d.rootSignature, pLibrary, includeCallback));
+      auto parentDir = m_fs.directoryPath(shaderSourcePath);
+
+      CComPtr<IDxcIncludeHandler> dxcHandlerPtr(new DXCIncludeHandler(m_fs, parentDir, d.rootSignature, pLibrary, includeCallback));
 
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;

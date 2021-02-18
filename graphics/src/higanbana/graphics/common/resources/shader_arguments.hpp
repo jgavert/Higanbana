@@ -15,21 +15,7 @@ namespace higanbana
     std::shared_ptr<vector<ShaderResource>> m_resources;
     std::shared_ptr<ShaderResource> m_bindless;
   public:
-    ShaderArgumentsLayout()
-      : m_id(std::make_shared<ResourceHandle>())
-      , m_structs(std::make_shared<vector<std::pair<size_t, std::string>>>())
-      , m_resources(std::make_shared<vector<ShaderResource>>())
-    {
-    }
-
-    ShaderArgumentsLayout(const ShaderArgumentsLayout&) = default;
-    ShaderArgumentsLayout(ShaderArgumentsLayout&&) = default;
-    ShaderArgumentsLayout& operator=(const ShaderArgumentsLayout&) = default;
-    ShaderArgumentsLayout& operator=(ShaderArgumentsLayout&&) = default;
-
-    ~ShaderArgumentsLayout()
-    {
-    }
+    ShaderArgumentsLayout() = default;
 
     ShaderArgumentsLayout(std::shared_ptr<ResourceHandle> id, vector<std::pair<size_t, std::string>> structs, vector<ShaderResource> resources, ShaderResource bindless)
       : m_id(id)
@@ -88,21 +74,7 @@ namespace higanbana
       }
     }
   public:
-    ShaderArguments()
-      : m_id(std::make_shared<ResourceHandle>())
-      , m_referencedBuffers(std::make_shared<DynamicBitfield>())
-      , m_referencedTextures(std::make_shared<DynamicBitfield>())
-    {
-    }
-
-    ShaderArguments(const ShaderArguments&) = default;
-    ShaderArguments(ShaderArguments&&) = default;
-    ShaderArguments& operator=(const ShaderArguments&) = default;
-    ShaderArguments& operator=(ShaderArguments&&) = default;
-
-    ~ShaderArguments()
-    {
-    }
+    ShaderArguments() = default;
 
     ShaderArguments(std::shared_ptr<ResourceHandle> id, const vector<ViewResourceHandle>& views)
       : m_id(id)
