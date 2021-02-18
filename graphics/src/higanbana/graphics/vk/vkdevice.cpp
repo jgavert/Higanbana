@@ -33,7 +33,7 @@ namespace higanbana
       return -1;
     }
 
-    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor)
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = descriptor.desc;
@@ -49,7 +49,8 @@ namespace higanbana
       // testing multiple flags
       usageBits = vk::BufferUsageFlagBits::eUniformTexelBuffer;
       usageBits |= vk::BufferUsageFlagBits::eStorageBuffer;
-      usageBits |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
+      if (memoryAddressingEnabled)
+        usageBits |= vk::BufferUsageFlagBits::eShaderDeviceAddress;
 
       if (desc.usage == ResourceUsage::GpuRW)
       {
@@ -291,20 +292,26 @@ namespace higanbana
       }
     }
 
+    vk::MemoryAllocateFlags VulkanDevice::memoryAddressingFlags() const {
+      if (m_memoryAddressingEnabled)
+        return vk::MemoryAllocateFlagBits::eDeviceAddress;
+      return vk::MemoryAllocateFlags(0);
+    }
+
     VulkanDevice::VulkanDevice(
       vk::Device device,
       vk::PhysicalDevice physDev,
       vk::DispatchLoaderDynamic dynamicDispatch,
-      vk::MemoryAllocateFlags memoryAllocateFlags,
       FileSystem& fs,
       std::vector<vk::QueueFamilyProperties> queues,
       GpuInfo info,
-      bool debugLayer)
+      bool debugLayer,
+      bool memoryAddressingEnabled)
       : m_device(device)
       , m_physDevice(physDev)
       , m_limits(physDev.getProperties().limits)
       , m_dynamicDispatch(dynamicDispatch)
-      , m_memoryAllocateFlags(memoryAllocateFlags) 
+      , m_memoryAddressingEnabled(memoryAddressingEnabled) 
       , m_debugLayer(debugLayer)
       , m_queues(queues)
       , m_singleQueue(false)
@@ -315,8 +322,8 @@ namespace higanbana
       , m_shaders(fs, std::shared_ptr<ShaderCompiler>(new DXCompiler(fs)), "/shader_binaries", ShaderBinaryType::SPIRV, info.forceCompileShaders)
       , m_freeQueueIndexes({})
       //, m_seqTracker(std::make_shared<SequenceTracker>())
-      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, m_memoryAllocateFlags, HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
-      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, m_memoryAllocateFlags, HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
+      , m_dynamicUpload(std::make_shared<VulkanUploadHeap>(device, physDev, memoryAddressingFlags(), HIGANBANA_UPLOAD_MEMORY_AMOUNT)) // TODO: implement dynamically adjusted
+      , m_constantAllocators(std::make_shared<VulkanConstantUploadHeap>(device, physDev, memoryAddressingFlags(), HIGANBANA_CONSTANT_BUFFER_AMOUNT, info.gpuConstants ? VulkanConstantUploadHeap::Mode::CpuGpu : VulkanConstantUploadHeap::Mode::CpuOnly, 1024)) // TODO: implement dynamically adjusted
       , m_descriptorSetsInUse(0)
 //      , m_trash(std::make_shared<Garbage>())
     {
@@ -617,11 +624,11 @@ namespace higanbana
           .setUsage(ResourceUsage::GpuRW)
           .allowSimultaneousAccess();
         
-        auto vkdesc = fillBufferInfo(bdesc);
+        auto vkdesc = fillBufferInfo(bdesc, m_memoryAddressingEnabled);
         auto buffer = m_device.createBuffer(vkdesc);
         VK_CHECK_RESULT(buffer);
         
-        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
+        vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryAddressingFlags());
         vk::MemoryDedicatedAllocateInfoKHR dediInfo;
         dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
         auto chain = m_device.getBufferMemoryRequirements2KHR<vk::MemoryRequirements2, vk::MemoryDedicatedRequirementsKHR>(vk::BufferMemoryRequirementsInfo2KHR().setBuffer(buffer.value), m_dynamicDispatch);
@@ -658,7 +665,7 @@ namespace higanbana
       for (auto&& format : nullFormats) {
         auto res = m_device.createBuffer(fillBufferInfo(ResourceDescriptor()
           .setFormat(format)
-          .setWidth(1)));
+          .setWidth(1), m_memoryAddressingEnabled));
         VK_CHECK_RESULT(res);
         nullBuffers(format).buffer = res.value;
 
@@ -703,7 +710,7 @@ namespace higanbana
       auto index = FindProperties(memProp, sampleBitsBuffer, searchProperties.optimal);
       HIGAN_ASSERT(index != -1, "Couldn't find optimal memory... maybe try default :D?"); // searchProperties.de
 
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryAddressingFlags());
       allocInfo = vk::MemoryAllocateInfo()
         .setPNext(&flags)
         .setAllocationSize(allocateMemoryBuffers)
@@ -1724,7 +1731,7 @@ namespace higanbana
 
     VulkanReadbackHeap VulkanDevice::createReadback(unsigned pages, unsigned pageSize)
     {
-      return VulkanReadbackHeap(m_device, m_physDevice,m_memoryAllocateFlags, pages, pageSize);
+      return VulkanReadbackHeap(m_device, m_physDevice,memoryAddressingFlags(), pages, pageSize);
     }
 
     void VulkanDevice::createPipeline(ResourceHandle handle, GraphicsPipelineDescriptor desc)
@@ -2116,7 +2123,7 @@ namespace higanbana
       vk::MemoryRequirements requirements;
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
-        auto buffer = m_device.createBuffer(fillBufferInfo(desc));
+        auto buffer = m_device.createBuffer(fillBufferInfo(desc, m_memoryAddressingEnabled));
         VK_CHECK_RESULT(buffer);
         requirements = m_device.getBufferMemoryRequirements(buffer.value);
         m_device.destroyBuffer(buffer.value);
@@ -2165,7 +2172,7 @@ namespace higanbana
       int32_t index, bits;
       unpackInt64(desc.customType, index, bits);
 
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryAddressingFlags());
 
       vk::MemoryAllocateInfo allocInfo;
 
@@ -2183,7 +2190,7 @@ namespace higanbana
     void VulkanDevice::createBuffer(ResourceHandle handle, ResourceDescriptor& desc)
     {
       /*
-      auto vkdesc = fillBufferInfo(desc);
+      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled);
       auto buffer = m_device.createBuffer(vkdesc);
       
       vk::MemoryDedicatedAllocateInfoKHR dediInfo;
@@ -2242,7 +2249,7 @@ namespace higanbana
     void VulkanDevice::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto vkdesc = fillBufferInfo(desc);
+      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       auto& native = m_allRes.heaps[allocation.heap.handle];
@@ -2909,11 +2916,11 @@ namespace higanbana
         .setElementsCount(bytes)
         .setUsage(ResourceUsage::Readback);
 
-      auto vkdesc = fillBufferInfo(desc);
+      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       
-      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(m_memoryAllocateFlags);
+      vk::MemoryAllocateFlagsInfo flags = vk::MemoryAllocateFlagsInfo().setFlags(memoryAddressingFlags());
       vk::MemoryDedicatedAllocateInfoKHR dediInfo;
       dediInfo = dediInfo.setBuffer(buffer.value).setPNext(&flags);
 

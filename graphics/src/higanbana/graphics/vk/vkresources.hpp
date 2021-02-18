@@ -25,7 +25,7 @@ namespace higanbana
 {
   namespace backend
   {
-    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor);
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled);
     vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
     int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties);
 
@@ -806,7 +806,8 @@ namespace higanbana
           .setIndexBuffer()
           .setName("DynUpload");
 
-        auto natBufferInfo = fillBufferInfo(bufDesc);
+        bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
 
         auto result = device.createBuffer(natBufferInfo);
         if (result.result == vk::Result::eSuccess)
@@ -915,7 +916,8 @@ namespace higanbana
           .setUsage(ResourceUsage::Upload)
           .setName("DynUpload");
 
-        auto natBufferInfo = fillBufferInfo(bufDesc);
+        bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
         vk::BufferUsageFlags vkUsage = vk::BufferUsageFlagBits::eUniformBuffer;
         if (m_mode == Mode::CpuGpu)
           vkUsage = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferSrc;
@@ -954,7 +956,7 @@ namespace higanbana
         data = reinterpret_cast<uint8_t*>(mapResult.value);
         if (m_mode == Mode::CpuGpu) {
           bufDesc = bufDesc.setUsage(ResourceUsage::GpuReadOnly);
-          natBufferInfo = fillBufferInfo(bufDesc);
+          natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
           natBufferInfo = natBufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst);
           auto result2 = device.createBuffer(natBufferInfo);
           if (result2.result == vk::Result::eSuccess)
@@ -1112,9 +1114,6 @@ namespace higanbana
       unsigned m_size = 1;
 
       uint8_t* data = nullptr;
-      ///D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = 0;
-
-      //D3D12_RANGE range{};
     public:
       VulkanReadbackHeap() : allocator(1) {}
       VulkanReadbackHeap(vk::Device device, vk::PhysicalDevice physDevice, vk::MemoryAllocateFlags memoryFlags, unsigned allocationSize, unsigned allocationCount)
@@ -1128,7 +1127,8 @@ namespace higanbana
           .setUsage(ResourceUsage::Readback)
           .setName("timestamp readback");
 
-        auto natBufferInfo = fillBufferInfo(bufDesc);
+        bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
 
         auto result = device.createBuffer(natBufferInfo);
         if (result.result == vk::Result::eSuccess)

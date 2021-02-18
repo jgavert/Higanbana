@@ -16,7 +16,7 @@ namespace higanbana
       vk::PhysicalDevice          m_physDevice;
       vk::PhysicalDeviceLimits    m_limits;
       vk::DispatchLoaderDynamic   m_dynamicDispatch;
-      vk::MemoryAllocateFlags     m_memoryAllocateFlags;
+      bool                        m_memoryAddressingEnabled;
       bool                        m_debugLayer;
       std::vector<vk::QueueFamilyProperties> m_queues;
       bool                        m_singleQueue;
@@ -121,11 +121,11 @@ namespace higanbana
         vk::Device device,
         vk::PhysicalDevice physDev,
         vk::DispatchLoaderDynamic dynamicDispatch,
-        vk::MemoryAllocateFlags memoryAllocateFlags,
         FileSystem& fs,
         std::vector<vk::QueueFamilyProperties> queues,
         GpuInfo info,
-        bool debugLayer);
+        bool debugLayer,
+        bool memoryAddressingEnabled);
       ~VulkanDevice();
 
       vk::Device native() { return m_device; }
@@ -142,6 +142,9 @@ namespace higanbana
             , m_dynamicDispatch));
         }
       }
+
+
+     vk::MemoryAllocateFlags memoryAddressingFlags() const;
 
       vk::DescriptorSetLayout defaultDescLayout() { return m_defaultDescriptorLayout.native(); }
 
