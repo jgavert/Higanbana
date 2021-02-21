@@ -3,7 +3,7 @@
 #include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/common/pipeline_descriptor.hpp"
 
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 
 namespace higanbana

@@ -119,7 +119,7 @@ class HeapAllocatorRaw {
 
   inline void remove_bit(uint64_t& value, int index) noexcept { value = value ^ (1 << index); }
   inline void set_bit(uint64_t& value, int index) noexcept { value |= (1 << index); }
-  inline bool is_bit_set(uint64_t& value, int index) noexcept { return (value >> index) & 1U > 0; }
+  inline bool is_bit_set(uint64_t& value, int index) noexcept { return ((value >> index) & 1U) > 0; }
 
 
   // insert finished

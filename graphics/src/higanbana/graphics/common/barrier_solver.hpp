@@ -2,6 +2,7 @@
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/desc/resource_state.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
+#include <higanbana/core/datastructures/hashmap.hpp>
 
 namespace higanbana
 {

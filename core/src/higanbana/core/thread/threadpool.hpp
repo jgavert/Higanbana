@@ -13,7 +13,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/vector.hpp"
 
 // optional include, just dont enable "debug"
 #include "higanbana/core/global_debug.hpp"

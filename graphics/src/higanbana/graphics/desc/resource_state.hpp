@@ -3,7 +3,6 @@
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/resources/graphics_api.hpp"
 #include <cstdint>
-#include <higanbana/core/datastructures/proxy.hpp>
 
 namespace higanbana
 {

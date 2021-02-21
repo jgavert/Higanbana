@@ -1,4 +1,5 @@
 #include "higanbana/graphics/desc/pipeline_interface_descriptor.hpp"
+#include <higanbana/core/datastructures/hashmap.hpp>
 
 namespace higanbana
 {

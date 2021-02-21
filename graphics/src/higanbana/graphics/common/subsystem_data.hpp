@@ -1,7 +1,9 @@
 #pragma once
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/resources/graphics_api.hpp"
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/vector.hpp"
+
+#include <memory>
 
 namespace higanbana
 {

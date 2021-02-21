@@ -6,7 +6,7 @@
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
 

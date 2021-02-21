@@ -9,15 +9,15 @@
 #include "higanbana/graphics/common/resources/gpu_info.hpp"
 #include "higanbana/graphics/desc/timing.hpp"
 
+#include <higanbana/core/datastructures/deque.hpp>
 #include <higanbana/core/system/memview.hpp>
 #include <higanbana/core/system/MemoryPools.hpp>
 #include <higanbana/core/system/SequenceTracker.hpp>
-#include <higanbana/core/system/LBS.hpp>
 #include <optional>
 #include <functional>
 #include <mutex>
 
-#if 1 // start of css::Task includes
+#ifdef JGPU_COROUTINES // start of css::Task includes
 #include <css/task.hpp>
 #endif
 
@@ -25,6 +25,15 @@ namespace higanbana
 {
   namespace backend
   {
+    struct QueueStates
+    {
+      DynamicBitfield gb;
+      DynamicBitfield gt;
+      DynamicBitfield cb;
+      DynamicBitfield ct;
+      DynamicBitfield db;
+      DynamicBitfield dt;
+    };
     class DelayedRelease
     {
       struct Garbage
@@ -209,9 +218,9 @@ namespace higanbana
       vector<std::future<void>> m_asyns;
 
       DeviceGroupData(vector<std::shared_ptr<prototypes::DeviceImpl>> impl, vector<GpuInfo> infos);
-      DeviceGroupData(DeviceGroupData&& data) = default;
+      DeviceGroupData(DeviceGroupData&& data) = delete;
       DeviceGroupData(const DeviceGroupData& data) = delete;
-      DeviceGroupData& operator=(DeviceGroupData&& data) = default;
+      DeviceGroupData& operator=(DeviceGroupData&& data) = delete;
       DeviceGroupData& operator=(const DeviceGroupData& data) = delete;
       ~DeviceGroupData();
 
@@ -278,7 +287,7 @@ namespace higanbana
       void present(Swapchain& swapchain, int backbufferIndex);
 
       // css::Task versions
-#if 1 // start of css::Task
+#ifdef JGPU_COROUTINES // start of css::Task
       css::Task<void> finalPass(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin);
       css::Task<std::shared_ptr<css::Task<void>>> localPass(css::Task<std::shared_ptr<css::Task<void>>>* before, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin);
       css::Task<void> asyncSubmit(std::optional<Swapchain> swapchain, CommandGraph& graph);

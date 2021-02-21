@@ -15,6 +15,7 @@
 #include "higanbana/graphics/common/raytracing_descriptors.hpp"
 #include "higanbana/graphics/common/prototypes.hpp"
 #include "higanbana/graphics/desc/device_stats.hpp"
+#include <higanbana/core/datastructures/deque.hpp>
 
 #include <optional>
 
@@ -244,7 +245,7 @@ namespace higanbana
       S().garbageCollection();
     }
 
-#if 1 // start of css::Task includes
+#if JGPU_COROUTINES // start of css::Task includes
     css::Task<void> asyncSubmit(Swapchain& swapchain, CommandGraph graph) {
       return S().asyncSubmit(swapchain, graph);
     }

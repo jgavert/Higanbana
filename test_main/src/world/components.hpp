@@ -1,10 +1,10 @@
 #pragma once
 
+#include <string>
 #include <higanbana/core/math/math.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/entity/database.hpp>
 
-#include <string>
 
 namespace components
 {

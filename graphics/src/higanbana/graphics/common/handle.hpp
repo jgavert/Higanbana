@@ -1,7 +1,7 @@
 #pragma once
 
 #include "higanbana/graphics/desc/formats.hpp"
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/system/memview.hpp>
 #include <stdint.h>
@@ -145,7 +145,7 @@ namespace higanbana
     }
     bool operator!=(const ResourceHandle& other) const
     {
-      return id != other.id;
+      return !operator==(other);
     }
     explicit operator bool() const {
       return id != InvalidId;
@@ -233,22 +233,22 @@ namespace higanbana
       m_storeop = static_cast<uint64_t>(op);
     }
 
-    LoadOp loadOp() const
+    constexpr LoadOp loadOp() const
     {
       return static_cast<LoadOp>(m_loadop);
     }
-    StoreOp storeOp() const
+    constexpr StoreOp storeOp() const
     {
       return static_cast<StoreOp>(m_storeop);
     }
 
-    bool operator==(const ViewResourceHandle& other)
+    constexpr bool operator==(const ViewResourceHandle& other) const 
     {
       return rawView == other.rawView && rawResource == other.rawResource;
     }
-    bool operator!=(const ViewResourceHandle& other)
+    constexpr bool operator!=(const ViewResourceHandle& other) const
     {
-      return rawView != other.rawView || rawResource != other.rawResource;
+      return !operator==(other);
     }
   };
 

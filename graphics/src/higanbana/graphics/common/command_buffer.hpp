@@ -3,10 +3,9 @@
 #include <memory>
 #include <cstddef>
 #include <cstring>
-#include <vector>
 #include <type_traits>
 #include <higanbana/core/system/memview.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/global_debug.hpp>
 
 #define VERIFY_PACKETS_ONE_BY_BY 0

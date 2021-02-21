@@ -57,6 +57,7 @@ public:
     HIGAN_ASSERT(index >= 0 && index < 64, "sanity check for index");
     if (hitGroups.size() < index) hitGroups.resize(index+1);
     hitGroups[index] = hitgroup;
+    return *this;
   }
 
   RaytracingPipelineDescriptor& setRayGen(std::string path) {

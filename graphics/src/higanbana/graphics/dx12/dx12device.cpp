@@ -264,7 +264,7 @@ namespace higanbana
         D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
         commandSignatureDesc.pArgumentDescs = argumentDescs;
         commandSignatureDesc.NumArgumentDescs = _countof(argumentDescs);
-        commandSignatureDesc.ByteStride = stride; sizeof(D3D12_DRAW_ARGUMENTS);
+        commandSignatureDesc.ByteStride = stride;
         ComPtr<ID3D12CommandSignature> m_commandSignature;
 
         HIGANBANA_CHECK_HR(m_device->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&m_commandSignature)));

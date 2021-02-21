@@ -2,6 +2,7 @@
 #include "higanbana/graphics/dx12/dx12resources.hpp"
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #include "higanbana/graphics/dx12/dx12device.hpp"
+#include <higanbana/core/datastructures/vector.hpp>
 
 namespace higanbana
 {
@@ -11,7 +12,7 @@ namespace higanbana
     {
       vector<GpuInfo> infos;
       ComPtr<IDXGIFactory4> pFactory;
-      std::vector<ComPtr<IDXGIAdapter3>> vAdapters;
+      vector<ComPtr<IDXGIAdapter3>> vAdapters;
       bool m_debug;
     public:
       DX12Subsystem(const char* appName, unsigned appVersion, const char* engineName, unsigned engineVersion, bool debug = false);

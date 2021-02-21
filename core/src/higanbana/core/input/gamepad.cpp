@@ -23,7 +23,7 @@
 #include <algorithm>
 
 #include "higanbana/core/global_debug.hpp"
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/hashmap.hpp"
 
 #define INPUT_DEBUG 0
 
@@ -54,7 +54,7 @@ namespace higanbana
       char guid_string[37]; // 32 hex chars + 4 hyphens + null terminator
       snprintf(
         guid_string, sizeof(guid_string) / sizeof(guid_string[0]),
-        "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        "%16x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
         guid->Data1, guid->Data2, guid->Data3,
         guid->Data4[0], guid->Data4[1], guid->Data4[2],
         guid->Data4[3], guid->Data4[4], guid->Data4[5],
@@ -220,7 +220,7 @@ namespace higanbana
       std::string nam = ws2s(pdidoi->tszName);
       printf("name \"%s\" ", nam.c_str());
 
-      printf(" {%d %d %d %d %d %d %d %d %d} ", pdidoi->dwDimension, pdidoi->dwFFForceResolution, pdidoi->dwFFMaxForce, pdidoi->dwFlags, pdidoi->dwOfs, pdidoi->wCollectionNumber, pdidoi->wDesignatorIndex, pdidoi->wReportId, pdidoi->wUsagePage);
+      printf(" {%lu %lu %lu %lu %lu %d %d %d %d} ", pdidoi->dwDimension, pdidoi->dwFFForceResolution, pdidoi->dwFFMaxForce, pdidoi->dwFlags, pdidoi->dwOfs, pdidoi->wCollectionNumber, pdidoi->wDesignatorIndex, pdidoi->wReportId, pdidoi->wUsagePage);
 
       if (pdidoi->guidType == GUID_XAxis)
       {

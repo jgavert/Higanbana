@@ -4,10 +4,6 @@
 #include "higanbana/core/external/robinhashmap.hpp"
 #include <unordered_map>
 #include <unordered_set>
-#include <string>
-
-#include <vector>
-#include <deque>
 
 //#define USING_SPARSEPP
 
@@ -68,10 +64,4 @@ namespace higanbana
   template <typename key>
   using unordered_set = std::unordered_set<key, Hasher<key>>;
 #endif
-
-  template <typename type>
-  using vector = std::vector<type>;
-
-  template <typename type>
-  using deque = std::deque<type>;
 }

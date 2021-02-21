@@ -1,8 +1,10 @@
 #pragma once
+#include "higanbana/core/datastructures/vector.hpp"
+#include "higanbana/core/datastructures/hashmap.hpp"
 #include "higanbana/core/entity/sparsetable.hpp"
 #include "higanbana/core/entity/tagtable.hpp"
 #include "higanbana/core/entity/query.hpp"
-#include "higanbana/core/datastructures/proxy.hpp"
+#include <string>
 #include <stdint.h>
 #include <cstdint>
 #include <array>

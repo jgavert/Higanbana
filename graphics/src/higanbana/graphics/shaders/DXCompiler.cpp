@@ -1,4 +1,5 @@
 #include "higanbana/graphics/shaders/DXCompiler.hpp"
+#undef WIN32_LEAN_AND_MEAN
 #include <dxc/Support/WinIncludes.h>
 #include <dxc/Support/Global.h>
 #include <dxc/DxilContainer/DxilContainer.h>

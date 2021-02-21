@@ -2,11 +2,10 @@
 #include <higanbana/graphics/GraphicsCore.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/platform/Window.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/system/time.hpp>
 #include <higanbana/graphics/helpers/pingpongTexture.hpp>
 #include <higanbana/core/system/FreelistAllocator.hpp>
-#include <higanbana/core/system/LBS.hpp>
 #include <css/task.hpp>
 #include <css/low_prio_task.hpp>
 #include "renderer/imgui.hpp"

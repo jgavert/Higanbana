@@ -1,7 +1,6 @@
 #pragma once
 
 #include <higanbana/core/platform/EntryPoint.hpp>
-#include <higanbana/core/system/LBS.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
 #include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/platform/Window.hpp>

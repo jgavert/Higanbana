@@ -2,7 +2,7 @@
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include "higanbana/graphics/definitions.hpp"
-#include <higanbana/core/Platform/Window.hpp>
+#include <higanbana/core/platform/Window.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 

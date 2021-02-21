@@ -3,7 +3,7 @@
 #include <higanbana/core/math/math.hpp>
 #include <higanbana/graphics/desc/formats.hpp>
 #include <higanbana/graphics/common/cpuimage.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/graphics/desc/shader_input_descriptor.hpp>
 #include <higanbana/core/entity/database.hpp>
 

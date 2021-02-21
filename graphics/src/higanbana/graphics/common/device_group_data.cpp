@@ -1,6 +1,5 @@
 #include "higanbana/graphics/common/device_group_data.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
-#include "higanbana/graphics/common/implementation.hpp"
 #include "higanbana/graphics/common/semaphore.hpp"
 #include "higanbana/graphics/common/cpuimage.hpp"
 #include "higanbana/graphics/common/swapchain.hpp"
@@ -2334,7 +2333,7 @@ namespace higanbana
 #endif
       }
     }
-#if 1 // start of css::Task
+#ifdef JGPU_COROUTINES // start of css::Task
     css::Task<void> DeviceGroupData::finalPass(css::Task<void>* previousFinalPass, css::Task<void>* gcDone, std::optional<Swapchain> swapchain, vector<PreparedCommandlist>& lists, backend::LiveCommandBuffer2& liveList, int listID, int listIdBegin) {
       {
         std::string fnlpass = "compile list ";

@@ -1,10 +1,10 @@
 #pragma once
 
-//#include "higanbana/graphics/common/backend.hpp"
 #include "higanbana/graphics/common/resources.hpp"
 #include "higanbana/graphics/common/resource_descriptor.hpp"
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
+#include <higanbana/core/entity/bitfield.hpp>
 
 namespace higanbana
 {

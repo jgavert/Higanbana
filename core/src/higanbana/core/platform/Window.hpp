@@ -3,7 +3,7 @@
 #include "higanbana/core/platform/ProgramParams.hpp"
 #include "higanbana/core/input/InputBuffer.hpp"
 #include "higanbana/core/math/math.hpp"
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/vector.hpp"
 
 #include <string>
 #include <memory>

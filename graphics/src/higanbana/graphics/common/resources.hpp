@@ -1,7 +1,5 @@
 #pragma once
 
-#include <higanbana/core/entity/bitfield.hpp>
-
 namespace higanbana
 {
 namespace desc
@@ -94,16 +92,6 @@ namespace desc
     struct HeapAllocation;
     class HeapManager;
 
-    struct QueueStates
-    {
-      DynamicBitfield gb;
-      DynamicBitfield gt;
-      DynamicBitfield cb;
-      DynamicBitfield ct;
-      DynamicBitfield db;
-      DynamicBitfield dt;
-      // DynamicBitfield eb;
-      // DynamicBitfield et;
-    };
+    struct QueueStates;
   }
 }

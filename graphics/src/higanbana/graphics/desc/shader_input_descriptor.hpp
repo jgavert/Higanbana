@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/math/math.hpp>
 #include <string_view>
 

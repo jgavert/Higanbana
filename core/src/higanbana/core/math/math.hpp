@@ -52,465 +52,568 @@ namespace higanbana
     *    float4x4 lookAt(cameraPos, cameraDir)
     *    float4x4 rotationMatrix(x, y, z or quaternion)
     */
+    constexpr double Epsilon = 0.00000001;
 
-    const float PI = 3.14159265f;
+    constexpr float PI = 3.14159265f;
 
     template<int ELEMENT_COUNT, typename vType>
     struct Vector;
 
-    template<typename vType>
-    struct Vector<2, vType>
-    {
-      union
-      {
-        struct {
-          vType x, y;
-        };
-        vType data[2];
-      };
-
-      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)) {}
-      constexpr inline Vector(vType v) : x(v), y(v) {}
-      constexpr inline Vector(vType x, vType y) : x(x), y(y) {}
-      constexpr inline Vector(const Vector& o) : x(o.x), y(o.y) {}
-      template<typename vTypeAnother>
-      constexpr inline Vector(const Vector<2, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)) {}
-
-      HIGAN_INLINE vType& operator()(unsigned index)
-      {
-        return data[index];
-      }
-
-      constexpr inline const vType& operator()(unsigned index) const
-      {
-        return data[index];
-      }
-      constexpr auto operator<=>(const Vector<2, vType>&) const = default;
-    };
-
-    template<typename vType>
-    struct Vector<3, vType>
-    {
-      union
-      {
-        struct {
-          vType x, y, z;
-        };
-        vType data[3];
-      };
-
-      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)) {}
-      constexpr inline Vector(vType v) : x(v), y(v), z(v) {}
-      constexpr inline Vector(vType x, vType y, vType z) : x(x), y(y), z(z) {}
-      constexpr inline Vector(Vector<2, vType> o, vType v) : x(o.x), y(o.y), z(v) {}
-      constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z) {}
-      template<typename vTypeAnother>
-      constexpr inline Vector(const Vector<3, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)) {}
-
-      HIGAN_INLINE vType& operator()(unsigned index)
-      {
-        return data[index];
-      }
-
-      constexpr inline const vType& operator()(unsigned index) const
-      {
-        return data[index];
-      }
-
-      constexpr inline Vector<2, vType> xy() const
-      {
-        return Vector<2, vType>(x, y);
-      }
-      constexpr auto operator<=>(const Vector<3, vType>&) const = default;
-    };
-
-    template<typename vType>
-    struct Vector<4, vType>
-    {
-      union
-      {
-        struct {
-          vType x, y, z, w;
-        };
-        vType data[4];
-      };
-
-      constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)), w(static_cast<vType>(0)) {}
-      constexpr inline Vector(vType v) : x(v), y(v), z(v), w(v) {}
-      constexpr inline Vector(vType x, vType y, vType z, vType w) : x(x), y(y), z(z), w(w) {}
-      constexpr inline Vector(Vector<2, vType> o, vType z, vType w) : x(o.x), y(o.y), z(z), w(w) {}
-      constexpr inline Vector(Vector<3, vType> o, vType v) : x(o.x), y(o.y), z(o.z), w(v) {}
-      constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z), w(o.w) {}
-      template<typename vTypeAnother>
-      constexpr inline Vector(const Vector<4, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)), w(static_cast<vType>(o.w)) {}
-
-      HIGAN_INLINE vType& operator()(unsigned index)
-      {
-        return data[index];
-      }
-
-      constexpr inline const vType& operator()(unsigned index) const
-      {
-        return data[index];
-      }
-
-      constexpr inline Vector<3, vType> xyz() const
-      {
-        return Vector<3, vType>(x, y, z);
-      }
-      constexpr inline Vector<2, vType> xy() const
-      {
-        return Vector<2, vType>(x, y);
-      }
-
-      constexpr auto operator<=>(const Vector<4, vType>&) const = default;
-    };
-    /*
-    using float2 = Vector<2, float>;
-    using float3 = Vector<3, float>;
-    using float4 = Vector<4, float>;
-
-    using double2 = Vector<2, double>;
-    using double3 = Vector<3, double>;
-    using double4 = Vector<4, double>;
-
-    using int2 = Vector<2, int>;
-    using int3 = Vector<3, int>;
-    using int4 = Vector<4, int>;
-
-    using uint2 = Vector<2, unsigned>;
-    using uint3 = Vector<3, unsigned>;
-    using uint4 = Vector<4, unsigned>;*/
-
-    template<int ELEMENT_COUNT, typename vType>
-    inline vType length_squared(Vector<ELEMENT_COUNT, vType> a)
-    {
-      vType val{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        val += a(i) * a(i);
-      }
-      return val;
-    }
-
-    template<int ELEMENT_COUNT, typename vType>
-    inline vType length(Vector<ELEMENT_COUNT, vType> a)
-    {
-      return std::sqrt(length_squared(a));
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC normalize(Vector<ELEMENT_COUNT, vType> a)
-    {
-      VEC n{};
-      const vType len = length(a);
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) / len;
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline vType dot(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      vType v{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        v += a(i) * b(i);
-      }
-      return v;
-    }
-
-    // scalars
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC mul(Vector<ELEMENT_COUNT, vType> a, vType b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) * b;
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    constexpr inline VEC mul(vType b, Vector<ELEMENT_COUNT, vType> a)
-    {
-      return mul(a, b);
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    constexpr inline VEC div(Vector<ELEMENT_COUNT, vType> a, vType b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n.data[i] = a.data[i] / b;
-      }
-      return n;
-    }
-    
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    constexpr inline VEC div(vType a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n.data[i] = a / b.data[i];
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    constexpr inline VEC add(Vector<ELEMENT_COUNT, vType> a, vType b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) + b;
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    constexpr inline VEC add(vType b, Vector<ELEMENT_COUNT, vType> a)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = b + a(i);
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC sub(Vector<ELEMENT_COUNT, vType> a, vType b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) - b;
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC sub(vType b, Vector<ELEMENT_COUNT, vType> a)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = b - a(i);
-      }
-      return n;
-    }
-
-    // vectors
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC mul(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) * b(i);
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC div(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) / b(i);
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC add(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) + b(i);
-      }
-      return n;
-    }
-
-    template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
-    inline VEC sub(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
-    {
-      VEC n{};
-      for (int i = 0; i < ELEMENT_COUNT; ++i)
-      {
-        n(i) = a(i) - b(i);
-      }
-      return n;
-    };
-
-    template<typename vType>
-    inline Vector<3, vType> crossProduct(Vector<3, vType> a, Vector<3, vType> b)
-    {
-      Vector<3, vType> r;
-      r.x = a.y * b.z - a.z * b.y;
-      r.y = a.z * b.x - a.x * b.z;
-      r.z = a.x * b.y - a.y * b.x;
-      return r;
-    }
-
-    template<typename vType>
-    inline Vector<4, vType> crossProduct(Vector<4, vType> a, Vector<4, vType> b)
-    {
-      Vector<4, vType> r{};
-      r.x = a.y * b.z - a.z * b.y;
-      r.y = a.z * b.x - a.x * b.z;
-      r.z = a.x * b.y - a.y * b.x;
-      return r;
-    }
-
-    template <int rowCount, int columnCount, typename vType>
-    struct Matrix
-    {
-      vType data[rowCount*columnCount];
-
-      HIGAN_INLINE vType& operator()(unsigned x, unsigned y)
-      {
-        return data[y * columnCount + x];
-      }
-      constexpr inline const vType& operator()(unsigned x, unsigned y) const
-      {
-        return data[y * columnCount + x];
-      }
-
-      HIGAN_INLINE vType& operator()(unsigned x)
-      {
-        return data[x];
-      }
-
-      constexpr inline const vType& operator()(unsigned x) const
-      {
-        return data[x];
-      }
-
-      constexpr inline int rows() const
-      {
-        return rowCount;
-      }
-      constexpr inline int cols() const
-      {
-        return columnCount;
-      }
-
-      constexpr inline size_t size() const
-      {
-        return rowCount * columnCount;
-      }
-
-      inline Vector<columnCount, vType> row(unsigned y) const
-      {
-        Vector<columnCount, vType> v1{};
-        for (int i = 0; i < columnCount; ++i)
+        template<typename vType>
+        struct Vector<2, vType>
         {
-          v1(i) = data[y*columnCount + i];
-        }
-        return v1;
-      }
+          union
+          {
+            struct {
+              vType x, y;
+            };
+            vType data[2];
+          };
 
-      static Matrix identity()
-      {
-        Matrix m{};
-        constexpr auto max = rowCount > columnCount ? rowCount : columnCount;
-        for (int i = 0; i < max; ++i)
-        {
-          m(i, i) = static_cast<vType>(1);
-        }
-        return m;
-      }
+          constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)) {}
+          constexpr inline Vector(vType v) : x(v), y(v) {}
+          constexpr inline Vector(vType x, vType y) : x(x), y(y) {}
+          constexpr inline Vector(const Vector& o) : x(o.x), y(o.y) {}
+          template<typename vTypeAnother>
+          constexpr inline Vector(const Vector<2, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)) {}
 
-      constexpr auto operator<=>(const Matrix<rowCount, columnCount, vType>&) const = default;
-    };
+          HIGAN_INLINE vType& operator()(unsigned index)
+          {
+            return data[index];
+          }
 
-    struct Quaternion
-    {
-      union
-      {
-        struct {
-          float w, x, y, z;
+          constexpr inline const vType& operator()(unsigned index) const
+          {
+            return data[index];
+          }
+          template <typename rType = vType, std::enable_if_t<std::is_floating_point<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<2, rType>& rhs) const {
+            for (int i = 0; i < 2; i++) {
+              if (std::fabs(data[i] - rhs(i)) > Epsilon)
+                return false;
+            }
+            return true;
+          }
+          template <typename rType = vType, std::enable_if_t<std::is_integral<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<2, rType>& rhs) const {
+            for (int i = 0; i < 2; i++) {
+              if (data[i] != rhs(i))
+                return false;
+            }
+            return true;
+          }
         };
-        float data[4];
-      };
 
-      inline float& operator()(unsigned index)
-      {
-        return data[index];
-      }
+        template<typename vType>
+        struct Vector<3, vType>
+        {
+          union
+          {
+            struct {
+              vType x, y, z;
+            };
+            vType data[3];
+          };
 
-      constexpr inline const float& operator()(unsigned index) const
-      {
-        return data[index];
-      }
-      constexpr auto operator<=>(const Quaternion&) const = default;
-    };
+          constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)) {}
+          constexpr inline Vector(vType v) : x(v), y(v), z(v) {}
+          constexpr inline Vector(vType x, vType y, vType z) : x(x), y(y), z(z) {}
+          constexpr inline Vector(Vector<2, vType> o, vType v) : x(o.x), y(o.y), z(v) {}
+          constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z) {}
+          template<typename vTypeAnother>
+          constexpr inline Vector(const Vector<3, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)) {}
 
-    //std::string toString(Quaternion a);
+          HIGAN_INLINE vType& operator()(unsigned index)
+          {
+            return data[index];
+          }
 
-    // RotateAxis(1,0,0,amount) -> this would rotate x axis... someway :D?
-    // constexpr inline
-    inline Quaternion rotateAxis(float x, float y, float z, float amount)
-    {
-      Quaternion l{};
-      l.w = std::cos(amount / 2.f);
-      l.x = std::sin(amount / 2.f)*x;
-      l.y = std::sin(amount / 2.f)*y;
-      l.z = std::sin(amount / 2.f)*z;
-      return l;
-    }
+          constexpr inline const vType& operator()(unsigned index) const
+          {
+            return data[index];
+          }
 
-    //constexpr inline
-    inline Quaternion rotateAxis(Vector<3, float> directionUnitVector, float amount)
-    {
-      Quaternion l{};
-      l.w = std::cos(amount / 2.f);
-      l.x = std::sin(amount / 2.f)*directionUnitVector.x;
-      l.y = std::sin(amount / 2.f)*directionUnitVector.y;
-      l.z = std::sin(amount / 2.f)*directionUnitVector.z;
-      return l;
-    }
+          constexpr inline Vector<2, vType> xy() const
+          {
+            return Vector<2, vType>(x, y);
+          }
 
-    inline Quaternion mul(Quaternion q1, Quaternion q2)
-    {
-      Quaternion r{};
-      r.w = q1.w * q2.w;
-      for (int i = 1; i < 4; i++)
-      {
-        r.w -= q1(i) * q2(i);
-      }
-      r.x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y;
-      r.y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x;
-      r.z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w;
-      return r;
-    }
+          template <typename rType = vType, std::enable_if_t<std::is_floating_point<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<3, rType>& rhs) const {
+            for (int i = 0; i < 3; i++) {
+              if (std::fabs(data[i] - rhs(i)) > Epsilon)
+                return false;
+            }
+            return true;
+          }
+          template <typename rType = vType, std::enable_if_t<std::is_integral<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<3, rType>& rhs) const {
+            for (int i = 0; i < 3; i++) {
+              if (data[i] != rhs(i))
+                return false;
+            }
+            return true;
+          }
+        };
 
-    // Use this to do all rotations at once (just does many times the RotateAxis)
-    //constexpr inline
-    inline Quaternion rotationQuaternionSlow(float yaw, float pitch, float roll)
-    {
-      Quaternion r{ 1.f, 0.f, 0.f, 0.f };
-      r = mul(r, rotateAxis(0.f, 1.f, 0.f, yaw)); // y is up, so its second component
-      r = mul(r, rotateAxis(0.f, 0.f, 1.f, pitch));
-      r = mul(r, rotateAxis(1.f, 0.f, 0.f, roll));
-      return r;
-    }
+        template<typename vType>
+        struct Vector<4, vType>
+        {
+          union
+          {
+            struct {
+              vType x, y, z, w;
+            };
+            vType data[4];
+          };
 
-    // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-    //constexpr inline
-    inline Quaternion rotationQuaternionEuler(float yaw, float pitch, float roll)
-    {
-      Quaternion q{};
-      // Abbreviations for the various angular functions
+          constexpr inline Vector() : x(static_cast<vType>(0)), y(static_cast<vType>(0)), z(static_cast<vType>(0)), w(static_cast<vType>(0)) {}
+          constexpr inline Vector(vType v) : x(v), y(v), z(v), w(v) {}
+          constexpr inline Vector(vType x, vType y, vType z, vType w) : x(x), y(y), z(z), w(w) {}
+          constexpr inline Vector(Vector<2, vType> o, vType z, vType w) : x(o.x), y(o.y), z(z), w(w) {}
+          constexpr inline Vector(Vector<3, vType> o, vType v) : x(o.x), y(o.y), z(o.z), w(v) {}
+          constexpr inline Vector(const Vector& o) : x(o.x), y(o.y), z(o.z), w(o.w) {}
+          template<typename vTypeAnother>
+          constexpr inline Vector(const Vector<4, vTypeAnother>& o) : x(static_cast<vType>(o.x)), y(static_cast<vType>(o.y)), z(static_cast<vType>(o.z)), w(static_cast<vType>(o.w)) {}
+
+          HIGAN_INLINE vType& operator()(unsigned index)
+          {
+            return data[index];
+          }
+
+          constexpr inline const vType& operator()(unsigned index) const
+          {
+            return data[index];
+          }
+
+          constexpr inline Vector<3, vType> xyz() const
+          {
+            return Vector<3, vType>(x, y, z);
+          }
+          constexpr inline Vector<2, vType> xy() const
+          {
+            return Vector<2, vType>(x, y);
+          }
+
+          template <typename rType = vType, std::enable_if_t<std::is_floating_point<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<4, rType>& rhs) const {
+            for (int i = 0; i < 4; i++) {
+              if (std::fabs(data[i] - rhs(i)) > Epsilon)
+                return false;
+            }
+            return true;
+          }
+          template <typename rType = vType, std::enable_if_t<std::is_integral<rType>::value, bool> = true>
+          constexpr auto operator==(const Vector<4, rType>& rhs) const {
+            for (int i = 0; i < 4; i++) {
+              if (data[i] != rhs(i))
+                return false;
+            }
+            return true;
+          }
+        };
+
+        /*
+        using float2 = Vector<2, float>;
+        using float3 = Vector<3, float>;
+        using float4 = Vector<4, float>;
+
+        using double2 = Vector<2, double>;
+        using double3 = Vector<3, double>;
+        using double4 = Vector<4, double>;
+
+        using int2 = Vector<2, int>;
+        using int3 = Vector<3, int>;
+        using int4 = Vector<4, int>;
+
+        using uint2 = Vector<2, unsigned>;
+        using uint3 = Vector<3, unsigned>;
+        using uint4 = Vector<4, unsigned>;*/
+
+        template<int ELEMENT_COUNT, typename vType>
+        inline vType length_squared(Vector<ELEMENT_COUNT, vType> a)
+        {
+          vType val{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            val += a(i) * a(i);
+          }
+          return val;
+        }
+
+        template<int ELEMENT_COUNT, typename vType>
+        inline vType length(Vector<ELEMENT_COUNT, vType> a)
+        {
+          return std::sqrt(length_squared(a));
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC normalize(Vector<ELEMENT_COUNT, vType> a)
+        {
+          VEC n{};
+          const vType len = length(a);
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) / len;
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline vType dot(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          vType v{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            v += a(i) * b(i);
+          }
+          return v;
+        }
+
+        // scalars
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC mul(Vector<ELEMENT_COUNT, vType> a, vType b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) * b;
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        constexpr inline VEC mul(vType b, Vector<ELEMENT_COUNT, vType> a)
+        {
+          return mul(a, b);
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        constexpr inline VEC div(Vector<ELEMENT_COUNT, vType> a, vType b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n.data[i] = a.data[i] / b;
+          }
+          return n;
+        }
+        
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        constexpr inline VEC div(vType a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n.data[i] = a / b.data[i];
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        constexpr inline VEC add(Vector<ELEMENT_COUNT, vType> a, vType b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) + b;
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        constexpr inline VEC add(vType b, Vector<ELEMENT_COUNT, vType> a)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = b + a(i);
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC sub(Vector<ELEMENT_COUNT, vType> a, vType b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) - b;
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC sub(vType b, Vector<ELEMENT_COUNT, vType> a)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = b - a(i);
+          }
+          return n;
+        }
+
+        // vectors
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC mul(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) * b(i);
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC div(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) / b(i);
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC add(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) + b(i);
+          }
+          return n;
+        }
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC sub(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) - b(i);
+          }
+          return n;
+        };
+
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC min(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) < b(i) ? a(i) : b(i);
+          }
+          return n;
+        };
+        template<int ELEMENT_COUNT, typename vType, typename VEC = Vector<ELEMENT_COUNT, vType>>
+        inline VEC max(Vector<ELEMENT_COUNT, vType> a, Vector<ELEMENT_COUNT, vType> b)
+        {
+          VEC n{};
+          for (int i = 0; i < ELEMENT_COUNT; ++i)
+          {
+            n(i) = a(i) > b(i) ? a(i) : b(i);
+          }
+          return n;
+        };
+
+        template<typename vType>
+        inline Vector<3, vType> crossProduct(Vector<3, vType> a, Vector<3, vType> b)
+        {
+          Vector<3, vType> r;
+          r.x = a.y * b.z - a.z * b.y;
+          r.y = a.z * b.x - a.x * b.z;
+          r.z = a.x * b.y - a.y * b.x;
+          return r;
+        }
+
+        template<typename vType>
+        inline Vector<4, vType> crossProduct(Vector<4, vType> a, Vector<4, vType> b)
+        {
+          Vector<4, vType> r{};
+          r.x = a.y * b.z - a.z * b.y;
+          r.y = a.z * b.x - a.x * b.z;
+          r.z = a.x * b.y - a.y * b.x;
+          return r;
+        }
+
+        template <int rowCount, int columnCount, typename vType>
+        struct Matrix
+        {
+          vType data[rowCount*columnCount];
+
+          HIGAN_INLINE vType& operator()(unsigned x, unsigned y)
+          {
+            return data[y * columnCount + x];
+          }
+          constexpr inline const vType& operator()(unsigned x, unsigned y) const
+          {
+            return data[y * columnCount + x];
+          }
+
+          HIGAN_INLINE vType& operator()(unsigned x)
+          {
+            return data[x];
+          }
+
+          constexpr inline const vType& operator()(unsigned x) const
+          {
+            return data[x];
+          }
+
+          constexpr inline int rows() const
+          {
+            return rowCount;
+          }
+          constexpr inline int cols() const
+          {
+            return columnCount;
+          }
+
+          constexpr inline size_t size() const
+          {
+            return rowCount * columnCount;
+          }
+
+          inline Vector<columnCount, vType> row(unsigned y) const
+          {
+            Vector<columnCount, vType> v1{};
+            for (int i = 0; i < columnCount; ++i)
+            {
+              v1(i) = data[y*columnCount + i];
+            }
+            return v1;
+          }
+
+          inline Vector<rowCount, vType> column(unsigned x) const
+          {
+            Vector<rowCount, vType> v1{};
+            for (int i = 0; i < rowCount; ++i)
+            {
+              v1(i) = data[i*columnCount + x];
+            }
+            return v1;
+          }
+
+          static Matrix identity()
+          {
+            Matrix m{};
+            constexpr auto max = rowCount > columnCount ? rowCount : columnCount;
+            for (int i = 0; i < max; ++i)
+            {
+              m(i, i) = static_cast<vType>(1);
+            }
+            return m;
+          }
+
+          template <typename rType = vType, std::enable_if_t<std::is_floating_point<rType>::value, bool> = true>
+          constexpr auto operator==(const Matrix<rowCount, columnCount, rType>& rhs) const {
+            for (int i = 0; i < rowCount*columnCount; i++) {
+              if (std::fabs(operator()(i) - rhs(i)) > Epsilon)
+                return false;
+            }
+            return true;
+          }
+
+          template <typename rType = vType, std::enable_if_t<std::is_integral<rType>::value, bool> = true>
+          constexpr auto operator==(const Matrix<rowCount, columnCount, rType>& rhs) const {
+            for (int i = 0; i < rowCount*columnCount; i++) {
+              if (operator()(i) != rhs(i))
+                return false;
+            }
+            return true;
+          }
+        };
+
+        struct Quaternion
+        {
+          union
+          {
+            struct {
+              float w, x, y, z;
+            };
+            float data[4];
+          };
+
+          inline float& operator()(unsigned index)
+          {
+            return data[index];
+          }
+
+          constexpr inline const float& operator()(unsigned index) const
+          {
+            return data[index];
+          }
+          auto operator==(const Quaternion& b) const
+          {
+            bool same = true;
+            for (int i = 0; i < 4; ++i) {
+              if (fabs(data[i] - b.data[i]) > Epsilon)
+                same = false;
+            }
+            return same; 
+          }
+        };
+
+        //std::string toString(Quaternion a);
+
+        // RotateAxis(1,0,0,amount) -> this would rotate x axis... someway :D?
+        // constexpr inline
+        inline Quaternion rotateAxis(float x, float y, float z, float amount)
+        {
+          Quaternion l{};
+          l.w = std::cos(amount / 2.f);
+          l.x = std::sin(amount / 2.f)*x;
+          l.y = std::sin(amount / 2.f)*y;
+          l.z = std::sin(amount / 2.f)*z;
+          return l;
+        }
+
+        //constexpr inline
+        inline Quaternion rotateAxis(Vector<3, float> directionUnitVector, float amount)
+        {
+          Quaternion l{};
+          l.w = std::cos(amount / 2.f);
+          l.x = std::sin(amount / 2.f)*directionUnitVector.x;
+          l.y = std::sin(amount / 2.f)*directionUnitVector.y;
+          l.z = std::sin(amount / 2.f)*directionUnitVector.z;
+          return l;
+        }
+
+        inline Quaternion mul(Quaternion q1, Quaternion q2)
+        {
+          Quaternion r{};
+          r.w = q1.w * q2.w;
+          for (int i = 1; i < 4; i++)
+          {
+            r.w -= q1(i) * q2(i);
+          }
+          r.x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y;
+          r.y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x;
+          r.z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w;
+          return r;
+        }
+
+        // Use this to do all rotations at once (just does many times the RotateAxis)
+        //constexpr inline
+        inline Quaternion rotationQuaternionSlow(float yaw, float pitch, float roll)
+        {
+          Quaternion r{ 1.f, 0.f, 0.f, 0.f };
+          r = mul(r, rotateAxis(0.f, 1.f, 0.f, yaw)); // y is up, so its second component
+          r = mul(r, rotateAxis(0.f, 0.f, 1.f, pitch));
+          r = mul(r, rotateAxis(1.f, 0.f, 0.f, roll));
+          return r;
+        }
+
+        // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+        //constexpr inline
+        inline Quaternion rotationQuaternionEuler(float yaw, float pitch, float roll)
+        {
+          Quaternion q{};
+          // Abbreviations for the various angular functions
       //
       // Function was written so that z is up, converted to y is up, switch yaw and pitch
       float cy = std::cos(pitch * 0.5f);
@@ -1038,6 +1141,44 @@ namespace higanbana
       return r;
 
     }
+
+    inline float4x4 inverse(float4x4 m) {
+      float n11 = m(0,0), n12 = m(0,1), n13 = m(0,2), n14 = m(0,3);
+      float n21 = m(1,0), n22 = m(1,1), n23 = m(1,2), n24 = m(1,3);
+      float n31 = m(2,0), n32 = m(2,1), n33 = m(2,2), n34 = m(2,3);
+      float n41 = m(3,0), n42 = m(3,1), n43 = m(3,2), n44 = m(3,3);
+
+      float t11 = n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44;
+      float t12 = n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44;
+      float t13 = n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44;
+      float t14 = n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
+
+      float det = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+      float idet = 1.0f / det;
+
+      float4x4 ret;
+
+      ret(0,0) = t11 * idet;
+      ret(1,0) = (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) * idet;
+      ret(2,0) = (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) * idet;
+      ret(3,0) = (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) * idet;
+
+      ret(0,1) = t12 * idet;
+      ret(1,1) = (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) * idet;
+      ret(2,1) = (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) * idet;
+      ret(3,1) = (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) * idet;
+
+      ret(0,2) = t13 * idet;
+      ret(1,2) = (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) * idet;
+      ret(2,2) = (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) * idet;
+      ret(3,2) = (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) * idet;
+
+      ret(0,3) = t14 * idet;
+      ret(1,3) = (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) * idet;
+      ret(2,3) = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * idet;
+      ret(3,3) = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * idet;
+      return ret;
+    }
   }
 }
 using float2 = higanbana::math::Vector<2, float>;
@@ -1082,7 +1223,9 @@ namespace higanbana
       return uint2(sub(rightBottom, leftTop));
     }
 
-    constexpr auto operator<=>(const Rect&) const = default;
+    constexpr auto operator==(const Rect& rhs) const {
+      return leftTop == rhs.leftTop && rightBottom == rhs.rightBottom;
+    }
   };
 
   struct Box
@@ -1102,7 +1245,9 @@ namespace higanbana
     int3 size() {
       return int3(sub(rightBottomBack, leftTopFront));
     }
-    constexpr auto operator<=>(const Box&) const = default;
+    constexpr auto operator==(const Box& rhs) const {
+      return leftTopFront == rhs.leftTopFront && rightBottomBack == rhs.rightBottomBack;
+    }
   };
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
 }

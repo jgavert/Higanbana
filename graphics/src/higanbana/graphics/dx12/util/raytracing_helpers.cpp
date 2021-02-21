@@ -8,7 +8,7 @@ namespace backend
 D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS rtASBuildMode(desc::RaytracingASBuildFlags mode){
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS ret{};
   auto getFlag = [mode](desc::RaytracingASBuildFlags flag, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS targetFlag) {
-    if (mode & flag == flag) {
+    if ((mode & flag) == flag) {
       return targetFlag;
     }
     return D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;

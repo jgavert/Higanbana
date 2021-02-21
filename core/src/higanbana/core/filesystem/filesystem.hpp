@@ -1,9 +1,9 @@
 #pragma once
 #include "higanbana/core/system/memview.hpp"
 #include "higanbana/core/global_debug.hpp"
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/hashmap.hpp"
+#include "higanbana/core/datastructures/vector.hpp"
 #include <cstdio>
-#include <vector>
 #include <string>
 #include <memory>
 #include <mutex>

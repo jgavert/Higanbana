@@ -1,6 +1,6 @@
 #pragma once
 
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 
 namespace app
 {

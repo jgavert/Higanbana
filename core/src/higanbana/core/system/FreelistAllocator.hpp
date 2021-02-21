@@ -1,5 +1,5 @@
 #pragma once
-#include "higanbana/core/datastructures/proxy.hpp"
+#include "higanbana/core/datastructures/vector.hpp"
 #include <mutex>
 #include <memory>
 

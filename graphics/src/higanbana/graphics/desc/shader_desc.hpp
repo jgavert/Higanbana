@@ -1,6 +1,6 @@
 #pragma once
 
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include "higanbana/graphics/desc/pipeline_interface_descriptor.hpp"
 
 namespace higanbana {
@@ -24,7 +24,7 @@ struct ShaderCreateInfo {
   struct Descriptor {
     std::string              shaderName = "";
     ShaderType               type = ShaderType::Compute;
-    std::vector<std::string> definitions = {};
+    vector<std::string> definitions = {};
     uint3                    tgs = uint3(1, 1, 1);
     std::string              rootSignature = "";
     std::string              interfaceDeclaration = "";
@@ -40,7 +40,7 @@ struct ShaderCreateInfo {
     desc.forceCompile = true;
     return *this;
   }
-  ShaderCreateInfo& setDefinitions(std::vector<std::string> value) {
+  ShaderCreateInfo& setDefinitions(vector<std::string> value) {
     desc.definitions = value;
     return *this;
   }

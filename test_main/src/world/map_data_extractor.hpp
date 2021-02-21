@@ -2,7 +2,7 @@
 
 #include <higanbana/graphics/common/cpuimage.hpp>
 #include <higanbana/core/filesystem/filesystem.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <string>
 #include <string_view>
 #include <optional>

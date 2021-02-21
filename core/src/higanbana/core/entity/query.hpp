@@ -1,7 +1,8 @@
 #pragma once
 #include "sparsetable.hpp"
 #include "tagtable.hpp"
-#include "../system/LBS.hpp"
+
+#define DISABLED_LBS_VERSIONS 0
 
 namespace higanbana
 {
@@ -452,6 +453,7 @@ namespace higanbana
     }
   }
   
+#if DISABLED_LBS_VERSIONS
   template<typename Tup, typename Func,
     size_t TupleSize = std::tuple_size<typename std::decay<Tup>::type>::value,
     size_t rsize = 2048,
@@ -657,5 +659,5 @@ namespace higanbana
     });
   }
 };
-
+#endif
 

@@ -6,7 +6,7 @@
 #include "higanbana/graphics/common/handle.hpp"
 #include "higanbana/graphics/common/resources/shader_arguments.hpp"
 
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 
 namespace higanbana
 {

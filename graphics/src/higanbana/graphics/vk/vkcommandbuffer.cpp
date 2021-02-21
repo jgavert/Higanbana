@@ -6,7 +6,7 @@
 #include "higanbana/graphics/desc/resource_state.hpp"
 
 #include <higanbana/core/profiling/profiling.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 
 namespace higanbana
 {

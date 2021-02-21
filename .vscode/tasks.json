@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "test main(bazel dbg)",
+            "label": "test main(msvc dbg)",
             "type": "shell",
             "command": "bazel.exe",
             "args": [
@@ -16,7 +16,7 @@
             }
         },
         {
-            "label": "test main(bazel build)",
+            "label": "test main(msvc build)",
             "type": "shell",
             "command": "bazel.exe",
             "args": [
@@ -28,11 +28,47 @@
             }
         },
         {
-            "label": "test main(bazel opt)",
+            "label": "test main(msvc opt)",
             "type": "shell",
             "command": "bazel.exe",
             "args": [
                 "build", "test_main" , "--compilation_mode=opt", "--strip=never"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test main(clang dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "test_main" , "--compilation_mode=dbg", "--compiler=clang-cl"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test main(clang build)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "test_main", "--compilation_mode=fastbuild", "--strip=never", "--compiler=clang-cl"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test main(clang opt)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+                "build", "test_main" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
             ],
             "group": {
                 "kind": "build",
@@ -113,6 +149,30 @@
             "command": "bazel.exe",
             "args": [
               "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build rendering tests(clang-cl dbg)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+              "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build rendering tests(clang-cl opt)",
+            "type": "shell",
+            "command": "bazel.exe",
+            "args": [
+              "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
             ],
             "group": {
                 "kind": "build",

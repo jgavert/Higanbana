@@ -4,7 +4,7 @@
 #include "higanbana/graphics/common/gpu_group.hpp"
 #include "higanbana/graphics/common/graphicssurface.hpp"
 #include <higanbana/core/platform/Window.hpp>
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <string>
 
 namespace higanbana

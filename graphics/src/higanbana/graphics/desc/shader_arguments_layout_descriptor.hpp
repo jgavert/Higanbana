@@ -1,6 +1,6 @@
 #pragma once
 #include "higanbana/graphics/desc/shader_input_descriptor.hpp"
-#include <higanbana/core/datastructures/proxy.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include <higanbana/core/external/SpookyV2.hpp>
 #include <higanbana/core/global_debug.hpp>
 #include <string>
