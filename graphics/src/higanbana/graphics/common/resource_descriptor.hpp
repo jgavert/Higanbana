@@ -370,7 +370,7 @@ namespace higanbana
       FormatDimension dimension = FormatDimension::Unknown;
       unsigned        stride = 1;
       unsigned        miplevels = 1;
-      unsigned        width = 1;
+      uint64_t        width = 1;
       unsigned        height = 1;
       unsigned        depth = 1;
       unsigned        arraySize = 1;
@@ -475,13 +475,13 @@ namespace higanbana
       return *this;
     }
 
-    ResourceDescriptor& setElementsCount(unsigned elements)
+    ResourceDescriptor& setElementsCount(uint64_t elements)
     {
       desc.width = elements;
       return *this;
     }
 
-    ResourceDescriptor& setWidth(unsigned size)
+    ResourceDescriptor& setWidth(uint64_t size)
     {
       desc.width = size;
       return *this;

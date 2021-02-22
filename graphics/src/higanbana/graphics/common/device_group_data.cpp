@@ -587,7 +587,7 @@ namespace higanbana
       if (!crossAdapterPossible) desc.desc.allowCrossAdapter = false;
 
       if (desc.desc.miplevels == ResourceDescriptor::AllMips) {
-        desc.desc.miplevels = static_cast<uint>(std::floor(std::log2(std::max(desc.desc.width, desc.desc.height)))) + 1u;
+        desc.desc.miplevels = static_cast<uint>(std::floor(std::log2(std::max(static_cast<uint>(desc.desc.width), desc.desc.height)))) + 1u;
       }
     }
 

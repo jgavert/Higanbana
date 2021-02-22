@@ -77,12 +77,12 @@ namespace higanbana
       if (rtvs.size() > 0)
       {
         auto& d = allRes.tex[rtvs[0].resourceHandle()].desc().desc;
-        size = uint2{ d.width, d.height };
+        size = uint2{ static_cast<uint>(d.width), d.height };
       }
       else if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
         auto& d = allRes.tex[packet.dsv.resourceHandle()].desc().desc;
-        size = uint2{ d.width, d.height };
+        size = uint2{ static_cast<uint>(d.width), d.height };
       }
       else
       {

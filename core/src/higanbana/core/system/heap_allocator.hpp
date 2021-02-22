@@ -28,7 +28,7 @@ class HeapAllocator {
   uint64_t fli;        // first level index
   uint64_t sli;        // second level index, typically 5
   unsigned sli_count;  // second level index, typically 5
-  int mbs;        // minimum block size
+  uint64_t mbs;        // minimum block size
   uint64_t min_fli;
   TLSFControl control;
   size_t m_usedSize;
@@ -57,7 +57,7 @@ class HeapAllocator {
 
   inline void mapping(size_t size, int& fl, int& sl) noexcept {
     fl = fls(size);
-    sl = ((size ^ (1 << fl)) >> (fl - sli));
+    sl = ((size ^ (1ull << fl)) >> (fl - sli));
     fl = first_level_index(fl);
     // printf("%zu -> fl %u sl %u\n", size, fl, sl);
   }
@@ -70,7 +70,7 @@ class HeapAllocator {
 
   inline void initialize() noexcept {
     fli = fls(m_baseBlock.size);
-    mbs = std::min(int(m_baseBlock.size), mbs);
+    mbs = std::min(m_baseBlock.size, mbs);
     min_fli = fls(mbs);
     control.flBitmap = 0;
     for (int i = min_fli; i <= fli; ++i) {
