@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <higanbana/core/platform/definitions.hpp>
 #include <higanbana/core/allocators/heap_allocator_raw.hpp>
-#include <css/utils/dynamic_allocator.hpp>
+//#include <css/utils/dynamic_allocator.hpp>
 
 TEST_CASE("some basic allocation tests") {
   constexpr size_t size = 1024;
@@ -40,7 +40,7 @@ TEST_CASE("some basic allocation tests 2") {
   REQUIRE(block2);
   free(heap);
 }
-
+/*
 TEST_CASE("some basic allocation tests 3") {
   constexpr size_t size = 80000;
   css::DynamicHeapAllocator tlsf(1, size);
@@ -200,7 +200,7 @@ TEST_CASE("some basic allocation tests 5") {
     tlsf.deallocate(block);
   }
 }
-
+*/
 /*
 TEST_CASE("failed real world case 1") {
   void* heap = malloc(50331648);

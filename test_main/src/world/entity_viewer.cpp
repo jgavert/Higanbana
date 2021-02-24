@@ -1,5 +1,7 @@
 #include "entity_viewer.hpp"
 #include <higanbana/core/entity/query.hpp>
+#include <higanbana/core/datastructures/deque.hpp>
+#include <higanbana/core/datastructures/vector.hpp>
 #include "components.hpp"
 #include <imgui.h>
 #include <optional>
@@ -8,7 +10,7 @@ using namespace higanbana;
 
 namespace app
 {
-void EntityView::render(Database<2048>& ecs)
+void EntityView::render(higanbana::Database<2048>& ecs)
 {
   //ImGui::ShowDemoWindow(&m_show);
   /*

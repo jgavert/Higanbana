@@ -1,27 +1,29 @@
 #pragma once
-#include "higanbana/core/datastructures/vector.hpp"
-#include "higanbana/core/datastructures/hashmap.hpp"
 #include "higanbana/core/entity/sparsetable.hpp"
 #include "higanbana/core/entity/tagtable.hpp"
 #include "higanbana/core/entity/query.hpp"
-#include <string>
+#include "higanbana/core/datastructures/vector.hpp"
+#include "higanbana/core/platform/definitions.hpp"
 #include <stdint.h>
 #include <cstdint>
 #include <array>
+#include <type_traits>
 #include <random>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <cassert>
-
+#include <string>
 namespace higanbana
 {
   template <typename T>
-  std::string typehash()
+  auto typehash()
   {
     //std::hash<std::string> hfn;
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
-    return std::string(__FUNCSIG__);
+    return ::std::string(__FUNCSIG__);
 #else
-    return std::string(__PRETTY_FUNCTION__);
+    return ::std::string(__PRETTY_FUNCTION__);
 #endif
   }
 
@@ -40,23 +42,26 @@ namespace higanbana
     using Indexfield = Bitfield<INDEX_TABLE>;
 
     // data
-    higanbana::unordered_map<std::string, std::shared_ptr<void>> m_components;
-    higanbana::unordered_map<std::string, std::shared_ptr<void>> m_tags;
+    std::unordered_map<std::string, std::shared_ptr<void>> m_components;
+    std::unordered_map<std::string, std::shared_ptr<void>> m_tags;
     std::vector<Indexfield*> m_indextables;
     Indexfield m_entities;
 
     // random
-    std::mt19937 m_eng;
+    //std::mt19937 m_eng;
+    uint64_t m_nextId;
 
     inline Id nextUniqueIndex()
     {
-      Id id(m_eng() % MAXELEMENTS);
+      //Id id(m_eng() % MAXELEMENTS);
+      Id id((m_nextId++) % MAXELEMENTS);
+
       while (id < MAXELEMENTS  && m_entities.checkIdxBit(id))
       {
         ++id;
         if (id >= MAXELEMENTS)
         {
-          id = m_eng() % MAXELEMENTS;
+          id = (m_nextId++) % MAXELEMENTS;
         }
       }
       return id;
@@ -142,5 +147,3 @@ namespace higanbana
     }
   };
 }
-
-

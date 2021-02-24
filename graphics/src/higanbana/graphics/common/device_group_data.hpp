@@ -193,6 +193,7 @@ namespace higanbana
         deque<LiveCommandBuffer2> m_dmaBuffers;
         vector<std::shared_ptr<TimelineSemaphoreImpl>> sharedTimelines; // has own shared in own id slot
         uint64_t sharedValue = 0;
+        deque<uint64_t> timelineBeforePresent;
       };
       vector<VirtualDevice> m_devices;
       CommandBufferPool m_commandBuffers;

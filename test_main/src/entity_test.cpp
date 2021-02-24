@@ -45,6 +45,7 @@ void test_entity()
     }
   }
 
+/*
   {
     LBS lbs;
     auto task2 = desc::Task("asd", {}, {});
@@ -81,7 +82,7 @@ void test_entity()
     timer.tick();
     auto val2 = timer.getCurrentNano();
     HIGAN_ILOG("queryParallel", "time took for %d id's simple operation: mt %zuns vs single thread %zuns", ids, val, val2);
-  }
+  }*/
 }
 using namespace higanbana;
 void test_bitfield()

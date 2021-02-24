@@ -942,7 +942,7 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
       }
     }
     rend.handleReadbacks(m_fs);
-    co_await rend.renderViewports(m_lbs, m_time, m_renderOptions, viewports, *rtworld, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
+    co_await rend.renderViewports(m_time, m_renderOptions, viewports, *rtworld, allMeshesToDraw, blocks, m_cubeCount, m_cubeCommandLists);
 
     m_logicAndRenderTime.tick();
     auto totalTime = m_logicAndRenderTime.getFrameTimeDelta();

@@ -116,7 +116,7 @@
             "type": "shell",
             "command": "bazel.exe",
             "args": [
-              "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never"
+              "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
             ],
             "group": {
                 "kind": "build",

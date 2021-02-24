@@ -11,12 +11,14 @@ namespace higanbana
   {
     std::shared_ptr<backend::prototypes::SwapchainImpl> m_impl;
     vector<TextureRTV> m_backbuffers;
+    int m_frameLatency = 0;
 
   public:
     Swapchain() = default;
 
-    Swapchain(std::shared_ptr<backend::prototypes::SwapchainImpl> impl)
+    Swapchain(std::shared_ptr<backend::prototypes::SwapchainImpl> impl, int frameLatency)
       : m_impl(impl)
+      , m_frameLatency(frameLatency)
     {
     }
 
@@ -38,6 +40,11 @@ namespace higanbana
     bool outOfDate()
     {
       return m_impl->outOfDate();
+    }
+
+    int frameLatency() const
+    {
+      return m_frameLatency;
     }
   };
 };

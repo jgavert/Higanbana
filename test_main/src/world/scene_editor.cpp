@@ -1,5 +1,6 @@
 #include "scene_editor.hpp"
 #include <higanbana/core/entity/query.hpp>
+#include <higanbana/core/datastructures/deque.hpp>
 #include "components.hpp"
 #include <imgui.h>
 #include <optional>

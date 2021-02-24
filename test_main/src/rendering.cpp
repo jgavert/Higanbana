@@ -63,6 +63,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   scdesc = SwapchainDescriptor()
     .formatType(FormatType::Unorm8RGBA)
     .colorspace(Colorspace::BT709)
+    .frameLatency(1)
     .bufferCount(3).presentMode(PresentMode::Mailbox);
 
   auto basicDescriptor = GraphicsPipelineDescriptor()
@@ -402,7 +403,7 @@ double Renderer::raytraceSecondsPerIteration(int viewportIdx) {
   return 1000.f / averageTimePerFrameMS;
 }
 
-css::Task<void> Renderer::renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& rtworld, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
+css::Task<void> Renderer::renderViewports(higanbana::WTime time, const RendererOptions rendererOptions, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& rtworld, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int drawcalls, int drawsSplitInto) {
 
   bool adjustSwapchain = false;
   if (rendererOptions.enableHDR == true && scdesc.desc.colorSpace != Colorspace::BT2020)

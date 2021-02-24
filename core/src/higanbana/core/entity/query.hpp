@@ -2,6 +2,7 @@
 #include "sparsetable.hpp"
 #include "tagtable.hpp"
 
+
 #define DISABLED_LBS_VERSIONS 0
 
 namespace higanbana
@@ -658,6 +659,6 @@ namespace higanbana
       }
     });
   }
-};
 #endif
+};
 

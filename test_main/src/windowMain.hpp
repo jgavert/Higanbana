@@ -67,7 +67,6 @@ class RenderingApp {
   bool m_advanceSimulation = true;
   bool m_stepOneFrameForward = false;
   bool m_stepOneFrameBackward = false;
-  higanbana::LBS m_lbs; // todo: get rid of this.
   uint m_chosenDeviceID = 0;
   higanbana::GraphicsApi m_chosenApi;
   bool m_interoptDevice = false;

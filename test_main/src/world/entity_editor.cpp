@@ -1,5 +1,5 @@
 #include "entity_editor.hpp"
-#include <higanbana/core/entity/database.hpp
+#include <higanbana/core/entity/database.hpp>
 #include <higanbana/core/entity/query.hpp>
 #include "components.hpp"
 #include <imgui.h>

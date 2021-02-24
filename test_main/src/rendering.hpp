@@ -268,7 +268,7 @@ public:
   css::Task<void> ensureViewportCount(int size);
   void resizeExternal(higanbana::ResourceDescriptor& desc);
   //void render(higanbana::LBS& lbs, higanbana::WTime& time, RendererOptions options, ActiveCamera viewMat, higanbana::vector<InstanceDraw>& instances, int cubeCount, int cubeCommandLists, std::optional<higanbana::CpuImage>& heightmap);
-  css::Task<void> renderViewports(higanbana::LBS& lbs, higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& world, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int cubeCount, int cubeCommandLists);
+  css::Task<void> renderViewports(higanbana::WTime time, const RendererOptions options, higanbana::MemView<RenderViewportInfo> viewportsToRender, rt::World& world, higanbana::vector<InstanceDraw>& instances, higanbana::vector<ChunkBlockDraw>& blocks, int cubeCount, int cubeCommandLists);
   std::optional<higanbana::SubmitTiming> timings();
   float acquireTimeTakenMs() {return float(m_acquireTimeTaken) / 1000000.f;}
   int loadMesh(MeshData& data, int buffer[5]);

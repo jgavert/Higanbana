@@ -450,7 +450,7 @@ namespace higanbana
       HIGAN_CPU_FUNCTION_SCOPE();
       // assume that first device is the one in charge of presenting. TODO: swapchain is created always on device 0
       auto sc = m_devices[SwapchainDeviceID].device->createSwapchain(surface, descriptor);
-      auto swapchain = Swapchain(sc);
+      auto swapchain = Swapchain(sc, descriptor.desc.frameLatency);
       // get backbuffers to swapchain
       configureBackbufferViews(swapchain);
       return swapchain;
@@ -505,6 +505,9 @@ namespace higanbana
       {
         m_asyns.back().wait();
         m_asyns.pop_back();
+      }
+      if (m_devices[SwapchainDeviceID].timelineBeforePresent.size() > swapchain.frameLatency()){
+        m_devices[SwapchainDeviceID].device->waitTimeline(m_devices[SwapchainDeviceID].timelineGfx, m_devices[SwapchainDeviceID].timelineBeforePresent[swapchain.frameLatency()]);
       }
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
@@ -2053,6 +2056,9 @@ namespace higanbana
         m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), index);
       }));*/
       m_devices[SwapchainDeviceID].device->present(swapchain.impl(), swapchain.impl()->renderSemaphore(), backbufferIndex);
+      m_devices[SwapchainDeviceID].timelineBeforePresent.push_front(m_devices[SwapchainDeviceID].gfxQueue);
+      while (m_devices[SwapchainDeviceID].timelineBeforePresent.size() > 8)
+        m_devices[SwapchainDeviceID].timelineBeforePresent.pop_back();
     }
 
     void DeviceGroupData::submitST(std::optional<Swapchain> swapchain, CommandGraph& graph) {
@@ -2399,6 +2405,9 @@ namespace higanbana
       std::lock_guard<std::mutex> guard(m_presentMutex);
       auto sc = swapchain.impl();
       m_devices[SwapchainDeviceID].device->present(sc, sc->renderSemaphore(), backbufferIndex);
+      m_devices[SwapchainDeviceID].timelineBeforePresent.push_front(m_devices[SwapchainDeviceID].gfxQueue);
+      while (m_devices[SwapchainDeviceID].timelineBeforePresent.size() > 8)
+        m_devices[SwapchainDeviceID].timelineBeforePresent.pop_back();
       co_return;
     }
 

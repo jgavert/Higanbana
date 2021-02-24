@@ -240,31 +240,31 @@ namespace higanbana
       Colorspace colorSpace = Colorspace::BT709;
 
       // if supported
-      int frameLatency = 3;
+      int frameLatency = 1;
     } desc;
     SwapchainDescriptor()
     {}
-    SwapchainDescriptor& presentMode(PresentMode mode)
+    SwapchainDescriptor& presentMode(PresentMode mode = PresentMode::Fifo)
     {
       desc.mode = mode;
       return *this;
     }
-    SwapchainDescriptor& formatType(FormatType format)
+    SwapchainDescriptor& formatType(FormatType format = FormatType::Unorm8RGBA)
     {
       desc.format = format;
       return *this;
     }
-    SwapchainDescriptor& bufferCount(unsigned count)
+    SwapchainDescriptor& bufferCount(unsigned count = 2)
     {
       desc.bufferCount = count;
       return *this;
     }
-    SwapchainDescriptor& colorspace(Colorspace space)
+    SwapchainDescriptor& colorspace(Colorspace space = Colorspace::BT709)
     {
       desc.colorSpace = space;
       return *this;
     }
-    SwapchainDescriptor& frameLatency(int latency)
+    SwapchainDescriptor& frameLatency(int latency = 1)
     {
       desc.frameLatency = latency;
       return *this;
