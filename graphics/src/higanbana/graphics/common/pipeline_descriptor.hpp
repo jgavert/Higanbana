@@ -49,30 +49,11 @@ public:
   std::string rootSignature;
   PipelineInterfaceDescriptor layout;
 
-  RaytracingPipelineDescriptor()
-  {
-  }
-
-  RaytracingPipelineDescriptor& setRayHitGroup(int index, RayHitGroupDescriptor hitgroup) {
-    HIGAN_ASSERT(index >= 0 && index < 64, "sanity check for index");
-    if (hitGroups.size() < index) hitGroups.resize(index+1);
-    hitGroups[index] = hitgroup;
-    return *this;
-  }
-
-  RaytracingPipelineDescriptor& setRayGen(std::string path) {
-    rayGenerationShader = path;
-    return *this;
-  }
-  RaytracingPipelineDescriptor& setMissShader(std::string path) {
-    missShader = path;
-    return *this;
-  }
-
-  RaytracingPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val) {
-    layout = val;
-    return *this;
-  }
+  RaytracingPipelineDescriptor();
+  RaytracingPipelineDescriptor& setRayHitGroup(int index, RayHitGroupDescriptor hitgroup);
+  RaytracingPipelineDescriptor& setRayGen(std::string path);
+  RaytracingPipelineDescriptor& setMissShader(std::string path);
+  RaytracingPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val);
 };
 
   
@@ -84,32 +65,11 @@ public:
     PipelineInterfaceDescriptor layout;
     uint3 shaderGroups;
 
-    ComputePipelineDescriptor()
-    {
-    }
-
-    const char* shader() const
-    {
-      return shaderSourcePath.c_str();
-    }
-
-    ComputePipelineDescriptor& setShader(std::string path)
-    {
-      shaderSourcePath = path;
-      return *this;
-    }
-
-    ComputePipelineDescriptor& setThreadGroups(uint3 val)
-    {
-      shaderGroups = val;
-      return *this;
-    }
-
-    ComputePipelineDescriptor& setInterface(PipelineInterfaceDescriptor val)
-    {
-      layout = val;
-      return *this;
-    }
+    ComputePipelineDescriptor();
+    const char* shader() const;
+    ComputePipelineDescriptor& setShader(std::string path);
+    ComputePipelineDescriptor& setThreadGroups(uint3 val);
+    ComputePipelineDescriptor& setInterface(PipelineInterfaceDescriptor val);
   };
 
   enum class Blend
@@ -188,61 +148,20 @@ public:
       unsigned int colorWriteEnable = ColorWriteEnable::All;
     } desc;
 
-    RTBlendDescriptor()
-    {}
+    RTBlendDescriptor();
 
-    RTBlendDescriptor& setBlendEnable(bool value)
-    {
-      desc.blendEnable = value;
-      return *this;
-    }
+    RTBlendDescriptor& setBlendEnable(bool value);
     /*
-    RTBlendDescriptor& setLogicOpEnable(bool value)
-    {
-      desc.logicOpEnable = value;
-      return *this;
-    }*/
-    RTBlendDescriptor& setSrcBlend(Blend value)
-    {
-      desc.srcBlend = value;
-      return *this;
-    }
-    RTBlendDescriptor& setDestBlend(Blend value)
-    {
-      desc.destBlend = value;
-      return *this;
-    }
-    RTBlendDescriptor& setBlendOp(BlendOp value)
-    {
-      desc.blendOp = value;
-      return *this;
-    }
-    RTBlendDescriptor& setSrcBlendAlpha(Blend value)
-    {
-      desc.srcBlendAlpha = value;
-      return *this;
-    }
-    RTBlendDescriptor& setDestBlendAlpha(Blend value)
-    {
-      desc.destBlendAlpha = value;
-      return *this;
-    }
-    RTBlendDescriptor& setBlendOpAlpha(BlendOp value)
-    {
-      desc.blendOpAlpha = value;
-      return *this;
-    }
+    RTBlendDescriptor& setLogicOpEnable(bool value);*/
+    RTBlendDescriptor& setSrcBlend(Blend value);
+    RTBlendDescriptor& setDestBlend(Blend value);
+    RTBlendDescriptor& setBlendOp(BlendOp value);
+    RTBlendDescriptor& setSrcBlendAlpha(Blend value);
+    RTBlendDescriptor& setDestBlendAlpha(Blend value);
+    RTBlendDescriptor& setBlendOpAlpha(BlendOp value);
     /*
-    RTBlendDescriptor& setLogicOp(LogicOp value)
-    {
-      desc.logicOp = value;
-      return *this;
-    }*/
-    RTBlendDescriptor& setColorWriteEnable(ColorWriteEnable value)
-    {
-      desc.colorWriteEnable = value;
-      return *this;
-    }
+    RTBlendDescriptor& setLogicOp(LogicOp value);*/
+    RTBlendDescriptor& setColorWriteEnable(ColorWriteEnable value);
   };
 
   enum class FillMode
@@ -282,63 +201,18 @@ public:
       ConservativeRasterization conservativeRaster = ConservativeRasterization::Off;
     } desc;
 
-    RasterizerDescriptor()
-    {}
-    RasterizerDescriptor& setFillMode(FillMode value = FillMode::Solid)
-    {
-      desc.fill = value;
-      return *this;
-    }
-    RasterizerDescriptor& setCullMode(CullMode value = CullMode::Back)
-    {
-      desc.cull = value;
-      return *this;
-    }
-    RasterizerDescriptor& setFrontCounterClockwise(bool value = false)
-    {
-      desc.frontCounterClockwise = value;
-      return *this;
-    }
-    RasterizerDescriptor& setDepthBias(int value = 0)
-    {
-      desc.depthBias = value;
-      return *this;
-    }
-    RasterizerDescriptor& setDepthBiasClamp(float value = 0.f)
-    {
-      desc.depthBiasClamp = value;
-      return *this;
-    }
-    RasterizerDescriptor& setSlopeScaledDepthBias(float value = 0.f)
-    {
-      desc.slopeScaledDepthBias = value;
-      return *this;
-    }
-    RasterizerDescriptor& setDepthClipEnable(bool value = true)
-    {
-      desc.depthClipEnable = value;
-      return *this;
-    }
-    RasterizerDescriptor& setMultisampleEnable(bool value = false)
-    {
-      desc.multisampleEnable = value;
-      return *this;
-    }
-    RasterizerDescriptor& setAntialiasedLineEnable(bool value = false)
-    {
-      desc.antialiasedLineEnable = value;
-      return *this;
-    }
-    RasterizerDescriptor& setForcedSampleCount(unsigned int value = 0)
-    {
-      desc.forcedSampleCount = value;
-      return *this;
-    }
-    RasterizerDescriptor& setConservativeRaster(ConservativeRasterization value = ConservativeRasterization::Off)
-    {
-      desc.conservativeRaster = value;
-      return *this;
-    }
+    RasterizerDescriptor();
+    RasterizerDescriptor& setFillMode(FillMode value = FillMode::Solid);
+    RasterizerDescriptor& setCullMode(CullMode value = CullMode::Back);
+    RasterizerDescriptor& setFrontCounterClockwise(bool value = false);
+    RasterizerDescriptor& setDepthBias(int value = 0);
+    RasterizerDescriptor& setDepthBiasClamp(float value = 0.f);
+    RasterizerDescriptor& setSlopeScaledDepthBias(float value = 0.f);
+    RasterizerDescriptor& setDepthClipEnable(bool value = true);
+    RasterizerDescriptor& setMultisampleEnable(bool value = false);
+    RasterizerDescriptor& setAntialiasedLineEnable(bool value = false);
+    RasterizerDescriptor& setForcedSampleCount(unsigned int value = 0);
+    RasterizerDescriptor& setConservativeRaster(ConservativeRasterization value = ConservativeRasterization::Off);
   };
 
   enum class DepthWriteMask
@@ -422,50 +296,15 @@ public:
       DepthStencilOpDesc backFace;
     } desc;
 
-    DepthStencilDescriptor()
-    {
-    }
-
-    DepthStencilDescriptor& setDepthEnable(bool value)
-    {
-      desc.depthEnable = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setDepthWriteMask(DepthWriteMask value)
-    {
-      desc.depthWriteMask = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setDepthFunc(ComparisonFunc value)
-    {
-      desc.depthFunc = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setStencilEnable(bool value)
-    {
-      desc.stencilEnable = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setStencilReadMask(uint8_t value)
-    {
-      desc.stencilReadMask = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setStencilWriteMask(uint8_t value)
-    {
-      desc.stencilWriteMask = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setFrontFace(DepthStencilOpDesc value)
-    {
-      desc.frontFace = value;
-      return *this;
-    }
-    DepthStencilDescriptor& setBackFace(DepthStencilOpDesc value)
-    {
-      desc.backFace = value;
-      return *this;
-    }
+    DepthStencilDescriptor();
+    DepthStencilDescriptor& setDepthEnable(bool value);
+    DepthStencilDescriptor& setDepthWriteMask(DepthWriteMask value);
+    DepthStencilDescriptor& setDepthFunc(ComparisonFunc value);
+    DepthStencilDescriptor& setStencilEnable(bool value);
+    DepthStencilDescriptor& setStencilReadMask(uint8_t value);
+    DepthStencilDescriptor& setStencilWriteMask(uint8_t value);
+    DepthStencilDescriptor& setFrontFace(DepthStencilOpDesc value);
+    DepthStencilDescriptor& setBackFace(DepthStencilOpDesc value);
   };
 
   enum class PrimitiveTopology
@@ -500,35 +339,12 @@ public:
       std::array<RTBlendDescriptor, 8> renderTarget;
     } desc;
 
-    BlendDescriptor()
-    {
-      desc.renderTarget.at(0) = RTBlendDescriptor();
-    }
-    BlendDescriptor& setAlphaToCoverageEnable(bool value)
-    {
-      desc.alphaToCoverageEnable = value;
-      return *this;
-    }
-    BlendDescriptor& setIndependentBlendEnable(bool value)
-    {
-      desc.independentBlendEnable = value;
-      return *this;
-    }
-    BlendDescriptor& setLogicOp(LogicOp value)
-    {
-      desc.logicOp = value;
-      return *this;
-    }
-    BlendDescriptor& setLogicOpEnable(bool value)
-    {
-      desc.logicOpEnabled = value;
-      return *this;
-    }
-    BlendDescriptor& setRenderTarget(unsigned int index, RTBlendDescriptor value)
-    {
-      desc.renderTarget.at(index) = value;
-      return *this;
-    }
+    BlendDescriptor();
+    BlendDescriptor& setAlphaToCoverageEnable(bool value);
+    BlendDescriptor& setIndependentBlendEnable(bool value);
+    BlendDescriptor& setLogicOp(LogicOp value);
+    BlendDescriptor& setLogicOpEnable(bool value);
+    BlendDescriptor& setRenderTarget(unsigned int index, RTBlendDescriptor value);
   };
 
   class GraphicsPipelineDescriptor
@@ -554,111 +370,25 @@ public:
       unsigned int sampleCount = 1;
     } desc;
 
-    GraphicsPipelineDescriptor()
-    {
-      for (int i = 0; i < 8; ++i)
-      {
-        desc.rtvFormats.at(i) = FormatType::Unknown;
-      }
-    }
+    GraphicsPipelineDescriptor();
     private:
-
-    void addShader(backend::ShaderType type, std::string path)
-    {
-      auto found = std::find_if(desc.shaders.begin(), desc.shaders.end(), [type](std::pair<backend::ShaderType, std::string>& shader) {
-        return shader.first == type;
-      });
-      if (found != desc.shaders.end())
-      {
-        found->second = path;
-      }
-      else
-      {
-        desc.shaders.push_back(std::make_pair(type, path));
-      }
-    }
-
+    void addShader(backend::ShaderType type, std::string path);
     public:
-
-    GraphicsPipelineDescriptor& setVertexShader(std::string path)
-    {
-      addShader(backend::ShaderType::Vertex, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setPixelShader(std::string path)
-    {
-      addShader(backend::ShaderType::Pixel, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setDomainShader(std::string path)
-    {
-      addShader(backend::ShaderType::Domain, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setHullShader(std::string path)
-    {
-      addShader(backend::ShaderType::Hull, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setGeometryShader(std::string path)
-    {
-      addShader(backend::ShaderType::Geometry, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setAmplificationShader(std::string path)
-    {
-      addShader(backend::ShaderType::Amplification, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setMeshShader(std::string path)
-    {
-      addShader(backend::ShaderType::Mesh, path);
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setBlend(BlendDescriptor blend)
-    {
-      desc.blendDesc = blend;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setRasterizer(RasterizerDescriptor rasterizer)
-    {
-      desc.rasterDesc = rasterizer;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setDepthStencil(DepthStencilDescriptor ds)
-    {
-      desc.dsdesc = ds;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setPrimitiveTopology(PrimitiveTopology value)
-    {
-      desc.primitiveTopology = value;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setRenderTargetCount(unsigned int value)
-    {
-      desc.numRenderTargets = value;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setRTVFormat(unsigned int index, FormatType value)
-    {
-      desc.rtvFormats.at(index) = value;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setDSVFormat(FormatType value)
-    {
-      desc.dsvFormat = value;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setMultiSampling(unsigned int SampleCount)
-    {
-      desc.sampleCount = SampleCount;
-      return *this;
-    }
-    GraphicsPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val)
-    {
-      desc.layout = val;
-      return *this;
-    }
+    GraphicsPipelineDescriptor& setVertexShader(std::string path);
+    GraphicsPipelineDescriptor& setPixelShader(std::string path);
+    GraphicsPipelineDescriptor& setDomainShader(std::string path);
+    GraphicsPipelineDescriptor& setHullShader(std::string path);
+    GraphicsPipelineDescriptor& setGeometryShader(std::string path);
+    GraphicsPipelineDescriptor& setAmplificationShader(std::string path);
+    GraphicsPipelineDescriptor& setMeshShader(std::string path);
+    GraphicsPipelineDescriptor& setBlend(BlendDescriptor blend);
+    GraphicsPipelineDescriptor& setRasterizer(RasterizerDescriptor rasterizer);
+    GraphicsPipelineDescriptor& setDepthStencil(DepthStencilDescriptor ds);
+    GraphicsPipelineDescriptor& setPrimitiveTopology(PrimitiveTopology value);
+    GraphicsPipelineDescriptor& setRenderTargetCount(unsigned int value);
+    GraphicsPipelineDescriptor& setRTVFormat(unsigned int index, FormatType value);
+    GraphicsPipelineDescriptor& setDSVFormat(FormatType value);
+    GraphicsPipelineDescriptor& setMultiSampling(unsigned int SampleCount);
+    GraphicsPipelineDescriptor& setInterface(PipelineInterfaceDescriptor val);
   };
 }

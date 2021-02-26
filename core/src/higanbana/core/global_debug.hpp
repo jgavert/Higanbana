@@ -1,20 +1,8 @@
 #pragma once
 
-#include "higanbana/core/system/fazmesg.hpp"
 #include "higanbana/core/platform/definitions.hpp"
 
-#include <string.h>
-#include <cstdio>
-#include <cstdarg>
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory>
 #include <string>
-#include <sstream>
-#include <cassert>
-
-#include <locale>
-#include <codecvt>
 
 #define HIGAN_DEBUG_LOG(msg, ...) log_adv(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 #define HIGAN_LOG(msg, ...) log_sys("Output", msg, ##__VA_ARGS__)

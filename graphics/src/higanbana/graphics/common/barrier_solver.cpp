@@ -1,4 +1,5 @@
 #include "higanbana/graphics/common/barrier_solver.hpp"
+#include <higanbana/core/global_debug.hpp>
 
 namespace higanbana
 {

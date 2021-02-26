@@ -3,7 +3,7 @@ import os
 
 curDir = os.getcwd() + "\\"
 
-dataFolder = "data\\"
+data = "data\\"
 
 file = {}
 file["mappings"] = {
@@ -14,7 +14,7 @@ file["mappings"] = {
   "/tmp": curDir+data+"tmp"
 }
 
-y = json.dumps(file, indent=2);
+y = json.dumps(file, indent=2)
 
 f = open("data/mapping.json", "w")
 f.write(y)

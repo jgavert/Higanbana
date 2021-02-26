@@ -26,7 +26,7 @@ class HeapAllocatorRaw {
       return lastPhysicalBlock > 0;
     }
     TLSFFreeBlock& freePart() noexcept {
-      assert(freeBlock > 0);
+      HIGAN_ASSERT(freeBlock > 0, "whoops");
       return *reinterpret_cast<TLSFFreeBlock*>(this+1);
     }
     TLSFHeader* fetchPreviousPhysBlock() noexcept {
@@ -39,7 +39,7 @@ class HeapAllocatorRaw {
       return reinterpret_cast<TLSFHeader*>(ptr)-1;
     }
     TLSFHeader* nextBlockHeader() {
-      assert(!isLastPhysicalBlockInPool()); // we were the last block, ASSERT
+      HIGAN_ASSERT(!isLastPhysicalBlockInPool(), "we were last block assert"); // we were the last block, ASSERT
       return reinterpret_cast<TLSFHeader*>(reinterpret_cast<char*>(this+1)+size);
     }
     TLSFHeader* splittedHeader(size_t offsetWithinBlock) {
@@ -146,7 +146,7 @@ class HeapAllocatorRaw {
   // suitable block without pointer chasing done.
   inline TLSFHeader* search_suitable_block(size_t size, int fl, int sl) noexcept {
     // first step, assume we got something at fl / sl location
-    assert(size > 0 && fl >= 0 && sl >= 0);
+    HIGAN_ASSERT(size > 0 && fl >= 0 && sl >= 0, "should be true.");
     auto& secondLevel = control.sizeclasses[fl];
     auto candidatePtr = secondLevel.freeBlocks[sl];
     if (candidatePtr == nullptr || candidatePtr->size < size) {
@@ -186,8 +186,8 @@ class HeapAllocatorRaw {
     // update the original block
     block->size = size;
     block->lastPhysicalBlock = 0; // since we splitted, we will never be last one.
-    assert(block->nextBlockHeader() == split); // ensure correct link with next block
-    assert(split->fetchPreviousPhysBlock() == block); // both ways correct links
+    HIGAN_ASSERT(block->nextBlockHeader() == split, "ensure correct link with next block"); // ensure correct link with next block
+    HIGAN_ASSERT(split->fetchPreviousPhysBlock() == block, "both ways correct links"); // both ways correct links
     return split;
   }
 
@@ -211,11 +211,11 @@ class HeapAllocatorRaw {
     if (freepart.previousFree == 0) {
       int fl, sl;
       mapping(block->size, fl, sl);
-      assert(block == control.sizeclasses[fl].freeBlocks[sl]);
+      HIGAN_ASSERT(block == control.sizeclasses[fl].freeBlocks[sl], "block should be valid");
       control.sizeclasses[fl].freeBlocks[sl] = TLSFHeader::fromAddress(freepart.nextFree);
       if (control.sizeclasses[fl].freeBlocks[sl] == nullptr) {
         // need to remove bit
-        assert(is_bit_set(control.sizeclasses[fl].slBitmap, sl));
+        HIGAN_ASSERT(is_bit_set(control.sizeclasses[fl].slBitmap, sl), "bit should be set");
         remove_bit(control.sizeclasses[fl].slBitmap, sl);
         if (control.sizeclasses[fl].slBitmap == 0 && is_bit_set(control.flBitmap, fl)){
           remove_bit(control.flBitmap, fl);
@@ -287,9 +287,9 @@ HeapAllocatorRaw(void* heap, uintptr_t size, size_t minimumBlockSize = 16, int s
 }
 
 void free(void* block) noexcept {
-  assert(block != nullptr);
+  HIGAN_ASSERT(block != nullptr, "freed block should be valid");
   TLSFHeader* header = TLSFHeader::fromDataPointer(block); 
-  assert(header->size > 0);
+  HIGAN_ASSERT(header->size > 0, "freed block size should be bigger than 0");
   TLSFHeader* bigBlock = merge(header);
   int fl, sl;
   mapping(bigBlock->size, fl, sl);

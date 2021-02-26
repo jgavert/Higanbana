@@ -1,4 +1,16 @@
 #include "higanbana/core/global_debug.hpp"
+#include "higanbana/core/system/fazmesg.hpp"
+#include <string.h>
+#include <cstdio>
+#include <cstdarg>
+#include <stdio.h>
+#include <stdlib.h>
+#include <memory>
+#include <sstream>
+#include <cassert>
+
+#include <locale>
+#include <codecvt>
 
 #ifdef _MSC_VER
 #if defined(HIGANBANA_PLATFORM_WINDOWS)

@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <deque>
 #include <filesystem>
+#include <iostream>
 
 #define HIGANBANA_FS_EXTRA_INFO 0
 

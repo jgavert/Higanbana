@@ -128,8 +128,12 @@
             "type": "shell",
             "command": "bazel.exe",
             "args": [
-                "clean", "--expunge"
-            ]
+                "clean"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "build rendering tests(dbg)",

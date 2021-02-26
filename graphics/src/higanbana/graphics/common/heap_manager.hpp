@@ -4,7 +4,7 @@
 #include "higanbana/graphics/common/helpers/gpu_heap_allocation.hpp"
 #include "higanbana/graphics/common/helpers/heap_allocation.hpp"
 #include <memory>
-
+#include <functional>
 namespace higanbana
 {
 struct ResourceHandle;

@@ -1,8 +1,21 @@
 #include "higanbana/graphics/desc/pipeline_interface_descriptor.hpp"
 #include <higanbana/core/datastructures/hashmap.hpp>
+#include <higanbana/core/global_debug.hpp>
 
 namespace higanbana
 {
+
+  PipelineInterfaceDescriptor& PipelineInterfaceDescriptor::shaderArguments(unsigned setNumber, ShaderArgumentsLayout layout)
+  {
+    HIGAN_ASSERT(setNumber < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS, "Only %d usable sets, please manage.", HIGANBANA_USABLE_SHADER_ARGUMENT_SETS);
+    if (m_sets.size() < HIGANBANA_USABLE_SHADER_ARGUMENT_SETS)
+    {
+      m_sets.resize(setNumber+1);
+    }
+    m_sets[setNumber] = layout;
+    return *this;
+  }
+
   std::string hlslTablesFromShaderArguments(int setNumber, ShaderArgumentsLayout& args)
   {
     std::string lol;
@@ -250,4 +263,6 @@ void print(float4 val) { _debugOut.Store4(getIndex(4, 12), asuint(val)); }
     
     return lol;
   }
+
+
 }
