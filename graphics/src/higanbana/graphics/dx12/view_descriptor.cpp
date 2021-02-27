@@ -23,6 +23,9 @@ namespace higanbana
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
         srvdesc.Format = formatTodxFormat(format).view;
+        if (format == FormatType::Depth32)
+          srvdesc.Format = formatTodxFormat(FormatType::Float32).view;
+
 
         if (desc.dimension == FormatDimension::Texture1D)
         {
@@ -122,6 +125,8 @@ namespace higanbana
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
         uavdesc.Format = formatTodxFormat(format).view;
+        if (format == FormatType::Depth32)
+          uavdesc.Format = formatTodxFormat(FormatType::Float32).view;
 
         if (desc.dimension == FormatDimension::Texture1D)
         {

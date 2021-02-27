@@ -51,13 +51,14 @@ namespace higanbana
       backend::PacketVectorHeader<ViewResourceHandle> rtvs;
       backend::PacketVectorHeader<float4> clearValues;
       ViewResourceHandle dsv;
-      float clearDepth;
+      float clearDepthArea;
+      float clearDepthRest;
 
       int fbWidth;
       int fbHeight;
 
       static constexpr const backend::PacketType type = backend::PacketType::RenderpassBegin;
-      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin& packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepth)
+      static void constructor(backend::CommandBuffer& buffer, RenderPassBegin& packet, ResourceHandle renderpass, MemView<ViewResourceHandle> rtvs, ViewResourceHandle dsv, MemView<float4> clearVals, float clearDepthArea, float clearDepthRest)
       {
         packet.renderpass = renderpass;
         uint8_t* ptr = buffer.allocateElements<ViewResourceHandle>(packet.rtvs, rtvs.size(), packet);
@@ -65,7 +66,8 @@ namespace higanbana
         packet.dsv = dsv;
         ptr = buffer.allocateElements<float4>(packet.clearValues, clearVals.size(), packet);
         memcpy(ptr, clearVals.data(), clearVals.size_bytes());
-        packet.clearDepth = clearDepth;
+        packet.clearDepthArea = clearDepthArea;
+        packet.clearDepthRest = clearDepthRest;
       }
     };
 

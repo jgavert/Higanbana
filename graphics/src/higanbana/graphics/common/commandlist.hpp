@@ -70,7 +70,7 @@ namespace higanbana
       {
         clearValues.push_back(rtv.clearVal());
       }
-      list.insert<gfxpacket::RenderPassBegin>(pass.handle(), handles, dsv.handle(), clearValues, dsv.clearVal().x);
+      list.insert<gfxpacket::RenderPassBegin>(pass.handle(), handles, dsv.handle(), clearValues, dsv.clearVal().x, dsv.clearVal().y);
     }
 
     void renderpassEnd()

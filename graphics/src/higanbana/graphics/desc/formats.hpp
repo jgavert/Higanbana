@@ -92,6 +92,9 @@ namespace higanbana
   FormatType findFormat(int components, int bits, FormatTypeIdentifier pixelType);
   FormatSizeInfo formatSizeInfo(FormatType format);
   int formatBitDepth(FormatType format);
+  bool formatIsDepth(FormatType format);
+  bool formatIsStencil(FormatType format);
+  
 
   FormatType formatToSRGB(FormatType format);
 
@@ -119,6 +122,7 @@ namespace higanbana
   {
     Load,
     Clear,
+    ClearArea,
     DontCare
   };
 

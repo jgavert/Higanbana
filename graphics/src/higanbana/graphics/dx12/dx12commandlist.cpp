@@ -164,7 +164,7 @@ namespace higanbana
         {
           dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;          
           dsvDesc.DepthBeginningAccess.Clear.ClearValue.Format = ndsv.viewFormat();
-          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[0] = packet.clearDepth;
+          dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[0] = packet.clearDepthArea;
           dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
           dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[2] = 0.f;
           dsvDesc.DepthBeginningAccess.Clear.ClearValue.Color[3] = 0.f;
@@ -173,6 +173,12 @@ namespace higanbana
           dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[1] = 0.f;
           dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[2] = 0.f;
           dsvDesc.StencilBeginningAccess.Clear.ClearValue.Color[3] = 0.f;
+        }
+        if (packet.dsv.loadOp() == LoadOp::ClearArea) {
+          dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;          
+          dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; 
+          buffer->ClearDepthStencilView(dsvDesc.cpuDescriptor, D3D12_CLEAR_FLAG_DEPTH, packet.clearDepthRest, 0, 0, nullptr);
+          buffer->ClearDepthStencilView(dsvDesc.cpuDescriptor, D3D12_CLEAR_FLAG_DEPTH, packet.clearDepthArea, 0, 1, &rect);
         }
 
         if (packet.dsv.storeOp() == StoreOp::DontCare)

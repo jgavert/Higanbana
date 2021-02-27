@@ -108,7 +108,7 @@ namespace higanbana
 
             vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eDontCare;
 
-            if (it.loadOp() == LoadOp::Clear)
+            if (it.loadOp() == LoadOp::Clear || it.loadOp() == LoadOp::ClearArea)
             {
               load = vk::AttachmentLoadOp::eClear;
             }
@@ -265,7 +265,7 @@ namespace higanbana
       }
     }
 
-    void handle(vk::CommandBuffer buffer, Resources& res, gfxpacket::RenderPassBegin& packet, vk::Framebuffer fb)
+    void handle(VulkanDevice* device, vk::CommandBuffer buffer, Resources& res, gfxpacket::RenderPassBegin& packet, vk::Framebuffer fb)
     {
       auto& rp = res.renderpasses[packet.renderpass];
       
@@ -284,11 +284,36 @@ namespace higanbana
       }
       if (packet.dsv.id != ViewResourceHandle::InvalidViewId)
       {
-        if (packet.dsv.loadOp() == LoadOp::Clear)
+        if (packet.dsv.loadOp() == LoadOp::Clear || packet.dsv.loadOp() == LoadOp::ClearArea)
         {
-          auto v = packet.clearDepth;
+          auto v = packet.clearDepthArea;
           clearValues[attachmentCount] = clearValues[attachmentCount]
             .setDepthStencil(vk::ClearDepthStencilValue().setDepth(v).setStencil(0));
+        }
+        if (packet.dsv.loadOp() == LoadOp::ClearArea)
+        {
+          auto& view = device->allResources().texDSV[packet.dsv];
+          auto& nat = device->allResources().tex[packet.dsv.resourceHandle()];
+          vk::ImageSubresourceRange range = vk::ImageSubresourceRange()
+            .setBaseMipLevel(0)
+            .setLevelCount(1)
+            .setLayerCount(1)
+            .setAspectMask(vk::ImageAspectFlagBits::eDepth);
+          auto barr = vk::ImageMemoryBarrier()
+            .setOldLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+            .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
+            .setImage(nat.native())
+            .setSubresourceRange(range);
+          
+          buffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, barr);
+          buffer.clearDepthStencilImage(nat.native(), vk::ImageLayout::eTransferDstOptimal, vk::ClearDepthStencilValue().setDepth(packet.clearDepthRest), range);
+          barr = barr
+            .setSrcAccessMask(vk::AccessFlagBits::eMemoryWrite)
+            .setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite)
+            .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+            .setNewLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+          buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics, {}, {}, {}, barr);
+
         }
         attachmentCount++;
       }
@@ -698,7 +723,7 @@ namespace higanbana
           case PacketType::RenderpassBegin:
           {
             handleRenderpass(device, header->data<gfxpacket::RenderPassBegin>());
-            handle(buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
+            handle(device, buffer, device->allResources(), header->data<gfxpacket::RenderPassBegin>(), *m_framebuffers[framebuffer]);
             /*
             if (m_dispatch.vkCmdSetFragmentShadingRateKHR) {
               vk::FragmentShadingRateCombinerOpKHR ops[2];

@@ -102,6 +102,28 @@ namespace higanbana
     return (slot.pixelSize / slot.componentCount) * 8;
   }
 
+  bool formatIsDepth(FormatType format) {
+    switch (format) {
+      case FormatType::Depth24:
+      case FormatType::Depth24_Stencil8:
+      case FormatType::Depth32:
+      case FormatType::Depth32_Stencil8:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool formatIsStencil(FormatType format) {
+    switch (format) {
+      case FormatType::Depth24_Stencil8:
+      case FormatType::Depth32_Stencil8:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   size_t sizeFormatRowPitch(int2 size, FormatType type) {
     constexpr size_t APIRowPitchAlignmentRequirement = 256;
     size_t tightRowPitch = size.x * formatSizeInfo(type).pixelSize;

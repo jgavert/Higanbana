@@ -2473,13 +2473,18 @@ namespace higanbana
         .setG(vk::ComponentSwizzle::eIdentity)
         .setB(vk::ComponentSwizzle::eIdentity);
 
+      FormatType format = viewDesc.m_format;
+      if (format == FormatType::Unknown)
+        format = desc.format;
+
       vk::ImageAspectFlags imgFlags;
 
-      if (viewDesc.m_viewType == ResourceShaderType::DepthStencil)
+      if (formatIsDepth(format))
       {
         imgFlags |= vk::ImageAspectFlagBits::eDepth;
+        if (formatIsStencil(format))
+          imgFlags |= vk::ImageAspectFlagBits::eStencil;
         // TODO: support stencil format, no such FormatType yet.
-        //imgFlags |= vk::ImageAspectFlagBits::eStencil;
       }
       else
       {
@@ -2501,9 +2506,6 @@ namespace higanbana
         .setLevelCount(mips)
         .setLayerCount(arraySize);
 
-      FormatType format = viewDesc.m_format;
-      if (format == FormatType::Unknown)
-        format = desc.format;
 
       vk::ImageViewCreateInfo viewInfo = vk::ImageViewCreateInfo()
         .setViewType(ivt)

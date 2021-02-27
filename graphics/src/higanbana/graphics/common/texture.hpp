@@ -116,6 +116,11 @@ namespace higanbana
       m_loadOp = LoadOp::Clear;
       clearColor = clearVal;
     }
+    void clearRenderArea(float4 clearVal)
+    {
+      m_loadOp = LoadOp::ClearArea;
+      clearColor = clearVal;
+    }
     void setOp(LoadOp op)
     {
       m_loadOp = op;
