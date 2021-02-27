@@ -31,7 +31,8 @@ namespace higanbana
 
     T& get() { return m_buffer[m_ptr]; }
     T* data() const { return m_buffer; }
-    size_t size() const { return ArraySize; }
+    size_t size() const { return m_filledSize; }
+    size_t max_size() const { return ArraySize; }
     T& operator[](int index) { return m_buffer[getIndex(index)]; }
     const T& operator[](int index) const { return m_buffer[getIndex(index)]; }
     int start_ind() { return ArraySize + m_ptr - m_filledSize; }

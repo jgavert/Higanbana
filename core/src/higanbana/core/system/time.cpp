@@ -1,6 +1,30 @@
 #include "higanbana/core/system/time.hpp"
 #include "higanbana/core/global_debug.hpp"
-using namespace higanbana;
+
+namespace higanbana
+{
+TimeStatistics::TimeStatistics() {
+  for (int i = 0; i < valuesStored.max_size(); ++i) {
+    valuesStored[i] = 0;
+  }
+}
+void TimeStatistics::push(int64_t nanoseconds){
+  valuesStored.push_back(nanoseconds);
+}
+float3 TimeStatistics::minAvegMaxMS(){
+  int64_t count = 0;
+  int64_t high = 0;
+  int64_t low = INT64_MAX;
+  valuesStored.forEach([&](int64_t& data)
+  {
+    count += data;
+    high = std::max(data, high);
+    low = std::min(data, low);
+  });
+  if (count == 0)
+    return float3(0,0,0);
+  return{ static_cast<float>(count) / static_cast<float>(valuesStored.size())* 0.000001f, low*0.000001f, high*0.000001f };
+}
 
 Timer::Timer() 
   : start(HighPrecisionClock::now())
@@ -158,4 +182,5 @@ float WTime::getFTime()
 int64_t WTime::getFrame()
 {
   return frames;
+}
 }

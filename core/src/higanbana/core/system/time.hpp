@@ -11,6 +11,16 @@
 
 namespace higanbana
 {
+
+  class TimeStatistics
+  {
+    RingBuffer<int64_t, 120> valuesStored;
+  public:
+    TimeStatistics();
+    void push(int64_t nanoseconds);
+    float3 minAvegMaxMS();
+  };
+
   class Timer 
   {
   public:

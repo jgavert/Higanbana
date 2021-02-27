@@ -287,6 +287,15 @@ namespace higanbana
       return infos;
     }
 
+    std::optional<SubmitTiming> lastSubmitTiming()
+    {
+      if (S().timeSubmitsFinished.empty())
+        return std::optional<SubmitTiming>();
+      auto info = S().timeSubmitsFinished.front();
+      S().timeSubmitsFinished.pop_front();
+      return info;
+    }
+
     uint64_t gpuMemoryUsed()
     {
       uint64_t allMemoryUsed = 0;

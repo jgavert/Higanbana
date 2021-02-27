@@ -6,14 +6,14 @@ using namespace higanbana;
 
 InputBuffer::InputBuffer() : m_tail(0), m_head(0), m_frame(0), f_translator([](int i) {return i; })
 {
-  for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 0; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     m_inputs[i] = Input();
   }
 }
 InputBuffer::InputBuffer(vector<wchar_t> chars) : m_tail(0), m_head(0), m_frame(0), f_translator([](int i) {return i; }), m_chars(chars)
 {
-  for (int i = 0; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 0; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     m_inputs[i] = Input();
   }
@@ -30,9 +30,9 @@ void InputBuffer::insert(int key, int action, int64_t frame)
   }*/
   m_inputs[m_tail] = Input(key, action, frame);
   ++m_tail;
-  if (m_tail >= static_cast<int>(m_inputs.size()))
+  if (m_tail >= static_cast<int>(m_inputs.max_size()))
   {
-    m_tail = m_tail%m_inputs.size();
+    m_tail = m_tail%m_inputs.max_size();
   }
 }
 
@@ -58,7 +58,7 @@ void InputBuffer::readTill(int64_t /*time*/, std::function<void(int, int, int64_
 
 bool InputBuffer::findAndDisableThisFrame(int key, int action)
 {
-  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 1; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     if (m_inputs[m_tail - i].time != m_frame)
     {
@@ -82,7 +82,7 @@ InputBuffer::OldestIndex InputBuffer::findOldestIndex(int frames)
   int stopAt = m_frame - frames;
 
   int indexes = 0;
-  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 1; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     indexes++;
     if (m_inputs[m_tail - i].time <= stopAt)
@@ -124,7 +124,7 @@ bool InputBuffer::isPressedWithinNFrames(int frames, int key, int action)
 
 void InputBuffer::goThroughThisFrame(std::function<void(Input)> func)
 {
-  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 1; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     if (m_inputs[m_tail - i].time != m_frame)
     {
@@ -136,7 +136,7 @@ void InputBuffer::goThroughThisFrame(std::function<void(Input)> func)
 
 bool InputBuffer::isPressedThisFrame(int key, int action)
 {
-  for (int i = 1; i < static_cast<int>(m_inputs.size()); i++)
+  for (int i = 1; i < static_cast<int>(m_inputs.max_size()); i++)
   {
     if (m_inputs[m_tail - i].time != m_frame)
     {
