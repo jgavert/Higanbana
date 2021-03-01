@@ -927,6 +927,10 @@ namespace higanbana
       result(0, 3) = -vec.x; result(1, 3) = -vec.y; result(2, 3) = -vec.z; 
       return result;
     }
+    inline void forceTranslation(Vector<4, float> vec, float4x4& out)
+    {
+      out(0, 3) = -vec.x; out(1, 3) = -vec.y; out(2, 3) = -vec.z; 
+    }
 
     inline Vector<2, float> first2termsOfPerspective(float fov, float aspect) {
       if (fov <= 0 || aspect == 0)
