@@ -265,6 +265,12 @@ namespace higanbana
                       // handled by now.
                       state = job.nextAccess;
                     }
+                    else if (current.mipSize > 0) {
+                      addImageBarrier(current);
+                      current = RangePerAccessType{};
+                      current.mipSize = 0;
+                      current.arrSize = 0;
+                    }
                   }
                 }
                 if (current.mipSize != 0 && current.arrSize != 0)
