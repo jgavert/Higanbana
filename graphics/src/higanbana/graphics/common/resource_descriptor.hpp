@@ -380,6 +380,7 @@ namespace higanbana
       bool            allowCrossAdapter = false;
       bool            interopt = false;
       bool            allowSimultaneousAccess = false;
+      bool            structured = false;
       int             hostGPU = 0;
 
       uint3 size3D() const
@@ -409,6 +410,7 @@ namespace higanbana
     {
       desc.stride = sizeof(T);
       desc.format = FormatType::Unknown;
+      desc.structured = true;
       return *this;
     }
 

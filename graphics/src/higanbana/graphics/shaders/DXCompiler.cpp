@@ -69,9 +69,10 @@ public:
       filename = filename.substr(substrStart);
       removeExtraSlashes(filename);
     }
-
+    auto natPath = m_fs.resolveNativePath(m_sourcePath);
+    HIGAN_LOGi("trying to include \"%s\"\n", natPath->c_str());
     std::string finalPath = m_sourcePath + "/";
-    finalPath += filename;
+    finalPath += filename.substr(natPath->length());
     if (!m_fs.fileExists(finalPath)) {
       // try loading file...
       if (!m_fs.tryLoadFile(finalPath))
@@ -174,10 +175,23 @@ namespace higanbana
       std::vector<LPCWSTR> ppArgs;
       std::vector<std::wstring> tempArgs;
 
+      //auto sname = d.shaderName.substr(d.shaderName.find_last_of("/\\"));;
+      auto shaderNameNativePath = m_fs.resolveNativePath(d.shaderName);
+      std::wstring kek = s2ws(*shaderNameNativePath);
+
+      ppArgs.push_back(kek.c_str()); // give name
+
+      ppArgs.push_back(L"/E");
+      ppArgs.push_back(L"main");
+      ppArgs.push_back(L"/T");
+      ppArgs.push_back(shaderFeatureDXC(d.type));
+      
+      ppArgs.push_back(L"/Zi"); // Enable debugging information.
+
       if (binType == ShaderBinaryType::SPIRV)
       {
         ppArgs.push_back(L"-spirv"); // enable spirv codegen
-        ppArgs.push_back(L"-fspv-target-env=vulkan1.1");
+        ppArgs.push_back(L"-fspv-target-env=vulkan1.2");
         ppArgs.push_back(L"-fvk-use-dx-layout");
         //ppArgs.push_back(L"-Oconfig=-O");
         //ppArgs.push_back(L"-Oconfig=--loop-unroll,--scalar-replacement=300,--eliminate-dead-code-aggressive");
@@ -191,7 +205,6 @@ namespace higanbana
       }
 
       // other various settings
-      ppArgs.push_back(L"/Zi"); // Enable debugging information.
       ppArgs.push_back(L"/WX"); // Treat warnings as errors.
       ppArgs.push_back(L"/Ges"); //Enable strict mode.
       ppArgs.push_back(L"/all_resources_bound"); // Enable aggressive flattening in SM5.1+.
@@ -208,26 +221,30 @@ namespace higanbana
       CComPtr<IDxcCompiler3> pCompiler;
       DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void **)&pCompiler);
 
+      ppArgs.push_back(L"/D");
       if (binType == ShaderBinaryType::DXIL)
       {
-        ppArgs.push_back(L"/DHIGANBANA_DX12");
+        ppArgs.push_back(L"HIGANBANA_DX12");
       }
       else
       {
-        ppArgs.push_back(L"/DHIGANBANA_VULKAN");
+        ppArgs.push_back(L"HIGANBANA_VULKAN");
       }
 
       std::wstring tx, ty, tz;
       if (d.type == ShaderType::Compute)
       {
-        tx = L"/DHIGANBANA_THREADGROUP_X=";
+        tx = L"HIGANBANA_THREADGROUP_X=";
         tx += TGS_X;
-        ty = L"/DHIGANBANA_THREADGROUP_Y=";
+        ty = L"HIGANBANA_THREADGROUP_Y=";
         ty += TGS_Y;
-        tz = L"/DHIGANBANA_THREADGROUP_Z=";
+        tz = L"HIGANBANA_THREADGROUP_Z=";
         tz += TGS_Z;
+        ppArgs.push_back(L"/D");
         ppArgs.push_back(tx.c_str());
+        ppArgs.push_back(L"/D");
         ppArgs.push_back(ty.c_str());
+        ppArgs.push_back(L"/D");
         ppArgs.push_back(tz.c_str());
       }
 
@@ -235,7 +252,7 @@ namespace higanbana
 
       for (auto&& it : d.definitions)
       {
-        std::wstring wtr = L"/D";
+        std::wstring wtr;
         wtr += s2ws(it);
         convertedDefs.push_back(wtr);
       }
@@ -243,6 +260,7 @@ namespace higanbana
       for (auto&& it : convertedDefs)
       {
         //defs.push_back(DxcDefine{ it.c_str(), nullptr });
+        ppArgs.push_back(L"/D");
         ppArgs.push_back(it.c_str());
       }
 
@@ -253,17 +271,33 @@ namespace higanbana
       CComPtr<IDxcResult> pImplResult;
       */
 
-      CComPtr<IDxcOperationResult> pResult;
+      //CComPtr<IDxcOperationResult> pResult;
 
-      ppArgs.push_back(L"/Emain");
-      ppArgs.push_back(shaderFeatureDXC(d.type));
 
-      DxcBuffer srcBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+      // burn dxil location to pdb
+      auto natPath = *m_fs.resolveNativePath(dxilPath);
+      HIGAN_LOGi("pdb nat path: \"%s\"\n", natPath.c_str());
+      auto dxilPathWstr = s2ws(natPath);
+      ppArgs.push_back(L"-Fo");
+      ppArgs.push_back(dxilPathWstr.c_str());
 
-      std::wstring kek = s2ws(d.shaderName);
+      
+      ppArgs.push_back(L"-Fd");
+      natPath += ".pdb";
+      auto pdbDirPath = natPath;//natPath.substr(0, natPath.find_last_of("/\\"));
+      auto dxilPathWstr2 = s2ws(pdbDirPath);//+"\\"+);
+      ppArgs.push_back(dxilPathWstr2.c_str());
+      
+
+      //ppArgs.push_back(L"-Qstrip_reflect"); // we don't need reflection at all
+
+      DxcBuffer srcBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), DXC_CP_ACP };
+
+      CComPtr<IDxcResult> pResult;
       pCompiler->Compile(
         &srcBuffer,                                      // program text
-        ppArgs.data(), static_cast<UINT32>(ppArgs.size()),  // compilation arguments
+        ppArgs.data(),
+        static_cast<UINT32>(ppArgs.size()),  // compilation arguments
         dxcHandlerPtr,                                // handler for #include directives
         IID_PPV_ARGS(&pResult));
 
@@ -288,33 +322,38 @@ namespace higanbana
         OutputDebugStringA("\n");
 
         HIGAN_ILOG("ShaderStorage", "Error In \"%s\":\n %s\n", shaderPath.c_str(), msg.c_str());
-        //HIGAN_ASSERT(false, "Temp assertion for strange errors");
         return false;
       }
       auto timingFinish = float(time.timeFromLastReset());
       HIGAN_ILOG("ShaderStorage", "Compiled: \"%s\" in %.2fms", dxilPath.c_str(), timingFinish / 1000000.f);
       CComPtr<IDxcBlob> blob;
-      pResult->GetResult(&blob);
+      pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&blob), nullptr);
       auto thingA = blob->GetBufferPointer();
       auto thingB = blob->GetBufferSize();
       auto viewToBlob = higanbana::reinterpret_memView<const uint8_t>(higanbana::makeByteView(thingA, thingB));
       m_fs.writeFile(dxilPath, viewToBlob);
 
-      // Extract debug blob if present
-      /*
-      CComHeapPtr<wchar_t> pDebugNameOnComHeap;
-      CComPtr<IDxcBlob> pDebugBlob;
-      if (SUCCEEDED(hr)) {
-        CComPtr<IDxcBlobUtf16> pDebugName;
-        hr = pResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pDebugBlob), &pDebugName);
-        if (SUCCEEDED(hr) && ppDebugBlobName && pDebugName) {
-          if (!pDebugNameOnComHeap.AllocateBytes(pDebugName->GetBufferSize()))
-            return E_OUTOFMEMORY;
-          memcpy(pDebugNameOnComHeap.m_pData, pDebugName->GetBufferPointer(), pDebugName->GetBufferSize());
+      //
+      // Save pdb.
+      //
+      auto pdbDir = dxilPath.substr(0, dxilPath.find_last_of("/\\"));;
+      {
+        CComPtr<IDxcBlob> pPDB = nullptr;
+        CComPtr<IDxcBlobUtf16> pPDBName = nullptr;
+        pResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pPDB), &pPDBName);
+        {
+          std::wstring pdbname = std::wstring(pPDBName->GetStringPointer(), pPDBName->GetStringLength());
+          auto name = ws2s(pdbname);
+          HIGAN_ILOG("ShaderStorage", "got pdb %s\n", name.c_str());
+          auto thingA = pPDB->GetBufferPointer();
+          auto thingB = pPDB->GetBufferSize();
+          auto viewToBlob = higanbana::reinterpret_memView<const uint8_t>(higanbana::makeByteView(thingA, thingB));
+          m_fs.writeFile(dxilPath+".pdb", viewToBlob);
+          //m_fs.writeFile(pdbDir+"/"+name, viewToBlob);
         }
-      }*/
-      return true;
+      }
 
+      return true;
     }
   }
 }

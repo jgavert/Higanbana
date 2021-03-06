@@ -184,7 +184,7 @@ namespace higanbana
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
         {
           debugController->EnableDebugLayer();
-#if defined(HIGANBANA_GRAPHICS_GPUBASED_VALIDATION)
+#if 0 //defined(HIGANBANA_GRAPHICS_GPUBASED_VALIDATION)
           ComPtr<ID3D12Debug1> debugController1;
           debugController.As(&debugController1);
           debugController1->SetEnableGPUBasedValidation(true);
@@ -261,6 +261,8 @@ namespace higanbana
             D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
             D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH,
+            D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE
           };
 
           D3D12_INFO_QUEUE_FILTER filter = {};

@@ -420,6 +420,13 @@ namespace higanbana
       m_referencedBuffers.setBit(target.handle().id);
       list->copy(target, 0, source, 0, elements);
     }
+    void copyBuffer(Buffer target, uint destElement, DynamicBufferView source, uint srcElement)
+    {
+      addWriteShared(target.handle());
+      auto elements = source.logicalSize() / source.elementSize();
+      m_referencedBuffers.setBit(target.handle().id);
+      list->copy(target, destElement, source, srcElement, elements-srcElement);
+    }
 
     void copy(Buffer target, uint targetElementOffset, DynamicBufferView source, uint sourceElementOffset = 0, int sourceElementsToCopy = -1)
     {

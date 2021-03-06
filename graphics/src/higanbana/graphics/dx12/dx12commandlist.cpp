@@ -705,7 +705,7 @@ namespace higanbana
           {
             handle(device, buffer, header->data<gfxpacket::RenderPassBegin>());
             if (device->m_features.opt6.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1) {
-              buffer->RSSetShadingRate(D3D12_SHADING_RATE_1X1, nullptr);
+              //buffer->RSSetShadingRate(D3D12_SHADING_RATE_1X1, nullptr);
             }
             rpbegin = header;
             framebuffer++;

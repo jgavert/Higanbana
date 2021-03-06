@@ -90,9 +90,6 @@ namespace higanbana
     bool m_initialLoadComplete = false;
 
     std::string mountPointOSPath(std::string_view filepath);
-    std::optional<std::string> resolveNativePath(std::string_view filepath);
-
-
     std::optional<std::unordered_map<std::string, std::string>> tryExtractMappings(std::string mappingjsonpath);
     std::unordered_map<std::string, std::string> m_mappings;
   public:
@@ -124,6 +121,8 @@ namespace higanbana
     WatchFile watchFile(std::string path, std::optional<vector<std::string>> optionalTriggers = {});
     void addWatchDependency(std::string watchedPath, std::string notifyPath);
     void updateWatchedFiles();
+
+    std::optional<std::string> resolveNativePath(std::string_view filepath);
   private:
     bool loadFileFromHDD(FileInfo& path, std::string mountpoint, size_t& size);
   };

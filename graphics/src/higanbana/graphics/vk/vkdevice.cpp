@@ -33,12 +33,18 @@ namespace higanbana
       return -1;
     }
 
-    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled)
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled, size_t minStructuredBufferAlignment)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
       auto desc = descriptor.desc;
       if (desc.stride == 0)
         desc.stride = 1;
+      if (desc.structured) {
+        if (desc.stride%minStructuredBufferAlignment != 0) {
+          desc.stride += (minStructuredBufferAlignment - desc.stride%minStructuredBufferAlignment);
+        }
+      }
+
       auto bufSize = desc.stride*desc.width;
       HIGAN_ASSERT(bufSize != 0, "Cannot create zero sized buffers.");
       vk::BufferCreateInfo info = vk::BufferCreateInfo()
@@ -624,7 +630,7 @@ namespace higanbana
           .setUsage(ResourceUsage::GpuRW)
           .allowSimultaneousAccess();
         
-        auto vkdesc = fillBufferInfo(bdesc, m_memoryAddressingEnabled);
+        auto vkdesc = fillBufferInfo(bdesc, m_memoryAddressingEnabled, m_limits.minStorageBufferOffsetAlignment);
         auto buffer = m_device.createBuffer(vkdesc);
         VK_CHECK_RESULT(buffer);
         
@@ -665,13 +671,14 @@ namespace higanbana
       for (auto&& format : nullFormats) {
         auto res = m_device.createBuffer(fillBufferInfo(ResourceDescriptor()
           .setFormat(format)
-          .setWidth(1), m_memoryAddressingEnabled));
+          .setWidth(1), m_memoryAddressingEnabled, m_limits.minStorageBufferOffsetAlignment));
         VK_CHECK_RESULT(res);
         nullBuffers(format).buffer = res.value;
 
         auto imDesc = ResourceDescriptor()
           .setFormat(format)
           .setSize(uint3(1,1,1))
+          .setUsage(ResourceUsage::GpuRW)
           .setDimension(FormatDimension::TextureCube);
         auto image = m_device.createImage(fillImageInfo(imDesc));
         VK_CHECK_RESULT(image);
@@ -2123,7 +2130,7 @@ namespace higanbana
       vk::MemoryRequirements requirements;
       if (desc.desc.dimension == FormatDimension::Buffer)
       {
-        auto buffer = m_device.createBuffer(fillBufferInfo(desc, m_memoryAddressingEnabled));
+        auto buffer = m_device.createBuffer(fillBufferInfo(desc, m_memoryAddressingEnabled, m_limits.minStorageBufferOffsetAlignment));
         VK_CHECK_RESULT(buffer);
         requirements = m_device.getBufferMemoryRequirements(buffer.value);
         m_device.destroyBuffer(buffer.value);
@@ -2249,7 +2256,7 @@ namespace higanbana
     void VulkanDevice::createBuffer(ResourceHandle handle, HeapAllocation allocation, ResourceDescriptor& desc)
     {
       HIGAN_CPU_FUNCTION_SCOPE();
-      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled);
+      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled, m_limits.minStorageBufferOffsetAlignment);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       auto& native = m_allRes.heaps[allocation.heap.handle];
@@ -2275,7 +2282,11 @@ namespace higanbana
         format = desc.format;
       else {
         elementSize = formatSizeInfo(format).pixelSize;
-      } 
+      }
+      if (resDesc.desc.structured){
+        if (elementSize % m_limits.minStorageBufferOffsetAlignment != 0)
+          elementSize += (m_limits.minStorageBufferOffsetAlignment - elementSize%m_limits.minStorageBufferOffsetAlignment);
+      }
       auto elementCount = viewDesc.m_elementCount;
       if (elementCount == -1)
       {
@@ -2304,9 +2315,10 @@ namespace higanbana
           type = vk::DescriptorType::eStorageTexelBuffer;
         }
       }
-
-
       auto offsetBytes = viewDesc.m_firstElement * elementSize;
+
+
+
       vk::DescriptorBufferInfo info = vk::DescriptorBufferInfo()
         .setBuffer(native.native())
         .setOffset(offsetBytes)
@@ -2918,7 +2930,7 @@ namespace higanbana
         .setElementsCount(bytes)
         .setUsage(ResourceUsage::Readback);
 
-      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled);
+      auto vkdesc = fillBufferInfo(desc, m_memoryAddressingEnabled, m_limits.minStorageBufferOffsetAlignment);
       auto buffer = m_device.createBuffer(vkdesc);
       VK_CHECK_RESULT(buffer);
       

@@ -32,8 +32,8 @@
 #include <higanbana/core/profiling/profiling.hpp>
 
 struct AppInputs {
-  higanbana::GraphicsApi cmdlineApiId = higanbana::GraphicsApi::DX12;
-  higanbana::VendorID cmdlineVendorId = higanbana::VendorID::Amd;
+  higanbana::GraphicsApi cmdlineApiId = higanbana::GraphicsApi::All;
+  higanbana::VendorID cmdlineVendorId = higanbana::VendorID::All;
   higanbana::GraphicsApi allowedApis = higanbana::GraphicsApi::All;
   bool onlyVendor = false;
   bool validationLayer = false;

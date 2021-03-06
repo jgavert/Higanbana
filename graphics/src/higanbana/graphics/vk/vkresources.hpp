@@ -25,7 +25,7 @@ namespace higanbana
 {
   namespace backend
   {
-    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled);
+    vk::BufferCreateInfo fillBufferInfo(ResourceDescriptor descriptor, bool memoryAddressingEnabled, size_t minStorageBufferOffsetAlignment);
     vk::ImageCreateInfo fillImageInfo(ResourceDescriptor descriptor);
     int32_t FindProperties(vk::PhysicalDeviceMemoryProperties memprop, uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties);
 
@@ -807,7 +807,7 @@ namespace higanbana
           .setName("DynUpload");
 
         bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
-        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing, 0);
 
         auto result = device.createBuffer(natBufferInfo);
         if (result.result == vk::Result::eSuccess)
@@ -917,7 +917,7 @@ namespace higanbana
           .setName("DynUpload");
 
         bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
-        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing,0);
         vk::BufferUsageFlags vkUsage = vk::BufferUsageFlagBits::eUniformBuffer;
         if (m_mode == Mode::CpuGpu)
           vkUsage = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferSrc;
@@ -956,7 +956,7 @@ namespace higanbana
         data = reinterpret_cast<uint8_t*>(mapResult.value);
         if (m_mode == Mode::CpuGpu) {
           bufDesc = bufDesc.setUsage(ResourceUsage::GpuReadOnly);
-          natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
+          natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing, 0);
           natBufferInfo = natBufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst);
           auto result2 = device.createBuffer(natBufferInfo);
           if (result2.result == vk::Result::eSuccess)
@@ -1128,7 +1128,7 @@ namespace higanbana
           .setName("timestamp readback");
 
         bool deviceAddressing = (memoryFlags & vk::MemoryAllocateFlagBits::eDeviceAddress) == vk::MemoryAllocateFlagBits::eDeviceAddress;
-        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing);
+        auto natBufferInfo = fillBufferInfo(bufDesc, deviceAddressing, 0);
 
         auto result = device.createBuffer(natBufferInfo);
         if (result.result == vk::Result::eSuccess)

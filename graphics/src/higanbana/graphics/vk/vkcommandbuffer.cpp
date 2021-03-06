@@ -1037,13 +1037,25 @@ namespace higanbana
             auto dst = device->allResources().tex[params.dst];
             auto src = device->allResources().tex[params.src];
 
-            vk::ImageCopy icopy = vk::ImageCopy()
-              .setDstOffset(vk::Offset3D().setX(params.dstPos.x).setY(params.dstPos.y).setZ(params.dstPos.z))
-              .setDstSubresource(vk::ImageSubresourceLayers().setMipLevel(params.dstMip).setLayerCount(1).setBaseArrayLayer(params.dstSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
-              .setSrcSubresource(vk::ImageSubresourceLayers().setMipLevel(params.srcMip).setLayerCount(1).setBaseArrayLayer(params.srcSlice).setAspectMask(vk::ImageAspectFlagBits::eColor))
-              .setExtent(vk::Extent3D().setWidth(params.srcbox.rightBottomBack.x).setHeight(params.srcbox.rightBottomBack.y).setDepth(params.srcbox.rightBottomBack.z));
-
-            buffer.copyImage(src.native(), vk::ImageLayout::eTransferSrcOptimal, dst.native(), vk::ImageLayout::eTransferDstOptimal, {icopy});
+            if (dst.aspectFlags() == src.aspectFlags()) {
+              vk::ImageCopy icopy = vk::ImageCopy()
+                .setDstOffset(vk::Offset3D().setX(params.dstPos.x).setY(params.dstPos.y).setZ(params.dstPos.z))
+                .setDstSubresource(vk::ImageSubresourceLayers().setMipLevel(params.dstMip).setLayerCount(1).setBaseArrayLayer(params.dstSlice).setAspectMask(dst.aspectFlags()))
+                .setSrcSubresource(vk::ImageSubresourceLayers().setMipLevel(params.srcMip).setLayerCount(1).setBaseArrayLayer(params.srcSlice).setAspectMask(src.aspectFlags()))
+                .setExtent(vk::Extent3D().setWidth(params.srcbox.rightBottomBack.x).setHeight(params.srcbox.rightBottomBack.y).setDepth(params.srcbox.rightBottomBack.z));
+              
+              buffer.copyImage(src.native(), vk::ImageLayout::eTransferSrcOptimal, dst.native(), vk::ImageLayout::eTransferDstOptimal, {icopy});
+            } else {
+              vk::Offset3D offsetDst = vk::Offset3D().setX(params.dstPos.x).setY(params.dstPos.y).setZ(params.dstPos.z);
+              vk::Offset3D offsetSrc = vk::Offset3D().setX(params.srcbox.leftTopFront.x).setY(params.srcbox.leftTopFront.y).setZ(params.srcbox.leftTopFront.z);
+              vk::Offset3D sizeSrc = vk::Offset3D().setX(params.srcbox.rightBottomBack.x).setY(params.srcbox.rightBottomBack.y).setZ(params.srcbox.rightBottomBack.z);
+              vk::ImageBlit blit = vk::ImageBlit()
+                .setDstOffsets({offsetDst, sizeSrc})
+                .setDstSubresource(vk::ImageSubresourceLayers().setMipLevel(params.dstMip).setLayerCount(1).setBaseArrayLayer(params.dstSlice).setAspectMask(dst.aspectFlags()))
+                .setSrcSubresource(vk::ImageSubresourceLayers().setMipLevel(params.srcMip).setLayerCount(1).setBaseArrayLayer(params.srcSlice).setAspectMask(src.aspectFlags()))
+                .setSrcOffsets({offsetSrc, sizeSrc});
+              buffer.blitImage(src.native(), vk::ImageLayout::eTransferSrcOptimal, dst.native(), vk::ImageLayout::eTransferDstOptimal, blit, vk::Filter::eNearest);
+            }
             break;
           }
           case PacketType::RenderpassEnd:
