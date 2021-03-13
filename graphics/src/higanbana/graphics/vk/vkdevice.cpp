@@ -3376,6 +3376,7 @@ namespace higanbana
 
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(std::shared_ptr<TimelineSemaphoreImpl> shared)
     {
+#ifdef HIGANBANA_PLATFORM_WINDOWS
       HIGAN_CPU_FUNCTION_SCOPE();
       auto native = std::static_pointer_cast<VulkanTimelineSemaphore>(shared)->native();
 
@@ -3387,6 +3388,9 @@ namespace higanbana
         CloseHandle(ptr->handle);
         delete ptr;
       });
+#else
+      return nullptr;
+#endif
     };
     std::shared_ptr<SharedHandle> VulkanDevice::openSharedHandle(HeapAllocation heapAllocation)
     {

@@ -1,9 +1,13 @@
 #pragma once
 
 #include "higanbana/core/external/SpookyV2.hpp"
-#include "higanbana/core/external/robinhashmap.hpp"
 #include <unordered_map>
 #include <unordered_set>
+#include "higanbana/core/platform/definitions.hpp"
+
+#ifdef HIGANBANA_PLATFORM_WINDOWS
+#include "higanbana/core/external/robinhashmap.hpp"
+#endif
 
 //#define USING_SPARSEPP
 
@@ -50,7 +54,7 @@ namespace higanbana
 
   template <typename key>
   using unordered_set = spp::sparse_hash_set<key, Hasher<key>>;
-#elif 1
+#elif HIGANBANA_PLATFORM_WINDOWS
   // cannot use robinhood hashmap yet, missing possibility to loop all elements.
   template <typename key, typename val, typename hasher = Hasher<key>>
   using unordered_map = RobinHoodInfobytePairNoOverflow::Map<key, val, hasher>;

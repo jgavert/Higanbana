@@ -6,7 +6,12 @@
         {
             "label": "test main(msvc dbg)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "test_main" , "--compilation_mode=dbg"
             ],
@@ -18,7 +23,12 @@
         {
             "label": "test main(msvc build)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "test_main", "--compilation_mode=fastbuild", "--strip=never"
             ],
@@ -30,7 +40,12 @@
         {
             "label": "test main(msvc opt)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "test_main" , "--compilation_mode=opt", "--strip=never"
             ],
@@ -42,10 +57,18 @@
         {
             "label": "test main(clang dbg)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-                "build", "test_main" , "--compilation_mode=dbg", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                    "build", "test_main" , "--compilation_mode=dbg", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                    "build", "test_main" , "--compilation_mode=dbg", "--repo_env=CC=clang", "--config=libc++"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -54,10 +77,18 @@
         {
             "label": "test main(clang build)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-                "build", "test_main", "--compilation_mode=fastbuild", "--strip=never", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                    "build", "test_main", "--compilation_mode=fastbuild", "--strip=never", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                    "build", "test_main", "--compilation_mode=fastbuild", "--strip=never", "--repo_env=CC=clang", "--config=libc++"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -66,10 +97,18 @@
         {
             "label": "test main(clang opt)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-                "build", "test_main" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                    "build", "test_main" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                    "build", "test_main" , "--compilation_mode=opt", "--strip=never", "--repo_env=CC=clang", "--config=libc++"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -78,7 +117,12 @@
         {
             "label": "build benchmarks(bazel opt)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "//benchmarks/..." , "--compilation_mode=opt" , "--strip=never"
             ],
@@ -90,7 +134,12 @@
         {
             "label": "test graphics(bazel dbg)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "tests:all-graphics-tests" , "--compilation_mode=dbg"
             ],
@@ -102,7 +151,12 @@
         {
             "label": "test graphics(bazel)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "build", "tests:all-graphics-tests"
             ],
@@ -114,10 +168,18 @@
         {
             "label": "test core(bazel dbg)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-              "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never", "--repo_env=CC=clang", "--config=libc++"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -126,7 +188,12 @@
         {
             "label": "bazel clean",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
                 "clean"
             ],
@@ -138,7 +205,12 @@
         {
             "label": "build rendering tests(dbg)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
               "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never"
             ],
@@ -150,7 +222,12 @@
         {
             "label": "build rendering tests(opt)",
             "type": "shell",
-            "command": "bazel.exe",
+            "windows":{
+                "command": "bazel.exe"
+            },
+            "linux":{
+                "command": "bazel"
+            },
             "args": [
               "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never"
             ],
@@ -162,10 +239,18 @@
         {
             "label": "build rendering tests(clang-cl dbg)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-              "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                "build", "rendering:rendering_tests" , "--compilation_mode=dbg", "--strip=never", "--repo_env=CC=gcc"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -174,10 +259,18 @@
         {
             "label": "build rendering tests(clang-cl opt)",
             "type": "shell",
-            "command": "bazel.exe",
-            "args": [
-              "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
-            ],
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
+                "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never", "--compiler=clang-cl"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                "build", "rendering:rendering_tests" , "--compilation_mode=opt", "--strip=never", "--repo_env=CC=clang", "--config=libc++"
+                ],
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true

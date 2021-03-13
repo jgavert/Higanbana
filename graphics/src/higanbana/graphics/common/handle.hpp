@@ -5,6 +5,7 @@
 #include <higanbana/core/system/memview.hpp>
 #include <stdint.h>
 #include <type_traits>
+#include <memory>
 #include <mutex>
 
 namespace higanbana

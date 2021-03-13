@@ -8,6 +8,7 @@
 #include <mutex>
 #include <atomic>
 #include <optional>
+#include <functional>
 
 namespace higanbana
 {

@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <iterator>
-#include <span>
+//#include <span>
 
 namespace higanbana
 {

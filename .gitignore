@@ -13,7 +13,7 @@ msbuild/
 data/scenes
 data/data/*
 
-rendering/*
+rendering
 
 .bazelrc
 

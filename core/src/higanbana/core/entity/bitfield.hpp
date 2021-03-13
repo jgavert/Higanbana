@@ -1,4 +1,5 @@
 #pragma once
+#include "higanbana/core/platform/definitions.hpp"
 #include <array>
 #include <vector>
 #include <algorithm>
@@ -10,12 +11,12 @@
 namespace higanbana
 {
   inline size_t calcCtzll(uint64_t v) {
-#if 1
+#ifdef HIGANBANA_PLATFORM_WINDOWS
     unsigned long ret;
     _BitScanForward64(&ret, v);
     return static_cast<size_t>(ret);
 #else
-    return __builtin_ctzll(a);
+    return __builtin_ctzll(v);
 #endif
   }
   namespace bitOps
