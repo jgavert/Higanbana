@@ -240,7 +240,7 @@ namespace higanbana
       Colorspace colorSpace = Colorspace::BT709;
 
       // if supported
-      int frameLatency = 1;
+      int frameLatency = 2;
     } desc;
     SwapchainDescriptor()
     {}

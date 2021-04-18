@@ -66,11 +66,11 @@ ProfilingScope::ProfilingScope(const char* str)
   : name(str)
   , start(getCurrentTime())
 {
+#if defined(HIGANBANA_PLATFORM_WINDOWS)
+  PIXBeginEvent(0ull, "%s", str);
+#endif
   if (!s_profiling || !s_profiling->enabled)
     return;
-#if defined(HIGANBANA_PLATFORM_WINDOWS)
-  PIXBeginEvent(0ull, str);
-#endif
   if (!my_profile_data)
   {
     int newIdx = s_profiling->myIndex.fetch_add(1);
@@ -81,12 +81,12 @@ ProfilingScope::ProfilingScope(const char* str)
   // start
 }
   ProfilingScope::~ProfilingScope(){
-  if (!s_profiling || !s_profiling->enabled)
-    return;
-  // end
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
   PIXEndEvent();
 #endif
+  if (!s_profiling || !s_profiling->enabled)
+    return;
+  // end
   int64_t duration = getCurrentTime() - start;
   if (my_profile_data->canWriteProfile())
     my_profile_data->allBrackets.push_back(ProfileData{name, start, duration + nextDuration});

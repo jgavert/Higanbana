@@ -1095,8 +1095,11 @@ void RenderingApp::runCoreLoop(ProgramParams& params) {
       physicalDevice.gpuConstants = m_GpuConstants;
     if (m_interoptDevice && physicalDevice.api == GraphicsApi::All)
       dev = graphics.createInteroptDevice(m_fs, physicalDevice);
-    else
+    else {
+      if (physicalDevice.api == GraphicsApi::All)
+        physicalDevice.api = GraphicsApi::DX12;
       dev = graphics.createDevice(m_fs, physicalDevice);
+    }
     
     activeDevices = dev.activeDevicesInfo();
 

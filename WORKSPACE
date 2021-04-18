@@ -115,6 +115,23 @@ cc_import(
   """
 )
 
+new_local_repository(
+  name = "ASANDLL",
+  path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.28.29910\\bin\\Hostx86\\x64",
+  build_file_content = """
+cc_import(
+    name = "ASANDLL_DEBUG",
+    shared_library = "clang_rt.asan_dbg_dynamic-x86_64.dll",
+    visibility = ["//visibility:public"], 
+)
+cc_import(
+    name = "ASANDLL",
+    shared_library = "clang_rt.asan_dynamic-x86_64.dll",
+    visibility = ["//visibility:public"], 
+)
+  """
+)
+
 # linux libraries...
 
 new_local_repository(

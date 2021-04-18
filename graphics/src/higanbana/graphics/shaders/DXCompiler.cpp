@@ -340,7 +340,8 @@ namespace higanbana
       {
         CComPtr<IDxcBlob> pPDB = nullptr;
         CComPtr<IDxcBlobUtf16> pPDBName = nullptr;
-        pResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pPDB), &pPDBName);
+        hr = pResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pPDB), &pPDBName);
+        if (!FAILED(hr))
         {
           std::wstring pdbname = std::wstring(pPDBName->GetStringPointer(), pPDBName->GetStringLength());
           auto name = ws2s(pdbname);

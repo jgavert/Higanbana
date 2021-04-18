@@ -63,7 +63,7 @@ Renderer::Renderer(higanbana::GraphicsSubsystem& graphics, higanbana::GpuGroup& 
   scdesc = SwapchainDescriptor()
     .formatType(FormatType::Unorm8RGBA)
     .colorspace(Colorspace::BT709)
-    .frameLatency(1)
+    .frameLatency(2)
     .bufferCount(3).presentMode(PresentMode::Mailbox);
 
   auto basicDescriptor = GraphicsPipelineDescriptor()

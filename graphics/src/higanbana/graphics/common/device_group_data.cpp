@@ -506,8 +506,9 @@ namespace higanbana
         m_asyns.back().wait();
         m_asyns.pop_back();
       }
-      if (m_devices[SwapchainDeviceID].timelineBeforePresent.size() > swapchain.frameLatency()){
-        m_devices[SwapchainDeviceID].device->waitTimeline(m_devices[SwapchainDeviceID].timelineGfx, m_devices[SwapchainDeviceID].timelineBeforePresent[swapchain.frameLatency()]);
+      if (m_devices[SwapchainDeviceID].timelineBeforePresent.size() >= swapchain.frameLatency()){
+        HIGAN_CPU_BRACKET("wait timeline based on frame latency");
+        m_devices[SwapchainDeviceID].device->waitTimeline(m_devices[SwapchainDeviceID].timelineGfx, m_devices[SwapchainDeviceID].timelineBeforePresent[swapchain.frameLatency()-1]);
       }
       int index = m_devices[SwapchainDeviceID].device->acquirePresentableImage(swapchain.impl());
       if (index < 0 || index >= swapchain.buffers().size())
