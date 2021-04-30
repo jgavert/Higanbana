@@ -1,6 +1,4 @@
 # Higanbana (name subject to change)
-as the flower depicts, is a library which grows in the lands of Vulkan and DirectX12. Lands which are not very kind to mortals...
-
 Aim is to provide simplified, but efficient Graphics API, helping with using the latest and greatest gpu features...
 
 Higanbana is mostly api for my personal use, ease researching and testing new rendering techniques, also my proof of concept on understanding the api's...
@@ -11,8 +9,8 @@ You will need the following additional software to build.
 * Bazel
 * Visual Studio 2019
   * Desktop Development with C++
-* Windows SDK 10.0.18368.0 or newer
-* Latest Vulkan SDK
+* Windows SDK 10.0.19041.0 or newer
+* Latest Vulkan SDK(1.2.162.1)
 * Latest GPU Drivers
 
 Optional
@@ -44,9 +42,9 @@ Which results in my test exe. You can test it by running:
     runDX12.bat or runVulkan.bat
 or go to bazel-bin/test_main and run the exe from that location.
 
-
 ## Features
 These are partly current features and features I'm aiming for and might have gotten one single case to work. Like with Interop between DX12 and Vulkan.
+Slighly out-of-date
 * Designed for ease of use
     * TODO: write a test to draw triangle
 * DX12 and Vulkan in one exe through single api
@@ -65,6 +63,7 @@ These are partly current features and features I'm aiming for and might have got
   * requires compiletime switch currently and default disabled.
 
 ## What's next?
+* Update Features&What's next? lists here on their current state...
 * Profiling support(HighPrio) using chrome://tracing
     * Good profiling is the backbone of any app also I need it for optimizing multithreading timings.
 * Write a forward(+) renderer using my api
