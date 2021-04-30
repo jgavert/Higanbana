@@ -1,5 +1,6 @@
 #include "higanbana/core/filesystem/filesystem.hpp"
 #include "higanbana/core/profiling/profiling.hpp"
+#include "higanbana/core/system/time.hpp"
 #include "higanbana/core/global_debug.hpp"
 
 #include <nlohmann/json.hpp>
@@ -275,6 +276,7 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
   std::vector<FileInfo> files;
   getFilesRecursive(fullPath, targetmount, files);
   size_t allSize = 0;
+  Timer loadSpeed;
   for (auto&& it : files)
   {
     size_t fileSize = 0;
@@ -283,7 +285,11 @@ void FileSystem::loadDirectoryContentsRecursive(std::string path)
     loadFileFromHDD(it, mp, fileSize);
     allSize += fileSize;
   }
-  HIGAN_ILOG("Filesystem", "found and loaded %zu files(%.2fMB total)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f);
+  int64_t micros = loadSpeed.timeMicro();
+  if (!files.empty()) {
+    double bandwidth = (double(allSize)/ 1000.0 / 1000.0 / 1000.0) / (double(micros)/1000.0/1000.0);
+    HIGAN_ILOG("Filesystem", "found and loaded %zu files(%.2fMB total, %.3fGB/s)", files.size(), static_cast<float>(allSize) / 1024.f / 1024.f, bandwidth);
+  }
 }
 
 // SLOW

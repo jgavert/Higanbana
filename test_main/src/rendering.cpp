@@ -785,10 +785,11 @@ css::Task<void> Renderer::renderViewports(higanbana::WTime time, const RendererO
   }
 
   // send from other gpu's to main gpu
+  constexpr const int MainGpuIndex = 0;
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    if (vpInfo.options.gpuToUse != 0) { // I cannot read the condition, needs better naming for variable.
+    if (vpInfo.options.gpuToUse != MainGpuIndex) {
       auto node = tasks.createPass("shared gpu transfer", QueueType::Graphics, vpInfo.options.gpuToUse);
       node.copy(vp.sharedViewport, size_t(0), vp.viewport, Subresource().mip(0).slice(0));
       tasks.addPass(std::move(node));
@@ -798,7 +799,7 @@ css::Task<void> Renderer::renderViewports(higanbana::WTime time, const RendererO
   for (auto&& index : indexesToVP) {
     auto& vpInfo = viewportsToRender[index];
     auto& vp = viewports[index];
-    if (vpInfo.options.gpuToUse != 0) { // I cannot read the condition, needs better naming for variable.
+    if (vpInfo.options.gpuToUse != MainGpuIndex) {
       auto node = tasks.createPass("receiving transfer", QueueType::Graphics, 0);
       node.copy(vp.viewport, Subresource().mip(0).slice(0), vp.sharedViewport, 0);
       tasks.addPass(std::move(node));
