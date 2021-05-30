@@ -141,11 +141,11 @@ namespace higanbana
         }
 
         vk::AccessFlags everythingFlush = vk::AccessFlagBits::eUniformRead 
-        | vk::AccessFlagBits::eShaderWrite
-        | vk::AccessFlagBits::eShaderRead 
-        | vk::AccessFlagBits::eColorAttachmentRead 
+        //| vk::AccessFlagBits::eShaderWrite
+        //| vk::AccessFlagBits::eShaderRead 
+        //| vk::AccessFlagBits::eColorAttachmentRead 
         | vk::AccessFlagBits::eColorAttachmentWrite 
-        | vk::AccessFlagBits::eDepthStencilAttachmentRead 
+        //| vk::AccessFlagBits::eDepthStencilAttachmentRead 
         | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 
         vk::AccessFlags gfxAccess = vk::AccessFlagBits::eIndirectCommandRead
@@ -161,18 +161,18 @@ namespace higanbana
           vk::SubpassDependency()
             .setSrcSubpass(VK_SUBPASS_EXTERNAL)
             .setDstSubpass(0)
-            .setSrcAccessMask(everythingFlush)
-            .setDstAccessMask(gfxAccess)
-            .setSrcStageMask(vk::PipelineStageFlagBits::eAllCommands)
-            .setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics)
+            //.setSrcAccessMask(everythingFlush)
+            //.setDstAccessMask(gfxAccess)
+            //.setSrcStageMask(vk::PipelineStageFlagBits::eFragmentShader)
+            //.setDstStageMask(vk::PipelineStageFlagBits::eAllGraphics)
             .setDependencyFlags(vk::DependencyFlagBits::eByRegion),
           vk::SubpassDependency()
             .setSrcSubpass(0)
             .setDstSubpass(VK_SUBPASS_EXTERNAL)
-            .setSrcAccessMask(gfxAccess)
-            .setDstAccessMask(everythingFlush)
-            .setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics)
-            .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
+            //.setSrcAccessMask(gfxAccess)
+            //.setDstAccessMask(everythingFlush)
+            //.setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics)
+            //.setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
             .setDependencyFlags(vk::DependencyFlagBits::eByRegion)};
 
           // handle subpass here with renderpass creation.
