@@ -54,7 +54,7 @@ namespace higanbana
 
   template <typename key>
   using unordered_set = spp::sparse_hash_set<key, Hasher<key>>;
-#elif defined(HIGANBANA_PLATFORM_WINDOWS)
+#elif 0 && defined(HIGANBANA_PLATFORM_WINDOWS)
   // cannot use robinhood hashmap yet, missing possibility to loop all elements.
   template <typename key, typename val, typename hasher = Hasher<key>>
   using unordered_map = RobinHoodInfobytePairNoOverflow::Map<key, val, hasher>;

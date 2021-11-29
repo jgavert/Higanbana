@@ -48,7 +48,7 @@ namespace higanbana
       Rabbitpool2<VulkanCommandList>  m_computeListPool;
       Rabbitpool2<VulkanCommandList>  m_graphicsListPool;
 
-      unordered_map<size_t, std::shared_ptr<vk::RenderPass>> m_renderpasses;
+      std::unordered_map<size_t, std::shared_ptr<vk::RenderPass>> m_renderpasses;
 
       struct FreeQueues
       {
