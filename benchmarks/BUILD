@@ -10,4 +10,4 @@ cc_library(
 )
 
 src_core_benchmark("simple")
-src_core_benchmark("coroutine")
+src_core_benchmark("radix_sort")

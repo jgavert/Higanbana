@@ -108,7 +108,9 @@
         "gsl_util": "cpp",
         "charconv": "cpp",
         "compare": "cpp",
-        "coroutine": "cpp"
+        "coroutine": "cpp",
+        "format": "cpp",
+        "stop_token": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

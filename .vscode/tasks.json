@@ -171,6 +171,26 @@
             "windows":{
                 "command": "bazel.exe",
                 "args": [
+                "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never"
+                ],
+            },
+            "linux":{
+                "command": "bazel",
+                "args": [
+                "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never"
+                ],
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "test core(bazel clang dbg)",
+            "type": "shell",
+            "windows":{
+                "command": "bazel.exe",
+                "args": [
                 "build", "tests:all-core-tests" , "--compilation_mode=dbg", "--strip=never", "--compiler=clang-cl"
                 ],
             },
