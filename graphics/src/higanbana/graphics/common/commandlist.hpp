@@ -90,18 +90,20 @@ namespace higanbana
 
     void bindGraphicsResources(
       MemView<ShaderArguments> resources,
-      MemView<uint8_t> constants)
+      MemView<uint8_t> constants,
+      uint64_t constantBlock)
     {
       list.insert<gfxpacket::ResourceBindingGraphics>(
-        constants, resources);
+        constants, resources, constantBlock);
     }
 
     void bindComputeResources(
       MemView<ShaderArguments> resources,
-      MemView<uint8_t> constants)
+      MemView<uint8_t> constants,
+      uint64_t constantBlock)
     {
       list.insert<gfxpacket::ResourceBindingCompute>(
-        constants, resources);
+        constants, resources, constantBlock);
     }
 
     void setScissorRect(int2 topLeft, int2 bottomRight)

@@ -3117,6 +3117,11 @@ namespace higanbana
       return m_fences.allocate();
     }
 
+    std::shared_ptr<ConstantsAllocator> VulkanDevice::createConstantsAllocator(size_t size)
+    {
+      return nullptr;
+    }
+
     void VulkanDevice::submitToQueue(vk::Queue queue,
       MemView<std::shared_ptr<CommandBufferImpl>> lists,
       MemView<std::shared_ptr<SemaphoreImpl>>     wait,

@@ -31,6 +31,7 @@ namespace higanbana
 
       std::shared_ptr<FreeableResources> m_freeResources;
       
+      // pure memory optimization
       vector<D3D12_RESOURCE_BARRIER> m_barriers;
 
       UploadBlockGPU allocateConstants(size_t size);

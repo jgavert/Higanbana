@@ -229,6 +229,7 @@ namespace higanbana
       std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
       std::shared_ptr<FenceImpl>         createFence() override;
       std::shared_ptr<TimelineSemaphoreImpl>     createTimelineSemaphore() override;
+      std::shared_ptr<backend::ConstantsAllocator>  createConstantsAllocator(size_t size) override;
 
       void submitToQueue(
         vk::Queue queue,

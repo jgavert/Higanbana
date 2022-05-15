@@ -42,6 +42,7 @@ namespace higanbana
         vdev.m_solvers = Rabbitpool2<BarrierSolver>([&](){
           return BarrierSolver(vdev.m_bufferStates, vdev.m_textureStates);
         });
+        vdev.m_constantsAllocator = impls[i]->createConstantsAllocator(HIGANBANA_CONSTANT_BUFFER_AMOUNT); // 10 megs of constants
       }
       // so all gpu's should have a reference to other gpu's shared timeline.
       if (m_devices.size() > 1) {
@@ -188,6 +189,12 @@ namespace higanbana
                     break;
                   }
                 }
+              }
+              // free constant allocators
+              {
+                auto& blocks = buffer.constantBlocks;
+                for (auto& block : blocks)
+                  m_devices[buffer.deviceID].m_constantsAllocator->free(block);
               }
               //HIGAN_ASSERT(foundTiming, "Err, didn't find timing, error");
               //HIGAN_ASSERT(timeOnFlightSubmits.size() < 40, "wtf!");
@@ -939,7 +946,7 @@ namespace higanbana
     }
 
     CommandGraph DeviceGroupData::startCommandGraph() {
-      return CommandGraph(++m_currentSeqNum, m_commandBuffers); 
+      return CommandGraph(++m_currentSeqNum, m_commandBuffers, m_devices[0].m_constantsAllocator); 
     }
 
     void DeviceGroupData::firstPassBarrierSolve(
@@ -1676,6 +1683,7 @@ namespace higanbana
           plist.bytesOfList += addedNodeSize;
           plist.requiredConstantMemory += node->usedConstantMemory;
           plist.buffers.emplace_back(&node->list->list);
+          plist.freeConstants.insert(plist.freeConstants.end(), node->freeAllocators.begin(), node->freeAllocators.end());
           //HIGAN_LOGi("%d node %zu bytes\n", i, plist.buffers.back().sizeBytes());
           plist.requirementsBuf = plist.requirementsBuf.unionFields(node->refBuf());
           plist.requirementsTex = plist.requirementsTex.unionFields(node->refTex());
@@ -1852,6 +1860,7 @@ namespace higanbana
         buffer.listIDs.push_back(listID);
         buffer.readbacks.emplace_back(std::move(list.readbacks));
         buffer.constantsBytes += list.requiredConstantMemory;
+        buffer.constantBlocks.insert(buffer.constantBlocks.end(), list.freeConstants.begin(), list.freeConstants.end());
 
         listID++;
       }

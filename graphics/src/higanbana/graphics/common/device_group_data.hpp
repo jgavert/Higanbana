@@ -120,6 +120,8 @@ namespace higanbana
       // beta, dma list
       std::shared_ptr<backend::CommandBufferImpl> dmaListConstants;
       size_t constantsBytes = 0;
+      // freeable constants
+      vector<backend::LinearConstantsAllocator*> constantBlocks;
     };
 
     struct QueueTransfer 
@@ -136,6 +138,7 @@ namespace higanbana
       int device = 0;
       QueueType type;
       vector<backend::CommandBuffer*> buffers;
+      vector<backend::LinearConstantsAllocator*> freeConstants;
       vector<QueueTransfer> acquire;
       vector<QueueTransfer> release;
       DynamicBitfield requirementsBuf;
@@ -182,6 +185,7 @@ namespace higanbana
         uint64_t cptQueue;
         uint64_t dmaQueue;
         Rabbitpool2<BarrierSolver> m_solvers;
+        std::shared_ptr<ConstantsAllocator> m_constantsAllocator;
         HandleVector<GpuHeapAllocation> m_buffers;
         HandleVector<GpuHeapAllocation> m_textures;
         HandleVector<ResourceState> m_bufferStates;

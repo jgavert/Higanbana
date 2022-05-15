@@ -153,7 +153,7 @@ namespace higanbana
           info.id = static_cast<int>(vAdapters.size()) - 1;
           info.memory = static_cast<int64_t>(desc.DedicatedVideoMemory);
           info.canPresent = true;
-          info.gpuConstants = info.type != DeviceType::IntegratedGpu;
+          info.gpuConstants = false; //info.type != DeviceType::IntegratedGpu;
 
           infos.push_back(info);
         }

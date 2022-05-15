@@ -44,6 +44,31 @@ namespace desc
     struct HeapAllocation;
     class BarrierSolver;
 
+    struct ConstantsBlock
+    {
+      uint64_t constantBlock = 0;
+      uint8_t* ptr = nullptr;
+      bool valid() const { return ptr != nullptr;}
+    };
+
+    class LinearConstantsAllocator
+    {
+    public:
+      virtual ConstantsBlock allocate(size_t) = 0;
+      virtual ~LinearConstantsAllocator() = default;
+    };
+
+    class ConstantsAllocator
+    {
+    public:
+      virtual LinearConstantsAllocator* allocate(size_t) = 0;
+      virtual void free(LinearConstantsAllocator*) = 0;
+      virtual size_t size() = 0;
+      virtual size_t max_size() = 0;
+      virtual size_t size_allocated() = 0;
+      virtual ~ConstantsAllocator() = default;
+    };
+
     class SemaphoreImpl
     {
     public:
@@ -175,6 +200,7 @@ namespace desc
         virtual std::shared_ptr<backend::SemaphoreImpl>         createSemaphore() = 0;
         virtual std::shared_ptr<backend::FenceImpl>             createFence() = 0;
         virtual std::shared_ptr<backend::TimelineSemaphoreImpl> createTimelineSemaphore() = 0;
+        virtual std::shared_ptr<backend::ConstantsAllocator>    createConstantsAllocator(size_t size) = 0;
 
         virtual void submitDMA(
           MemView<std::shared_ptr<backend::CommandBufferImpl>> lists,

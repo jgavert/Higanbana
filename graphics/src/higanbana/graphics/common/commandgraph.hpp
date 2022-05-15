@@ -31,6 +31,10 @@ namespace higanbana
     int gpuId;
     std::shared_ptr<backend::SemaphoreImpl> acquireSemaphore;
     bool preparesPresent = false;
+    std::shared_ptr<backend::ConstantsAllocator> constantsAllocator;
+    vector<backend::LinearConstantsAllocator*> freeAllocators;
+    backend::LinearConstantsAllocator* linearConstantsAllocator = nullptr;
+
     size_t usedConstantMemory = 0;
 
     uint3 m_currentBaseGroups;
@@ -44,6 +48,9 @@ namespace higanbana
 
     vector<ReadbackPromise> m_readbackPromises;
     GraphNodeTiming timing;
+    
+    // dummy new constant writer to right place
+
 
     const DynamicBitfield& refBuf() const
     {
@@ -97,13 +104,40 @@ namespace higanbana
       usedConstantMemory += ((size + 255) & (~255)); // 256 bytes sizes blocks
     }
 
+    [[nodiscard]] uint64_t memcpyConstants(MemView<uint8_t> constants) {
+      // todo memcpy somehow somewhere
+      addConstantSize(constants.size_bytes());
+#if defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+      backend::ConstantsBlock block;
+      if (linearConstantsAllocator)
+        block = linearConstantsAllocator->allocate(constants.size_bytes());// D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+      if (!block.valid())
+      {
+        //HIGAN_ASSERT(false, "never should come here");
+        auto newBlock = constantsAllocator->allocate(256*4*256);//D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT * 256 * 4, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        HIGAN_ASSERT(newBlock, "what!");// && newBlock.block.offset % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0, "What!");
+        freeAllocators.push_back(newBlock);
+        linearConstantsAllocator = newBlock;
+        block = linearConstantsAllocator->allocate(constants.size_bytes());//, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+      }
+
+      HIGAN_ASSERT(block.valid(), "What!");
+      memcpy(block.ptr, constants.data(), constants.size_bytes());
+      addConstantSize(constants.size_bytes());
+      return block.constantBlock;
+#else
+      return 0;
+#endif
+    }
+
   public:
     CommandGraphNode() {}
-    CommandGraphNode(std::string name, QueueType type, int gpuId, CommandList&& buffer)
+    CommandGraphNode(std::string name, QueueType type, int gpuId, CommandList&& buffer, std::shared_ptr<backend::ConstantsAllocator> constantAllocator)
       : list(std::make_shared<CommandList>(std::move(buffer)))
       , name(name)
       , type(type)
       , gpuId(gpuId)
+      , constantsAllocator(constantAllocator)
       , timing({})
     {
       list->renderTask(name);
@@ -200,8 +234,8 @@ namespace higanbana
       unsigned startInstance = 0)
     {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      auto block = memcpyConstants(binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       HIGAN_ASSERT(vertexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. draw %d %d %d %d", vertexCountPerInstance, instanceCount, startVertex, startInstance);
       list->draw(vertexCountPerInstance, instanceCount, startVertex, startInstance);
       timing.draws++;
@@ -217,8 +251,8 @@ namespace higanbana
       unsigned StartInstanceLocation = 0)
     {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      auto block = memcpyConstants(binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawDynamicIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       timing.draws++;
@@ -236,12 +270,12 @@ namespace higanbana
       HIGAN_ASSERT(IndexCountPerInstance > 0, "index count 0 doesn't draw anything");
       HIGAN_ASSERT(instanceCount > 0, "instance count 0 doesn't draw anything");
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
 
       addReadShared(view.handle().resourceHandle());
       m_referencedBuffers.setBit(view.handle().id);
 
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       HIGAN_ASSERT(IndexCountPerInstance > 0 && instanceCount > 0, "Index/instance count was 0, nothing would be drawn. drawIndexed %d %d %d %d %d", IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       list->drawIndexed(view, IndexCountPerInstance, instanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
       timing.draws++;
@@ -251,8 +285,8 @@ namespace higanbana
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
-      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      auto block = memcpyConstants(binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants(), block);
       unsigned x = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.x), static_cast<uint64_t>(m_currentBaseGroups.x)));
       unsigned y = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.y), static_cast<uint64_t>(m_currentBaseGroups.y)));
       unsigned z = static_cast<unsigned>(divideRoundUp(static_cast<uint64_t>(groups.z), static_cast<uint64_t>(m_currentBaseGroups.z)));
@@ -265,8 +299,8 @@ namespace higanbana
       ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
-      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      auto block = memcpyConstants(binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants(), block);
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       list->dispatch(groups);
       timing.dispatches++;
@@ -275,8 +309,8 @@ namespace higanbana
     void dispatchMesh(ShaderArgumentsBinding& binding, uint3 groups)
     {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      auto block = memcpyConstants(binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       HIGAN_ASSERT(groups.x*groups.y*groups.z > 0, "One of the parameters was 0, no threadgroups would be launched. dispatch %d %d %d", groups.x, groups.y, groups.z);
       HIGAN_ASSERT(groups.y == 1 && groups.z == 1, "Only x group is read for now, because of vulkan limitations");
       list->dispatchMesh(groups.x);
@@ -284,33 +318,33 @@ namespace higanbana
 
     void drawIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
       if (count.buffer().handle().id != ResourceHandle::InvalidId){
         addReadShared(count.buffer().handle());
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->drawIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
     void drawIndexedIndirect(ShaderArgumentsBinding& binding, DynamicBufferView& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
       if (count.buffer().handle().id != ResourceHandle::InvalidId){
         addReadShared(count.buffer().handle());
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->drawIndexedIndirect(ibv, maxCommands, indirect, count, countOffsetBytes);
     }
 
     void drawIndexedIndirect(ShaderArgumentsBinding& binding, const BufferIBV& ibv, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(ibv.buffer().handle());
       m_referencedBuffers.setBit(ibv.buffer().handle().id);
       addReadShared(indirect.buffer().handle());
@@ -319,42 +353,42 @@ namespace higanbana
         addReadShared(count.buffer().handle());
         m_referencedBuffers.setBit(count.buffer().handle().id);
       }
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->drawIndexedIndirect(ibv, maxCommands, indirect, count, countOffsetBytes);
     }
 
     void dispatchIndirect(ShaderArgumentsBinding& binding, const BufferSRV& indirect) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
-      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->dispatchIndirect(indirect);
     }
 
     void dispatchRaysIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
       if (count.buffer().handle().id != ResourceHandle::InvalidId){
         m_referencedBuffers.setBit(count.buffer().handle().id);
         addReadShared(count.buffer().handle());
       }
-      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindComputeResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->dispatchRaysIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
     void dispatchMeshIndirect(ShaderArgumentsBinding& binding, uint maxCommands, const BufferSRV& indirect, BufferSRV count = BufferSRV(), uint countOffsetBytes = 0) {
       addRefArgs(binding.bShaderArguments());
-      addConstantSize(binding.bConstants().size_bytes());
+      auto block = memcpyConstants(binding.bConstants());
       addReadShared(indirect.buffer().handle());
       m_referencedBuffers.setBit(indirect.buffer().handle().id);
       if (count.buffer().handle().id != ResourceHandle::InvalidId){
         m_referencedBuffers.setBit(count.buffer().handle().id);
         addReadShared(count.buffer().handle());
       }
-      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants());
+      list->bindGraphicsResources(binding.bShaderArguments(), binding.bConstants(), block);
       list->dispatchMeshIndirect(maxCommands, indirect, count, countOffsetBytes);
     }
 
@@ -563,17 +597,19 @@ namespace higanbana
   {
     CommandBufferPool& m_buffers;
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
+    std::shared_ptr<backend::ConstantsAllocator> m_constantsAllocator;
     friend struct CommandGraph;
   public:
-    CommandNodeVector(CommandBufferPool& buffers)
+    CommandNodeVector(CommandBufferPool& buffers, std::shared_ptr<backend::ConstantsAllocator> constantAllocator)
       : m_buffers(buffers)
       , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
+      , m_constantsAllocator(constantAllocator)
     {
     }
 
     CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
-      return CommandGraphNode(name, type, gpu, m_buffers.allocate());
+      return CommandGraphNode(name, type, gpu, m_buffers.allocate(), m_constantsAllocator);
     }
 
     void addPass(CommandGraphNode&& node)
@@ -589,19 +625,21 @@ namespace higanbana
     SubmitTiming m_timing;
     CommandBufferPool& m_buffers;
     std::shared_ptr<vector<CommandGraphNode>> m_nodes;
+    std::shared_ptr<backend::ConstantsAllocator> m_constantsAllocator;
     friend struct backend::DeviceGroupData;
   public:
-    CommandGraph(SeqNum seq, CommandBufferPool& buffers)
+    CommandGraph(SeqNum seq, CommandBufferPool& buffers, std::shared_ptr<backend::ConstantsAllocator> constantAllocator)
       : m_sequence(seq)
       , m_buffers(buffers)
       , m_nodes{ std::make_shared<vector<CommandGraphNode>>() }
+      , m_constantsAllocator(constantAllocator)
     {
       m_timing.timeBeforeSubmit.start();
     }
 
     CommandGraphNode createPass(std::string name, QueueType type = QueueType::Graphics, int gpu = 0)
     {
-      return CommandGraphNode(name, type, gpu, m_buffers.allocate());
+      return CommandGraphNode(name, type, gpu, m_buffers.allocate(), m_constantsAllocator);
     }
 
     void addPass(CommandGraphNode&& node)
@@ -612,7 +650,7 @@ namespace higanbana
     }
 
     CommandNodeVector localThreadVector() {
-      return CommandNodeVector(m_buffers);
+      return CommandNodeVector(m_buffers, m_constantsAllocator);
     }
     
     void addVectorOfPasses(CommandNodeVector&& vec)

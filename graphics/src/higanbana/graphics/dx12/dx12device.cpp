@@ -14,6 +14,7 @@
 #include "higanbana/graphics/common/helpers/shared_handle.hpp"
 #include "higanbana/graphics/common/heap_descriptor.hpp"
 #include "higanbana/graphics/dx12/util/raytracing_helpers.hpp"
+#include "higanbana/graphics/dx12/dx12constantallocator.hpp"
 #include <higanbana/core/system/bitpacking.hpp>
 #include <higanbana/core/profiling/profiling.hpp>
 #include <higanbana/core/global_debug.hpp>
@@ -2091,6 +2092,11 @@ namespace higanbana
       HIGANBANA_CHECK_HR(m_device->CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
 
       return std::make_shared<DX12TimelineSemaphore>(fence);
+    }
+
+    std::shared_ptr<ConstantsAllocator> DX12Device::createConstantsAllocator(size_t size)
+    {
+      return std::make_shared<DX12ConstantsAllocator>(m_device.Get(), size, m_info.gpuConstants ? DX12ConstantsAllocator::Type::CPUAndGPU : DX12ConstantsAllocator::Type::OnlyCPU);
     }
 
     // commandlist things and gpu-cpu/gpu-gpu synchronization primitives

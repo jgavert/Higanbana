@@ -179,12 +179,13 @@ namespace higanbana
       DX12CommandBuffer createList(D3D12_COMMAND_LIST_TYPE type);
       DX12Fence         createNativeFence();
       DX12Semaphore createNativeSemaphore();
-      std::shared_ptr<CommandBufferImpl> createDMAList() override;
-      std::shared_ptr<CommandBufferImpl> createComputeList() override;
-      std::shared_ptr<CommandBufferImpl> createGraphicsList() override;
-      std::shared_ptr<SemaphoreImpl>     createSemaphore() override;
-      std::shared_ptr<FenceImpl>         createFence() override;
-      std::shared_ptr<TimelineSemaphoreImpl>     createTimelineSemaphore() override;
+      std::shared_ptr<CommandBufferImpl>      createDMAList() override;
+      std::shared_ptr<CommandBufferImpl>      createComputeList() override;
+      std::shared_ptr<CommandBufferImpl>      createGraphicsList() override;
+      std::shared_ptr<SemaphoreImpl>          createSemaphore() override;
+      std::shared_ptr<FenceImpl>              createFence() override;
+      std::shared_ptr<TimelineSemaphoreImpl>  createTimelineSemaphore() override;
+      std::shared_ptr<ConstantsAllocator>     createConstantsAllocator(size_t) override;
 
       void submit(
         ComPtr<ID3D12CommandQueue> queue,

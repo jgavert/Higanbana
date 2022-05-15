@@ -103,34 +103,47 @@ namespace higanbana
 
     struct ResourceBindingCompute
     {
+      uint64_t constantBlock;
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
       uint16_t constantsSize;
+#endif
       uint16_t resourcesSize;
 
       static constexpr const backend::PacketType type = backend::PacketType::ResourceBindingCompute;
-      static void constructor(backend::CommandBuffer& buffer, ResourceBindingCompute& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
+      static void constructor(backend::CommandBuffer& buffer, ResourceBindingCompute& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views, uint64_t constantBlock)
       {
-        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        packet.constantBlock = constantBlock;
         packet.resourcesSize = static_cast<uint16_t>(views.size());
-        uint8_t* ptr = buffer.allocateElements2<uint8_t>(constants.size());
+        uint8_t* ptr = nullptr;
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        ptr = buffer.allocateElements2<uint8_t>(constants.size());
         memcpy(ptr, constants.data(), constants.size_bytes());
+#endif
         ptr = buffer.allocateElements2<ResourceHandle>(views.size());
         for (int i = 0; i < views.size(); ++i)
         {
           auto h = views[i].handle();
           memcpy(ptr+i*sizeof(h), &h, sizeof(h));
         }
-        static_assert(sizeof(ResourceBindingCompute) <= sizeof(uint32_t));
+        static_assert(sizeof(ResourceBindingCompute) <= sizeof(uint32_t)*4);
       }
 
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
       MemView<uint8_t> constantsView() const
       {
         uint8_t* ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingCompute));
         if (constantsSize == 0) return MemView<uint8_t>(nullptr, 0);
         return MemView<uint8_t>(ptr, constantsSize);
       }
+#endif
       MemView<ResourceHandle> resourcesView() const
       {
+#if defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+        ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingCompute));
+#else
         ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingCompute) + constantsSize*sizeof(uint8_t));
+#endif
         if (resourcesSize == 0) return MemView<ResourceHandle>(nullptr, 0);
         return MemView<ResourceHandle>(ptr, resourcesSize);
       }
@@ -138,34 +151,47 @@ namespace higanbana
     
     struct ResourceBindingGraphics
     {
+      uint64_t constantBlock;
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
       uint16_t constantsSize;
+#endif
       uint16_t resourcesSize;
 
       static constexpr const backend::PacketType type = backend::PacketType::ResourceBindingGraphics;
-      static void constructor(backend::CommandBuffer& buffer, ResourceBindingGraphics& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views)
+      static void constructor(backend::CommandBuffer& buffer, ResourceBindingGraphics& packet, MemView<uint8_t>& constants, MemView<ShaderArguments>& views, uint64_t constantBlock)
       {
-        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        packet.constantBlock = constantBlock;
         packet.resourcesSize = static_cast<uint16_t>(views.size());
-        uint8_t* ptr = buffer.allocateElements2<uint8_t>(constants.size());
+        uint8_t* ptr = nullptr;
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+        packet.constantsSize = static_cast<uint16_t>(constants.size());
+        ptr = buffer.allocateElements2<uint8_t>(constants.size());
         memcpy(ptr, constants.data(), constants.size_bytes());
+#endif
         ptr = buffer.allocateElements2<ResourceHandle>(views.size());
         for (int i = 0; i < views.size(); ++i)
         {
           auto h = views[i].handle();
           memcpy(ptr+i*sizeof(h), &h, sizeof(h));
         }
-        static_assert(sizeof(ResourceBindingGraphics) <= sizeof(uint32_t));
+        static_assert(sizeof(ResourceBindingGraphics) <= (sizeof(uint32_t)*4)); // todo: re-size optimization
       }
 
+#if !defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
       MemView<uint8_t> constantsView() const
       {
         uint8_t* ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingGraphics));
         if (constantsSize == 0) return MemView<uint8_t>(nullptr, 0);
         return MemView<uint8_t>(ptr, constantsSize);
       }
+#endif
       MemView<ResourceHandle> resourcesView() const
       {
+#if defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+        ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingGraphics));
+#else
         ResourceHandle* ptr = reinterpret_cast<ResourceHandle*>(reinterpret_cast<size_t>(this) + sizeof(ResourceBindingGraphics) + constantsSize*sizeof(uint8_t));
+#endif
         if (resourcesSize == 0) return MemView<ResourceHandle>(nullptr, 0);
         return MemView<ResourceHandle>(ptr, resourcesSize);
       }

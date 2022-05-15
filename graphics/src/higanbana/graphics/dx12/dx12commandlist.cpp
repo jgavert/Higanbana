@@ -1,5 +1,6 @@
 #include "higanbana/graphics/dx12/dx12commandlist.hpp"
 #if defined(HIGANBANA_PLATFORM_WINDOWS)
+#include "higanbana/graphics/definitions.hpp"
 #include "higanbana/graphics/dx12/dx12device.hpp"
 #include "higanbana/graphics/dx12/util/formats.hpp"
 #include "higanbana/graphics/common/texture.hpp"
@@ -422,6 +423,9 @@ namespace higanbana
     }
     void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBindingGraphics& ding)
     {
+#if defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+      buffer->SetGraphicsRootConstantBufferView(0, ding.constantBlock);
+#else
       auto pconstants = ding.constantsView();
       if (pconstants.size() > 0)
       {
@@ -429,6 +433,7 @@ namespace higanbana
         memcpy(block.data(), pconstants.data(), pconstants.size());
         buffer->SetGraphicsRootConstantBufferView(0, block.gpuVirtualAddress());
       }
+#endif
       auto tables = ding.resourcesView();
       UINT rootIndex = 2; // 0 is constants, 1 is shader debug uav table, starting from 2 is normal tables
       // just bind shader debug always to root slot 1 ...?
@@ -448,6 +453,9 @@ namespace higanbana
 
     void DX12CommandList::handleBindings(DX12Device* dev, D3D12GraphicsCommandList* buffer, gfxpacket::ResourceBindingCompute& ding)
     {
+#if defined(HIGANBANA_DIRECT_CONSTANT_COPIES)
+      buffer->SetComputeRootConstantBufferView(0, ding.constantBlock);
+#else
       auto pconstants = ding.constantsView();
       if (pconstants.size() > 0)
       {
@@ -455,6 +463,7 @@ namespace higanbana
         memcpy(block.data(), pconstants.data(), pconstants.size());
         buffer->SetComputeRootConstantBufferView(0, block.gpuVirtualAddress());
       }
+#endif
       auto tables = ding.resourcesView();
       UINT rootIndex = 2; // 0 is constants, 1 is shader debug uav table, starting from 2 is normal tables
       // just bind shader debug always to root slot 1 ...?

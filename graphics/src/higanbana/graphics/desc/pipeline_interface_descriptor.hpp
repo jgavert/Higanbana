@@ -26,6 +26,7 @@ namespace higanbana
       return *this;
     }
 
+    // has to be called or invalid shader is generated :D
     template<typename Strct>
     PipelineInterfaceDescriptor& constants()
     {
