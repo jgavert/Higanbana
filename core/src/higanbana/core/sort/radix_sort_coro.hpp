@@ -1,5 +1,6 @@
 #pragma once
 #include "higanbana/core/datastructures/vector.hpp"
+#if JGPU_COROUTINES
 #include <css/task.hpp>
 
 namespace higanbana
@@ -107,3 +108,4 @@ css::Task<void> radix_sort_task_fast(vector<unsigned>& data) {
   co_return;
 }
 }
+#endif

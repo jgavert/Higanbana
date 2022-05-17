@@ -1,4 +1,5 @@
 #include "higanbana/core/sort/radix_sort_coro.hpp"
+#if JGPU_COROUTINES
 
 namespace higanbana
 {
@@ -62,3 +63,4 @@ css::Task<void> radix_sort_write_val(unsigned* output, unsigned* ptr, unsigned s
   co_return;
 }
 }
+#endif
