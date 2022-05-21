@@ -17,7 +17,7 @@ public:
     , m_argv(__argv)
   {
 	  // super cool!
-    if (extraConsole) {
+    if (false && extraConsole) {
       AllocConsole();
       freopen("CONIN$", "r", stdin);
       freopen("CONOUT$", "w", stdout);

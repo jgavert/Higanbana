@@ -121,46 +121,69 @@ namespace higanbana
       return resOut;
     };
     
+    // just figure out readOnly and ReadWrite resource counts
+    bool hasReadOnly = false;
+    bool hasReadWrite = false;
+    for (auto&& res : args.resources())
+    {
+      if (res.readonly)
+      {
+        hasReadOnly = true;
+      }
+      if (!res.readonly)
+      {
+        hasReadWrite = true;
+      }
+    }
+
+
     int srv = 0;
     int uav = 0;
     int gi = 0;
 
-    lol += "// Shader Arguments " + std::to_string(set) + "\n";
+    lol += "\n// Shader Arguments " + std::to_string(set) + "\n";
     
-    if (!args.structs().empty()) lol += "// Struct declarations\n";
+    if (!args.structs().empty()) lol += "// Struct declarations";
     unordered_set<size_t> filterAddedStructs;
     for (auto&& strct : args.structs())
     {
       if (filterAddedStructs.find(strct.first) != filterAddedStructs.end())
         continue;
-      lol += strct.second + "\n";
+      lol += "\n" + strct.second;
       filterAddedStructs.insert(strct.first);
     }
+    if (!args.structs().empty()) lol += "\n";
     
-    lol += "\n// Read Only resources\n";
-    for (auto&& res : args.resources())
+    if (hasReadOnly)
     {
-      if (res.readonly)
+      lol += "// Read Only resources\n";
+      for (auto&& res : args.resources())
       {
-        lol += resourceToString(false, gi, srv++, res) + "\n";
-        gi++;
+        if (res.readonly)
+        {
+          lol += resourceToString(false, gi, srv++, res) + "\n";
+          gi++;
+        }
       }
     }
     //gi = 1;
-    lol += "\n// Read Write resources\n";
-    for (auto&& res : args.resources())
+    if (hasReadWrite)
     {
-      if (!res.readonly)
+      lol += "// Read Write resources\n";
+      for (auto&& res : args.resources())
       {
-        lol += resourceToString(true, gi, uav++, res) + "\n";
-        gi++;
+        if (!res.readonly)
+        {
+          lol += resourceToString(true, gi, uav++, res) + "\n";
+          gi++;
+        }
       }
     }
 
     auto bindless = args.bindless();
     if (!bindless.name.empty())
     {
-      lol += "\n// Bindless\n";
+      lol += "// Bindless\n";
       lol += resourceToString(!bindless.readonly, gi, bindless.readonly ? srv : uav, bindless) + "\n";
     }
   }
@@ -218,9 +241,11 @@ namespace higanbana
     if (!constantStructBody.empty())
     {
       gi++;
-      lol += "struct Constants\n{" + constantStructBody + " };\n";
+      lol += "// Shader input constants from user code\n";
+      lol += "struct Constants { " + constantStructBody + " };\n";
       lol += "VK_BINDING(0, " + std::to_string(m_sets.size()) + ") ConstantBuffer<Constants> constants : register( b0 );\n";
       gi++;
+      lol += "// Internal, debug print output buffer\n";
       lol += "VK_BINDING(1, " + std::to_string(m_sets.size()) + ") RWByteAddressBuffer _debugOut : register( u99, space99 );\n";
     }
     set = 0;
@@ -228,6 +253,8 @@ namespace higanbana
     {
       if (arg.handle().id != ResourceHandle::InvalidId)
       {
+        // might have to extract structs and check for duplicates...?
+        // or uniquely name all structs to avoid potential conflicts? hmm
         resourceDeclarations(lol, set, arg);
         //gi += arg.resources().size();
       }
