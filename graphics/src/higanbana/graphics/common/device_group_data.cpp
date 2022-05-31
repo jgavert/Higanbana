@@ -895,7 +895,7 @@ namespace higanbana
     bool DeviceGroupData::uploadInitialTexture(Texture& tex, CpuImage& image) {
       HIGAN_CPU_FUNCTION_SCOPE();
 
-      auto allBytes = 0;
+      size_t allBytes = 0;
       auto arraySize = image.desc().desc.arraySize;
       for (auto slice = 0u; slice < arraySize; ++slice) {
         for (auto mip = 0u; mip < image.desc().desc.miplevels; ++mip) {
@@ -907,7 +907,7 @@ namespace higanbana
         waitGpuIdle(); 
       }
       deviceMemory = m_devices[0].device->availableDynamicMemory();
-      HIGAN_ASSERT(deviceMemory > allBytes, "Don't have enough memory to begin with.");
+      HIGAN_ASSERT(deviceMemory > allBytes, "Don't have enough memory to begin with. %zu vs %zu", deviceMemory, allBytes);
 
       auto graph = startCommandGraph();
 

@@ -160,7 +160,10 @@ css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& datab
           }
           higanbana::vector<css::Task<void>> tasks;
           for (int i = 0; i < data->images_count; ++i) {
-            tasks.emplace_back(loadImageAsync(fs, rawTextureData[(*ids)[i]], parentDir + data->images[i].uri));
+            std::string funnystring = data->images[i].uri;
+            if (funnystring[0] == '.')
+              funnystring = funnystring.substr(2);
+            tasks.emplace_back(loadImageAsync(fs, rawTextureData[(*ids)[i]], parentDir + funnystring));
           }
           for (auto&& task : tasks)
             co_await task;

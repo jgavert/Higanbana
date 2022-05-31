@@ -91,3 +91,42 @@ TEST_CASE( "simple camera movement" ) {
     printfloat4(pos2);
   }
 }
+
+TEST_CASE( "right hand perspective matrix" ) {
+  float4x4 rh = math::perspectiveRH(60, 1, 0.1, 100);
+  float4x4 rhInvZ = math::perspectiveRHInverseZ(60, 1, 0.1, 100);
+  float4x4 rhInvZInf = math::perspectiveRHInverseInfZ(60, 1, 0.1);
+  float4x4 lh = math::perspectiveLH(60, 1, 0.1, 100);
+  float4x4 lhInvZ = math::perspectiveLHInverseZ(60, 1, 0.1, 100);
+  float4x4 lhInvZInf = math::perspectiveLHInverseInfZ(60, 1, 0.1);
+
+  float4x4 hardcoded = { 1, 0, 0, 0,
+                         0, 1, 0, 0,
+                         0, 0, 1, 0,
+                         0, 0, 0, 1};
+
+  float4 pos = float4(1, 1, 1, 1);
+  float4 outputRH = mul(pos, rh).row(0);
+  float4 outputRHInverseZ = mul(pos, rhInvZ).row(0);
+  float4 outputRHInverseInfZ = mul(pos, rhInvZInf).row(0);
+  float4 outputLH = mul(pos, lh).row(0);
+  float4 outputLHInverseZ = mul(pos, lhInvZ).row(0);
+  float4 outputLHInverseInfZ = mul(pos, lhInvZInf).row(0);
+  float4 outputcustom = mul(pos, hardcoded).row(0);
+  HIGAN_LOGi("\nPerspective matrix behavior inspection\n");
+  HIGAN_LOGi("RH output             ");
+  printfloat4(outputRH);
+  HIGAN_LOGi("RH InverseZ output    ");
+  printfloat4(outputRHInverseZ);
+  HIGAN_LOGi("RH InverseInfZ output ");
+  printfloat4(outputRHInverseInfZ);
+  HIGAN_LOGi("LH output             ");
+  printfloat4(outputLH);
+  HIGAN_LOGi("LH InverseZ output    ");
+  printfloat4(outputLHInverseZ);
+  HIGAN_LOGi("LH InverseInfZ output ");
+  printfloat4(outputLHInverseInfZ);
+
+  HIGAN_LOGi("custom output         ");
+  printfloat4(outputcustom);
+}
