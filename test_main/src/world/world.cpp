@@ -271,7 +271,7 @@ css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& datab
             {
               MeshData md{};
 
-              if (primitive.indices >= 0)
+              if (primitive.indices)
               {
                 auto& indiceAccessor = *primitive.indices;
                 auto& indiceView = *indiceAccessor.buffer_view;
@@ -357,7 +357,7 @@ css::Task<void> World::loadGLTFSceneCgltfTasked(higanbana::Database<2048>& datab
               auto& table = database.get<components::RawMeshData>();
               table.insert(ent, {id});
               auto& mattable = database.get<components::MaterialInstance>();
-              if (primitive.material >= 0)
+              if (primitive.material)
               {
                 mattable.insert(ent, {materials[primitive.material]});
               }
@@ -617,7 +617,7 @@ void World::loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::F
             {
               MeshData md{};
 
-              if (primitive.indices >= 0)
+              if (primitive.indices)
               {
                 auto& indiceAccessor = *primitive.indices;
                 auto& indiceView = *indiceAccessor.buffer_view;
@@ -703,7 +703,7 @@ void World::loadGLTFSceneCgltf(higanbana::Database<2048>& database, higanbana::F
               auto& table = database.get<components::RawMeshData>();
               table.insert(ent, {id});
               auto& mattable = database.get<components::MaterialInstance>();
-              if (primitive.material >= 0)
+              if (primitive.material)
               {
                 mattable.insert(ent, {materials[primitive.material]});
               }

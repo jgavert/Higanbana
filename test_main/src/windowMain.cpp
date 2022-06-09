@@ -424,7 +424,10 @@ css::Task<int> RenderingApp::runVisualLoop(app::Renderer& rend, higanbana::GpuGr
 
               auto fps = rend.raytraceSecondsPerIteration(i);
               std::string raytraceFPS = std::to_string(fps);
-              raytraceFPS += " fps";
+              raytraceFPS += " fps ";
+              ImGui::Text(raytraceFPS.c_str());
+              raytraceFPS = std::to_string(1000.f / fps);
+              raytraceFPS += "ms";
               ImGui::Text(raytraceFPS.c_str());
             }
             /*

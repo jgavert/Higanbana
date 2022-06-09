@@ -34,6 +34,7 @@ namespace higanbana
       { vk::Format::eB8G8R8A8Unorm,       vk::Format::eB8G8R8A8Unorm,         FormatType::Unorm8BGRA },
       { vk::Format::eB8G8R8A8Srgb,        vk::Format::eB8G8R8A8Srgb,          FormatType::Unorm8SBGRA },
       { vk::Format::eA2R10G10B10UnormPack32,   vk::Format::eA2R10G10B10UnormPack32,    FormatType::Unorm10RGB2A },
+      { vk::Format::eB10G11R11UfloatPack32,   vk::Format::eB10G11R11UfloatPack32,    FormatType::FloatR11G11B10 },
       { vk::Format::eR32Uint,             vk::Format::eR32Uint,               FormatType::Raw32 },
       { vk::Format::eX8D24UnormPack32,    vk::Format::eX8D24UnormPack32,      FormatType::Depth24 },
       { vk::Format::eD24UnormS8Uint,      vk::Format::eD24UnormS8Uint,        FormatType::Depth24_Stencil8 },

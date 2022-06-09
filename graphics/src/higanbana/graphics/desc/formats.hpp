@@ -70,6 +70,7 @@ namespace higanbana
     Unorm8BGRA,
     Unorm8SBGRA,
     Unorm10RGB2A,
+    FloatR11G11B10,
     Raw32,
     Depth24,
     Depth24_Stencil8,

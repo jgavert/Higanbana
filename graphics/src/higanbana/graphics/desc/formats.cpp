@@ -44,6 +44,7 @@ namespace higanbana
     { FormatType::Unorm8BGRA, 4, 4, FormatTypeIdentifier::Unorm },
     { FormatType::Unorm8SBGRA, 4, 4, FormatTypeIdentifier::Unorm },
     { FormatType::Unorm10RGB2A, 4, 4, FormatTypeIdentifier::Unorm },
+    { FormatType::FloatR11G11B10, 4, 4, FormatTypeIdentifier::Float },
     { FormatType::Raw32, 4, 1, FormatTypeIdentifier::Unknown },
     { FormatType::Depth32, 4, 1, FormatTypeIdentifier::Unknown },
     { FormatType::Depth32_Stencil8, 8, 1, FormatTypeIdentifier::Unknown },
